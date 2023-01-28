@@ -1,0 +1,65 @@
+{
+  "name": "rnapp",
+  "version": "0.0.1",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && rm -f Podfile.lock && pod install && cd ..",
+    "start": "react-native start --reset-cache",
+    "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
+    "android:Dev-Release": "react-native run-android --mode=developmentRelease",
+    "android:Stg-Debug": "react-native run-android --mode=stagingDebug",
+    "android:Stg-Release": "react-native run-android --mode=stagingRelease",
+    "android:Prod-Debug": "react-native run-android --mode=productionDebug",
+    "android:Prod-Release": "react-native run-android --mode=productionRelease",
+    "android:build": "cd android && ./gradlew assembleProductionRelease",
+    "ios:Dev-Debug": "react-native run-ios --scheme 'rnapp.developmentDebug'",
+    "ios:Dev-Release": "react-native run-ios --scheme 'rnapp.developmentRelease'",
+    "ios:Stg-Debug": "react-native run-ios --scheme 'rnapp.stagingDebug'",
+    "ios:Stg-Release": "react-native run-ios --scheme 'rnapp.stagingReleasse'",
+    "ios:Prod-Debug": "react-native run-ios --scheme 'rnapp.productionDebug'",
+    "ios:Prod-Release": "react-native run-ios --scheme 'rnapp.productionRelease'",
+    "clean:android": "cd android && ./gradlew clean",
+    "lint": "eslint \"src/**/*{.ts,.tsx}\"",
+    "lint:fix": "eslint --fix \"src/**/*{.ts,.tsx}\"",
+    "prettier:fix": "prettier --parser typescript --write src/**/*.{json,ts,tsx}",
+    "check-packages-updates": "yarn outdated"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-native": "0.71.1",
+    "react-native-config": "1.4.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/preset-env": "^7.20.0",
+    "@babel/runtime": "^7.20.0",
+    "@react-native-community/eslint-config": "^3.0.0",
+    "@tsconfig/react-native": "^2.0.2",
+    "@types/react": "^18.0.24",
+    "@types/react-test-renderer": "^18.0.0",
+    "babel-jest": "^29.2.1",
+    "eslint": "8.22.0",
+    "eslint-plugin-import": "^2.25.2",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.26.1",
+    "eslint-plugin-react-hooks": "^4.2.0",
+    "husky": "^4.3.0",
+    "lint-staged": "^11.2.6",
+    "metro-react-native-babel-preset": "0.73.7",
+    "prettier": "^2.4.1",
+    "typescript": "4.8.4"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix \"src/**/*{.ts,.tsx}\"",
+      "prettier --parser typescript --write src/**/*.{ts,tsx}",
+      "git add"
+    ]
+  }
+}
