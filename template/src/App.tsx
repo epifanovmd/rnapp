@@ -1,4 +1,5 @@
 import React, {useEffect} from 'react';
+import SplashScreen from 'react-native-splash-screen';
 import {
   SafeAreaView,
   ScrollView,
@@ -13,6 +14,7 @@ function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
   useEffect(() => {
+    SplashScreen.hide();
     setTimeout(() => {
       console.log('CONFIG', JSON.stringify(Config));
     }, 1000);
