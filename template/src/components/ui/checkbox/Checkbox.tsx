@@ -94,7 +94,7 @@ export const Checkbox: FC<PropsWithChildren<ICheckboxProps>> = memo(
         />
         {(label || children) && (
           <Touchable
-            ml={24}
+            ml={4}
             flexShrink={1}
             flexGrow={1}
             alignItems={'flex-start'}

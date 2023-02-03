@@ -1,7 +1,7 @@
 import Config from 'react-native-config';
 import {stringify} from 'query-string';
 import axios, {AxiosInstance, AxiosRequestConfig} from 'axios';
-import {NotificationManager} from '../components/notification';
+import {NotificationManager} from '../notification';
 import {ApiRequestConfig, ApiResponse} from './types';
 
 export class ApiService {
@@ -9,6 +9,7 @@ export class ApiService {
   private raceConditionMap: Map<string, AbortController> = new Map();
 
   constructor(config?: AxiosRequestConfig) {
+    console.log('configconfigconfigconfig', config);
     this.instance = axios.create({
       timeout: 1000,
       withCredentials: true,
@@ -22,6 +23,7 @@ export class ApiService {
     this.instance.interceptors.response.use(
       response => ({data: response} as any),
       error => {
+        console.log('error', error);
         const status = error?.response?.status || 500;
 
         if (error && error?.message !== 'canceled') {

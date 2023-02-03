@@ -21,5 +21,5 @@ const TAB_SCREENS: AppTabScreens = {
 };
 
 export const TabScreens: FC<IProps> = memo(() => (
-  <AppNavigation routes={TAB_SCREENS} initialRouteName={'MAIN'} />
+  <AppNavigation routes={TAB_SCREENS} />
 ));

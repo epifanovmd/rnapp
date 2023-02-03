@@ -1,4 +1,3 @@
-// Theme.context.tsx
 import React, {useEffect} from 'react';
 import {Theme} from './interface';
 import {

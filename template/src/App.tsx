@@ -5,7 +5,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {StatusBar, useColorScheme} from 'react-native';
 import Config from 'react-native-config';
 import {AppScreens} from './AppScreens';
-import {Notification} from './components/notification';
+import {Notification} from './notification';
 import {ThemeProvider} from './theme';
 
 function App(): JSX.Element {

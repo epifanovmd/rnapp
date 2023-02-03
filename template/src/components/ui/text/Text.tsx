@@ -27,6 +27,6 @@ export const Text: FC<IProps> = memo(({children, ...rest}) => {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     wrap: {
-      color: theme.color.grey.grey900,
+      color: theme.color.text,
     },
   });

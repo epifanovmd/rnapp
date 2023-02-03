@@ -1,6 +1,9 @@
 import React, {FC, memo, useMemo} from 'react';
-import {StackScreenOption, StackScreens} from './types';
-import {createStackNavigator} from '@react-navigation/stack';
+import {StackScreens} from './types';
+import {
+  createStackNavigator,
+  StackNavigationOptions,
+} from '@react-navigation/stack';
 import {ScreenName} from './navigation.types';
 // import {useTransformScreenOptions} from './hooks';
 
@@ -8,7 +11,7 @@ const Tab = createStackNavigator();
 
 interface IProps {
   routes: StackScreens;
-  screenOptions?: StackScreenOption;
+  screenOptions?: StackNavigationOptions;
   initialRouteName?: keyof StackScreens;
   detachInactiveScreens?: boolean;
 }
@@ -17,7 +20,7 @@ export const StackNavigation: FC<IProps> = memo(
   ({routes, screenOptions, initialRouteName, detachInactiveScreens}) => {
     // const transformOptions = useTransformScreenOptions<StackScreenOption>();
 
-    const _screenOptions = useMemo<StackScreenOption>(
+    const _screenOptions = useMemo<StackNavigationOptions>(
       () => ({
         headerShown: false,
         cardStyle: {

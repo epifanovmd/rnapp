@@ -1,7 +1,7 @@
-// DefaultLight.light.ts
-import {ColorTheme, SpacingTheme, Theme} from '../interface';
+import {Theme} from '../interface';
 
-const DEFAULT_LIGHT_COLOR_THEME: ColorTheme = {
+export const DEFAULT_LIGHT_COLOR_THEME = {
+  text: '#000',
   common: {
     black: '#000',
     white: '#fff',
@@ -59,7 +59,7 @@ const DEFAULT_LIGHT_COLOR_THEME: ColorTheme = {
     greyA700: '#616161',
   },
 };
-const DEFAULT_LIGHT_SPACING_THEME: SpacingTheme = {
+export const DEFAULT_LIGHT_SPACING_THEME = {
   base: 8,
   double: 16,
 };

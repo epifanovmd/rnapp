@@ -10,8 +10,11 @@ module.exports = {
     getTransformOptions: async () => ({
       transform: {
         experimentalImportSupport: false,
-        inlineRequires: true,
+        inlineRequires: false,
       },
     }),
+    babelTransformerPath: require.resolve(
+      'react-native-typescript-transformer',
+    ),
   },
 };

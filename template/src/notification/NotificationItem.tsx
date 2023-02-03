@@ -1,10 +1,9 @@
 import React, {FC, memo, useCallback, useMemo} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {NotificationOptions} from './notification.types';
-import {isAndroid, isIPhoneX, useIsLandscape} from '../../common';
+import {isAndroid, isIPhoneX, useIsLandscape} from '../common';
 import {getNotificationStatusBarHeight} from './helpers';
-import {Col, Row} from '../elements';
-import {Touchable} from '../ui';
+import {Col, Row, Touchable} from '../components';
 
 const NOTIFICATION_ICONS = {
   loading: (color?: string) => <ActivityIndicator color={color} />,

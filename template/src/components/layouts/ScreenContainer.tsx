@@ -1,5 +1,5 @@
 import React, {FC, memo} from 'react';
-import {useTheme} from '../../common';
+import {useTheme} from '../../theme';
 import {Col, FlexComponentProps} from '../elements';
 import {SafeArea} from '../ui';
 

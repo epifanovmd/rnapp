@@ -1,9 +1,4 @@
-import {
-  getStatusBarHeight,
-  isAndroid,
-  isIPad,
-  isIPhoneX,
-} from '../../../common';
+import {getStatusBarHeight, isAndroid, isIPad, isIPhoneX} from '../../common';
 
 export const getNotificationStatusBarHeight = (
   isLandscape: boolean = false,

@@ -8,7 +8,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Image,
   NativeSyntheticEvent,
   StyleSheet,
   TextInput,
@@ -63,7 +62,7 @@ export const Input: FC<IInputProps> = forwardRef<TextInput, IInputProps>(
     }, [value]);
 
     const handleFocus = useCallback(
-      event => {
+      (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
         onFocus?.(event);
         setActive(true);
       },
@@ -75,7 +74,7 @@ export const Input: FC<IInputProps> = forwardRef<TextInput, IInputProps>(
     }, []);
 
     const handleBlur = useCallback(
-      event => {
+      (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
         onBlur?.(event);
         name && setFieldBlur && setFieldBlur(name);
         if (!_value.current && !value) {

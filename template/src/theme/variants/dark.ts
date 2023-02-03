@@ -1,7 +1,7 @@
-// DefaultDark.theme.ts
 import {ColorTheme, SpacingTheme, Theme} from '../interface';
 
-const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
+export const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
+  text: '#fff',
   common: {
     black: '#000',
     white: '#fff',
@@ -59,7 +59,7 @@ const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
     greyA700: '#616161',
   },
 };
-const DEFAULT_DARK_SPACING_THEME: SpacingTheme = {
+export const DEFAULT_DARK_SPACING_THEME: SpacingTheme = {
   base: 8,
   double: 16,
 };

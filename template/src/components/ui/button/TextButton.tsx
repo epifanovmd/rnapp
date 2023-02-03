@@ -7,6 +7,7 @@ import {useTheme} from '../../../theme';
 
 export interface ITextButtonProps
   extends FlexComponentProps<TextProps, TextStyle> {
+  title?: string;
   url?: string;
   disabled?: boolean;
 }
@@ -15,6 +16,7 @@ export const TextButton: FC<ITextButtonProps> = ({
   children,
   url,
   color,
+  title,
   ...rest
 }) => {
   const {theme} = useTheme();
@@ -59,7 +61,7 @@ export const TextButton: FC<ITextButtonProps> = ({
         letterSpacing={1.4}
         color={buttonColor}
         {...rest}>
-        {children}
+        {children || title}
       </Text>
     </Touchable>
   );

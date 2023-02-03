@@ -30,16 +30,7 @@ export interface ISearchProps extends FlexComponentProps {
 
 export const Search: FC<ISearchProps> = forwardRef<TextInput, ISearchProps>(
   (
-    {
-      value,
-      onBlur,
-      onFocus,
-      isPassword,
-      onChangeText,
-      placeholder,
-      disabled,
-      ...rest
-    },
+    {value, onBlur, onFocus, onChangeText, placeholder, disabled, ...rest},
     ref,
   ) => {
     const {theme} = useTheme();
@@ -55,7 +46,7 @@ export const Search: FC<ISearchProps> = forwardRef<TextInput, ISearchProps>(
     }, [value]);
 
     const handleFocus = useCallback(
-      event => {
+      (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
         onFocus?.(event);
         setActive(true);
       },
@@ -67,7 +58,7 @@ export const Search: FC<ISearchProps> = forwardRef<TextInput, ISearchProps>(
     }, []);
 
     const handleBlur = useCallback(
-      event => {
+      (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
         onBlur?.(event);
         if (!_value.current && !value) {
           setActive(false);

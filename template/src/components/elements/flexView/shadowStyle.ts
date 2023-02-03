@@ -22,7 +22,7 @@ const shadowMapping: {[key: number]: ShadowStyleIOS} = {
     shadowOpacity: 1,
   },
   1: {
-    shadowRadius: 1 * 2,
+    shadowRadius: 2,
     shadowOffset: {
       height: 1,
       width: 0,

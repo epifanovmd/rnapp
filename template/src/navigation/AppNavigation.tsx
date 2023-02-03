@@ -37,7 +37,7 @@ export const AppNavigation: FC<IProps> = memo(
     // const transformOptions = useTransformScreenOptions<AppScreenOption>();
     const {bottom} = useSafeAreaInsets();
 
-    const _screenOptions = useMemo(
+    const _screenOptions = useMemo<BottomTabNavigationOptions>(
       () => ({
         unmountOnBlur: true,
         headerShown: false,

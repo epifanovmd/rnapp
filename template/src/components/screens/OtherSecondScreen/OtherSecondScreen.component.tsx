@@ -10,5 +10,6 @@ export const OtherSecondScreen: FC<StackProps> = memo(({navigation, route}) => (
       title={'OtherFirstScreen'}
       onPress={() => navigation.navigate('OtherFirstScreen')}
     />
+    <Button title={'MAIN'} onPress={() => navigation.navigate('MAIN')} />
   </ScreenContainer>
 ));

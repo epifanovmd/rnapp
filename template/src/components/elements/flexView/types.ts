@@ -28,7 +28,8 @@ export type NumericSpacesType =
   | 36
   | 38
   | 40
-  | 44;
+  | 44
+  | number;
 
 export type JustifyContentType =
   | 'flex-start'
@@ -234,23 +235,23 @@ interface TextProps {
 }
 
 export interface FlexProps<TStyleSource = ViewStyle>
-  extends Readonly<PaddingGridProps>,
-    Readonly<MargingGridProps>,
-    Readonly<SideProps>,
-    Readonly<SizeProps>,
-    Readonly<PaddingProps>,
-    Readonly<MarginProps>,
-    Readonly<FlexLayoutProps>,
-    Readonly<FlexDirectionProps>,
-    Readonly<AlignProps>,
-    Readonly<PositionProps>,
-    Readonly<DebugProps>,
-    Readonly<ShadowProps>,
-    Readonly<BorderProps>,
-    Readonly<TransformProps>,
-    Readonly<ColorProps>,
-    Readonly<TextProps> {
-  readonly style?: StyleProp<TStyleSource>;
+  extends PaddingGridProps,
+    MargingGridProps,
+    SideProps,
+    SizeProps,
+    PaddingProps,
+    MarginProps,
+    FlexLayoutProps,
+    FlexDirectionProps,
+    AlignProps,
+    PositionProps,
+    DebugProps,
+    ShadowProps,
+    BorderProps,
+    TransformProps,
+    ColorProps,
+    TextProps {
+  style?: StyleProp<TStyleSource>;
 }
 
 export type FlexComponentProps<
