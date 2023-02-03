@@ -10,10 +10,10 @@ import {
   TextButton,
   Modal,
   useModalRef,
+  SafeArea,
 } from '../../components';
 import {AppScreenProps} from '../../navigation';
 import {useNotification} from '../../notification';
-import {SafeAreaView} from 'react-native';
 
 interface IProps extends AppScreenProps {}
 
@@ -72,7 +72,7 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
         onPress={() => modalRef.current?.open()}
       />
       <Modal ref={modalRef} adjustToContentHeight={true}>
-        <SafeAreaView>
+        <SafeArea>
           <Col pa={16}>
             <Text>Модальное окно</Text>
             <Button
@@ -80,7 +80,7 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
               onPress={() => modalRef.current?.close()}
             />
           </Col>
-        </SafeAreaView>
+        </SafeArea>
       </Modal>
     </ScreenContainer>
   );

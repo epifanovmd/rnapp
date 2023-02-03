@@ -1,1 +1,1 @@
-export * from "./OtherSecondScreen.component";
+export * from './OtherSecondScreen.component';
