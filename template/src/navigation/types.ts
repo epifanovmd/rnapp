@@ -1,5 +1,5 @@
 import React from 'react';
-// import {II18nPaths} from '../localization';
+import {II18nPaths} from '../localization';
 import {BottomTabNavigationOptions} from '@react-navigation/bottom-tabs';
 import {
   MaterialBottomTabNavigationOptions,
@@ -14,8 +14,6 @@ import {ScreenName, ScreenParamsTypes} from './navigation.types';
 import {RouteProp} from '@react-navigation/native';
 import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs/src/types';
 import {StackNavigationProp} from '@react-navigation/stack/src/types';
-
-type II18nPaths = string;
 
 export type ScreenParamList = ScreenParamsTypes;
 

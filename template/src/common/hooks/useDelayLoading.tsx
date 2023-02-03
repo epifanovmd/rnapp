@@ -14,7 +14,7 @@ export const useDelayLoading = (delay: number, load: boolean) => {
       timeoutId.current = null;
       setLoading(false);
     }
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   return loading;

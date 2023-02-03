@@ -5,12 +5,14 @@ import {
   createBottomTabNavigator,
 } from '@react-navigation/bottom-tabs';
 import {Theme, useTheme, useThemeAwareObject} from '../theme';
-import {AppTabScreens} from './types';
+import {AppScreenOption, AppTabScreens} from './types';
 import {BackBehavior} from '@react-navigation/routers/lib/typescript/src/TabRouter';
 import {BottomTabBarProps} from '@react-navigation/bottom-tabs/src/types';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ScreenName} from './navigation.types';
-// import {useTransformScreenOptions} from './hooks';
+import {useTransformScreenOptions} from './hooks';
+import {useTranslation} from '../localization';
+import {toLowerCase} from '@force-dev/utils';
 
 const Tab = createBottomTabNavigator();
 
@@ -33,8 +35,9 @@ export const AppNavigation: FC<IProps> = memo(
     tabBar,
   }) => {
     const {theme} = useTheme();
+    const {t} = useTranslation();
     const styles = useThemeAwareObject(createStyles);
-    // const transformOptions = useTransformScreenOptions<AppScreenOption>();
+    const transformOptions = useTransformScreenOptions<AppScreenOption>();
     const {bottom} = useSafeAreaInsets();
 
     const _screenOptions = useMemo<BottomTabNavigationOptions>(
@@ -77,10 +80,9 @@ export const AppNavigation: FC<IProps> = memo(
         {(Object.keys(routes) as ScreenName[]).map((name, index) => (
           <Tab.Screen
             key={`screen-${index + 1}-${name}`}
-            // options={transformOptions(routes[name]!.options)}
-            options={routes[name]!.options}
+            options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
-            name={name}
+            name={t(`navigation.${toLowerCase(name)}` as any) as any}
             component={routes[name]!.screen}
             initialParams={routes[name]!.initialParams}
           />

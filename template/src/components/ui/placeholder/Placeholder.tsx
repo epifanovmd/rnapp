@@ -49,7 +49,7 @@ export const Placeholder: FC<IProps> = ({
         useNativeDriver: true,
       }).start();
     }
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
   const placeholderActiveStyle = useMemo(

@@ -4,17 +4,29 @@ import SplashScreen from 'react-native-splash-screen';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {StatusBar, useColorScheme} from 'react-native';
 import Config from 'react-native-config';
+import {configure} from 'mobx';
 import {AppScreens} from './AppScreens';
 import {Notification} from './notification';
 import {ThemeProvider} from './theme';
+import {initLocalization, useTranslation} from './localization';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-function App(): JSX.Element {
+configure({enforceActions: 'observed'});
+
+initLocalization({initLang: 'ru'});
+
+const App = (): JSX.Element => {
   const isDarkMode = useColorScheme() === 'dark';
+  const {i18n} = useTranslation();
 
   useEffect(() => {
-    setTimeout(() => {
-      console.log('CONFIG', JSON.stringify(Config));
-    }, 1000);
+    AsyncStorage.getItem('i18nextLng').then(async lang => {
+      if (lang) {
+        await i18n.changeLanguage(lang);
+      }
+    });
+    console.log('CONFIG', JSON.stringify(Config));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onReady = useCallback(() => {
@@ -33,6 +45,6 @@ function App(): JSX.Element {
       </SafeAreaProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

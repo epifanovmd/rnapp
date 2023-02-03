@@ -6,7 +6,9 @@ import {TabScreenOption, TabScreens} from './types';
 import {MaterialTopTabBarProps} from '@react-navigation/material-top-tabs/lib/typescript/src/types';
 import {BackBehavior} from '@react-navigation/routers/lib/typescript/src/TabRouter';
 import {ScreenName} from './navigation.types';
-// import { useTransformScreenOptions } from "./hooks";
+import {useTransformScreenOptions} from './hooks';
+import {toLowerCase} from '@force-dev/utils';
+import {useTranslation} from '../localization';
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -15,7 +17,6 @@ interface IProps {
   screenOptions?: TabScreenOption;
   initialRouteName?: keyof TabScreens;
   tabBarPosition?: 'top' | 'bottom';
-  showPageIndicator?: boolean;
   tabBar?: (props: MaterialTopTabBarProps) => React.ReactNode;
   backBehavior?: BackBehavior;
   keyboardDismissMode?: 'none' | 'on-drag' | 'auto';
@@ -29,13 +30,13 @@ export const TabNavigation: FC<IProps> = memo(
     screenOptions,
     initialRouteName,
     tabBarPosition,
-    showPageIndicator,
     tabBar = () => null,
     backBehavior,
     keyboardDismissMode,
   }) => {
+    const {t} = useTranslation();
     const styles = useThemeAwareObject(createStyles);
-    // const transformOptions = useTransformScreenOptions<TabScreenOption>();
+    const transformOptions = useTransformScreenOptions<TabScreenOption>();
 
     const _screenOptions: TabScreenOption = useMemo(
       () => ({backBehavior: 'none', ...screenOptions}),
@@ -47,7 +48,6 @@ export const TabNavigation: FC<IProps> = memo(
         screenOptions={_screenOptions}
         initialRouteName={initialRouteName}
         tabBarPosition={tabBarPosition}
-        showPageIndicator={showPageIndicator}
         tabBar={tabBar}
         backBehavior={backBehavior}
         keyboardDismissMode={keyboardDismissMode}
@@ -56,10 +56,9 @@ export const TabNavigation: FC<IProps> = memo(
         {(Object.keys(routes) as ScreenName[]).map((name, index) => (
           <Tab.Screen
             key={`screen-${index + 1}-${name}`}
-            // options={transformOptions(routes[name]!.options)}
-            options={routes[name]!.options}
+            options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
-            name={name}
+            name={t(`navigation.${toLowerCase(name)}` as any) as any}
             component={routes[name]!.screen}
             initialParams={routes[name]!.initialParams}
           />

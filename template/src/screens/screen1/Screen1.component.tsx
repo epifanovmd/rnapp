@@ -13,6 +13,7 @@ import {useNotification} from '../../notification';
 
 interface IProps extends AppScreenProps {}
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let id: string;
 
 export const Screen1: FC<IProps> = memo(({navigation, route}) => {

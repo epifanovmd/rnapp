@@ -76,7 +76,7 @@ export function useCompoundProps<
 ): TCompoundProps<P, TComponent, TParams> & TChildren {
   return useMemo(
     () => getCompoundProps(props, compoundComponent, ...parameters),
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [(props as any).children],
   );
 }
