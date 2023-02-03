@@ -3,13 +3,17 @@ import {
   BorderButton,
   Button,
   Checkbox,
+  Col,
   ScreenContainer,
   SwitchTheme,
   Text,
   TextButton,
+  Modal,
+  useModalRef,
 } from '../../components';
 import {AppScreenProps} from '../../navigation';
 import {useNotification} from '../../notification';
+import {SafeAreaView} from 'react-native';
 
 interface IProps extends AppScreenProps {}
 
@@ -18,6 +22,7 @@ let id: string;
 
 export const Screen1: FC<IProps> = memo(({navigation, route}) => {
   const {showMessage, hideMessage} = useNotification();
+  const modalRef = useModalRef();
 
   return (
     <ScreenContainer pa={16}>
@@ -60,7 +65,23 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
           });
         }}
       />
-      <Button title={'hideMessage'} onPress={() => hideMessage()} />
+      <Button mv={8} title={'hideMessage'} onPress={() => hideMessage()} />
+      <Button
+        mv={8}
+        title={'show modal'}
+        onPress={() => modalRef.current?.open()}
+      />
+      <Modal ref={modalRef} adjustToContentHeight={true}>
+        <SafeAreaView>
+          <Col pa={16}>
+            <Text>Модальное окно</Text>
+            <Button
+              title={'hideModal'}
+              onPress={() => modalRef.current?.close()}
+            />
+          </Col>
+        </SafeAreaView>
+      </Modal>
     </ScreenContainer>
   );
 });
