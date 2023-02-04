@@ -4,9 +4,10 @@ import {
   ColorValue,
   FlexAlignType,
   StyleProp,
-  ViewProps,
+  TextStyle,
   ViewStyle,
 } from 'react-native';
+import AnimatedProps = Animated.AnimatedProps;
 
 export type NumericSpacesType =
   | 2
@@ -138,12 +139,10 @@ interface FlexLayoutProps {
 }
 
 interface FlexDirectionProps {
-  // flexDirection: 'row' (row-reverse)
-  row?: boolean;
-  // flexDirection: 'column' (column-reverse)
-  col?: boolean;
-  // flexDirection: row-reverse || column-reverse
-  reverse?: boolean;
+  // flexDirection: 'row'
+  row?: true;
+  // flexDirection: 'column'
+  col?: true;
   wrap?: FlexWrapType | true;
 }
 
@@ -151,35 +150,37 @@ interface AlignProps {
   alignItems?: FlexAlignType;
   alignSelf?: AlignSelfType;
   justifyContent?: JustifyContentType;
-  centerContent?: boolean;
+  centerContent?: true;
   alignContent?: AlignContentType;
 }
 
 interface PositionProps {
   // position='absolute'
-  absolute?: boolean;
-  absoluteFill?: boolean;
+  absolute?: true;
+  absoluteFill?: true;
   zIndex?: number;
 }
 
 interface BorderProps {
   // borderRadius
-  radius?: number;
-  topRadius?: number;
-  bottomRadius?: number;
-  leftRadius?: number;
-  rightRadius?: number;
+  radius?: number | Animated.Animated;
+  topRadius?: number | Animated.Animated;
+  bottomRadius?: number | Animated.Animated;
+  leftRadius?: number | Animated.Animated;
+  rightRadius?: number | Animated.Animated;
   // circle - диаметр круга
   circle?: number;
-  overflow?: 'visible' | 'hidden' | 'scroll' | boolean;
-  borderColor?: string;
-  borderWidth?: number;
-  borderBottomWidth?: number;
-  borderTopWidth?: number;
+  overflow?: 'visible' | 'hidden' | 'scroll';
+  borderColor?: string | Animated.Animated;
+  borderWidth?: number | Animated.Animated;
+  borderBottomWidth?: number | Animated.Animated;
+  borderTopWidth?: number | Animated.Animated;
+  borderLeftWidth?: number | Animated.Animated;
+  borderRightWidth?: number | Animated.Animated;
 }
 
 interface TransformProps {
-  animated?: boolean;
+  animated?: true;
   /**
    * Value for: transform: [{rotate: string}]
    * Examples: '90deg', '0.785398rad'
@@ -196,18 +197,18 @@ interface ShadowProps {
 
 interface DebugProps {
   // true - красит фон красным, 'любой текст' - выведет указанный текст в лог из render
-  debug?: boolean | string;
+  debug?: true | string;
 }
 
 interface ColorProps {
   bg?: string;
-  opacity?: number | string | Animated.Animated;
+  opacity?: number | string;
 }
 
 interface TextProps {
-  color?: ColorValue;
+  color?: ColorValue | Animated.Animated;
   fontFamily?: string;
-  fontSize?: number;
+  fontSize?: number | Animated.Animated;
   fontStyle?: 'normal' | 'italic';
   fontWeight?:
     | 'normal'
@@ -221,8 +222,8 @@ interface TextProps {
     | '700'
     | '800'
     | '900';
-  letterSpacing?: number;
-  lineHeight?: number;
+  letterSpacing?: number | Animated.Animated;
+  lineHeight?: number | Animated.Animated;
   textAlign?: 'auto' | 'left' | 'right' | 'center' | 'justify';
   textDecorationLine?:
     | 'none'
@@ -230,31 +231,38 @@ interface TextProps {
     | 'line-through'
     | 'underline line-through';
   textDecorationStyle?: 'solid' | 'double' | 'dotted' | 'dashed';
-  textDecorationColor?: ColorValue;
+  textDecorationColor?: ColorValue | Animated.Animated;
   textTransform?: 'none' | 'capitalize' | 'uppercase' | 'lowercase';
 }
 
-export interface FlexProps<TStyleSource = ViewStyle>
-  extends PaddingGridProps,
-    MargingGridProps,
-    SideProps,
-    SizeProps,
-    PaddingProps,
-    MarginProps,
-    FlexLayoutProps,
-    FlexDirectionProps,
-    AlignProps,
-    PositionProps,
-    DebugProps,
-    ShadowProps,
-    BorderProps,
-    TransformProps,
-    ColorProps,
-    TextProps {
-  style?: StyleProp<TStyleSource>;
-}
+type CommonFlexProps = AnimatedProps<PaddingGridProps> &
+  AnimatedProps<MargingGridProps> &
+  AnimatedProps<SideProps> &
+  AnimatedProps<SizeProps> &
+  AnimatedProps<PaddingProps> &
+  AnimatedProps<MarginProps> &
+  FlexLayoutProps &
+  FlexDirectionProps &
+  AlignProps &
+  PositionProps &
+  DebugProps &
+  ShadowProps &
+  BorderProps &
+  TransformProps &
+  AnimatedProps<ColorProps>;
 
-export type FlexComponentProps<
-  TProps = ViewProps,
-  TStyleSource = ViewStyle,
-> = FlexProps<TStyleSource> & TProps & {children?: React.ReactNode};
+export type FlexProps<TStyleSource = ViewStyle> = (Omit<
+  TextStyle,
+  keyof ViewStyle
+> extends TStyleSource
+  ? CommonFlexProps & TextProps
+  : CommonFlexProps) &
+  AnimatedProps<{
+    readonly style?: StyleProp<TStyleSource>;
+  }>;
+
+export type FlexComponentProps<TProps = {}, TStyleSource = ViewStyle> = Omit<
+  TProps,
+  'style'
+> &
+  FlexProps<TStyleSource> & {children?: React.ReactNode};
