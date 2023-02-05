@@ -1,6 +1,7 @@
 import {Platform} from 'react-native';
+import {FlexProps} from './types';
 
-export function shadowStyle(elevation: number): any {
+export function shadowStyle(elevation: FlexProps['elevation'] = 0): any {
   return Platform.select({
     ios: {
       shadowRadius: elevation * 2,
