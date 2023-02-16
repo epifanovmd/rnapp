@@ -1,8 +1,9 @@
 import React, {FC} from 'react';
-import Svg, {Path, SvgProps} from 'react-native-svg';
-import {FlexComponentProps, useFlexProps} from '../elements';
+import Svg, {Path} from 'react-native-svg';
+import {useFlexProps} from '../elements';
+import {FlexSvgProps} from './types';
 
-interface IProps extends FlexComponentProps<SvgProps> {}
+interface IProps extends FlexSvgProps {}
 
 export const NoWifiIcon: FC<IProps> = props => {
   const {style, ownProps} = useFlexProps(props);

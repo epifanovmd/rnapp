@@ -1,8 +1,9 @@
 import React, {FC} from 'react';
-import Svg, {G, Path, Polygon, SvgProps} from 'react-native-svg';
-import {FlexComponentProps, useFlexProps} from '../elements';
+import Svg, {G, Path, Polygon} from 'react-native-svg';
+import {useFlexProps} from '../elements';
+import {FlexSvgProps} from './types';
 
-interface IProps extends FlexComponentProps<SvgProps> {}
+interface IProps extends FlexSvgProps {}
 
 export const SearchIcon: FC<IProps> = props => {
   const {style, ownProps} = useFlexProps(props);

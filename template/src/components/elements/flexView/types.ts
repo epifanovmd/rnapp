@@ -251,6 +251,8 @@ type CommonFlexProps = AnimatedProps<PaddingGridProps> &
   TransformProps &
   AnimatedProps<ColorProps>;
 
+export type FlexStyle = ViewStyle & TextStyle;
+
 export type FlexProps<TStyleSource = ViewStyle> = (Omit<
   TextStyle,
   keyof ViewStyle

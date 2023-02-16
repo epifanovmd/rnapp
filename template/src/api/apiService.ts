@@ -9,7 +9,6 @@ export class ApiService {
   private raceConditionMap: Map<string, AbortController> = new Map();
 
   constructor(config?: AxiosRequestConfig) {
-    console.log('configconfigconfigconfig', config);
     this.instance = axios.create({
       timeout: 1000,
       withCredentials: true,

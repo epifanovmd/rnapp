@@ -78,7 +78,7 @@ export interface StackProps<
 export type AppTabRoute = Route<AppScreenProps>;
 export type BottomTabRoute = Route<any, BottomTabScreenOption>;
 export type TabRoute = Route<any, TabScreenOption>;
-export type StackRoute = Route<any, StackNavigationOptions>;
+export type StackRoute = Route<any, StackScreenOption>;
 
 export type AppTabScreens = {[key in ScreenName]?: AppTabRoute};
 export type BottomTabScreens = {

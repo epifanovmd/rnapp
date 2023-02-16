@@ -5,3 +5,4 @@ export * from './FilterIcon';
 export * from './MenuIcon';
 export * from './NoWifiIcon';
 export * from './SearchIcon';
+export * from './types';

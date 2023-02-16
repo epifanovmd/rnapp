@@ -3,13 +3,11 @@ import {initReactI18next} from 'react-i18next';
 import {getLocales} from 'react-native-localize';
 
 import {ruLocale} from './locales';
-// import { enLocale } from "./locales/en";
 
 export type ILanguageType = 'ru';
 
 export const langResources = {
   ru: {translation: {...ruLocale}},
-  // en: { translation: { ...enLocale } },
 };
 
 export interface IInitLocalizationParams {

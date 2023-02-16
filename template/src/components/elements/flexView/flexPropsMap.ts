@@ -1,48 +1,6 @@
-import {FlexProps} from './types';
-import {TextStyle, ViewStyle} from 'react-native';
+import {FlexProps, FlexStyle} from './types';
 import {shadowStyle} from './shadowStyle';
-
-const isBoolean = <U>(term: boolean | U): term is boolean =>
-  typeof term === 'boolean';
-
-type Style = ViewStyle & TextStyle;
-type HasTrueType<T, R> = T extends true ? R : never;
-
-// styleMapGenerator
-const smg = <
-  FPN extends keyof FlexProps<Style>,
-  SN extends keyof Style = keyof Style,
->(
-  flexPropsName: FPN[],
-  style?: SN[],
-  positiveValue?: HasTrueType<FlexProps<Style>[FPN], Style[SN]>,
-  negativeValue?: HasTrueType<FlexProps<Style>[FPN], Style[SN]>,
-): Record<FPN, (value: FlexProps<Style>[FPN]) => Record<SN, Style[SN]>> => {
-  return flexPropsName.reduce<any>((acc, item) => {
-    acc[item] = (value: FlexProps<Style>[FPN]) => {
-      return (style || (flexPropsName as any[])).reduce<any>((ac, itm) => {
-        ac[itm] = isBoolean(value)
-          ? positiveValue || negativeValue || value
-          : value;
-
-        return ac;
-      }, {}) as Record<SN, Style[SN]>;
-    };
-
-    return acc;
-  }, {});
-};
-
-// TransformStyleMapGenerator
-const tsmg = <FPN extends keyof FlexProps<Style>>(flexPropsName: FPN) => {
-  return {
-    [flexPropsName]: (value: FlexProps<Style>[FPN]) => {
-      return {
-        transform: [{[flexPropsName]: value}],
-      };
-    },
-  };
-};
+import {smg, tSmg} from './styleMapGenerator';
 
 export const flexPropsMap = {
   ...smg(['paddingLeft', 'pl'], ['paddingLeft']),
@@ -92,7 +50,7 @@ export const flexPropsMap = {
   ...smg(['alignContent']),
 
   ...smg(['absolute'], ['position'], 'absolute'),
-  absoluteFill: (value: FlexProps<Style>['absoluteFill']): Style =>
+  absoluteFill: (value: FlexProps<FlexStyle>['absoluteFill']): FlexStyle =>
     value ? {position: 'absolute', left: 0, right: 0, top: 0, bottom: 0} : {},
   ...smg(['zIndex']),
   ...smg(['radius'], ['borderRadius']),
@@ -103,7 +61,7 @@ export const flexPropsMap = {
   ),
   ...smg(['leftRadius'], ['borderBottomLeftRadius', 'borderTopLeftRadius']),
   ...smg(['rightRadius'], ['borderBottomRightRadius', 'borderTopRightRadius']),
-  circle: (value: FlexProps<Style>['circle']): Style => ({
+  circle: (value: FlexProps<FlexStyle>['circle']): FlexStyle => ({
     width: value,
     height: value,
     borderRadius: (value || 0) / 2,
@@ -118,10 +76,10 @@ export const flexPropsMap = {
 
   ...smg(['animated'], ['transform'], []),
 
-  ...tsmg('rotate'),
-  ...tsmg('translateX'),
-  ...tsmg('translateY'),
-  ...tsmg('scale'),
+  ...tSmg('rotate'),
+  ...tSmg('translateX'),
+  ...tSmg('translateY'),
+  ...tSmg('scale'),
 
   elevation: shadowStyle,
 
@@ -146,7 +104,7 @@ export const flexPropsMap = {
 // проверка, все ли ключи FlexProps включены в мапу
 type LostScreenParamsTypes = Exclude<
   keyof Omit<
-    FlexProps<Style>,
+    FlexProps<FlexStyle>,
     'style' | 'rotate' | 'translateX' | 'translateY' | 'scale'
   >,
   keyof typeof flexPropsMap
