@@ -1,7 +1,6 @@
 import React, {FC, memo} from 'react';
-import {ScreenContainer} from '../../layouts';
-import {Button, Text} from '../../ui';
 import {StackProps} from '../../../navigation';
+import {Button, ScreenContainer, Text} from '../../../components';
 
 export const OtherSecondScreen: FC<StackProps> = memo(({navigation, route}) => (
   <ScreenContainer>

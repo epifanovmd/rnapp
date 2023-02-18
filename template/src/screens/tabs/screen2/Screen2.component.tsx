@@ -7,12 +7,12 @@ import {
   Row,
   ScreenContainer,
   Text,
-} from '../../components';
+} from '../../../components';
 import {FlatList, ListRenderItemInfo} from 'react-native';
-import {AppScreenProps} from '../../navigation';
+import {AppScreenProps} from '../../../navigation';
 import {observer} from 'mobx-react-lite';
 import {useScreen2VM} from './Screen2.vm';
-import {IUser} from '../../service';
+import {IUser} from '../../../service';
 
 export const Screen2: FC<AppScreenProps> = observer(() => {
   const {loading, list, onRefresh, onSearch} = useScreen2VM();

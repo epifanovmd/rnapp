@@ -1,7 +1,6 @@
 import React, {FC, memo} from 'react';
 import {AppNavigation, AppTabScreens, StackProps} from '../navigation';
-import {Screen1} from './screen1';
-import {Screen2} from './screen2';
+import {Screen1, Screen2} from './tabs';
 
 interface IProps extends StackProps {}
 
@@ -9,14 +8,14 @@ const TAB_SCREENS: AppTabScreens = {
   Page1: {
     screen: Screen1,
     options: {
-      title: 'navigation.page1',
+      title: 'navigation.Page1',
       tabBarIcon: () => null,
     },
   },
   Page2: {
     screen: Screen2,
     options: {
-      title: 'navigation.page2',
+      title: 'navigation.Page2',
       tabBarIcon: () => null,
     },
   },

@@ -1,5 +1,5 @@
 import {makeAutoObservable} from 'mobx';
-import {IUsersDataStore, UsersDataStore} from '../../store';
+import {IUsersDataStore, UsersDataStore} from '../../../store';
 import {iocDecorator, iocHook} from '@force-dev/utils';
 
 export const IScreen2VM = iocDecorator<Screen2VM>();

@@ -1,7 +1,6 @@
 import React, {FC, memo} from 'react';
 import {StackNavigation, StackScreens} from './navigation';
-import {OtherFirstScreen, OtherSecondScreen} from './components';
-import {TabScreens} from './screens';
+import {OtherFirstScreen, OtherSecondScreen, TabScreens} from './screens';
 
 interface IProps {}
 

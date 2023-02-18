@@ -4,16 +4,16 @@ import {
   Button,
   Checkbox,
   Col,
+  Modal,
+  SafeArea,
   ScreenContainer,
   SwitchTheme,
   Text,
   TextButton,
-  Modal,
   useModalRef,
-  SafeArea,
-} from '../../components';
-import {AppScreenProps} from '../../navigation';
-import {useNotification} from '../../notification';
+} from '../../../components';
+import {AppScreenProps} from '../../../navigation';
+import {useNotification} from '../../../notification';
 
 interface IProps extends AppScreenProps {}
 
