@@ -1,4 +1,4 @@
-import React, {FC, memo, useMemo} from 'react';
+import React, {FC, memo, useCallback, useMemo} from 'react';
 import {Dimensions, StyleSheet} from 'react-native';
 import {Theme, useThemeAwareObject} from '../theme';
 import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs';
@@ -7,7 +7,6 @@ import {MaterialTopTabBarProps} from '@react-navigation/material-top-tabs/lib/ty
 import {BackBehavior} from '@react-navigation/routers/lib/typescript/src/TabRouter';
 import {ScreenName} from './navigation.types';
 import {useTransformScreenOptions} from './hooks';
-import {toLowerCase} from '@force-dev/utils';
 import {useTranslation} from '../localization';
 
 const Tab = createMaterialTopTabNavigator();
@@ -43,6 +42,15 @@ export const TabNavigation: FC<IProps> = memo(
       [screenOptions],
     );
 
+    const getTitle = useCallback(
+      (name: ScreenName) => {
+        const routeTitle = routes[name]?.options?.title;
+
+        return t(routeTitle ?? (`navigation.${name}` as any)) as any;
+      },
+      [routes, t],
+    );
+
     return (
       <Tab.Navigator
         screenOptions={_screenOptions}
@@ -58,7 +66,7 @@ export const TabNavigation: FC<IProps> = memo(
             key={`screen-${index + 1}-${name}`}
             options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
-            name={t(`navigation.${toLowerCase(name)}` as any) as any}
+            name={getTitle(name)}
             component={routes[name]!.screen}
             initialParams={routes[name]!.initialParams}
           />
