@@ -1,9 +1,8 @@
-import React, {FC, memo, useCallback, useMemo} from 'react';
+import React, {FC, memo, useMemo} from 'react';
 import {StackScreenOption, StackScreens} from './types';
 import {createStackNavigator} from '@react-navigation/stack';
 import {ScreenName} from './navigation.types';
 import {useTransformScreenOptions} from './hooks';
-import {useTranslation} from '../localization';
 
 const Tab = createStackNavigator();
 
@@ -16,7 +15,6 @@ interface IProps {
 
 export const StackNavigation: FC<IProps> = memo(
   ({routes, screenOptions, initialRouteName, detachInactiveScreens}) => {
-    const {t} = useTranslation();
     const transformOptions = useTransformScreenOptions<StackScreenOption>();
 
     const _screenOptions = useMemo<StackScreenOption>(
@@ -32,15 +30,6 @@ export const StackNavigation: FC<IProps> = memo(
       [screenOptions],
     );
 
-    const getTitle = useCallback(
-      (name: ScreenName) => {
-        const routeTitle = routes[name]?.options?.title;
-
-        return t(routeTitle ?? (`navigation.${name}` as any)) as any;
-      },
-      [routes, t],
-    );
-
     return (
       <Tab.Navigator
         screenOptions={_screenOptions}
@@ -51,7 +40,7 @@ export const StackNavigation: FC<IProps> = memo(
             key={`screen-${index + 1}-${name}`}
             options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
-            name={getTitle(name)}
+            name={name}
             component={routes[name]!.screen}
             initialParams={routes[name]!.initialParams}
           />

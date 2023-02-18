@@ -1,9 +1,10 @@
+import {Locale} from './types';
+
 export const ruLocale = {
   navigation: {
-    page1: 'Page 1 RUS',
-    page2: 'Page 2 RUS',
-    page3: 'Page 3 RUS',
-    components: 'components',
+    Page1: 'Page 1 RUS',
+    Page2: 'Page 2 RUS',
+    Page3: 'Page 3 RUS',
   },
   button: {
     cancel: 'Отмена',
@@ -19,3 +20,6 @@ export const ruLocale = {
     search: 'Найти',
   },
 };
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const CheckLocaleType: Locale = ruLocale;

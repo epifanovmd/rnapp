@@ -1,11 +1,10 @@
-import React, {FC, memo, useCallback, useMemo} from 'react';
+import React, {FC, memo, useMemo} from 'react';
 import {StyleProp, ViewStyle} from 'react-native';
 import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs';
 import {BottomTabScreenOption, BottomTabScreens} from './types';
 import {BackBehavior} from '@react-navigation/routers/lib/typescript/src/TabRouter';
 import {ScreenName} from './navigation.types';
 import {useTransformScreenOptions} from './hooks';
-import {useTranslation} from '../localization';
 
 const Tab = createMaterialBottomTabNavigator();
 
@@ -37,21 +36,11 @@ export const BottomTabNavigation: FC<IProps> = memo(
     keyboardHidesNavigationBar,
     sceneAnimationEnabled,
   }) => {
-    const {t} = useTranslation();
     const transformOptions = useTransformScreenOptions<BottomTabScreenOption>();
 
     const _screenOptions: BottomTabScreenOption = useMemo(
       () => ({headerShown: false, ...screenOptions}),
       [screenOptions],
-    );
-
-    const getTitle = useCallback(
-      (name: ScreenName) => {
-        const routeTitle = routes[name]?.options?.title;
-
-        return t(routeTitle ?? (`navigation.${name}` as any)) as any;
-      },
-      [routes, t],
     );
 
     return (
@@ -71,7 +60,7 @@ export const BottomTabNavigation: FC<IProps> = memo(
             key={`screen-${index + 1}-${name}`}
             options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
-            name={getTitle(name)}
+            name={name}
             component={routes[name]!.screen}
             initialParams={routes[name]!.initialParams}
           />
