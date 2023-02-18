@@ -12,6 +12,7 @@ import {ThemeProvider} from './theme';
 import {initLocalization, useTranslation} from './localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
+import {navigationRef} from './navigation';
 
 configure({enforceActions: 'observed'});
 
@@ -42,7 +43,7 @@ const App = (): JSX.Element => {
         <SafeAreaProvider>
           <Host>
             <Notification>
-              <NavigationContainer onStateChange={onReady} onReady={onReady}>
+              <NavigationContainer ref={navigationRef} onReady={onReady}>
                 <AppScreens />
               </NavigationContainer>
             </Notification>
