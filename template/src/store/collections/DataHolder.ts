@@ -3,6 +3,7 @@ import {makeAutoObservable} from 'mobx';
 
 enum DataHolderState {
   READY = 0,
+  INITIALIZATION = 1,
   LOADING = 2,
   ERROR = 500,
 }
@@ -24,13 +25,11 @@ export interface IDataHolderState {
 export class DataHolder<T> implements IDataHolderState {
   public d: T | undefined = undefined as any;
   public error?: IDataHolderError;
-  private _state!: DataHolderState;
+  private _state: DataHolderState = DataHolderState.INITIALIZATION;
 
   constructor(data?: T) {
     if (data) {
       this.setData(data);
-    } else {
-      this.setLoading();
     }
     makeAutoObservable(this, {}, {autoBind: true});
   }
@@ -57,6 +56,12 @@ export class DataHolder<T> implements IDataHolderState {
 
   public setLoading() {
     this._state = DataHolderState.LOADING;
+
+    return this;
+  }
+
+  public setPending() {
+    this._state = DataHolderState.INITIALIZATION;
 
     return this;
   }
