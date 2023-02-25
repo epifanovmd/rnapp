@@ -1,15 +1,9 @@
 import React, {FC, memo, useMemo} from 'react';
-import {TextStyle, TouchableOpacityProps} from 'react-native';
-import {FlexComponentProps, useFlexProps} from '../../elements';
-import {Button} from './Button';
+import {useFlexProps} from '../../elements';
+import {Button, IButtonProps} from './Button';
 import {useTheme} from '../../../theme';
 
-interface IProps extends FlexComponentProps<TouchableOpacityProps> {
-  loading?: boolean;
-  title: string;
-  fontSize?: number;
-  textStyle?: TextStyle;
-}
+interface IProps extends IButtonProps {}
 
 export const BorderButton: FC<IProps> = memo(({title, color, ...rest}) => {
   const {theme} = useTheme();

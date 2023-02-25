@@ -37,54 +37,66 @@ export type StackScreenOption =
   | Partial<Omit<StackNavigationOptions, 'title'> & {title: II18nPaths}>
   | undefined;
 
-export interface Route<ScreenProps, ScreenOption = AppScreenOption> {
+export interface Route<
+  ScreenProps,
+  ScreenOption = AppScreenOption,
+  ScreenParams = ScreenParamsTypes[ScreenName],
+> {
   screen: React.ComponentType<ScreenProps>;
   options?: ScreenOption;
-  initialParams?: Record<string, object | undefined>;
+  initialParams?: Partial<ScreenParams>;
 }
 
-export interface AppScreenProps<
-  ParamList extends ScreenParamList = ScreenParamList,
-  RouteName extends keyof ParamList = keyof ParamList,
-> {
-  navigation: BottomTabNavigationProp<ParamList, RouteName>;
-  route: RouteProp<ParamList, ScreenName>;
+export interface AppScreenProps<SN extends ScreenName = any> {
+  navigation: BottomTabNavigationProp<ScreenParamList, SN>;
+  route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
 }
 
-export interface BottomTabProps<
-  ParamList extends ScreenParamList = ScreenParamList,
-  RouteName extends keyof ParamList = keyof ParamList,
-> {
-  navigation: MaterialBottomTabNavigationProp<ParamList, RouteName>;
-  route: RouteProp<ParamList, RouteName>;
+export interface BottomTabProps<SN extends ScreenName = any> {
+  navigation: MaterialBottomTabNavigationProp<ScreenParamList, SN>;
+  route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
 }
 
-export interface TabProps<
-  ParamList extends ScreenParamList = ScreenParamList,
-  RouteName extends keyof ParamList = keyof ParamList,
-> {
-  navigation: MaterialTopTabNavigationProp<ParamList, RouteName>;
-  route: RouteProp<ParamList, RouteName>;
+export interface TabProps<SN extends ScreenName = any> {
+  navigation: MaterialTopTabNavigationProp<ScreenParamList, SN>;
+  route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
 }
 
-export interface StackProps<
-  ParamList extends ScreenParamList = ScreenParamList,
-  RouteName extends keyof ParamList = keyof ParamList,
-> {
-  navigation: StackNavigationProp<ParamList, RouteName>;
-  route: RouteProp<ParamList, RouteName>;
+export interface StackProps<SN extends ScreenName = any> {
+  navigation: StackNavigationProp<ScreenParamList, SN>;
+  route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
 }
 
-export type AppTabRoute = Route<AppScreenProps>;
-export type BottomTabRoute = Route<any, BottomTabScreenOption>;
-export type TabRoute = Route<any, TabScreenOption>;
-export type StackRoute = Route<any, StackScreenOption>;
+export type AppTabRoute<SN extends ScreenName> = Route<
+  AppScreenProps<SN>,
+  AppScreenOption,
+  ScreenParamsTypes[SN]
+>;
+export type BottomTabRoute<SN extends ScreenName> = Route<
+  BottomTabProps<SN>,
+  BottomTabScreenOption,
+  ScreenParamsTypes[SN]
+>;
+export type TabRoute<SN extends ScreenName> = Route<
+  TabProps<SN>,
+  TabScreenOption,
+  ScreenParamsTypes[SN]
+>;
+export type StackRoute<SN extends ScreenName> = Route<
+  StackProps<SN>,
+  StackScreenOption,
+  ScreenParamsTypes[SN]
+>;
 
-export type AppTabScreens = {[key in ScreenName]?: AppTabRoute};
+export type AppTabScreens = {
+  [K in ScreenName]?: AppTabRoute<K>;
+};
 export type BottomTabScreens = {
-  [key in ScreenName]?: BottomTabRoute;
+  [K in ScreenName]?: BottomTabRoute<K>;
 };
 export type TabScreens = {
-  [key in ScreenName]?: TabRoute;
+  [K in ScreenName]?: TabRoute<K>;
 };
-export type StackScreens = {[key in ScreenName]?: StackRoute};
+export type StackScreens = {
+  [K in ScreenName]?: StackRoute<K>;
+};

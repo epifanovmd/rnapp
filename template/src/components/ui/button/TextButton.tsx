@@ -1,15 +1,12 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Alert, Linking, TextProps, TextStyle} from 'react-native';
-import {FlexComponentProps} from '../../elements';
+import {Alert, Linking} from 'react-native';
 import {Text} from '../text';
 import {Touchable} from '../touchable';
 import {useTheme} from '../../../theme';
+import {IButtonProps} from './Button';
 
-export interface ITextButtonProps
-  extends FlexComponentProps<TextProps, TextStyle> {
-  title?: string;
+export interface ITextButtonProps extends IButtonProps {
   url?: string;
-  disabled?: boolean;
 }
 
 export const TextButton: FC<ITextButtonProps> = ({

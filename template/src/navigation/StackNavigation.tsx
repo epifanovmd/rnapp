@@ -41,7 +41,7 @@ export const StackNavigation: FC<IProps> = memo(
             options={transformOptions(routes[name]!.options)}
             navigationKey={`screen-${index + 1}-${name}`}
             name={name}
-            component={routes[name]!.screen}
+            component={routes[name]!.screen as any}
             initialParams={routes[name]!.initialParams}
           />
         ))}
