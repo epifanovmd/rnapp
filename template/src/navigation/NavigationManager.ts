@@ -1,7 +1,8 @@
 import {iocDecorator, iocHook} from '@force-dev/utils';
 import {createNavigationContainerRef} from '@react-navigation/native';
-import {ScreenParamsTypes} from './navigation.types';
+import {ScreenName, ScreenParamsTypes} from './navigation.types';
 import {makeAutoObservable} from 'mobx';
+import {Route} from '@react-navigation/routers/src/types';
 
 export const navigationRef = createNavigationContainerRef<ScreenParamsTypes>();
 
@@ -9,7 +10,7 @@ export const INavigationManager = iocDecorator<NavigationManager>();
 export const useNavigationManager = iocHook(INavigationManager);
 
 @INavigationManager()
-export class NavigationManager {
+export class NavigationManager<SN extends ScreenName = ScreenName> {
   private _navigationRef = navigationRef;
 
   constructor() {
@@ -26,7 +27,10 @@ export class NavigationManager {
 
   get currentRoute() {
     if (this.isReady) {
-      return this._navigationRef.getCurrentRoute();
+      return this._navigationRef.getCurrentRoute() as Route<
+        SN,
+        ScreenParamsTypes[SN]
+      >;
     }
   }
 
