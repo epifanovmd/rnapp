@@ -1,5 +1,4 @@
-import React, {FC, memo, PropsWithChildren} from 'react';
-import {StyleSheet} from 'react-native';
+import React, {FC, memo, PropsWithChildren, useMemo} from 'react';
 import {Col} from '../../elements';
 
 interface IProps {
@@ -9,12 +8,7 @@ interface IProps {
 
 export const CarouselItem: FC<PropsWithChildren<IProps>> = memo(
   ({width, height = 200, children}) => {
-    return <Col style={{...styles.wrap, width, height}}>{children}</Col>;
+    const style = useMemo(() => ({flex: 1, width, height}), [width, height]);
+    return <Col style={style}>{children}</Col>;
   },
 );
-const styles = StyleSheet.create({
-  wrap: {
-    height: 200,
-    flex: 1,
-  },
-});

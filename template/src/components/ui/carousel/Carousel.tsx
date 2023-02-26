@@ -22,12 +22,12 @@ export const Carousel: GenericFC = memo(
     const _renderItem = useCallback(
       (item: ListRenderItemInfo<any>) => {
         return (
-          <CarouselItem width={width ?? _width} height={height}>
+          <CarouselItem width={_width} height={height}>
             {renderItem?.(item)}
           </CarouselItem>
         );
       },
-      [renderItem, height, _width, width],
+      [renderItem, height, _width],
     );
 
     const onLayout = useCallback((event: LayoutChangeEvent) => {
@@ -35,7 +35,7 @@ export const Carousel: GenericFC = memo(
     }, []);
 
     return (
-      <FlexView onLayout={onLayout}>
+      <FlexView onLayout={onLayout} height={height} width={width}>
         <Animated.FlatList<any>
           data={data}
           renderItem={_renderItem}
