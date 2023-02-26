@@ -44,7 +44,8 @@ export const Modal = memo(
             scrollViewProps={_scrollViewProps}
             alwaysOpen={_alwaysOpen}
             flatListProps={flatListProps}
-            {...rest}>
+            {...rest}
+            adjustToContentHeight={true}>
             {flatListProps ? undefined : children}
           </Modalize>
         </Portal>

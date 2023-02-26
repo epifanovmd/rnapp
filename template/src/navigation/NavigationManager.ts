@@ -1,5 +1,8 @@
 import {iocDecorator, iocHook} from '@force-dev/utils';
-import {createNavigationContainerRef} from '@react-navigation/native';
+import {
+  createNavigationContainerRef,
+  StackActions,
+} from '@react-navigation/native';
 import {ScreenName, ScreenParamsTypes} from './navigation.types';
 import {makeAutoObservable} from 'mobx';
 import {Route} from '@react-navigation/routers/src/types';
@@ -43,6 +46,18 @@ export class NavigationManager<SN extends ScreenName = ScreenName> {
   navigateTo: typeof navigationRef.navigate = (...args: any) => {
     if (this.isReady) {
       this._navigationRef.navigate(...args);
+    }
+  };
+
+  replaceTo = <T extends ScreenName>(name: T, params: ScreenParamsTypes[T]) => {
+    if (this.isReady) {
+      this._navigationRef.dispatch(StackActions.replace(name, params));
+    }
+  };
+
+  pushTo = <T extends ScreenName>(name: T, params: ScreenParamsTypes[T]) => {
+    if (this.isReady) {
+      this._navigationRef.dispatch(StackActions.push(name, params));
     }
   };
 }

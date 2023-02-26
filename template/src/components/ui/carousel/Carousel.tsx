@@ -1,21 +1,31 @@
-import React, {FC, memo, useCallback, useRef, useState} from 'react';
+import React, {FC, memo, useCallback, useMemo, useRef, useState} from 'react';
 import {Animated, ListRenderItemInfo} from 'react-native';
 import {FlexView} from '../../elements';
 import {CarouselItem} from './CarouselItem';
 import {LayoutChangeEvent} from 'react-native/Libraries/Types/CoreEventTypes';
 import {FlatListProps} from 'react-native/Libraries/Lists/FlatList';
+import {Touchable} from '../touchable';
 
-interface IProps<T = any> extends FlatListProps<T> {
+export interface ICarouselProps<T = any>
+  extends Omit<
+    FlatListProps<T>,
+    | 'ListEmptyComponent'
+    | 'ListFooterComponent'
+    | 'ListHeaderComponent'
+    | 'renderItem'
+  > {
+  renderItem?: (info?: ListRenderItemInfo<T>) => React.ReactElement | null;
   width?: number;
   height?: number;
+  onPress?: () => void;
 }
 
-interface GenericFC {
-  <T extends any = any>(props: IProps<T>): ReturnType<FC>;
+export interface CarouselFC<P = any> {
+  <T>(props: ICarouselProps<P extends never ? T : P>): ReturnType<FC>;
 }
 
-export const Carousel: GenericFC = memo(
-  ({renderItem, data, height, width, ...rest}) => {
+export const Carousel: CarouselFC = memo(
+  ({renderItem, data, height, width, onPress, ...rest}) => {
     const [_width, setWidth] = useState(0);
     const scrollX = useRef(new Animated.Value(0)).current;
 
@@ -23,16 +33,30 @@ export const Carousel: GenericFC = memo(
       (item: ListRenderItemInfo<any>) => {
         return (
           <CarouselItem width={_width} height={height}>
-            {renderItem?.(item)}
+            <Touchable flex={1} onPress={onPress} disabled={!onPress}>
+              {renderItem?.(item)}
+            </Touchable>
           </CarouselItem>
         );
       },
-      [renderItem, height, _width],
+      [renderItem, height, onPress, _width],
     );
 
     const onLayout = useCallback((event: LayoutChangeEvent) => {
       setWidth(event.nativeEvent.layout.width);
     }, []);
+
+    const renderEmpty = useMemo(
+      () =>
+        renderItem ? (
+          <CarouselItem width={_width} height={height}>
+            <Touchable flex={1} onPress={onPress} disabled={!onPress}>
+              {renderItem?.()}
+            </Touchable>
+          </CarouselItem>
+        ) : undefined,
+      [_width, height, onPress, renderItem],
+    );
 
     return (
       <FlexView onLayout={onLayout} height={height} width={width}>
@@ -42,6 +66,7 @@ export const Carousel: GenericFC = memo(
           horizontal={true}
           pagingEnabled={true}
           {...rest}
+          ListEmptyComponent={renderEmpty}
           scrollEventThrottle={32}
           onScroll={Animated.event(
             [{nativeEvent: {contentOffset: {x: scrollX}}}],
