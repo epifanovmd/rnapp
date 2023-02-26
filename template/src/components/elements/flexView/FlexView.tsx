@@ -1,10 +1,10 @@
 import * as React from 'react';
 import {FC} from 'react';
-import {Animated, View} from 'react-native';
+import {Animated, View, ViewProps} from 'react-native';
 import {useFlexProps} from './useFlexProps';
 import {FlexComponentProps} from './types';
 
-export const FlexView: FC<FlexComponentProps> = props => {
+export const FlexView: FC<FlexComponentProps<ViewProps>> = props => {
   const {ownProps, style, animated} = useFlexProps(props);
 
   const Component = animated ? Animated.View : View;
@@ -12,9 +12,9 @@ export const FlexView: FC<FlexComponentProps> = props => {
   return <Component style={style} {...ownProps} />;
 };
 
-export const Col = (props: FlexComponentProps) => (
+export const Col: FC<FlexComponentProps<ViewProps>> = props => (
   <FlexView col={true} {...props} />
 );
-export const Row = (props: FlexComponentProps) => (
+export const Row: FC<FlexComponentProps<ViewProps>> = props => (
   <FlexView row={true} {...props} />
 );
