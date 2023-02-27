@@ -4,20 +4,38 @@ import {
   StackActions,
 } from '@react-navigation/native';
 import {ScreenName, ScreenParamsTypes} from './navigation.types';
-import {makeAutoObservable} from 'mobx';
+import {makeAutoObservable, runInAction} from 'mobx';
 import {Route} from '@react-navigation/routers/src/types';
+import {identity, pickBy} from 'lodash';
 
 export const navigationRef = createNavigationContainerRef<ScreenParamsTypes>();
 
 export const INavigationManager = iocDecorator<NavigationManager>();
 export const useNavigationManager = iocHook(INavigationManager);
 
-@INavigationManager()
+@INavigationManager({inSingleton: true})
 export class NavigationManager<SN extends ScreenName = ScreenName> {
+  history: {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[] = [];
   private _navigationRef = navigationRef;
 
   constructor() {
     makeAutoObservable(this, {}, {autoBind: true});
+
+    this._navigationRef.addListener('state', e => {
+      runInAction(() => {
+        this.history = e.data.state?.routes.map(item =>
+          pickBy(
+            {
+              screen: item.name,
+              params: item.params,
+            },
+            identity,
+          ),
+        ) as {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[];
+      });
+
+      console.log('Nav History -> ', JSON.stringify(this.history));
+    });
   }
 
   get isReady() {
@@ -28,7 +46,7 @@ export class NavigationManager<SN extends ScreenName = ScreenName> {
     return this.isReady && this._navigationRef.canGoBack();
   }
 
-  get currentRoute() {
+  get route() {
     if (this.isReady) {
       return this._navigationRef.getCurrentRoute() as Route<
         SN,
