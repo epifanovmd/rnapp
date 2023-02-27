@@ -2,16 +2,25 @@ import React, {FC, memo, useCallback} from 'react';
 import {TouchableOpacity, TouchableOpacityProps} from 'react-native';
 import {FlexComponentProps, useFlexProps} from '../../elements';
 import {GestureResponderEvent} from 'react-native/Libraries/Types/CoreEventTypes';
+import {RequiredKeys} from '@force-dev/utils';
 
 export interface TouchableProps<T>
   extends FlexComponentProps,
     Omit<TouchableOpacityProps, 'style' | 'onPress'> {
+  onPress?: (value: T, event: GestureResponderEvent) => void;
   ctx?: T;
-  onPress?: (value: T | undefined, event: GestureResponderEvent) => void;
 }
 
 interface TouchableFC {
-  <T extends any = any>(props: TouchableProps<T>): ReturnType<FC>;
+  <T extends any = undefined>(
+    props: Omit<TouchableProps<T>, 'ctx'> & {ctx?: never},
+  ): ReturnType<FC>;
+}
+
+interface TouchableContextFC {
+  <T extends any = undefined>(
+    props: RequiredKeys<TouchableProps<T>, 'ctx'>,
+  ): ReturnType<FC>;
 }
 
 export const Touchable: TouchableFC = memo(
@@ -20,7 +29,7 @@ export const Touchable: TouchableFC = memo(
 
     const _onPress = useCallback(
       (event: GestureResponderEvent) => {
-        onPress?.(ctx, event);
+        onPress?.(ctx as any, event);
       },
       [ctx, onPress],
     );
@@ -36,3 +45,5 @@ export const Touchable: TouchableFC = memo(
     );
   },
 );
+
+export const TouchableContext = Touchable as TouchableContextFC;
