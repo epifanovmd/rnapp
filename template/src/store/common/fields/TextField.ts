@@ -4,7 +4,7 @@ import {
   LambdaValue,
   resolveLambdaValue,
 } from '@force-dev/utils';
-import {makeAutoObservable, observable, reaction} from 'mobx';
+import {makeAutoObservable, reaction} from 'mobx';
 
 type Validator = (text: string) => string;
 
@@ -13,20 +13,10 @@ export const useTextField = iocHook(ITextField);
 
 @ITextField()
 export class TextField {
-  error: string = '';
-  placeholder: string = '';
-  value: string = '';
-  inputValue: string = '';
   private _validate: Validator | null = null;
 
   constructor() {
-    makeAutoObservable(
-      this,
-      {
-        value: observable.ref,
-      },
-      {autoBind: true},
-    );
+    makeAutoObservable(this, {}, {autoBind: true});
 
     reaction(
       () => this.value,
@@ -36,29 +26,53 @@ export class TextField {
     );
   }
 
-  get isValid() {
-    return !this.error;
+  private _error: LambdaValue<string> = '';
+
+  public get error() {
+    return resolveLambdaValue(this._error);
   }
 
-  onChangeText(text: string) {
-    this.value = text;
-    this.inputValue = text;
+  private _placeholder: LambdaValue<string> = '';
+
+  public get placeholder() {
+    return resolveLambdaValue(this._placeholder);
+  }
+
+  private _value: LambdaValue<string> = '';
+
+  public get value() {
+    return resolveLambdaValue(this._value);
+  }
+
+  private _inputValue: LambdaValue<string> = '';
+
+  public get inputValue() {
+    return resolveLambdaValue(this._inputValue);
+  }
+
+  get isValid() {
+    return !resolveLambdaValue(this._error);
+  }
+
+  onChangeText(text: LambdaValue<string>) {
+    this._value = text;
+    this._inputValue = text;
   }
 
   onSetValue(text: LambdaValue<string>) {
-    this.value = resolveLambdaValue(text);
+    this._value = text;
   }
 
   onSetInputValue(text: LambdaValue<string>) {
-    this.inputValue = resolveLambdaValue(text);
+    this._inputValue = resolveLambdaValue(text);
   }
 
   setPlaceholder(text: LambdaValue<string>) {
-    this.placeholder = resolveLambdaValue(text);
+    this._placeholder = resolveLambdaValue(text);
   }
 
   setError(error: LambdaValue<string>) {
-    this.error = resolveLambdaValue(error);
+    this._error = resolveLambdaValue(error);
   }
 
   setValidate(validator: Validator) {
