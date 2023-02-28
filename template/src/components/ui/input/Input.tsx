@@ -59,9 +59,7 @@ export const Input: FC<IInputProps> = forwardRef<TextInput, IInputProps>(
 
     useEffect(() => {
       _value.current = value;
-      if (value) {
-        setActive(true);
-      }
+      setActive(!!value);
     }, [value]);
 
     const handleFocus = useCallback(
