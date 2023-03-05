@@ -1,52 +1,46 @@
-import {
-  iocDecorator,
-  iocHook,
-  LambdaValue,
-  resolveLambdaValue,
-} from '@force-dev/utils';
-import {makeAutoObservable, reaction} from 'mobx';
+import {LambdaValue, resolveLambdaValue} from '@force-dev/utils';
+import {makeAutoObservable} from 'mobx';
 
-type Validator = (text: string) => string;
+const textToNumber = (value: LambdaValue<string> = () => '') => {
+  const text = resolveLambdaValue(value);
+  return text.replace(/[^0-9]+/g, '');
+};
 
-export const ITextField = iocDecorator<TextField>();
-export const useTextField = iocHook(ITextField);
+type Opts = {
+  initialValue?: LambdaValue<string>;
+  number?: boolean;
+};
 
-@ITextField()
 export class TextField {
-  private _validate: Validator | null = null;
+  private opts?: Opts;
+  private _validate: ((text: string) => string) | null = null;
+  private _error: LambdaValue<string> = '';
+  private _placeholder: LambdaValue<string> = '';
+  private _value: LambdaValue<string> = '';
+  private _inputValue: LambdaValue<string> = '';
 
-  constructor() {
+  constructor(opts?: Opts) {
     makeAutoObservable(this, {}, {autoBind: true});
 
-    reaction(
-      () => this.value,
-      text => {
-        this.setError(this._validate?.(text) ?? '');
-      },
-    );
+    this.opts = opts;
+    if (opts?.initialValue) {
+      this._value = opts?.initialValue;
+    }
   }
 
-  private _error: LambdaValue<string> = '';
-
-  public get error() {
+  get error() {
     return resolveLambdaValue(this._error);
   }
 
-  private _placeholder: LambdaValue<string> = '';
-
-  public get placeholder() {
+  get placeholder() {
     return resolveLambdaValue(this._placeholder);
   }
 
-  private _value: LambdaValue<string> = '';
-
-  public get value() {
+  get value() {
     return resolveLambdaValue(this._value);
   }
 
-  private _inputValue: LambdaValue<string> = '';
-
-  public get inputValue() {
+  get inputValue() {
     return resolveLambdaValue(this._inputValue);
   }
 
@@ -55,12 +49,16 @@ export class TextField {
   }
 
   onChangeText(text: LambdaValue<string>) {
-    this._value = text;
-    this._inputValue = text;
+    this.onSetValue(text);
+    this._inputValue = this._value;
   }
 
   onSetValue(text: LambdaValue<string>) {
-    this._value = text;
+    const value = resolveLambdaValue(
+      this.opts?.number ? textToNumber(text) : text,
+    );
+    this.setError(this._validate?.(value) ?? '');
+    this._value = value;
   }
 
   onSetInputValue(text: LambdaValue<string>) {
@@ -75,7 +73,7 @@ export class TextField {
     this._error = resolveLambdaValue(error);
   }
 
-  setValidate(validator: Validator) {
+  setValidate(validator: typeof this._validate) {
     this._validate = validator;
   }
 }
