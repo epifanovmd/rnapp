@@ -1,6 +1,5 @@
 export * from './button';
 export * from './carousel';
-export * from './checkbox';
 export * from './delayRefreshControl';
 export * from './image';
 export * from './input';

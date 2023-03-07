@@ -2,7 +2,6 @@ import React, {FC, memo} from 'react';
 import {
   BorderButton,
   Button,
-  Checkbox,
   Col,
   Modal,
   SafeArea,
@@ -28,7 +27,6 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
     <ScreenContainer pa={16}>
       <Text>{route.name}</Text>
       <SwitchTheme />
-      <Checkbox label={'fdsfsd'} value={true} />
       <Button
         title={'OtherFirstScreen'}
         onPress={() => navigation.navigate('OtherFirstScreen')}
