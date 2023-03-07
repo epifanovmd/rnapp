@@ -9,6 +9,7 @@ const textToNumber = (value: LambdaValue<string> = () => '') => {
 type Opts = {
   initialValue?: LambdaValue<string>;
   number?: boolean;
+  validateOnInit?: boolean;
 };
 
 export class TextField {
@@ -25,6 +26,9 @@ export class TextField {
     this.opts = opts;
     if (opts?.initialValue) {
       this._value = opts?.initialValue;
+    }
+    if (opts?.validateOnInit) {
+      this.setError(this._validate?.(this.value) ?? '');
     }
   }
 
@@ -49,11 +53,11 @@ export class TextField {
   }
 
   onChangeText(text: LambdaValue<string>) {
-    this.onSetValue(text);
+    this.setValue(text);
     this._inputValue = this._value;
   }
 
-  onSetValue(text: LambdaValue<string>) {
+  setValue(text: LambdaValue<string>) {
     const value = resolveLambdaValue(
       this.opts?.number ? textToNumber(text) : text,
     );

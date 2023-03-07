@@ -8,11 +8,13 @@ type Setter<T> = Required<{
     | FormField
     | TextField
     | ArrayField
-    ? T[K]['onSetValue']
+    ? T[K]['setValue']
     : (value: T[K]) => void;
 }>;
 
-type Opts = {};
+type Opts = {
+  validateOnInit?: boolean;
+};
 
 type SubType<Base, Condition> = Pick<
   Base,
@@ -25,7 +27,6 @@ type SubType<Base, Condition> = Pick<
 
 type ExtractFields<T> = SubType<T, FormField | TextField | ArrayField>;
 
-// не работает ExtractFields не исключает (FormField | TextField | ArrayField)
 type Validation<T, V = ExtractFields<T>> = {
   [Key in keyof V]?: (value: V[Key]) => string;
 };
@@ -39,16 +40,22 @@ type CustomPartial<T> = {
 };
 
 export class FormField<T extends object = object> {
-  private opts?: Opts;
+  private opts: Opts = {};
   private _validate: Validation<Partial<T>> = {};
   private _error: Partial<Record<keyof T, string>> = {};
+  private _initialValue: CustomPartial<T> = {} as CustomPartial<T>;
   private _value: CustomPartial<T> = {} as CustomPartial<T>;
 
   constructor(initialValue: CustomPartial<T>, opts?: Opts) {
     makeAutoObservable(this, {}, {autoBind: true});
 
+    this._initialValue = initialValue;
     this._value = initialValue;
-    this.opts = opts;
+    this.opts = opts || {};
+
+    if (opts?.validateOnInit) {
+      this._validateAll();
+    }
   }
 
   get error() {
@@ -79,12 +86,17 @@ export class FormField<T extends object = object> {
     return Object.keys(pickBy(this._error, identity)).length === 0 && _isValid;
   }
 
-  onSetValue<K extends keyof T>(name: K, value: T[K]) {
-    this._error[name] = this._validate[name]?.(value);
+  setValue<K extends keyof T>(name: K, value: T[K]) {
+    this.setError(name, this._validate[name]?.(value));
     this._value[name] = value;
   }
 
-  setError(name: keyof T, error: string) {
+  resetData(value?: T) {
+    this._value = value || this._initialValue;
+    this._validateAll();
+  }
+
+  setError(name: keyof T, error?: string) {
     this._error[name] = error;
   }
 
@@ -97,14 +109,14 @@ export class FormField<T extends object = object> {
         const _key = `set${toUpper(key[0])}${key.slice(1, key.length)}`;
 
         if (value[key] instanceof FormField) {
-          setters[_key] = (value[key] as FormField).onSetValue;
+          setters[_key] = (value[key] as FormField).setValue;
         } else if (value[key] instanceof TextField) {
-          setters[_key] = (value[key] as TextField).onSetValue;
+          setters[_key] = (value[key] as TextField).setValue;
         } else if (value[key] instanceof ArrayField) {
-          setters[_key] = (value[key] as ArrayField).onSetValue;
+          setters[_key] = (value[key] as ArrayField).setValue;
         } else {
           setters[_key] = (data: T[Extract<keyof T, string>]) => {
-            this.onSetValue(key, data);
+            this.setValue(key, data);
           };
         }
       }
@@ -116,52 +128,57 @@ export class FormField<T extends object = object> {
   setValidate(validator: Validation<Partial<T>>) {
     this._validate = validator;
   }
+
+  private _validateAll() {
+    Object.keys(this.value).forEach((key: string) => {
+      const name: keyof T = key as keyof T;
+      this.setError(name, this._validate[name]?.(this.value[name]));
+    });
+  }
 }
 
-const form = new FormField<{
-  object: FormField<{a: string; b: number}>;
-  string: string;
-  number: number;
-  array: ArrayField<{a: number; b: string}>;
-  textField: TextField;
-}>(
-  {
-    // тут нужно избавится от дженерика, неверно выводится из object сейчас
-    object: new FormField<{a: string; b: number}>({
-      a: undefined,
-      b: undefined,
-    }),
-    string: undefined,
-    number: undefined,
-    array: new ArrayField(),
-    textField: new TextField(),
-  },
-  {},
-);
+// const form = new FormField<{
+//   object: FormField<{a: string; b: number}>;
+//   string: string;
+//   number: number;
+//   array: ArrayField<{a: number; b: string}>;
+//   textField: TextField;
+// }>(
+//   {
+//     // тут нужно избавится от дженерика, неверно выводится из object сейчас
+//     object: new FormField<{a: string; b: number}>({
+//       a: undefined,
+//       b: undefined,
+//     }),
+//     string: undefined,
+//     number: undefined,
+//     array: new ArrayField(),
+//     textField: new TextField(),
+//   },
+//   {},
+// );
 
-form.setValidate({
-  // нужно исключить все ключи у которых значение является не примитивным типом (FormField, ArrayField, TextField)
-  number: value => (value && value > 5 ? 'Значение Больше 5' : ''),
-  string: value => (value && value.length > 5 ? 'Больше 5' : ''),
-});
-
-form.value.textField.setValidate(value =>
-  value !== '123' ? 'Значение не равно 123' : '',
-);
-
-form.value.array.setValidate(value =>
-  value.length > 3 ? 'длинна массива больше 3' : '',
-);
-
-form.value.object.setValidate({
-  a: value => (value && value.length > 5 ? 'Длинна а больше 5' : ''),
-  b: value => (value && value > 5 ? 'Число b больше 5' : ''),
-});
-
-form.setters.setObject('a', '53333');
-
-console.log('form.error', form.error);
-console.log('isValid', form.isValid);
+// form.setValidate({
+//   // нужно исключить все ключи у которых значение является не примитивным типом (FormField, ArrayField, TextField)
+//   number: value => (value && value > 5 ? 'Значение Больше 5' : ''),
+//   string: value => (value && value.length > 5 ? 'Больше 5' : ''),
+// });
+//
+// form.value.textField.setValidate(value =>
+//   value !== '123' ? 'Значение не равно 123' : '',
+// );
+//
+// form.value.array.setValidate(value =>
+//   value.length > 3 ? 'длинна массива больше 3' : '',
+// );
+//
+// form.value.object.setValidate({
+//   a: value => (value && value.length > 5 ? 'Длинна а больше 5' : ''),
+//   b: value => (value && value > 5 ? 'Число b больше 5' : ''),
+// });
+//
+// form.setters.setObject('a', '53333');
+//
 //
 // form.setters.setObject('b', 3);
 // form.setters.setObject('a', '3');
