@@ -31,7 +31,7 @@ type Validation<T, V = ExtractFields<T>> = {
   [Key in keyof V]?: (value: V[Key]) => string;
 };
 
-type CustomPartial<T> = {
+export type FormPartial<T> = {
   [K in keyof T]: T[K] extends FormField
     ? T[K]
     : T[K] extends TextField | ArrayField
@@ -43,10 +43,10 @@ export class FormField<T extends object = object> {
   private opts: Opts = {};
   private _validate: Validation<Partial<T>> = {};
   private _error: Partial<Record<keyof T, string>> = {};
-  private _initialValue: CustomPartial<T> = {} as CustomPartial<T>;
-  private _value: CustomPartial<T> = {} as CustomPartial<T>;
+  private _initialValue: FormPartial<T> = {} as FormPartial<T>;
+  private _value: FormPartial<T> = {} as FormPartial<T>;
 
-  constructor(initialValue: CustomPartial<T>, opts?: Opts) {
+  constructor(initialValue: FormPartial<T>, opts?: Opts) {
     makeAutoObservable(this, {}, {autoBind: true});
 
     this._initialValue = initialValue;
@@ -91,7 +91,7 @@ export class FormField<T extends object = object> {
     this._value[name] = value;
   }
 
-  resetData(value?: T) {
+  resetData(value?: FormPartial<T>) {
     this._value = value || this._initialValue;
     this._validateAll();
   }
