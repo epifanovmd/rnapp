@@ -1,13 +1,13 @@
 import {makeAutoObservable} from 'mobx';
 import {identity, pickBy, toUpper} from 'lodash';
-import {ArrayField} from './ArrayField';
-import {TextField} from './TextField';
+import {ArrayHolder} from './ArrayHolder';
+import {TextHolder} from './TextHolder';
 
 type Setter<T> = Required<{
   [K in keyof T as `set${Capitalize<string & K>}`]: T[K] extends
-    | FormField
-    | TextField
-    | ArrayField
+    | FormHolder
+    | TextHolder
+    | ArrayHolder
     ? T[K]['setValue']
     : (value: T[K]) => void;
 }>;
@@ -25,21 +25,24 @@ type SubType<Base, Condition> = Pick<
   }[keyof Base]
 >;
 
-type ExtractFields<T> = SubType<T, FormField | TextField | ArrayField>;
+type ExtractFields<T> = SubType<T, FormHolder | TextHolder | ArrayHolder>;
 
 type Validation<T, V = ExtractFields<T>> = {
   [Key in keyof V]?: (value: V[Key]) => string;
 };
 
 export type FormPartial<T> = {
-  [K in keyof T]: T[K] extends FormField
+  [K in keyof T]: T[K] extends FormHolder
     ? T[K]
-    : T[K] extends TextField | ArrayField
+    : T[K] extends TextHolder | ArrayHolder
     ? T[K]
     : T[K] | undefined;
 };
 
-export class FormField<T extends object = object> {
+export class FormHolder<T extends object = object> {
+  isLoading: boolean = false;
+  loaded: boolean = false;
+
   private opts: Opts = {};
   private _validate: Validation<Partial<T>> = {};
   private _error: Partial<Record<keyof T, string>> = {};
@@ -72,12 +75,12 @@ export class FormField<T extends object = object> {
     for (const key in value) {
       if (
         value.hasOwnProperty(key) &&
-        (value[key] instanceof FormField ||
-          value[key] instanceof TextField ||
-          value[key] instanceof ArrayField)
+        (value[key] instanceof FormHolder ||
+          value[key] instanceof TextHolder ||
+          value[key] instanceof ArrayHolder)
       ) {
         const field = value[key];
-        if (!(field as FormField | TextField | ArrayField).isValid) {
+        if (!(field as FormHolder | TextHolder | ArrayHolder).isValid) {
           _isValid = false;
           break;
         }
@@ -108,12 +111,12 @@ export class FormField<T extends object = object> {
       if (value.hasOwnProperty(key)) {
         const _key = `set${toUpper(key[0])}${key.slice(1, key.length)}`;
 
-        if (value[key] instanceof FormField) {
-          setters[_key] = (value[key] as FormField).setValue;
-        } else if (value[key] instanceof TextField) {
-          setters[_key] = (value[key] as TextField).setValue;
-        } else if (value[key] instanceof ArrayField) {
-          setters[_key] = (value[key] as ArrayField).setValue;
+        if (value[key] instanceof FormHolder) {
+          setters[_key] = (value[key] as FormHolder).setValue;
+        } else if (value[key] instanceof TextHolder) {
+          setters[_key] = (value[key] as TextHolder).setValue;
+        } else if (value[key] instanceof ArrayHolder) {
+          setters[_key] = (value[key] as ArrayHolder).setValue;
         } else {
           setters[_key] = (data: T[Extract<keyof T, string>]) => {
             this.setValue(key, data);
@@ -127,6 +130,13 @@ export class FormField<T extends object = object> {
 
   setValidate(validator: Validation<Partial<T>>) {
     this._validate = validator;
+  }
+
+  setLoading(isLoading: boolean) {
+    this.isLoading = isLoading;
+  }
+  setLoaded(loaded: boolean) {
+    this.loaded = loaded;
   }
 
   private _validateAll() {

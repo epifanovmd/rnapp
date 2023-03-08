@@ -12,7 +12,7 @@ type Opts = {
   validateOnInit?: boolean;
 };
 
-export class TextField {
+export class TextHolder {
   private opts?: Opts;
   private _validate: ((text: string) => string) | null = null;
   private _error: LambdaValue<string> = '';

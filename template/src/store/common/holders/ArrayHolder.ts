@@ -7,7 +7,7 @@ type Opts = {
   validateOnInit?: boolean;
 };
 
-export class ArrayField<T = any> {
+export class ArrayHolder<T = any> {
   private opts: Opts = {};
   private _validate: Validator<T> | null = null;
   private _error: LambdaValue<string> = '';
