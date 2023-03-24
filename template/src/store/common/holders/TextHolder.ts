@@ -17,6 +17,7 @@ export class TextHolder {
   private _validate: ((text: string) => string) | null = null;
   private _error: LambdaValue<string> = '';
   private _placeholder: LambdaValue<string> = '';
+  private _initialValue: LambdaValue<string> = '';
   private _value: LambdaValue<string> = '';
   private _inputValue: LambdaValue<string> = '';
 
@@ -26,6 +27,7 @@ export class TextHolder {
     this.opts = opts;
     if (opts?.initialValue) {
       this._value = opts?.initialValue;
+      this._initialValue = opts?.initialValue;
     }
     if (opts?.validateOnInit) {
       this.setError(this._validate?.(this.value) ?? '');
@@ -50,6 +52,10 @@ export class TextHolder {
 
   get isValid() {
     return !resolveLambdaValue(this._error);
+  }
+
+  resetData() {
+    this._value = this._initialValue;
   }
 
   onChangeText(text: LambdaValue<string>) {

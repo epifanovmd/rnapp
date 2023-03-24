@@ -11,12 +11,14 @@ export class ArrayHolder<T = any> {
   private opts: Opts = {};
   private _validate: Validator<T> | null = null;
   private _error: LambdaValue<string> = '';
+  private _initialValue: LambdaValue<T[]> = [];
   private _value: LambdaValue<T[]> = [];
 
   constructor(value?: LambdaValue<T[]>, opt?: Opts) {
     makeAutoObservable(this, {}, {autoBind: true});
     if (value) {
       this._value = value;
+      this._initialValue = () => [...resolveLambdaValue(value)];
     }
 
     this.opts = opt || {};
@@ -73,5 +75,9 @@ export class ArrayHolder<T = any> {
 
   setValidate(validator: Validator<T>) {
     this._validate = validator;
+  }
+
+  resetData() {
+    this._value = () => [...(resolveLambdaValue(this._initialValue) || [])];
   }
 }

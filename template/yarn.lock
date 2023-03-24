@@ -1101,10 +1101,10 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@force-dev/utils@^1.1.5":
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.1.5.tgz#46fe1426abcebc498cc6e0069bc8967565db340f"
-  integrity sha512-6fMzlV885Je2RBdIb9M/9R3oUf2LIVf0BZz+PwUUZ/ehHaBElxIiCqCUiBLNNs295e5tqT10xXk5UkQnP9qREw==
+"@force-dev/utils@^1.1.9":
+  version "1.1.9"
+  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.1.9.tgz#cdd9f322fb60ad31d32173262868b2110c09c25f"
+  integrity sha512-zEQ99EvyMtJTGEimOAYxdj/vCaRdaxzZ8eA6fXUM2l5L1S/LTBBmHvZN16s8zrBE9tSMqw7aG+egMAig+FG6hA==
   dependencies:
     "@types/luxon" "^3.1.0"
     inversify "^6.0.1"

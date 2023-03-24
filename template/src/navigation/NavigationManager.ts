@@ -6,7 +6,6 @@ import {
 import {ScreenName, ScreenParamsTypes} from './navigation.types';
 import {makeAutoObservable, runInAction} from 'mobx';
 import {identity, pickBy} from 'lodash';
-import {Route} from '@react-navigation/routers/src/types';
 
 export const navigationRef = createNavigationContainerRef<ScreenParamsTypes>();
 
@@ -14,9 +13,8 @@ export const INavigationManager = iocDecorator<NavigationManager>();
 export const useNavigationManager = iocHook(INavigationManager);
 
 @INavigationManager({inSingleton: true})
-export class NavigationManager<SN extends ScreenName = ScreenName> {
+export class NavigationManager {
   history: {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[] = [];
-  // params: ScreenParamsTypes[SN] = {};
   private _navigationRef = navigationRef;
 
   constructor() {
@@ -45,19 +43,6 @@ export class NavigationManager<SN extends ScreenName = ScreenName> {
 
   get canGoBack() {
     return this.isReady && this._navigationRef.canGoBack();
-  }
-
-  get route() {
-    if (this.isReady) {
-      return this._navigationRef.getCurrentRoute() as Route<
-        SN,
-        ScreenParamsTypes[SN]
-      >;
-    }
-  }
-
-  get params() {
-    return this.route?.params;
   }
 
   goBack() {

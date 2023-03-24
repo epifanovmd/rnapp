@@ -95,7 +95,26 @@ export class FormHolder<T extends object = object> {
   }
 
   resetData(value?: FormPartial<T>) {
-    this._value = value || this._initialValue;
+    if (value) {
+      this._value = value;
+    } else {
+      for (const key in this._initialValue) {
+        if (this._initialValue.hasOwnProperty(key)) {
+          console.log('this._initialValue[key]', this._initialValue[key]);
+          if (
+            this._initialValue[key] &&
+            (this._initialValue[key] instanceof FormHolder ||
+              this._initialValue[key] instanceof TextHolder ||
+              this._initialValue[key] instanceof ArrayHolder)
+          ) {
+            (
+              this._initialValue[key] as FormHolder | TextHolder | ArrayHolder
+            )?.resetData?.();
+          }
+        }
+      }
+      this._value = this._initialValue;
+    }
     this._validateAll();
   }
 
@@ -135,6 +154,7 @@ export class FormHolder<T extends object = object> {
   setLoading(isLoading: boolean) {
     this.isLoading = isLoading;
   }
+
   setLoaded(loaded: boolean) {
     this.loaded = loaded;
   }

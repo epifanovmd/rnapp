@@ -26,7 +26,7 @@
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {
-    "@force-dev/utils": "^1.1.5",
+    "@force-dev/utils": "^1.1.9",
     "@react-native-async-storage/async-storage": "^1.17.11",
     "@react-native-community/checkbox": "^0.5.14",
     "@react-navigation/bottom-tabs": "^6.5.3",
