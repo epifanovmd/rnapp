@@ -47,7 +47,7 @@ export class ApiService {
           });
         }
 
-        return Promise.resolve({});
+        return Promise.resolve({data: {}});
       },
     );
   }
