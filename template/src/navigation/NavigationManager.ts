@@ -12,6 +12,34 @@ export const navigationRef = createNavigationContainerRef<ScreenParamsTypes>();
 export const INavigationManager = iocDecorator<NavigationManager>();
 export const useNavigationManager = iocHook(INavigationManager);
 
+const routesHistoryReduce = (arr: any[]) => {
+  const result = arr.reduce((acc, item) => {
+    acc.push(
+      pickBy(
+        {
+          screen: item.name,
+          params: item.params,
+        },
+        identity,
+      ),
+    );
+
+    if (item.state) {
+      return [
+        ...acc,
+        ...routesHistoryReduce([item.state.routes[item.state.index]]),
+      ];
+    }
+
+    return acc;
+  }, []) as {
+    screen: ScreenName;
+    params: ScreenParamsTypes[ScreenName];
+  }[];
+
+  return result;
+};
+
 @INavigationManager({inSingleton: true})
 export class NavigationManager {
   history: {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[] = [];
@@ -22,15 +50,7 @@ export class NavigationManager {
 
     this._navigationRef.addListener('state', e => {
       runInAction(() => {
-        this.history = e.data.state?.routes.map(item =>
-          pickBy(
-            {
-              screen: item.name,
-              params: item.params,
-            },
-            identity,
-          ),
-        ) as {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[];
+        this.history = routesHistoryReduce(e.data.state?.routes || []);
       });
 
       console.log('Nav History -> ', JSON.stringify(this.history));
