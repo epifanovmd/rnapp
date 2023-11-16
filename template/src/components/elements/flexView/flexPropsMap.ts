@@ -19,7 +19,7 @@ export const flexPropsMap = {
   ...smg(['marginBottom', 'mb'], ['marginBottom']),
   ...smg(['marginVertical', 'mv'], ['marginVertical']),
   ...smg(['marginHorizontal', 'mh'], ['marginHorizontal']),
-  ...smg(['margin', 'ma'], ['padding']),
+  ...smg(['margin', 'ma'], ['margin']),
 
   ...smg(['left'], ['left'], 0),
   ...smg(['right'], ['right'], 0),
