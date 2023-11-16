@@ -67,18 +67,13 @@ export const Carousel: CarouselFC = memo(
               mh={separateWidth}
               width={itemLength - separateWidth * 2}
               height={'auto'}>
-              <Touchable
-                flexShrink={1}
-                overflow={'hidden'}
-                leftRadius={item.index === 0 ? 10 : 0}
-                rightRadius={item.index + 1 === data?.length ? 10 : 0}
-                onPress={onPress}>
+              <Touchable flexShrink={1} overflow={'hidden'} onPress={onPress}>
                 {renderItem?.(item)}
               </Touchable>
             </Col>
           );
         },
-        [data?.length, itemLength, separateWidth, onPress, renderItem],
+        [itemLength, separateWidth, onPress, renderItem],
       );
 
       const onLayout = useCallback(
