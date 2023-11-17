@@ -2,6 +2,7 @@ export * from './button';
 export * from './carousel';
 export * from './delayRefreshControl';
 export * from './image';
+export * from './imageViewing';
 export * from './input';
 export * from './mediaPicker';
 export * from './placeholder';
