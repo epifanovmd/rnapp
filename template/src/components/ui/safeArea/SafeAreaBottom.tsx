@@ -5,7 +5,7 @@ import {View} from 'react-native';
 
 interface IProps extends FlexComponentProps {}
 
-export const SafeArea: FC<IProps> = memo(({children, ...rest}) => {
+export const SafeAreaBottom: FC<IProps> = memo(({children, ...rest}) => {
   const {style, ownProps} = useFlexProps(rest, {
     flexGrow: 1,
   });
@@ -15,12 +15,9 @@ export const SafeArea: FC<IProps> = memo(({children, ...rest}) => {
   const _style = useMemo(
     () => ({
       ...style,
-      paddingTop: insets.top,
       paddingBottom: insets.bottom,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
     }),
-    [insets.bottom, insets.left, insets.right, insets.top, style],
+    [insets.bottom, style],
   );
 
   return (

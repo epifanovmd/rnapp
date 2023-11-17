@@ -6,6 +6,7 @@ export * from './imageViewing';
 export * from './input';
 export * from './mediaPicker';
 export * from './modal';
+export * from './picker';
 export * from './placeholder';
 export * from './safeArea';
 export * from './scrollView';

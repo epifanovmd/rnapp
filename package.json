@@ -25,5 +25,7 @@
     "url": "https://github.com/epifanovmd/rnapp/issues"
   },
   "homepage": "https://github.com/epifanovmd/rnapp#readme",
-  "dependencies": {}
+  "dependencies": {
+    "react-native-haptic-feedback": "^2.2.0"
+  }
 }
