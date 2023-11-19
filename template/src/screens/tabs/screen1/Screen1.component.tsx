@@ -9,7 +9,7 @@ import {
   SwitchTheme,
   Text,
   TextButton,
-  useModalRef,
+  useModal,
 } from '../../../components';
 import {AppScreenProps} from '../../../navigation';
 import {useNotification} from '../../../notification';
@@ -21,7 +21,7 @@ let id: string;
 
 export const Screen1: FC<IProps> = memo(({navigation, route}) => {
   const {showMessage, hideMessage} = useNotification();
-  const modalRef = useModalRef();
+  const {ref: modalRef} = useModal();
 
   return (
     <ScreenContainer pa={16}>

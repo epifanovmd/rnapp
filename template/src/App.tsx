@@ -4,7 +4,6 @@ import SplashScreen from 'react-native-splash-screen';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {StatusBar, useColorScheme} from 'react-native';
 import Config from 'react-native-config';
-import {Host} from 'react-native-portalize';
 import {configure} from 'mobx';
 import {AppScreens} from './AppScreens';
 import {Notification} from './notification';
@@ -13,6 +12,7 @@ import {initLocalization, useTranslation} from './localization';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {navigationRef} from './navigation';
+import {ModalHost} from './components';
 
 configure({enforceActions: 'observed'});
 
@@ -41,13 +41,13 @@ const App = (): JSX.Element => {
       <ThemeProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <SafeAreaProvider>
-          <Host>
+          <ModalHost>
             <Notification>
               <NavigationContainer ref={navigationRef} onReady={onReady}>
                 <AppScreens />
               </NavigationContainer>
             </Notification>
-          </Host>
+          </ModalHost>
         </SafeAreaProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
