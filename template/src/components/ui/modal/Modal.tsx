@@ -73,6 +73,7 @@ export const Modal = React.forwardRef(
       keyboardAvoidingBehavior = 'padding',
       keyboardAvoidingOffset,
       panGestureEnabled = true,
+      childrenPanGestureEnabled = true,
       tapGestureEnabled = true,
       closeOnOverlayTap = true,
       closeSnapPointStraightEnabled = true,
@@ -695,7 +696,7 @@ export const Modal = React.forwardRef(
       return (
         <PanGestureHandler
           ref={panGestureChildrenRef}
-          enabled={panGestureEnabled}
+          enabled={panGestureEnabled && childrenPanGestureEnabled}
           simultaneousHandlers={[nativeViewChildrenRef, tapGestureModalizeRef]}
           shouldCancelWhenOutside={false}
           onGestureEvent={handleGestureEvent}
@@ -720,6 +721,7 @@ export const Modal = React.forwardRef(
       handleContentLayout,
       handleGestureEvent,
       panGestureEnabled,
+      childrenPanGestureEnabled,
     ]);
 
     const renderOverlay = useCallback(() => {

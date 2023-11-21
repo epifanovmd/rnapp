@@ -121,6 +121,12 @@ export interface IModalProps {
   panGestureEnabled?: boolean;
 
   /**
+   * Using this prop will enable/disable pan gesture for children.
+   * @default true
+   */
+  childrenPanGestureEnabled?: boolean;
+
+  /**
    * Define if the `TapGestureHandler` wrapping Modalize's core should be enable or not.
    * @default true
    */
