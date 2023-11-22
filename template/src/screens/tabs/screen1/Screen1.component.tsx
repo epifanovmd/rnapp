@@ -5,7 +5,7 @@ import {
   Col,
   Modal,
   SafeArea,
-  ScreenContainer,
+  Container,
   SwitchTheme,
   Text,
   TextButton,
@@ -24,7 +24,7 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
   const {ref: modalRef} = useModal();
 
   return (
-    <ScreenContainer pa={16}>
+    <Container pa={16}>
       <Text>{route.name}</Text>
       <SwitchTheme />
       <Button
@@ -80,6 +80,6 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
           </Col>
         </SafeArea>
       </Modal>
-    </ScreenContainer>
+    </Container>
   );
 });

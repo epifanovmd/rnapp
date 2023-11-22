@@ -20,12 +20,12 @@ initLocalization({initLang: 'ru'});
 
 const App = (): JSX.Element => {
   const isDarkMode = useColorScheme() === 'dark';
-  const {i18n} = useTranslation();
+  const {changeLanguage} = useTranslation();
 
   useEffect(() => {
     AsyncStorage.getItem('i18nextLng').then(async lang => {
       if (lang) {
-        await i18n.changeLanguage(lang);
+        await changeLanguage(lang);
       }
     });
     console.log('CONFIG', JSON.stringify(Config));

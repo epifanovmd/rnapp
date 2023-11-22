@@ -7,12 +7,12 @@ import {
   MediaType,
   PhotoQuality,
 } from 'react-native-image-picker';
-import {Modal, useModalRef} from '../../modal';
 import {Touchable} from '../touchable';
 import {TextButton} from '../button';
 import {useThemeAwareObject} from '../../../theme';
 import {Platform, StyleSheet} from 'react-native';
 import {PERMISSIONS, request} from 'react-native-permissions';
+import {Modal, useModal} from '../modal';
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -29,7 +29,7 @@ interface IProps {
 export const MediaPicker: FC<PropsWithChildren<FlexComponentProps<IProps>>> =
   memo(({onChangeImage, saveToPhotos, quality = 0.5, children, ...rest}) => {
     const styles = useThemeAwareObject(createStyles);
-    const modalRef = useModalRef();
+    const {ref: modalRef} = useModal();
 
     const onOpenModal = useCallback(() => {
       modalRef.current?.open();

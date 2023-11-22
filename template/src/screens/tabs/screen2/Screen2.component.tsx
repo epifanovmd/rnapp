@@ -5,7 +5,7 @@ import {
   DelayRefreshControl,
   Input,
   Row,
-  ScreenContainer,
+  Container,
   Text,
 } from '../../../components';
 import {FlatList, ListRenderItemInfo} from 'react-native';
@@ -60,7 +60,7 @@ export const Screen2: FC<AppScreenProps> = observer(() => {
   );
 
   return (
-    <ScreenContainer>
+    <Container>
       <Row pa={16}>
         <Input placeholder={'placeholder'} mb={10} onChangeText={onSearch} />
       </Row>
@@ -75,6 +75,6 @@ export const Screen2: FC<AppScreenProps> = observer(() => {
         renderItem={renderItem}
         refreshControl={refreshControl}
       />
-    </ScreenContainer>
+    </Container>
   );
 });
