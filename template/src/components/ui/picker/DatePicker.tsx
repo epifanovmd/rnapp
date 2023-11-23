@@ -9,19 +9,36 @@ import React, {
   useState,
 } from 'react';
 import {Col, Row} from '../../elements';
-import {Content} from '../../layouts';
 import {Text} from '../text';
-import {Button} from '../button';
-import {Picker} from './Picker';
+import {Button, IButtonProps} from '../button';
+import {Picker, PickerProps} from './Picker';
 import {SafeAreaBottom} from '../safeArea';
 import {Touchable, TouchableProps} from '../touchable';
 import {Modal, useModal} from '../modal';
 import moment from 'moment';
 import {useTranslation} from '../../../localization';
+import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
+import {IModalProps} from '../modal/types';
 
 export interface DatePickerProps extends TouchableProps<any> {
   date?: moment.Moment | null;
   onChange: (date: moment.Moment) => void;
+  renderItem?: (item: string, active: boolean, index: number) => JSX.Element;
+
+  pickerProps?: Omit<
+    PickerProps<string>,
+    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
+  >;
+
+  leftPickerLineStyle?: ViewStyle;
+  rightPickerLineStyle?: ViewStyle;
+
+  modalProps?: IModalProps;
+  containerProps?: ViewProps;
+
+  actionsContainerProps?: ViewProps;
+  resetButtonProps?: IButtonProps;
+  acceptButtonProps?: IButtonProps;
 }
 
 const years = Array.from({length: 201}, (_, i) => {
@@ -56,7 +73,21 @@ const generateDays = (month: number, year: number) => {
 };
 
 export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
-  ({date, onChange, children, ...rest}) => {
+  ({
+    date,
+    onChange,
+    renderItem,
+    pickerProps,
+    leftPickerLineStyle,
+    rightPickerLineStyle,
+    modalProps,
+    containerProps,
+    actionsContainerProps,
+    resetButtonProps,
+    acceptButtonProps,
+    children,
+    ...rest
+  }) => {
     const {i18n} = useTranslation();
 
     const {ref: modalRef} = useModal();
@@ -171,44 +202,27 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       }
     }, [modalRef, onChange]);
 
-    const renderItem = useCallback((item: string, active: boolean) => {
-      return (
-        <Col
-          flex={1}
-          width={'100%'}
-          alignItems={'center'}
-          justifyContent={'center'}>
-          <Text
-            color={active ? 'white' : 'black'}
-            numberOfLines={1}
-            fontSize={active ? 18 : 12}>
-            {item}
-          </Text>
-        </Col>
-      );
-    }, []);
-
-    const leftLineStyle = useMemo(
-      () => ({
-        borderBottomLeftRadius: 10,
-        borderTopLeftRadius: 10,
-        marginLeft: 10,
-        paddingRight: 10,
-      }),
-      [],
+    const _renderItem = useCallback(
+      (item: string, active: boolean, index: number) => {
+        return renderItem ? (
+          renderItem(item, active, index)
+        ) : (
+          <Col
+            flex={1}
+            width={'100%'}
+            alignItems={'center'}
+            justifyContent={'center'}>
+            <Text
+              color={active ? 'white' : 'black'}
+              numberOfLines={1}
+              fontSize={active ? 18 : 12}>
+              {item}
+            </Text>
+          </Col>
+        );
+      },
+      [renderItem],
     );
-
-    const rightLineStyle = useMemo(
-      () => ({
-        borderBottomRightRadius: 10,
-        borderTopRightRadius: 10,
-        marginRight: 10,
-        paddingLeft: 10,
-      }),
-      [],
-    );
-
-    const pickerStyle = useMemo(() => ({flex: 1}), []);
 
     const handleOpen = useCallback(() => {
       setInitialDayIndex((dayIndex.current = initialIndexes.current[0]));
@@ -219,54 +233,100 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       modalRef.current?.open();
     }, [changeDays, modalRef]);
 
+    const _leftPickerLineStyle = useMemo(
+      () => ({
+        ...s.leftLineStyle,
+        ...leftPickerLineStyle,
+      }),
+      [leftPickerLineStyle],
+    );
+    const _rightPickerLineStyle = useMemo(
+      () => ({
+        ...s.rightLineStyle,
+        ...rightPickerLineStyle,
+      }),
+      [rightPickerLineStyle],
+    );
+
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
         <Modal
           ref={modalRef}
-          onClose={reset}
           adjustToContentHeight={true}
-          childrenPanGestureEnabled={false}>
-          <Content flex={0} pv={16}>
+          childrenPanGestureEnabled={false}
+          {...modalProps}>
+          <Col pa={16} {...containerProps}>
             <Row>
               <Picker
+                itemHeight={27}
+                style={s.pickerStyle}
+                lineStyle={_leftPickerLineStyle}
+                {...pickerProps}
                 index={initialDayIndex}
                 items={days}
-                itemHeight={27}
-                style={pickerStyle}
-                renderItem={renderItem}
+                renderItem={_renderItem}
                 onIndexChange={handleDay}
-                lineStyle={leftLineStyle}
               />
               <Picker
+                itemHeight={27}
+                style={s.pickerStyle}
+                {...pickerProps}
                 index={initialMonthIndex}
                 items={months}
-                itemHeight={27}
-                style={pickerStyle}
-                renderItem={renderItem}
+                renderItem={_renderItem}
                 onIndexChange={handleMonth}
               />
               <Picker
+                itemHeight={27}
+                style={s.pickerStyle}
+                lineStyle={_rightPickerLineStyle}
+                {...pickerProps}
                 index={initialYearIndex}
                 items={years}
-                itemHeight={27}
-                style={pickerStyle}
-                renderItem={renderItem}
+                renderItem={_renderItem}
                 onIndexChange={handleYear}
-                lineStyle={rightLineStyle}
               />
             </Row>
 
-            <Row pt={16} justifyContent={'space-between'}>
-              <Button title={'Сбросить'} onPress={reset} />
-              <Button bg={'red'} title={'Применить'} onPress={handleApply} />
+            <Row
+              pt={16}
+              justifyContent={'space-between'}
+              {...actionsContainerProps}>
+              <Button
+                title={'Сбросить'}
+                {...resetButtonProps}
+                onPress={reset}
+              />
+              <Button
+                title={'Применить'}
+                {...acceptButtonProps}
+                onPress={handleApply}
+              />
             </Row>
 
             <SafeAreaBottom />
-          </Content>
+          </Col>
         </Modal>
       </Touchable>
     );
   },
 );
+
+const s = StyleSheet.create({
+  leftLineStyle: {
+    borderBottomLeftRadius: 10,
+    borderTopLeftRadius: 10,
+    marginLeft: 10,
+    paddingRight: 10,
+  },
+
+  rightLineStyle: {
+    borderBottomRightRadius: 10,
+    borderTopRightRadius: 10,
+    marginRight: 10,
+    paddingLeft: 10,
+  },
+  pickerStyle: {flex: 1},
+});
