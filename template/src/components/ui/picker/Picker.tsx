@@ -44,10 +44,10 @@ export interface PickerProps<T> extends ViewProps {
   >;
 }
 
-const DEBOUNCE_CHANGE = 100; //200 ms
+const DEBOUNCE_CHANGE = 50; // ms
 
 export interface PickerRef {
-  scrollToIndex(index: number): void;
+  scrollToIndex(index: number, animated?: boolean): void;
 }
 
 export interface Picker {
@@ -120,12 +120,15 @@ export const Picker: Picker = memo(
       const onPressValue = useCallback(
         (i: number) => () => {
           if (i !== index) {
+            if (onIndexChange && index !== i) {
+              onIndexChange(items[i], i);
+            }
             isPressedValue.current = true;
             selectTo(i);
             triggerHapticFeedback();
           }
         },
-        [index, selectTo, triggerHapticFeedback],
+        [index, items, onIndexChange, selectTo, triggerHapticFeedback],
       );
 
       const itemContainerStyle: ViewStyle = useMemo(
@@ -195,8 +198,12 @@ export const Picker: Picker = memo(
         (currentIndex: number) => {
           checkIntervalFix();
           intervalFix.current = setTimeout(() => {
-            if (onIndexChange && !isDrag.current && index !== currentIndex) {
-              onIndexChange(items[currentIndex], currentIndex);
+            if (isPressedValue.current) {
+              isPressedValue.current = false;
+            } else {
+              if (onIndexChange && index !== currentIndex) {
+                onIndexChange(items[currentIndex], currentIndex);
+              }
             }
           }, DEBOUNCE_CHANGE);
         },
@@ -222,10 +229,14 @@ export const Picker: Picker = memo(
           const y = e.nativeEvent.contentOffset.y;
           const currentIndex = getScrollIndex(y);
 
-          if (currentIndex !== currentIndexRef.current) {
-            hapticScrollFeedback();
+          if (!isDrag.current) {
             debounceIndexChange(currentIndex);
           }
+
+          if (currentIndex !== currentIndexRef.current) {
+            hapticScrollFeedback();
+          }
+
           currentIndexRef.current = currentIndex;
         },
         [debounceIndexChange, getScrollIndex, hapticScrollFeedback],
@@ -262,15 +273,18 @@ export const Picker: Picker = memo(
       const onScrollBeginDrag = useCallback(() => {
         isDrag.current = true;
       }, []);
+
       const onScrollEndDrag = useCallback(() => {
         isDrag.current = false;
         isPressedValue.current = false;
-      }, []);
+
+        debounceIndexChange(currentIndexRef.current);
+      }, [debounceIndexChange]);
 
       React.useImperativeHandle(ref, () => ({
-        scrollToIndex: (y: number) => {
+        scrollToIndex: (y: number, animated?: boolean) => {
           isPressedValue.current = true;
-          selectTo(y);
+          selectTo(y, animated);
         },
       }));
 

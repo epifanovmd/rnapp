@@ -37,8 +37,20 @@ export interface TimePickerProps extends TouchableProps<any> {
   acceptButtonProps?: IButtonProps;
 }
 
-const hours = new Array(24).fill(0).map((_item, index) => `${index}`);
-const minutes = new Array(60).fill(0).map((_item, index) => `${index}`);
+const toTwoChars = (string: string) => {
+  if (string.length === 1) {
+    return `0${string}`;
+  }
+
+  return string;
+};
+
+const hours = new Array(24)
+  .fill(0)
+  .map((_item, index) => toTwoChars(`${index}`));
+const minutes = new Array(60)
+  .fill(0)
+  .map((_item, index) => toTwoChars(`${index}`));
 
 const getHourIndex = (hour?: string) => {
   const index = hours.findIndex(item => item === hour);
@@ -71,7 +83,9 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     const {ref: modalRef} = useModal();
 
     const [hour, minute] = useMemo(() => {
-      return time?.split(':') || [undefined, undefined];
+      const _time = new Date().toTimeString().split(':');
+
+      return time ? time.split(':') : [_time[0], _time[1]];
     }, [time]);
 
     const [currentFirstIndex, setCurrentFirstIndex] = useState<number>(
@@ -83,9 +97,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     );
 
     const reset = useCallback(() => {
-      setCurrentFirstIndex(getHourIndex(hour));
-      setCurrentSecondIndex(getMinuteIndex(minute));
-    }, [hour, minute]);
+      const _time = new Date().toTimeString().split(':');
+      const [_hour, _minute] = time ? time.split(':') : [_time[0], _time[1]];
+
+      setCurrentFirstIndex(getHourIndex(_hour));
+      setCurrentSecondIndex(getMinuteIndex(_minute));
+    }, [time]);
 
     useEffect(() => {
       reset();
