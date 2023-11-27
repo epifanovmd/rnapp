@@ -7,14 +7,13 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import {Col, Row} from '../../elements';
-import {Button, IButtonProps} from '../button';
+import {Col, Row} from '../flexView';
+import {Button, ButtonProps} from '../button';
 import {Picker, PickerProps} from './Picker';
 import {SafeAreaBottom} from '../safeArea';
 import {Touchable, TouchableProps} from '../touchable';
-import {Modal, useModal} from '../modal';
+import {Modal, useModal, ModalProps} from '../modal';
 import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
-import {IModalProps} from '../modal/types';
 
 export interface TimePickerProps extends TouchableProps<any> {
   time?: string;
@@ -29,12 +28,12 @@ export interface TimePickerProps extends TouchableProps<any> {
   leftPickerLineStyle?: ViewStyle;
   rightPickerLineStyle?: ViewStyle;
 
-  modalProps?: IModalProps;
+  modalProps?: ModalProps;
   containerProps?: ViewProps;
 
   actionsContainerProps?: ViewProps;
-  resetButtonProps?: IButtonProps;
-  acceptButtonProps?: IButtonProps;
+  resetButtonProps?: ButtonProps;
+  acceptButtonProps?: ButtonProps;
 }
 
 const toTwoChars = (string: string) => {

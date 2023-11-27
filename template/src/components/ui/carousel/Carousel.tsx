@@ -8,14 +8,14 @@ import React, {
   useState,
 } from 'react';
 import {ListRenderItemInfo} from 'react-native';
-import {Col, Row} from '../../elements';
+import {Col, FlexProps, Row} from '../flexView';
 import {LayoutChangeEvent} from 'react-native/Libraries/Types/CoreEventTypes';
 import {FlatListProps} from 'react-native/Libraries/Lists/FlatList';
 import {Touchable} from '../touchable';
 import {FlatList, GestureHandlerRootView} from 'react-native-gesture-handler';
 import {mergeRefs} from '../../../common';
 
-export interface ICarouselProps<T = any>
+export interface CarouselProps<T = any>
   extends Omit<
     FlatListProps<T>,
     | 'ListEmptyComponent'
@@ -23,20 +23,21 @@ export interface ICarouselProps<T = any>
     | 'ListHeaderComponent'
     | 'renderItem'
   > {
-  renderItem?: (info?: ListRenderItemInfo<T>) => React.ReactElement | null;
+  renderItem?: (info: ListRenderItemInfo<T>) => React.ReactElement | null;
   width?: number;
   height?: number;
   onPress?: () => void;
   overflowWidth?: number;
   separateWidth?: number;
+  containerProps?: FlexProps;
 }
 
-export interface CarouselFC<P = any> {
-  <T>(props: ICarouselProps<P extends never ? T : P>): ReturnType<FC>;
+export interface CarouselFC<P extends any = null> {
+  <T>(props: CarouselProps<P extends null ? T : P>): ReturnType<FC>;
 }
 
 export const Carousel: CarouselFC = memo(
-  forwardRef<FlatList, ICarouselProps>(
+  forwardRef<FlatList, CarouselProps>(
     (
       {
         renderItem,
@@ -44,6 +45,7 @@ export const Carousel: CarouselFC = memo(
         overflowWidth = 16,
         separateWidth = 1,
         onPress,
+        containerProps,
         ...rest
       },
       ref,
@@ -91,7 +93,7 @@ export const Carousel: CarouselFC = memo(
       );
 
       return (
-        <Row onLayout={onLayout} flex={1}>
+        <Row {...containerProps} onLayout={onLayout}>
           <GestureHandlerRootView>
             <FlatList
               ref={mergeRefs([ref, flatListRef])}
@@ -103,7 +105,7 @@ export const Carousel: CarouselFC = memo(
               bounces={false}
               decelerationRate={0.95}
               renderToHardwareTextureAndroid
-              snapToInterval={itemLength + separateWidth}
+              snapToInterval={itemLength}
               snapToAlignment="start"
               keyExtractor={(item, index) => `${index}`}
               {...rest}

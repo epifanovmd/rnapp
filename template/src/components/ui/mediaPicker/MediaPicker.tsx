@@ -1,5 +1,5 @@
 import React, {FC, memo, PropsWithChildren, useCallback} from 'react';
-import {Col, FlexComponentProps} from '../../elements';
+import {Col, FlexComponentProps} from '../flexView';
 import {
   Asset,
   launchCamera,
@@ -7,28 +7,28 @@ import {
   MediaType,
   PhotoQuality,
 } from 'react-native-image-picker';
-import {Touchable} from '../touchable';
+import {Modal, useModal} from '../modal';
+import {Touchable, TouchableProps} from '../touchable';
 import {TextButton} from '../button';
-import {useThemeAwareObject} from '../../../theme';
 import {Platform, StyleSheet} from 'react-native';
 import {PERMISSIONS, request} from 'react-native-permissions';
-import {Modal, useModal} from '../modal';
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
   android: PERMISSIONS.ANDROID.CAMERA,
 });
 
-interface IProps {
+export interface MediaPickerProps extends TouchableProps<any> {
   onChangeImage?: (images: Asset[]) => void;
   saveToPhotos?: boolean;
   quality?: PhotoQuality;
   mediaType?: MediaType;
 }
 
-export const MediaPicker: FC<PropsWithChildren<FlexComponentProps<IProps>>> =
-  memo(({onChangeImage, saveToPhotos, quality = 0.5, children, ...rest}) => {
-    const styles = useThemeAwareObject(createStyles);
+export const MediaPicker: FC<
+  PropsWithChildren<FlexComponentProps<MediaPickerProps>>
+> = memo(
+  ({onChangeImage, saveToPhotos = true, quality = 0.5, children, ...rest}) => {
     const {ref: modalRef} = useModal();
 
     const onOpenModal = useCallback(() => {
@@ -71,7 +71,7 @@ export const MediaPicker: FC<PropsWithChildren<FlexComponentProps<IProps>>> =
       <Touchable flex={1} {...rest} onPress={onOpenModal}>
         {children}
 
-        <Modal ref={modalRef} modalStyle={styles.modalStyle}>
+        <Modal ref={modalRef} modalStyle={s.modalStyle}>
           <Col radius={16} bg={'#fff'} pa={16} alignItems={'center'}>
             <TextButton pv={8} title={'Камера'} onPress={_launchCamera} />
             <TextButton
@@ -91,15 +91,15 @@ export const MediaPicker: FC<PropsWithChildren<FlexComponentProps<IProps>>> =
         </Modal>
       </Touchable>
     );
-  });
+  },
+);
 
-const createStyles = () =>
-  StyleSheet.create({
-    modalStyle: {
-      backgroundColor: 'transparent',
-      shadowColor: 'transparent',
-      padding: 16,
-      marginBottom: 16,
-      borderRadius: 16,
-    },
-  });
+const s = StyleSheet.create({
+  modalStyle: {
+    backgroundColor: 'transparent',
+    shadowColor: 'transparent',
+    padding: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+  },
+});

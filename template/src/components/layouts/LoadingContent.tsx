@@ -1,6 +1,6 @@
 import React, {FC, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator} from 'react-native';
-import {FlexComponentProps, FlexView} from '../elements';
+import {FlexComponentProps, FlexView} from '../ui';
 import {useTheme} from '../../theme';
 
 interface IProps extends FlexComponentProps {

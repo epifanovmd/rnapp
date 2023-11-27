@@ -8,9 +8,9 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {Col, Row} from '../../elements';
+import {Col, Row} from '../flexView';
 import {Text} from '../text';
-import {Button, IButtonProps} from '../button';
+import {Button, ButtonProps} from '../button';
 import {Picker, PickerProps} from './Picker';
 import {SafeAreaBottom} from '../safeArea';
 import {Touchable, TouchableProps} from '../touchable';
@@ -18,28 +18,7 @@ import {Modal, useModal} from '../modal';
 import moment from 'moment';
 import {useTranslation} from '../../../localization';
 import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
-import {IModalProps} from '../modal/types';
-
-export interface DatePickerProps extends TouchableProps<any> {
-  date?: moment.Moment | null;
-  onChange: (date: moment.Moment) => void;
-  renderItem?: (item: string, active: boolean, index: number) => JSX.Element;
-
-  pickerProps?: Omit<
-    PickerProps<string>,
-    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
-  >;
-
-  leftPickerLineStyle?: ViewStyle;
-  rightPickerLineStyle?: ViewStyle;
-
-  modalProps?: IModalProps;
-  containerProps?: ViewProps;
-
-  actionsContainerProps?: ViewProps;
-  resetButtonProps?: IButtonProps;
-  acceptButtonProps?: IButtonProps;
-}
+import {ModalProps} from '../modal/types';
 
 const years = Array.from({length: 201}, (_, i) => {
   return (i + new Date().getFullYear() - 100).toString();
@@ -71,6 +50,27 @@ const generateDays = (month: number, year: number) => {
     (_, i) => (i + 1).toString(),
   );
 };
+
+export interface DatePickerProps extends TouchableProps<any> {
+  date?: moment.Moment | null;
+  onChange: (date: moment.Moment) => void;
+  renderItem?: (item: string, active: boolean, index: number) => JSX.Element;
+
+  pickerProps?: Omit<
+    PickerProps<string>,
+    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
+  >;
+
+  leftPickerLineStyle?: ViewStyle;
+  rightPickerLineStyle?: ViewStyle;
+
+  modalProps?: ModalProps;
+  containerProps?: ViewProps;
+
+  actionsContainerProps?: ViewProps;
+  resetButtonProps?: ButtonProps;
+  acceptButtonProps?: ButtonProps;
+}
 
 export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   ({

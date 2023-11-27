@@ -1,10 +1,10 @@
 import React, {FC, memo} from 'react';
 import {
-  Image as RNImage,
-  ImageProps as _ImageProps,
   ImageStyle,
+  ImageProps as _ImageProps,
+  Image as RNImage,
 } from 'react-native';
-import {FlexComponentProps, useFlexProps} from '../../elements';
+import {FlexComponentProps, useFlexProps} from '../flexView';
 
 export interface ImageProps
   extends FlexComponentProps<_ImageProps, ImageStyle> {}

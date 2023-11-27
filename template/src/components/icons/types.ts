@@ -1,4 +1,4 @@
-import {FlexComponentProps} from '../elements';
+import {FlexComponentProps} from '../ui';
 import {SvgProps} from 'react-native-svg';
 
 export type FlexSvgProps = FlexComponentProps<

@@ -3,11 +3,13 @@ import {
   Animated,
   ColorValue,
   FlexAlignType,
+  ImageStyle,
   StyleProp,
   TextStyle,
   ViewStyle,
 } from 'react-native';
 import AnimatedProps = Animated.AnimatedProps;
+import WithAnimatedValue = Animated.WithAnimatedValue;
 
 export type NumericSpacesType =
   | 2
@@ -163,32 +165,27 @@ interface PositionProps {
 
 interface BorderProps {
   // borderRadius
-  radius?: number | Animated.Animated;
-  topRadius?: number | Animated.Animated;
-  bottomRadius?: number | Animated.Animated;
-  leftRadius?: number | Animated.Animated;
-  rightRadius?: number | Animated.Animated;
+  radius?: WithAnimatedValue<number>;
+  topRadius?: WithAnimatedValue<number>;
+  bottomRadius?: WithAnimatedValue<number>;
+  leftRadius?: WithAnimatedValue<number>;
+  rightRadius?: WithAnimatedValue<number>;
   // circle - диаметр круга
   circle?: number;
   overflow?: 'visible' | 'hidden' | 'scroll';
-  borderColor?: string | Animated.Animated;
-  borderWidth?: number | Animated.Animated;
-  borderBottomWidth?: number | Animated.Animated;
-  borderTopWidth?: number | Animated.Animated;
-  borderLeftWidth?: number | Animated.Animated;
-  borderRightWidth?: number | Animated.Animated;
+  borderColor?: WithAnimatedValue<string>;
+  borderWidth?: WithAnimatedValue<number>;
+  borderBottomWidth?: WithAnimatedValue<number>;
+  borderTopWidth?: WithAnimatedValue<number>;
+  borderLeftWidth?: WithAnimatedValue<number>;
+  borderRightWidth?: WithAnimatedValue<number>;
 }
 
 interface TransformProps {
-  animated?: true;
-  /**
-   * Value for: transform: [{rotate: string}]
-   * Examples: '90deg', '0.785398rad'
-   */
-  rotate?: string | Animated.Animated;
-  translateX?: number | Animated.Animated;
-  translateY?: number | Animated.Animated;
-  scale?: number | Animated.Animated;
+  rotate?: string;
+  translateX?: number;
+  translateY?: number;
+  scale?: number;
 }
 
 interface ShadowProps {
@@ -248,23 +245,22 @@ type CommonFlexProps = AnimatedProps<PaddingGridProps> &
   DebugProps &
   ShadowProps &
   BorderProps &
-  TransformProps &
+  AnimatedProps<TransformProps> &
   AnimatedProps<ColorProps>;
 
 export type FlexStyle = ViewStyle & TextStyle;
 
-export type FlexProps<TStyleSource = ViewStyle> = (Omit<
-  TextStyle,
-  keyof ViewStyle
-> extends TStyleSource
+export type FlexProps<
+  TStyleSource extends ViewStyle | TextStyle | ImageStyle = ViewStyle,
+> = (Omit<TextStyle, keyof ViewStyle> extends TStyleSource
   ? CommonFlexProps & TextProps
-  : CommonFlexProps) &
-  AnimatedProps<{
-    readonly style?: StyleProp<TStyleSource>;
-  }>;
+  : CommonFlexProps) & {
+  animated?: true;
+  style?: StyleProp<TStyleSource>;
+};
 
-export type FlexComponentProps<TProps = {}, TStyleSource = ViewStyle> = Omit<
-  TProps,
-  'style'
-> &
+export type FlexComponentProps<
+  TProps = {},
+  TStyleSource extends ViewStyle | TextStyle | ImageStyle = ViewStyle,
+> = Omit<TProps, 'style'> &
   FlexProps<TStyleSource> & {children?: React.ReactNode};

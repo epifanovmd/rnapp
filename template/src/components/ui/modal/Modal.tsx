@@ -22,7 +22,7 @@ import {
   TapGestureHandlerStateChangeEvent,
 } from 'react-native-gesture-handler';
 
-import {IHandles, IModalProps, TClose, TOpen, TPosition, TStyle} from './types';
+import {IHandles, ModalProps, TClose, TOpen, TPosition, TStyle} from './types';
 import {useDimensions} from './utils/use-dimensions';
 import {getSpringConfig} from './utils/get-spring-config';
 import {isIphoneX} from './utils/devices';
@@ -105,7 +105,7 @@ export const Modal = React.forwardRef(
       onPositionChange,
       onOverlayPress,
       onLayout,
-    }: IModalProps,
+    }: ModalProps,
     ref: React.Ref<Modal>,
   ) => {
     const {height: screenHeight} = useDimensions();

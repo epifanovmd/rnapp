@@ -7,7 +7,7 @@ import {
   TextStyle,
 } from 'react-native';
 import {Theme, useThemeAwareObject} from '../../../theme';
-import {FlexComponentProps, useFlexProps} from '../../elements';
+import {FlexComponentProps, useFlexProps} from '../flexView';
 
 interface IProps extends FlexComponentProps<TextProps, TextStyle> {}
 

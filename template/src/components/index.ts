@@ -1,4 +1,4 @@
 export * from './actions';
-export * from './ui';
-export * from './elements';
+export * from './icons';
 export * from './layouts';
+export * from './ui';

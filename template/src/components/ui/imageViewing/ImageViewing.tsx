@@ -16,7 +16,13 @@ import useAnimatedComponents from './hooks/useAnimatedComponents';
 import ImageDefaultHeader from './components/ImageDefaultHeader';
 import ImageItem from './components/ImageItem/ImageItem';
 
-type Props = {
+const DEFAULT_ANIMATION_TYPE = 'fade';
+const DEFAULT_BG_COLOR = '#000';
+const DEFAULT_DELAY_LONG_PRESS = 800;
+const SCREEN = Dimensions.get('screen');
+const SCREEN_WIDTH = SCREEN.width;
+
+export interface ImageViewingProps {
   images: ImageURISource[];
   keyExtractor?: (imageSrc: ImageURISource, index: number) => string;
   imageIndex: number;
@@ -31,15 +37,9 @@ type Props = {
   delayLongPress?: number;
   HeaderComponent?: ComponentType<{imageIndex: number}>;
   FooterComponent?: ComponentType<{imageIndex: number}>;
-};
+}
 
-const DEFAULT_ANIMATION_TYPE = 'fade';
-const DEFAULT_BG_COLOR = '#000';
-const DEFAULT_DELAY_LONG_PRESS = 800;
-const SCREEN = Dimensions.get('screen');
-const SCREEN_WIDTH = SCREEN.width;
-
-export const ImageViewing: FC<Props> = ({
+export const ImageViewing: FC<ImageViewingProps> = ({
   images,
   keyExtractor,
   imageIndex,
@@ -97,8 +97,8 @@ export const ImageViewing: FC<Props> = ({
       onRequestClose={onRequestCloseEnhanced}
       supportedOrientations={['portrait']}
       hardwareAccelerated>
-      <View style={[styles.container, {opacity, backgroundColor}]}>
-        <Animated.View style={[styles.header, {transform: headerTransform}]}>
+      <View style={[s.container, {opacity, backgroundColor}]}>
+        <Animated.View style={[s.header, {transform: headerTransform}]}>
           {typeof HeaderComponent !== 'undefined' ? (
             React.createElement(HeaderComponent, {
               imageIndex: currentImageIndex,
@@ -140,7 +140,7 @@ export const ImageViewing: FC<Props> = ({
           keyExtractor={_keyExtractor}
         />
         {typeof FooterComponent !== 'undefined' && (
-          <Animated.View style={[styles.footer, {transform: footerTransform}]}>
+          <Animated.View style={[s.footer, {transform: footerTransform}]}>
             {React.createElement(FooterComponent, {
               imageIndex: currentImageIndex,
             })}
@@ -151,7 +151,7 @@ export const ImageViewing: FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',

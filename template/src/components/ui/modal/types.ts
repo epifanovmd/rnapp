@@ -34,7 +34,7 @@ export interface IConfigProps {
   spring?: ISpringProps;
 }
 
-export interface IModalProps {
+export interface ModalProps {
   /**
    * A React node that will define the content of the modal.
    */

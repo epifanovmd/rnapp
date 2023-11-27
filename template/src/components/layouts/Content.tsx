@@ -1,5 +1,5 @@
 import React, {FC, memo} from 'react';
-import {Col, FlexComponentProps} from '../elements';
+import {Col, FlexComponentProps} from '../ui';
 
 interface IProps extends FlexComponentProps {}
 

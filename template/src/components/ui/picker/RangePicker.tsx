@@ -4,16 +4,16 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
-import {Col, Row} from '../../elements';
-import {Button, IButtonProps} from '../button';
-import {Picker, PickerProps} from './Picker';
+import {Col, Row} from '../flexView';
+import {Button, ButtonProps} from '../button';
+import {Picker, PickerProps, PickerRef} from './Picker';
 import {SafeAreaBottom} from '../safeArea';
 import {Touchable, TouchableProps} from '../touchable';
-import {Modal, useModal} from '../modal';
+import {Modal, useModal, ModalProps} from '../modal';
 import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
-import {IModalProps} from '../modal/types';
 
 export interface RangePickerProps<T extends Object & {index: number}>
   extends TouchableProps<any> {
@@ -30,12 +30,12 @@ export interface RangePickerProps<T extends Object & {index: number}>
   leftPickerLineStyle?: ViewStyle;
   rightPickerLineStyle?: ViewStyle;
 
-  modalProps?: IModalProps;
+  modalProps?: ModalProps;
   containerProps?: ViewProps;
 
   actionsContainerProps?: ViewProps;
-  resetButtonProps?: IButtonProps;
-  acceptButtonProps?: IButtonProps;
+  resetButtonProps?: ButtonProps;
+  acceptButtonProps?: ButtonProps;
 }
 
 interface RangePicker {
@@ -63,33 +63,32 @@ export const RangePicker: RangePicker = memo(
   }: PropsWithChildren<RangePickerProps<any>>) => {
     const {ref: modalRef} = useModal();
 
+    const secondPickerRef = useRef<PickerRef>(null);
+
     const [currentFirstIndex, setCurrentFirstIndex] = useState<number>(
       range?.[0].index ?? 0,
     );
-
-    const firstItems = useMemo(() => items, [items]);
 
     const [currentSecondIndex, setCurrentSecondIndex] = useState<number>(
       range?.[1].index ?? 0,
     );
 
     const secondItems = useMemo(() => {
-      const newItems = items.slice(currentFirstIndex, items.length);
-
-      setCurrentSecondIndex(secondIndex =>
-        secondIndex - currentFirstIndex < 0
-          ? 0
-          : secondIndex - currentFirstIndex,
-      );
-
-      return newItems;
+      return items.slice(currentFirstIndex, items.length);
     }, [items, currentFirstIndex]);
+
+    const firstItems = useMemo(
+      () => items.slice(0, items.length - secondItems.length || items.length),
+      [items, secondItems.length],
+    );
 
     const reset = useCallback(() => {
       const firstIndex = range?.[0].index ?? 0;
       const secondIndex = range?.[1].index ?? 0;
       setCurrentFirstIndex(firstIndex);
-      setCurrentSecondIndex(secondIndex - firstIndex);
+      setCurrentSecondIndex(
+        secondIndex - firstIndex < 0 ? 0 : secondIndex - firstIndex,
+      );
     }, [range]);
 
     useEffect(() => {
@@ -122,13 +121,21 @@ export const RangePicker: RangePicker = memo(
 
     const handleFirst = useCallback(
       (item: any, index: number) => {
-        const secondIndex = range?.[1].index ?? 0;
+        const dif = index - currentFirstIndex;
+        const findIndex = items.slice(index, items.length).findIndex(el => {
+          return el.index === range?.[1].index;
+        });
+
         setCurrentFirstIndex(index);
         setCurrentSecondIndex(
-          secondIndex - index < 0 ? 0 : secondIndex - index,
+          findIndex !== -1
+            ? findIndex
+            : currentSecondIndex - dif < 0
+            ? 0
+            : currentSecondIndex - dif,
         );
       },
-      [range],
+      [currentFirstIndex, currentSecondIndex, items, range],
     );
 
     const handleSecond = useCallback((item: any, index: number) => {
@@ -172,6 +179,7 @@ export const RangePicker: RangePicker = memo(
                 onIndexChange={handleFirst}
               />
               <Picker
+                ref={secondPickerRef}
                 style={s.pickerStyle}
                 lineStyle={_rightPickerLineStyle}
                 itemHeight={27}

@@ -1,46 +1,18 @@
-import {ImageStyle, StyleSheet, TextStyle, ViewStyle} from 'react-native';
 import {FlexProps} from './types';
-import {useMemo} from 'react';
+import {TextStyle, ViewStyle} from 'react-native';
 import {flexPropsMap} from './flexPropsMap';
 
-export const useFlexProps = <
-  TProps extends FlexProps<ViewStyle | TextStyle>,
-  TOwnProps extends Omit<TProps, keyof FlexProps<ViewStyle | TextStyle>> = Omit<
-    TProps,
-    keyof FlexProps<ViewStyle | TextStyle>
-  >,
-  TStyleSource extends ViewStyle | TextStyle | ImageStyle =
-    | ViewStyle
-    | TextStyle
-    | ImageStyle,
->(
-  props: TProps,
-  defaultProps?: Partial<TProps>,
-) =>
-  useMemo(() => {
-    const ownProps = {} as TOwnProps;
-    const styleSource = {} as TStyleSource;
-
-    viewStylePropsConverter({...defaultProps, ...props}, ownProps, styleSource);
-    const style = StyleSheet.create({style: styleSource});
-
-    if (typeof props.debug === 'string') {
-      console.log(`FlexView::render ${props.debug}`); // 🐞 ✅
-    }
-
-    return {
-      animated: props.animated,
-      style: style.style,
-      ownProps,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
-
-function viewStylePropsConverter<
+export const flexPropsConverter = <
   TProps extends FlexProps,
   TOwnProps = Omit<TProps, keyof FlexProps>,
   TStyleSource extends TextStyle & ViewStyle = TextStyle & ViewStyle,
->(props: TProps, outOwnProps: TOwnProps, outStyleSource: TStyleSource) {
+>(
+  props: TProps,
+  flexProps: Omit<FlexProps, 'style'>,
+  outOwnProps: TOwnProps,
+  outStyleSource: TStyleSource,
+) => {
+  const fp = flexProps as any;
   const op = outOwnProps as any;
   const os = outStyleSource as any;
 
@@ -70,6 +42,9 @@ function viewStylePropsConverter<
             }
           }
         }
+        if (key !== 'style') {
+          fp[key] = props[key];
+        }
       } else {
         if (key !== 'style') {
           op[key] = props[key];
@@ -81,4 +56,4 @@ function viewStylePropsConverter<
   if (props.style) {
     Object.assign(os, props.style);
   }
-}
+};

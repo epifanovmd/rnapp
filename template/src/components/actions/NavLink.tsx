@@ -1,6 +1,5 @@
 import React, {FC, memo, useCallback} from 'react';
-import {FlexComponentProps} from '../elements';
-import {Touchable} from '../ui';
+import {Touchable, FlexComponentProps} from '../ui';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import {ScreenName} from '../../navigation';
 

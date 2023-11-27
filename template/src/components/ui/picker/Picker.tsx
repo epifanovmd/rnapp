@@ -21,6 +21,12 @@ import {
 } from 'react-native';
 import RNReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
+const DEBOUNCE_CHANGE = 50; // ms
+
+export interface PickerRef {
+  scrollToIndex(index: number, animated?: boolean): void;
+}
+
 export interface PickerProps<T> extends ViewProps {
   items: T[];
   index?: number;
@@ -42,12 +48,6 @@ export interface PickerProps<T> extends ViewProps {
     | 'snapToAlignment'
     | 'snapToOffsets'
   >;
-}
-
-const DEBOUNCE_CHANGE = 50; // ms
-
-export interface PickerRef {
-  scrollToIndex(index: number, animated?: boolean): void;
 }
 
 export interface Picker {

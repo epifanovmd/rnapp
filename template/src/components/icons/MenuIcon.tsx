@@ -1,6 +1,6 @@
 import React, {FC} from 'react';
 import Svg, {G, Path} from 'react-native-svg';
-import {useFlexProps} from '../elements';
+import {useFlexProps} from '../ui';
 import {FlexSvgProps} from './types';
 
 interface IProps extends FlexSvgProps {}

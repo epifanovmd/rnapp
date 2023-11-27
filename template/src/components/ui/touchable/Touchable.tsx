@@ -1,8 +1,7 @@
-import React, {FC, memo, useCallback} from 'react';
+import React, {FC, memo, useCallback, useMemo} from 'react';
 import {TouchableOpacity, TouchableOpacityProps} from 'react-native';
-import {FlexComponentProps, useFlexProps} from '../../elements';
+import {FlexComponentProps, useFlexProps} from '../flexView';
 import {GestureResponderEvent} from 'react-native/Libraries/Types/CoreEventTypes';
-import {RequiredKeys} from '@force-dev/utils';
 
 export interface TouchableProps<T>
   extends FlexComponentProps,
@@ -11,20 +10,12 @@ export interface TouchableProps<T>
   ctx?: T;
 }
 
-interface TouchableFC {
-  <T extends any = undefined>(
-    props: Omit<TouchableProps<T>, 'ctx'> & {ctx?: never},
-  ): ReturnType<FC>;
+interface Touchable {
+  <T extends any = undefined>(props: TouchableProps<T>): ReturnType<FC>;
 }
 
-interface TouchableContextFC {
-  <T extends any = undefined>(
-    props: RequiredKeys<TouchableProps<T>, 'ctx'>,
-  ): ReturnType<FC>;
-}
-
-export const Touchable: TouchableFC = memo(
-  ({onPress, ctx, children, ...rest}) => {
+export const Touchable: Touchable = memo(
+  ({onPress, disabled, ctx, children, ...rest}) => {
     const {style, ownProps} = useFlexProps(rest);
 
     const _onPress = useCallback(
@@ -34,16 +25,20 @@ export const Touchable: TouchableFC = memo(
       [ctx, onPress],
     );
 
+    const _style = useMemo(
+      () => ({opacity: disabled ? 0.3 : 1, ...style}),
+      [disabled, style],
+    );
+
     return (
       <TouchableOpacity
         onPress={_onPress}
         activeOpacity={0.7}
-        style={style}
+        style={_style}
+        disabled={disabled || !onPress}
         {...ownProps}>
         {children}
       </TouchableOpacity>
     );
   },
 );
-
-export const TouchableContext = Touchable as TouchableContextFC;
