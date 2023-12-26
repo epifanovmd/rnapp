@@ -1,7 +1,8 @@
 import {makeAutoObservable, reaction} from 'mobx';
-import {iocDecorator, iocHook} from '@force-dev/utils';
+import {iocDecorator} from '@force-dev/utils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {INavigationManager, NavigationManager} from '../navigation';
+import {iocHook} from '@force-dev/react-mobile';
 
 export const ISessionDataStore = iocDecorator<SessionDataStore>();
 export const useSessionDataStore = iocHook(ISessionDataStore);

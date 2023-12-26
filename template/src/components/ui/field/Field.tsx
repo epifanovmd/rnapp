@@ -1,88 +1,81 @@
-import React, {FC, memo, PropsWithChildren, useMemo} from 'react';
-import {Text} from '../text';
-import {Col, Row, useFlexProps} from '../flexView';
-import {Touchable, TouchableProps} from '../touchable';
+import React, {FC, memo, PropsWithChildren} from 'react';
+import {
+  Col,
+  createSlot,
+  FlexProps,
+  RenderConditional,
+  Row,
+  Text,
+  TextProps,
+  Touchable,
+  TouchableProps,
+  useSlotProps,
+} from '@force-dev/react-mobile';
 
-export interface FieldProps extends Omit<TouchableProps<any>, 'row'> {
-  label?: string;
-  leftIcon?: JSX.Element | null;
-  rightIcon?: JSX.Element | null;
-  error?: string | boolean;
-  disabled?: boolean;
+export interface FieldProps extends TouchableProps {}
+
+const Label = createSlot<TextProps>('Label');
+const LeftIcon = createSlot('LeftIcon');
+const RightIcon = createSlot('RightIcon');
+const Content = createSlot<FlexProps>('Content');
+const Description = createSlot<TextProps>('Description');
+const Error = createSlot<TextProps>('Error');
+
+export interface FieldSlots {
+  Label: typeof Label;
+  LeftIcon: typeof LeftIcon;
+  RightIcon: typeof RightIcon;
+  Content: typeof Content;
+  Description: typeof Description;
+  Error: typeof Error;
 }
 
-export const Field: FC<PropsWithChildren<FieldProps>> = memo(
-  ({
-    label,
-    leftIcon,
-    rightIcon,
-    error,
+const _Field: FC<PropsWithChildren<FieldProps & TouchableProps>> = memo(
+  ({children, ...rest}) => {
+    const {leftIcon, label, content, rightIcon, description, error} =
+      useSlotProps(Field, children);
 
-    children,
-    ...rest
-  }) => {
-    const {flexProps, ownProps} = useFlexProps(rest);
-
-    const {} = ownProps;
-
-    const labelStyle = useMemo(
-      () => ({
-        fontSize: 12,
-      }),
-      [],
-    );
+    const borderColor =
+      error?.text !== undefined ? 'red' : content?.borderColor;
 
     return (
-      <Col>
-        <Touchable
+      <Touchable {...rest}>
+        <Row
           alignItems={'center'}
           borderBottomWidth={1}
-          borderColor={error ? 'red' : undefined}
-          opacity={1}
-          {...flexProps}
-          row={true}>
-          {leftIcon && (
-            <Col
-              alignItems={'center'}
-              justify-content={'center'}
-              marginLeft={'auto'}
-              ml={4}
-              mr={4}>
-              {leftIcon}
-            </Col>
-          )}
+          minHeight={55}
+          {...content}
+          borderColor={borderColor}>
+          {leftIcon?.children}
 
           <Col flexGrow={1} flexShrink={1}>
-            {!!label && (
-              <Col>
-                <Text zIndex={1} ellipsizeMode={'tail'} style={labelStyle}>
-                  {label}
-                </Text>
-              </Col>
-            )}
-
-            {children}
+            <RenderConditional if={label?.text}>
+              <Text
+                fontSize={14}
+                zIndex={1}
+                ellipsizeMode={'tail'}
+                {...label}
+              />
+            </RenderConditional>
+            {content?.children}
           </Col>
 
-          {rightIcon && (
-            <Col
-              alignItems={'center'}
-              justify-content={'center'}
-              marginLeft={'auto'}
-              ml={4}
-              mr={4}>
-              {rightIcon}
-            </Col>
-          )}
-        </Touchable>
-        {!!error && (
-          <Row alignItems={'center'}>
-            <Text color={'red'} fontSize={12}>
-              {error}
-            </Text>
-          </Row>
-        )}
-      </Col>
+          {rightIcon?.children}
+        </Row>
+
+        <RenderConditional if={error?.text ?? description?.text}>
+          <Text {...(error?.text !== undefined ? error : description)} />
+        </RenderConditional>
+      </Touchable>
     );
   },
 );
+
+export const Field = _Field as typeof _Field & FieldSlots;
+
+Field.Label = Label;
+Field.LeftIcon = LeftIcon;
+Field.RightIcon = RightIcon;
+Field.Content = Content;
+Field.Description = Description;
+Field.Error = Error;

@@ -27,4 +27,4 @@ export type ScreenName =
 
 interface ScreenParamsTypesMap extends TabScreenParams, StackScreenParams {}
 
-export type ScreenParamsTypes = {[K in ScreenName]: ScreenParamsTypesMap[K]};
+export type ScreenParamList = {[K in ScreenName]: ScreenParamsTypesMap[K]};

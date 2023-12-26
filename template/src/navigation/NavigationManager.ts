@@ -1,13 +1,15 @@
-import {iocDecorator, iocHook} from '@force-dev/utils';
+import {iocDecorator} from '@force-dev/utils';
+import {iocHook} from '@force-dev/react-mobile';
 import {
   createNavigationContainerRef,
   StackActions,
 } from '@react-navigation/native';
-import {ScreenName, ScreenParamsTypes} from './navigation.types';
+import {ScreenName, ScreenParamList} from './navigation.types';
 import {makeAutoObservable, runInAction} from 'mobx';
 import {identity, pickBy} from 'lodash';
+import {DebugVars} from '../../debugVars';
 
-export const navigationRef = createNavigationContainerRef<ScreenParamsTypes>();
+export const navigationRef = createNavigationContainerRef<ScreenParamList>();
 
 export const INavigationManager = iocDecorator<NavigationManager>();
 export const useNavigationManager = iocHook(INavigationManager);
@@ -34,7 +36,7 @@ const routesHistoryReduce = (arr: any[]) => {
     return acc;
   }, []) as {
     screen: ScreenName;
-    params: ScreenParamsTypes[ScreenName];
+    params: ScreenParamList[ScreenName];
   }[];
 
   return result;
@@ -42,19 +44,21 @@ const routesHistoryReduce = (arr: any[]) => {
 
 @INavigationManager({inSingleton: true})
 export class NavigationManager {
-  history: {screen: ScreenName; params: ScreenParamsTypes[ScreenName]}[] = [];
+  history: {screen: ScreenName; params: ScreenParamList[ScreenName]}[] = [];
   private _navigationRef = navigationRef;
 
   constructor() {
     makeAutoObservable(this, {}, {autoBind: true});
 
-    this._navigationRef.addListener('state', e => {
-      runInAction(() => {
-        this.history = routesHistoryReduce(e.data.state?.routes || []);
-      });
+    if (DebugVars.logNavHistory) {
+      this._navigationRef.addListener('state', e => {
+        runInAction(() => {
+          this.history = routesHistoryReduce(e.data.state?.routes || []);
+        });
 
-      console.log('Nav History -> ', JSON.stringify(this.history));
-    });
+        console.log('Nav History -> ', JSON.stringify(this.history));
+      });
+    }
   }
 
   get isReady() {
@@ -77,13 +81,13 @@ export class NavigationManager {
     }
   };
 
-  replaceTo = <T extends ScreenName>(name: T, params: ScreenParamsTypes[T]) => {
+  replaceTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
     if (this.isReady) {
       this._navigationRef.dispatch(StackActions.replace(name, params));
     }
   };
 
-  pushTo = <T extends ScreenName>(name: T, params: ScreenParamsTypes[T]) => {
+  pushTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
     if (this.isReady) {
       this._navigationRef.dispatch(StackActions.push(name, params));
     }

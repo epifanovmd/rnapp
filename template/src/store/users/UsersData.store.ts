@@ -1,7 +1,6 @@
 import {makeAutoObservable} from 'mobx';
 import {IUser, IUsersService, UsersService} from '../../service';
-import {iocDecorator} from '@force-dev/utils';
-import {CollectionHolder} from '../common';
+import {iocDecorator, CollectionHolder} from '@force-dev/utils';
 
 export const IUsersDataStore = iocDecorator<UsersDataStore>();
 

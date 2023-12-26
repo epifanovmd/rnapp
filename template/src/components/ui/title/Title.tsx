@@ -1,19 +1,30 @@
 import React, {FC, PropsWithChildren} from 'react';
 import {observer} from 'mobx-react-lite';
-import {Col, FlexProps, Row, useFlexProps} from '../flexView';
-import {useRoute, useTranslateScreenName} from '../../../navigation';
-import {Text} from '../text';
+import {
+  Col,
+  FlexProps,
+  Row,
+  Text,
+  TextProps,
+  useFlexProps,
+} from '@force-dev/react-mobile';
+import {useRoute} from '../../../navigation';
+import {useTranslation} from '../../../localization';
 
 export interface TitleProps extends FlexProps {
   title?: string;
-  rightSlot?: JSX.Element;
+  rightSlot?: React.JSX.Element;
+
+  textProps?: TextProps;
 }
 
 export const Title: FC<PropsWithChildren<TitleProps>> = observer(
-  ({title, rightSlot, children, ...rest}) => {
+  ({title, rightSlot, textProps, children, ...rest}) => {
     const {flexProps, animated} = useFlexProps(rest);
     const route = useRoute();
-    const _title = useTranslateScreenName(route.name);
+    const {t} = useTranslation();
+
+    const _title = title || t(`navigation.${route.name}` as any);
 
     return (
       <Row
@@ -25,12 +36,12 @@ export const Title: FC<PropsWithChildren<TitleProps>> = observer(
         {...flexProps}
         animated={animated}>
         {children ?? (
-          <Text fontSize={18} fontWeight={'600'}>
-            {title || _title}
+          <Text fontSize={18} fontWeight={'600'} {...textProps}>
+            {_title}
           </Text>
         )}
 
-        <Col>{rightSlot ?? null}</Col>
+        <Col>{rightSlot}</Col>
       </Row>
     );
   },

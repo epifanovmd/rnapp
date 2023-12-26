@@ -1,6 +1,8 @@
 import React from 'react';
-import {II18nPaths} from '../localization';
-import {BottomTabNavigationOptions} from '@react-navigation/bottom-tabs';
+import {
+  BottomTabNavigationOptions,
+  BottomTabNavigationProp,
+} from '@react-navigation/bottom-tabs';
 import {
   MaterialBottomTabNavigationOptions,
   MaterialBottomTabNavigationProp,
@@ -9,38 +11,29 @@ import {
   MaterialTopTabNavigationOptions,
   MaterialTopTabNavigationProp,
 } from '@react-navigation/material-top-tabs';
-import {StackNavigationOptions} from '@react-navigation/stack';
-import {ScreenName, ScreenParamsTypes} from './navigation.types';
+import {
+  StackNavigationOptions,
+  StackNavigationProp,
+} from '@react-navigation/stack';
+import {ScreenName, ScreenParamList} from './navigation.types';
 import {RouteProp} from '@react-navigation/native';
-import {BottomTabNavigationProp} from '@react-navigation/bottom-tabs/src/types';
-import {StackNavigationProp} from '@react-navigation/stack/src/types';
 
-export type ScreenParamList = ScreenParamsTypes;
-
-export type AppScreenOption =
-  | Partial<Omit<BottomTabNavigationOptions, 'title'> & {title: II18nPaths}>
-  | undefined;
+export type AppScreenOption = Partial<BottomTabNavigationOptions> | undefined;
 
 export type BottomTabScreenOption =
-  | Partial<
-      Omit<MaterialBottomTabNavigationOptions, 'title'> & {title: II18nPaths}
-    >
+  | Partial<MaterialBottomTabNavigationOptions>
   | undefined;
 
 export type TabScreenOption =
-  | Partial<
-      Omit<MaterialTopTabNavigationOptions, 'title'> & {title: II18nPaths}
-    >
+  | Partial<MaterialTopTabNavigationOptions>
   | undefined;
 
-export type StackScreenOption =
-  | Partial<Omit<StackNavigationOptions, 'title'> & {title: II18nPaths}>
-  | undefined;
+export type StackScreenOption = Partial<StackNavigationOptions> | undefined;
 
 export interface Route<
   ScreenProps,
   ScreenOption = AppScreenOption,
-  ScreenParams = ScreenParamsTypes[ScreenName],
+  ScreenParams = ScreenParamList[ScreenName],
 > {
   screen: React.ComponentType<ScreenProps>;
   options?: ScreenOption;
@@ -70,22 +63,22 @@ export interface StackProps<SN extends ScreenName = any> {
 export type AppTabRoute<SN extends ScreenName> = Route<
   AppScreenProps<SN>,
   AppScreenOption,
-  ScreenParamsTypes[SN]
+  ScreenParamList[SN]
 >;
 export type BottomTabRoute<SN extends ScreenName> = Route<
   BottomTabProps<SN>,
   BottomTabScreenOption,
-  ScreenParamsTypes[SN]
+  ScreenParamList[SN]
 >;
 export type TabRoute<SN extends ScreenName> = Route<
   TabProps<SN>,
   TabScreenOption,
-  ScreenParamsTypes[SN]
+  ScreenParamList[SN]
 >;
 export type StackRoute<SN extends ScreenName> = Route<
   StackProps<SN>,
   StackScreenOption,
-  ScreenParamsTypes[SN]
+  ScreenParamList[SN]
 >;
 
 export type AppTabScreens = {

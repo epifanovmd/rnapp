@@ -1,9 +1,9 @@
 import React, {FC, memo, useCallback} from 'react';
-import {Touchable, FlexComponentProps} from '../ui';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import {ScreenName} from '../../navigation';
+import {Touchable, TouchableProps} from '@force-dev/react-mobile';
 
-interface IProps extends FlexComponentProps {
+interface IProps extends TouchableProps {
   to: ScreenName;
   screen?: ScreenName;
   params?: {[key in string]: string | number | undefined};

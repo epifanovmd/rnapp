@@ -1,6 +1,7 @@
 import {makeAutoObservable} from 'mobx';
 import {IUsersDataStore, UsersDataStore} from '../../../store';
-import {iocDecorator, iocHook} from '@force-dev/utils';
+import {iocDecorator} from '@force-dev/utils';
+import {iocHook} from '@force-dev/react-mobile';
 
 export const IScreen2VM = iocDecorator<Screen2VM>();
 export const useScreen2VM = iocHook(IScreen2VM);

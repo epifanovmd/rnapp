@@ -5,27 +5,34 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
-import {Col, Row} from '../flexView';
-import {Text} from '../text';
-import {Button, ButtonProps} from '../button';
-import {Picker, PickerProps} from './Picker';
-import {SafeAreaBottom} from '../safeArea';
-import {Touchable, TouchableProps} from '../touchable';
-import {Modal, useModal} from '../modal';
+import {
+  Col,
+  Modal,
+  ModalProps,
+  Picker,
+  PickerChangeItem,
+  PickerColumn,
+  PickerItem,
+  PickerProps,
+  Row,
+  SafeArea,
+  Touchable,
+  TouchableProps,
+  useModal,
+} from '@force-dev/react-mobile';
 import moment from 'moment';
 import {useTranslation} from '../../../localization';
-import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
-import {ModalProps} from '../modal/types';
+import {ViewProps} from 'react-native';
+import {Button, ButtonProps} from '../button';
 
 const years = Array.from({length: 201}, (_, i) => {
-  return (i + new Date().getFullYear() - 100).toString();
+  return i + new Date().getFullYear() - 100;
 });
 
-const isLeapYear = (index: number) =>
-  (index % 4 === 0 && index % 100 !== 0) || index % 400 === 0;
+const isLeapYear = (year: number) =>
+  (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 
 const daysInMonth = [
   () => 31,
@@ -45,24 +52,17 @@ const daysInMonth = [
 const generateDays = (month: number, year: number) => {
   return Array.from(
     {
-      length: daysInMonth[month](isLeapYear(year)),
+      length: daysInMonth[month || 0](isLeapYear(year)),
     },
-    (_, i) => (i + 1).toString(),
+    (_, i) => i + 1,
   );
 };
 
-export interface DatePickerProps extends TouchableProps<any> {
+export interface DatePickerProps extends TouchableProps {
   date?: moment.Moment | null;
   onChange: (date: moment.Moment) => void;
-  renderItem?: (item: string, active: boolean, index: number) => JSX.Element;
 
-  pickerProps?: Omit<
-    PickerProps<string>,
-    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
-  >;
-
-  leftPickerLineStyle?: ViewStyle;
-  rightPickerLineStyle?: ViewStyle;
+  pickerProps?: PickerProps;
 
   modalProps?: ModalProps;
   containerProps?: ViewProps;
@@ -76,10 +76,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   ({
     date,
     onChange,
-    renderItem,
     pickerProps,
-    leftPickerLineStyle,
-    rightPickerLineStyle,
     modalProps,
     containerProps,
     actionsContainerProps,
@@ -108,145 +105,86 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       [now],
     );
 
-    const [days, setDays] = useState(generateDays(_month, _year));
+    const [day, setDay] = useState<number>(_day);
+    const [month, setMonth] = useState<number>(_month);
+    const [year, setYear] = useState<number>(_year);
 
-    const dayIndex = useRef(_day - 1);
-    const monthIndex = useRef(Number(_month));
-    const yearIndex = useRef(_year - Number(years[0]));
-
-    const initialIndexes = useRef([
-      dayIndex.current,
-      monthIndex.current,
-      yearIndex.current,
-    ]);
-
-    const [initialDayIndex, setInitialDayIndex] = useState<number | undefined>(
-      initialIndexes.current[0],
-    );
-    const [initialMonthIndex, setInitialMonthIndex] = useState<
-      number | undefined
-    >(initialIndexes.current[1]);
-    const [initialYearIndex, setInitialYearIndex] = useState<
-      number | undefined
-    >(initialIndexes.current[2]);
-
-    const changeDays = useCallback(() => {
-      const newDays = generateDays(monthIndex.current, yearIndex.current);
-      if (days.length !== newDays.length) {
-        setDays(newDays);
-      }
-    }, [days.length]);
-
-    useEffect(() => {
-      dayIndex.current = _day - 1;
-      monthIndex.current = Number(_month);
-      yearIndex.current = _year - Number(years[0]);
-
-      initialIndexes.current = [
-        dayIndex.current,
-        monthIndex.current,
-        yearIndex.current,
-      ];
-      setInitialDayIndex(dayIndex.current);
-      setInitialMonthIndex(monthIndex.current);
-      setInitialYearIndex(yearIndex.current);
-
-      changeDays();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [_day, _month, _year]);
+    const days = useMemo(() => generateDays(month, year), [month, year]);
 
     const reset = useCallback(() => {
-      setInitialDayIndex((dayIndex.current = initialIndexes.current[0]));
-      setInitialMonthIndex((monthIndex.current = initialIndexes.current[1]));
-      setInitialYearIndex((yearIndex.current = initialIndexes.current[2]));
+      setDay(_day);
+      setMonth(_month);
+      setYear(_year);
+    }, [_day, _month, _year]);
 
-      changeDays();
-    }, [changeDays]);
+    useEffect(() => {
+      reset();
+    }, [reset]);
 
-    const handleDay = useCallback((field: string, index: number) => {
-      dayIndex.current = index;
-      setInitialDayIndex(undefined);
+    const handleDay = useCallback(({value}: PickerChangeItem) => {
+      setDay(Number(value));
     }, []);
 
     const handleMonth = useCallback(
-      (field: string, index: number) => {
-        monthIndex.current = index;
-        changeDays();
-        setInitialMonthIndex(undefined);
+      ({value}: PickerChangeItem) => {
+        setMonth(Number(value));
+        const daysCount = daysInMonth[Number(value)](isLeapYear(year));
+        if (day > daysCount) {
+          setDay(daysCount);
+        }
       },
-      [changeDays],
+      [day, year],
     );
 
-    const handleYear = useCallback(
-      (field: string, index: number) => {
-        yearIndex.current = index;
-
-        changeDays();
-        setInitialYearIndex(undefined);
-      },
-      [changeDays],
-    );
+    const handleYear = useCallback(({value}: PickerChangeItem) => {
+      setYear(Number(value));
+    }, []);
 
     const handleApply = useCallback(() => {
       if (onChange) {
-        onChange(
-          moment(
-            new Date(
-              `${yearIndex.current + Number(years[0])}-${
-                monthIndex.current + 1
-              }-${dayIndex.current + 1}`,
-            ),
-          ),
-        );
+        onChange(moment(new Date(`${year}-${month + 1}-${day}`)));
         modalRef.current?.close();
       }
-    }, [modalRef, onChange]);
+    }, [day, modalRef, month, onChange, year]);
 
-    const _renderItem = useCallback(
-      (item: string, active: boolean, index: number) => {
-        return renderItem ? (
-          renderItem(item, active, index)
-        ) : (
-          <Col
-            flex={1}
-            width={'100%'}
-            alignItems={'center'}
-            justifyContent={'center'}>
-            <Text
-              color={active ? 'white' : 'black'}
-              numberOfLines={1}
-              fontSize={active ? 18 : 12}>
-              {item}
-            </Text>
-          </Col>
-        );
-      },
-      [renderItem],
+    const renderDayItems = useMemo(
+      () =>
+        days.map(item => {
+          return (
+            <PickerItem key={item + 'day'} label={String(item)} value={item} />
+          );
+        }),
+      [days],
+    );
+
+    const renderMothItems = useMemo(
+      () =>
+        months.map((item, index) => {
+          return (
+            <PickerItem
+              key={item + 'month'}
+              label={String(item)}
+              value={index}
+            />
+          );
+        }),
+      [months],
+    );
+
+    const renderYearItems = useMemo(
+      () =>
+        years.map(item => {
+          return (
+            <PickerItem key={item + 'year'} label={String(item)} value={item} />
+          );
+        }),
+      [],
     );
 
     const handleOpen = useCallback(() => {
-      setInitialDayIndex((dayIndex.current = initialIndexes.current[0]));
-      setInitialMonthIndex((monthIndex.current = initialIndexes.current[1]));
-      setInitialYearIndex((yearIndex.current = initialIndexes.current[2]));
-
-      changeDays();
+      reset();
       modalRef.current?.open();
-    }, [changeDays, modalRef]);
-
-    const _leftPickerLineStyle = useMemo(
-      () => ({
-        ...s.leftLineStyle,
-        ...leftPickerLineStyle,
-      }),
-      [leftPickerLineStyle],
-    );
-    const _rightPickerLineStyle = useMemo(
-      () => ({
-        ...s.rightLineStyle,
-        ...rightPickerLineStyle,
-      }),
-      [rightPickerLineStyle],
-    );
+    }, [modalRef, reset]);
 
     return (
       <Touchable {...rest} onPress={handleOpen}>
@@ -258,36 +196,28 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
           childrenPanGestureEnabled={false}
           {...modalProps}>
           <Col pa={16} {...containerProps}>
-            <Row>
-              <Picker
-                itemHeight={27}
-                style={s.pickerStyle}
-                lineStyle={_leftPickerLineStyle}
-                {...pickerProps}
-                index={initialDayIndex}
-                items={days}
-                renderItem={_renderItem}
-                onIndexChange={handleDay}
-              />
-              <Picker
-                itemHeight={27}
-                style={s.pickerStyle}
-                {...pickerProps}
-                index={initialMonthIndex}
-                items={months}
-                renderItem={_renderItem}
-                onIndexChange={handleMonth}
-              />
-              <Picker
-                itemHeight={27}
-                style={s.pickerStyle}
-                lineStyle={_rightPickerLineStyle}
-                {...pickerProps}
-                index={initialYearIndex}
-                items={years}
-                renderItem={_renderItem}
-                onIndexChange={handleYear}
-              />
+            <Row justifyContent={'space-between'}>
+              <Col flexGrow={1} flexBasis={0} minWidth={20}>
+                <Picker {...pickerProps}>
+                  <PickerColumn selectedValue={day} onChange={handleDay}>
+                    {renderDayItems}
+                  </PickerColumn>
+                </Picker>
+              </Col>
+              <Col flexGrow={3} flexBasis={0}>
+                <Picker {...pickerProps}>
+                  <PickerColumn selectedValue={month} onChange={handleMonth}>
+                    {renderMothItems}
+                  </PickerColumn>
+                </Picker>
+              </Col>
+              <Col flexGrow={1} flexBasis={0} minWidth={40}>
+                <Picker {...pickerProps}>
+                  <PickerColumn selectedValue={year} onChange={handleYear}>
+                    {renderYearItems}
+                  </PickerColumn>
+                </Picker>
+              </Col>
             </Row>
 
             <Row
@@ -306,27 +236,10 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
               />
             </Row>
 
-            <SafeAreaBottom />
+            <SafeArea bottom />
           </Col>
         </Modal>
       </Touchable>
     );
   },
 );
-
-const s = StyleSheet.create({
-  leftLineStyle: {
-    borderBottomLeftRadius: 10,
-    borderTopLeftRadius: 10,
-    marginLeft: 10,
-    paddingRight: 10,
-  },
-
-  rightLineStyle: {
-    borderBottomRightRadius: 10,
-    borderTopRightRadius: 10,
-    marginRight: 10,
-    paddingLeft: 10,
-  },
-  pickerStyle: {flex: 1},
-});

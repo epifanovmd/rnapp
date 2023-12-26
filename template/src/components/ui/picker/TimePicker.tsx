@@ -7,26 +7,29 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import {Col, Row} from '../flexView';
+import {ViewProps} from 'react-native';
+import {
+  Col,
+  Modal,
+  ModalProps,
+  Picker,
+  PickerChangeItem,
+  PickerColumn,
+  PickerItem,
+  PickerProps,
+  Row,
+  SafeArea,
+  Touchable,
+  TouchableProps,
+  useModal,
+} from '@force-dev/react-mobile';
 import {Button, ButtonProps} from '../button';
-import {Picker, PickerProps} from './Picker';
-import {SafeAreaBottom} from '../safeArea';
-import {Touchable, TouchableProps} from '../touchable';
-import {Modal, useModal, ModalProps} from '../modal';
-import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
 
-export interface TimePickerProps extends TouchableProps<any> {
+export interface TimePickerProps extends TouchableProps {
   time?: string;
   onChange?: (time: string) => void;
-  renderItem: (item: string, active: boolean, index: number) => JSX.Element;
 
-  pickerProps?: Omit<
-    PickerProps<string>,
-    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
-  >;
-
-  leftPickerLineStyle?: ViewStyle;
-  rightPickerLineStyle?: ViewStyle;
+  pickerProps?: PickerProps;
 
   modalProps?: ModalProps;
   containerProps?: ViewProps;
@@ -51,27 +54,12 @@ const minutes = new Array(60)
   .fill(0)
   .map((_item, index) => toTwoChars(`${index}`));
 
-const getHourIndex = (hour?: string) => {
-  const index = hours.findIndex(item => item === hour);
-
-  return index === -1 ? 0 : index;
-};
-
-const getMinuteIndex = (minute?: string) => {
-  const index = minutes.findIndex(item => item === minute);
-
-  return index === -1 ? 0 : index;
-};
-
 export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
   ({
     time,
     onChange,
-    renderItem,
     children,
     pickerProps,
-    leftPickerLineStyle,
-    rightPickerLineStyle,
     modalProps,
     containerProps,
     actionsContainerProps,
@@ -87,20 +75,16 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       return time ? time.split(':') : [_time[0], _time[1]];
     }, [time]);
 
-    const [currentFirstIndex, setCurrentFirstIndex] = useState<number>(
-      getHourIndex(hour),
-    );
+    const [currentFirstItem, setCurrentFirstItem] = useState<string>(hour);
 
-    const [currentSecondIndex, setCurrentSecondIndex] = useState<number>(
-      getMinuteIndex(minute),
-    );
+    const [currentSecondItem, setCurrentSecondItem] = useState<string>(minute);
 
     const reset = useCallback(() => {
       const _time = new Date().toTimeString().split(':');
       const [_hour, _minute] = time ? time.split(':') : [_time[0], _time[1]];
 
-      setCurrentFirstIndex(getHourIndex(_hour));
-      setCurrentSecondIndex(getMinuteIndex(_minute));
+      setCurrentFirstItem(_hour);
+      setCurrentSecondItem(_minute);
     }, [time]);
 
     useEffect(() => {
@@ -110,37 +94,68 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const handleApply = useCallback(() => {
       if (onChange) {
-        onChange(`${hours[currentFirstIndex]}:${minutes[currentSecondIndex]}`);
+        onChange(`${currentFirstItem}:${currentSecondItem}`);
       }
       modalRef.current?.close();
-    }, [currentFirstIndex, currentSecondIndex, modalRef, onChange]);
+    }, [currentFirstItem, currentSecondItem, modalRef, onChange]);
 
     const handleOpen = useCallback(() => {
       reset();
       modalRef.current?.open();
     }, [modalRef, reset]);
 
-    const handleFirst = useCallback((item: any, index: number) => {
-      setCurrentFirstIndex(index);
+    const handleFirst = useCallback(({value}: PickerChangeItem) => {
+      setCurrentFirstItem(value as string);
     }, []);
 
-    const handleSecond = useCallback((item: any, index: number) => {
-      setCurrentSecondIndex(index);
+    const handleSecond = useCallback(({value}: PickerChangeItem) => {
+      setCurrentSecondItem(value as string);
     }, []);
 
-    const _leftPickerLineStyle = useMemo(
-      () => ({
-        ...s.leftLineStyle,
-        ...leftPickerLineStyle,
-      }),
-      [leftPickerLineStyle],
+    const renderFirstItems = useMemo(
+      () =>
+        hours.map(item => {
+          return (
+            <PickerItem
+              key={item + 'first'}
+              label={String(item)}
+              value={item}
+            />
+          );
+        }),
+      [],
     );
-    const _rightPickerLineStyle = useMemo(
-      () => ({
-        ...s.rightLineStyle,
-        ...rightPickerLineStyle,
-      }),
-      [rightPickerLineStyle],
+
+    const renderSecondItems = useMemo(
+      () =>
+        minutes.map(item => {
+          return (
+            <PickerItem
+              key={item + 'second'}
+              label={String(item)}
+              value={item}
+            />
+          );
+        }),
+      [],
+    );
+
+    const first = useMemo(
+      () => (
+        <PickerColumn selectedValue={currentFirstItem} onChange={handleFirst}>
+          {renderFirstItems}
+        </PickerColumn>
+      ),
+      [currentFirstItem, handleFirst, renderFirstItems],
+    );
+
+    const second = useMemo(
+      () => (
+        <PickerColumn selectedValue={currentSecondItem} onChange={handleSecond}>
+          {renderSecondItems}
+        </PickerColumn>
+      ),
+      [currentSecondItem, handleSecond, renderSecondItems],
     );
 
     return (
@@ -153,27 +168,13 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
           childrenPanGestureEnabled={false}
           {...modalProps}>
           <Col pa={16} {...containerProps}>
-            <Row>
-              <Picker
-                style={s.pickerStyle}
-                lineStyle={_leftPickerLineStyle}
-                itemHeight={27}
-                {...pickerProps}
-                index={currentFirstIndex}
-                items={hours}
-                renderItem={renderItem}
-                onIndexChange={handleFirst}
-              />
-              <Picker
-                style={s.pickerStyle}
-                lineStyle={_rightPickerLineStyle}
-                itemHeight={27}
-                {...pickerProps}
-                index={currentSecondIndex}
-                items={minutes}
-                renderItem={renderItem}
-                onIndexChange={handleSecond}
-              />
+            <Row justifyContent={'space-around'}>
+              <Col flexGrow={1} flexBasis={0} pr={8}>
+                <Picker {...pickerProps}>{first}</Picker>
+              </Col>
+              <Col flexGrow={1} flexBasis={0} pl={8}>
+                <Picker {...pickerProps}>{second}</Picker>
+              </Col>
             </Row>
 
             <Row
@@ -192,27 +193,10 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
               />
             </Row>
 
-            <SafeAreaBottom />
+            <SafeArea bottom />
           </Col>
         </Modal>
       </Touchable>
     );
   },
 );
-
-const s = StyleSheet.create({
-  leftLineStyle: {
-    borderBottomLeftRadius: 10,
-    borderTopLeftRadius: 10,
-    marginLeft: 10,
-    paddingRight: 10,
-  },
-
-  rightLineStyle: {
-    borderBottomRightRadius: 10,
-    borderTopRightRadius: 10,
-    marginRight: 10,
-    paddingLeft: 10,
-  },
-  pickerStyle: {flex: 1},
-});

@@ -4,31 +4,35 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from 'react';
-import {Col, Row} from '../flexView';
+import {
+  Col,
+  Modal,
+  ModalProps,
+  Picker,
+  PickerChangeItem,
+  PickerColumn,
+  PickerItem,
+  PickerProps,
+  Row,
+  SafeArea,
+  Touchable,
+  TouchableProps,
+  useModal,
+} from '@force-dev/react-mobile';
+import {ViewProps} from 'react-native';
 import {Button, ButtonProps} from '../button';
-import {Picker, PickerProps, PickerRef} from './Picker';
-import {SafeAreaBottom} from '../safeArea';
-import {Touchable, TouchableProps} from '../touchable';
-import {Modal, useModal, ModalProps} from '../modal';
-import {StyleSheet, ViewProps, ViewStyle} from 'react-native';
 
-export interface RangePickerProps<T extends Object & {index: number}>
-  extends TouchableProps<any> {
+export interface RangePickerProps<T extends string | number>
+  extends TouchableProps {
   items: T[];
-  range?: [T & {index: number}, T & {index: number}] | null;
+  range?: [T | undefined, T | undefined] | null;
   onChange?: (range: [T, T]) => void;
-  renderItem: (item: T, active: boolean, index: number) => JSX.Element;
+  emptyLabel?: [string, string];
+  reverse?: boolean;
 
-  pickerProps?: Omit<
-    PickerProps<string>,
-    'index' | 'items' | 'renderItem' | 'onIndexChange' | 'lineStyle'
-  >;
-
-  leftPickerLineStyle?: ViewStyle;
-  rightPickerLineStyle?: ViewStyle;
+  pickerProps?: Omit<PickerProps, 'onChange'>;
 
   modalProps?: ModalProps;
   containerProps?: ViewProps;
@@ -39,21 +43,22 @@ export interface RangePickerProps<T extends Object & {index: number}>
 }
 
 interface RangePicker {
-  <T extends Object & {index: number}>(
+  <T extends string | number>(
     props: PropsWithChildren<RangePickerProps<T>>,
-  ): JSX.Element | null;
+  ): React.JSX.Element | null;
 }
+
+const empty = 'empty picker item';
 
 export const RangePicker: RangePicker = memo(
   ({
-    items,
+    items: _items,
     range,
     onChange,
-    renderItem,
+    emptyLabel = ['от', 'до'],
+    reverse = false,
     children,
     pickerProps,
-    leftPickerLineStyle,
-    rightPickerLineStyle,
     modalProps,
     containerProps,
     actionsContainerProps,
@@ -63,32 +68,46 @@ export const RangePicker: RangePicker = memo(
   }: PropsWithChildren<RangePickerProps<any>>) => {
     const {ref: modalRef} = useModal();
 
-    const secondPickerRef = useRef<PickerRef>(null);
-
-    const [currentFirstIndex, setCurrentFirstIndex] = useState<number>(
-      range?.[0].index ?? 0,
+    const items = useMemo(
+      () => [empty, ...(reverse ? [..._items].reverse() : _items)],
+      [reverse, _items],
     );
 
-    const [currentSecondIndex, setCurrentSecondIndex] = useState<number>(
-      range?.[1].index ?? 0,
-    );
+    const [currentFirstItem, setCurrentFirstItem] = useState<
+      string | number | undefined
+    >(range?.[0]);
+
+    const [currentSecondItem, setCurrentSecondItem] = useState<
+      string | number | undefined
+    >(range?.[1]);
+
+    const firstItems = useMemo(() => {
+      if (currentSecondItem === empty || currentSecondItem === undefined) {
+        return items;
+      } else {
+        return items.filter(
+          (item, index) =>
+            (reverse ? item <= currentSecondItem : item >= currentSecondItem) ||
+            index === 0,
+        );
+      }
+    }, [currentSecondItem, items, reverse]);
 
     const secondItems = useMemo(() => {
-      return items.slice(currentFirstIndex, items.length);
-    }, [items, currentFirstIndex]);
-
-    const firstItems = useMemo(
-      () => items.slice(0, items.length - secondItems.length || items.length),
-      [items, secondItems.length],
-    );
+      if (currentFirstItem === empty || currentFirstItem === undefined) {
+        return items;
+      } else {
+        return items.filter(
+          (item, index) =>
+            (reverse ? item >= currentFirstItem : item <= currentFirstItem) ||
+            index === 0,
+        );
+      }
+    }, [currentFirstItem, items, reverse]);
 
     const reset = useCallback(() => {
-      const firstIndex = range?.[0].index ?? 0;
-      const secondIndex = range?.[1].index ?? 0;
-      setCurrentFirstIndex(firstIndex);
-      setCurrentSecondIndex(
-        secondIndex - firstIndex < 0 ? 0 : secondIndex - firstIndex,
-      );
+      setCurrentFirstItem(range?.[0]);
+      setCurrentSecondItem(range?.[1]);
     }, [range]);
 
     useEffect(() => {
@@ -97,64 +116,75 @@ export const RangePicker: RangePicker = memo(
     }, [range]);
 
     const handleApply = useCallback(() => {
-      const value: [any, any] = [
-        firstItems[currentFirstIndex],
-        secondItems[currentSecondIndex],
-      ];
+      const value: [any, any] = [currentFirstItem, currentSecondItem];
+
       if (onChange) {
         onChange(value);
       }
       modalRef.current?.close();
-    }, [
-      currentFirstIndex,
-      currentSecondIndex,
-      firstItems,
-      modalRef,
-      onChange,
-      secondItems,
-    ]);
+    }, [currentFirstItem, currentSecondItem, modalRef, onChange]);
 
     const handleOpen = useCallback(() => {
       reset();
       modalRef.current?.open();
     }, [modalRef, reset]);
 
-    const handleFirst = useCallback(
-      (item: any, index: number) => {
-        const dif = index - currentFirstIndex;
-        const findIndex = items.slice(index, items.length).findIndex(el => {
-          return el.index === range?.[1].index;
-        });
-
-        setCurrentFirstIndex(index);
-        setCurrentSecondIndex(
-          findIndex !== -1
-            ? findIndex
-            : currentSecondIndex - dif < 0
-            ? 0
-            : currentSecondIndex - dif,
-        );
-      },
-      [currentFirstIndex, currentSecondIndex, items, range],
-    );
-
-    const handleSecond = useCallback((item: any, index: number) => {
-      setCurrentSecondIndex(index);
+    const handleFirst = useCallback(({value}: PickerChangeItem) => {
+      if (value !== undefined) {
+        setCurrentFirstItem(value);
+      }
     }, []);
 
-    const _leftPickerLineStyle = useMemo(
-      () => ({
-        ...s.leftLineStyle,
-        ...leftPickerLineStyle,
-      }),
-      [leftPickerLineStyle],
+    const handleSecond = useCallback(({value}: PickerChangeItem) => {
+      if (value !== undefined) {
+        setCurrentSecondItem(value);
+      }
+    }, []);
+
+    const renderFirstItems = useMemo(
+      () =>
+        firstItems.map(item => {
+          return (
+            <PickerItem
+              key={item + 'first'}
+              label={item === empty ? emptyLabel[0] : String(item)}
+              value={item}
+            />
+          );
+        }),
+      [emptyLabel, firstItems],
     );
-    const _rightPickerLineStyle = useMemo(
-      () => ({
-        ...s.rightLineStyle,
-        ...rightPickerLineStyle,
-      }),
-      [rightPickerLineStyle],
+
+    const renderSecondItems = useMemo(
+      () =>
+        secondItems.map(item => {
+          return (
+            <PickerItem
+              key={item + 'second'}
+              label={item === empty ? emptyLabel[1] : String(item)}
+              value={item}
+            />
+          );
+        }),
+      [emptyLabel, secondItems],
+    );
+
+    const first = useMemo(
+      () => (
+        <PickerColumn selectedValue={currentFirstItem} onChange={handleFirst}>
+          {renderFirstItems}
+        </PickerColumn>
+      ),
+      [currentFirstItem, handleFirst, renderFirstItems],
+    );
+
+    const second = useMemo(
+      () => (
+        <PickerColumn selectedValue={currentSecondItem} onChange={handleSecond}>
+          {renderSecondItems}
+        </PickerColumn>
+      ),
+      [currentSecondItem, handleSecond, renderSecondItems],
     );
 
     return (
@@ -167,28 +197,13 @@ export const RangePicker: RangePicker = memo(
           childrenPanGestureEnabled={false}
           {...modalProps}>
           <Col pa={16} {...containerProps}>
-            <Row>
-              <Picker
-                style={s.pickerStyle}
-                lineStyle={_leftPickerLineStyle}
-                itemHeight={27}
-                {...pickerProps}
-                index={currentFirstIndex}
-                items={firstItems}
-                renderItem={renderItem}
-                onIndexChange={handleFirst}
-              />
-              <Picker
-                ref={secondPickerRef}
-                style={s.pickerStyle}
-                lineStyle={_rightPickerLineStyle}
-                itemHeight={27}
-                {...pickerProps}
-                index={currentSecondIndex}
-                items={secondItems}
-                renderItem={renderItem}
-                onIndexChange={handleSecond}
-              />
+            <Row justifyContent={'space-around'}>
+              <Col flexGrow={1} flexBasis={0} pr={8}>
+                <Picker {...pickerProps}>{first}</Picker>
+              </Col>
+              <Col flexGrow={1} flexBasis={0} pl={8}>
+                <Picker {...pickerProps}>{second}</Picker>
+              </Col>
             </Row>
 
             <Row
@@ -207,27 +222,10 @@ export const RangePicker: RangePicker = memo(
               />
             </Row>
 
-            <SafeAreaBottom />
+            <SafeArea bottom={true} />
           </Col>
         </Modal>
       </Touchable>
     );
   },
 );
-
-const s = StyleSheet.create({
-  leftLineStyle: {
-    borderBottomLeftRadius: 10,
-    borderTopLeftRadius: 10,
-    marginLeft: 10,
-    paddingRight: 10,
-  },
-
-  rightLineStyle: {
-    borderBottomRightRadius: 10,
-    borderTopRightRadius: 10,
-    marginRight: 10,
-    paddingLeft: 10,
-  },
-  pickerStyle: {flex: 1},
-});

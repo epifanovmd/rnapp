@@ -1,18 +1,11 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {
-  Button,
-  Col,
-  DelayRefreshControl,
-  Input,
-  Row,
-  Container,
-  Text,
-} from '../../../components';
+import {Button, Container, Text} from '../../../components';
 import {FlatList, ListRenderItemInfo} from 'react-native';
 import {AppScreenProps} from '../../../navigation';
 import {observer} from 'mobx-react-lite';
 import {useScreen2VM} from './Screen2.vm';
 import {IUser} from '../../../service';
+import {Col, Input, Row} from '@force-dev/react-mobile';
 
 export const Screen2: FC<AppScreenProps> = observer(() => {
   const {loading, list, onRefresh, onSearch} = useScreen2VM();
@@ -54,15 +47,10 @@ export const Screen2: FC<AppScreenProps> = observer(() => {
     ),
     [],
   );
-
-  const refreshControl = (
-    <DelayRefreshControl refreshing={loading} onRefresh={onRefresh} />
-  );
-
   return (
     <Container>
       <Row pa={16}>
-        <Input placeholder={'placeholder'} mb={10} onChangeText={onSearch} />
+        <Input placeholder={'placeholder'} onChangeText={onSearch} />
       </Row>
       <Text>{`Loading - ${loading}`}</Text>
       <Button title={'refrash'} onPress={onRefresh} />
@@ -73,7 +61,6 @@ export const Screen2: FC<AppScreenProps> = observer(() => {
         ListEmptyComponent={listEmptyComponent}
         ListFooterComponent={listFooterComponent}
         renderItem={renderItem}
-        refreshControl={refreshControl}
       />
     </Container>
   );

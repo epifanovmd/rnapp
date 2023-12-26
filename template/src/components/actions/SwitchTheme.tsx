@@ -1,7 +1,7 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
 import SwitchToggle from 'react-native-switch-toggle';
-import {FlexProps, Row} from '../ui';
 import {DEFAULT_LIGHT_THEME_ID, useTheme} from '../../theme';
+import {FlexProps, Row} from '@force-dev/react-mobile';
 
 interface IProps extends FlexProps {}
 

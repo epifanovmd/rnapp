@@ -7,6 +7,7 @@ import {
   DEFAULT_LIGHT_THEME_ID,
 } from './variants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useColorScheme} from 'react-native';
 
 interface ProvidedValue {
   theme: Theme;
@@ -31,6 +32,7 @@ const THEMES: {[key in string]: Theme} = {
 
 export const ThemeProvider = React.memo<Props>(props => {
   const [theme, setTheme] = React.useState<Theme | undefined>(undefined);
+  const isDarkMode = useColorScheme() === 'dark';
 
   const ToggleThemeCallback = React.useCallback(() => {
     setTheme(currentTheme => {
@@ -54,10 +56,14 @@ export const ThemeProvider = React.memo<Props>(props => {
       if (themeId) {
         setTheme({...THEMES[themeId]});
       } else {
-        setTheme(DEFAULT_LIGHT_THEME);
-        AsyncStorage.setItem('themeId', DEFAULT_LIGHT_THEME_ID).then();
+        setTheme(isDarkMode ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME);
+        AsyncStorage.setItem(
+          'themeId',
+          isDarkMode ? DEFAULT_DARK_THEME_ID : DEFAULT_LIGHT_THEME_ID,
+        ).then();
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const MemoizedValue = React.useMemo(() => {

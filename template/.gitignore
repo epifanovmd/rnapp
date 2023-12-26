@@ -22,9 +22,6 @@ DerivedData
 *.xcuserstate
 ios/.xcode.env.local
 
-# react-native-config codegen
-ios/tmp.xcconfig
-
 # Android/IntelliJ
 #
 build/
@@ -64,3 +61,6 @@ yarn-error.log
 
 # Temporary files created by Metro to check the health of the file watcher
 .metro-health-check*
+
+# testing
+/coverage

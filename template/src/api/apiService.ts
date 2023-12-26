@@ -1,8 +1,12 @@
 import Config from 'react-native-config';
 import {stringify} from 'query-string';
 import axios, {AxiosInstance, AxiosRequestConfig} from 'axios';
-import {NotificationManager} from '../notification';
+import SetCookieParser from 'set-cookie-parser';
 import {ApiRequestConfig, ApiResponse} from './types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {ISessionDataStore} from '../session';
+import {DebugVars} from '../../debugVars';
+import {notificationManager} from '@force-dev/react-mobile';
 
 export class ApiService {
   private instance: AxiosInstance | null = null;
@@ -19,35 +23,57 @@ export class ApiService {
       ...config,
     });
 
+    this.instance.interceptors.request.use(async request => {
+      await AsyncStorage.getItem('token').then(token => {
+        request.headers.set('Authorization', `Bearer ${token}`);
+      });
+
+      if (DebugVars.logRequest) {
+        console.log('Start request with url = ', request.url);
+      }
+
+      return request;
+    });
+
     this.instance.interceptors.response.use(
-      response => ({data: response} as any),
+      response => {
+        const sch = response.headers['set-cookie'] || [];
+        const parsed = SetCookieParser.parse(sch);
+        const token = parsed.find(item => item.name === 'token')?.value;
+
+        if (token) {
+          ISessionDataStore.getInstance().setToken(token);
+        }
+
+        return {data: response} as any;
+      },
       error => {
-        console.log('error', error);
+        console.log('error', error.message);
         const status = error?.response?.status || 500;
 
-        if (error && error?.message !== 'canceled') {
-          NotificationManager.showMessage(
-            {
-              title: error.message,
-              description: status.toString(),
-            },
-            {
-              position: 'top',
-              floating: false,
-            },
-          );
+        if (status === 401) {
+          ISessionDataStore.getInstance().clearToken();
+        }
 
-          return Promise.resolve({
-            data: {
-              error: {
-                message: error.message,
-                status,
-              },
+        if (error && error?.message !== 'canceled' && status !== 401) {
+          notificationManager.show(error.message, {
+            type: 'danger',
+            swipeEnabled: false,
+            onPress(id: string) {
+              notificationManager.hide(id);
             },
           });
         }
 
-        return Promise.resolve({data: {}});
+        return Promise.resolve({
+          data: {
+            error: {
+              message: error.message,
+              status,
+              error,
+            },
+          },
+        });
       },
     );
   }
@@ -66,7 +92,7 @@ export class ApiService {
       },
     );
 
-    return response.data;
+    return response.data as ApiResponse<R>;
   }
 
   public async post<R = any, P = any>(
@@ -83,7 +109,7 @@ export class ApiService {
       },
     );
 
-    return response.data;
+    return response.data as ApiResponse<R>;
   }
 
   public async patch<R = any, P = any>(
@@ -100,7 +126,7 @@ export class ApiService {
       },
     );
 
-    return response.data;
+    return response.data as ApiResponse<R>;
   }
 
   public async put<R = any, P = any>(
@@ -117,7 +143,7 @@ export class ApiService {
       },
     );
 
-    return response.data;
+    return response.data as ApiResponse<R>;
   }
 
   public async delete<R = any>(endpoint: string, config?: ApiRequestConfig) {
@@ -126,7 +152,7 @@ export class ApiService {
       ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
     });
 
-    return response.data;
+    return response.data as ApiResponse<R>;
   }
 
   private raceCondition(endpoint: string) {
@@ -142,4 +168,4 @@ export class ApiService {
   }
 }
 
-export const apiService = new ApiService({baseURL: `${Config.BASE_URL}/`});
+export const apiService = new ApiService({baseURL: `${Config.BASE_URL}/api/`});

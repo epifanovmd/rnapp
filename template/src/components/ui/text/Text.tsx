@@ -7,9 +7,9 @@ import {
   TextStyle,
 } from 'react-native';
 import {Theme, useThemeAwareObject} from '../../../theme';
-import {FlexComponentProps, useFlexProps} from '../flexView';
+import {FlexProps, useFlexProps} from '@force-dev/react-mobile';
 
-interface IProps extends FlexComponentProps<TextProps, TextStyle> {}
+interface IProps extends FlexProps<TextStyle>, TextProps {}
 
 export const Text: FC<IProps> = memo(({children, ...rest}) => {
   const styles = useThemeAwareObject(createStyles);

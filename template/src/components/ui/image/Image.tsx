@@ -1,16 +1,16 @@
 import React, {FC, memo} from 'react';
-import {
-  ImageStyle,
-  ImageProps as _ImageProps,
-  Image as RNImage,
-} from 'react-native';
-import {FlexComponentProps, useFlexProps} from '../flexView';
+import {ImageStyle} from 'react-native';
+import {FlexProps, useFlexProps} from '@force-dev/react-mobile';
+import FastImage, {FastImageProps} from 'react-native-fast-image';
 
 export interface ImageProps
-  extends FlexComponentProps<_ImageProps, ImageStyle> {}
+  extends FlexProps<ImageStyle>,
+    Omit<FastImageProps, 'style'> {}
 
 export const Image: FC<ImageProps> = memo(props => {
   const {style, ownProps} = useFlexProps(props);
 
-  return <RNImage style={style as any} {...ownProps} />;
+  const {} = ownProps;
+
+  return <FastImage style={style as any} {...ownProps} />;
 });

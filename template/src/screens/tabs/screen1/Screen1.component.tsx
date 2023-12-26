@@ -2,25 +2,26 @@ import React, {FC, memo} from 'react';
 import {
   BorderButton,
   Button,
-  Col,
-  Modal,
-  SafeArea,
   Container,
   SwitchTheme,
   Text,
   TextButton,
-  useModal,
 } from '../../../components';
 import {AppScreenProps} from '../../../navigation';
-import {useNotification} from '../../../notification';
+import {
+  Col,
+  Modal,
+  SafeArea,
+  useModal,
+  useNotification,
+} from '@force-dev/react-mobile';
 
 interface IProps extends AppScreenProps {}
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let id: string;
 
 export const Screen1: FC<IProps> = memo(({navigation, route}) => {
-  const {showMessage, hideMessage} = useNotification();
+  const {show, hide} = useNotification();
   const {ref: modalRef} = useModal();
 
   return (
@@ -31,39 +32,20 @@ export const Screen1: FC<IProps> = memo(({navigation, route}) => {
         title={'OtherFirstScreen'}
         onPress={() => navigation.navigate('OtherFirstScreen')}
       />
-      <BorderButton
-        mv={8}
-        title={'Show notify top'}
-        onPress={() =>
-          showMessage(
-            {
-              title: 'title',
-              description: 'description',
-            },
-            {hideOnPress: true},
-          )
-        }
-      />
+      <BorderButton mv={8} title={'Show notify top'} onPress={() => show('')} />
       <Button
         mv={8}
         title={'Show notify center'}
-        onPress={() =>
-          showMessage('Simple message center', {
-            position: 'center',
-          })
-        }
+        onPress={() => show('Simple message center')}
       />
       <TextButton
         mv={8}
         title={'Show notify bottom'}
         onPress={() => {
-          id = showMessage('Simple message bottom', {
-            position: 'bottom',
-            floating: false,
-          });
+          id = show('Simple message bottom');
         }}
       />
-      <Button mv={8} title={'hideMessage'} onPress={() => hideMessage()} />
+      <Button mv={8} title={'hideMessage'} onPress={() => hide(id)} />
       <Button
         mv={8}
         title={'show modal'}

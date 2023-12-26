@@ -5,14 +5,6 @@ export interface ApiResponse<R> {
   error?: ApiError;
 }
 
-export type ApiRequest<T extends object = {}> = T & {
-  search?: string;
-  page?: number;
-  limit?: number;
-  sortField?: string;
-  sort?: 'asc' | 'dsc';
-};
-
 export interface ApiRequestConfig extends AxiosRequestConfig {
   useRaceCondition?: boolean;
 }

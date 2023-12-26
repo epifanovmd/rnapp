@@ -1,13 +1,17 @@
-import React, {FC, useEffect, useRef, useState} from 'react';
+import React, {FC, PropsWithChildren, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator} from 'react-native';
-import {FlexComponentProps, FlexView} from '../ui';
+import {FlexProps, FlexView} from '@force-dev/react-mobile';
 import {useTheme} from '../../theme';
 
-interface IProps extends FlexComponentProps {
+interface IProps extends FlexProps {
   loading?: boolean;
 }
 
-export const LoadingContent: FC<IProps> = ({children, loading, ...rest}) => {
+export const LoadingContent: FC<PropsWithChildren<IProps>> = ({
+  children,
+  loading,
+  ...rest
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const {theme} = useTheme();
 

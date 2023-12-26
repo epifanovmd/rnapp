@@ -2,9 +2,6 @@
   "name": "rnapp",
   "version": "0.0.1",
   "description": "Clean and minimalist React Native template for a quick start with TypeScript.",
-  "scripts": {
-    "prepublishOnly": "npm --no-git-tag-version version $TRAVIS_TAG"
-  },
   "files": [
     "template",
     "template.config.js"
@@ -26,7 +23,5 @@
   },
   "homepage": "https://github.com/epifanovmd/rnapp#readme",
   "dependencies": {
-    "moment": "^2.29.4",
-    "react-native-haptic-feedback": "^2.2.0"
   }
 }

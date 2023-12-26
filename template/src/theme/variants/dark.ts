@@ -1,6 +1,8 @@
 import {ColorTheme, SpacingTheme, Theme} from '../interface';
 
 export const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
+  background: '#354259',
+  barStyle: 'light-content',
   text: '#fff',
   common: {
     black: '#000',

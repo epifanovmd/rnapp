@@ -1,6 +1,8 @@
 import {Theme} from '../interface';
 
 export const DEFAULT_LIGHT_COLOR_THEME = {
+  background: '#ECE5C7',
+  barStyle: 'dark-content',
   text: '#000',
   common: {
     black: '#000',

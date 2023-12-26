@@ -1,97 +1,87 @@
 import React, {FC, memo, useMemo} from 'react';
-import {Platform, StyleSheet} from 'react-native';
-import {
-  BottomTabNavigationOptions,
-  createBottomTabNavigator,
-} from '@react-navigation/bottom-tabs';
-import {Theme, useTheme, useThemeAwareObject} from '../theme';
-import {AppScreenOption, AppTabScreens} from './types';
-import {BackBehavior} from '@react-navigation/routers/lib/typescript/src/TabRouter';
-import {BottomTabBarProps} from '@react-navigation/bottom-tabs/src/types';
+import {Platform} from 'react-native';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {AppTabScreens} from './types';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {ScreenName} from './navigation.types';
-import {useTransformScreenOptions} from './hooks';
+import {ScreenName, ScreenParamList} from './navigation.types';
+import {
+  DefaultNavigatorOptions,
+  TabNavigationState,
+  TabRouterOptions,
+} from '@react-navigation/native';
+import {
+  BottomTabNavigationConfig,
+  BottomTabNavigationEventMap,
+  BottomTabNavigationOptions,
+} from '@react-navigation/bottom-tabs/src/types';
 
-const Tab = createBottomTabNavigator();
+const BottomTab = createBottomTabNavigator<ScreenParamList>();
 
-interface IProps {
+type Props = DefaultNavigatorOptions<
+  ScreenParamList,
+  TabNavigationState<ScreenParamList>,
+  BottomTabNavigationOptions,
+  BottomTabNavigationEventMap
+> &
+  TabRouterOptions &
+  BottomTabNavigationConfig;
+
+interface IProps extends Omit<Props, 'children'> {
   routes: AppTabScreens;
   screenOptions?: BottomTabNavigationOptions;
-  initialRouteName?: string;
-  detachInactiveScreens?: boolean;
-  backBehavior?: BackBehavior;
-  tabBar?: (props: BottomTabBarProps) => React.ReactNode;
+  initialRouteName?: ScreenName;
 }
 
 export const AppNavigation: FC<IProps> = memo(
   ({
     routes,
     screenOptions,
-    initialRouteName,
     detachInactiveScreens,
     backBehavior,
     tabBar,
+    sceneContainerStyle,
+    screenListeners,
+    ...rest
   }) => {
-    const {theme} = useTheme();
-    const styles = useThemeAwareObject(createStyles);
-    const transformOptions = useTransformScreenOptions<AppScreenOption>();
-    const {bottom} = useSafeAreaInsets();
+    const insets = useSafeAreaInsets();
 
     const _screenOptions = useMemo<BottomTabNavigationOptions>(
       () => ({
         unmountOnBlur: true,
         headerShown: false,
-        tabBarStyle: {
-          height: 50 + bottom,
-          paddingBottom: bottom,
-          borderTopWidth: 0,
-        },
-        tabBarActiveTintColor: theme.color.common.white,
-        tabBarInactiveTintColor: theme.color.grey.grey200,
         tabBarHideOnKeyboard: Platform.OS === 'android',
-        tabBarItemStyle: {
-          height: 50 + bottom,
-          paddingBottom: bottom,
-          backgroundColor: theme.color.grey.grey700,
-          padding: 6,
-        },
         ...screenOptions,
       }),
-      [
-        bottom,
-        theme.color.common.white,
-        theme.color.grey.grey200,
-        theme.color.grey.grey700,
-        screenOptions,
-      ],
+      [screenOptions],
     );
 
-    return (
-      <Tab.Navigator
-        screenOptions={_screenOptions}
-        initialRouteName={initialRouteName}
-        detachInactiveScreens={detachInactiveScreens}
-        backBehavior={backBehavior}
-        tabBar={tabBar}
-        sceneContainerStyle={styles.sceneContainerStyle}>
-        {(Object.keys(routes) as ScreenName[]).map((name, index) => (
-          <Tab.Screen
+    const renderRoutes = useMemo(
+      () =>
+        (Object.keys(routes) as ScreenName[]).map((name, index) => (
+          <BottomTab.Screen
             key={`screen-${index + 1}-${name}`}
-            options={transformOptions(routes[name]!.options)}
+            options={routes[name]!.options}
             navigationKey={`screen-${index + 1}-${name}`}
             name={name}
             component={routes[name]!.screen as any}
             initialParams={routes[name]!.initialParams}
           />
-        ))}
-      </Tab.Navigator>
+        )),
+      [routes],
+    );
+
+    return (
+      <BottomTab.Navigator
+        detachInactiveScreens={detachInactiveScreens}
+        backBehavior={backBehavior}
+        tabBar={tabBar}
+        sceneContainerStyle={sceneContainerStyle}
+        screenListeners={screenListeners}
+        safeAreaInsets={insets}
+        screenOptions={_screenOptions}
+        {...rest}>
+        {renderRoutes}
+      </BottomTab.Navigator>
     );
   },
 );
-
-const createStyles = (theme: Theme) =>
-  StyleSheet.create({
-    sceneContainerStyle: {
-      backgroundColor: theme.color.common.white,
-    },
-  });
