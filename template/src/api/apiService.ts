@@ -8,6 +8,10 @@ import {ISessionDataStore} from '../session';
 import {DebugVars} from '../../debugVars';
 import {notificationManager} from '@force-dev/react-mobile';
 
+export interface AbortPromise<T> extends Promise<T> {
+  abort: () => void;
+}
+
 export class ApiService {
   private instance: AxiosInstance | null = null;
   private raceConditionMap: Map<string, AbortController> = new Map();
@@ -78,55 +82,59 @@ export class ApiService {
     );
   }
 
-  public async get<R = any, P = any>(
+  public get<R = any, P = any>(
     endpoint: string,
     params?: P,
     config?: ApiRequestConfig,
   ) {
     const query = params && stringify(params);
-    const response = await this.instance!.get<ApiResponse<R>>(
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
+
+    const promise = this.instance!.get<ApiResponse<R>>(
       endpoint + (query ? `?${query}` : ''),
       {
         ...config,
-        ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
+        signal: controller.signal,
       },
-    );
+    ).then(response => response.data) as AbortPromise<ApiResponse<R>>;
 
-    return response.data as ApiResponse<R>;
+    promise.abort = () => controller.abort();
+
+    return promise;
   }
 
-  public async post<R = any, P = any>(
+  public post<R = any, P = any>(
     endpoint: string,
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const response = await this.instance!.post<ApiResponse<R>>(
-      endpoint,
-      params,
-      {
-        ...config,
-        ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
-      },
-    );
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
 
-    return response.data as ApiResponse<R>;
+    const promise = this.instance!.post<ApiResponse<R>>(endpoint, params, {
+      ...config,
+      signal: controller.signal,
+    }).then(response => response.data) as AbortPromise<ApiResponse<R>>;
+
+    promise.abort = () => controller.abort();
+
+    return promise;
   }
 
-  public async patch<R = any, P = any>(
+  public patch<R = any, P = any>(
     endpoint: string,
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const response = await this.instance!.patch<ApiResponse<R>>(
-      endpoint,
-      params,
-      {
-        ...config,
-        ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
-      },
-    );
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
 
-    return response.data as ApiResponse<R>;
+    const promise = this.instance!.patch<ApiResponse<R>>(endpoint, params, {
+      ...config,
+      signal: controller.signal,
+    }).then(response => response.data) as AbortPromise<ApiResponse<R>>;
+
+    promise.abort = () => controller.abort();
+
+    return promise;
   }
 
   public async put<R = any, P = any>(
@@ -134,35 +142,45 @@ export class ApiService {
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const response = await this.instance!.put<ApiResponse<R>>(
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
+
+    const promise = (await this.instance!.put<ApiResponse<R>>(
       endpoint,
       params,
       {
         ...config,
-        ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
+        signal: controller.signal,
       },
-    );
+    ).then(response => response.data)) as AbortPromise<ApiResponse<R>>;
 
-    return response.data as ApiResponse<R>;
+    promise.abort = () => controller.abort();
+
+    return promise;
   }
 
   public async delete<R = any>(endpoint: string, config?: ApiRequestConfig) {
-    const response = await this.instance!.delete<ApiResponse<R>>(endpoint, {
-      ...config,
-      ...(config?.useRaceCondition ? this.raceCondition(endpoint) : {}),
-    });
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
 
-    return response.data as ApiResponse<R>;
+    const promise = (await this.instance!.delete(endpoint, {
+      ...config,
+      signal: controller.signal,
+    }).then(response => response.data)) as AbortPromise<ApiResponse<R>>;
+
+    promise.abort = () => controller.abort();
+
+    return promise;
   }
 
-  private raceCondition(endpoint: string) {
+  private raceCondition(endpoint: string, useRaceCondition?: boolean) {
     const controller = new AbortController();
 
-    if (this.raceConditionMap.has(endpoint)) {
-      this.raceConditionMap.get(endpoint)?.abort();
-      this.raceConditionMap.delete(endpoint);
+    if (useRaceCondition) {
+      if (this.raceConditionMap.has(endpoint)) {
+        this.raceConditionMap.get(endpoint)?.abort();
+        this.raceConditionMap.delete(endpoint);
+      }
+      this.raceConditionMap.set(endpoint, controller);
     }
-    this.raceConditionMap.set(endpoint, controller);
 
     return controller;
   }
