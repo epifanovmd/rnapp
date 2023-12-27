@@ -12,6 +12,16 @@ export interface AbortPromise<T> extends Promise<T> {
   abort: () => void;
 }
 
+export class ExtractAbort {
+  public abort: () => void = () => {};
+
+  public getPromiseAbort = <R extends any>(promise: AbortPromise<R>) => {
+    this.abort = () => promise.abort();
+
+    return promise;
+  };
+}
+
 export class ApiService {
   private instance: AxiosInstance | null = null;
   private raceConditionMap: Map<string, AbortController> = new Map();
