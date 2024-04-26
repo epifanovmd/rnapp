@@ -1,7 +1,7 @@
 import React, {FC, memo, useCallback} from 'react';
 import {NavigationProp, useNavigation} from '@react-navigation/native';
 import {ScreenName} from '../../navigation';
-import {Touchable, TouchableProps} from '@force-dev/react-mobile';
+import {Touchable, TouchableProps} from '../ui';
 
 interface IProps extends TouchableProps {
   to: ScreenName;

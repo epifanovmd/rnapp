@@ -1,8 +1,14 @@
-import * as React from 'react';
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import {ColorValue, StyleProp, View, ViewStyle} from 'react-native';
 import {Bounceable, BounceableProps} from '@force-dev/react-mobile';
-import {CheckBoldIcon} from '@force-dev/react-mobile/src/icons/material/CheckBold';
+import * as React from 'react';
+import {
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {ColorValue, StyleProp, View, ViewStyle} from 'react-native';
+import {CheckBoldIcon} from '../../icons';
 
 type IconProps = {height: number; width: number; fill: ColorValue};
 
@@ -22,12 +28,11 @@ export interface CheckboxProps extends Omit<BounceableProps, 'onPress'> {
   style?: StyleProp<ViewStyle>;
 }
 
-export const Checkbox: React.FC<CheckboxProps> = ({
+export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   size = 24,
   radius = 8,
   checked,
   onPress,
-  style,
 
   fillColor = '#ffc484',
   unFillColor = 'transparent',
@@ -61,8 +66,9 @@ export const Checkbox: React.FC<CheckboxProps> = ({
     () => [
       getIconContainerStyle(_checked, fillColor, unFillColor, radius),
       iconContainerStyle,
+      {width: size, height: size},
     ],
-    [_checked, fillColor, iconContainerStyle, radius, unFillColor],
+    [_checked, fillColor, iconContainerStyle, radius, size, unFillColor],
   );
 
   const innerIconContainer = useMemo(
@@ -71,11 +77,6 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       innerIconContainerStyle,
     ],
     [fillColor, innerIconContainerStyle, radius],
-  );
-
-  const _style = useMemo(
-    () => [{width: size, height: size}, style],
-    [size, style],
   );
 
   return (
@@ -87,7 +88,6 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       bouncinessIn={bouncinessIn}
       bouncinessOut={bouncinessOut}
       {...rest}
-      style={_style}
       onPress={handlePress}>
       <View style={iconContainer}>
         <View style={innerIconContainer}>
@@ -99,6 +99,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
             })}
         </View>
       </View>
+      {rest?.children}
     </Bounceable>
   );
 };
@@ -109,8 +110,6 @@ const getIconContainerStyle = (
   unFillColor: string,
   radius: number = 0,
 ): ViewStyle => ({
-  width: '100%',
-  height: '100%',
   borderRadius: radius,
   backgroundColor: checked ? fillColor : unFillColor,
   alignItems: 'center',

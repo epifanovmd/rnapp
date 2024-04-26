@@ -2,9 +2,11 @@ import {Locale} from './types';
 
 export const ruLocale = {
   navigation: {
-    Page1: 'Page 1 RUS',
-    Page2: 'Page 2 RUS',
-    Page3: 'Page 3 RUS',
+    Playground: 'Playground',
+    Users: 'Пользователи',
+    Notifications: 'Уведомления',
+    Pickers: 'Пиккеры',
+    Components: 'Компоненты',
   },
   button: {
     cancel: 'Отмена',

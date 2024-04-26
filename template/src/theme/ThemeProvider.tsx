@@ -1,4 +1,5 @@
 import React, {useEffect} from 'react';
+import {log} from '../service';
 import {Theme} from './interface';
 import {
   DEFAULT_DARK_THEME,
@@ -12,13 +13,17 @@ import {useColorScheme} from 'react-native';
 interface ProvidedValue {
   theme: Theme;
   toggleTheme: () => void;
+  isDark: boolean;
+  isLight: boolean;
 }
 
 const Context = React.createContext<ProvidedValue>({
   theme: DEFAULT_LIGHT_THEME,
   toggleTheme: () => {
-    console.log('ThemeProvider is not rendered!');
+    log.error('ThemeProvider is not rendered!');
   },
+  isDark: false,
+  isLight: true,
 });
 
 interface Props {
@@ -34,15 +39,15 @@ export const ThemeProvider = React.memo<Props>(props => {
   const [theme, setTheme] = React.useState<Theme | undefined>(undefined);
   const isDarkMode = useColorScheme() === 'dark';
 
-  const ToggleThemeCallback = React.useCallback(() => {
+  const toggleThemeCallback = React.useCallback(() => {
     setTheme(currentTheme => {
       if (currentTheme!.id === DEFAULT_LIGHT_THEME_ID) {
-        AsyncStorage.setItem('themeId', DEFAULT_LIGHT_THEME_ID).then();
+        AsyncStorage.setItem('themeId', DEFAULT_LIGHT_THEME_ID);
 
         return DEFAULT_DARK_THEME;
       }
       if (currentTheme!.id === DEFAULT_DARK_THEME_ID) {
-        AsyncStorage.setItem('themeId', DEFAULT_DARK_THEME_ID).then();
+        AsyncStorage.setItem('themeId', DEFAULT_DARK_THEME_ID);
 
         return DEFAULT_LIGHT_THEME;
       }
@@ -60,23 +65,25 @@ export const ThemeProvider = React.memo<Props>(props => {
         AsyncStorage.setItem(
           'themeId',
           isDarkMode ? DEFAULT_DARK_THEME_ID : DEFAULT_LIGHT_THEME_ID,
-        ).then();
+        );
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const MemoizedValue = React.useMemo(() => {
+  const memoizedValue = React.useMemo(() => {
     const value: ProvidedValue = {
       theme: theme!,
-      toggleTheme: ToggleThemeCallback,
+      toggleTheme: toggleThemeCallback,
+      isLight: theme?.id === DEFAULT_LIGHT_THEME_ID,
+      isDark: theme?.id === DEFAULT_DARK_THEME_ID,
     };
 
     return value;
-  }, [theme, ToggleThemeCallback]);
+  }, [theme, toggleThemeCallback]);
 
   return (
-    <Context.Provider value={MemoizedValue}>
+    <Context.Provider value={memoizedValue}>
       {theme ? props.children : null}
     </Context.Provider>
   );

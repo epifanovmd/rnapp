@@ -1,26 +1,53 @@
-import React, {FC, memo} from 'react';
-import {AppNavigation, AppTabScreens, StackProps} from '../navigation';
-import {Screen1, Screen2} from './tabs';
+import React, {FC, memo, useMemo} from 'react';
+import {Text} from '../components';
+import {useTranslation} from '../localization';
+import {
+  AppNavigation,
+  AppTabScreens,
+  ScreenName,
+  StackProps,
+} from '../navigation';
+import {Playground, Users} from './tabs';
 
 interface IProps extends StackProps {}
 
-const TAB_SCREENS: AppTabScreens = {
-  Page1: {
-    screen: Screen1,
+export const TAB_SCREENS: AppTabScreens = {
+  Playground: {
+    screen: Playground,
     options: {
-      title: 'navigation.Page1',
-      tabBarIcon: () => null,
+      title: 'navigation.Playground',
+      tabBarIcon: () => <Text>{'PG'}</Text>,
     },
   },
-  Page2: {
-    screen: Screen2,
+  Users: {
+    screen: Users,
     options: {
-      title: 'navigation.Page2',
-      tabBarIcon: () => null,
+      title: 'navigation.Users',
+      tabBarIcon: () => <Text>{'US'}</Text>,
     },
   },
 };
 
-export const TabScreens: FC<IProps> = memo(() => (
-  <AppNavigation routes={TAB_SCREENS} />
-));
+export const TabScreens: FC<IProps> = memo(() => {
+  const {t} = useTranslation();
+
+  const tabs = useMemo(
+    () =>
+      Object.keys(TAB_SCREENS).reduce<any>((acc, key) => {
+        const item = TAB_SCREENS[key as ScreenName];
+
+        acc[key] = {
+          ...item,
+          options: {
+            ...item?.options,
+            title: t(item?.options?.title as any),
+          },
+        } as any;
+
+        return acc;
+      }, {}),
+    [t],
+  );
+
+  return <AppNavigation routes={tabs} />;
+});

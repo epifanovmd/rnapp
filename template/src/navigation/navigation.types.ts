@@ -1,24 +1,26 @@
 export enum TabScreenName {
   MAIN = 'MAIN',
 
-  Page1 = 'Page1',
-  Page2 = 'Page2',
+  Playground = 'Playground',
+  Users = 'Users',
 }
 
 interface TabScreenParams {
   MAIN: any;
-  Page1: any;
-  Page2: any;
+  Playground: any;
+  Users: any;
 }
 
 export enum StackScreenName {
-  OtherFirstScreen = 'OtherFirstScreen',
-  OtherSecondScreen = 'OtherSecondScreen',
+  Notifications = 'Notifications',
+  Pickers = 'Pickers',
+  Components = 'Components',
 }
 
 interface StackScreenParams {
-  OtherFirstScreen: any;
-  OtherSecondScreen: any;
+  Notifications: any;
+  Pickers: any;
+  Components: any;
 }
 
 export type ScreenName =

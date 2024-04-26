@@ -1,5 +1,6 @@
 import React, {
   FC,
+  JSX,
   memo,
   PropsWithChildren,
   useCallback,
@@ -18,14 +19,17 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  Touchable,
-  TouchableProps,
   useModal,
 } from '@force-dev/react-mobile';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import {useModalStyles} from '../../../common';
 import {useTranslation} from '../../../localization';
 import {ViewProps} from 'react-native';
-import {Button, ButtonProps} from '../button';
+import {Touchable, TouchableProps} from '../touchable';
+
+import localeData from 'dayjs/plugin/localeData';
+
+dayjs.extend(localeData);
 
 const years = Array.from({length: 201}, (_, i) => {
   return i + new Date().getFullYear() - 100;
@@ -59,17 +63,18 @@ const generateDays = (month: number, year: number) => {
 };
 
 export interface DatePickerProps extends TouchableProps {
-  date?: moment.Moment | null;
-  onChange: (date: moment.Moment) => void;
+  date?: dayjs.Dayjs | null;
+  onChange: (date: dayjs.Dayjs) => void;
 
   pickerProps?: PickerProps;
-
   modalProps?: ModalProps;
   containerProps?: ViewProps;
 
-  actionsContainerProps?: ViewProps;
-  resetButtonProps?: ButtonProps;
-  acceptButtonProps?: ButtonProps;
+  renderHeader?: (onClose: () => void) => JSX.Element | null;
+  renderFooter?: (params: {
+    onReset: () => void;
+    onApply: () => void;
+  }) => JSX.Element | null;
 }
 
 export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
@@ -79,26 +84,26 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     pickerProps,
     modalProps,
     containerProps,
-    actionsContainerProps,
-    resetButtonProps,
-    acceptButtonProps,
+    renderHeader,
+    renderFooter,
     children,
     ...rest
   }) => {
     const {i18n} = useTranslation();
 
     const {ref: modalRef} = useModal();
+    const modalStyles = useModalStyles();
 
     const months = useMemo(
       () =>
-        moment
+        dayjs
           .months()
-          .map(item => item[0].toUpperCase() + item.slice(1, item.length)),
+          .map(item => item[0]?.toUpperCase() + item.slice(1, item.length)),
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [i18n.language],
     );
 
-    const now = useMemo(() => (date ? moment(date) : moment()), [date]);
+    const now = useMemo(() => (date ? dayjs(date) : dayjs()), [date]);
 
     const [_day, _month, _year] = useMemo(
       () => [now.get('dates'), now.get('month'), now.get('year')],
@@ -111,19 +116,26 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const days = useMemo(() => generateDays(month, year), [month, year]);
 
-    const reset = useCallback(() => {
+    const onReset = useCallback(() => {
       setDay(_day);
       setMonth(_month);
       setYear(_year);
     }, [_day, _month, _year]);
 
     useEffect(() => {
-      reset();
-    }, [reset]);
+      onReset();
+    }, [onReset]);
 
-    const handleDay = useCallback(({value}: PickerChangeItem) => {
-      setDay(Number(value));
-    }, []);
+    const handleDay = useCallback(
+      ({value}: PickerChangeItem) => {
+        setDay(Number(value));
+
+        if (onChange && !renderFooter) {
+          onChange(dayjs(new Date(`${year}-${month + 1}-${Number(value)}`)));
+        }
+      },
+      [month, onChange, renderFooter, year],
+    );
 
     const handleMonth = useCallback(
       ({value}: PickerChangeItem) => {
@@ -132,17 +144,36 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         if (day > daysCount) {
           setDay(daysCount);
         }
+
+        if (onChange && !renderFooter) {
+          onChange(
+            dayjs(
+              new Date(
+                `${year}-${Number(value) + 1}-${
+                  day > daysCount ? daysCount : day
+                }`,
+              ),
+            ),
+          );
+        }
       },
-      [day, year],
+      [day, onChange, renderFooter, year],
     );
 
-    const handleYear = useCallback(({value}: PickerChangeItem) => {
-      setYear(Number(value));
-    }, []);
+    const handleYear = useCallback(
+      ({value}: PickerChangeItem) => {
+        setYear(Number(value));
 
-    const handleApply = useCallback(() => {
+        if (onChange && !renderFooter) {
+          onChange(dayjs(new Date(`${Number(value)}-${month + 1}-${day}`)));
+        }
+      },
+      [day, month, onChange, renderFooter],
+    );
+
+    const onApply = useCallback(() => {
       if (onChange) {
-        onChange(moment(new Date(`${year}-${month + 1}-${day}`)));
+        onChange(dayjs(new Date(`${year}-${month + 1}-${day}`)));
         modalRef.current?.close();
       }
     }, [day, modalRef, month, onChange, year]);
@@ -181,10 +212,14 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       [],
     );
 
+    const onClose = useCallback(() => {
+      modalRef.current?.close();
+    }, [modalRef]);
+
     const handleOpen = useCallback(() => {
-      reset();
+      onReset();
       modalRef.current?.open();
-    }, [modalRef, reset]);
+    }, [modalRef, onReset]);
 
     return (
       <Touchable {...rest} onPress={handleOpen}>
@@ -194,9 +229,12 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
           ref={modalRef}
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
+          {...modalStyles}
           {...modalProps}>
-          <Col pa={16} {...containerProps}>
-            <Row justifyContent={'space-between'}>
+          <Col {...containerProps}>
+            {renderHeader?.(onClose)}
+
+            <Row pa={8} justifyContent={'space-between'}>
               <Col flexGrow={1} flexBasis={0} minWidth={20}>
                 <Picker {...pickerProps}>
                   <PickerColumn selectedValue={day} onChange={handleDay}>
@@ -220,22 +258,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
               </Col>
             </Row>
 
-            <Row
-              pt={16}
-              justifyContent={'space-between'}
-              {...actionsContainerProps}>
-              <Button
-                title={'Сбросить'}
-                {...resetButtonProps}
-                onPress={reset}
-              />
-              <Button
-                title={'Применить'}
-                {...acceptButtonProps}
-                onPress={handleApply}
-              />
-            </Row>
-
+            {renderFooter?.({onReset, onApply})}
             <SafeArea bottom />
           </Col>
         </Modal>

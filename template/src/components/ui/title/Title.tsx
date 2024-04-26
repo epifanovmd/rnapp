@@ -1,15 +1,9 @@
 import React, {FC, PropsWithChildren} from 'react';
 import {observer} from 'mobx-react-lite';
-import {
-  Col,
-  FlexProps,
-  Row,
-  Text,
-  TextProps,
-  useFlexProps,
-} from '@force-dev/react-mobile';
+import {Col, FlexProps, Row, useFlexProps} from '@force-dev/react-mobile';
 import {useRoute} from '../../../navigation';
 import {useTranslation} from '../../../localization';
+import {Text, TextProps} from '../text';
 
 export interface TitleProps extends FlexProps {
   title?: string;

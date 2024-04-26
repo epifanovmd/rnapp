@@ -1,7 +1,7 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
 import SwitchToggle from 'react-native-switch-toggle';
-import {DEFAULT_LIGHT_THEME_ID, useTheme} from '../../theme';
 import {FlexProps, Row} from '@force-dev/react-mobile';
+import {DEFAULT_LIGHT_THEME_ID, useTheme} from '../../theme';
 
 interface IProps extends FlexProps {}
 
@@ -9,7 +9,7 @@ export const SwitchTheme: FC<PropsWithChildren<IProps>> = memo(({...rest}) => {
   const {theme, toggleTheme} = useTheme();
 
   return (
-    <Row pa={32} {...rest}>
+    <Row {...rest}>
       <SwitchToggle
         switchOn={theme.id === DEFAULT_LIGHT_THEME_ID}
         backTextRight={theme.id === DEFAULT_LIGHT_THEME_ID ? 'Light' : 'Dark'}
@@ -17,31 +17,34 @@ export const SwitchTheme: FC<PropsWithChildren<IProps>> = memo(({...rest}) => {
           position: 'absolute',
           zIndex: 10,
           backgroundColor: '#62c28e',
-          marginLeft: theme.id === DEFAULT_LIGHT_THEME_ID ? -2 : 2,
-        }}
-        buttonContainerStyle={{
-          flex: 1,
-          marginLeft: theme.id === DEFAULT_LIGHT_THEME_ID ? -2 : 2,
+          marginLeft: theme.id === DEFAULT_LIGHT_THEME_ID ? -1 : 1,
         }}
         rightContainerStyle={{
           flex: 1,
           alignItems:
             theme.id === DEFAULT_LIGHT_THEME_ID ? 'flex-start' : 'flex-end',
-          paddingLeft: 10,
-          paddingRight: 10,
           zIndex: 9,
+          borderRadius: 16,
+          paddingHorizontal: 6,
+        }}
+        textLeftStyle={{
+          fontSize: 11,
+        }}
+        textRightStyle={{
+          fontSize: 11,
         }}
         containerStyle={{
-          width: 80,
-          height: 34,
+          alignItems: 'center',
+          width: 50,
+          height: 20,
           borderRadius: 15,
         }}
-        backgroundColorOn="#fff"
-        backgroundColorOff="#fff"
+        backgroundColorOn="#fefefe"
+        backgroundColorOff="#fefefe"
         circleStyle={{
-          width: 30,
-          height: 30,
-          borderRadius: 15,
+          width: 18,
+          height: 18,
+          borderRadius: 16,
         }}
         onPress={toggleTheme}
         circleColorOff="#e5e1e0"

@@ -12,29 +12,29 @@ import React, {
 import {
   ColorValue,
   GestureResponderEvent,
-  TextInput,
   NativeSyntheticEvent,
+  StyleSheet,
+  TextInput,
   TextInputFocusEventData,
 } from 'react-native';
 import {
   createSlot,
+  Input,
   InputProps,
   mergeRefs,
   Modal,
+  ModalHeader as _ModalHeader,
   ModalHeaderProps,
   ModalProps,
-  resolveStyleProp,
   useModal,
   useSlotProps,
-  ModalHeader as _ModalHeader,
-  SafeArea,
-  Input,
-  ScrollView,
-  ScrollViewProps,
-  TextProps,
 } from '@force-dev/react-mobile';
-import {CloseIcon} from '@force-dev/react-mobile/src/icons/material/Close';
+import {useModalStyles} from '../../../common';
+import {CloseIcon} from '../../icons';
 import {Field, FieldProps, FieldSlots} from '../field';
+import {ScrollView, ScrollViewProps} from '../scrollView';
+import {Text, TextProps} from '../text';
+import {ModalActions} from '../../modalActions';
 
 interface InputFieldProps extends FieldProps {}
 
@@ -61,6 +61,8 @@ const _InputField: FC<
 > = memo(
   forwardRef(({children, onPress, ...rest}, ref) => {
     const inputRef = useRef<TextInput>(null);
+    const [isFocused, setFocused] = useState(false);
+    const modalStyles = useModalStyles();
 
     const {
       input,
@@ -71,6 +73,7 @@ const _InputField: FC<
       leftIcon,
       label,
       content,
+      contentValue,
       rightIcon,
       description,
       error,
@@ -84,6 +87,7 @@ const _InputField: FC<
 
     const handlePress = useCallback(
       (e: GestureResponderEvent, value: any) => {
+        setFocused(true);
         inputRef.current?.focus();
         openModal();
         setModalValue(input?.value || '');
@@ -96,10 +100,9 @@ const _InputField: FC<
 
     const onClose = useCallback(() => {
       modal?.onClose?.();
-      input?.onChangeText?.(modalValue);
 
       inputRef.current?.blur();
-    }, [input, modal, modalValue]);
+    }, [modal]);
 
     const onClosed = useCallback(() => {
       modal?.onClosed?.();
@@ -115,8 +118,8 @@ const _InputField: FC<
     const disabled = rest.disabled || input?.disabled;
 
     const modalStyle = useMemo(
-      () => [{backgroundColor: 'gray', minHeight: 250}, modal?.modalStyle],
-      [modal?.modalStyle],
+      () => [{minHeight: 250}, modalStyles.modalStyle, modal?.modalStyle],
+      [modal?.modalStyle, modalStyles.modalStyle],
     );
 
     const modalLabelStyle = useMemo(
@@ -130,17 +133,31 @@ const _InputField: FC<
           modalHeader?.renderCloseIcon ??
           modal?.renderCloseIcon ??
           _renderCloseIcon
-        )(fill ?? resolveStyleProp([modalLabel?.style]).color ?? '#fff'),
+        )(fill ?? StyleSheet.flatten(modalLabel?.style).color ?? '#fff'),
       [modal?.renderCloseIcon, modalHeader?.renderCloseIcon, modalLabel?.style],
+    );
+
+    const handleFocus = useCallback(
+      (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
+        input?.onFocus?.(e);
+        setFocused(true);
+      },
+      [input],
     );
 
     const handleBlur = useCallback(
       (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
         input?.onBlur?.(e);
+        setFocused(false);
         modalRef.current?.close();
       },
       [input, modalRef],
     );
+
+    const onAccept = useCallback(() => {
+      input?.onChangeText?.(modalValue);
+      onClose();
+    }, [input, modalValue, onClose]);
 
     return (
       <>
@@ -148,13 +165,27 @@ const _InputField: FC<
           <Field.Label {...label} />
           <Field.LeftIcon {...leftIcon} />
           <Field.Content {...content}>
-            <Input
-              ref={mergedRef}
-              {...input}
-              pointerEvents={disabled || !!modal ? 'none' : undefined}
-              disabled={disabled || !!modal}
-            />
+            {!modal
+              ? (!!input?.value || isFocused) && (
+                  <Input
+                    ref={mergedRef}
+                    {...input}
+                    autoFocus={isFocused && !input?.value}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    pointerEvents={disabled || !!modal ? 'none' : undefined}
+                    disabled={disabled || !!modal}
+                    containerStyle={{
+                      width: '100%',
+                      padding: 0,
+                      paddingTop: 0,
+                      paddingBottom: 0,
+                    }}
+                  />
+                )
+              : input?.value && <Text>{input?.value}</Text>}
           </Field.Content>
+          <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />
           <Field.Error color={'red'} {...error} />
           <Field.Description {...description} />
@@ -165,8 +196,9 @@ const _InputField: FC<
             panGestureEnabled={false}
             adjustToContentHeight={true}
             withHandle={false}
-            {...modal}
+            {...modalStyles}
             modalStyle={modalStyle}
+            {...modal}
             onClose={onClose}
             onClosed={onClosed}>
             <_ModalHeader
@@ -178,24 +210,29 @@ const _InputField: FC<
               {modalHeader?.children}
             </_ModalHeader>
             <ScrollView
-              pa={16}
+              ph={16}
+              minHeight={150}
               bounces={false}
               keyboardShouldPersistTaps={'handled'}
               {...modalScrollView}>
-              <InputField ref={mergedRef} onPress={handlePress}>
-                <InputField.Content {...content} />
-                <InputField.Input
-                  {...input}
-                  onBlur={handleBlur}
-                  value={modalValue}
-                  onChangeText={setModalValue}
-                  autoFocus={true}
-                />
-              </InputField>
+              <Field onPress={handlePress}>
+                <Field.Content {...content}>
+                  <Input
+                    ref={mergedRef}
+                    {...input}
+                    scrollEnabled={false}
+                    value={input?.multiline ? undefined : modalValue}
+                    defaultValue={!input?.multiline ? undefined : modalValue}
+                    onBlur={handleBlur}
+                    onChangeText={setModalValue}
+                    autoFocus={true}
+                  />
+                </Field.Content>
+              </Field>
 
               {modal?.children}
             </ScrollView>
-            <SafeArea bottom={true} />
+            <ModalActions onReject={onClose} onAccept={onAccept} />
           </Modal>
         )}
       </>
@@ -215,6 +252,7 @@ InputField.Label = Field.Label;
 InputField.LeftIcon = Field.LeftIcon;
 InputField.RightIcon = Field.RightIcon;
 InputField.Content = Field.Content;
+InputField.ContentValue = Field.ContentValue;
 InputField.Description = Field.Description;
 InputField.Error = Field.Error;
 

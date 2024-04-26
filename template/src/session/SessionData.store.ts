@@ -1,8 +1,8 @@
 import {makeAutoObservable, reaction} from 'mobx';
 import {iocDecorator} from '@force-dev/utils';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import {INavigationManager, NavigationManager} from '../navigation';
 import {iocHook} from '@force-dev/react-mobile';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {INavigationService, NavigationService} from '../navigation';
 
 export const ISessionDataStore = iocDecorator<SessionDataStore>();
 export const useSessionDataStore = iocHook(ISessionDataStore);
@@ -12,7 +12,7 @@ export class SessionDataStore {
   private _token: string = '';
   private _authorized: boolean = false;
 
-  constructor(@INavigationManager() private _nav: NavigationManager) {
+  constructor(@INavigationService() private _nav: NavigationService) {
     makeAutoObservable(this, {}, {autoBind: true});
 
     AsyncStorage.getItem('token').then(res => {
@@ -43,13 +43,13 @@ export class SessionDataStore {
     this._authorized = status;
   }
 
-  setToken(token: string) {
+  setToken(token?: string) {
     if (!token) {
       AsyncStorage.removeItem('token').then();
     } else {
       AsyncStorage.setItem('token', token).then();
     }
-    this._token = token;
+    this._token = token ?? '';
   }
 
   clearToken() {

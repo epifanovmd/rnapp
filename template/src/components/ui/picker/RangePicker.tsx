@@ -1,4 +1,5 @@
 import React, {
+  JSX,
   memo,
   PropsWithChildren,
   useCallback,
@@ -17,12 +18,11 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  Touchable,
-  TouchableProps,
   useModal,
 } from '@force-dev/react-mobile';
 import {ViewProps} from 'react-native';
-import {Button, ButtonProps} from '../button';
+import {useModalStyles} from '../../../common';
+import {Touchable, TouchableProps} from '../touchable';
 
 export interface RangePickerProps<T extends string | number>
   extends TouchableProps {
@@ -33,13 +33,14 @@ export interface RangePickerProps<T extends string | number>
   reverse?: boolean;
 
   pickerProps?: Omit<PickerProps, 'onChange'>;
-
   modalProps?: ModalProps;
   containerProps?: ViewProps;
 
-  actionsContainerProps?: ViewProps;
-  resetButtonProps?: ButtonProps;
-  acceptButtonProps?: ButtonProps;
+  renderHeader?: (onClose: () => void) => JSX.Element | null;
+  renderFooter?: (params: {
+    onReset: () => void;
+    onApply: () => void;
+  }) => JSX.Element | null;
 }
 
 interface RangePicker {
@@ -48,7 +49,7 @@ interface RangePicker {
   ): React.JSX.Element | null;
 }
 
-const empty = 'empty picker item';
+const empty = -1;
 
 export const RangePicker: RangePicker = memo(
   ({
@@ -61,12 +62,12 @@ export const RangePicker: RangePicker = memo(
     pickerProps,
     modalProps,
     containerProps,
-    actionsContainerProps,
-    resetButtonProps,
-    acceptButtonProps,
+    renderHeader,
+    renderFooter,
     ...rest
   }: PropsWithChildren<RangePickerProps<any>>) => {
     const {ref: modalRef} = useModal();
+    const modalStyles = useModalStyles();
 
     const items = useMemo(
       () => [empty, ...(reverse ? [..._items].reverse() : _items)],
@@ -105,41 +106,60 @@ export const RangePicker: RangePicker = memo(
       }
     }, [currentFirstItem, items, reverse]);
 
-    const reset = useCallback(() => {
+    const onReset = useCallback(() => {
+      setCurrentFirstItem(items[0]);
+      setCurrentSecondItem(items[0]);
+    }, [items]);
+
+    const onUpdate = useCallback(() => {
       setCurrentFirstItem(range?.[0]);
       setCurrentSecondItem(range?.[1]);
     }, [range]);
 
     useEffect(() => {
-      reset();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [range]);
+      onUpdate();
+    }, [onUpdate]);
 
-    const handleApply = useCallback(() => {
-      const value: [any, any] = [currentFirstItem, currentSecondItem];
-
+    const handleChange = useCallback(() => {
+      const from = currentFirstItem === empty ? undefined : currentFirstItem;
+      const to = currentSecondItem === empty ? undefined : currentSecondItem;
       if (onChange) {
-        onChange(value);
+        onChange([from, to]);
       }
+    }, [currentFirstItem, currentSecondItem, onChange]);
+
+    const onApply = useCallback(() => {
       modalRef.current?.close();
-    }, [currentFirstItem, currentSecondItem, modalRef, onChange]);
+    }, [modalRef]);
 
     const handleOpen = useCallback(() => {
-      reset();
+      onUpdate();
       modalRef.current?.open();
-    }, [modalRef, reset]);
+    }, [modalRef, onUpdate]);
 
-    const handleFirst = useCallback(({value}: PickerChangeItem) => {
-      if (value !== undefined) {
-        setCurrentFirstItem(value);
-      }
-    }, []);
+    const handleFirst = useCallback(
+      ({value}: PickerChangeItem) => {
+        if (value !== undefined) {
+          if (!renderFooter) {
+            handleChange();
+          }
+          setCurrentFirstItem(value);
+        }
+      },
+      [handleChange, renderFooter],
+    );
 
-    const handleSecond = useCallback(({value}: PickerChangeItem) => {
-      if (value !== undefined) {
-        setCurrentSecondItem(value);
-      }
-    }, []);
+    const handleSecond = useCallback(
+      ({value}: PickerChangeItem) => {
+        if (value !== undefined) {
+          if (!renderFooter) {
+            handleChange();
+          }
+          setCurrentSecondItem(value);
+        }
+      },
+      [handleChange, renderFooter],
+    );
 
     const renderFirstItems = useMemo(
       () =>
@@ -187,17 +207,26 @@ export const RangePicker: RangePicker = memo(
       [currentSecondItem, handleSecond, renderSecondItems],
     );
 
+    const onClose = useCallback(() => {
+      modalRef.current?.close();
+    }, [modalRef]);
+
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
         <Modal
           ref={modalRef}
+          handlePosition={'inside'}
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
+          onClose={handleChange}
+          {...modalStyles}
           {...modalProps}>
-          <Col pa={16} {...containerProps}>
-            <Row justifyContent={'space-around'}>
+          <Col {...containerProps}>
+            {renderHeader?.(onClose)}
+
+            <Row pv={16} ph={8} justifyContent={'space-around'}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker {...pickerProps}>{first}</Picker>
               </Col>
@@ -206,22 +235,7 @@ export const RangePicker: RangePicker = memo(
               </Col>
             </Row>
 
-            <Row
-              pt={16}
-              justifyContent={'space-between'}
-              {...actionsContainerProps}>
-              <Button
-                title={'Сбросить'}
-                {...resetButtonProps}
-                onPress={reset}
-              />
-              <Button
-                title={'Применить'}
-                {...acceptButtonProps}
-                onPress={handleApply}
-              />
-            </Row>
-
+            {renderFooter?.({onReset, onApply})}
             <SafeArea bottom={true} />
           </Col>
         </Modal>

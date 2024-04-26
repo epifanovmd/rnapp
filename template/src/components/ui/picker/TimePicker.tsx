@@ -1,5 +1,6 @@
 import React, {
   FC,
+  JSX,
   memo,
   PropsWithChildren,
   useCallback,
@@ -19,24 +20,24 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  Touchable,
-  TouchableProps,
   useModal,
 } from '@force-dev/react-mobile';
-import {Button, ButtonProps} from '../button';
+import {useModalStyles} from '../../../common';
+import {Touchable, TouchableProps} from '../touchable';
 
 export interface TimePickerProps extends TouchableProps {
   time?: string;
   onChange?: (time: string) => void;
 
   pickerProps?: PickerProps;
-
   modalProps?: ModalProps;
   containerProps?: ViewProps;
 
-  actionsContainerProps?: ViewProps;
-  resetButtonProps?: ButtonProps;
-  acceptButtonProps?: ButtonProps;
+  renderHeader?: (onClose: () => void) => JSX.Element | null;
+  renderFooter?: (params: {
+    onReset: () => void;
+    onApply: () => void;
+  }) => JSX.Element | null;
 }
 
 const toTwoChars = (string: string) => {
@@ -62,12 +63,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     pickerProps,
     modalProps,
     containerProps,
-    actionsContainerProps,
-    resetButtonProps,
-    acceptButtonProps,
+    renderHeader,
+    renderFooter,
     ...rest
   }) => {
     const {ref: modalRef} = useModal();
+    const modalStyles = useModalStyles();
 
     const [hour, minute] = useMemo(() => {
       const _time = new Date().toTimeString().split(':');
@@ -79,7 +80,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const [currentSecondItem, setCurrentSecondItem] = useState<string>(minute);
 
-    const reset = useCallback(() => {
+    const onReset = useCallback(() => {
       const _time = new Date().toTimeString().split(':');
       const [_hour, _minute] = time ? time.split(':') : [_time[0], _time[1]];
 
@@ -88,11 +89,11 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     }, [time]);
 
     useEffect(() => {
-      reset();
+      onReset();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [time]);
 
-    const handleApply = useCallback(() => {
+    const onApply = useCallback(() => {
       if (onChange) {
         onChange(`${currentFirstItem}:${currentSecondItem}`);
       }
@@ -100,17 +101,29 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     }, [currentFirstItem, currentSecondItem, modalRef, onChange]);
 
     const handleOpen = useCallback(() => {
-      reset();
+      onReset();
       modalRef.current?.open();
-    }, [modalRef, reset]);
+    }, [modalRef, onReset]);
 
-    const handleFirst = useCallback(({value}: PickerChangeItem) => {
-      setCurrentFirstItem(value as string);
-    }, []);
+    const handleFirst = useCallback(
+      ({value}: PickerChangeItem) => {
+        if (onChange && !renderHeader) {
+          onChange(`${value}:${currentSecondItem}`);
+        }
+        setCurrentFirstItem(value as string);
+      },
+      [currentSecondItem, onChange, renderHeader],
+    );
 
-    const handleSecond = useCallback(({value}: PickerChangeItem) => {
-      setCurrentSecondItem(value as string);
-    }, []);
+    const handleSecond = useCallback(
+      ({value}: PickerChangeItem) => {
+        if (onChange && !renderHeader) {
+          onChange(`${currentFirstItem}:${value}`);
+        }
+        setCurrentSecondItem(value as string);
+      },
+      [currentFirstItem, onChange, renderHeader],
+    );
 
     const renderFirstItems = useMemo(
       () =>
@@ -158,6 +171,10 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       [currentSecondItem, handleSecond, renderSecondItems],
     );
 
+    const onClose = useCallback(() => {
+      modalRef.current?.close();
+    }, [modalRef]);
+
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
@@ -166,9 +183,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
           ref={modalRef}
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
+          {...modalStyles}
           {...modalProps}>
-          <Col pa={16} {...containerProps}>
-            <Row justifyContent={'space-around'}>
+          <Col {...containerProps}>
+            {renderHeader?.(onClose)}
+
+            <Row pa={8} justifyContent={'space-around'}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker {...pickerProps}>{first}</Picker>
               </Col>
@@ -177,22 +197,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
               </Col>
             </Row>
 
-            <Row
-              pt={16}
-              justifyContent={'space-between'}
-              {...actionsContainerProps}>
-              <Button
-                title={'Сбросить'}
-                {...resetButtonProps}
-                onPress={reset}
-              />
-              <Button
-                title={'Применить'}
-                {...acceptButtonProps}
-                onPress={handleApply}
-              />
-            </Row>
-
+            {renderFooter?.({onReset, onApply})}
             <SafeArea bottom />
           </Col>
         </Modal>

@@ -1,22 +1,25 @@
-import Config from 'react-native-config';
-import {stringify} from 'query-string';
-import axios, {AxiosInstance, AxiosRequestConfig} from 'axios';
-import SetCookieParser from 'set-cookie-parser';
-import {ApiRequestConfig, ApiResponse} from './types';
+import {notificationService} from '@force-dev/react-mobile';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {ISessionDataStore} from '../session';
+import axios, {AxiosInstance, AxiosRequestConfig} from 'axios';
+import {stringify} from 'query-string';
+import Config from 'react-native-config';
+import SetCookieParser from 'set-cookie-parser';
 import {DebugVars} from '../../debugVars';
-import {notificationManager} from '@force-dev/react-mobile';
+import {log} from '../service';
+import {ISessionDataStore} from '../session';
+import {ApiError, ApiRequestConfig, ApiResponse, ErrorType} from './types';
+
+export const BASE_URL = Config.BASE_URL;
 
 export interface AbortPromise<T> extends Promise<T> {
   abort: () => void;
 }
 
 export class ExtractAbort {
-  public abort: () => void = () => {};
+  public ref: {abort?: () => void} = {};
 
   public getPromiseAbort = <R extends any>(promise: AbortPromise<R>) => {
-    this.abort = () => promise.abort();
+    this.ref.abort = promise.abort;
 
     return promise;
   };
@@ -25,10 +28,13 @@ export class ExtractAbort {
 export class ApiService {
   private instance: AxiosInstance | null = null;
   private raceConditionMap: Map<string, AbortController> = new Map();
+  private _hostname: string = '';
 
   constructor(config?: AxiosRequestConfig) {
+    this._hostname = config?.baseURL ?? '';
+
     this.instance = axios.create({
-      timeout: 1000,
+      timeout: 2 * 60 * 1000,
       withCredentials: true,
       headers: {
         Accept: 'application/json',
@@ -43,7 +49,12 @@ export class ApiService {
       });
 
       if (DebugVars.logRequest) {
-        console.log('Start request with url = ', request.url);
+        console.log(
+          'Start request with url = ',
+          request.url,
+          'params = ',
+          JSON.stringify(request.params ?? request.data ?? {}),
+        );
       }
 
       return request;
@@ -61,35 +72,61 @@ export class ApiService {
 
         return {data: response} as any;
       },
-      error => {
-        console.log('error', error.message);
-        const status = error?.response?.status || 500;
+      (
+        e,
+      ): Promise<{
+        data: {
+          error: ApiError;
+        };
+      }> => {
+        const status = e?.response?.status || 500;
 
         if (status === 401) {
           ISessionDataStore.getInstance().clearToken();
         }
 
-        if (error && error?.message !== 'canceled' && status !== 401) {
-          notificationManager.show(error.message, {
+        let error: ApiError = new ApiError(
+          status,
+          ErrorType.ServerErrorException,
+          e.message,
+        );
+        if (e.response) {
+          error = e.response.data as ApiError;
+        }
+
+        if (e && e?.message !== 'canceled' && status !== 401) {
+          notificationService.show(`${error.message} (${error.type})`, {
             type: 'danger',
             swipeEnabled: false,
-            onPress(id: string) {
-              notificationManager.hide(id);
+            onPress() {
+              notificationService.hide().then();
             },
           });
         }
 
+        log.error('API Error - ', error);
+
         return Promise.resolve({
           data: {
-            error: {
-              message: error.message,
-              status,
-              error,
-            },
+            error,
           },
         });
       },
     );
+  }
+
+  public get hostname() {
+    return this._hostname.replace('api/', '') || '/';
+  }
+
+  public toAbsoluteUrl(url?: string) {
+    if (!url) {
+      return undefined;
+    }
+    if (/(http(s?)|file):\/\//.test(url) || url.includes('://')) {
+      return url;
+    }
+    return `${this.hostname}${url}`.replace('///', '//');
   }
 
   public get<R = any, P = any>(
@@ -196,4 +233,4 @@ export class ApiService {
   }
 }
 
-export const apiService = new ApiService({baseURL: `${Config.BASE_URL}/api/`});
+export const apiService = new ApiService({baseURL: `${BASE_URL}`});

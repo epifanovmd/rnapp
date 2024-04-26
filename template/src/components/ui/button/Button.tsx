@@ -8,18 +8,14 @@ import {
   ViewStyle,
 } from 'react-native';
 import {isString} from '@force-dev/utils';
-import {
-  Touchable,
-  TouchableProps,
-  RenderConditional,
-  Text,
-  Row,
-} from '@force-dev/react-mobile';
+import {RenderConditional, Row} from '@force-dev/react-mobile';
+import {Text} from '../text';
+import {Touchable, TouchableProps} from '../touchable';
 
 export interface ButtonProps extends TouchableProps {
   loading?: boolean;
   leftSlot?: React.JSX.Element;
-  title: React.JSX.Element | string;
+  title?: React.JSX.Element | string;
   rightSlot?: React.JSX.Element;
   color?: ColorValue;
   contentStyle?: StyleProp<ViewStyle>;
@@ -37,6 +33,7 @@ export const Button: FC<ButtonProps> = memo(
     contentStyle,
     textStyle,
     indicatorProps,
+    children,
     ...rest
   }) => {
     return (
@@ -45,11 +42,12 @@ export const Button: FC<ButtonProps> = memo(
         delayPressIn={100}
         radius={4}
         row={true}
-        bg={'#1c3e94'}
+        bg={'#20AB7D'}
         justifyContent={'center'}
         alignItems={'center'}
         overflow={'hidden'}
         pa={8}
+        minHeight={44}
         {...rest}
         disabled={rest.disabled || loading}>
         <RenderConditional if={!!loading}>
@@ -60,15 +58,12 @@ export const Button: FC<ButtonProps> = memo(
           <Row alignItems={'center'} style={contentStyle}>
             {leftSlot}
 
-            {isString(title) ? (
-              <Text
-                text={title}
-                lineBreakMode={'tail'}
-                color={color}
-                style={textStyle}
-              />
+            {isString(title ?? children) ? (
+              <Text lineBreakMode={'tail'} color={color} style={textStyle}>
+                {title ?? children}
+              </Text>
             ) : (
-              title
+              title ?? children
             )}
 
             {rightSlot}

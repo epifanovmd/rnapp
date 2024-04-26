@@ -2,9 +2,11 @@ import {Locale} from './types';
 
 export const enLocale = {
   navigation: {
-    Page1: 'Page 1 EN',
-    Page2: 'Page 2 EN',
-    Page3: 'Page 3 EN',
+    Playground: 'Playground',
+    Users: 'Users',
+    Notifications: 'Notifications',
+    Pickers: 'Pickers',
+    Components: 'Components',
   },
   button: {
     cancel: 'Cancel',

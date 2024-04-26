@@ -1,13 +1,3 @@
-import React, {
-  FC,
-  forwardRef,
-  memo,
-  PropsWithChildren,
-  RefAttributes,
-  useCallback,
-  useMemo,
-} from 'react';
-import {ColorValue, GestureResponderEvent} from 'react-native';
 import {
   createSlot,
   mergeRefs,
@@ -15,33 +5,41 @@ import {
   ModalHeader as _ModalHeader,
   ModalHeaderProps,
   ModalProps,
-  resolveStyleProp,
   SafeArea,
-  ScrollView,
-  ScrollViewProps,
-  TextProps,
   useModal,
   useSlotProps,
 } from '@force-dev/react-mobile';
-import {CloseIcon} from '@force-dev/react-mobile/src/icons/material/Close';
+import React, {
+  FC,
+  forwardRef,
+  memo,
+  PropsWithChildren,
+  RefAttributes,
+  useCallback,
+} from 'react';
+import {ColorValue, GestureResponderEvent} from 'react-native';
+import {useIsVisibleKeyboard, useModalStyles} from '../../../common';
+import {CloseIcon} from '../../icons';
+import {ModalActions, ModalActionsProps} from '../../modalActions';
 import {Field, FieldProps, FieldSlots} from '../field';
+import {ScrollView, ScrollViewProps} from '../scrollView';
 
-interface ModalFieldProps extends FieldProps {}
+export interface ModalFieldProps extends FieldProps {}
 
 type ModalPropsWithRenderClose = ModalProps & {
-  renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element;
+  renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element | null;
 };
 
 const ModalSlot = createSlot<ModalPropsWithRenderClose>('Modal');
 const ModalScrollView = createSlot<ScrollViewProps>('ModalScrollView');
 const ModalHeader = createSlot<ModalHeaderProps>('ModalHeader');
-const ModalLabel = createSlot<TextProps>('ModalLabel');
+const ModalFooter = createSlot<ModalActionsProps>('ModalFooter');
 
 export interface ModalFieldSlots extends FieldSlots {
   Modal: typeof ModalSlot;
   ModalScrollView: typeof ModalScrollView;
   ModalHeader: typeof ModalHeader;
-  ModalLabel: typeof ModalLabel;
+  ModalFooter: typeof ModalFooter;
 }
 
 const _ModalField: FC<
@@ -52,27 +50,28 @@ const _ModalField: FC<
       modal,
       modalScrollView,
       modalHeader,
-      modalLabel,
+      modalFooter,
       leftIcon,
       label,
       content,
+      contentValue,
       rightIcon,
       description,
       error,
     } = useSlotProps(ModalField, children);
 
-    console.log('ModalField RENDER');
-
     const {ref: modalRef} = useModal();
+    const modalStyles = useModalStyles();
+    const keyboardVisible = useIsVisibleKeyboard();
 
     const openModal = useCallback(() => {
       modalRef.current?.open();
     }, [modalRef]);
 
     const handlePress = useCallback(
-      (e: GestureResponderEvent, value: any) => {
+      (value: any, e: GestureResponderEvent) => {
         openModal();
-        onPress?.(e, value);
+        onPress?.(value, e);
       },
       [onPress, openModal],
     );
@@ -82,24 +81,18 @@ const _ModalField: FC<
       modalRef.current?.close();
     }, [modalHeader, modalRef]);
 
-    const modalStyle = useMemo(
-      () => [{backgroundColor: 'gray', minHeight: 250}, modal?.modalStyle],
-      [modal?.modalStyle],
-    );
-
-    const modalLabelStyle = useMemo(
-      () => [{fontSize: 18, color: '#fff'}, modalLabel?.style],
-      [modalLabel?.style],
-    );
-
     const closeIcon = useCallback(
       (fill?: ColorValue) =>
         (
           modalHeader?.renderCloseIcon ??
           modal?.renderCloseIcon ??
           _renderCloseIcon
-        )(fill ?? resolveStyleProp([modalLabel?.style]).color ?? '#fff'),
-      [modal?.renderCloseIcon, modalHeader?.renderCloseIcon, modalLabel?.style],
+        )(fill ?? modalHeader?.color ?? '#fff'),
+      [
+        modal?.renderCloseIcon,
+        modalHeader?.color,
+        modalHeader?.renderCloseIcon,
+      ],
     );
 
     return (
@@ -108,6 +101,7 @@ const _ModalField: FC<
           <Field.Label {...label} />
           <Field.LeftIcon {...leftIcon} />
           <Field.Content {...content} />
+          <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />
           <Field.Error color={'red'} {...error} />
           <Field.Description {...description} />
@@ -117,16 +111,17 @@ const _ModalField: FC<
           panGestureEnabled={false}
           adjustToContentHeight={true}
           withHandle={false}
-          {...modal}
-          modalStyle={modalStyle}>
+          {...modalStyles}
+          {...modal}>
           <_ModalHeader
             {...modalHeader}
             label={modalHeader?.label || label?.text}
-            textStyle={[modalLabelStyle, modalHeader?.textStyle]}
+            textStyle={[modalHeader?.textStyle]}
             renderCloseIcon={closeIcon}
             onClose={onRequestClose}>
             {modalHeader?.children}
           </_ModalHeader>
+
           <ScrollView
             pa={16}
             bounces={false}
@@ -134,7 +129,9 @@ const _ModalField: FC<
             {...modalScrollView}>
             {modal?.children}
           </ScrollView>
-          <SafeArea bottom={true} />
+
+          {!!modalFooter && <ModalActions {...modalFooter} />}
+          {!keyboardVisible && <SafeArea bottom={true} />}
         </Modal>
       </>
     );
@@ -146,12 +143,13 @@ export const ModalField = _ModalField as typeof _ModalField & ModalFieldSlots;
 ModalField.Modal = ModalSlot;
 ModalField.ModalScrollView = ModalScrollView;
 ModalField.ModalHeader = ModalHeader;
-ModalField.ModalLabel = ModalLabel;
+ModalField.ModalFooter = ModalFooter;
 
 ModalField.Label = Field.Label;
 ModalField.LeftIcon = Field.LeftIcon;
 ModalField.RightIcon = Field.RightIcon;
 ModalField.Content = Field.Content;
+ModalField.ContentValue = Field.ContentValue;
 ModalField.Description = Field.Description;
 ModalField.Error = Field.Error;
 
