@@ -1,4 +1,6 @@
-import {mergeRefs} from '@force-dev/react-mobile';
+import "react-native-gesture-handler";
+
+import { mergeRefs } from "@force-dev/react-mobile";
 import React, {
   forwardRef,
   memo,
@@ -8,7 +10,7 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from 'react';
+} from "react";
 import {
   ColorValue,
   FlatList,
@@ -21,9 +23,10 @@ import {
   StyleSheet,
   View,
   ViewProps,
-} from 'react-native';
-import 'react-native-gesture-handler';
-import {trigger} from 'react-native-haptic-feedback';
+} from "react-native";
+import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
+import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
+import { trigger } from "react-native-haptic-feedback";
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -31,10 +34,9 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
-} from 'react-native-reanimated';
-import {NativeScrollEvent} from 'react-native/Libraries/Components/ScrollView/ScrollView';
-import {NativeSyntheticEvent} from 'react-native/Libraries/Types/CoreEventTypes';
-import {AnimatedRefreshing} from '../animatedRefreshing';
+} from "react-native-reanimated";
+
+import { AnimatedRefreshing } from "../animatedRefreshing";
 
 export interface RefreshingContainerProps extends PropsWithChildren {
   delay?: number;
@@ -52,15 +54,15 @@ export interface RefreshingContainerProps extends PropsWithChildren {
 interface RefreshingContainer {
   FlatList: <T>(
     props: RefreshingContainerProps &
-      FlatListProps<T> & {ref?: React.RefObject<Animated.FlatList<T>>},
+      FlatListProps<T> & { ref?: React.RefObject<Animated.FlatList<T>> },
   ) => React.JSX.Element | null;
   ScrollView: (
     props: RefreshingContainerProps &
-      ScrollViewProps & {ref?: React.RefObject<Animated.ScrollView>},
+      ScrollViewProps & { ref?: React.RefObject<Animated.ScrollView> },
   ) => React.JSX.Element | null;
   View: (
-    props: Omit<RefreshingContainerProps, 'onScroll'> &
-      ViewProps & {ref?: React.RefObject<Animated.View>},
+    props: Omit<RefreshingContainerProps, "onScroll"> &
+      ViewProps & { ref?: React.RefObject<Animated.View> },
   ) => React.JSX.Element | null;
 
   /**
@@ -80,7 +82,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           onRefresh,
           duration = 300,
           refreshDuration = 300,
-          activeRefreshBackground = '#fff',
+          activeRefreshBackground = "#fff",
           onScroll,
           children,
         },
@@ -107,7 +109,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           );
 
           setEnabledPan(
-            !!onRefresh && (Platform.OS === 'android' || !_isScrollable),
+            !!onRefresh && (Platform.OS === "android" || !_isScrollable),
           );
           setIsScrollable(_isScrollable);
         }, [onRefresh]);
@@ -115,8 +117,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         const onComplete = useCallback(() => {
           refreshingRef.current = false;
 
-          height.value = refreshPosition.value = withTiming(0, {duration});
-          scrollRef.current?.setNativeProps({scrollEnabled: true});
+          height.value = refreshPosition.value = withTiming(0, { duration });
+          scrollRef.current?.setNativeProps({ scrollEnabled: true });
 
           setTimeout(() => {
             isRefreshing.value = false;
@@ -129,10 +131,10 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           isRefreshing.value = true;
           isRefreshingRef.current = true;
 
-          percentage.value = withTiming(100, {duration});
-          refreshPosition.value = withTiming(maxDistance, {duration}, () => {
+          percentage.value = withTiming(100, { duration });
+          refreshPosition.value = withTiming(maxDistance, { duration }, () => {
             percentage.value = withRepeat(
-              withTiming(500, {duration: refreshDuration * 5}),
+              withTiming(500, { duration: refreshDuration * 5 }),
               -1,
             );
           });
@@ -164,6 +166,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           (dy: number, withoutHeight = false) => {
             const _dy = dy > 0 ? dy : 0;
             const position = Math.min(maxDistance, _dy);
+
             if (!isRefreshingRef.current) {
               if (!withoutHeight) {
                 height.value = refreshPosition.value = position;
@@ -181,19 +184,19 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
                 duration,
               });
               percentage.value = withRepeat(
-                withTiming(300, {duration: refreshDuration * 3}),
+                withTiming(300, { duration: refreshDuration * 3 }),
                 -1,
               );
 
-              (scrollRef.current as FlatList)?.scrollToOffset?.({offset: 0});
-              (scrollRef.current as ScrollView)?.scrollTo?.({y: 0});
-              scrollRef.current?.setNativeProps({scrollEnabled: false});
+              (scrollRef.current as FlatList)?.scrollToOffset?.({ offset: 0 });
+              (scrollRef.current as ScrollView)?.scrollTo?.({ y: 0 });
+              scrollRef.current?.setNativeProps({ scrollEnabled: false });
 
               timeoutRef.current = setTimeout(() => {
                 onComplete();
               }, 100);
 
-              trigger('impactMedium');
+              trigger("impactMedium");
               onRefresh?.();
             }
           },
@@ -215,10 +218,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             onScroll: event => {
               if (enabledPan) {
                 isScrolled.value = event.contentOffset.y > 1;
-              } else {
-                if (isScrollable) {
-                  runOnJS(onMove)(-1 * event.contentOffset.y, true);
-                }
+              } else if (isScrollable) {
+                runOnJS(onMove)(-1 * event.contentOffset.y, true);
               }
             },
           },
@@ -283,7 +284,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           return {
             backgroundColor: isRefreshing.value
               ? activeRefreshBackground
-              : 'transparent',
+              : "transparent",
             opacity: scale,
             transform: [
               {
@@ -297,17 +298,20 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           <SafeAreaView style={styles.root}>
             <View style={styles.root}>
               <View
-                pointerEvents={'none'}
+                pointerEvents={"none"}
                 style={[
                   styles.refreshRoot,
                   {
                     height: maxDistance,
                   },
-                ]}>
+                ]}
+              >
                 <Animated.View
-                  style={[styles.refreshContainer, refreshContainerStyle]}>
+                  style={[styles.refreshContainer, refreshContainerStyle]}
+                >
                   <Animated.View
-                    style={[styles.refreshIconWrap, activeRefreshStyle]}>
+                    style={[styles.refreshIconWrap, activeRefreshStyle]}
+                  >
                     <AnimatedRefreshing percentage={percentage} />
                   </Animated.View>
                 </Animated.View>
@@ -317,7 +321,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
                 style={[styles.root, childrenStyle]}
                 {...(onRefresh && enabledPan && !refreshing
                   ? panResponder.panHandlers
-                  : {})}>
+                  : {})}
+              >
                 {children &&
                   React.cloneElement(children as any, {
                     ref: mergeRefs([ref, scrollRef]),
@@ -337,7 +342,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 export const RefreshingContainer: RefreshingContainer = () => {
   useEffect(() => {
     throw new Error(
-      '@deprecated Please use `RefreshingContainer.View or RefreshingContainer.ScrollView or RefreshingContainer.FlatList` manually',
+      "@deprecated Please use `RefreshingContainer.View or RefreshingContainer.ScrollView or RefreshingContainer.FlatList` manually",
     );
   }, []);
 
@@ -370,7 +375,8 @@ RefreshingContainer.FlatList = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
-          onScroll={onScroll}>
+          onScroll={onScroll}
+        >
           <AnimatedFlatList ref={ref} bounces={bounces} {...rest}>
             {children}
           </AnimatedFlatList>
@@ -403,7 +409,8 @@ RefreshingContainer.ScrollView = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
-          onScroll={onScroll}>
+          onScroll={onScroll}
+        >
           <AnimatedScrollView ref={ref} bounces={bounces} {...rest}>
             {children}
           </AnimatedScrollView>
@@ -435,7 +442,8 @@ RefreshingContainer.View = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
-          onScroll={onScroll}>
+          onScroll={onScroll}
+        >
           <Animated.View ref={ref} {...rest}>
             {children}
           </Animated.View>
@@ -447,12 +455,13 @@ RefreshingContainer.View = memo(
 
 const AnimatedScrollView = Animated.createAnimatedComponent(
   forwardRef<Animated.ScrollView, ScrollViewProps>(
-    ({children, ...rest}, ref) => {
+    ({ children, ...rest }, ref) => {
       return (
         <Animated.ScrollView
           ref={ref}
           {...rest}
-          onScroll={rest.onScroll ?? (rest as any).nativeOnScroll}>
+          onScroll={rest.onScroll ?? (rest as any).nativeOnScroll}
+        >
           {children}
         </Animated.ScrollView>
       );
@@ -461,12 +470,13 @@ const AnimatedScrollView = Animated.createAnimatedComponent(
 );
 
 const AnimatedFlatList = Animated.createAnimatedComponent(
-  forwardRef<FlatList, FlatListProps<any>>(({children, ...rest}, ref) => {
+  forwardRef<FlatList, FlatListProps<any>>(({ children, ...rest }, ref) => {
     return (
       <Animated.FlatList
         ref={ref}
         {...rest}
-        onScroll={(rest as any).nativeOnScroll ?? rest.onScroll}>
+        onScroll={(rest as any).nativeOnScroll ?? rest.onScroll}
+      >
         {children}
       </Animated.FlatList>
     );
@@ -477,19 +487,19 @@ const styles = StyleSheet.create({
   container: {
     marginTop: 100,
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100%',
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100%",
   },
   spinner: {
     height: 60,
     width: 60,
     borderRadius: 30,
     borderWidth: 7,
-    borderTopColor: '#f5f5f5',
-    borderRightColor: '#f5f5f5',
-    borderBottomColor: '#f5f5f5',
-    borderLeftColor: 'green',
+    borderTopColor: "#f5f5f5",
+    borderRightColor: "#f5f5f5",
+    borderBottomColor: "#f5f5f5",
+    borderLeftColor: "green",
   },
 
   root: {
@@ -497,23 +507,23 @@ const styles = StyleSheet.create({
   },
   refreshRoot: {
     zIndex: Number.MAX_SAFE_INTEGER,
-    overflow: 'hidden',
-    position: 'absolute',
+    overflow: "hidden",
+    position: "absolute",
     left: 0,
     right: 0,
   },
   refreshContainer: {
-    overflow: 'visible',
-    position: 'absolute',
+    overflow: "visible",
+    position: "absolute",
     left: 0,
     right: 0,
 
-    marginHorizontal: 'auto',
-    flexDirection: 'row',
-    justifyContent: 'center',
+    marginHorizontal: "auto",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   refreshIconWrap: {
-    position: 'absolute',
+    position: "absolute",
     padding: 3,
     borderRadius: 100,
   },

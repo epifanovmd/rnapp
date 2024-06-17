@@ -1,9 +1,10 @@
-import React, {FC, PropsWithChildren} from 'react';
-import {observer} from 'mobx-react-lite';
-import {Col, FlexProps, Row, useFlexProps} from '@force-dev/react-mobile';
-import {useRoute} from '../../../navigation';
-import {useTranslation} from '../../../localization';
-import {Text, TextProps} from '../text';
+import { Col, FlexProps, Row, useFlexProps } from "@force-dev/react-mobile";
+import { observer } from "mobx-react-lite";
+import React, { FC, PropsWithChildren } from "react";
+
+import { useTranslation } from "../../../localization";
+import { useRoute } from "../../../navigation";
+import { Text, TextProps } from "../text";
 
 export interface TitleProps extends FlexProps {
   title?: string;
@@ -13,10 +14,10 @@ export interface TitleProps extends FlexProps {
 }
 
 export const Title: FC<PropsWithChildren<TitleProps>> = observer(
-  ({title, rightSlot, textProps, children, ...rest}) => {
-    const {flexProps, animated} = useFlexProps(rest);
+  ({ title, rightSlot, textProps, children, ...rest }) => {
+    const { flexProps, animated } = useFlexProps(rest);
     const route = useRoute();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const _title = title || t(`navigation.${route.name}` as any);
 
@@ -25,12 +26,13 @@ export const Title: FC<PropsWithChildren<TitleProps>> = observer(
         minHeight={36}
         pv={4}
         mb={4}
-        alignItems={'center'}
-        justifyContent={'space-between'}
+        alignItems={"center"}
+        justifyContent={"space-between"}
         {...flexProps}
-        animated={animated}>
+        animated={animated}
+      >
         {children ?? (
-          <Text fontSize={18} fontWeight={'600'} {...textProps}>
+          <Text fontSize={18} fontWeight={"600"} {...textProps}>
             {_title}
           </Text>
         )}

@@ -1,1 +1,1 @@
-export * from './Notifications.component';
+export * from "./Notifications";

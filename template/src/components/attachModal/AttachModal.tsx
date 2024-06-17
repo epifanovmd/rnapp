@@ -4,7 +4,7 @@ import {
   Row,
   SafeArea,
   useModal,
-} from '@force-dev/react-mobile';
+} from "@force-dev/react-mobile";
 import React, {
   createContext,
   FC,
@@ -15,24 +15,25 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import {Keyboard, Platform} from 'react-native';
-import {pick} from 'react-native-document-picker';
+} from "react";
+import { Keyboard, Platform } from "react-native";
+import { pick } from "react-native-document-picker";
 import {
   perPlatformTypes,
   PlatformTypes,
-} from 'react-native-document-picker/src/fileTypes';
+} from "react-native-document-picker/src/fileTypes";
 import {
   launchCamera,
   launchImageLibrary,
   MediaType,
   PhotoQuality,
-} from 'react-native-image-picker';
-import {PERMISSIONS, request} from 'react-native-permissions';
-import {useModalStyles} from '../../common';
-import {useTheme} from '../../theme';
-import {CameraIcon, FileDocumentIcon, ImageIcon} from '../icons';
-import {Touchable} from '../ui';
+} from "react-native-image-picker";
+import { PERMISSIONS, request } from "react-native-permissions";
+
+import { useModalStyles } from "../../common";
+import { useTheme } from "../../theme";
+import { CameraIcon, FileDocumentIcon, ImageIcon } from "../icons";
+import { Touchable } from "../ui";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -49,7 +50,7 @@ export interface AttachModalProps {
   images?: boolean;
   files?: boolean;
 
-  fileType?: keyof PlatformTypes['ios'];
+  fileType?: keyof PlatformTypes["ios"];
 }
 
 export interface AttachValue {
@@ -72,7 +73,7 @@ export interface AttachModalContext {
 
 export const AttachModalContext = createContext<AttachModalContext>({
   open: () => {
-    throw new Error('Context not initialized');
+    throw new Error("Context not initialized");
   },
 });
 
@@ -89,24 +90,24 @@ export const AttachModalProvider: FC<
     camera = true,
     images = true,
     files = true,
-    fileType = 'allFiles',
+    fileType = "allFiles",
     ...rest
   }) => {
-    const {ref} = useModal();
+    const { ref } = useModal();
     const modalStyles = useModalStyles();
-    const {theme} = useTheme();
+    const { theme } = useTheme();
 
     const _saveToPhotos = useRef<boolean>(saveToPhotos);
     const _quality = useRef<PhotoQuality>(quality);
     const _limit = useRef<number>(selectionLimit);
 
-    const _fileType = useRef<keyof PlatformTypes['ios']>(fileType);
+    const _fileType = useRef<keyof PlatformTypes["ios"]>(fileType);
 
     const [_camera, setCamera] = useState<boolean>(camera);
     const [_images, setImages] = useState<boolean>(images);
     const [_files, setFiles] = useState<boolean>(files);
 
-    const _onChange = useRef<AttachOptions['onChange']>();
+    const _onChange = useRef<AttachOptions["onChange"]>();
 
     const contextValue = useMemo<AttachModalContext>(
       () => ({
@@ -141,7 +142,7 @@ export const AttachModalProvider: FC<
     const _launchImageLibrary = useCallback(() => {
       ref.current?.close();
       launchImageLibrary({
-        mediaType: 'photo',
+        mediaType: "photo",
         selectionLimit: _limit.current,
         quality: _quality.current,
       }).then(res => {
@@ -166,10 +167,10 @@ export const AttachModalProvider: FC<
       ref.current?.close();
       if (permission) {
         request(permission).then(result => {
-          if (result === 'granted') {
+          if (result === "granted") {
             launchCamera({
-              mediaType: 'photo',
-              cameraType: 'back',
+              mediaType: "photo",
+              cameraType: "back",
               quality: _quality.current,
               saveToPhotos: _saveToPhotos.current,
             }).then(res => {
@@ -195,7 +196,7 @@ export const AttachModalProvider: FC<
 
     const _launchDocument = useCallback(() => {
       ref.current?.close();
-      pick<'ios'>({
+      pick<"ios">({
         type: perPlatformTypes[Platform.OS][_fileType.current],
       }).then(res => {
         res &&
@@ -219,19 +220,21 @@ export const AttachModalProvider: FC<
           withoutPortal={true}
           adjustToContentHeight={true}
           {...modalStyles}
-          {...rest}>
+          {...rest}
+        >
           <Row pa={16}>
             {_camera && (
               <Touchable
                 onPress={_launchCamera}
-                bg={'#00000010'}
-                alignItems={'center'}
-                justifyContent={'center'}
+                bg={"#00000010"}
+                alignItems={"center"}
+                justifyContent={"center"}
                 pa={16}
                 ma={8}
                 height={100}
                 width={100}
-                radius={8}>
+                radius={8}
+              >
                 <CameraIcon fill={theme.color.text} />
               </Touchable>
             )}
@@ -239,14 +242,15 @@ export const AttachModalProvider: FC<
             {_images && (
               <Touchable
                 onPress={_launchImageLibrary}
-                bg={'#00000010'}
-                alignItems={'center'}
-                justifyContent={'center'}
+                bg={"#00000010"}
+                alignItems={"center"}
+                justifyContent={"center"}
                 pa={16}
                 ma={8}
                 height={100}
                 width={100}
-                radius={8}>
+                radius={8}
+              >
                 <ImageIcon fill={theme.color.text} />
               </Touchable>
             )}
@@ -254,15 +258,16 @@ export const AttachModalProvider: FC<
             {_files && (
               <Touchable
                 onPress={_launchDocument}
-                bg={'#00000010'}
-                alignItems={'center'}
-                justifyContent={'center'}
+                bg={"#00000010"}
+                alignItems={"center"}
+                justifyContent={"center"}
                 pa={16}
                 ma={8}
                 height={100}
                 width={100}
-                radius={8}>
-                <FileDocumentIcon fill={'#000'} />
+                radius={8}
+              >
+                <FileDocumentIcon fill={"#000"} />
               </Touchable>
             )}
           </Row>

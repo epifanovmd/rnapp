@@ -1,14 +1,14 @@
-import {FlexProps, useFlexProps} from '@force-dev/react-mobile';
-import React, {FC, memo, useCallback, useMemo} from 'react';
+import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
+import React, { FC, memo, useCallback, useMemo } from "react";
 import {
+  GestureResponderEvent,
   TouchableOpacity,
   TouchableOpacityProps,
-  GestureResponderEvent,
-} from 'react-native';
+} from "react-native";
 
 export interface TouchableProps<T extends any = any>
   extends FlexProps,
-    Omit<TouchableOpacityProps, 'style' | 'onPress' | 'onLongPress'> {
+    Omit<TouchableOpacityProps, "style" | "onPress" | "onLongPress"> {
   onPress?: (value: T, event: GestureResponderEvent) => void;
   onLongPress?: (value: T, event: GestureResponderEvent) => void;
   ctx?: T;
@@ -19,8 +19,8 @@ export interface Touchable {
 }
 
 export const Touchable: Touchable = memo(
-  ({onPress, onLongPress, disabled, ctx, children, ...rest}) => {
-    const {style, ownProps} = useFlexProps(rest);
+  ({ onPress, onLongPress, disabled, ctx, children, ...rest }) => {
+    const { style, ownProps } = useFlexProps(rest);
 
     const _onPress = useCallback(
       (event: GestureResponderEvent) => {
@@ -36,7 +36,7 @@ export const Touchable: Touchable = memo(
     );
 
     const _style = useMemo(
-      () => ({opacity: disabled ? 0.3 : 1, ...style}),
+      () => ({ opacity: disabled ? 0.3 : 1, ...style }),
       [disabled, style],
     );
 
@@ -47,7 +47,8 @@ export const Touchable: Touchable = memo(
         activeOpacity={0.7}
         style={_style}
         disabled={disabled || !onPress}
-        {...ownProps}>
+        {...ownProps}
+      >
         {children}
       </TouchableOpacity>
     );

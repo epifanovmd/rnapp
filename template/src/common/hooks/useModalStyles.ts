@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
-import {StyleProp, ViewStyle} from 'react-native';
-import {useTheme} from '../../theme';
+import { useMemo } from "react";
+import { StyleProp, ViewStyle } from "react-native";
+
+import { useTheme } from "../../theme";
 
 export const useModalStyles = () => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   const handleStyle = useMemo<StyleProp<ViewStyle>>(
     () => ({

@@ -1,2 +1,3 @@
-export * from './types';
-export * from './apiService';
+export * from "./Api.service";
+export * from "./Api.types";
+export * from "./Api.utils";

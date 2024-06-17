@@ -1,9 +1,10 @@
-import dayjs from 'dayjs';
-import {useTranslation as useT} from 'react-i18next';
-import {changeLanguage, i18n as I18n, TFunction} from 'i18next';
-import {ruLocale} from '../locales';
-import {RecursiveObjectType} from '@force-dev/utils';
-import {ILanguageType} from '../localization';
+import { RecursiveObjectType } from "@force-dev/utils";
+import dayjs from "dayjs";
+import { changeLanguage, i18n as I18n, TFunction } from "i18next";
+import { useTranslation as useT } from "react-i18next";
+
+import { ruLocale } from "../locales";
+import { ILanguageType } from "../localization";
 
 export type II18nPaths = RecursiveObjectType<typeof ruLocale>;
 
@@ -14,10 +15,12 @@ export type Translation = {
 };
 
 export const useTranslation = () => {
-  const {t, i18n} = useT();
+  const { t, i18n } = useT();
+
   return {
     changeLanguage: (lang: ILanguageType) => {
       dayjs.locale(lang);
+
       return changeLanguage(lang);
     },
     t,

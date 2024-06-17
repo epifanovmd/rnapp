@@ -1,18 +1,19 @@
-import {Bounceable, BounceableProps} from '@force-dev/react-mobile';
-import * as React from 'react';
+import { Bounceable, BounceableProps } from "@force-dev/react-mobile";
+import * as React from "react";
 import {
   PropsWithChildren,
   useCallback,
   useEffect,
   useMemo,
   useState,
-} from 'react';
-import {ColorValue, StyleProp, View, ViewStyle} from 'react-native';
-import {CheckBoldIcon} from '../../icons';
+} from "react";
+import { ColorValue, StyleProp, View, ViewStyle } from "react-native";
 
-type IconProps = {height: number; width: number; fill: ColorValue};
+import { CheckBoldIcon } from "../../icons";
 
-export interface CheckboxProps extends Omit<BounceableProps, 'onPress'> {
+type IconProps = { height: number; width: number; fill: ColorValue };
+
+export interface CheckboxProps extends Omit<BounceableProps, "onPress"> {
   size?: number;
   radius?: number;
   checked?: boolean;
@@ -34,9 +35,9 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   checked,
   onPress,
 
-  fillColor = '#ffc484',
-  unFillColor = 'transparent',
-  iconColor = '#fff',
+  fillColor = "#ffc484",
+  unFillColor = "transparent",
+  iconColor = "#fff",
 
   renderIcon = (props: IconProps) => <CheckBoldIcon {...props} />,
   iconContainerStyle,
@@ -66,7 +67,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     () => [
       getIconContainerStyle(_checked, fillColor, unFillColor, radius),
       iconContainerStyle,
-      {width: size, height: size},
+      { width: size, height: size },
     ],
     [_checked, fillColor, iconContainerStyle, radius, size, unFillColor],
   );
@@ -88,7 +89,8 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
       bouncinessIn={bouncinessIn}
       bouncinessOut={bouncinessOut}
       {...rest}
-      onPress={handlePress}>
+      onPress={handlePress}
+    >
       <View style={iconContainer}>
         <View style={innerIconContainer}>
           {_checked &&
@@ -112,18 +114,18 @@ const getIconContainerStyle = (
 ): ViewStyle => ({
   borderRadius: radius,
   backgroundColor: checked ? fillColor : unFillColor,
-  alignItems: 'center',
-  justifyContent: 'center',
+  alignItems: "center",
+  justifyContent: "center",
 });
 const getInnerIconContainerStyle = (
   fillColor: string,
   radius: number = 0,
 ): ViewStyle => ({
-  width: '100%',
-  height: '100%',
+  width: "100%",
+  height: "100%",
   borderWidth: 1,
   borderColor: fillColor,
   borderRadius: radius,
-  alignItems: 'center',
-  justifyContent: 'center',
+  alignItems: "center",
+  justifyContent: "center",
 });

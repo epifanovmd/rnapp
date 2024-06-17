@@ -1,17 +1,18 @@
-import React, {FC, memo, useMemo} from 'react';
-import {StackScreenOption, StackScreens} from './types';
-import {createStackNavigator} from '@react-navigation/stack';
-import {ScreenName, ScreenParamList} from './navigation.types';
 import {
   DefaultNavigatorOptions,
   StackNavigationState,
   StackRouterOptions,
-} from '@react-navigation/native';
+} from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
 import {
   StackNavigationConfig,
   StackNavigationEventMap,
   StackNavigationOptions,
-} from '@react-navigation/stack/lib/typescript/src/types';
+} from "@react-navigation/stack/lib/typescript/src/types";
+import React, { FC, memo, useMemo } from "react";
+
+import { ScreenName, ScreenParamList } from "./navigation.types";
+import { StackScreenOption, StackScreens } from "./types";
 
 const Stack = createStackNavigator<ScreenParamList>();
 
@@ -24,7 +25,7 @@ type Props = DefaultNavigatorOptions<
   StackRouterOptions &
   StackNavigationConfig;
 
-interface IProps extends Omit<Props, 'children'> {
+interface IProps extends Omit<Props, "children"> {
   id?: string;
   routes: StackScreens;
   screenOptions?: StackScreenOption;
@@ -32,13 +33,13 @@ interface IProps extends Omit<Props, 'children'> {
 }
 
 export const StackNavigation: FC<IProps> = memo(
-  ({routes, screenOptions, ...rest}) => {
+  ({ routes, screenOptions, ...rest }) => {
     const _screenOptions = useMemo<StackScreenOption>(
       () => ({
         headerShown: false,
         cardStyle: {
           opacity: 1,
-          shadowColor: 'transparent',
+          shadowColor: "transparent",
         },
         ...screenOptions,
       }),

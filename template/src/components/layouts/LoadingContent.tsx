@@ -1,7 +1,14 @@
-import React, {FC, PropsWithChildren, useEffect, useRef, useState} from 'react';
-import {ActivityIndicator} from 'react-native';
-import {FlexProps, FlexView} from '@force-dev/react-mobile';
-import {useTheme} from '../../theme';
+import { FlexProps, FlexView } from "@force-dev/react-mobile";
+import React, {
+  FC,
+  PropsWithChildren,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { ActivityIndicator } from "react-native";
+
+import { useTheme } from "../../theme";
 
 interface IProps extends FlexProps {
   loading?: boolean;
@@ -13,7 +20,7 @@ export const LoadingContent: FC<PropsWithChildren<IProps>> = ({
   ...rest
 }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   const timeoutId = useRef<any>();
 
@@ -32,9 +39,9 @@ export const LoadingContent: FC<PropsWithChildren<IProps>> = ({
   }, [loading]);
 
   return (
-    <FlexView bg={'transparent'} {...rest}>
+    <FlexView bg={"transparent"} {...rest}>
       {isLoading && (
-        <ActivityIndicator size={'large'} color={theme.color.grey.grey900} />
+        <ActivityIndicator size={"large"} color={theme.color.grey.grey900} />
       )}
       {children}
     </FlexView>

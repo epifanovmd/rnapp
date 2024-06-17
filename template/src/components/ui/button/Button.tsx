@@ -1,4 +1,6 @@
-import React, {FC, memo} from 'react';
+import { RenderConditional, Row } from "@force-dev/react-mobile";
+import { isString } from "@force-dev/utils";
+import React, { FC, memo } from "react";
 import {
   ActivityIndicator,
   ActivityIndicatorProps,
@@ -6,11 +8,10 @@ import {
   StyleProp,
   TextStyle,
   ViewStyle,
-} from 'react-native';
-import {isString} from '@force-dev/utils';
-import {RenderConditional, Row} from '@force-dev/react-mobile';
-import {Text} from '../text';
-import {Touchable, TouchableProps} from '../touchable';
+} from "react-native";
+
+import { Text } from "../text";
+import { Touchable, TouchableProps } from "../touchable";
 
 export interface ButtonProps extends TouchableProps {
   loading?: boolean;
@@ -29,7 +30,7 @@ export const Button: FC<ButtonProps> = memo(
     leftSlot,
     title,
     rightSlot,
-    color = '#fff',
+    color = "#fff",
     contentStyle,
     textStyle,
     indicatorProps,
@@ -42,24 +43,25 @@ export const Button: FC<ButtonProps> = memo(
         delayPressIn={100}
         radius={4}
         row={true}
-        bg={'#20AB7D'}
-        justifyContent={'center'}
-        alignItems={'center'}
-        overflow={'hidden'}
+        bg={"#20AB7D"}
+        justifyContent={"center"}
+        alignItems={"center"}
+        overflow={"hidden"}
         pa={8}
         minHeight={44}
         {...rest}
-        disabled={rest.disabled || loading}>
+        disabled={rest.disabled || loading}
+      >
         <RenderConditional if={!!loading}>
           <ActivityIndicator size="small" color={color} {...indicatorProps} />
         </RenderConditional>
 
         <RenderConditional if={!loading}>
-          <Row alignItems={'center'} style={contentStyle}>
+          <Row alignItems={"center"} style={contentStyle}>
             {leftSlot}
 
             {isString(title ?? children) ? (
-              <Text lineBreakMode={'tail'} color={color} style={textStyle}>
+              <Text lineBreakMode={"tail"} color={color} style={textStyle}>
                 {title ?? children}
               </Text>
             ) : (

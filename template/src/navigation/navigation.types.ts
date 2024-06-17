@@ -1,8 +1,8 @@
 export enum TabScreenName {
-  MAIN = 'MAIN',
+  MAIN = "MAIN",
 
-  Playground = 'Playground',
-  Users = 'Users',
+  Playground = "Playground",
+  Users = "Users",
 }
 
 interface TabScreenParams {
@@ -12,9 +12,9 @@ interface TabScreenParams {
 }
 
 export enum StackScreenName {
-  Notifications = 'Notifications',
-  Pickers = 'Pickers',
-  Components = 'Components',
+  Notifications = "Notifications",
+  Pickers = "Pickers",
+  Components = "Components",
 }
 
 interface StackScreenParams {
@@ -29,4 +29,4 @@ export type ScreenName =
 
 interface ScreenParamsTypesMap extends TabScreenParams, StackScreenParams {}
 
-export type ScreenParamList = {[K in ScreenName]: ScreenParamsTypesMap[K]};
+export type ScreenParamList = { [K in ScreenName]: ScreenParamsTypesMap[K] };

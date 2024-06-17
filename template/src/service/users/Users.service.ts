@@ -1,12 +1,11 @@
-import {apiService} from '../../api';
-import {IUserResponse} from './Users.types';
-import {iocDecorator} from '@force-dev/utils';
-
-export const IUsersService = iocDecorator<UsersService>();
+import { IApiService } from "../../api";
+import { IUserResponse, IUsersService } from "./Users.types";
 
 @IUsersService()
-export class UsersService {
+export class UsersService implements IUsersService {
+  constructor(@IApiService() private _apiService: IApiService) {}
+
   getUsers() {
-    return apiService.get<IUserResponse>('users');
+    return this._apiService.get<IUserResponse>("users");
   }
 }

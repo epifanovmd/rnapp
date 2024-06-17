@@ -1,22 +1,3 @@
-import React, {
-  FC,
-  forwardRef,
-  memo,
-  PropsWithChildren,
-  RefAttributes,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
-import {
-  ColorValue,
-  GestureResponderEvent,
-  NativeSyntheticEvent,
-  StyleSheet,
-  TextInput,
-  TextInputFocusEventData,
-} from 'react-native';
 import {
   createSlot,
   Input,
@@ -28,13 +9,33 @@ import {
   ModalProps,
   useModal,
   useSlotProps,
-} from '@force-dev/react-mobile';
-import {useModalStyles} from '../../../common';
-import {CloseIcon} from '../../icons';
-import {Field, FieldProps, FieldSlots} from '../field';
-import {ScrollView, ScrollViewProps} from '../scrollView';
-import {Text, TextProps} from '../text';
-import {ModalActions} from '../../modalActions';
+} from "@force-dev/react-mobile";
+import React, {
+  FC,
+  forwardRef,
+  memo,
+  PropsWithChildren,
+  RefAttributes,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  ColorValue,
+  GestureResponderEvent,
+  NativeSyntheticEvent,
+  StyleSheet,
+  TextInput,
+  TextInputFocusEventData,
+} from "react-native";
+
+import { useModalStyles } from "../../../common";
+import { CloseIcon } from "../../icons";
+import { ModalActions } from "../../modalActions";
+import { Field, FieldProps, FieldSlots } from "../field";
+import { ScrollView, ScrollViewProps } from "../scrollView";
+import { Text, TextProps } from "../text";
 
 interface InputFieldProps extends FieldProps {}
 
@@ -42,11 +43,11 @@ type ModalPropsWithRenderClose = ModalProps & {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element;
 };
 
-const InputSlot = createSlot<InputProps>('Input');
-const ModalSlot = createSlot<ModalPropsWithRenderClose>('Modal');
-const ModalScrollView = createSlot<ScrollViewProps>('ModalScrollView');
-const ModalHeader = createSlot<ModalHeaderProps>('ModalHeader');
-const ModalLabel = createSlot<TextProps>('ModalLabel');
+const InputSlot = createSlot<InputProps>("Input");
+const ModalSlot = createSlot<ModalPropsWithRenderClose>("Modal");
+const ModalScrollView = createSlot<ScrollViewProps>("ModalScrollView");
+const ModalHeader = createSlot<ModalHeaderProps>("ModalHeader");
+const ModalLabel = createSlot<TextProps>("ModalLabel");
 
 export interface InputFieldSlots extends FieldSlots {
   Input: typeof InputSlot;
@@ -59,7 +60,7 @@ export interface InputFieldSlots extends FieldSlots {
 const _InputField: FC<
   PropsWithChildren<InputFieldProps & RefAttributes<TextInput>>
 > = memo(
-  forwardRef(({children, onPress, ...rest}, ref) => {
+  forwardRef(({ children, onPress, ...rest }, ref) => {
     const inputRef = useRef<TextInput>(null);
     const [isFocused, setFocused] = useState(false);
     const modalStyles = useModalStyles();
@@ -79,7 +80,7 @@ const _InputField: FC<
       error,
     } = useSlotProps(InputField, children);
 
-    const {ref: modalRef} = useModal();
+    const { ref: modalRef } = useModal();
 
     const openModal = useCallback(() => {
       modalRef.current?.open();
@@ -90,13 +91,13 @@ const _InputField: FC<
         setFocused(true);
         inputRef.current?.focus();
         openModal();
-        setModalValue(input?.value || '');
+        setModalValue(input?.value || "");
         onPress?.(e, value);
       },
       [input?.value, onPress, openModal],
     );
 
-    const [modalValue, setModalValue] = useState<string>(input?.value || '');
+    const [modalValue, setModalValue] = useState<string>(input?.value || "");
 
     const onClose = useCallback(() => {
       modal?.onClose?.();
@@ -106,7 +107,7 @@ const _InputField: FC<
 
     const onClosed = useCallback(() => {
       modal?.onClosed?.();
-      setModalValue('');
+      setModalValue("");
     }, [modal]);
 
     const onRequestClose = useCallback(() => {
@@ -118,12 +119,12 @@ const _InputField: FC<
     const disabled = rest.disabled || input?.disabled;
 
     const modalStyle = useMemo(
-      () => [{minHeight: 250}, modalStyles.modalStyle, modal?.modalStyle],
+      () => [{ minHeight: 250 }, modalStyles.modalStyle, modal?.modalStyle],
       [modal?.modalStyle, modalStyles.modalStyle],
     );
 
     const modalLabelStyle = useMemo(
-      () => [{fontSize: 18, color: '#fff'}, modalLabel?.style],
+      () => [{ fontSize: 18, color: "#fff" }, modalLabel?.style],
       [modalLabel?.style],
     );
 
@@ -133,7 +134,7 @@ const _InputField: FC<
           modalHeader?.renderCloseIcon ??
           modal?.renderCloseIcon ??
           _renderCloseIcon
-        )(fill ?? StyleSheet.flatten(modalLabel?.style).color ?? '#fff'),
+        )(fill ?? StyleSheet.flatten(modalLabel?.style).color ?? "#fff"),
       [modal?.renderCloseIcon, modalHeader?.renderCloseIcon, modalLabel?.style],
     );
 
@@ -173,10 +174,10 @@ const _InputField: FC<
                     autoFocus={isFocused && !input?.value}
                     onFocus={handleFocus}
                     onBlur={handleBlur}
-                    pointerEvents={disabled || !!modal ? 'none' : undefined}
+                    pointerEvents={disabled || !!modal ? "none" : undefined}
                     disabled={disabled || !!modal}
                     containerStyle={{
-                      width: '100%',
+                      width: "100%",
                       padding: 0,
                       paddingTop: 0,
                       paddingBottom: 0,
@@ -187,7 +188,7 @@ const _InputField: FC<
           </Field.Content>
           <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />
-          <Field.Error color={'red'} {...error} />
+          <Field.Error color={"red"} {...error} />
           <Field.Description {...description} />
         </Field>
         {!!modal && (
@@ -200,21 +201,24 @@ const _InputField: FC<
             modalStyle={modalStyle}
             {...modal}
             onClose={onClose}
-            onClosed={onClosed}>
+            onClosed={onClosed}
+          >
             <_ModalHeader
               {...modalHeader}
               label={modalHeader?.label || label?.text}
               textStyle={[modalLabelStyle, modalHeader?.textStyle]}
               renderCloseIcon={closeIcon}
-              onClose={onRequestClose}>
+              onClose={onRequestClose}
+            >
               {modalHeader?.children}
             </_ModalHeader>
             <ScrollView
               ph={16}
               minHeight={150}
               bounces={false}
-              keyboardShouldPersistTaps={'handled'}
-              {...modalScrollView}>
+              keyboardShouldPersistTaps={"handled"}
+              {...modalScrollView}
+            >
               <Field onPress={handlePress}>
                 <Field.Content {...content}>
                   <Input

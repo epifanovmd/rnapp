@@ -1,2 +1,1 @@
-export * from './Users.component';
-export * from './Users.vm';
+export * from "./Users";

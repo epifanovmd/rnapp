@@ -1,22 +1,23 @@
-import React from 'react';
 import {
   BottomTabNavigationOptions,
   BottomTabNavigationProp,
-} from '@react-navigation/bottom-tabs';
+} from "@react-navigation/bottom-tabs";
 import {
   MaterialBottomTabNavigationOptions,
   MaterialBottomTabNavigationProp,
-} from '@react-navigation/material-bottom-tabs';
+} from "@react-navigation/material-bottom-tabs";
 import {
   MaterialTopTabNavigationOptions,
   MaterialTopTabNavigationProp,
-} from '@react-navigation/material-top-tabs';
+} from "@react-navigation/material-top-tabs";
+import { RouteProp } from "@react-navigation/native";
 import {
   StackNavigationOptions,
   StackNavigationProp,
-} from '@react-navigation/stack';
-import {ScreenName, ScreenParamList} from './navigation.types';
-import {RouteProp} from '@react-navigation/native';
+} from "@react-navigation/stack";
+import React from "react";
+
+import { ScreenName, ScreenParamList } from "./navigation.types";
 
 export type AppScreenOption = Partial<BottomTabNavigationOptions> | undefined;
 

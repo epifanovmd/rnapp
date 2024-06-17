@@ -1,14 +1,15 @@
-import {iocDecorator} from '@force-dev/utils';
-import {iocHook} from '@force-dev/react-mobile';
+import { iocHook } from "@force-dev/react-mobile";
+import { iocDecorator } from "@force-dev/utils";
 import {
   createNavigationContainerRef,
   StackActions,
-} from '@react-navigation/native';
-import {log} from '../service';
-import {ScreenName, ScreenParamList} from './navigation.types';
-import {makeAutoObservable, runInAction} from 'mobx';
-import {identity, pickBy} from 'lodash';
-import {DebugVars} from '../../debugVars';
+} from "@react-navigation/native";
+import { identity, pickBy } from "lodash";
+import { makeAutoObservable, runInAction } from "mobx";
+
+import { DebugVars } from "../../debugVars";
+import { log } from "../service";
+import { ScreenName, ScreenParamList } from "./navigation.types";
 
 export const navigationRef = createNavigationContainerRef<ScreenParamList>();
 
@@ -43,16 +44,16 @@ const routesHistoryReduce = (arr: any[]) => {
   return result;
 };
 
-@INavigationService({inSingleton: true})
+@INavigationService({ inSingleton: true })
 export class NavigationService {
-  history: {screen: ScreenName; params: ScreenParamList[ScreenName]}[] = [];
+  history: { screen: ScreenName; params: ScreenParamList[ScreenName] }[] = [];
   private _navigationRef = navigationRef;
   private _currentScreenName?: ScreenName = undefined;
 
   constructor() {
-    makeAutoObservable(this, {}, {autoBind: true});
+    makeAutoObservable(this, {}, { autoBind: true });
 
-    this._navigationRef.addListener('state', e => {
+    this._navigationRef.addListener("state", e => {
       runInAction(() => {
         this._currentScreenName =
           this._navigationRef?.current?.getCurrentRoute()?.name as ScreenName;
@@ -60,8 +61,8 @@ export class NavigationService {
       });
 
       if (DebugVars.logNavHistory) {
-        log.debug('Nav Current Screen', this._currentScreenName);
-        log.debug('Nav History -> ', JSON.stringify(this.history));
+        log.debug("Nav Current Screen", this._currentScreenName);
+        log.debug("Nav History -> ", JSON.stringify(this.history));
       }
     });
   }

@@ -1,12 +1,3 @@
-import React, {
-  JSX,
-  memo,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
 import {
   Col,
   Modal,
@@ -19,10 +10,20 @@ import {
   Row,
   SafeArea,
   useModal,
-} from '@force-dev/react-mobile';
-import {ViewProps} from 'react-native';
-import {useModalStyles} from '../../../common';
-import {Touchable, TouchableProps} from '../touchable';
+} from "@force-dev/react-mobile";
+import React, {
+  JSX,
+  memo,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { ViewProps } from "react-native";
+
+import { useModalStyles } from "../../../common";
+import { Touchable, TouchableProps } from "../touchable";
 
 export interface RangePickerProps<T extends string | number>
   extends TouchableProps {
@@ -32,7 +33,7 @@ export interface RangePickerProps<T extends string | number>
   emptyLabel?: [string, string];
   reverse?: boolean;
 
-  pickerProps?: Omit<PickerProps, 'onChange'>;
+  pickerProps?: Omit<PickerProps, "onChange">;
   modalProps?: ModalProps;
   containerProps?: ViewProps;
 
@@ -56,7 +57,7 @@ export const RangePicker: RangePicker = memo(
     items: _items,
     range,
     onChange,
-    emptyLabel = ['от', 'до'],
+    emptyLabel = ["от", "до"],
     reverse = false,
     children,
     pickerProps,
@@ -66,7 +67,7 @@ export const RangePicker: RangePicker = memo(
     renderFooter,
     ...rest
   }: PropsWithChildren<RangePickerProps<any>>) => {
-    const {ref: modalRef} = useModal();
+    const { ref: modalRef } = useModal();
     const modalStyles = useModalStyles();
 
     const items = useMemo(
@@ -123,6 +124,7 @@ export const RangePicker: RangePicker = memo(
     const handleChange = useCallback(() => {
       const from = currentFirstItem === empty ? undefined : currentFirstItem;
       const to = currentSecondItem === empty ? undefined : currentSecondItem;
+
       if (onChange) {
         onChange([from, to]);
       }
@@ -138,7 +140,7 @@ export const RangePicker: RangePicker = memo(
     }, [modalRef, onUpdate]);
 
     const handleFirst = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         if (value !== undefined) {
           if (!renderFooter) {
             handleChange();
@@ -150,7 +152,7 @@ export const RangePicker: RangePicker = memo(
     );
 
     const handleSecond = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         if (value !== undefined) {
           if (!renderFooter) {
             handleChange();
@@ -166,7 +168,7 @@ export const RangePicker: RangePicker = memo(
         firstItems.map(item => {
           return (
             <PickerItem
-              key={item + 'first'}
+              key={item + "first"}
               label={item === empty ? emptyLabel[0] : String(item)}
               value={item}
             />
@@ -180,7 +182,7 @@ export const RangePicker: RangePicker = memo(
         secondItems.map(item => {
           return (
             <PickerItem
-              key={item + 'second'}
+              key={item + "second"}
               label={item === empty ? emptyLabel[1] : String(item)}
               value={item}
             />
@@ -217,16 +219,17 @@ export const RangePicker: RangePicker = memo(
 
         <Modal
           ref={modalRef}
-          handlePosition={'inside'}
+          handlePosition={"inside"}
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
           onClose={handleChange}
           {...modalStyles}
-          {...modalProps}>
+          {...modalProps}
+        >
           <Col {...containerProps}>
             {renderHeader?.(onClose)}
 
-            <Row pv={16} ph={8} justifyContent={'space-around'}>
+            <Row pv={16} ph={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker {...pickerProps}>{first}</Picker>
               </Col>
@@ -235,7 +238,7 @@ export const RangePicker: RangePicker = memo(
               </Col>
             </Row>
 
-            {renderFooter?.({onReset, onApply})}
+            {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom={true} />
           </Col>
         </Modal>

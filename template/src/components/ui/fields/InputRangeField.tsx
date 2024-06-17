@@ -1,5 +1,3 @@
-import React, {FC, memo, PropsWithChildren, useCallback, useState} from 'react';
-import {ModalField, ModalFieldProps, ModalFieldSlots} from './ModalField';
 import {
   createSlot,
   Input,
@@ -7,10 +5,19 @@ import {
   RenderConditional,
   useModal,
   useSlotProps,
-} from '@force-dev/react-mobile';
-import {Text} from '../text';
-import {Field, FieldSlots} from '../field';
-import {StyleSheet} from 'react-native';
+} from "@force-dev/react-mobile";
+import React, {
+  FC,
+  memo,
+  PropsWithChildren,
+  useCallback,
+  useState,
+} from "react";
+import { StyleSheet } from "react-native";
+
+import { Field, FieldSlots } from "../field";
+import { Text } from "../text";
+import { ModalField, ModalFieldProps, ModalFieldSlots } from "./ModalField";
 
 export interface InputRangeFieldProps extends ModalFieldProps {
   title?: string;
@@ -19,8 +26,8 @@ export interface InputRangeFieldProps extends ModalFieldProps {
   to?: number;
 }
 
-const InputFrom = createSlot<InputProps>('InputFrom');
-const InputTo = createSlot<InputProps>('InputTo');
+const InputFrom = createSlot<InputProps>("InputFrom");
+const InputTo = createSlot<InputProps>("InputTo");
 
 export interface InputRangeFieldSlots extends ModalFieldSlots, FieldSlots {
   InputFrom: typeof InputFrom;
@@ -28,10 +35,10 @@ export interface InputRangeFieldSlots extends ModalFieldSlots, FieldSlots {
 }
 
 const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
-  ({title, from, to, onChange, children, ...rest}) => {
-    const {ref: modalRef} = useModal();
-    const [valueFrom, setValueFrom] = useState(String(from || ''));
-    const [valueTo, setValueTo] = useState(String(to || ''));
+  ({ title, from, to, onChange, children, ...rest }) => {
+    const { ref: modalRef } = useModal();
+    const [valueFrom, setValueFrom] = useState(String(from || ""));
+    const [valueTo, setValueTo] = useState(String(to || ""));
 
     const {
       inputFrom,
@@ -50,18 +57,19 @@ const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
     } = useSlotProps(InputRangeField, children);
 
     const onReset = useCallback(() => {
-      setValueFrom('');
-      setValueTo('');
+      setValueFrom("");
+      setValueTo("");
     }, []);
 
     const onApply = useCallback(() => {
-      const f = valueFrom === '' ? undefined : Number(valueFrom);
-      const t = valueTo === '' ? undefined : Number(valueTo);
+      const f = valueFrom === "" ? undefined : Number(valueFrom);
+      const t = valueTo === "" ? undefined : Number(valueTo);
+
       onChange?.(f, t);
       modalRef.current?.close();
     }, [modalRef, onChange, valueFrom, valueTo]);
 
-    const price = `${from ? `от ${from} ` : ''}${to ? `до ${to}` : ''}`;
+    const price = `${from ? `от ${from} ` : ""}${to ? `до ${to}` : ""}`;
 
     return (
       <ModalField ref={modalRef} {...rest}>
@@ -70,36 +78,36 @@ const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
         <ModalField.Content {...content}>
           {content?.children ?? (
             <RenderConditional if={price}>
-              <Text color={'#fff'}>{price}</Text>
+              <Text color={"#fff"}>{price}</Text>
             </RenderConditional>
           )}
         </ModalField.Content>
         <ModalField.ContentValue {...contentValue} />
         <ModalField.RightIcon {...rightIcon} />
-        <ModalField.Error color={'red'} {...error} />
+        <ModalField.Error color={"red"} {...error} />
         <ModalField.Description {...description} />
 
-        <ModalField.ModalHeader color={'black'} {...modalHeader} />
+        <ModalField.ModalHeader color={"black"} {...modalHeader} />
         <ModalField.ModalScrollView {...modalScrollView} />
 
         <ModalField.Modal {...modal}>
           <Input
-            type={'number'}
+            type={"number"}
             autoFocus={true}
-            placeholder={'от'}
+            placeholder={"от"}
             containerStyle={s.inputFrom}
-            inputTextColor={'#000'}
-            placeholderTextColor={'#00000050'}
+            inputTextColor={"#000"}
+            placeholderTextColor={"#00000050"}
             {...inputFrom}
             value={valueFrom}
             onChangeText={setValueFrom}
           />
           <Input
-            type={'number'}
-            placeholder={'до'}
+            type={"number"}
+            placeholder={"до"}
             containerStyle={s.inputTo}
-            inputTextColor={'#000'}
-            placeholderTextColor={'#00000050'}
+            inputTextColor={"#000"}
+            placeholderTextColor={"#00000050"}
             {...inputTo}
             value={valueTo}
             onChangeText={setValueTo}
@@ -107,8 +115,8 @@ const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
         </ModalField.Modal>
 
         <ModalField.ModalFooter
-          rejectTitle={'Сбросить'}
-          acceptTitle={'Готово'}
+          rejectTitle={"Сбросить"}
+          acceptTitle={"Готово"}
           mt={32}
           onReject={onReset}
           onAccept={onApply}
@@ -138,6 +146,6 @@ InputRangeField.Description = Field.Description;
 InputRangeField.Error = Field.Error;
 
 const s = StyleSheet.create({
-  inputFrom: {borderBottomWidth: 1, borderColor: 'red'},
-  inputTo: {borderBottomWidth: 1, borderColor: 'red'},
+  inputFrom: { borderBottomWidth: 1, borderColor: "red" },
+  inputTo: { borderBottomWidth: 1, borderColor: "red" },
 });

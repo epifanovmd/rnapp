@@ -1,20 +1,21 @@
-import {observer} from 'mobx-react-lite';
-import React, {FC, useMemo} from 'react';
-import {Platform} from 'react-native';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {AppTabScreens} from './types';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {ScreenName, ScreenParamList} from './navigation.types';
-import {
-  DefaultNavigatorOptions,
-  TabNavigationState,
-  TabRouterOptions,
-} from '@react-navigation/native';
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   BottomTabNavigationConfig,
   BottomTabNavigationEventMap,
   BottomTabNavigationOptions,
-} from '@react-navigation/bottom-tabs/src/types';
+} from "@react-navigation/bottom-tabs/src/types";
+import {
+  DefaultNavigatorOptions,
+  TabNavigationState,
+  TabRouterOptions,
+} from "@react-navigation/native";
+import { observer } from "mobx-react-lite";
+import React, { FC, useMemo } from "react";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { ScreenName, ScreenParamList } from "./navigation.types";
+import { AppTabScreens } from "./types";
 
 const BottomTab = createBottomTabNavigator<ScreenParamList>();
 
@@ -27,7 +28,7 @@ type Props = DefaultNavigatorOptions<
   TabRouterOptions &
   BottomTabNavigationConfig;
 
-interface IProps extends Omit<Props, 'children'> {
+interface IProps extends Omit<Props, "children"> {
   routes: AppTabScreens;
   screenOptions?: BottomTabNavigationOptions;
   initialRouteName?: ScreenName;
@@ -50,7 +51,7 @@ export const AppNavigation: FC<IProps> = observer(
       () => ({
         unmountOnBlur: false,
         headerShown: false,
-        tabBarHideOnKeyboard: Platform.OS === 'android',
+        tabBarHideOnKeyboard: Platform.OS === "android",
         ...screenOptions,
       }),
       [screenOptions],
@@ -65,7 +66,8 @@ export const AppNavigation: FC<IProps> = observer(
         screenListeners={screenListeners}
         safeAreaInsets={insets}
         screenOptions={_screenOptions}
-        {...rest}>
+        {...rest}
+      >
         {(Object.keys(routes) as ScreenName[]).map((name, index) => (
           <BottomTab.Screen
             key={`screen-${index + 1}-${name}`}

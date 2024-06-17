@@ -1,6 +1,14 @@
-import React, {forwardRef, memo, useMemo} from 'react';
-import {Linking} from 'react-native';
-import Config from 'react-native-config';
+import {
+  LinkingOptions,
+  NavigationContainer,
+  NavigationContainerRef,
+  PathConfigMap,
+} from "@react-navigation/native";
+import { CardStyleInterpolators } from "@react-navigation/stack";
+import React, { forwardRef, memo, useMemo } from "react";
+import { Linking } from "react-native";
+import Config from "react-native-config";
+
 import {
   AppTabScreens,
   ScreenName,
@@ -8,33 +16,26 @@ import {
   StackNavigation,
   StackScreenOption,
   StackScreens,
-} from './navigation';
+} from "./navigation";
 import {
   Components,
   Notifications,
   Pickers,
   TAB_SCREENS,
   TabScreens,
-} from './screens';
-import {
-  LinkingOptions,
-  NavigationContainer,
-  NavigationContainerRef,
-  PathConfigMap,
-} from '@react-navigation/native';
-import {useTheme} from './theme';
-import {CardStyleInterpolators} from '@react-navigation/stack';
+} from "./screens";
+import { useTheme } from "./theme";
 
 interface IProps {
   onReady?: () => void;
 }
 
 export const SCREENS: StackScreens = {
-  MAIN: {screen: TabScreens},
+  MAIN: { screen: TabScreens },
 
-  Notifications: {screen: Notifications},
-  Pickers: {screen: Pickers},
-  Components: {screen: Components},
+  Notifications: { screen: Notifications },
+  Pickers: { screen: Pickers },
+  Components: { screen: Components },
 };
 
 const options: StackScreenOption = {
@@ -65,7 +66,7 @@ const getPathMap = (
   }, {});
 
 const linking: LinkingOptions<ScreenParamList> = {
-  prefixes: [`${deeplinkBaseUrl}://` /*, 'https://myapp.com'*/],
+  prefixes: [`${deeplinkBaseUrl}://`],
 
   // Custom function to get the URL which was used to open the app
   async getInitialURL() {
@@ -96,7 +97,7 @@ const linking: LinkingOptions<ScreenParamList> = {
     // });
 
     // Listen to incoming links from deep linking
-    const linkingSubscription = Linking.addEventListener('url', ({url}) => {
+    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
       listener(url);
     });
 
@@ -109,14 +110,14 @@ const linking: LinkingOptions<ScreenParamList> = {
 
   config: {
     // Deep link configuration
-    screens: getPathMap(SCREENS, 'MAIN', TAB_SCREENS),
+    screens: getPathMap(SCREENS, "MAIN", TAB_SCREENS),
   },
 };
 
 export const AppNavigator = memo(
   forwardRef<NavigationContainerRef<ScreenParamList>, IProps>(
-    ({onReady}, ref) => {
-      const {theme} = useTheme();
+    ({ onReady }, ref) => {
+      const { theme } = useTheme();
 
       const navigatorTheme = useMemo(() => {
         return {
@@ -124,7 +125,7 @@ export const AppNavigator = memo(
           colors: {
             background: theme.color.background,
             text: theme.color.common.white,
-            notification: 'red',
+            notification: "red",
             card: theme.color.grey.grey700,
             border: theme.color.grey.grey700,
             primary: theme.color.common.white,
@@ -141,7 +142,8 @@ export const AppNavigator = memo(
           ref={ref}
           linking={linking}
           onReady={onReady}
-          theme={navigatorTheme}>
+          theme={navigatorTheme}
+        >
           <StackNavigation
             routes={SCREENS}
             // initialRouteName={'ScreenPlayground'}

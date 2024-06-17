@@ -1,12 +1,13 @@
-import React, {FC, memo} from 'react';
-import {StatusBar as RNStatusBar, StatusBarProps} from 'react-native';
-import {useTheme} from '../../theme';
-import {StatusBarStyle} from 'react-native/Libraries/Components/StatusBar/StatusBar';
+import React, { FC, memo } from "react";
+import { StatusBar as RNStatusBar, StatusBarProps } from "react-native";
+import { StatusBarStyle } from "react-native/Libraries/Components/StatusBar/StatusBar";
+
+import { useTheme } from "../../theme";
 
 interface IProps extends StatusBarProps {}
 
 export const StatusBar: FC<IProps> = memo(props => {
-  const {theme} = useTheme();
+  const { theme } = useTheme();
 
   return (
     <RNStatusBar

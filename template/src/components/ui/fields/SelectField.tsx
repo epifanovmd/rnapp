@@ -1,24 +1,25 @@
-import React, {memo, PropsWithChildren, useCallback} from 'react';
 import {
   createSlot,
   ModalHeader,
   ModalHeaderProps,
   Select,
   useSlotProps,
-} from '@force-dev/react-mobile';
-import {useModalStyles} from '../../../common';
-import {Field, FieldProps, FieldSlots} from '../field';
-import {SelectProps} from '@force-dev/react-mobile/src/components/select/Select';
+} from "@force-dev/react-mobile";
+import { SelectProps } from "@force-dev/react-mobile/src/components/select/Select";
+import React, { memo, PropsWithChildren, useCallback } from "react";
+
+import { useModalStyles } from "../../../common";
 import {
   ModalActions,
   ModalActionsProps,
   ModalActionsSlots,
-} from '../../modalActions';
+} from "../../modalActions";
+import { Field, FieldProps, FieldSlots } from "../field";
 
 export interface SelectFieldProps<D extends any, M extends boolean = false>
   extends Omit<
     SelectProps<D, M>,
-    'renderItem' | 'data' | 'selected' | 'onChange'
+    "renderItem" | "data" | "selected" | "onChange"
   > {
   title?: string;
   selected?: M extends true ? D[] : D;
@@ -33,11 +34,11 @@ export interface SelectFieldProps<D extends any, M extends boolean = false>
 }
 
 const ModalActionsSlot =
-  createSlot<Omit<ModalActionsProps, 'onReject' | 'onAccept'>>('ModalActions');
+  createSlot<Omit<ModalActionsProps, "onReject" | "onAccept">>("ModalActions");
 const ModalHeaderSlot =
-  createSlot<Omit<ModalHeaderProps, 'onClose'>>('ModalHeader');
+  createSlot<Omit<ModalHeaderProps, "onClose">>("ModalHeader");
 
-const FieldSlot = createSlot<FieldProps>('Field');
+const FieldSlot = createSlot<FieldProps>("Field");
 
 export interface SelectFieldSlots extends FieldSlots, ModalActionsSlots {
   ModalActions: typeof ModalActionsSlot;
@@ -77,7 +78,7 @@ const _SelectField = <D extends any, M extends boolean = false>({
     (onClose: () => void) => {
       return (
         <ModalHeader
-          color={'#000'}
+          color={"#000"}
           label={title}
           {...modalHeader}
           onClose={onClose}
@@ -88,13 +89,14 @@ const _SelectField = <D extends any, M extends boolean = false>({
   );
 
   const renderFooter = useCallback(
-    ({onReset, onApply}: {onReset: () => void; onApply: () => void}) => {
+    ({ onReset, onApply }: { onReset: () => void; onApply: () => void }) => {
       return (
         <ModalActions
-          rejectTitle={'Сбросить'}
+          rejectTitle={"Сбросить"}
           {...modalActions}
           onReject={onReset}
-          onAccept={onApply}>
+          onAccept={onApply}
+        >
           <ModalActions.RejectButton {...rejectButton} />
           <ModalActions.AcceptButton {...acceptButton} />
         </ModalActions>
@@ -113,14 +115,15 @@ const _SelectField = <D extends any, M extends boolean = false>({
       data={data}
       selected={selected}
       modalProps={modalStyles}
-      onChange={onChange}>
+      onChange={onChange}
+    >
       <Field {...field}>
         <Field.Label text={title} {...label} />
         <Field.LeftIcon {...leftIcon} />
         <Field.Content {...content} />
         <Field.ContentValue {...contentValue} />
         <Field.RightIcon {...rightIcon} />
-        <Field.Error color={'red'} {...error} />
+        <Field.Error color={"red"} {...error} />
         <Field.Description {...description} />
       </Field>
     </Select>

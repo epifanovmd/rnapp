@@ -1,27 +1,24 @@
-import {Locale} from './types';
+import { Locale } from "./types";
 
-export const enLocale = {
+export const enLocale: Locale = {
   navigation: {
-    Playground: 'Playground',
-    Users: 'Users',
-    Notifications: 'Notifications',
-    Pickers: 'Pickers',
-    Components: 'Components',
+    Playground: "Playground",
+    Users: "Users",
+    Notifications: "Notifications",
+    Pickers: "Pickers",
+    Components: "Components",
   },
   button: {
-    cancel: 'Cancel',
-    accept: 'Accept',
-    save: 'Save',
+    cancel: "Cancel",
+    accept: "Accept",
+    save: "Save",
   },
   words: {
-    uploadPhoto: 'Upload photo',
+    uploadPhoto: "Upload photo",
   },
   select: {
-    selected: 'Selected',
-    empty: 'Empty',
-    search: 'Search',
+    selected: "Selected",
+    empty: "Empty",
+    search: "Search",
   },
 };
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CheckLocaleType: Locale = enLocale;

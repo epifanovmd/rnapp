@@ -1,13 +1,3 @@
-import React, {
-  FC,
-  JSX,
-  memo,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
 import {
   Col,
   Modal,
@@ -20,18 +10,28 @@ import {
   Row,
   SafeArea,
   useModal,
-} from '@force-dev/react-mobile';
-import dayjs from 'dayjs';
-import {useModalStyles} from '../../../common';
-import {useTranslation} from '../../../localization';
-import {ViewProps} from 'react-native';
-import {Touchable, TouchableProps} from '../touchable';
+} from "@force-dev/react-mobile";
+import dayjs from "dayjs";
+import localeData from "dayjs/plugin/localeData";
+import React, {
+  FC,
+  JSX,
+  memo,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { ViewProps } from "react-native";
 
-import localeData from 'dayjs/plugin/localeData';
+import { useModalStyles } from "../../../common";
+import { useTranslation } from "../../../localization";
+import { Touchable, TouchableProps } from "../touchable";
 
 dayjs.extend(localeData);
 
-const years = Array.from({length: 201}, (_, i) => {
+const years = Array.from({ length: 201 }, (_, i) => {
   return i + new Date().getFullYear() - 100;
 });
 
@@ -89,9 +89,9 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     children,
     ...rest
   }) => {
-    const {i18n} = useTranslation();
+    const { i18n } = useTranslation();
 
-    const {ref: modalRef} = useModal();
+    const { ref: modalRef } = useModal();
     const modalStyles = useModalStyles();
 
     const months = useMemo(
@@ -106,7 +106,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     const now = useMemo(() => (date ? dayjs(date) : dayjs()), [date]);
 
     const [_day, _month, _year] = useMemo(
-      () => [now.get('dates'), now.get('month'), now.get('year')],
+      () => [now.get("dates"), now.get("month"), now.get("year")],
       [now],
     );
 
@@ -127,7 +127,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     }, [onReset]);
 
     const handleDay = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         setDay(Number(value));
 
         if (onChange && !renderFooter) {
@@ -138,9 +138,10 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     );
 
     const handleMonth = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         setMonth(Number(value));
         const daysCount = daysInMonth[Number(value)](isLeapYear(year));
+
         if (day > daysCount) {
           setDay(daysCount);
         }
@@ -161,7 +162,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     );
 
     const handleYear = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         setYear(Number(value));
 
         if (onChange && !renderFooter) {
@@ -182,7 +183,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       () =>
         days.map(item => {
           return (
-            <PickerItem key={item + 'day'} label={String(item)} value={item} />
+            <PickerItem key={item + "day"} label={String(item)} value={item} />
           );
         }),
       [days],
@@ -193,7 +194,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         months.map((item, index) => {
           return (
             <PickerItem
-              key={item + 'month'}
+              key={item + "month"}
               label={String(item)}
               value={index}
             />
@@ -206,7 +207,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       () =>
         years.map(item => {
           return (
-            <PickerItem key={item + 'year'} label={String(item)} value={item} />
+            <PickerItem key={item + "year"} label={String(item)} value={item} />
           );
         }),
       [],
@@ -230,11 +231,12 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
           {...modalStyles}
-          {...modalProps}>
+          {...modalProps}
+        >
           <Col {...containerProps}>
             {renderHeader?.(onClose)}
 
-            <Row pa={8} justifyContent={'space-between'}>
+            <Row pa={8} justifyContent={"space-between"}>
               <Col flexGrow={1} flexBasis={0} minWidth={20}>
                 <Picker {...pickerProps}>
                   <PickerColumn selectedValue={day} onChange={handleDay}>
@@ -258,7 +260,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
               </Col>
             </Row>
 
-            {renderFooter?.({onReset, onApply})}
+            {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom />
           </Col>
         </Modal>

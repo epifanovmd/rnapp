@@ -1,6 +1,6 @@
-import {Col, FlexProps, SafeArea} from '@force-dev/react-mobile';
-import React, {FC, memo, PropsWithChildren} from 'react';
-import {ViewProps} from 'react-native';
+import { Col, FlexProps, SafeArea } from "@force-dev/react-mobile";
+import React, { FC, memo, PropsWithChildren } from "react";
+import { ViewProps } from "react-native";
 
 interface IProps extends FlexProps, ViewProps {
   safeAreBottom?: boolean;
@@ -23,7 +23,8 @@ export const Container: FC<PropsWithChildren<IProps>> = memo(
         bottom={safeAreBottom}
         left={safeAreLeft}
         right={safeAreRight}
-        top={safeAreTop}>
+        top={safeAreTop}
+      >
         <Col flex={1} {...rest}>
           {children}
         </Col>

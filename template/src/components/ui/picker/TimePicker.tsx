@@ -1,14 +1,3 @@
-import React, {
-  FC,
-  JSX,
-  memo,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import {ViewProps} from 'react-native';
 import {
   Col,
   Modal,
@@ -21,9 +10,21 @@ import {
   Row,
   SafeArea,
   useModal,
-} from '@force-dev/react-mobile';
-import {useModalStyles} from '../../../common';
-import {Touchable, TouchableProps} from '../touchable';
+} from "@force-dev/react-mobile";
+import React, {
+  FC,
+  JSX,
+  memo,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { ViewProps } from "react-native";
+
+import { useModalStyles } from "../../../common";
+import { Touchable, TouchableProps } from "../touchable";
 
 export interface TimePickerProps extends TouchableProps {
   time?: string;
@@ -67,13 +68,13 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     renderFooter,
     ...rest
   }) => {
-    const {ref: modalRef} = useModal();
+    const { ref: modalRef } = useModal();
     const modalStyles = useModalStyles();
 
     const [hour, minute] = useMemo(() => {
-      const _time = new Date().toTimeString().split(':');
+      const _time = new Date().toTimeString().split(":");
 
-      return time ? time.split(':') : [_time[0], _time[1]];
+      return time ? time.split(":") : [_time[0], _time[1]];
     }, [time]);
 
     const [currentFirstItem, setCurrentFirstItem] = useState<string>(hour);
@@ -81,8 +82,8 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     const [currentSecondItem, setCurrentSecondItem] = useState<string>(minute);
 
     const onReset = useCallback(() => {
-      const _time = new Date().toTimeString().split(':');
-      const [_hour, _minute] = time ? time.split(':') : [_time[0], _time[1]];
+      const _time = new Date().toTimeString().split(":");
+      const [_hour, _minute] = time ? time.split(":") : [_time[0], _time[1]];
 
       setCurrentFirstItem(_hour);
       setCurrentSecondItem(_minute);
@@ -106,7 +107,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     }, [modalRef, onReset]);
 
     const handleFirst = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         if (onChange && !renderHeader) {
           onChange(`${value}:${currentSecondItem}`);
         }
@@ -116,7 +117,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     );
 
     const handleSecond = useCallback(
-      ({value}: PickerChangeItem) => {
+      ({ value }: PickerChangeItem) => {
         if (onChange && !renderHeader) {
           onChange(`${currentFirstItem}:${value}`);
         }
@@ -130,7 +131,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
         hours.map(item => {
           return (
             <PickerItem
-              key={item + 'first'}
+              key={item + "first"}
               label={String(item)}
               value={item}
             />
@@ -144,7 +145,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
         minutes.map(item => {
           return (
             <PickerItem
-              key={item + 'second'}
+              key={item + "second"}
               label={String(item)}
               value={item}
             />
@@ -184,11 +185,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
           adjustToContentHeight={true}
           childrenPanGestureEnabled={false}
           {...modalStyles}
-          {...modalProps}>
+          {...modalProps}
+        >
           <Col {...containerProps}>
             {renderHeader?.(onClose)}
 
-            <Row pa={8} justifyContent={'space-around'}>
+            <Row pa={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker {...pickerProps}>{first}</Picker>
               </Col>
@@ -197,7 +199,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
               </Col>
             </Row>
 
-            {renderFooter?.({onReset, onApply})}
+            {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom />
           </Col>
         </Modal>

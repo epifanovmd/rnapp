@@ -1,25 +1,26 @@
-import dayjs from 'dayjs';
-import localizedFormat from 'dayjs/plugin/localizedFormat';
-import i18next from 'i18next';
-import {initReactI18next} from 'react-i18next';
-import {getLocales} from 'react-native-localize';
-import 'dayjs/locale/ru.js';
-import 'dayjs/locale/en.js';
+import "dayjs/locale/ru.js";
+import "dayjs/locale/en.js";
+
+import dayjs from "dayjs";
+import localizedFormat from "dayjs/plugin/localizedFormat";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import { getLocales } from "react-native-localize";
 
 dayjs.extend(localizedFormat);
 
-import {ruLocale, enLocale} from './locales';
+import { enLocale, ruLocale } from "./locales";
 
 export const languageList: Record<ILanguageType, string> = {
-  ru: 'Русский',
-  en: 'English',
+  ru: "Русский",
+  en: "English",
 };
 
-export type ILanguageType = 'ru' | 'en';
+export type ILanguageType = "ru" | "en";
 
 export const langResources = {
-  ru: {translation: {...ruLocale}},
-  en: {translation: {...enLocale}},
+  ru: { translation: { ...ruLocale } },
+  en: { translation: { ...enLocale } },
 };
 
 export interface IInitLocalizationParams {
@@ -28,7 +29,7 @@ export interface IInitLocalizationParams {
 }
 
 export const initLocalization = ({
-  initLang = 'ru',
+  initLang = "ru",
 }: IInitLocalizationParams) => {
   const defaultLocale = getLocales()[0]?.languageCode;
 
@@ -36,14 +37,14 @@ export const initLocalization = ({
   i18next
     .use(initReactI18next)
     .init({
-      compatibilityJSON: 'v3',
+      compatibilityJSON: "v3",
       fallbackLng: initLang,
       lng: defaultLocale,
       debug: false,
-      load: 'languageOnly',
+      load: "languageOnly",
       interpolation: {
         escapeValue: false,
-        prefix: '',
+        prefix: "",
       },
       resources: langResources,
     })

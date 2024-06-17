@@ -1,4 +1,4 @@
-import {ScreenName} from '../../navigation';
+import { ScreenName } from "../../navigation";
 
 export type Locale = {
   navigation: Partial<{

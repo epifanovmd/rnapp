@@ -1,18 +1,18 @@
-import React, {FC, memo, useMemo} from 'react';
-import {BottomTabScreenOption, BottomTabScreens} from './types';
-import {ScreenName, ScreenParamList} from './navigation.types';
-
-import {
-  DefaultNavigatorOptions,
-  TabNavigationState,
-  TabRouterOptions,
-} from '@react-navigation/native';
+import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
 import {
   MaterialBottomTabNavigationConfig,
   MaterialBottomTabNavigationEventMap,
   MaterialBottomTabNavigationOptions,
-} from '@react-navigation/material-bottom-tabs/src/types';
-import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs';
+} from "@react-navigation/material-bottom-tabs/src/types";
+import {
+  DefaultNavigatorOptions,
+  TabNavigationState,
+  TabRouterOptions,
+} from "@react-navigation/native";
+import React, { FC, memo, useMemo } from "react";
+
+import { ScreenName, ScreenParamList } from "./navigation.types";
+import { BottomTabScreenOption, BottomTabScreens } from "./types";
 
 const MaterialBottomTab = createMaterialBottomTabNavigator<ScreenParamList>();
 
@@ -25,16 +25,16 @@ type Props = DefaultNavigatorOptions<
   TabRouterOptions &
   MaterialBottomTabNavigationConfig;
 
-interface IProps extends Omit<Props, 'children'> {
+interface IProps extends Omit<Props, "children"> {
   routes: BottomTabScreens;
   screenOptions?: BottomTabScreenOption;
   initialRouteName?: keyof BottomTabScreens;
 }
 
 export const BottomTabNavigation: FC<IProps> = memo(
-  ({routes, screenOptions, ...rest}) => {
+  ({ routes, screenOptions, ...rest }) => {
     const _screenOptions: BottomTabScreenOption = useMemo(
-      () => ({headerShown: false, ...screenOptions}),
+      () => ({ headerShown: false, ...screenOptions }),
       [screenOptions],
     );
 

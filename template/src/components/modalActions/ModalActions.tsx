@@ -1,12 +1,13 @@
-import React, {FC, memo, PropsWithChildren} from 'react';
 import {
   createSlot,
   FlexProps,
   Row,
   useSlotProps,
-} from '@force-dev/react-mobile';
-import {ButtonProps, TextButton} from '../ui';
-import {ColorValue} from 'react-native';
+} from "@force-dev/react-mobile";
+import React, { FC, memo, PropsWithChildren } from "react";
+import { ColorValue } from "react-native";
+
+import { ButtonProps, TextButton } from "../ui";
 
 export interface ModalActionsProps extends FlexProps {
   onReject?: () => void;
@@ -17,8 +18,8 @@ export interface ModalActionsProps extends FlexProps {
   rejectColor?: ColorValue;
 }
 
-const RejectButton = createSlot<Omit<ButtonProps, 'onPress'>>('RejectButton');
-const AcceptButton = createSlot<Omit<ButtonProps, 'onPress'>>('AcceptButton');
+const RejectButton = createSlot<Omit<ButtonProps, "onPress">>("RejectButton");
+const AcceptButton = createSlot<Omit<ButtonProps, "onPress">>("AcceptButton");
 
 export interface ModalActionsSlots {
   RejectButton: typeof RejectButton;
@@ -29,21 +30,22 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
   ({
     onReject,
     onAccept,
-    acceptTitle = 'Применить',
-    rejectTitle = 'Отмена',
-    acceptColor = 'red',
-    rejectColor = 'red',
+    acceptTitle = "Применить",
+    rejectTitle = "Отмена",
+    acceptColor = "red",
+    rejectColor = "red",
     children,
     ...rest
   }) => {
-    const {rejectButton, acceptButton} = useSlotProps(ModalActions, children);
+    const { rejectButton, acceptButton } = useSlotProps(ModalActions, children);
 
     return (
       <Row
-        marginTop={'auto'}
+        marginTop={"auto"}
         pa={16}
-        justifyContent={'space-between'}
-        {...rest}>
+        justifyContent={"space-between"}
+        {...rest}
+      >
         {!!onReject && (
           <TextButton
             color={rejectColor}
@@ -54,7 +56,7 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
         )}
         {!!onAccept && (
           <TextButton
-            marginLeft={'auto'}
+            marginLeft={"auto"}
             color={acceptColor}
             title={acceptTitle}
             {...acceptButton}

@@ -1,8 +1,9 @@
-import React, {FC} from 'react';
-import Svg, {G, Path, Polygon} from 'react-native-svg';
-import {useFlexProps} from '@force-dev/react-mobile';
-import {useTheme} from '../../theme';
-import {FlexSvgProps} from './types';
+import { useFlexProps } from "@force-dev/react-mobile";
+import React, { FC } from "react";
+import Svg, { G, Path, Polygon } from "react-native-svg";
+
+import { useTheme } from "../../theme";
+import { FlexSvgProps } from "./types";
 
 interface IProps extends FlexSvgProps {}
 
@@ -21,10 +22,10 @@ export const SearchIcon: FC<IProps> = ({
   letterSpacing,
   ...rest
 }) => {
-  const {style, ownProps} = useFlexProps(rest);
+  const { style, ownProps } = useFlexProps(rest);
   const {
     theme: {
-      color: {text},
+      color: { text },
     },
   } = useTheme();
 
@@ -45,13 +46,15 @@ export const SearchIcon: FC<IProps> = ({
       letterSpacing={letterSpacing}
       style={style}
       {...ownProps}
-      fill={ownProps?.fill || color || text}>
+      fill={ownProps?.fill || color || text}
+    >
       <G
         id="02-Events"
         stroke="none"
         strokeWidth="1"
         fill="none"
-        fillRule="evenodd">
+        fillRule="evenodd"
+      >
         <G id="02.01_1920" transform="translate(-295.000000, -1133.000000)">
           <G id="ic_search_24px" transform="translate(292.000000, 1130.000000)">
             <Path

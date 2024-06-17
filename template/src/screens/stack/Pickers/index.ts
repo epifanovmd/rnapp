@@ -1,1 +1,1 @@
-export * from './Pickers.component';
+export * from "./Pickers";

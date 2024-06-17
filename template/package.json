@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@force-dev/react-mobile": "^0.0.131",
-    "@force-dev/utils": "^1.1.54",
+    "@force-dev/utils": "^1.1.56",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/checkbox": "^0.5.16",
     "@react-navigation/bottom-tabs": "^6.5.11",
@@ -59,7 +59,8 @@
     "react-native-svg": "^14.1.0",
     "react-native-switch-toggle": "^2.2.1",
     "react-native-tab-view": "^3.5.2",
-    "set-cookie-parser": "^2.6.0"
+    "set-cookie-parser": "^2.6.0",
+    "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
     "@babel/core": "^7.23.6",
@@ -81,6 +82,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.26.1",
     "eslint-plugin-react-hooks": "^4.2.0",
+    "eslint-plugin-simple-import-sort": "^12.1.0",
     "husky": "^4.3.0",
     "lint-staged": "^11.2.6",
     "prettier": "^2.4.1",

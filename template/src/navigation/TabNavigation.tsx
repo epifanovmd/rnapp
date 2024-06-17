@@ -1,19 +1,19 @@
-import React, {FC, memo, useMemo} from 'react';
-import {Dimensions} from 'react-native';
-import {TabScreenOption, TabScreens} from './types';
-import {ScreenName, ScreenParamList} from './navigation.types';
-
-import {
-  DefaultNavigatorOptions,
-  TabNavigationState,
-  TabRouterOptions,
-} from '@react-navigation/native';
+import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import {
   MaterialTopTabNavigationConfig,
   MaterialTopTabNavigationEventMap,
   MaterialTopTabNavigationOptions,
-} from '@react-navigation/material-top-tabs/src/types';
-import {createMaterialTopTabNavigator} from '@react-navigation/material-top-tabs';
+} from "@react-navigation/material-top-tabs/src/types";
+import {
+  DefaultNavigatorOptions,
+  TabNavigationState,
+  TabRouterOptions,
+} from "@react-navigation/native";
+import React, { FC, memo, useMemo } from "react";
+import { Dimensions } from "react-native";
+
+import { ScreenName, ScreenParamList } from "./navigation.types";
+import { TabScreenOption, TabScreens } from "./types";
 
 const MaterialTopTab = createMaterialTopTabNavigator<ScreenParamList>();
 
@@ -26,18 +26,18 @@ type Props = DefaultNavigatorOptions<
   TabRouterOptions &
   MaterialTopTabNavigationConfig;
 
-interface IProps extends Omit<Props, 'children'> {
+interface IProps extends Omit<Props, "children"> {
   routes: TabScreens;
   screenOptions?: TabScreenOption;
   initialRouteName?: keyof TabScreens;
 }
 
-const initialLayout = {width: Dimensions.get('window').width};
+const initialLayout = { width: Dimensions.get("window").width };
 
 export const TabNavigation: FC<IProps> = memo(
-  ({routes, screenOptions, ...rest}) => {
+  ({ routes, screenOptions, ...rest }) => {
     const _screenOptions: TabScreenOption = useMemo(
-      () => ({backBehavior: 'none', ...screenOptions}),
+      () => ({ backBehavior: "none", ...screenOptions }),
       [screenOptions],
     );
 
@@ -60,7 +60,8 @@ export const TabNavigation: FC<IProps> = memo(
       <MaterialTopTab.Navigator
         screenOptions={_screenOptions}
         initialLayout={initialLayout}
-        {...rest}>
+        {...rest}
+      >
         {renderRoutes}
       </MaterialTopTab.Navigator>
     );

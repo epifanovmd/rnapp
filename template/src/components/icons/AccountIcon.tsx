@@ -1,8 +1,9 @@
-import React, {FC} from 'react';
-import {useFlexProps} from '@force-dev/react-mobile';
-import {useTheme} from '../../theme';
-import {FlexSvgProps} from './types';
-import Svg, {Path} from 'react-native-svg';
+import { useFlexProps } from "@force-dev/react-mobile";
+import React, { FC } from "react";
+import Svg, { Path } from "react-native-svg";
+
+import { useTheme } from "../../theme";
+import { FlexSvgProps } from "./types";
 
 interface IProps extends FlexSvgProps {}
 
@@ -21,10 +22,10 @@ export const AccountIcon: FC<IProps> = ({
   letterSpacing,
   ...rest
 }) => {
-  const {style, ownProps} = useFlexProps(rest);
+  const { style, ownProps } = useFlexProps(rest);
   const {
     theme: {
-      color: {text},
+      color: { text },
     },
   } = useTheme();
 
@@ -45,7 +46,8 @@ export const AccountIcon: FC<IProps> = ({
       letterSpacing={letterSpacing}
       style={style}
       {...ownProps}
-      fill={ownProps?.fill || color || text}>
+      fill={ownProps?.fill || color || text}
+    >
       <Path d="M0 0h24v24H0V0z" fill="none" />
       <Path d="M12 6c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2m0 10c2.7 0 5.8 1.29 6 2H6c.23-.72 3.31-2 6-2m0-12C9.79 4 8 5.79 8 8s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 10c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
     </Svg>

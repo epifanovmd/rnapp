@@ -1,6 +1,6 @@
-import {LogBox} from 'react-native';
+import { LogBox } from "react-native";
 LogBox.ignoreLogs([
-  'Sending `onAnimatedValueUpdate` with no listeners registered.',
+  "Sending `onAnimatedValueUpdate` with no listeners registered.",
 ]);
 
 export const DebugVars = {

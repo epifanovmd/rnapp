@@ -8,7 +8,7 @@ import {
   SafeArea,
   useModal,
   useSlotProps,
-} from '@force-dev/react-mobile';
+} from "@force-dev/react-mobile";
 import React, {
   FC,
   forwardRef,
@@ -16,13 +16,14 @@ import React, {
   PropsWithChildren,
   RefAttributes,
   useCallback,
-} from 'react';
-import {ColorValue, GestureResponderEvent} from 'react-native';
-import {useIsVisibleKeyboard, useModalStyles} from '../../../common';
-import {CloseIcon} from '../../icons';
-import {ModalActions, ModalActionsProps} from '../../modalActions';
-import {Field, FieldProps, FieldSlots} from '../field';
-import {ScrollView, ScrollViewProps} from '../scrollView';
+} from "react";
+import { ColorValue, GestureResponderEvent } from "react-native";
+
+import { useIsVisibleKeyboard, useModalStyles } from "../../../common";
+import { CloseIcon } from "../../icons";
+import { ModalActions, ModalActionsProps } from "../../modalActions";
+import { Field, FieldProps, FieldSlots } from "../field";
+import { ScrollView, ScrollViewProps } from "../scrollView";
 
 export interface ModalFieldProps extends FieldProps {}
 
@@ -30,10 +31,10 @@ type ModalPropsWithRenderClose = ModalProps & {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element | null;
 };
 
-const ModalSlot = createSlot<ModalPropsWithRenderClose>('Modal');
-const ModalScrollView = createSlot<ScrollViewProps>('ModalScrollView');
-const ModalHeader = createSlot<ModalHeaderProps>('ModalHeader');
-const ModalFooter = createSlot<ModalActionsProps>('ModalFooter');
+const ModalSlot = createSlot<ModalPropsWithRenderClose>("Modal");
+const ModalScrollView = createSlot<ScrollViewProps>("ModalScrollView");
+const ModalHeader = createSlot<ModalHeaderProps>("ModalHeader");
+const ModalFooter = createSlot<ModalActionsProps>("ModalFooter");
 
 export interface ModalFieldSlots extends FieldSlots {
   Modal: typeof ModalSlot;
@@ -45,7 +46,7 @@ export interface ModalFieldSlots extends FieldSlots {
 const _ModalField: FC<
   PropsWithChildren<ModalFieldProps & RefAttributes<Modal>>
 > = memo(
-  forwardRef(({children, onPress, ...rest}, ref) => {
+  forwardRef(({ children, onPress, ...rest }, ref) => {
     const {
       modal,
       modalScrollView,
@@ -60,7 +61,7 @@ const _ModalField: FC<
       error,
     } = useSlotProps(ModalField, children);
 
-    const {ref: modalRef} = useModal();
+    const { ref: modalRef } = useModal();
     const modalStyles = useModalStyles();
     const keyboardVisible = useIsVisibleKeyboard();
 
@@ -87,7 +88,7 @@ const _ModalField: FC<
           modalHeader?.renderCloseIcon ??
           modal?.renderCloseIcon ??
           _renderCloseIcon
-        )(fill ?? modalHeader?.color ?? '#fff'),
+        )(fill ?? modalHeader?.color ?? "#fff"),
       [
         modal?.renderCloseIcon,
         modalHeader?.color,
@@ -103,7 +104,7 @@ const _ModalField: FC<
           <Field.Content {...content} />
           <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />
-          <Field.Error color={'red'} {...error} />
+          <Field.Error color={"red"} {...error} />
           <Field.Description {...description} />
         </Field>
         <Modal
@@ -112,21 +113,24 @@ const _ModalField: FC<
           adjustToContentHeight={true}
           withHandle={false}
           {...modalStyles}
-          {...modal}>
+          {...modal}
+        >
           <_ModalHeader
             {...modalHeader}
             label={modalHeader?.label || label?.text}
             textStyle={[modalHeader?.textStyle]}
             renderCloseIcon={closeIcon}
-            onClose={onRequestClose}>
+            onClose={onRequestClose}
+          >
             {modalHeader?.children}
           </_ModalHeader>
 
           <ScrollView
             pa={16}
             bounces={false}
-            keyboardShouldPersistTaps={'handled'}
-            {...modalScrollView}>
+            keyboardShouldPersistTaps={"handled"}
+            {...modalScrollView}
+          >
             {modal?.children}
           </ScrollView>
 

@@ -1,27 +1,24 @@
-import {Locale} from './types';
+import { Locale } from "./types";
 
-export const ruLocale = {
+export const ruLocale: Locale = {
   navigation: {
-    Playground: 'Playground',
-    Users: 'Пользователи',
-    Notifications: 'Уведомления',
-    Pickers: 'Пиккеры',
-    Components: 'Компоненты',
+    Playground: "Playground",
+    Users: "Пользователи",
+    Notifications: "Уведомления",
+    Pickers: "Пиккеры",
+    Components: "Компоненты",
   },
   button: {
-    cancel: 'Отмена',
-    accept: 'Применить',
-    save: 'Сохранить',
+    cancel: "Отмена",
+    accept: "Применить",
+    save: "Сохранить",
   },
   words: {
-    uploadPhoto: 'Загрузить фото',
+    uploadPhoto: "Загрузить фото",
   },
   select: {
-    selected: 'Выбрано',
-    empty: 'Пусто',
-    search: 'Найти',
+    selected: "Выбрано",
+    empty: "Пусто",
+    search: "Найти",
   },
 };
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CheckLocaleType: Locale = ruLocale;

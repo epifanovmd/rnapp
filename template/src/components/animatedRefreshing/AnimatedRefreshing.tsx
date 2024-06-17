@@ -1,7 +1,10 @@
-import React, {forwardRef, memo} from 'react';
-import {PixelRatio} from 'react-native';
-import Animated, {SharedValue, useAnimatedProps} from 'react-native-reanimated';
-import {Circle, Svg, SvgProps} from 'react-native-svg';
+import React, { forwardRef, memo } from "react";
+import { PixelRatio } from "react-native";
+import Animated, {
+  SharedValue,
+  useAnimatedProps,
+} from "react-native-reanimated";
+import { Circle, Svg, SvgProps } from "react-native-svg";
 
 interface AnimatedCircularProgressProps extends SvgProps {
   radius?: number;
@@ -15,7 +18,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 export const AnimatedRefreshing = memo(
   forwardRef<Svg, AnimatedCircularProgressProps>(
     (
-      {radius = 16, color = '#ff457a', percentage, borderWidth = 4, ...rest},
+      { radius = 16, color = "#ff457a", percentage, borderWidth = 4, ...rest },
       ref,
     ) => {
       const loaderRadius = PixelRatio.roundToNearestPixel(radius);
@@ -23,7 +26,7 @@ export const AnimatedRefreshing = memo(
       const circumference = 2 * Math.PI * innerCircleRadii;
 
       const animatedProps = useAnimatedProps(() => {
-        if (typeof percentage === 'number') {
+        if (typeof percentage === "number") {
           return {
             strokeDashoffset: circumference - circumference * percentage * 0.01,
           };
@@ -46,7 +49,8 @@ export const AnimatedRefreshing = memo(
               width: 2 * radius,
               height: 2 * radius,
             },
-          ]}>
+          ]}
+        >
           <AnimatedCircle
             cx={radius}
             cy={radius}

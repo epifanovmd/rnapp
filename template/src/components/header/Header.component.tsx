@@ -1,13 +1,13 @@
-import {Col, Row} from '@force-dev/react-mobile';
-import {observer} from 'mobx-react-lite';
+import { Col, Row } from "@force-dev/react-mobile";
+import { observer } from "mobx-react-lite";
 import React, {
   FC,
   PropsWithChildren,
   useCallback,
   useMemo,
   useState,
-} from 'react';
-import {Platform, ViewStyle} from 'react-native';
+} from "react";
+import { Platform, ViewStyle } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -17,12 +17,13 @@ import Animated, {
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-} from 'react-native-reanimated';
-import {useTranslation} from '../../localization';
-import {useNavigation, useRoute} from '../../navigation';
-import {useTheme} from '../../theme';
-import {BackIcon} from '../icons';
-import {Text, Touchable} from '../ui';
+} from "react-native-reanimated";
+
+import { useTranslation } from "../../localization";
+import { useNavigation, useRoute } from "../../navigation";
+import { useTheme } from "../../theme";
+import { BackIcon } from "../icons";
+import { Text, Touchable } from "../ui";
 import createAnimatedComponent = Animated.createAnimatedComponent;
 
 interface IProps {
@@ -35,10 +36,10 @@ interface IProps {
 const AnimatedCol = createAnimatedComponent(Col);
 
 export const Header: FC<PropsWithChildren<IProps>> = observer(
-  ({title, backAction, children, animatedValue, action}) => {
-    const {theme} = useTheme();
+  ({ title, backAction, children, animatedValue, action }) => {
+    const { theme } = useTheme();
     const route = useRoute();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const navigation = useNavigation();
 
     const onBack = useCallback(() => {
@@ -79,7 +80,7 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
 
     const actionStyle: ViewStyle = useMemo(
       () => ({
-        display: hide ? 'flex' : 'none',
+        display: hide ? "flex" : "none",
       }),
       [hide],
     );
@@ -102,7 +103,7 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
 
     const style = useAnimatedStyle(
       () => ({
-        shadowColor: '#000',
+        shadowColor: "#000",
         ...shadowOffset,
         shadowOpacity:
           animatedValue &&
@@ -131,18 +132,21 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
         minHeight={48}
         style={style}
         ph={8}
-        bg={theme.color.background}>
+        bg={theme.color.background}
+      >
         <Row
-          alignItems={'stretch'}
-          justifyContent={'space-between'}
-          minHeight={48}>
+          alignItems={"stretch"}
+          justifyContent={"space-between"}
+          minHeight={48}
+        >
           <Row
             flexGrow={1}
             flexBasis={0}
             flexShrink={0}
             maxWidth={100}
             minWidth={50}
-            alignItems={'center'}>
+            alignItems={"center"}
+          >
             {!!backAction && (
               <Touchable onPress={onBack}>
                 <BackIcon fill={theme.color.text} />
@@ -152,27 +156,29 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
 
           <Row
             mh={8}
-            overflow={'hidden'}
-            alignItems={'center'}
+            overflow={"hidden"}
+            alignItems={"center"}
             flexShrink={1}
             flexGrow={1}
             flexBasis={0}
-            justifyContent={'center'}>
+            justifyContent={"center"}
+          >
             {children ??
               (animatedValue ? (
                 <AnimatedCol style={animateStyle}>
                   <Text
                     fontSize={14}
-                    fontWeight={'600'}
+                    fontWeight={"600"}
                     numberOfLines={1}
                     flexShrink={1}
-                    ellipsizeMode={'tail'}>
+                    ellipsizeMode={"tail"}
+                  >
                     {_title}
                   </Text>
                 </AnimatedCol>
               ) : (
                 !!_title && (
-                  <Text fontSize={14} fontWeight={'600'}>
+                  <Text fontSize={14} fontWeight={"600"}>
                     {_title}
                   </Text>
                 )
@@ -185,10 +191,11 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
             flexBasis={0}
             maxWidth={100}
             minWidth={50}
-            alignItems={'center'}
-            justifyContent={'flex-end'}>
+            alignItems={"center"}
+            justifyContent={"flex-end"}
+          >
             {action && (
-              <Row alignItems={'flex-end'}>
+              <Row alignItems={"flex-end"}>
                 <AnimatedCol style={actionStyle}>{action}</AnimatedCol>
               </Row>
             )}

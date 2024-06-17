@@ -1,17 +1,18 @@
-import React, {FC, memo, useCallback} from 'react';
-import {NavigationProp, useNavigation} from '@react-navigation/native';
-import {ScreenName} from '../../navigation';
-import {Touchable, TouchableProps} from '../ui';
+import { NavigationProp, useNavigation } from "@react-navigation/native";
+import React, { FC, memo, useCallback } from "react";
+
+import { ScreenName } from "../../navigation";
+import { Touchable, TouchableProps } from "../ui";
 
 interface IProps extends TouchableProps {
   to: ScreenName;
   screen?: ScreenName;
-  params?: {[key in string]: string | number | undefined};
+  params?: { [key in string]: string | number | undefined };
 }
 
 export const NavLink: FC<IProps> = memo(
-  ({children, to, params, screen, ...rest}) => {
-    const {navigate} = useNavigation<NavigationProp<any>>();
+  ({ children, to, params, screen, ...rest }) => {
+    const { navigate } = useNavigation<NavigationProp<any>>();
 
     const onPress = useCallback(() => {
       navigate(

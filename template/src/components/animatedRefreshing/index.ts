@@ -1,1 +1,1 @@
-export * from './AnimatedRefreshing';
+export * from "./AnimatedRefreshing";

@@ -1,21 +1,22 @@
-import React, {FC, memo, PropsWithChildren, useCallback} from 'react';
 import {
   createSlot,
   ModalHeader,
   ModalHeaderProps,
   RenderConditional,
   useSlotProps,
-} from '@force-dev/react-mobile';
-import {Text} from '../text';
-import {Field, FieldProps, FieldSlots} from '../field';
-import {RangePickerProps, YearRangePicker} from '../picker';
+} from "@force-dev/react-mobile";
+import React, { FC, memo, PropsWithChildren, useCallback } from "react";
+
 import {
   ModalActions,
   ModalActionsProps,
   ModalActionsSlots,
-} from '../../modalActions';
-import {SelectField} from './SelectField';
-import {ModalFieldSlots} from './ModalField';
+} from "../../modalActions";
+import { Field, FieldProps, FieldSlots } from "../field";
+import { RangePickerProps, YearRangePicker } from "../picker";
+import { Text } from "../text";
+import { ModalFieldSlots } from "./ModalField";
+import { SelectField } from "./SelectField";
 
 export interface YearRangeFieldProps {
   title?: string;
@@ -23,16 +24,16 @@ export interface YearRangeFieldProps {
   onChange?: (range: [number, number]) => void;
 }
 
-const Modal = createSlot<ModalFieldSlots>('Modal');
-const ModalHeaderSlot = createSlot<ModalHeaderProps>('ModalHeader');
+const Modal = createSlot<ModalFieldSlots>("Modal");
+const ModalHeaderSlot = createSlot<ModalHeaderProps>("ModalHeader");
 const ModalActionsSlot =
-  createSlot<Omit<ModalActionsProps, 'onReject' | 'onAccept'>>('ModalActions');
+  createSlot<Omit<ModalActionsProps, "onReject" | "onAccept">>("ModalActions");
 const Picker =
   createSlot<
-    Omit<RangePickerProps<number>, 'modalProps' | 'range' | 'onChange'>
-  >('Picker');
+    Omit<RangePickerProps<number>, "modalProps" | "range" | "onChange">
+  >("Picker");
 
-const FieldSlot = createSlot<FieldProps>('Field');
+const FieldSlot = createSlot<FieldProps>("Field");
 
 export interface YearRangeFieldSlots extends FieldSlots, ModalActionsSlots {
   Modal: typeof Modal;
@@ -43,7 +44,7 @@ export interface YearRangeFieldSlots extends FieldSlots, ModalActionsSlots {
 }
 
 const _YearRangeField: FC<PropsWithChildren<YearRangeFieldProps>> = memo(
-  ({title, range: r, onChange, children}) => {
+  ({ title, range: r, onChange, children }) => {
     const {
       picker,
       modal,
@@ -61,13 +62,13 @@ const _YearRangeField: FC<PropsWithChildren<YearRangeFieldProps>> = memo(
       error,
     } = useSlotProps(YearRangeField, children);
 
-    const value = `${r?.[0] ? `от ${r[0]} ` : ''}${r?.[1] ? `до ${r[1]}` : ''}`;
+    const value = `${r?.[0] ? `от ${r[0]} ` : ""}${r?.[1] ? `до ${r[1]}` : ""}`;
 
     const renderHeader = useCallback(
       (onClose: () => void) => {
         return (
           <ModalHeader
-            color={'#000'}
+            color={"#000"}
             onClose={onClose}
             label={title}
             {...modalHeader}
@@ -78,14 +79,15 @@ const _YearRangeField: FC<PropsWithChildren<YearRangeFieldProps>> = memo(
     );
 
     const renderFooter = useCallback(
-      ({onReset, onApply}: {onReset: () => void; onApply: () => void}) => {
+      ({ onReset, onApply }: { onReset: () => void; onApply: () => void }) => {
         return (
           <ModalActions
-            rejectTitle={'Сбросить'}
+            rejectTitle={"Сбросить"}
             mt={32}
             {...modalActions}
             onReject={onReset}
-            onAccept={onApply}>
+            onAccept={onApply}
+          >
             <ModalActions.RejectButton {...rejectButton} />
             <ModalActions.AcceptButton {...acceptButton} />
           </ModalActions>
@@ -101,20 +103,21 @@ const _YearRangeField: FC<PropsWithChildren<YearRangeFieldProps>> = memo(
         range={r}
         onChange={onChange}
         renderHeader={renderHeader}
-        renderFooter={renderFooter}>
+        renderFooter={renderFooter}
+      >
         <Field {...field}>
           <Field.Label text={title} {...label} />
           <Field.LeftIcon {...leftIcon} />
           <Field.Content {...content}>
             {content?.children ?? (
               <RenderConditional if={value}>
-                <Text color={'#fff'}>{value}</Text>
+                <Text color={"#fff"}>{value}</Text>
               </RenderConditional>
             )}
           </Field.Content>
           <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />
-          <Field.Error color={'red'} {...error} />
+          <Field.Error color={"red"} {...error} />
           <Field.Description {...description} />
         </Field>
       </YearRangePicker>

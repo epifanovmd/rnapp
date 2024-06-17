@@ -1,8 +1,9 @@
-import React, {FC} from 'react';
-import {useFlexProps} from '@force-dev/react-mobile';
-import {useTheme} from '../../theme';
-import {FlexSvgProps} from './types';
-import Svg, {Path} from 'react-native-svg';
+import { useFlexProps } from "@force-dev/react-mobile";
+import React, { FC } from "react";
+import Svg, { Path } from "react-native-svg";
+
+import { useTheme } from "../../theme";
+import { FlexSvgProps } from "./types";
 
 interface IProps extends FlexSvgProps {}
 
@@ -21,10 +22,10 @@ export const EyeOffIcon: FC<IProps> = ({
   letterSpacing,
   ...rest
 }) => {
-  const {style, ownProps} = useFlexProps(rest);
+  const { style, ownProps } = useFlexProps(rest);
   const {
     theme: {
-      color: {text},
+      color: { text },
     },
   } = useTheme();
 
@@ -45,7 +46,8 @@ export const EyeOffIcon: FC<IProps> = ({
       letterSpacing={letterSpacing}
       style={style}
       {...ownProps}
-      fill={ownProps?.fill || color || text}>
+      fill={ownProps?.fill || color || text}
+    >
       <Path
         d="M0 0h24v24H0V0zm0 0h24v24H0V0zm0 0h24v24H0V0zm0 0h24v24H0V0z"
         fill="none"
