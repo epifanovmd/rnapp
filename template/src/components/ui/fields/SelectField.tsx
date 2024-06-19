@@ -1,10 +1,5 @@
-import {
-  createSlot,
-  ModalHeader,
-  ModalHeaderProps,
-  Select,
-  useSlotProps,
-} from "@force-dev/react-mobile";
+import { createSlot, useSlotProps } from "@force-dev/react";
+import { ModalHeader, ModalHeaderProps, Select } from "@force-dev/react-mobile";
 import { SelectProps } from "@force-dev/react-mobile/src/components/select/Select";
 import React, { memo, PropsWithChildren, useCallback } from "react";
 

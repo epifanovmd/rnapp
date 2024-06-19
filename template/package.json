@@ -26,8 +26,9 @@
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {
-    "@force-dev/react-mobile": "^0.0.131",
-    "@force-dev/utils": "^1.1.58",
+    "@force-dev/react": "^1.1.2",
+    "@force-dev/react-mobile": "^0.0.135",
+    "@force-dev/utils": "^1.1.59",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/checkbox": "^0.5.16",
     "@react-navigation/bottom-tabs": "^6.5.11",

@@ -1,4 +1,4 @@
-import { iocHook } from "@force-dev/react-mobile";
+import { iocHook } from "@force-dev/react";
 import { iocDecorator } from "@force-dev/utils";
 import {
   createNavigationContainerRef,

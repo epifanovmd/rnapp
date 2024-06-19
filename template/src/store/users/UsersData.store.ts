@@ -1,4 +1,4 @@
-import { iocHook } from "@force-dev/react-mobile";
+import { iocHook } from "@force-dev/react";
 import { ListCollectionHolder } from "@force-dev/utils";
 import { RefreshArgs } from "@force-dev/utils/src/store/holders/ListCollectionHolder";
 import { makeAutoObservable } from "mobx";

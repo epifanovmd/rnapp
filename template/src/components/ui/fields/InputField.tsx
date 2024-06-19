@@ -1,14 +1,12 @@
+import { createSlot, mergeRefs, useSlotProps } from "@force-dev/react";
 import {
-  createSlot,
   Input,
   InputProps,
-  mergeRefs,
   Modal,
   ModalHeader as _ModalHeader,
   ModalHeaderProps,
   ModalProps,
   useModal,
-  useSlotProps,
 } from "@force-dev/react-mobile";
 import React, {
   FC,

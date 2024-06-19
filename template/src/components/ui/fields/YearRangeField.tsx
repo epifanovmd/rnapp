@@ -1,9 +1,8 @@
+import { createSlot, useSlotProps } from "@force-dev/react";
 import {
-  createSlot,
   ModalHeader,
   ModalHeaderProps,
   RenderConditional,
-  useSlotProps,
 } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 

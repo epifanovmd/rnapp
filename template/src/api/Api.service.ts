@@ -1,5 +1,5 @@
-import { iocHook } from "@force-dev/react-mobile";
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import { iocHook } from "@force-dev/react";
+import axios, { AxiosInstance } from "axios";
 import { stringify } from "query-string";
 import Config from "react-native-config";
 

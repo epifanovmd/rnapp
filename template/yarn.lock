@@ -1327,37 +1327,28 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@force-dev/react-mobile@^0.0.131":
-  version "0.0.131"
-  resolved "https://registry.yarnpkg.com/@force-dev/react-mobile/-/react-mobile-0.0.131.tgz#b640141af83cbcf0bc3a2cfe74706f7adfdcecfc"
-  integrity sha512-HOvz1HnAUH8ZsnXWWoysPn5jDj4WFT49hIMHXU703dFt8yzYWivksWPPTVt9CGIAQQJe4iBv1a4SdErRcvRjYg==
+"@force-dev/react-mobile@^0.0.135":
+  version "0.0.135"
+  resolved "https://registry.yarnpkg.com/@force-dev/react-mobile/-/react-mobile-0.0.135.tgz#e83086e44c0d117917c90a0390ff4140fddd3d2d"
+  integrity sha512-W4kWhbexwketba/gmj37S5zCnyTUMT0bF+UFZ5qSuxXATLZgO8uA+J/PX8NtKufsqKZ2+99lr7jJATeRNv3wYQ==
   dependencies:
-    "@force-dev/utils" "^1.1.54"
+    "@force-dev/react" "^1.1.2"
     "@gorhom/portal" "^1.0.14"
     "@react-native-community/blur" "^4.4.0"
-    lodash "^4.17.21"
-    mobx "^6.10.2"
-    react-native-haptic-feedback "^2.2.0"
     react-native-iphone-x-helper "^1.3.1"
     react-native-reanimated "^3.6.2"
 
-"@force-dev/utils@^1.1.54":
-  version "1.1.54"
-  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.1.54.tgz#4175c2d0c2453885ece149a5567a532ee46a0c04"
-  integrity sha512-CRseyr1RgQw76pI6JtJ1DDCcjKkGvIL7dqhFf9zn9ss6kJFyeIN4ngktTpkl8m+GTRFWmf7hXeuqcKF6nXcJnA==
+"@force-dev/react@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@force-dev/react/-/react-1.1.2.tgz#0d20e9ec39d9eb93c1d1ad0ab270c62025d97252"
+  integrity sha512-71QGI6WmJm5N2tRiKKum+aHLDh2YRFN7lE60FVfJpbZB46Wol1cJFA2qNrqNqm+o3GX3HBH59bwHZBd0GVaXsA==
   dependencies:
-    "@types/shortid" "^0.0.32"
-    inversify "^6.0.1"
-    inversify-inject-decorators "^3.1.0"
-    lodash "^4.17.21"
-    mobx "^6.10.2"
-    reflect-metadata "^0.1.13"
-    shortid "^2.2.16"
+    "@force-dev/utils" "^1.1.59"
 
-"@force-dev/utils@^1.1.58":
-  version "1.1.58"
-  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.1.58.tgz#a0b674a81e52f3e47d247a131f05b069df3b3d89"
-  integrity sha512-2/esQg5ZZJwe3j2rRsk8KBZluZMnp2OMj6Yg0W/PJScQdoCLhuSr83/XhDuTLxDZqvjhdepnpIXrYYzZnGc80w==
+"@force-dev/utils@^1.1.59":
+  version "1.1.59"
+  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.1.59.tgz#133edd9be0a26e15ce23f9101d521e03e2fd7eb2"
+  integrity sha512-qF0mHZX9cJCiXeAfISJGPMJ6kWulSG0RrzqZ1wDgfGJEAugQKo9g3nI7DSRC1QGzlCAsjawd5deAgrf7fuSMEw==
   dependencies:
     "@types/shortid" "^0.0.32"
     inversify "^6.0.1"

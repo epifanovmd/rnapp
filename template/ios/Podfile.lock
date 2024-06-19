@@ -957,7 +957,7 @@ PODS:
   - React-Mapbuffer (0.73.1):
     - glog
     - React-debug
-  - react-mobile (0.0.131):
+  - react-mobile (0.0.135):
     - React-Core
   - react-native-config (1.4.5):
     - react-native-config/App (= 1.4.5)
@@ -1468,7 +1468,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 369048694e39942063c5d08e9580b43e2edd379a
   React-logger: e0c1e918d9588a9f39c9bc62d9d6bfe9ca238d9d
   React-Mapbuffer: 9731a0a63ebaf8976014623c4d637744d7353a7c
-  react-mobile: fde64f2f21a33bf2eff9aef376c3bcbdc103fa21
+  react-mobile: fa15083aebbbf6e4183111d2aaedd75161a51e81
   react-native-config: 6502b1879f97ed5ac570a029961fc35ea606cd14
   react-native-document-picker: 86bcfb8e2c94cd587ca9feb0049831b806df590d
   react-native-image-picker: 3269f75c251cdcd61ab51b911dd30d6fff8c6169

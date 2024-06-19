@@ -1,4 +1,4 @@
-import { iocHook } from "@force-dev/react-mobile";
+import { iocHook } from "@force-dev/react";
 import { Interval } from "@force-dev/utils";
 import { reaction } from "mobx";
 

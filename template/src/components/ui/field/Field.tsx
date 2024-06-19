@@ -1,10 +1,9 @@
+import { createSlot, useSlotProps } from "@force-dev/react";
 import {
   Col,
-  createSlot,
   FlexProps,
   RenderConditional,
   Row,
-  useSlotProps,
 } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
 

@@ -1,9 +1,5 @@
-import {
-  createSlot,
-  FlexProps,
-  Row,
-  useSlotProps,
-} from "@force-dev/react-mobile";
+import { createSlot, useSlotProps } from "@force-dev/react";
+import { FlexProps, Row } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
 import { ColorValue } from "react-native";
 

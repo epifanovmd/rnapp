@@ -1,4 +1,4 @@
-import { iocHook } from "@force-dev/react-mobile";
+import { iocHook } from "@force-dev/react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeAutoObservable, reaction } from "mobx";
 

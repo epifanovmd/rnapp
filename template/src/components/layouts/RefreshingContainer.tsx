@@ -1,6 +1,6 @@
 import "react-native-gesture-handler";
 
-import { mergeRefs } from "@force-dev/react-mobile";
+import { mergeRefs } from "@force-dev/react";
 import React, {
   forwardRef,
   memo,

@@ -1,10 +1,9 @@
+import { createSlot, useSlotProps } from "@force-dev/react";
 import {
-  createSlot,
   Input,
   InputProps,
   RenderConditional,
   useModal,
-  useSlotProps,
 } from "@force-dev/react-mobile";
 import React, {
   FC,
