@@ -11,8 +11,8 @@ import {
   IApiService,
 } from "./Api.types";
 
-export const BASE_URL = Config.BASE_URL;
-export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
+export const BASE_URL: string | undefined = Config.BASE_URL;
+export const SOCKET_BASE_URL: string | undefined = Config.SOCKET_BASE_URL;
 
 export const useApiService = iocHook(IApiService);
 

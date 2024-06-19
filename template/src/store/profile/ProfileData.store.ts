@@ -3,7 +3,6 @@ import { DataHolder } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
 
 import { ApiResponse } from "../../api";
-import { INavigationService, NavigationService } from "../../navigation";
 import {
   IProfile,
   IProfileService,
@@ -20,7 +19,6 @@ export class ProfileDataStore implements IProfileDataStore {
   public holder = new DataHolder<IProfile>();
 
   constructor(
-    @INavigationService() private _navigationService: NavigationService,
     @IProfileService() private _profileService: IProfileService,
     @ITokenService() private _tokenService: ITokenService,
   ) {
