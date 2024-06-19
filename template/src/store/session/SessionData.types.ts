@@ -1,13 +1,9 @@
-import { iocDecorator } from "@force-dev/utils";
+import { iocDecorator, SupportInitialize } from "@force-dev/utils";
+
+import { IProfile } from "../../service";
 
 export const ISessionDataStore = iocDecorator<ISessionDataStore>();
 
-export interface ISessionDataStore {
-  token?: string;
-
-  setAuthorized(status: boolean): void;
-
-  setToken(token?: string): void;
-
-  clearToken(): void;
+export interface ISessionDataStore extends SupportInitialize {
+  restore(): Promise<IProfile | undefined>;
 }

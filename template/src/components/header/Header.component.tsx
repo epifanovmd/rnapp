@@ -69,18 +69,19 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
       },
       (currentValue, previousValue) => {
         runOnJS(setHide)(
-          !!(
-            currentValue &&
-            currentValue !== previousValue &&
-            currentValue > 40
-          ),
+          currentValue !== undefined &&
+            !(
+              currentValue &&
+              currentValue !== previousValue &&
+              currentValue > 40
+            ),
         );
       },
     );
 
     const actionStyle: ViewStyle = useMemo(
       () => ({
-        display: hide ? "flex" : "none",
+        display: hide ? "none" : "flex",
       }),
       [hide],
     );

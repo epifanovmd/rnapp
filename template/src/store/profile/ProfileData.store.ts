@@ -1,0 +1,108 @@
+import { iocHook } from "@force-dev/react-mobile";
+import { DataHolder } from "@force-dev/utils";
+import { makeAutoObservable } from "mobx";
+
+import { ApiResponse } from "../../api";
+import { INavigationService, NavigationService } from "../../navigation";
+import {
+  IProfile,
+  IProfileService,
+  IRefreshTokenResponse,
+  ISignInRequest,
+  ITokenService,
+} from "../../service";
+import { IProfileDataStore } from "./ProfileData.types";
+
+export const useProfileDataStore = iocHook(IProfileDataStore);
+
+@IProfileDataStore({ inSingleton: true })
+export class ProfileDataStore implements IProfileDataStore {
+  public holder = new DataHolder<IProfile>();
+
+  constructor(
+    @INavigationService() private _navigationService: NavigationService,
+    @IProfileService() private _profileService: IProfileService,
+    @ITokenService() private _tokenService: ITokenService,
+  ) {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  restoreRefreshToken() {
+    return this._tokenService.getRefreshToken().then(async refreshToken => {
+      if (refreshToken) {
+        await this.refresh(refreshToken);
+      }
+
+      return refreshToken;
+    });
+  }
+
+  get profile() {
+    return this.holder.d;
+  }
+
+  get isLoading() {
+    return this.holder.isLoading;
+  }
+
+  get isError() {
+    return this.holder.isError;
+  }
+
+  get isEmpty() {
+    return this.holder.isEmpty;
+  }
+
+  async getProfile() {
+    this.holder.setLoading();
+
+    const res = await this._profileService.getProfile();
+
+    this._updateProfileHolder({
+      ...res,
+      data: res.data && {
+        ...res.data,
+        token: this._tokenService.accessToken,
+        refreshToken: this._tokenService.refreshToken,
+      },
+    });
+  }
+
+  async refresh(refreshToken: string) {
+    const res = await this._profileService.refresh({ refreshToken });
+
+    if (res.error) {
+      this._tokenService.clear();
+    } else if (res.data) {
+      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
+    }
+  }
+
+  async signIn(params: ISignInRequest) {
+    this.holder.setLoading();
+
+    const res = await this._profileService.signIn(params);
+
+    this._updateProfileHolder(res);
+  }
+
+  // async signUp(params: ISignUpRequest) {
+  //   this.holder.setLoading();
+  //
+  //   const res = await this._profileService.signUp(params);
+  //
+  //   this._updateProfileHolder(res);
+  // }
+
+  private _updateProfileHolder(
+    res: ApiResponse<IProfile & IRefreshTokenResponse>,
+  ) {
+    if (res.error) {
+      this._tokenService.clear();
+      this.holder.setError({ msg: res.error.message });
+    } else if (res.data) {
+      this.holder.setData(res.data);
+      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
+    }
+  }
+}

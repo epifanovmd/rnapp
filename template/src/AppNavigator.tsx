@@ -5,7 +5,8 @@ import {
   PathConfigMap,
 } from "@react-navigation/native";
 import { CardStyleInterpolators } from "@react-navigation/stack";
-import React, { forwardRef, memo, useMemo } from "react";
+import { observer } from "mobx-react-lite";
+import React, { forwardRef, useMemo } from "react";
 import { Linking } from "react-native";
 import Config from "react-native-config";
 
@@ -18,6 +19,7 @@ import {
   StackScreens,
 } from "./navigation";
 import {
+  Authorization,
   Components,
   Notifications,
   Pickers,
@@ -33,6 +35,7 @@ interface IProps {
 export const SCREENS: StackScreens = {
   MAIN: { screen: TabScreens },
 
+  Authorization: { screen: Authorization },
   Notifications: { screen: Notifications },
   Pickers: { screen: Pickers },
   Components: { screen: Components },
@@ -114,7 +117,7 @@ const linking: LinkingOptions<ScreenParamList> = {
   },
 };
 
-export const AppNavigator = memo(
+export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IProps>(
     ({ onReady }, ref) => {
       const { theme } = useTheme();
@@ -146,7 +149,7 @@ export const AppNavigator = memo(
         >
           <StackNavigation
             routes={SCREENS}
-            // initialRouteName={'ScreenPlayground'}
+            // initialRouteName={isAuthorized ? "Playground" : "Authorization"}
             screenOptions={options}
           />
         </NavigationContainer>

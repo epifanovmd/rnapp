@@ -3,6 +3,7 @@ import {
   NotificationProvider,
   NotificationToastProps,
 } from "@force-dev/react-mobile";
+import { disposer } from "@force-dev/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -12,6 +13,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import {
   StatusBar,
@@ -32,7 +34,8 @@ import { AppNavigator } from "./AppNavigator";
 import { AttachModalProvider } from "./components";
 import { initLocalization, useTranslation } from "./localization";
 import { navigationRef } from "./navigation";
-import { log } from "./service";
+import { ISocketService, log } from "./service";
+import { useSessionDataStore } from "./store";
 import { ThemeProvider } from "./theme";
 
 configure({ enforceActions: "observed" });
@@ -43,6 +46,8 @@ const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
+  const { initialize, restore } = useSessionDataStore();
+
   useEffect(() => {
     AsyncStorage.getItem("i18nextLng").then(async lang => {
       if (lang) {
@@ -50,12 +55,24 @@ const App: FC = observer(() => {
       }
     });
     log.debug("CONFIG", JSON.stringify(Config));
+
+    const dispose = initialize();
+
+    return () => {
+      disposer(dispose);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onReady = useCallback(() => {
+  const onReady = useCallback(async () => {
+    const profile = await restore();
+
+    if (!profile) {
+      navigationRef.navigate("Authorization");
+    }
+
     SplashScreen.hide();
-  }, []);
+  }, [restore]);
 
   return (
     <GestureHandlerRootView style={ss.container}>

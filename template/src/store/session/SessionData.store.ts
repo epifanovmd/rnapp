@@ -1,61 +1,62 @@
 import { iocHook } from "@force-dev/react-mobile";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { makeAutoObservable, reaction, runInAction } from "mobx";
+import { Interval } from "@force-dev/utils";
+import { reaction } from "mobx";
 
-import { INavigationService, NavigationService } from "../../navigation";
+import { IApiService } from "../../api";
+import { navigationRef } from "../../navigation";
+import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "./SessionData.types";
 
 export const useSessionDataStore = iocHook(ISessionDataStore);
 
-@ISessionDataStore({ inSingleton: true })
+@ISessionDataStore()
 export class SessionDataStore implements ISessionDataStore {
-  private _token: string = "";
-  private _authorized: boolean = false;
+  private _interval = new Interval({ timeout: 60000 });
 
-  constructor(@INavigationService() private _nav: NavigationService) {
-    AsyncStorage.getItem("access_token").then(token => {
-      if (token)
-        runInAction(() => {
-          this._token = token;
-        });
+  constructor(
+    @IApiService() private _apiService: IApiService,
+    @IProfileDataStore() private _profileDataStore: IProfileDataStore,
+  ) {}
+
+  initialize = () => {
+    this._apiService.onError(async ({ status, error }) => {
+      console.log("status", status);
+      console.log("error", error);
+
+      if (status === 401) {
+        navigationRef.navigate("Authorization", {});
+      }
+
+      if (status === 403) {
+        await this._profileDataStore.restoreRefreshToken();
+      }
     });
 
-    makeAutoObservable(this, {}, { autoBind: true });
+    return [
+      reaction(
+        () => this._profileDataStore.profile,
+        profile => {
+          if (profile) {
+            this._interval.start(async () => {
+              await this._profileDataStore.restoreRefreshToken();
+            });
+          } else {
+            this._interval.stop();
+          }
+        },
+        { fireImmediately: true },
+      ),
+      () => this._interval.stop(),
+    ];
+  };
 
-    reaction(
-      () => this.token,
-      token => {
-        console.log("access_token", token);
-        if (!token) {
-          this.setAuthorized(false);
-          // this._nav.replaceTo('ScreenAuthorization', {});
-        }
-      },
-    );
-  }
+  restore = async () => {
+    const token = await this._profileDataStore.restoreRefreshToken();
 
-  get token() {
-    return this._token;
-  }
-
-  get isAuthorized() {
-    return this._authorized && !!this.token;
-  }
-
-  setAuthorized(status: boolean) {
-    this._authorized = status;
-  }
-
-  setToken(token?: string) {
-    if (!token) {
-      AsyncStorage.removeItem("token").then();
-    } else {
-      AsyncStorage.setItem("token", token).then();
+    if (token) {
+      await this._profileDataStore.getProfile();
     }
-    this._token = token ?? "";
-  }
 
-  clearToken() {
-    this.setToken("");
-  }
+    return this._profileDataStore.profile;
+  };
 }

@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from "react-native";
 
-import { Theme, useTheme, useThemeAwareObject } from "../../../theme";
+import { ITheme, useTheme, useThemeAwareObject } from "../../../theme";
 
 export interface TextProps extends FlexProps<TextStyle>, RNTextProps {
   text?: string;
@@ -31,7 +31,7 @@ export const Text: FC<TextProps> = memo(({ text, children, ...rest }) => {
   );
 });
 
-const createStyles = (theme: Theme) =>
+const createStyles = (theme: ITheme) =>
   StyleSheet.create({
     wrap: {
       color: theme.color.text,

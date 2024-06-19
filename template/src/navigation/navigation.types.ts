@@ -12,12 +12,14 @@ interface TabScreenParams {
 }
 
 export enum StackScreenName {
+  Authorization = "Authorization",
   Notifications = "Notifications",
   Pickers = "Pickers",
   Components = "Components",
 }
 
 interface StackScreenParams {
+  Authorization: any;
   Notifications: any;
   Pickers: any;
   Components: any;

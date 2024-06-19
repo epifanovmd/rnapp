@@ -1,13 +1,9 @@
-import { notificationService } from "@force-dev/react-mobile";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios, { AxiosInstance } from "axios";
+import { iocHook } from "@force-dev/react-mobile";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { stringify } from "query-string";
 import Config from "react-native-config";
-import SetCookieParser from "set-cookie-parser";
 
 import { DebugVars } from "../../debugVars";
-import { log } from "../service";
-import { ISessionDataStore } from "../store/session";
 import {
   ApiAbortPromise,
   ApiRequestConfig,
@@ -18,14 +14,15 @@ import {
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
+export const useApiService = iocHook(IApiService);
+
 @IApiService({ inSingleton: true })
 export class ApiService implements IApiService {
   private instance: AxiosInstance;
   private raceConditionMap: Map<string, AbortController> = new Map();
+  private token: string = "";
 
-  constructor(
-    @ISessionDataStore() private _sessionDataStore: ISessionDataStore,
-  ) {
+  constructor() {
     this.instance = axios.create({
       timeout: 2 * 60 * 1000,
       withCredentials: true,
@@ -37,9 +34,9 @@ export class ApiService implements IApiService {
     });
 
     this.instance.interceptors.request.use(async request => {
-      await AsyncStorage.getItem("token").then(token => {
-        request.headers.set("Authorization", `Bearer ${token}`);
-      });
+      if (this.token) {
+        request.headers.set("Authorization", `Bearer ${this.token}`);
+      }
 
       if (DebugVars.logRequest) {
         console.log(
@@ -55,51 +52,43 @@ export class ApiService implements IApiService {
 
     this.instance.interceptors.response.use(
       response => {
-        const sch = response.headers["set-cookie"] || [];
-        const parsed = SetCookieParser.parse(sch);
-        const token = parsed.find(item => item.name === "token")?.value;
+        const status = response.status;
+        const data = response.data;
 
-        if (token) {
-          this._sessionDataStore.setToken(token);
-        }
-
-        return { data: response } as any;
+        return { data, status } satisfies ApiResponse<any> as any;
       },
-      (
-        e,
-      ): Promise<{
-        data: {
-          error: Error;
-        };
-      }> => {
-        const status = e?.response?.status || 500;
-
-        if (status === 401) {
-          this._sessionDataStore.clearToken();
-        }
-
-        const error: Error = new Error(e.message ?? e.response.data ?? e);
-
-        if (e && e?.message !== "canceled" && status !== 401) {
-          notificationService.show(error.message, {
-            type: "danger",
-            swipeEnabled: false,
-            onPress() {
-              notificationService.hide().then();
-            },
-          });
-        }
-
-        log.error("API Error - ", error);
-
+      e => {
         return Promise.resolve({
-          data: {
-            error,
-          },
-        });
+          status: e?.response?.status || 400,
+          error: new Error(e.message ?? e.response.data ?? e),
+        } satisfies ApiResponse<any>);
       },
     );
   }
+
+  setToken = (token: string) => {
+    this.token = token;
+  };
+
+  public onError = (
+    callback: (params: {
+      status: number;
+      error: Error;
+      isCanceled: boolean;
+    }) => void,
+  ) => {
+    this.instance.interceptors.response.use(((response: ApiResponse<any>) => {
+      if (response.error) {
+        callback({
+          status: response.status,
+          error: response.error,
+          isCanceled: response.error.message === "canceled",
+        });
+      }
+
+      return response;
+    }) as any);
+  };
 
   public get<R = any, P = any>(
     endpoint: string,
@@ -114,7 +103,7 @@ export class ApiService implements IApiService {
         ...config,
         signal: controller.signal,
       })
-      .then(response => response.data) as ApiAbortPromise<ApiResponse<R>>;
+      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
 
     promise.abort = () => controller.abort();
 
@@ -133,7 +122,7 @@ export class ApiService implements IApiService {
         ...config,
         signal: controller.signal,
       })
-      .then(response => response.data) as ApiAbortPromise<ApiResponse<R>>;
+      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
 
     promise.abort = () => controller.abort();
 
@@ -152,7 +141,7 @@ export class ApiService implements IApiService {
         ...config,
         signal: controller.signal,
       })
-      .then(response => response.data) as ApiAbortPromise<ApiResponse<R>>;
+      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
 
     promise.abort = () => controller.abort();
 
@@ -171,7 +160,7 @@ export class ApiService implements IApiService {
         ...config,
         signal: controller.signal,
       })
-      .then(response => response.data) as ApiAbortPromise<ApiResponse<R>>;
+      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
 
     promise.abort = () => controller.abort();
 
@@ -186,7 +175,7 @@ export class ApiService implements IApiService {
         ...config,
         signal: controller.signal,
       })
-      .then(response => response.data) as ApiAbortPromise<ApiResponse<R>>;
+      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
 
     promise.abort = () => controller.abort();
 
