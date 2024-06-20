@@ -1,34 +1,35 @@
-import { iocHook } from "@force-dev/react";
-import { Interval } from "@force-dev/utils";
-import { reaction } from "mobx";
+import { DataHolder, Interval } from "@force-dev/utils";
+import { makeAutoObservable, reaction } from "mobx";
 
 import { IApiService } from "../../api";
-import { navigationRef } from "../../navigation";
+import { ITokenService } from "../../service";
 import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "./SessionData.types";
-
-export const useSessionDataStore = iocHook(ISessionDataStore);
 
 @ISessionDataStore()
 export class SessionDataStore implements ISessionDataStore {
   private _interval = new Interval({ timeout: 60000 });
+  private holder: DataHolder<string> = new DataHolder<string>();
 
   constructor(
     @IApiService() private _apiService: IApiService,
     @IProfileDataStore() private _profileDataStore: IProfileDataStore,
-  ) {}
+    @ITokenService() private _tokenService: ITokenService,
+  ) {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
 
-  initialize = () => {
+  initialize(authRedirect: () => void) {
     this._apiService.onError(async ({ status, error }) => {
       console.log("status", status);
       console.log("error", error);
 
       if (status === 401) {
-        navigationRef.navigate("Authorization", {});
+        authRedirect();
       }
 
       if (status === 403) {
-        await this._profileDataStore.restoreRefreshToken();
+        await this._profileDataStore.updateToken();
       }
     });
 
@@ -38,7 +39,7 @@ export class SessionDataStore implements ISessionDataStore {
         profile => {
           if (profile) {
             this._interval.start(async () => {
-              await this._profileDataStore.restoreRefreshToken();
+              await this._profileDataStore.updateToken();
             });
           } else {
             this._interval.stop();
@@ -46,17 +47,28 @@ export class SessionDataStore implements ISessionDataStore {
         },
         { fireImmediately: true },
       ),
+      reaction(() => this._tokenService.token, this.holder.setData, {
+        fireImmediately: true,
+      }),
       () => this._interval.stop(),
     ];
-  };
+  }
 
-  restore = async () => {
-    const token = await this._profileDataStore.restoreRefreshToken();
+  get isAuthorized() {
+    return this.holder.isFilled;
+  }
 
-    if (token) {
-      await this._profileDataStore.getProfile();
-    }
+  get isReady() {
+    return this.holder.isReady;
+  }
 
-    return this._profileDataStore.profile;
-  };
+  async restore() {
+    this.holder.setLoading();
+
+    const { token } = await this._profileDataStore.updateToken();
+
+    this.holder.setData(token);
+
+    return token;
+  }
 }

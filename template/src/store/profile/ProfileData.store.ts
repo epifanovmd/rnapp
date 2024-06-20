@@ -1,4 +1,3 @@
-import { iocHook } from "@force-dev/react";
 import { DataHolder } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
 
@@ -6,13 +5,11 @@ import { ApiResponse } from "../../api";
 import {
   IProfile,
   IProfileService,
-  IRefreshTokenResponse,
   ISignInRequest,
+  ISignInResponse,
   ITokenService,
 } from "../../service";
 import { IProfileDataStore } from "./ProfileData.types";
-
-export const useProfileDataStore = iocHook(IProfileDataStore);
 
 @IProfileDataStore({ inSingleton: true })
 export class ProfileDataStore implements IProfileDataStore {
@@ -25,13 +22,16 @@ export class ProfileDataStore implements IProfileDataStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  restoreRefreshToken() {
-    return this._tokenService.getRefreshToken().then(async refreshToken => {
+  updateToken() {
+    return this._tokenService.restoreRefreshToken().then(async refreshToken => {
       if (refreshToken) {
-        await this.refresh(refreshToken);
+        await this._refresh(refreshToken);
       }
 
-      return refreshToken;
+      return {
+        token: this._tokenService.token,
+        refreshToken: this._tokenService.refreshToken,
+      };
     });
   }
 
@@ -60,20 +60,10 @@ export class ProfileDataStore implements IProfileDataStore {
       ...res,
       data: res.data && {
         ...res.data,
-        token: this._tokenService.accessToken,
+        token: this._tokenService.token,
         refreshToken: this._tokenService.refreshToken,
       },
     });
-  }
-
-  async refresh(refreshToken: string) {
-    const res = await this._profileService.refresh({ refreshToken });
-
-    if (res.error) {
-      this._tokenService.clear();
-    } else if (res.data) {
-      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
-    }
   }
 
   async signIn(params: ISignInRequest) {
@@ -92,9 +82,17 @@ export class ProfileDataStore implements IProfileDataStore {
   //   this._updateProfileHolder(res);
   // }
 
-  private _updateProfileHolder(
-    res: ApiResponse<IProfile & IRefreshTokenResponse>,
-  ) {
+  private async _refresh(refreshToken: string) {
+    const res = await this._profileService.refresh({ refreshToken });
+
+    if (res.error) {
+      this._tokenService.clear();
+    } else if (res.data) {
+      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
+    }
+  }
+
+  private _updateProfileHolder(res: ApiResponse<ISignInResponse>) {
     if (res.error) {
       this._tokenService.clear();
       this.holder.setError({ msg: res.error.message });

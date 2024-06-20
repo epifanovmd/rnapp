@@ -13,7 +13,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
 } from "react";
 import {
   StatusBar,
@@ -34,7 +33,7 @@ import { AppNavigator } from "./AppNavigator";
 import { AttachModalProvider } from "./components";
 import { initLocalization, useTranslation } from "./localization";
 import { navigationRef } from "./navigation";
-import { ISocketService, log } from "./service";
+import { log } from "./service";
 import { useSessionDataStore } from "./store";
 import { ThemeProvider } from "./theme";
 
@@ -46,7 +45,7 @@ const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
-  const { initialize, restore } = useSessionDataStore();
+  const { restore, initialize, isAuthorized, isReady } = useSessionDataStore();
 
   useEffect(() => {
     AsyncStorage.getItem("i18nextLng").then(async lang => {
@@ -56,7 +55,9 @@ const App: FC = observer(() => {
     });
     log.debug("CONFIG", JSON.stringify(Config));
 
-    const dispose = initialize();
+    const dispose = initialize(() => {
+      navigationRef.navigate("Authorization");
+    });
 
     return () => {
       disposer(dispose);
@@ -65,9 +66,9 @@ const App: FC = observer(() => {
   }, []);
 
   const onReady = useCallback(async () => {
-    const profile = await restore();
+    const token = await restore();
 
-    if (!profile) {
+    if (!token) {
       navigationRef.navigate("Authorization");
     }
 
@@ -82,7 +83,9 @@ const App: FC = observer(() => {
           <ModalHost>
             <AttachModalProvider>
               <_Notifications>
-                <AppNavigator ref={navigationRef} onReady={onReady} />
+                {isReady && (
+                  <AppNavigator ref={navigationRef} onReady={onReady} />
+                )}
               </_Notifications>
             </AttachModalProvider>
           </ModalHost>

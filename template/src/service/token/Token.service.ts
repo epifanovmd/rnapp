@@ -1,48 +1,46 @@
-import { iocHook } from "@force-dev/react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeAutoObservable, reaction } from "mobx";
 
 import { IApiService } from "../../api";
 import { ITokenService } from "./Token.types";
 
-export const useTokenService = iocHook(ITokenService);
-
 @ITokenService({ inSingleton: true })
 export class TokenService implements ITokenService {
-  accessToken: string = "";
-  refreshToken: string = "";
+  public token: string = "";
+  public refreshToken: string = "";
 
   constructor(@IApiService() private _apiService: IApiService) {
-    this.getRefreshToken().then();
+    this.restoreRefreshToken().then();
 
     makeAutoObservable(this, {}, { autoBind: true });
 
-    reaction(() => this.accessToken, _apiService.setToken, {
-      fireImmediately: true,
-    });
+    reaction(() => this.token, _apiService.setToken, { fireImmediately: true });
   }
 
   setTokens(accessToken: string, refreshToken: string) {
-    this.accessToken = accessToken;
+    this.token = accessToken;
 
-    AsyncStorage.setItem("refresh_token", refreshToken).then();
+    if (refreshToken) {
+      localStorage.setItem("refresh_token", refreshToken);
+    } else {
+      this.clear();
+    }
     this.refreshToken = refreshToken;
   }
 
-  getRefreshToken() {
-    return AsyncStorage.getItem("refresh_token").then(async refreshToken => {
-      const token = refreshToken ?? "";
+  async restoreRefreshToken() {
+    const token = await new Promise<string | null>(resolve =>
+      resolve(localStorage.getItem("refresh_token")),
+    ).then(res => res ?? "");
 
-      this.setTokens(this.accessToken, token);
+    this.setTokens(this.token, token);
 
-      return token;
-    });
+    return token;
   }
 
   clear() {
-    this.accessToken = "";
+    this.token = "";
 
-    AsyncStorage.removeItem("refresh_token").then();
+    localStorage.removeItem("refresh_token");
     this.refreshToken = "";
   }
 }

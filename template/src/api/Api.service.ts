@@ -1,4 +1,3 @@
-import { iocHook } from "@force-dev/react";
 import axios, { AxiosInstance } from "axios";
 import { stringify } from "query-string";
 import Config from "react-native-config";
@@ -11,10 +10,8 @@ import {
   IApiService,
 } from "./Api.types";
 
-export const BASE_URL: string | undefined = Config.BASE_URL;
-export const SOCKET_BASE_URL: string | undefined = Config.SOCKET_BASE_URL;
-
-export const useApiService = iocHook(IApiService);
+export const BASE_URL = Config.BASE_URL;
+export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
 @IApiService({ inSingleton: true })
 export class ApiService implements IApiService {
