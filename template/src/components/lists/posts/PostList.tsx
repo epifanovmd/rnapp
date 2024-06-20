@@ -1,4 +1,4 @@
-import { Col, Row } from "@force-dev/react-mobile";
+import { Row } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
 import { ListRenderItemInfo } from "react-native";
@@ -7,6 +7,7 @@ import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventType
 
 import { PostModel } from "../../../models";
 import { RefreshingContainer } from "../../layouts/RefreshingContainer";
+import { Post } from "../../post";
 import { Text, Title } from "../../ui";
 
 interface IProps {
@@ -25,14 +26,9 @@ export const PostList: FC<PropsWithChildren<IProps>> = observer(
       (item: PostModel) => item.data.id.toString(),
       [],
     );
+
     const renderItem = useCallback(
-      ({ item }: ListRenderItemInfo<PostModel>) => (
-        <Col mv={8} bg={"gray"} radius={10} pa={6}>
-          <Text fontWeight={"bold"}>{item.data.title}</Text>
-          <Text>{item.data.tags}</Text>
-          <Text>{item.data.body}</Text>
-        </Col>
-      ),
+      ({ item }: ListRenderItemInfo<PostModel>) => <Post post={item} />,
       [],
     );
 

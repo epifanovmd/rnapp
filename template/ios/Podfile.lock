@@ -959,6 +959,10 @@ PODS:
     - React-debug
   - react-mobile (0.0.135):
     - React-Core
+  - react-native-blur (4.4.0):
+    - glog
+    - RCT-Folly (= 2022.05.16.00)
+    - React-Core
   - react-native-config (1.4.5):
     - react-native-config/App (= 1.4.5)
   - react-native-config/App (1.4.5):
@@ -1235,6 +1239,7 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - "react-mobile (from `../node_modules/@force-dev/react-mobile`)"
+  - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
   - react-native-config (from `../node_modules/react-native-config`)
   - react-native-document-picker (from `../node_modules/react-native-document-picker`)
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
@@ -1351,6 +1356,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   react-mobile:
     :path: "../node_modules/@force-dev/react-mobile"
+  react-native-blur:
+    :path: "../node_modules/@react-native-community/blur"
   react-native-config:
     :path: "../node_modules/react-native-config"
   react-native-document-picker:
@@ -1469,6 +1476,7 @@ SPEC CHECKSUMS:
   React-logger: e0c1e918d9588a9f39c9bc62d9d6bfe9ca238d9d
   React-Mapbuffer: 9731a0a63ebaf8976014623c4d637744d7353a7c
   react-mobile: fa15083aebbbf6e4183111d2aaedd75161a51e81
+  react-native-blur: 27113acc008facbc8accae5fb3a78b8424f64cfd
   react-native-config: 6502b1879f97ed5ac570a029961fc35ea606cd14
   react-native-document-picker: 86bcfb8e2c94cd587ca9feb0049831b806df590d
   react-native-image-picker: 3269f75c251cdcd61ab51b911dd30d6fff8c6169

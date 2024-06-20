@@ -1,3 +1,4 @@
+import { HoldItemProvider } from "@force-dev/react-mobile";
 import {
   LinkingOptions,
   NavigationContainer,
@@ -9,6 +10,7 @@ import { observer } from "mobx-react-lite";
 import React, { forwardRef, useMemo } from "react";
 import { Linking } from "react-native";
 import Config from "react-native-config";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   AppTabScreens,
@@ -121,6 +123,7 @@ export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IProps>(
     ({ onReady }, ref) => {
       const { theme } = useTheme();
+      const safeAreaInsets = useSafeAreaInsets();
 
       const navigatorTheme = useMemo(() => {
         return {
@@ -141,14 +144,16 @@ export const AppNavigator = observer(
       ]);
 
       return (
-        <NavigationContainer
-          ref={ref}
-          linking={linking}
-          onReady={onReady}
-          theme={navigatorTheme}
-        >
-          <StackNavigation routes={SCREENS} screenOptions={options} />
-        </NavigationContainer>
+        <HoldItemProvider safeAreaInsets={safeAreaInsets}>
+          <NavigationContainer
+            ref={ref}
+            linking={linking}
+            onReady={onReady}
+            theme={navigatorTheme}
+          >
+            <StackNavigation routes={SCREENS} screenOptions={options} />
+          </NavigationContainer>
+        </HoldItemProvider>
       );
     },
   ),

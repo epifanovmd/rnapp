@@ -57,7 +57,7 @@ export class ApiService implements IApiService {
       e => {
         return Promise.resolve({
           status: e?.response?.status || 400,
-          error: new Error(e.message ?? e.response.data ?? e),
+          error: new Error(e?.response?.data?.message ?? e.message ?? e),
         } satisfies ApiResponse<any>);
       },
     );

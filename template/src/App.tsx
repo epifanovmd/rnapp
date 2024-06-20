@@ -1,4 +1,5 @@
 import {
+  HoldItemProvider,
   ModalHost,
   NotificationProvider,
   NotificationToastProps,
@@ -9,6 +10,7 @@ import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, {
   FC,
+  memo,
   PropsWithChildren,
   useCallback,
   useEffect,
@@ -35,7 +37,7 @@ import { initLocalization, useTranslation } from "./localization";
 import { navigationRef } from "./navigation";
 import { log } from "./service";
 import { useSessionDataStore } from "./store";
-import { ThemeProvider } from "./theme";
+import { ThemeProvider, useTheme } from "./theme";
 
 configure({ enforceActions: "observed" });
 
@@ -81,11 +83,13 @@ const App: FC = observer(() => {
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <SafeAreaProvider>
           <ModalHost>
-            <AttachModalProvider>
-              <_Notifications>
-                <AppNavigator ref={navigationRef} onReady={onReady} />
-              </_Notifications>
-            </AttachModalProvider>
+            <_HoldItemProvider>
+              <AttachModalProvider>
+                <_Notifications>
+                  <AppNavigator ref={navigationRef} onReady={onReady} />
+                </_Notifications>
+              </AttachModalProvider>
+            </_HoldItemProvider>
           </ModalHost>
         </SafeAreaProvider>
       </ThemeProvider>
@@ -151,5 +155,16 @@ const _Notifications: FC<PropsWithChildren> = ({ children }) => {
     </NotificationProvider>
   );
 };
+
+const _HoldItemProvider: FC<PropsWithChildren> = memo(({ children }) => {
+  const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <HoldItemProvider safeAreaInsets={insets} theme={isDark ? "dark" : "light"}>
+      {children}
+    </HoldItemProvider>
+  );
+});
 
 export default App;

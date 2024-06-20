@@ -1,3 +1,4 @@
+import { notificationService } from "@force-dev/react-mobile";
 import { DataHolder, Interval } from "@force-dev/utils";
 import { makeAutoObservable, reaction } from "mobx";
 
@@ -20,9 +21,15 @@ export class SessionDataStore implements ISessionDataStore {
   }
 
   initialize(authRedirect: () => void) {
-    this._apiService.onError(async ({ status, error }) => {
+    this._apiService.onError(async ({ status, error, isCanceled }) => {
       console.log("status", status);
       console.log("error", error);
+
+      if (!isCanceled) {
+        notificationService.show(`${error.message} - ${status}`, {
+          type: "danger",
+        });
+      }
 
       if (status === 401) {
         authRedirect();
@@ -65,11 +72,7 @@ export class SessionDataStore implements ISessionDataStore {
   async restore() {
     this.holder.setLoading();
 
-    console.log("updateToken");
-
     const { token } = await this._profileDataStore.updateToken();
-
-    console.log("token", token);
 
     this.holder.setData(token);
 
