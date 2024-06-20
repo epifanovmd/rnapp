@@ -3,7 +3,7 @@ import { FlexProps, Row } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
 import { ColorValue } from "react-native";
 
-import { ButtonProps, TextButton } from "../ui";
+import { ButtonProps, TextButton } from "../../ui";
 
 export interface ModalActionsProps extends FlexProps {
   onReject?: () => void;

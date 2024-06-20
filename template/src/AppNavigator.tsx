@@ -147,11 +147,7 @@ export const AppNavigator = observer(
           onReady={onReady}
           theme={navigatorTheme}
         >
-          <StackNavigation
-            routes={SCREENS}
-            // initialRouteName={isAuthorized ? "Playground" : "Authorization"}
-            screenOptions={options}
-          />
+          <StackNavigation routes={SCREENS} screenOptions={options} />
         </NavigationContainer>
       );
     },

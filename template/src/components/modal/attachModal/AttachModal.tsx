@@ -30,10 +30,10 @@ import {
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
 
-import { useModalStyles } from "../../common";
-import { useTheme } from "../../theme";
-import { CameraIcon, FileDocumentIcon, ImageIcon } from "../icons";
-import { Touchable } from "../ui";
+import { useModalStyles } from "../../../common";
+import { useTheme } from "../../../theme";
+import { CameraIcon, FileDocumentIcon, ImageIcon } from "../../icons";
+import { Touchable } from "../../ui";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,

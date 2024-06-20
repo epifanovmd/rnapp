@@ -2,8 +2,8 @@ import { Locale } from "./types";
 
 export const ruLocale: Locale = {
   navigation: {
+    Posts: "Посты",
     Playground: "Playground",
-    Users: "Пользователи",
     Notifications: "Уведомления",
     Pickers: "Пиккеры",
     Components: "Компоненты",

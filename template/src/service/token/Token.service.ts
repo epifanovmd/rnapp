@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeAutoObservable, reaction } from "mobx";
 
 import { IApiService } from "../../api";
@@ -20,7 +21,7 @@ export class TokenService implements ITokenService {
     this.token = accessToken;
 
     if (refreshToken) {
-      localStorage.setItem("refresh_token", refreshToken);
+      AsyncStorage.setItem("refresh_token", refreshToken).then();
     } else {
       this.clear();
     }
@@ -28,9 +29,9 @@ export class TokenService implements ITokenService {
   }
 
   async restoreRefreshToken() {
-    const token = await new Promise<string | null>(resolve =>
-      resolve(localStorage.getItem("refresh_token")),
-    ).then(res => res ?? "");
+    const token = await AsyncStorage.getItem("refresh_token").then(
+      res => res ?? "",
+    );
 
     this.setTokens(this.token, token);
 
@@ -40,7 +41,7 @@ export class TokenService implements ITokenService {
   clear() {
     this.token = "";
 
-    localStorage.removeItem("refresh_token");
+    AsyncStorage.removeItem("refresh_token").then();
     this.refreshToken = "";
   }
 }

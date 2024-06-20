@@ -34,22 +34,22 @@ export class SessionDataStore implements ISessionDataStore {
     });
 
     return [
-      reaction(
-        () => this._profileDataStore.profile,
-        profile => {
-          if (profile) {
-            this._interval.start(async () => {
-              await this._profileDataStore.updateToken();
-            });
-          } else {
-            this._interval.stop();
-          }
-        },
-        { fireImmediately: true },
-      ),
-      reaction(() => this._tokenService.token, this.holder.setData, {
-        fireImmediately: true,
-      }),
+      // reaction(
+      //   () => this._profileDataStore.profile,
+      //   profile => {
+      //     if (profile) {
+      //       this._interval.start(async () => {
+      //         await this._profileDataStore.updateToken();
+      //       });
+      //     } else {
+      //       this._interval.stop();
+      //     }
+      //   },
+      //   { fireImmediately: true },
+      // ),
+      // reaction(() => this._tokenService.token, this.holder.setData, {
+      //   fireImmediately: true,
+      // }),
       () => this._interval.stop(),
     ];
   }
@@ -65,7 +65,11 @@ export class SessionDataStore implements ISessionDataStore {
   async restore() {
     this.holder.setLoading();
 
+    console.log("updateToken");
+
     const { token } = await this._profileDataStore.updateToken();
+
+    console.log("token", token);
 
     this.holder.setData(token);
 

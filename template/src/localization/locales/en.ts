@@ -2,8 +2,8 @@ import { Locale } from "./types";
 
 export const enLocale: Locale = {
   navigation: {
+    Posts: "Posts",
     Playground: "Playground",
-    Users: "Users",
     Notifications: "Notifications",
     Pickers: "Pickers",
     Components: "Components",

@@ -8,23 +8,23 @@ import {
   ScreenName,
   StackProps,
 } from "../navigation";
-import { Playground, Users } from "./tabs";
+import { Playground, Posts } from "./tabs";
 
 interface IProps extends StackProps {}
 
 export const TAB_SCREENS: AppTabScreens = {
+  Posts: {
+    screen: Posts,
+    options: {
+      title: "navigation.Posts",
+      tabBarIcon: () => <Text>{"Posts"}</Text>,
+    },
+  },
   Playground: {
     screen: Playground,
     options: {
       title: "navigation.Playground",
       tabBarIcon: () => <Text>{"PG"}</Text>,
-    },
-  },
-  Users: {
-    screen: Users,
-    options: {
-      title: "navigation.Users",
-      tabBarIcon: () => <Text>{"US"}</Text>,
     },
   },
 };

@@ -83,9 +83,7 @@ const App: FC = observer(() => {
           <ModalHost>
             <AttachModalProvider>
               <_Notifications>
-                {isReady && (
-                  <AppNavigator ref={navigationRef} onReady={onReady} />
-                )}
+                <AppNavigator ref={navigationRef} onReady={onReady} />
               </_Notifications>
             </AttachModalProvider>
           </ModalHost>

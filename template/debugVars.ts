@@ -15,5 +15,5 @@ if (DebugVars.disableLogs) {
 
 // Вкючение переменных
 // DebugVars.logNavHistory = true;
-// DebugVars.logRequest = true;
+DebugVars.logRequest = true;
 // DebugVars.disableLogs = true;

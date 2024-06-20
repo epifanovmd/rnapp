@@ -19,7 +19,7 @@ import { ColorValue, GestureResponderEvent } from "react-native";
 
 import { useIsVisibleKeyboard, useModalStyles } from "../../../common";
 import { CloseIcon } from "../../icons";
-import { ModalActions, ModalActionsProps } from "../../modalActions";
+import { ModalActions, ModalActionsProps } from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
 import { ScrollView, ScrollViewProps } from "../scrollView";
 

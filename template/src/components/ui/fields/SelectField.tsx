@@ -8,7 +8,7 @@ import {
   ModalActions,
   ModalActionsProps,
   ModalActionsSlots,
-} from "../../modalActions";
+} from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
 
 export interface SelectFieldProps<D extends any, M extends boolean = false>

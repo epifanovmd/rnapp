@@ -10,7 +10,7 @@ import {
   ModalActions,
   ModalActionsProps,
   ModalActionsSlots,
-} from "../../modalActions";
+} from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
 import { RangePickerProps, YearRangePicker } from "../picker";
 import { Text } from "../text";

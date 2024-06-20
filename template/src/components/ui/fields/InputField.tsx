@@ -30,7 +30,7 @@ import {
 
 import { useModalStyles } from "../../../common";
 import { CloseIcon } from "../../icons";
-import { ModalActions } from "../../modalActions";
+import { ModalActions } from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
 import { ScrollView, ScrollViewProps } from "../scrollView";
 import { Text, TextProps } from "../text";

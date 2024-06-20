@@ -1,14 +1,15 @@
 export enum TabScreenName {
   MAIN = "MAIN",
 
+  Posts = "Posts",
   Playground = "Playground",
-  Users = "Users",
 }
 
 interface TabScreenParams {
   MAIN: any;
+
+  Posts: any;
   Playground: any;
-  Users: any;
 }
 
 export enum StackScreenName {
