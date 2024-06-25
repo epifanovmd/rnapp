@@ -1,9 +1,9 @@
+import { IApiService } from "@api";
 import { notificationService } from "@force-dev/react-mobile";
 import { DataHolder, Interval } from "@force-dev/utils";
+import { ITokenService } from "@service";
 import { makeAutoObservable, reaction } from "mobx";
 
-import { IApiService } from "../../api";
-import { ITokenService } from "../../service";
 import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "./SessionData.types";
 
@@ -25,7 +25,7 @@ export class SessionDataStore implements ISessionDataStore {
       console.log("status", status);
       console.log("error", error);
 
-      if (!isCanceled) {
+      if (!isCanceled && error) {
         notificationService.show(`${error.message} - ${status}`, {
           type: "danger",
         });
@@ -41,22 +41,22 @@ export class SessionDataStore implements ISessionDataStore {
     });
 
     return [
-      // reaction(
-      //   () => this._profileDataStore.profile,
-      //   profile => {
-      //     if (profile) {
-      //       this._interval.start(async () => {
-      //         await this._profileDataStore.updateToken();
-      //       });
-      //     } else {
-      //       this._interval.stop();
-      //     }
-      //   },
-      //   { fireImmediately: true },
-      // ),
-      // reaction(() => this._tokenService.token, this.holder.setData, {
-      //   fireImmediately: true,
-      // }),
+      reaction(
+        () => this._profileDataStore.profile,
+        profile => {
+          if (profile) {
+            this._interval.start(async () => {
+              await this._profileDataStore.updateToken();
+            });
+          } else {
+            this._interval.stop();
+          }
+        },
+        { fireImmediately: true },
+      ),
+      reaction(() => this._tokenService.token, this.holder.setData, {
+        fireImmediately: true,
+      }),
       () => this._interval.stop(),
     ];
   }

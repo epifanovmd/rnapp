@@ -1,8 +1,13 @@
-import axios, { AxiosInstance } from "axios";
-import { stringify } from "query-string";
+import { promisify } from "@force-dev/utils";
+import axios, {
+  Axios,
+  AxiosHeaders,
+  AxiosInstance,
+  InternalAxiosRequestConfig,
+} from "axios";
+import queryString from "query-string";
 import Config from "react-native-config";
 
-import { DebugVars } from "../../debugVars";
 // не менять путь, иначе появистя циклическая зависимость
 import { ITokenService } from "../service/token";
 import {
@@ -15,6 +20,11 @@ import {
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
+export const DEFAULT_AXIOS_HEADERS = new AxiosHeaders({
+  Accept: "application/json",
+  "Content-Type": "application/json",
+});
+
 @IApiService({ inSingleton: true })
 export class ApiService implements IApiService {
   private instance: AxiosInstance;
@@ -25,27 +35,15 @@ export class ApiService implements IApiService {
       timeout: 2 * 60 * 1000,
       withCredentials: true,
       baseURL: BASE_URL,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
+      headers: DEFAULT_AXIOS_HEADERS,
     });
 
     this.instance.interceptors.request.use(async request => {
-      if (this._tokenService.token) {
-        request.headers.set(
-          "Authorization",
-          `Bearer ${this._tokenService.token}`,
-        );
-      }
+      const headers = request.headers;
+      const token = this._tokenService.token;
 
-      if (DebugVars.logRequest) {
-        console.log(
-          "Start request with url = ",
-          request.url,
-          "params = ",
-          JSON.stringify(request.params ?? request.data ?? {}),
-        );
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
 
       return request;
@@ -56,31 +54,69 @@ export class ApiService implements IApiService {
         const status = response.status;
         const data = response.data;
 
-        return { data, status } satisfies ApiResponse<any> as any;
+        return Promise.resolve<ApiResponse>({ data, status }) as any;
       },
       e => {
-        return Promise.resolve({
-          status: e?.response?.status || 400,
-          error: new Error(e?.response?.data?.message ?? e.message ?? e),
-        } satisfies ApiResponse<any>);
+        const error = new Error(e.message ?? e);
+
+        if (e.response) {
+          const errorData = e.response.data;
+
+          return Promise.resolve<ApiResponse>({
+            status: e.response.status || 500,
+            error: errorData ? new Error(JSON.stringify(errorData)) : error,
+          });
+        } else if (e.request) {
+          return Promise.resolve<ApiResponse>({
+            status: e.request.status || 400,
+            error,
+          });
+        } else {
+          return Promise.resolve<ApiResponse>({
+            status: 400,
+            error,
+            isCanceled: e.message === "canceled",
+          });
+        }
       },
     );
   }
 
-  public onError = (
-    callback: (params: {
-      status: number;
-      error: Error;
-      isCanceled: boolean;
-    }) => void,
+  public onRequest = (
+    callback: (
+      request: InternalAxiosRequestConfig,
+    ) =>
+      | void
+      | InternalAxiosRequestConfig
+      | Promise<void | InternalAxiosRequestConfig>,
   ) => {
-    this.instance.interceptors.response.use(((response: ApiResponse<any>) => {
+    this.instance.interceptors.request.use(async request => {
+      return (await promisify(callback(request))) ?? request;
+    });
+  };
+
+  public onResponse = (
+    callback: (
+      response: ApiResponse,
+    ) => void | ApiResponse | Promise<void | ApiResponse>,
+  ) => {
+    this.instance.interceptors.response.use((async (response: ApiResponse) => {
+      if (!response.error && response.data) {
+        return (await promisify(callback(response))) ?? response;
+      }
+
+      return response;
+    }) as any);
+  };
+
+  public onError = (
+    callback: (
+      response: ApiResponse,
+    ) => void | ApiResponse | Promise<void | ApiResponse>,
+  ) => {
+    this.instance.interceptors.response.use((async (response: ApiResponse) => {
       if (response.error) {
-        callback({
-          status: response.status,
-          error: response.error,
-          isCanceled: response.error.message === "canceled",
-        });
+        return (await promisify(callback(response))) ?? response;
       }
 
       return response;
@@ -92,19 +128,14 @@ export class ApiService implements IApiService {
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const query = params && stringify(params);
-    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
+    const query = params && queryString.stringify(params);
 
-    const promise = this.instance
-      .get<ApiResponse<R>>(endpoint + (query ? `?${query}` : ""), {
-        ...config,
-        signal: controller.signal,
-      })
-      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
-
-    promise.abort = () => controller.abort();
-
-    return promise;
+    return this._createAbortRequest<R, P>(
+      "get",
+      endpoint + (query ? `?${query}` : ""),
+      config,
+      params,
+    );
   }
 
   public post<R = any, P = any>(
@@ -112,18 +143,7 @@ export class ApiService implements IApiService {
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
-
-    const promise = this.instance
-      .post<ApiResponse<R>>(endpoint, params, {
-        ...config,
-        signal: controller.signal,
-      })
-      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
-
-    promise.abort = () => controller.abort();
-
-    return promise;
+    return this._createAbortRequest<R, P>("post", endpoint, config, params);
   }
 
   public patch<R = any, P = any>(
@@ -131,18 +151,7 @@ export class ApiService implements IApiService {
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
-
-    const promise = this.instance
-      .patch<ApiResponse<R>>(endpoint, params, {
-        ...config,
-        signal: controller.signal,
-      })
-      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
-
-    promise.abort = () => controller.abort();
-
-    return promise;
+    return this._createAbortRequest<R, P>("patch", endpoint, config, params);
   }
 
   public put<R = any, P = any>(
@@ -150,33 +159,11 @@ export class ApiService implements IApiService {
     params?: P,
     config?: ApiRequestConfig,
   ) {
-    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
-
-    const promise = this.instance
-      .put<ApiResponse<R>>(endpoint, params, {
-        ...config,
-        signal: controller.signal,
-      })
-      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
-
-    promise.abort = () => controller.abort();
-
-    return promise;
+    return this._createAbortRequest<R, P>("put", endpoint, config, params);
   }
 
   public delete<R = any>(endpoint: string, config?: ApiRequestConfig) {
-    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
-
-    const promise = this.instance
-      .delete(endpoint, {
-        ...config,
-        signal: controller.signal,
-      })
-      .then(response => response) as ApiAbortPromise<ApiResponse<R>>;
-
-    promise.abort = () => controller.abort();
-
-    return promise;
+    return this._createAbortRequest<R>("delete", endpoint, config);
   }
 
   private raceCondition(endpoint: string, useRaceCondition?: boolean) {
@@ -192,4 +179,34 @@ export class ApiService implements IApiService {
 
     return controller;
   }
+
+  private _createAbortRequest = <R, P = unknown>(
+    key: keyof Pick<Axios, "get" | "delete" | "post" | "put" | "patch">,
+    endpoint: string,
+    config?: ApiRequestConfig,
+    params?: P,
+  ) => {
+    const controller = this.raceCondition(endpoint, config?.useRaceCondition);
+    const method = this.instance[key];
+    const conf = {
+      ...config,
+      signal: controller.signal,
+    };
+
+    let promise: ApiAbortPromise<ApiResponse<R>>;
+
+    if (key === "get" || key === "delete") {
+      promise = method(endpoint, conf).then(
+        response => response,
+      ) as ApiAbortPromise<ApiResponse<R>>;
+    } else {
+      promise = method(endpoint, params, conf).then(
+        response => response,
+      ) as ApiAbortPromise<ApiResponse<R>>;
+    }
+
+    promise.abort = () => controller.abort();
+
+    return promise;
+  };
 }

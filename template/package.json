@@ -28,7 +28,7 @@
   "dependencies": {
     "@force-dev/react": "^1.1.2",
     "@force-dev/react-mobile": "^0.0.135",
-    "@force-dev/utils": "^1.1.60",
+    "@force-dev/utils": "^1.1.62",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/blur": "^4.4.0",
     "@react-native-community/checkbox": "^0.5.16",
@@ -78,6 +78,7 @@
     "@types/react": "^18.2.45",
     "@types/set-cookie-parser": "^2.4.7",
     "babel-jest": "^29.2.1",
+    "babel-plugin-module-resolver": "^5.0.2",
     "babel-plugin-parameter-decorator": "^1.0.16",
     "babel-plugin-transform-typescript-metadata": "^0.3.2",
     "eslint": "8.22.0",

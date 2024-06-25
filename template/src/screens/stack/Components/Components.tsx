@@ -1,7 +1,3 @@
-import { Col, ModalHeader, Row, useModal } from "@force-dev/react-mobile";
-import React, { FC, memo, useCallback, useEffect } from "react";
-import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
-
 import {
   AnimatedRefreshing,
   Button,
@@ -16,7 +12,11 @@ import {
   Title,
   useAnimationHeader,
   useAttachModal,
-} from "../../../components";
+} from "@components";
+import { Col, ModalHeader, Row, useModal } from "@force-dev/react-mobile";
+import React, { FC, memo, useCallback, useEffect } from "react";
+import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
+
 import { StackProps } from "../../../navigation";
 
 export const Components: FC<StackProps> = memo(({ route }) => {

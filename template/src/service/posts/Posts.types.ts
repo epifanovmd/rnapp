@@ -1,11 +1,5 @@
+import { ApiAbortPromise, ApiResponse, BaseRequest, BaseResponse } from "@api";
 import { iocDecorator } from "@force-dev/utils";
-
-import {
-  ApiAbortPromise,
-  ApiResponse,
-  BaseRequest,
-  BaseResponse,
-} from "../../api";
 
 export const IPostsService = iocDecorator<IPostsService>();
 
