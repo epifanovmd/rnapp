@@ -26,9 +26,10 @@
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {
-    "@force-dev/react": "^1.1.2",
+    "@force-dev/react": "^1.1.17",
     "@force-dev/react-mobile": "^0.0.135",
-    "@force-dev/utils": "^1.1.62",
+    "@force-dev/utils": "^1.1.64",
+    "@hookform/resolvers": "^3.9.0",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/blur": "^4.4.0",
     "@react-native-community/checkbox": "^0.5.16",
@@ -42,6 +43,7 @@
     "i18next": "^22.4.9",
     "mobx-react-lite": "^3.4.0",
     "react": "^18.2.0",
+    "react-hook-form": "^7.52.1",
     "react-i18next": "^12.1.5",
     "react-native": "0.73.1",
     "react-native-config": "1.4.5",
@@ -63,7 +65,8 @@
     "react-native-switch-toggle": "^2.2.1",
     "react-native-tab-view": "^3.5.2",
     "set-cookie-parser": "^2.6.0",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@babel/core": "^7.23.6",

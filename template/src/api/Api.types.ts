@@ -1,11 +1,11 @@
 import { iocDecorator } from "@force-dev/utils";
-import { InternalAxiosRequestConfig } from "axios";
+import { AxiosRequestConfig, Canceler } from "axios";
 
 export interface ApiAbortPromise<T> extends Promise<T> {
-  abort: () => void;
+  abort: Canceler;
 }
 
-export interface ApiRequestConfig extends Partial<InternalAxiosRequestConfig> {
+export interface ApiRequestConfig extends Partial<AxiosRequestConfig> {
   useRaceCondition?: boolean;
 }
 
@@ -14,11 +14,8 @@ export const IApiService = iocDecorator<IApiService>();
 export interface IApiService {
   onRequest(
     callback: (
-      request: InternalAxiosRequestConfig,
-    ) =>
-      | void
-      | InternalAxiosRequestConfig
-      | Promise<void | InternalAxiosRequestConfig>,
+      request: AxiosRequestConfig,
+    ) => void | AxiosRequestConfig | Promise<void | AxiosRequestConfig>,
   ): void;
 
   onResponse(
@@ -70,10 +67,10 @@ export interface ApiResponse<R = any> {
   isCanceled?: boolean;
 }
 
-export interface BaseRequest {
+export type ApiRequest<T extends object = {}> = T & {
   skip?: number;
   limit?: number;
-}
+};
 
 export interface BaseResponse {
   total: number;
