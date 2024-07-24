@@ -66,6 +66,7 @@
     "no-array-constructor": "error",
     "no-bitwise": "error",
     "no-lonely-if": "error",
+    "no-multi-assign": "error",
     "no-multiple-empty-lines": "error",
     "no-plusplus": "error",
     "no-trailing-spaces": "error",
