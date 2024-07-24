@@ -117,6 +117,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         const onComplete = useCallback(() => {
           refreshingRef.current = false;
 
+          // eslint-disable-next-line no-multi-assign
           height.value = refreshPosition.value = withTiming(0, { duration });
           scrollRef.current?.setNativeProps({ scrollEnabled: true });
 
@@ -169,6 +170,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 
             if (!isRefreshingRef.current) {
               if (!withoutHeight) {
+                // eslint-disable-next-line no-multi-assign
                 height.value = refreshPosition.value = position;
               } else {
                 refreshPosition.value = position;

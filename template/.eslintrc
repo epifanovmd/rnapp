@@ -4,6 +4,11 @@
     "plugin:react/recommended",
     "plugin:react/jsx-runtime"
   ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "jsx": true,
@@ -25,6 +30,7 @@
     "react/prop-types": "off",
     "react/jsx-uses-react": "error",
     "react/jsx-uses-vars": "error",
+
     "no-undef": "off",
     "no-unused-vars": "off",
 
