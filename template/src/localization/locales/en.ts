@@ -1,6 +1,6 @@
-import { Locale } from "./types";
+import { ruLocale } from "./ru";
 
-export const enLocale: Locale = {
+export const enLocale = {
   navigation: {
     Posts: "Posts",
     Playground: "Playground",
@@ -21,4 +21,4 @@ export const enLocale: Locale = {
     empty: "Empty",
     search: "Search",
   },
-};
+} satisfies typeof ruLocale;
