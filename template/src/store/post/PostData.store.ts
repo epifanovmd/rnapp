@@ -1,4 +1,4 @@
-import { DataHolder } from "@force-dev/utils";
+import { AsyncDataSource } from "@force-dev/utils";
 import { PostModel } from "@models";
 import { IPost, IPostsService } from "@service";
 import { makeAutoObservable } from "mobx";
@@ -7,44 +7,33 @@ import { IPostDataStore } from "./PostData.types";
 
 @IPostDataStore()
 export class PostDataStore implements IPostDataStore {
-  public holder: DataHolder<IPost> = new DataHolder<IPost>();
+  public dataSource: AsyncDataSource<IPost, number>;
+  public model = new PostModel(() => this.data);
 
   constructor(@IPostsService() private _postService: IPostsService) {
+    this.dataSource = new AsyncDataSource(query =>
+      this._postService.getPost(query),
+    );
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
   get data() {
-    return this.holder.d;
-  }
-
-  get model() {
-    return this.data && new PostModel(this.data);
+    return this.dataSource.d;
   }
 
   get error() {
-    return this.holder.error?.msg;
+    return this.dataSource.error?.msg;
   }
 
   get loading() {
-    return this.holder.isLoading;
+    return this.dataSource.isLoading;
   }
 
   get loaded() {
-    return this.holder.isReady;
+    return this.dataSource.isReady;
   }
 
-  async onRefresh(id: number) {
-    this.holder.setLoading();
-    const res = await this._postService.getPost(id);
-
-    if (res.error) {
-      this.holder.setError({ msg: res.error.toString() });
-    } else if (res.data) {
-      this.holder.setData(res.data);
-
-      return res.data;
-    }
-
-    return undefined;
-  }
+  onRefresh = async (id: number) => {
+    return this.dataSource.refresh(id);
+  };
 }

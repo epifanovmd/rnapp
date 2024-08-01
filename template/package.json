@@ -28,7 +28,7 @@
   "dependencies": {
     "@force-dev/react": "^1.1.17",
     "@force-dev/react-mobile": "^0.0.135",
-    "@force-dev/utils": "^1.1.64",
+    "@force-dev/utils": "^1.1.72",
     "@hookform/resolvers": "^3.9.0",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/blur": "^4.4.0",

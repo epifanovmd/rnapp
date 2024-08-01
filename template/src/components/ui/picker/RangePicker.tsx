@@ -1,3 +1,4 @@
+import { useModalStyles } from "@common";
 import {
   Col,
   Modal,
@@ -22,7 +23,6 @@ import React, {
 } from "react";
 import { ViewProps } from "react-native";
 
-import { useModalStyles } from "../../../common";
 import { Touchable, TouchableProps } from "../touchable";
 
 export interface RangePickerProps<T extends string | number>
@@ -47,7 +47,7 @@ export interface RangePickerProps<T extends string | number>
 interface RangePicker {
   <T extends string | number>(
     props: PropsWithChildren<RangePickerProps<T>>,
-  ): React.JSX.Element | null;
+  ): React.ReactNode;
 }
 
 const empty = -1;

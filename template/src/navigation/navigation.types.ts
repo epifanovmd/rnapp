@@ -17,6 +17,8 @@ export enum StackScreenName {
   Notifications = "Notifications",
   Pickers = "Pickers",
   Components = "Components",
+
+  Post = "Post",
 }
 
 interface StackScreenParams {
@@ -24,6 +26,8 @@ interface StackScreenParams {
   Notifications: any;
   Pickers: any;
   Components: any;
+
+  Post: { id: number };
 }
 
 export type ScreenName =

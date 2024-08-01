@@ -1,16 +1,18 @@
-import { ApiAbortPromise, ApiRequest, ApiResponse, BaseResponse } from "@api";
-import { iocDecorator } from "@force-dev/utils";
+import { ApiRequest, BaseResponse } from "@api";
+import { ApiResponse, CancelablePromise, iocDecorator } from "@force-dev/utils";
 
 export const IPostsService = iocDecorator<IPostsService>();
 
 export interface IPostsService {
-  getAll(params?: IPostsRequest): ApiAbortPromise<ApiResponse<IPostsResponse>>;
+  getAll(
+    params?: IPostsRequest,
+  ): CancelablePromise<ApiResponse<IPostsResponse>>;
 
-  getPost(id: number): ApiAbortPromise<ApiResponse<IPost>>;
+  getPost(id: number): CancelablePromise<ApiResponse<IPost>>;
 
   search(
     params: IPostSearchRequest,
-  ): ApiAbortPromise<ApiResponse<IPostsResponse>>;
+  ): CancelablePromise<ApiResponse<IPostsResponse>>;
 }
 
 export interface IPost {

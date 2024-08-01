@@ -6,6 +6,7 @@ import {
   PathConfigMap,
 } from "@react-navigation/native";
 import { CardStyleInterpolators } from "@react-navigation/stack";
+import { useTheme } from "@theme";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useMemo } from "react";
 import { Linking } from "react-native";
@@ -25,10 +26,10 @@ import {
   Components,
   Notifications,
   Pickers,
+  PostScreen,
   TAB_SCREENS,
   TabScreens,
 } from "./screens";
-import { useTheme } from "./theme";
 
 interface IProps {
   onReady?: () => void;
@@ -37,6 +38,7 @@ interface IProps {
 export const SCREENS: StackScreens = {
   MAIN: { screen: TabScreens },
 
+  Post: { screen: PostScreen },
   Authorization: { screen: Authorization },
   Notifications: { screen: Notifications },
   Pickers: { screen: Pickers },
@@ -89,9 +91,7 @@ const linking: LinkingOptions<ScreenParamList> = {
     // }
     //
     // // As a fallback, you may want to do the default deep link handling
-    const url = await Linking.getInitialURL();
-
-    return url;
+    return await Linking.getInitialURL();
   },
 
   // Custom function to subscribe to incoming links

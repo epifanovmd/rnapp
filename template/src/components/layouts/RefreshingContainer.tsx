@@ -2,6 +2,7 @@ import "react-native-gesture-handler";
 
 import { mergeRefs } from "@force-dev/react";
 import React, {
+  ComponentProps,
   forwardRef,
   memo,
   PropsWithChildren,
@@ -14,7 +15,6 @@ import React, {
 import {
   ColorValue,
   FlatList,
-  FlatListProps,
   PanResponder,
   Platform,
   SafeAreaView,
@@ -25,6 +25,7 @@ import {
   ViewProps,
 } from "react-native";
 import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
+import { FlatListProps } from "react-native/Libraries/Lists/FlatList";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 import { trigger } from "react-native-haptic-feedback";
 import Animated, {
@@ -55,15 +56,15 @@ interface RefreshingContainer {
   FlatList: <T>(
     props: RefreshingContainerProps &
       FlatListProps<T> & { ref?: React.RefObject<Animated.FlatList<T>> },
-  ) => React.JSX.Element | null;
+  ) => React.ReactNode;
   ScrollView: (
     props: RefreshingContainerProps &
       ScrollViewProps & { ref?: React.RefObject<Animated.ScrollView> },
-  ) => React.JSX.Element | null;
+  ) => React.ReactNode;
   View: (
     props: Omit<RefreshingContainerProps, "onScroll"> &
       ViewProps & { ref?: React.RefObject<Animated.View> },
-  ) => React.JSX.Element | null;
+  ) => React.ReactNode;
 
   /**
    * @deprecated Please use `RefreshingContainer.View or RefreshingContainer.ScrollView or RefreshingContainer.FlatList` manually.
@@ -456,7 +457,7 @@ RefreshingContainer.View = memo(
 );
 
 const AnimatedScrollView = Animated.createAnimatedComponent(
-  forwardRef<Animated.ScrollView, ScrollViewProps>(
+  forwardRef<Animated.ScrollView, ComponentProps<typeof Animated.ScrollView>>(
     ({ children, ...rest }, ref) => {
       return (
         <Animated.ScrollView

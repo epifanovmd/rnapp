@@ -1,12 +1,11 @@
-import { ApiAbortPromise, ApiResponse } from "@api";
-import { iocDecorator } from "@force-dev/utils";
+import { ApiResponse, CancelablePromise, iocDecorator } from "@force-dev/utils";
 
 export const IProfileService = iocDecorator<IProfileService>();
 
 export interface IProfileService {
   signIn(
     credentials: ISignInRequest,
-  ): ApiAbortPromise<ApiResponse<ISignInResponse>>;
+  ): CancelablePromise<ApiResponse<ISignInResponse>>;
 
   // signUp(
   //   credentials: ISignUpRequest,
@@ -14,9 +13,9 @@ export interface IProfileService {
 
   refresh(
     params: IRefreshTokenRequest,
-  ): ApiAbortPromise<ApiResponse<IRefreshTokenResponse>>;
+  ): CancelablePromise<ApiResponse<IRefreshTokenResponse>>;
 
-  getProfile(): ApiAbortPromise<ApiResponse<IProfile>>;
+  getProfile(): CancelablePromise<ApiResponse<IProfile>>;
 }
 
 export interface IRefreshTokenResponse {

@@ -1,11 +1,18 @@
 import { Row } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
-import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
+import React, {
+  FC,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+} from "react";
 import { ListRenderItemInfo } from "react-native";
 import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 
 import { PostModel } from "../../../models";
+import { useNavigation } from "../../../navigation";
 import { RefreshingContainer } from "../../layouts/RefreshingContainer";
 import { Post } from "../../post";
 import { Text, Title } from "../../ui";
@@ -23,13 +30,24 @@ interface IProps {
 export const PostList: FC<PropsWithChildren<IProps>> = observer(
   ({ data, refreshing, onRefresh, onLoadMore, onScroll }) => {
     const keyExtractor = useCallback(
-      (item: PostModel) => item.data.id.toString(),
+      (item: PostModel) => item.data?.id.toString() ?? "",
       [],
     );
 
+    const { navigate } = useNavigation();
+
+    const handlePress = useCallback(
+      (id: number) => {
+        navigate("Post", { id });
+      },
+      [navigate],
+    );
+
     const renderItem = useCallback(
-      ({ item }: ListRenderItemInfo<PostModel>) => <Post post={item} />,
-      [],
+      ({ item }: ListRenderItemInfo<PostModel>) => (
+        <Post post={item} onPress={handlePress} />
+      ),
+      [handlePress],
     );
 
     const listHeaderComponent = useMemo(
