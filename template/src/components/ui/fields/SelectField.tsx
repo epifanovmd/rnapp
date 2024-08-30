@@ -3,7 +3,8 @@ import { ModalHeader, ModalHeaderProps, Select } from "@force-dev/react-mobile";
 import { SelectProps } from "@force-dev/react-mobile/src/components/select/Select";
 import React, { memo, PropsWithChildren, useCallback } from "react";
 
-import { useModalStyles } from "../../../common";
+import { useModalStyles } from "~@common";
+
 import {
   ModalActions,
   ModalActionsProps,
@@ -11,7 +12,7 @@ import {
 } from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
 
-export interface SelectFieldProps<D extends any, M extends boolean = false>
+export interface SelectFieldProps<D, M extends boolean = false>
   extends Omit<
     SelectProps<D, M>,
     "renderItem" | "data" | "selected" | "onChange"
@@ -42,7 +43,7 @@ export interface SelectFieldSlots extends FieldSlots, ModalActionsSlots {
   Field: typeof FieldSlot;
 }
 
-const _SelectField = <D extends any, M extends boolean = false>({
+const _SelectField = <D, M extends boolean = false>({
   title,
   selected,
   onChange,

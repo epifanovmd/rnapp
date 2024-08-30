@@ -1,6 +1,6 @@
 import { Input } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
-import React, { FC, memo } from "react";
+import React, { FC } from "react";
 
 import {
   Button,
@@ -9,13 +9,12 @@ import {
   Field,
   Header,
   ScrollView,
-  Text,
 } from "~@components";
 
 import { StackProps } from "../../../navigation";
 import { useAuthorizationVM } from "./hooks";
 
-export const Authorization: FC<StackProps> = observer(({ route }) => {
+export const Authorization: FC<StackProps> = observer(() => {
   const { username, password, onLogin, isLoading } = useAuthorizationVM();
 
   return (

@@ -1,18 +1,9 @@
-import { StackScreenProps } from "@react-navigation/stack";
 import { observer } from "mobx-react-lite";
-import React, { FC, useCallback, useEffect } from "react";
+import React, { FC, useEffect } from "react";
 
-import {
-  Container,
-  Content,
-  Header,
-  Post,
-  PostList,
-  Text,
-  useAnimationHeader,
-} from "~@components";
+import { Container, Content, Header, Post } from "~@components";
 
-import { AppScreenProps, StackProps, useNavigation } from "../../../navigation";
+import { StackProps } from "../../../navigation";
 import { usePostVM } from "./hooks";
 
 export const PostScreen: FC<StackProps<"Post">> = observer(
@@ -22,7 +13,7 @@ export const PostScreen: FC<StackProps<"Post">> = observer(
     },
   }) => {
     const { model, onRefresh } = usePostVM(id);
-    const { onScroll, animatedValue } = useAnimationHeader();
+    // const { onScroll, animatedValue } = useAnimationHeader();
 
     useEffect(() => {
       onRefresh().then();

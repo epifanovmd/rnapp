@@ -6,7 +6,7 @@ import {
   TouchableOpacityProps,
 } from "react-native";
 
-export interface TouchableProps<T extends any = any>
+export interface TouchableProps<T>
   extends FlexProps,
     Omit<TouchableOpacityProps, "style" | "onPress" | "onLongPress"> {
   onPress?: (value: T, event: GestureResponderEvent) => void;
@@ -15,7 +15,7 @@ export interface TouchableProps<T extends any = any>
 }
 
 export interface Touchable {
-  <T extends any = undefined>(props: TouchableProps<T>): ReturnType<FC>;
+  <T = undefined>(props: TouchableProps<T>): ReturnType<FC>;
 }
 
 export const Touchable: Touchable = memo(

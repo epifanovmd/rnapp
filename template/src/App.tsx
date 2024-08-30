@@ -48,7 +48,7 @@ const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
-  const { restore, initialize, isAuthorized, isReady } = useSessionDataStore();
+  const { restore, initialize } = useSessionDataStore();
 
   useEffect(() => {
     AsyncStorage.getItem("i18nextLng").then(async lang => {

@@ -1,12 +1,6 @@
 import { Col, HoldItem } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
-import React, {
-  FC,
-  memo,
-  PropsWithChildren,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
 
 import { PostModel } from "~@models";
 

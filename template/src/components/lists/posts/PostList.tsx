@@ -1,17 +1,12 @@
 import { Row } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
-import React, {
-  FC,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
 import { ListRenderItemInfo } from "react-native";
 import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 
-import { PostModel } from "../../../models";
+import { PostModel } from "~@models";
+
 import { useNavigation } from "../../../navigation";
 import { RefreshingContainer } from "../../layouts/RefreshingContainer";
 import { Post } from "../../post";
