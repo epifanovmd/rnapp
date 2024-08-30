@@ -6,12 +6,13 @@ import {
   PathConfigMap,
 } from "@react-navigation/native";
 import { CardStyleInterpolators } from "@react-navigation/stack";
-import { useTheme } from "@theme";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useMemo } from "react";
 import { Linking } from "react-native";
 import Config from "react-native-config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useTheme } from "~@theme";
 
 import {
   AppTabScreens,

@@ -1,13 +1,14 @@
 import { ListCollectionHolder } from "@force-dev/utils";
 import { RefreshArgs } from "@force-dev/utils/src/store/holders/ListCollectionHolder";
-import { PostModel } from "@models";
+import { makeAutoObservable } from "mobx";
+
+import { PostModel } from "~@models";
 import {
   IPost,
   IPostSearchRequest,
   IPostsRequest,
   IPostsService,
-} from "@service";
-import { makeAutoObservable } from "mobx";
+} from "~@service";
 
 import { IPostsDataStore } from "./PostsData.types";
 

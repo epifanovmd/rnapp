@@ -1,8 +1,9 @@
-import { IApiService } from "@api";
 import { notificationService } from "@force-dev/react-mobile";
 import { DataHolder, Interval } from "@force-dev/utils";
-import { ITokenService } from "@service";
 import { makeAutoObservable, reaction } from "mobx";
+
+import { IApiService } from "~@api";
+import { ITokenService } from "~@service";
 
 import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "./SessionData.types";

@@ -3,8 +3,9 @@ import {
   IApiService as IIIApiService,
   iocDecorator,
 } from "@force-dev/utils";
-import { ITokenService } from "@service";
 import Config from "react-native-config";
+
+import { ITokenService } from "~@service";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;

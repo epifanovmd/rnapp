@@ -1,6 +1,7 @@
 import { useTextInput } from "@force-dev/react";
-import { useProfileDataStore } from "@store";
 import { useCallback } from "react";
+
+import { useProfileDataStore } from "~@store";
 
 import { useNavigationService } from "../../../../navigation";
 

@@ -1,3 +1,6 @@
+import { Row } from "@force-dev/react-mobile";
+import React, { FC, memo } from "react";
+
 import {
   Button,
   Container,
@@ -5,12 +8,9 @@ import {
   Header,
   SwitchTheme,
   Text,
-} from "@components";
-import { Row } from "@force-dev/react-mobile";
-import React, { FC, memo } from "react";
+} from "~@components";
 
 import { AppScreenProps } from "../../../navigation";
-import { TestForm } from "./form/TestForm";
 
 interface IProps extends AppScreenProps {}
 
@@ -41,8 +41,6 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
           title={"Pickers"}
           onPress={() => navigation.navigate("Pickers")}
         />
-
-        <TestForm />
       </Content>
     </Container>
   );

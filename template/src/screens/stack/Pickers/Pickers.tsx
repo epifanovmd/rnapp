@@ -1,3 +1,6 @@
+import { Col } from "@force-dev/react-mobile";
+import React, { FC, memo } from "react";
+
 import {
   Container,
   Content,
@@ -8,9 +11,7 @@ import {
   TextButton,
   TimePicker,
   YearRangePicker,
-} from "@components";
-import { Col } from "@force-dev/react-mobile";
-import React, { FC, memo } from "react";
+} from "~@components";
 
 import { StackProps } from "../../../navigation";
 

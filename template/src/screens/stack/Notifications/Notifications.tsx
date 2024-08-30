@@ -1,6 +1,7 @@
-import { Button, Container, Content, Header, Text } from "@components";
 import { useNotification } from "@force-dev/react-mobile";
 import React, { FC, memo } from "react";
+
+import { Button, Container, Content, Header, Text } from "~@components";
 
 import { StackProps } from "../../../navigation";
 

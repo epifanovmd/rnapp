@@ -1,6 +1,7 @@
-import { useTheme } from "@theme";
 import { useMemo } from "react";
 import { StyleProp, ViewStyle } from "react-native";
+
+import { useTheme } from "~@theme";
 
 export const useModalStyles = () => {
   const { theme } = useTheme();

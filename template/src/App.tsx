@@ -1,4 +1,3 @@
-import { AttachModalProvider } from "@components";
 import {
   HoldItemProvider,
   ModalHost,
@@ -7,9 +6,6 @@ import {
 } from "@force-dev/react-mobile";
 import { disposer } from "@force-dev/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { log } from "@service";
-import { useSessionDataStore } from "@store";
-import { ThemeProvider, useTheme } from "@theme";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, {
@@ -34,6 +30,11 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import SplashScreen from "react-native-splash-screen";
+
+import { AttachModalProvider } from "~@components";
+import { log } from "~@service";
+import { useSessionDataStore } from "~@store";
+import { ThemeProvider, useTheme } from "~@theme";
 
 import { AppNavigator } from "./AppNavigator";
 import { initLocalization, useTranslation } from "./localization";

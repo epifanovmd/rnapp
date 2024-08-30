@@ -1,3 +1,7 @@
+import { StackScreenProps } from "@react-navigation/stack";
+import { observer } from "mobx-react-lite";
+import React, { FC, useCallback, useEffect } from "react";
+
 import {
   Container,
   Content,
@@ -6,10 +10,7 @@ import {
   PostList,
   Text,
   useAnimationHeader,
-} from "@components";
-import { StackScreenProps } from "@react-navigation/stack";
-import { observer } from "mobx-react-lite";
-import React, { FC, useCallback, useEffect } from "react";
+} from "~@components";
 
 import { AppScreenProps, StackProps, useNavigation } from "../../../navigation";
 import { usePostVM } from "./hooks";
