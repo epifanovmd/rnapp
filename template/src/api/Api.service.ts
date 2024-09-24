@@ -16,11 +16,14 @@ export const IApiService = iocDecorator<ApiService1>();
 @IApiService({ inSingleton: true })
 class ApiService1 extends ApiService {
   constructor() {
-    super({
-      timeout: 2 * 60 * 1000,
-      withCredentials: true,
-      baseURL: BASE_URL,
-    });
+    super(
+      {
+        timeout: 2 * 60 * 1000,
+        withCredentials: true,
+        baseURL: BASE_URL,
+      },
+      error => error,
+    );
 
     this.instance.interceptors.request.use(async request => {
       const headers = request.headers;
