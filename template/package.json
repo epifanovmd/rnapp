@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && rm -f Podfile.lock && arch -x86_64 pod install && cd ..",
+    "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && arch -x86_64 pod install && cd ..",
     "start": "react-native start --reset-cache",
     "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
     "android:Dev-Release": "react-native run-android --mode=developmentRelease",
