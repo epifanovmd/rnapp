@@ -1,5 +1,11 @@
-import { Col, ModalHeader, Row, useModal } from "@force-dev/react-mobile";
-import React, { FC, memo, useCallback, useEffect } from "react";
+import {
+  Col,
+  ImageViewing,
+  ModalHeader,
+  Row,
+  useModal,
+} from "@force-dev/react-mobile";
+import React, { FC, memo, useCallback, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 import {
@@ -14,6 +20,7 @@ import {
   ModalActions,
   Text,
   Title,
+  Touchable,
   useAnimationHeader,
   useAttachModal,
 } from "~@components";
@@ -40,6 +47,8 @@ export const Components: FC<StackProps> = memo(({ route }) => {
       },
     });
   }, [open]);
+
+  const [uri, setUri] = useState<string | null>(null);
 
   return (
     <Container>
@@ -80,16 +89,43 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           </Row>
 
           <Col mt={8} height={100} width={100}>
-            <Image
-              height={"100%"}
-              width={"100%"}
-              url={"https://source.unsplash.com/random"}
+            <ImageViewing
+              imageIndex={0}
+              onRequestClose={() => {
+                setUri(null);
+              }}
+              visible={!!uri}
+              images={uri ? [{ uri }] : []}
             />
+            <Touchable
+              ctx={
+                "https://random-image-pepebigotes.vercel.app/api/random-image"
+              }
+              onPress={setUri}
+            >
+              <Image
+                height={"100%"}
+                width={"100%"}
+                url={
+                  "https://random-image-pepebigotes.vercel.app/api/random-image"
+                }
+              />
+            </Touchable>
           </Col>
         </Animated.ScrollView>
       </Content>
 
-      <Modal ref={modalRef} adjustToContentHeight={true}>
+      <Modal
+        ref={modalRef}
+        // adjustToContentHeight={true}
+        handlePosition={"inside"}
+        handleStyle={{ backgroundColor: "red" }}
+        closeSnapPointStraightEnabled={false}
+        snapPoint={200}
+        withHandle={false}
+        modalHeight={400}
+        // alwaysOpen={100}
+      >
         <ModalHeader onClose={modalRef.current?.close}>
           <Text>Заголовок</Text>
         </ModalHeader>

@@ -6,7 +6,7 @@ import {
   TouchableOpacityProps,
 } from "react-native";
 
-export interface TouchableProps<T>
+export interface TouchableProps<T = unknown>
   extends FlexProps,
     Omit<TouchableOpacityProps, "style" | "onPress" | "onLongPress"> {
   onPress?: (value: T, event: GestureResponderEvent) => void;

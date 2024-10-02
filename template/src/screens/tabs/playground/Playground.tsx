@@ -1,4 +1,4 @@
-import { Row } from "@force-dev/react-mobile";
+import { Col, Row } from "@force-dev/react-mobile";
 import React, { FC, memo } from "react";
 
 import {
@@ -11,6 +11,7 @@ import {
 } from "~@components";
 
 import { AppScreenProps } from "../../../navigation";
+import { Biometric } from "./Biometric";
 
 interface IProps extends AppScreenProps {}
 
@@ -41,6 +42,10 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
           title={"Pickers"}
           onPress={() => navigation.navigate("Pickers")}
         />
+
+        <Col mt={8}>
+          <Biometric />
+        </Col>
       </Content>
     </Container>
   );

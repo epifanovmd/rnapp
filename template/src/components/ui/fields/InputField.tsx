@@ -85,7 +85,7 @@ const _InputField: FC<
     }, [modalRef]);
 
     const handlePress = useCallback(
-      (e: GestureResponderEvent, value: any) => {
+      (value: any, e: GestureResponderEvent) => {
         setFocused(true);
         inputRef.current?.focus();
         openModal();
