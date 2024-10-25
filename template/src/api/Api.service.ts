@@ -5,7 +5,7 @@ import {
 } from "@force-dev/utils";
 import Config from "react-native-config";
 
-import { ITokenService } from "~@service";
+import { ITokenService } from "~@service/token";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
@@ -15,7 +15,7 @@ export const IApiService = iocDecorator<ApiService1>();
 
 @IApiService({ inSingleton: true })
 class ApiService1 extends ApiService {
-  constructor() {
+  constructor(@ITokenService() private _tokenService: ITokenService) {
     super(
       {
         timeout: 2 * 60 * 1000,
@@ -27,7 +27,7 @@ class ApiService1 extends ApiService {
 
     this.instance.interceptors.request.use(async request => {
       const headers = request.headers;
-      const token = ITokenService.getInstance().token;
+      const token = this._tokenService.token;
 
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
@@ -37,11 +37,3 @@ class ApiService1 extends ApiService {
     });
   }
 }
-
-const apiService = IApiService.getInstance();
-
-export const axiosInstance = apiService.instance;
-
-export type IAxiosInstance = typeof axiosInstance;
-export const IAxiosInstance =
-  iocDecorator<IAxiosInstance>().toConstantValue(axiosInstance);
