@@ -29,7 +29,7 @@ export class ProfileDataStore implements IProfileDataStore {
       }
 
       return {
-        token: this._tokenService.token,
+        accessToken: this._tokenService.accessToken,
         refreshToken: this._tokenService.refreshToken,
       };
     });
@@ -60,10 +60,10 @@ export class ProfileDataStore implements IProfileDataStore {
       ...res,
       data: res.data && {
         ...res.data,
-        token: this._tokenService.token,
+        accessToken: this._tokenService.accessToken,
         refreshToken: this._tokenService.refreshToken,
       },
-    });
+    } as any);
   }
 
   async signIn(params: ISignInRequest) {
@@ -88,7 +88,7 @@ export class ProfileDataStore implements IProfileDataStore {
     if (res.error) {
       this._tokenService.clear();
     } else if (res.data) {
-      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
+      this._tokenService.setTokens(res.data.accessToken, res.data.refreshToken);
     }
   }
 
@@ -98,7 +98,7 @@ export class ProfileDataStore implements IProfileDataStore {
       this.holder.setError({ msg: res.error.message });
     } else if (res.data) {
       this.holder.setData(res.data);
-      this._tokenService.setTokens(res.data.token, res.data.refreshToken);
+      this._tokenService.setTokens(res.data.accessToken, res.data.refreshToken);
     }
   }
 }

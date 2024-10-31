@@ -5,7 +5,7 @@ import { ITokenService } from "./Token.types";
 
 @ITokenService({ inSingleton: true })
 export class TokenService implements ITokenService {
-  public token: string = "";
+  public accessToken: string = "";
   public refreshToken: string = "";
 
   constructor() {
@@ -15,7 +15,7 @@ export class TokenService implements ITokenService {
   }
 
   setTokens(accessToken: string, refreshToken: string) {
-    this.token = accessToken;
+    this.accessToken = accessToken;
 
     if (refreshToken) {
       AsyncStorage.setItem("refresh_token", refreshToken).then();
@@ -30,13 +30,13 @@ export class TokenService implements ITokenService {
       res => res ?? "",
     );
 
-    this.setTokens(this.token, token);
+    this.setTokens(this.accessToken, token);
 
     return token;
   }
 
   clear() {
-    this.token = "";
+    this.accessToken = "";
 
     AsyncStorage.removeItem("refresh_token").then();
     this.refreshToken = "";

@@ -93,6 +93,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         const refreshingRef = useRef(false);
         const isRefreshingRef = useRef(false);
         const timeoutRef = useRef<any>(null);
+        const isDarggable = useSharedValue(false);
 
         const isScrolled = useSharedValue(false);
         const percentage = useSharedValue(0);
@@ -166,6 +167,10 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 
         const onMove = useCallback(
           (dy: number, withoutHeight = false) => {
+            if (!isDarggable.value) {
+              return;
+            }
+
             const _dy = dy > 0 ? dy : 0;
             const position = Math.min(maxDistance, _dy);
 
@@ -206,6 +211,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           [
             duration,
             height,
+            isDarggable.value,
             isRefreshing,
             maxDistance,
             onComplete,
@@ -224,6 +230,13 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               } else if (isScrollable) {
                 runOnJS(onMove)(-1 * event.contentOffset.y, true);
               }
+            },
+            onBeginDrag: () => {
+              isDarggable.value = true;
+            },
+            onEndDrag: () => {
+              isDarggable.value = false;
+              runOnJS(onPanRelease)();
             },
           },
           [enabledPan, isScrollable],

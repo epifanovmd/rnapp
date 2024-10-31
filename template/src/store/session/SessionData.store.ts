@@ -54,7 +54,7 @@ export class SessionDataStore implements ISessionDataStore {
           }
         },
       ),
-      reaction(() => this._tokenService.token, this.holder.setData),
+      reaction(() => this._tokenService.accessToken, this.holder.setData),
       () => this._interval.stop(),
     ];
   }
@@ -70,10 +70,10 @@ export class SessionDataStore implements ISessionDataStore {
   async restore() {
     this.holder.setLoading();
 
-    const { token } = await this._profileDataStore.updateToken();
+    const { accessToken } = await this._profileDataStore.updateToken();
 
-    this.holder.setData(token);
+    this.holder.setData(accessToken);
 
-    return token;
+    return accessToken;
   }
 }

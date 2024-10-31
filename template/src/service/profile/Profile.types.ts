@@ -19,7 +19,7 @@ export interface IProfileService {
 }
 
 export interface IRefreshTokenResponse {
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 

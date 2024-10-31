@@ -58,7 +58,7 @@ export class SocketService implements ISocketService {
     } else {
       this._socket = connect(SOCKET_BASE_URL, {
         withCredentials: true,
-        query: { token: this._tokenService.token },
+        query: { token: this._tokenService.accessToken },
         autoConnect: true,
         reconnection: true,
       });

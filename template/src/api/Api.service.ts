@@ -27,7 +27,7 @@ class ApiService1 extends ApiService {
 
     this.instance.interceptors.request.use(async request => {
       const headers = request.headers;
-      const token = this._tokenService.token;
+      const token = this._tokenService.accessToken;
 
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
