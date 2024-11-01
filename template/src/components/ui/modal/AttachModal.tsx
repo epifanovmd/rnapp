@@ -1,9 +1,8 @@
 import {
-  Modal,
-  ModalProps,
+  BottomSheetView,
   Row,
   SafeArea,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import React, {
   createContext,
@@ -30,10 +29,10 @@ import {
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
 
-import { useModalStyles } from "../../../common";
-import { useTheme } from "../../../theme";
+import { useTheme } from "~@theme";
+
 import { CameraIcon, FileDocumentIcon, ImageIcon } from "../../icons";
-import { Touchable } from "../../ui";
+import { Modal, ModalProps, Touchable } from "../../ui";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -93,8 +92,7 @@ export const AttachModalProvider: FC<
     fileType = "allFiles",
     ...rest
   }) => {
-    const { ref } = useModal();
-    const modalStyles = useModalStyles();
+    const ref = useModalRef();
     const { theme } = useTheme();
 
     const _saveToPhotos = useRef<boolean>(saveToPhotos);
@@ -124,7 +122,7 @@ export const AttachModalProvider: FC<
           setFiles(value?.files ?? files);
 
           _onChange.current = value.onChange;
-          ref.current?.open();
+          ref.current?.present();
         },
       }),
       [
@@ -215,63 +213,59 @@ export const AttachModalProvider: FC<
     return (
       <AttachModalContext.Provider value={contextValue}>
         {children}
-        <Modal
-          ref={ref}
-          withoutPortal={true}
-          adjustToContentHeight={true}
-          {...modalStyles}
-          {...rest}
-        >
-          <Row pa={16}>
-            {_camera && (
-              <Touchable
-                onPress={_launchCamera}
-                bg={"#00000010"}
-                alignItems={"center"}
-                justifyContent={"center"}
-                pa={16}
-                ma={8}
-                height={100}
-                width={100}
-                radius={8}
-              >
-                <CameraIcon fill={theme.color.text} />
-              </Touchable>
-            )}
+        <Modal ref={ref} {...rest}>
+          <BottomSheetView>
+            <Row pa={16}>
+              {_camera && (
+                <Touchable
+                  onPress={_launchCamera}
+                  bg={"#00000010"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  pa={16}
+                  ma={8}
+                  height={100}
+                  width={100}
+                  radius={8}
+                >
+                  <CameraIcon fill={theme.color.text} />
+                </Touchable>
+              )}
 
-            {_images && (
-              <Touchable
-                onPress={_launchImageLibrary}
-                bg={"#00000010"}
-                alignItems={"center"}
-                justifyContent={"center"}
-                pa={16}
-                ma={8}
-                height={100}
-                width={100}
-                radius={8}
-              >
-                <ImageIcon fill={theme.color.text} />
-              </Touchable>
-            )}
+              {_images && (
+                <Touchable
+                  onPress={_launchImageLibrary}
+                  bg={"#00000010"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  pa={16}
+                  ma={8}
+                  height={100}
+                  width={100}
+                  radius={8}
+                >
+                  <ImageIcon fill={theme.color.text} />
+                </Touchable>
+              )}
 
-            {_files && (
-              <Touchable
-                onPress={_launchDocument}
-                bg={"#00000010"}
-                alignItems={"center"}
-                justifyContent={"center"}
-                pa={16}
-                ma={8}
-                height={100}
-                width={100}
-                radius={8}
-              >
-                <FileDocumentIcon fill={"#000"} />
-              </Touchable>
-            )}
-          </Row>
-          <SafeArea bottom />
+              {_files && (
+                <Touchable
+                  onPress={_launchDocument}
+                  bg={"#00000010"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  pa={16}
+                  ma={8}
+                  height={100}
+                  width={100}
+                  radius={8}
+                >
+                  <FileDocumentIcon fill={"#000"} />
+                </Touchable>
+              )}
+            </Row>
+            <SafeArea bottom={true} />
+          </BottomSheetView>
         </Modal>
       </AttachModalContext.Provider>
     );

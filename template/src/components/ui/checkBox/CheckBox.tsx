@@ -117,6 +117,7 @@ const getIconContainerStyle = (
   alignItems: "center",
   justifyContent: "center",
 });
+
 const getInnerIconContainerStyle = (
   fillColor: string,
   radius: number = 0,

@@ -8,7 +8,7 @@ import {
   TextStyle,
 } from "react-native";
 
-import { ITheme, useTheme, useThemeAwareObject } from "../../../theme";
+import { ITheme, useTheme, useThemeAwareObject } from "~@theme";
 
 export interface TextProps extends FlexProps<TextStyle>, RNTextProps {
   text?: string;

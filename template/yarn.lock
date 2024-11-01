@@ -1327,12 +1327,13 @@
     minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
-"@force-dev/react-mobile@^0.0.135":
-  version "0.0.135"
-  resolved "https://registry.npmjs.org/@force-dev/react-mobile/-/react-mobile-0.0.135.tgz"
-  integrity sha512-W4kWhbexwketba/gmj37S5zCnyTUMT0bF+UFZ5qSuxXATLZgO8uA+J/PX8NtKufsqKZ2+99lr7jJATeRNv3wYQ==
+"@force-dev/react-mobile@^0.0.138":
+  version "0.0.138"
+  resolved "https://registry.yarnpkg.com/@force-dev/react-mobile/-/react-mobile-0.0.138.tgz#9e63df34a65ca81903ad7de310696e270f681dc7"
+  integrity sha512-Th0K2zGjAgmlHaROqGFnsEDa8tBcbI+kL4Tg9f8QIzg56NLTDfzelyQXH+70jxEDyZe+kfQucy5CPyFdtgQgFw==
   dependencies:
     "@force-dev/react" "^1.1.2"
+    "@gorhom/bottom-sheet" "^5.0.5"
     "@gorhom/portal" "^1.0.14"
     "@react-native-community/blur" "^4.4.0"
     react-native-iphone-x-helper "^1.3.1"
@@ -1380,7 +1381,15 @@
     reflect-metadata "^0.1.13"
     shortid "^2.2.16"
 
-"@gorhom/portal@^1.0.14":
+"@gorhom/bottom-sheet@^5.0.5":
+  version "5.0.5"
+  resolved "https://registry.yarnpkg.com/@gorhom/bottom-sheet/-/bottom-sheet-5.0.5.tgz#bf37be6463fa8133163d84428b71cde9bcb5707a"
+  integrity sha512-OPMbwrU/sx/o8AOHe4Bmthp0oR/a1jsTYmdjeGlnWmpnwAVa13QEALsgCm8WaDKA39qeoD7rT38e4/GYeL4myA==
+  dependencies:
+    "@gorhom/portal" "1.0.14"
+    invariant "^2.2.4"
+
+"@gorhom/portal@1.0.14", "@gorhom/portal@^1.0.14":
   version "1.0.14"
   resolved "https://registry.npmjs.org/@gorhom/portal/-/portal-1.0.14.tgz"
   integrity sha512-MXyL4xvCjmgaORr/rtryDNFy3kU4qUbKlwtQqqsygd0xX3mhKjOLn6mQK8wfu0RkoE0pBE0nAasRoHua+/QZ7A==
@@ -2422,6 +2431,11 @@ acorn@^8.8.2, acorn@^8.9.0:
   version "8.11.2"
   resolved "https://registry.npmjs.org/acorn/-/acorn-8.11.2.tgz"
   integrity sha512-nc0Axzp/0FILLEVsm4fNwLCwMttvhEI263QtVPQcbpfZZ3ts0hLsZGOpE6czNlid7CJ9MlyH8reXkpsf3YUY4w==
+
+add@^2.0.6:
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/add/-/add-2.0.6.tgz#248f0a9f6e5a528ef2295dbeec30532130ae2235"
+  integrity sha512-j5QzrmsokwWWp6kUcJQySpbG+xfOBqqKnup3OIk1pz+kB/80SLorZ9V8zHFLO92Lcd+hbvq8bT+zOGoPkmBV0Q==
 
 aggregate-error@^3.0.0:
   version "3.1.0"
@@ -5961,7 +5975,7 @@ prompts@^2.4.2:
     kleur "^3.0.3"
     sisteransi "^1.0.5"
 
-prop-types@^15.7.2, prop-types@^15.8.1:
+prop-types@^15.7.2, prop-types@^15.7.x, prop-types@^15.8.1:
   version "15.8.1"
   resolved "https://registry.npmjs.org/prop-types/-/prop-types-15.8.1.tgz"
   integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
@@ -6106,6 +6120,11 @@ react-native-logs@^5.1.0:
   resolved "https://registry.npmjs.org/react-native-logs/-/react-native-logs-5.1.0.tgz"
   integrity sha512-bnTDoML/xH2V16ica6q4OJN7LIT0yz9mgeiAR1l3lvMTV6qfPGpiyy1G39mNfVorGIh3KbMLd6Av8dE2Pc33yA==
 
+react-native-modalize@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/react-native-modalize/-/react-native-modalize-2.1.1.tgz#dcb67d208f4c5bdc76f45075e727be43fd008561"
+  integrity sha512-4/7EZWsrUqAAkkAVEnOsSdpAPQaEBewX7TvwFuzgvGDzxKpq3O58I9SnSeU8QtG/r91XYHJNaU5dAuDrcLjUaQ==
+
 react-native-pager-view@^6.2.3:
   version "6.2.3"
   resolved "https://registry.npmjs.org/react-native-pager-view/-/react-native-pager-view-6.2.3.tgz"
@@ -6119,6 +6138,13 @@ react-native-paper@^5.11.4:
     "@callstack/react-theme-provider" "^3.0.9"
     color "^3.1.2"
     use-latest-callback "^0.1.5"
+
+react-native-parsed-text@^0.0.22:
+  version "0.0.22"
+  resolved "https://registry.yarnpkg.com/react-native-parsed-text/-/react-native-parsed-text-0.0.22.tgz#a23c756eaa5d6724296814755085127f9072e5f5"
+  integrity sha512-hfD83RDXZf9Fvth3DowR7j65fMnlqM9PpxZBGWkzVcUTFtqe6/yPcIoIAgrJbKn6YmtzkivmhWE2MCE4JKBXrQ==
+  dependencies:
+    prop-types "^15.7.x"
 
 react-native-permissions@^4.0.1:
   version "4.0.1"
@@ -7441,6 +7467,11 @@ yargs@^17.6.2:
     string-width "^4.2.3"
     y18n "^5.0.5"
     yargs-parser "^21.1.1"
+
+yarn@^1.22.22:
+  version "1.22.22"
+  resolved "https://registry.yarnpkg.com/yarn/-/yarn-1.22.22.tgz#ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  integrity sha512-prL3kGtyG7o9Z9Sv8IPfBNrWTDmXB4Qbes8A9rEzt6wkJV8mUvoirjU0Mp3GGAU06Y0XQyA3/2/RQFVuK7MTfg==
 
 yocto-queue@^0.1.0:
   version "0.1.0"

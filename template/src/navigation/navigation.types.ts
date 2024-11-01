@@ -17,6 +17,8 @@ export enum StackScreenName {
   Notifications = "Notifications",
   Pickers = "Pickers",
   Components = "Components",
+  Modals = "Modals",
+  ChatScreen = "ChatScreen",
 
   Post = "Post",
 }
@@ -26,6 +28,8 @@ interface StackScreenParams {
   Notifications: any;
   Pickers: any;
   Components: any;
+  Modals: any;
+  ChatScreen: any;
 
   Post: { id: number };
 }

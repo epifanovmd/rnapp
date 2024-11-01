@@ -1,4 +1,5 @@
 import {
+  BottomSheetView,
   Col,
   Modal,
   ModalProps,
@@ -9,7 +10,7 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import React, {
   FC,
@@ -23,7 +24,8 @@ import React, {
 } from "react";
 import { ViewProps } from "react-native";
 
-import { useModalStyles } from "../../../common";
+import { useModalStyles } from "~@common";
+
 import { Touchable, TouchableProps } from "../touchable";
 
 export interface TimePickerProps extends TouchableProps {
@@ -68,7 +70,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     renderFooter,
     ...rest
   }) => {
-    const { ref: modalRef } = useModal();
+    const modalRef = useModalRef();
     const modalStyles = useModalStyles();
 
     const [hour, minute] = useMemo(() => {
@@ -103,7 +105,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const handleOpen = useCallback(() => {
       onReset();
-      modalRef.current?.open();
+      modalRef.current?.present();
     }, [modalRef, onReset]);
 
     const handleFirst = useCallback(
@@ -180,14 +182,8 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal
-          ref={modalRef}
-          adjustToContentHeight={true}
-          childrenPanGestureEnabled={false}
-          {...modalStyles}
-          {...modalProps}
-        >
-          <Col {...containerProps}>
+        <Modal ref={modalRef} {...modalStyles} {...modalProps}>
+          <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pa={8} justifyContent={"space-around"}>
@@ -201,7 +197,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
             {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom />
-          </Col>
+          </BottomSheetView>
         </Modal>
       </Touchable>
     );

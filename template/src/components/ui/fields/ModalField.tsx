@@ -1,12 +1,10 @@
 import { createSlot, mergeRefs, useSlotProps } from "@force-dev/react";
 import {
-  Modal,
-  ModalHeader as _ModalHeader,
-  ModalHeaderProps,
-  ModalProps,
+  BottomSheetView,
   SafeArea,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import React, {
   FC,
   forwardRef,
@@ -17,11 +15,18 @@ import React, {
 } from "react";
 import { ColorValue, GestureResponderEvent } from "react-native";
 
-import { useIsVisibleKeyboard, useModalStyles } from "../../../common";
+import { useIsVisibleKeyboard, useModalStyles } from "~@common";
+
 import { CloseIcon } from "../../icons";
-import { ModalActions, ModalActionsProps } from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
-import { ScrollView, ScrollViewProps } from "../scrollView";
+import { ModalActions, ModalActionsProps } from "../modal";
+import {
+  Modal,
+  ModalHeader as _ModalHeader,
+  ModalHeaderProps,
+  ModalProps,
+} from "../modal";
+import { ScrollViewProps } from "../scrollView";
 
 export interface ModalFieldProps extends FieldProps {}
 
@@ -59,12 +64,12 @@ const _ModalField: FC<
       error,
     } = useSlotProps(ModalField, children);
 
-    const { ref: modalRef } = useModal();
+    const modalRef = useModalRef();
     const modalStyles = useModalStyles();
     const keyboardVisible = useIsVisibleKeyboard();
 
     const openModal = useCallback(() => {
-      modalRef.current?.open();
+      modalRef.current?.present();
     }, [modalRef]);
 
     const handlePress = useCallback(
@@ -105,35 +110,30 @@ const _ModalField: FC<
           <Field.Error color={"red"} {...error} />
           <Field.Description {...description} />
         </Field>
-        <Modal
-          ref={mergeRefs([modalRef, ref])}
-          panGestureEnabled={false}
-          adjustToContentHeight={true}
-          withHandle={false}
-          {...modalStyles}
-          {...modal}
-        >
-          <_ModalHeader
-            {...modalHeader}
-            label={modalHeader?.label || label?.text}
-            textStyle={[modalHeader?.textStyle]}
-            renderCloseIcon={closeIcon}
-            onClose={onRequestClose}
-          >
-            {modalHeader?.children}
-          </_ModalHeader>
+        <Modal ref={mergeRefs([modalRef, ref])} {...modalStyles} {...modal}>
+          <BottomSheetView>
+            <_ModalHeader
+              {...modalHeader}
+              label={modalHeader?.label || label?.text}
+              textStyle={[modalHeader?.textStyle]}
+              renderCloseIcon={closeIcon}
+              onClose={onRequestClose}
+            >
+              {modalHeader?.children}
+            </_ModalHeader>
 
-          <ScrollView
-            pa={16}
-            bounces={false}
-            keyboardShouldPersistTaps={"handled"}
-            {...modalScrollView}
-          >
-            {modal?.children}
-          </ScrollView>
+            <BottomSheetScrollView
+              pa={16}
+              bounces={false}
+              keyboardShouldPersistTaps={"handled"}
+              {...modalScrollView}
+            >
+              {modal?.children}
+            </BottomSheetScrollView>
 
-          {!!modalFooter && <ModalActions {...modalFooter} />}
-          {!keyboardVisible && <SafeArea bottom={true} />}
+            {!!modalFooter && <ModalActions {...modalFooter} />}
+            {!keyboardVisible && <SafeArea bottom={true} />}
+          </BottomSheetView>
         </Modal>
       </>
     );

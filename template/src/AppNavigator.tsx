@@ -24,7 +24,9 @@ import {
 } from "./navigation";
 import {
   Authorization,
+  ChatScreen,
   Components,
+  Modals,
   Notifications,
   Pickers,
   PostScreen,
@@ -44,6 +46,8 @@ export const SCREENS: StackScreens = {
   Notifications: { screen: Notifications },
   Pickers: { screen: Pickers },
   Components: { screen: Components },
+  Modals: { screen: Modals },
+  ChatScreen: { screen: ChatScreen },
 };
 
 const options: StackScreenOption = {

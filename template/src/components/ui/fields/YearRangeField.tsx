@@ -1,21 +1,12 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import {
-  ModalHeader,
-  ModalHeaderProps,
-  RenderConditional,
-} from "@force-dev/react-mobile";
+import { RenderConditional } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 
-import {
-  ModalActions,
-  ModalActionsProps,
-  ModalActionsSlots,
-} from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
+import { ModalActions, ModalActionsProps, ModalActionsSlots } from "../modal";
+import { ModalHeader, ModalHeaderProps, ModalProps } from "../modal";
 import { RangePickerProps, YearRangePicker } from "../picker";
 import { Text } from "../text";
-import { ModalFieldSlots } from "./ModalField";
-import { SelectField } from "./SelectField";
 
 export interface YearRangeFieldProps {
   title?: string;
@@ -23,7 +14,7 @@ export interface YearRangeFieldProps {
   onChange?: (range: [number, number]) => void;
 }
 
-const Modal = createSlot<ModalFieldSlots>("Modal");
+const Modal = createSlot<ModalProps>("Modal");
 const ModalHeaderSlot = createSlot<ModalHeaderProps>("ModalHeader");
 const ModalActionsSlot =
   createSlot<Omit<ModalActionsProps, "onReject" | "onAccept">>("ModalActions");
@@ -130,9 +121,9 @@ export const YearRangeField = _YearRangeField as typeof _YearRangeField &
 YearRangeField.Modal = Modal;
 YearRangeField.ModalHeader = ModalHeaderSlot;
 
-YearRangeField.ModalActions = SelectField.ModalActions;
-YearRangeField.RejectButton = SelectField.RejectButton;
-YearRangeField.AcceptButton = SelectField.AcceptButton;
+YearRangeField.ModalActions = ModalActions;
+YearRangeField.RejectButton = ModalActions.RejectButton;
+YearRangeField.AcceptButton = ModalActions.AcceptButton;
 
 YearRangeField.Field = FieldSlot;
 YearRangeField.Label = Field.Label;

@@ -1,4 +1,5 @@
 import {
+  BottomSheetView,
   Col,
   Modal,
   ModalProps,
@@ -9,7 +10,7 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
@@ -25,7 +26,8 @@ import React, {
 } from "react";
 import { ViewProps } from "react-native";
 
-import { useModalStyles } from "../../../common";
+import { useModalStyles } from "~@common";
+
 import { useTranslation } from "../../../localization";
 import { Touchable, TouchableProps } from "../touchable";
 
@@ -91,7 +93,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   }) => {
     const { i18n } = useTranslation();
 
-    const { ref: modalRef } = useModal();
+    const modalRef = useModalRef();
     const modalStyles = useModalStyles();
 
     const months = useMemo(
@@ -219,21 +221,15 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const handleOpen = useCallback(() => {
       onReset();
-      modalRef.current?.open();
+      modalRef.current?.present();
     }, [modalRef, onReset]);
 
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal
-          ref={modalRef}
-          adjustToContentHeight={true}
-          childrenPanGestureEnabled={false}
-          {...modalStyles}
-          {...modalProps}
-        >
-          <Col {...containerProps}>
+        <Modal ref={modalRef} {...modalStyles} {...modalProps}>
+          <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pa={8} justifyContent={"space-between"}>
@@ -262,7 +258,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
             {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom />
-          </Col>
+          </BottomSheetView>
         </Modal>
       </Touchable>
     );

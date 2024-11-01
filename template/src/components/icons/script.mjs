@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import {promisify} from 'util';
+import fs from "fs";
+import path from "path";
+import { promisify } from "util";
 
 const fsReaddir = promisify(fs.readdir);
 const fsWrite = promisify(fs.writeFile);
@@ -8,13 +8,16 @@ const fsReadFile = promisify(fs.readFile);
 const fsRename = promisify(fs.rename);
 
 function camelize(str) {
-  return str.replaceAll('-', ' ').replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function(match, index) {
-    if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
-    return match.toUpperCase();
-  });
+  return str
+    .replaceAll("-", " ")
+    .replace(/(?:^\w|[A-Z]|\b\w|\s+)/g, function (match, index) {
+      if (+match === 0) return ""; // or if (/\s+/.test(match)) for white spaces
+
+      return match.toUpperCase();
+    });
 }
 
-const content  = `import React, { FC } from 'react';
+const content = `import React, { FC } from 'react';
 import { FlexSvgProps } from '../types';
 import { useFlexProps } from '../../components';
 
@@ -26,68 +29,82 @@ export const replaceName: FC<FlexSvgProps> = ({height = 24, width = 24, scale, o
       replacedRow
     </Svg>
   );
-};`
+};`;
 
-const workDir = path.resolve(path.dirname(''));
+const workDir = path.resolve(path.dirname(""));
 
 const dirs = await fsReaddir(workDir);
 
-const includeDirs = [
-  'material',
-];
+const includeDirs = ["material"];
 const filterDirs = dirs.filter(item => includeDirs.some(name => name === item));
 
-await Promise.all(filterDirs.map(async (dir) => {
-  const currentDir = path.resolve(workDir, dir);
-  const files = await fsReaddir(currentDir);
+await Promise.all(
+  filterDirs.map(async dir => {
+    const currentDir = path.resolve(workDir, dir);
+    const files = await fsReaddir(currentDir);
 
-  // формируем React Native компоненты из иконок svg
-  await Promise.all(
-    files.filter(item => item.includes('.svg')).map(async (fileName) => {
-      const fileNamePath = path.resolve(currentDir, fileName);
-      const newFileName = camelize(fileName.replaceAll('.svg', '')) + '.tsx';
-      const newFileNamePath = path.resolve(currentDir, newFileName);
+    // формируем React Native компоненты из иконок svg
+    await Promise.all(
+      files
+        .filter(item => item.includes(".svg"))
+        .map(async fileName => {
+          const fileNamePath = path.resolve(currentDir, fileName);
+          const newFileName =
+            camelize(fileName.replaceAll(".svg", "")) + ".tsx";
+          const newFileNamePath = path.resolve(currentDir, newFileName);
 
-      await fsRename(fileNamePath, newFileNamePath);
+          await fsRename(fileNamePath, newFileNamePath);
 
-      const data = await fsReadFile(newFileNamePath);
+          const data = await fsReadFile(newFileNamePath);
 
-      const parseRow = data.toString()
-        .replace(/(<svg.*>)|(<\/svg>)/gm, '')
-        .replace(/(\n+)/gm, '\n')
-        .replace(/<path/gm, '<Path');
-      const finalValue = content.replace('replacedRow', parseRow).replace('replaceName', newFileName.replace('.tsx', 'Icon'));
+          const parseRow = data
+            .toString()
+            .replace(/(<svg.*>)|(<\/svg>)/gm, "")
+            .replace(/(\n+)/gm, "\n")
+            .replace(/<path/gm, "<Path");
+          const finalValue = content
+            .replace("replacedRow", parseRow)
+            .replace("replaceName", newFileName.replace(".tsx", "Icon"));
 
-      await fsWrite(newFileNamePath, finalValue);
+          await fsWrite(newFileNamePath, finalValue);
 
-      return Promise.resolve();
-    }),
-  );
+          return Promise.resolve();
+        }),
+    );
 
-  const newFiles = await fsReaddir(currentDir);
+    const newFiles = await fsReaddir(currentDir);
 
-  // генерируем index.ts с экспортами всех иконок
-  const names =   newFiles.filter(item => item !== 'index.ts').map((fileName) => {
-    const name = fileName.replace('.tsx', 'Icon');
-    const file = fileName.replace('.tsx', '');
+    // генерируем index.ts с экспортами всех иконок
+    const names = newFiles
+      .filter(item => item !== "index.ts")
+      .map(fileName => {
+        const name = fileName.replace(".tsx", "Icon");
+        const file = fileName.replace(".tsx", "");
 
-    return `export { ${name} } from './${file}';\n`;
-  });
+        return `export { ${name} } from './${file}';\n`;
+      });
 
-  await fsWrite(`${currentDir}/index.ts`, names.toString().replace(/,/gm, ''));
+    await fsWrite(
+      `${currentDir}/index.ts`,
+      names.toString().replace(/,/gm, ""),
+    );
 
+    // вносим изменения во все фалы иконок если нужно
+    await Promise.all(
+      newFiles
+        .filter(item => item !== "index.ts")
+        .map(async fileName => {
+          const data = await fsReadFile(path.resolve(currentDir, fileName));
 
-  // вносим изменения во все фалы иконок если нужно
-  await Promise.all(
-    newFiles.filter(item => item !== 'index.ts').map(async (fileName) => {
+          await fsWrite(
+            path.resolve(currentDir, fileName),
+            data.toString().replace('fill="black"', ""),
+          );
 
-      const data = await fsReadFile(path.resolve(currentDir, fileName))
-      await fsWrite(path.resolve(currentDir, fileName), data.toString()
-        .replace('fill="black"', ""));
+          return Promise.resolve();
+        }),
+    );
 
-      return Promise.resolve();
-    }),
-  )
-
-  return Promise.resolve();
-}))
+    return Promise.resolve();
+  }),
+);

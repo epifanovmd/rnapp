@@ -1,5 +1,4 @@
-import { ListCollectionHolder } from "@force-dev/utils";
-import { RefreshArgs } from "@force-dev/utils/src/store/holders/ListCollectionHolder";
+import { ListCollectionHolder, RefreshArgs } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
 
 import { PostModel } from "~@models";

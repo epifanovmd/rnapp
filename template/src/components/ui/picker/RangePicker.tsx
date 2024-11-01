@@ -1,7 +1,6 @@
 import {
+  BottomSheetView,
   Col,
-  Modal,
-  ModalProps,
   Picker,
   PickerChangeItem,
   PickerColumn,
@@ -9,7 +8,7 @@ import {
   PickerProps,
   Row,
   SafeArea,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import React, {
   JSX,
@@ -22,8 +21,7 @@ import React, {
 } from "react";
 import { ViewProps } from "react-native";
 
-import { useModalStyles } from "~@common";
-
+import { Modal, ModalProps } from "../modal";
 import { Touchable, TouchableProps } from "../touchable";
 
 export interface RangePickerProps<T extends string | number>
@@ -68,8 +66,7 @@ export const RangePicker: RangePicker = memo(
     renderFooter,
     ...rest
   }: PropsWithChildren<RangePickerProps<any>>) => {
-    const { ref: modalRef } = useModal();
-    const modalStyles = useModalStyles();
+    const modalRef = useModalRef();
 
     const items = useMemo(
       () => [empty, ...(reverse ? [..._items].reverse() : _items)],
@@ -137,7 +134,7 @@ export const RangePicker: RangePicker = memo(
 
     const handleOpen = useCallback(() => {
       onUpdate();
-      modalRef.current?.open();
+      modalRef.current?.present();
     }, [modalRef, onUpdate]);
 
     const handleFirst = useCallback(
@@ -218,16 +215,8 @@ export const RangePicker: RangePicker = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal
-          ref={modalRef}
-          handlePosition={"inside"}
-          adjustToContentHeight={true}
-          childrenPanGestureEnabled={false}
-          onClose={handleChange}
-          {...modalStyles}
-          {...modalProps}
-        >
-          <Col {...containerProps}>
+        <Modal ref={modalRef} {...modalProps}>
+          <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pv={16} ph={8} justifyContent={"space-around"}>
@@ -241,7 +230,7 @@ export const RangePicker: RangePicker = memo(
 
             {renderFooter?.({ onReset, onApply })}
             <SafeArea bottom={true} />
-          </Col>
+          </BottomSheetView>
         </Modal>
       </Touchable>
     );

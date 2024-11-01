@@ -1,10 +1,10 @@
 import {
   HoldItemProvider,
-  ModalHost,
   NotificationProvider,
   NotificationToastProps,
 } from "@force-dev/react-mobile";
 import { disposer } from "@force-dev/utils";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
@@ -83,7 +83,7 @@ const App: FC = observer(() => {
       <ThemeProvider>
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <SafeAreaProvider>
-          <ModalHost>
+          <BottomSheetModalProvider>
             <_HoldItemProvider>
               <AttachModalProvider>
                 <_Notifications>
@@ -91,7 +91,7 @@ const App: FC = observer(() => {
                 </_Notifications>
               </AttachModalProvider>
             </_HoldItemProvider>
-          </ModalHost>
+          </BottomSheetModalProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

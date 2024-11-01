@@ -39,8 +39,20 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
 
         <Button
           mt={8}
+          title={"Modals"}
+          onPress={() => navigation.navigate("Modals")}
+        />
+
+        <Button
+          mt={8}
           title={"Pickers"}
           onPress={() => navigation.navigate("Pickers")}
+        />
+
+        <Button
+          mt={8}
+          title={"ChatScreen"}
+          onPress={() => navigation.navigate("ChatScreen")}
         />
 
         <Col mt={8}>

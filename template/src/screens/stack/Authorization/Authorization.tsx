@@ -1,4 +1,3 @@
-import { Input } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
@@ -8,6 +7,7 @@ import {
   Content,
   Field,
   Header,
+  Input,
   ScrollView,
 } from "~@components";
 

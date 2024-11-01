@@ -1,12 +1,8 @@
 import { createSlot, mergeRefs, useSlotProps } from "@force-dev/react";
 import {
-  Input,
-  InputProps,
-  Modal,
-  ModalHeader as _ModalHeader,
-  ModalHeaderProps,
+  BottomSheetView,
   ModalProps,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import React, {
   FC,
@@ -28,16 +24,17 @@ import {
   TextInputFocusEventData,
 } from "react-native";
 
-import { useModalStyles } from "../../../common";
 import { CloseIcon } from "../../icons";
-import { ModalActions } from "../../modal";
 import { Field, FieldProps, FieldSlots } from "../field";
+import { Input, InputProps, ModalInput } from "../input";
+import { ModalActions } from "../modal";
+import { Modal, ModalHeader as _ModalHeader, ModalHeaderProps } from "../modal";
 import { ScrollView, ScrollViewProps } from "../scrollView";
 import { Text, TextProps } from "../text";
 
 interface InputFieldProps extends FieldProps {}
 
-type ModalPropsWithRenderClose = ModalProps & {
+type ModalPropsWithRenderClose = Partial<ModalProps> & {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element;
 };
 
@@ -61,7 +58,6 @@ const _InputField: FC<
   forwardRef(({ children, onPress, ...rest }, ref) => {
     const inputRef = useRef<TextInput>(null);
     const [isFocused, setFocused] = useState(false);
-    const modalStyles = useModalStyles();
 
     const {
       input,
@@ -78,48 +74,36 @@ const _InputField: FC<
       error,
     } = useSlotProps(InputField, children);
 
-    const { ref: modalRef } = useModal();
-
-    const openModal = useCallback(() => {
-      modalRef.current?.open();
-    }, [modalRef]);
+    const modalRef = useModalRef();
 
     const handlePress = useCallback(
       (value: any, e: GestureResponderEvent) => {
         setFocused(true);
         inputRef.current?.focus();
-        openModal();
+        modalRef.current?.present();
         setModalValue(input?.value || "");
         onPress?.(e, value);
       },
-      [input?.value, onPress, openModal],
+      [input?.value, modalRef, onPress],
     );
 
     const [modalValue, setModalValue] = useState<string>(input?.value || "");
 
     const onClose = useCallback(() => {
-      modal?.onClose?.();
+      modal?.onDismiss?.();
 
       inputRef.current?.blur();
-    }, [modal]);
-
-    const onClosed = useCallback(() => {
-      modal?.onClosed?.();
       setModalValue("");
     }, [modal]);
 
     const onRequestClose = useCallback(() => {
+      inputRef.current?.blur();
       modalHeader?.onClose?.();
       modalRef.current?.close();
     }, [modalHeader, modalRef]);
 
     const mergedRef = useMemo(() => mergeRefs([ref, inputRef]), [ref]);
     const disabled = rest.disabled || input?.disabled;
-
-    const modalStyle = useMemo(
-      () => [{ minHeight: 250 }, modalStyles.modalStyle, modal?.modalStyle],
-      [modal?.modalStyle, modalStyles.modalStyle],
-    );
 
     const modalLabelStyle = useMemo(
       () => [{ fontSize: 18, color: "#fff" }, modalLabel?.style],
@@ -148,9 +132,8 @@ const _InputField: FC<
       (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
         input?.onBlur?.(e);
         setFocused(false);
-        modalRef.current?.close();
       },
-      [input, modalRef],
+      [input],
     );
 
     const onAccept = useCallback(() => {
@@ -190,51 +173,43 @@ const _InputField: FC<
           <Field.Description {...description} />
         </Field>
         {!!modal && (
-          <Modal
-            ref={modalRef}
-            panGestureEnabled={false}
-            adjustToContentHeight={true}
-            withHandle={false}
-            {...modalStyles}
-            modalStyle={modalStyle}
-            {...modal}
-            onClose={onClose}
-            onClosed={onClosed}
-          >
-            <_ModalHeader
-              {...modalHeader}
-              label={modalHeader?.label || label?.text}
-              textStyle={[modalLabelStyle, modalHeader?.textStyle]}
-              renderCloseIcon={closeIcon}
-              onClose={onRequestClose}
-            >
-              {modalHeader?.children}
-            </_ModalHeader>
-            <ScrollView
-              ph={16}
-              minHeight={150}
-              bounces={false}
-              keyboardShouldPersistTaps={"handled"}
-              {...modalScrollView}
-            >
-              <Field onPress={handlePress}>
-                <Field.Content {...content}>
-                  <Input
-                    ref={mergedRef}
-                    {...input}
-                    scrollEnabled={false}
-                    value={input?.multiline ? undefined : modalValue}
-                    defaultValue={!input?.multiline ? undefined : modalValue}
-                    onBlur={handleBlur}
-                    onChangeText={setModalValue}
-                    autoFocus={true}
-                  />
-                </Field.Content>
-              </Field>
+          <Modal ref={modalRef} {...modal} onDismiss={onClose}>
+            <BottomSheetView>
+              <_ModalHeader
+                {...modalHeader}
+                label={modalHeader?.label || label?.text}
+                textStyle={[modalLabelStyle, modalHeader?.textStyle]}
+                renderCloseIcon={closeIcon}
+                onClose={onRequestClose}
+              >
+                {modalHeader?.children}
+              </_ModalHeader>
+              <ScrollView
+                ph={16}
+                minHeight={150}
+                bounces={false}
+                keyboardShouldPersistTaps={"handled"}
+                {...modalScrollView}
+              >
+                <Field onPress={handlePress}>
+                  <Field.Content {...content}>
+                    <ModalInput
+                      ref={mergedRef}
+                      {...input}
+                      scrollEnabled={false}
+                      value={input?.multiline ? undefined : modalValue}
+                      defaultValue={!input?.multiline ? undefined : modalValue}
+                      onBlur={handleBlur}
+                      onChangeText={setModalValue}
+                      autoFocus={true}
+                    />
+                  </Field.Content>
+                </Field>
 
-              {modal?.children}
-            </ScrollView>
-            <ModalActions onReject={onClose} onAccept={onAccept} />
+                {modal?.children}
+              </ScrollView>
+              <ModalActions onReject={onClose} onAccept={onAccept} />
+            </BottomSheetView>
           </Modal>
         )}
       </>

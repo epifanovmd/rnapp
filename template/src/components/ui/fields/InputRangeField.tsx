@@ -1,10 +1,5 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import {
-  Input,
-  InputProps,
-  RenderConditional,
-  useModal,
-} from "@force-dev/react-mobile";
+import { RenderConditional, useModalRef } from "@force-dev/react-mobile";
 import React, {
   FC,
   memo,
@@ -15,6 +10,7 @@ import React, {
 import { StyleSheet } from "react-native";
 
 import { Field, FieldSlots } from "../field";
+import { Input, InputProps } from "../input";
 import { Text } from "../text";
 import { ModalField, ModalFieldProps, ModalFieldSlots } from "./ModalField";
 
@@ -35,7 +31,7 @@ export interface InputRangeFieldSlots extends ModalFieldSlots, FieldSlots {
 
 const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
   ({ title, from, to, onChange, children, ...rest }) => {
-    const { ref: modalRef } = useModal();
+    const modalRef = useModalRef();
     const [valueFrom, setValueFrom] = useState(String(from || ""));
     const [valueTo, setValueTo] = useState(String(to || ""));
 

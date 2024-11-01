@@ -899,7 +899,7 @@ PODS:
   - React-Mapbuffer (0.73.1):
     - glog
     - React-debug
-  - react-mobile (0.0.135):
+  - react-mobile (0.0.138):
     - React-Core
   - react-native-biometrics (3.0.1):
     - React-Core
@@ -1380,7 +1380,7 @@ SPEC CHECKSUMS:
   React-jsinspector: 369048694e39942063c5d08e9580b43e2edd379a
   React-logger: e0c1e918d9588a9f39c9bc62d9d6bfe9ca238d9d
   React-Mapbuffer: 9731a0a63ebaf8976014623c4d637744d7353a7c
-  react-mobile: fa15083aebbbf6e4183111d2aaedd75161a51e81
+  react-mobile: 69d84af28118ae84ec86e083ced2ec3fa03037c3
   react-native-biometrics: 352e5a794bfffc46a0c86725ea7dc62deb085bdc
   react-native-blur: 27113acc008facbc8accae5fb3a78b8424f64cfd
   react-native-config: 6502b1879f97ed5ac570a029961fc35ea606cd14

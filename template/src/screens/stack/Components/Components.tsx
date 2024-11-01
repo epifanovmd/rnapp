@@ -1,9 +1,9 @@
 import {
+  BottomSheetView,
   Col,
   ImageViewing,
-  ModalHeader,
   Row,
-  useModal,
+  useModalRef,
 } from "@force-dev/react-mobile";
 import React, { FC, memo, useCallback, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
@@ -16,8 +16,10 @@ import {
   Content,
   Header,
   Image,
+  InputField,
   Modal,
   ModalActions,
+  ModalHeader,
   Text,
   Title,
   Touchable,
@@ -30,7 +32,7 @@ import { StackProps } from "../../../navigation";
 export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
   const { open } = useAttachModal();
-  const { ref: modalRef } = useModal();
+  const modalRef = useModalRef();
   const { onScroll, animatedValue } = useAnimationHeader();
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           <Button
             mv={8}
             title={"show modal"}
-            onPress={() => modalRef.current?.open()}
+            onPress={() => modalRef.current?.present()}
           />
 
           <Row>
@@ -87,6 +89,23 @@ export const Components: FC<StackProps> = memo(({ route }) => {
             />
             <Text ml={8}>{"only press checkbox"}</Text>
           </Row>
+
+          <InputField mt={8} bg={"yellow"}>
+            <InputField.Input
+              inputTextColor={"red"}
+              placeholder={"Input"}
+              placeholderTextColor={"red"}
+            />
+          </InputField>
+
+          <InputField mt={8}>
+            <InputField.Input
+              inputTextColor={"red"}
+              placeholder={"Input"}
+              placeholderTextColor={"red"}
+            />
+            <InputField.Modal />
+          </InputField>
 
           <Col mt={8} height={100} width={100}>
             <ImageViewing
@@ -115,34 +134,31 @@ export const Components: FC<StackProps> = memo(({ route }) => {
         </Animated.ScrollView>
       </Content>
 
-      <Modal
-        ref={modalRef}
-        // adjustToContentHeight={true}
-        handlePosition={"inside"}
-        handleStyle={{ backgroundColor: "red" }}
-        closeSnapPointStraightEnabled={false}
-        snapPoint={200}
-        withHandle={false}
-        modalHeight={400}
-        // alwaysOpen={100}
-      >
-        <ModalHeader onClose={modalRef.current?.close}>
-          <Text>Заголовок</Text>
-        </ModalHeader>
-        <Col ph={16}>
-          <Text>{"Контент"}</Text>
-        </Col>
-        <ModalActions
-          onAccept={() => {
-            console.log("onAccept");
-          }}
-          onReject={() => {
-            console.log("onReject");
-          }}
-        >
-          <ModalActions.AcceptButton color={"red"} title={"Accept"} />
-          <ModalActions.RejectButton color={"red"} title={"Reject"} />
-        </ModalActions>
+      <Modal ref={modalRef}>
+        <BottomSheetView>
+          <ModalHeader
+            label={"Заголовок"}
+            onClose={() => {
+              modalRef.current?.dismiss();
+            }}
+          />
+          <Row ph={16}>
+            <Text>{"Контент"}</Text>
+          </Row>
+          <ModalActions
+            onAccept={() => {
+              console.log("onAccept");
+            }}
+            onReject={() => {
+              console.log("onReject");
+              modalRef.current?.dismiss();
+            }}
+          >
+            <ModalActions.AcceptButton color={"red"} title={"Accept"} />
+            <ModalActions.RejectButton color={"red"} title={"Reject"} />
+          </ModalActions>
+          {/* <SafeArea bottom />*/}
+        </BottomSheetView>
       </Modal>
     </Container>
   );
