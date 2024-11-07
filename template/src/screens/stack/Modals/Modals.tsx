@@ -44,7 +44,11 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
         </Animated.ScrollView>
       </Content>
 
-      <Modal ref={modalRef}>
+      <Modal
+        ref={modalRef}
+        snapPoints={[100, "30%", "80%"]}
+        enableDynamicSizing={false}
+      >
         <BottomSheetScrollView>
           {new Array(30).fill(0).map((_, i) => (
             <Row key={i}>

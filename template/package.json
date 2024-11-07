@@ -19,6 +19,7 @@
     "ios:Stg-Release": "react-native run-ios --scheme 'rnapp.stagingReleasse'",
     "ios:Prod-Debug": "react-native run-ios --scheme 'rnapp.productionDebug'",
     "ios:Prod-Release": "react-native run-ios --scheme 'rnapp.productionRelease'",
+    "plop": "plop",
     "clean:android": "cd android && ./gradlew clean",
     "lint": "eslint \"src/**/*{.ts,.tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*{.ts,.tsx}\"",
@@ -98,6 +99,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.0",
     "husky": "^4.3.0",
     "lint-staged": "^11.2.6",
+    "plop": "^4.0.1",
     "prettier": "^2.4.1",
     "typescript": "^5.5.4"
   },
