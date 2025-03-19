@@ -358,13 +358,11 @@ export const Bubble: FC<BubbleProps> = memo(props => {
       return (
         <View style={styles.content.usernameView}>
           <Text
-            style={
-              [
-                styles.content.username,
-                { color: theme[`${position}UsernameColor`] },
-                usernameStyle,
-              ] as TextStyle
-            }
+            style={[
+              styles.content.username,
+              { color: theme[`${position}UsernameColor`] },
+              usernameStyle,
+            ]}
           >
             ~ {currentMessage.user.name}
           </Text>

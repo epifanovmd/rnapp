@@ -96,6 +96,7 @@ export interface MessageContainerProps
     | "ListHeaderComponent"
     | "onLayout"
     | "onEndReached"
+    | "CellRendererComponent"
   >;
   scrollToBottomStyle?: StyleProp<ViewStyle>;
 

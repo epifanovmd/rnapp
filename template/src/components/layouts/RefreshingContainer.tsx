@@ -491,6 +491,7 @@ const AnimatedFlatList = Animated.createAnimatedComponent(
       <Animated.FlatList
         ref={ref}
         {...rest}
+        CellRendererComponent={undefined}
         onScroll={(rest as any).nativeOnScroll ?? rest.onScroll}
       >
         {children}

@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { ActivityIndicator } from "react-native";
 
-import { useTheme } from "../../theme";
+import { useTheme } from "~@theme";
 
 interface IProps extends FlexProps {
   loading?: boolean;
@@ -22,7 +22,7 @@ export const LoadingContent: FC<PropsWithChildren<IProps>> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { theme } = useTheme();
 
-  const timeoutId = useRef<any>();
+  const timeoutId = useRef<any>(undefined);
 
   useEffect(() => {
     if (loading) {

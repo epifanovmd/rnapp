@@ -1,6 +1,6 @@
 import { consoleTransport, logger } from "react-native-logs";
 
-export const log = logger.createLogger<"debug" | "info" | "warn" | "error">({
+export const log = logger.createLogger({
   levels: {
     debug: 0,
     info: 1,

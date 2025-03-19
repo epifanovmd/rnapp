@@ -69,8 +69,8 @@ const colors = [
 
 export const ChatAvatar: FC<ChatAvatarProps> = memo(
   ({ user, avatarStyle, textStyle, onPress, onLongPress }) => {
-    const avatarName = useRef<string>();
-    const avatarColor = useRef<ColorValue>();
+    const avatarName = useRef<string>(undefined);
+    const avatarColor = useRef<ColorValue>(undefined);
     const [loadingState, setLoadingState] = useState<LoadingState>(
       LoadingState.Pending,
     );

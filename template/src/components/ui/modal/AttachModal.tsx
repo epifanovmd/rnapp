@@ -49,7 +49,7 @@ export interface AttachModalProps {
   images?: boolean;
   files?: boolean;
 
-  fileType?: keyof PlatformTypes["ios"];
+  fileType?: keyof PlatformTypes;
 }
 
 export interface AttachValue {
@@ -99,13 +99,13 @@ export const AttachModalProvider: FC<
     const _quality = useRef<PhotoQuality>(quality);
     const _limit = useRef<number>(selectionLimit);
 
-    const _fileType = useRef<keyof PlatformTypes["ios"]>(fileType);
+    const _fileType = useRef<keyof PlatformTypes>(fileType);
 
     const [_camera, setCamera] = useState<boolean>(camera);
     const [_images, setImages] = useState<boolean>(images);
     const [_files, setFiles] = useState<boolean>(files);
 
-    const _onChange = useRef<AttachOptions["onChange"]>();
+    const _onChange = useRef<AttachOptions["onChange"]>(null);
 
     const contextValue = useMemo<AttachModalContext>(
       () => ({
@@ -194,7 +194,7 @@ export const AttachModalProvider: FC<
 
     const _launchDocument = useCallback(() => {
       ref.current?.close();
-      pick<"ios">({
+      pick({
         type: perPlatformTypes[Platform.OS][_fileType.current],
       }).then(res => {
         res &&
