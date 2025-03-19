@@ -33,7 +33,7 @@ export const PostList: FC<PropsWithChildren<IProps>> = observer(
 
     const handlePress = useCallback(
       (id: number) => {
-        navigate("Post", { id });
+        navigate({ name: "Post", params: { id } });
       },
       [navigate],
     );

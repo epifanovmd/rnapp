@@ -19,5 +19,5 @@ export interface IProfileDataStore {
 
   // signUp(params: ISignUpRequest): void;
 
-  getProfile(): Promise<void>;
+  getProfile(): Promise<IProfile | undefined>;
 }

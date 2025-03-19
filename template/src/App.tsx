@@ -33,7 +33,7 @@ import SplashScreen from "react-native-splash-screen";
 
 import { AttachModalProvider } from "~@components";
 import { log } from "~@service";
-import { useSessionDataStore } from "~@store";
+import { useAppDataStore } from "~@store/app";
 import { ThemeProvider, useTheme } from "~@theme";
 
 import { AppNavigator } from "./AppNavigator";
@@ -48,7 +48,7 @@ const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
-  const { restore, initialize } = useSessionDataStore();
+  const { initialize, restoreToken } = useAppDataStore();
 
   useEffect(() => {
     AsyncStorage.getItem("i18nextLng").then(async lang => {
@@ -58,9 +58,7 @@ const App: FC = observer(() => {
     });
     log.debug("CONFIG", JSON.stringify(Config));
 
-    const dispose = initialize(() => {
-      navigationRef.navigate("Authorization");
-    });
+    const dispose = initialize();
 
     return () => {
       disposer(dispose);
@@ -69,14 +67,14 @@ const App: FC = observer(() => {
   }, []);
 
   const onReady = useCallback(async () => {
-    const token = await restore();
+    const { accessToken } = await restoreToken();
 
-    if (!token) {
+    if (!accessToken) {
       navigationRef.navigate("Authorization");
     }
 
     SplashScreen.hide();
-  }, [restore]);
+  }, [restoreToken]);
 
   return (
     <GestureHandlerRootView style={ss.container}>

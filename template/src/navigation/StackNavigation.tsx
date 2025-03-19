@@ -4,11 +4,6 @@ import {
   StackRouterOptions,
 } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import {
-  StackNavigationConfig,
-  StackNavigationEventMap,
-  StackNavigationOptions,
-} from "@react-navigation/stack/lib/typescript/src/types";
 import React, { FC, memo, useMemo } from "react";
 
 import { ScreenName, ScreenParamList } from "./navigation.types";
@@ -16,17 +11,9 @@ import { StackScreenOption, StackScreens } from "./types";
 
 const Stack = createStackNavigator<ScreenParamList>();
 
-type Props = DefaultNavigatorOptions<
-  ScreenParamList,
-  StackNavigationState<ScreenParamList>,
-  StackNavigationOptions,
-  StackNavigationEventMap
-> &
-  StackRouterOptions &
-  StackNavigationConfig;
+type Props = React.ComponentProps<typeof Stack.Navigator>;
 
 interface IProps extends Omit<Props, "children"> {
-  id?: string;
   routes: StackScreens;
   screenOptions?: StackScreenOption;
   initialRouteName?: keyof StackScreens;

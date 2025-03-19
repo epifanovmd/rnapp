@@ -22,17 +22,17 @@ export class ProfileDataStore implements IProfileDataStore {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
-  updateToken() {
-    return this._tokenService.restoreRefreshToken().then(async refreshToken => {
-      if (refreshToken) {
-        await this._refresh(refreshToken);
-      }
+  async updateToken() {
+    const refreshToken = await this._tokenService.restoreRefreshToken();
 
-      return {
-        accessToken: this._tokenService.accessToken,
-        refreshToken: this._tokenService.refreshToken,
-      };
-    });
+    if (refreshToken) {
+      await this._refresh(refreshToken);
+    }
+
+    return {
+      accessToken: this._tokenService.accessToken,
+      refreshToken: this._tokenService.refreshToken,
+    };
   }
 
   get profile() {
@@ -51,21 +51,6 @@ export class ProfileDataStore implements IProfileDataStore {
     return this.holder.isEmpty;
   }
 
-  async getProfile() {
-    this.holder.setLoading();
-
-    const res = await this._profileService.getProfile();
-
-    this._updateProfileHolder({
-      ...res,
-      data: res.data && {
-        ...res.data,
-        accessToken: this._tokenService.accessToken,
-        refreshToken: this._tokenService.refreshToken,
-      },
-    } as any);
-  }
-
   async signIn(params: ISignInRequest) {
     this.holder.setLoading();
 
@@ -74,13 +59,29 @@ export class ProfileDataStore implements IProfileDataStore {
     this._updateProfileHolder(res);
   }
 
-  // async signUp(params: ISignUpRequest) {
+  // async signUp(params: TSignUpRequest) {
   //   this.holder.setLoading();
   //
   //   const res = await this._profileService.signUp(params);
   //
   //   this._updateProfileHolder(res);
   // }
+
+  async getProfile() {
+    this.holder.setLoading();
+
+    const res = await this._profileService.getProfile();
+
+    if (res.error) {
+      this.holder.setError({ msg: res.error.message });
+    } else if (res.data) {
+      this.holder.setData(res.data);
+
+      return res.data;
+    }
+
+    return undefined;
+  }
 
   private async _refresh(refreshToken: string) {
     const res = await this._profileService.refresh({ refreshToken });
@@ -97,8 +98,10 @@ export class ProfileDataStore implements IProfileDataStore {
       this._tokenService.clear();
       this.holder.setError({ msg: res.error.message });
     } else if (res.data) {
-      this.holder.setData(res.data);
-      this._tokenService.setTokens(res.data.accessToken, res.data.refreshToken);
+      const { accessToken, refreshToken, ...profile } = res.data;
+
+      this.holder.setData(profile);
+      this._tokenService.setTokens(accessToken, refreshToken);
     }
   }
 }

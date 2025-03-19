@@ -1,14 +1,7 @@
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
-  BottomTabNavigationConfig,
-  BottomTabNavigationEventMap,
   BottomTabNavigationOptions,
-} from "@react-navigation/bottom-tabs/src/types";
-import {
-  DefaultNavigatorOptions,
-  TabNavigationState,
-  TabRouterOptions,
-} from "@react-navigation/native";
+  createBottomTabNavigator,
+} from "@react-navigation/bottom-tabs";
 import { observer } from "mobx-react-lite";
 import React, { FC, useMemo } from "react";
 import { Platform } from "react-native";
@@ -19,14 +12,7 @@ import { AppTabScreens } from "./types";
 
 const BottomTab = createBottomTabNavigator<ScreenParamList>();
 
-type Props = DefaultNavigatorOptions<
-  ScreenParamList,
-  TabNavigationState<ScreenParamList>,
-  BottomTabNavigationOptions,
-  BottomTabNavigationEventMap
-> &
-  TabRouterOptions &
-  BottomTabNavigationConfig;
+type Props = React.ComponentProps<typeof BottomTab.Navigator>;
 
 interface IProps extends Omit<Props, "children"> {
   routes: AppTabScreens;
@@ -41,7 +27,6 @@ export const AppNavigation: FC<IProps> = observer(
     detachInactiveScreens,
     backBehavior,
     tabBar,
-    sceneContainerStyle,
     screenListeners,
     ...rest
   }) => {
@@ -62,7 +47,6 @@ export const AppNavigation: FC<IProps> = observer(
         detachInactiveScreens={detachInactiveScreens}
         backBehavior={backBehavior}
         tabBar={tabBar}
-        sceneContainerStyle={sceneContainerStyle}
         screenListeners={screenListeners}
         safeAreaInsets={insets}
         screenOptions={_screenOptions}

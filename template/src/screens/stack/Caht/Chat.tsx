@@ -62,8 +62,6 @@ export const ChatScreen: FC<StackProps> = observer(() => {
         }}
         items={menu}
         disableMove={false}
-        activateOn={"hold"}
-        closeOnTap={false}
       >
         <Bubble {...props} />
       </HoldItem>

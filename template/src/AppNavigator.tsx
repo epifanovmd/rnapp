@@ -51,7 +51,6 @@ export const SCREENS: StackScreens = {
 };
 
 const options: StackScreenOption = {
-  animationEnabled: true,
   gestureEnabled: true,
   cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
 };
@@ -130,7 +129,7 @@ export const AppNavigator = observer(
       const { theme } = useTheme();
       const safeAreaInsets = useSafeAreaInsets();
 
-      const navigatorTheme = useMemo(() => {
+      const navigatorTheme = useMemo<ReactNavigation.Theme>(() => {
         return {
           dark: true,
           colors: {
@@ -141,6 +140,7 @@ export const AppNavigator = observer(
             border: theme.color.grey.grey700,
             primary: theme.color.common.white,
           },
+          fonts: {} as any,
         };
       }, [
         theme.color.background,

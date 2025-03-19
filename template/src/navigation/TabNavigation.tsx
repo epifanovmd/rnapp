@@ -1,14 +1,4 @@
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
-import {
-  MaterialTopTabNavigationConfig,
-  MaterialTopTabNavigationEventMap,
-  MaterialTopTabNavigationOptions,
-} from "@react-navigation/material-top-tabs/src/types";
-import {
-  DefaultNavigatorOptions,
-  TabNavigationState,
-  TabRouterOptions,
-} from "@react-navigation/native";
 import React, { FC, memo, useMemo } from "react";
 import { Dimensions } from "react-native";
 
@@ -17,14 +7,7 @@ import { TabScreenOption, TabScreens } from "./types";
 
 const MaterialTopTab = createMaterialTopTabNavigator<ScreenParamList>();
 
-type Props = DefaultNavigatorOptions<
-  ScreenParamList,
-  TabNavigationState<ScreenParamList>,
-  MaterialTopTabNavigationOptions,
-  MaterialTopTabNavigationEventMap
-> &
-  TabRouterOptions &
-  MaterialTopTabNavigationConfig;
+type Props = React.ComponentProps<typeof MaterialTopTab.Navigator>;
 
 interface IProps extends Omit<Props, "children"> {
   routes: TabScreens;

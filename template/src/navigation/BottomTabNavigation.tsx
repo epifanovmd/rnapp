@@ -16,14 +16,7 @@ import { BottomTabScreenOption, BottomTabScreens } from "./types";
 
 const MaterialBottomTab = createMaterialBottomTabNavigator<ScreenParamList>();
 
-type Props = DefaultNavigatorOptions<
-  ScreenParamList,
-  TabNavigationState<ScreenParamList>,
-  MaterialBottomTabNavigationOptions,
-  MaterialBottomTabNavigationEventMap
-> &
-  TabRouterOptions &
-  MaterialBottomTabNavigationConfig;
+type Props = React.ComponentProps<typeof MaterialBottomTab.Navigator>;
 
 interface IProps extends Omit<Props, "children"> {
   routes: BottomTabScreens;

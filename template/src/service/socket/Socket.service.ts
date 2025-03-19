@@ -44,10 +44,10 @@ export class SocketService implements ISocketService {
     onEvent: SocketEvents[K],
     unsubscribe?: () => void,
   ) => {
-    const self = this.socket.on(event, onEvent as any);
+    const self = this.socket.on(event, onEvent as never);
 
     return () => {
-      self.removeListener(event, onEvent as any);
+      self.removeListener(event, onEvent as never);
       unsubscribe?.();
     };
   };
@@ -81,7 +81,6 @@ export class SocketService implements ISocketService {
   }
 
   disconnect = () => {
-    console.log("disconnect _socket", this._socket);
     this._socket?.disconnect();
   };
 }
