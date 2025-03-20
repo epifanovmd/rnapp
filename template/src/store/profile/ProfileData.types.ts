@@ -1,6 +1,6 @@
 import { DataHolder, iocDecorator } from "@force-dev/utils";
 
-import { IProfile, IRefreshTokenResponse, ISignInRequest } from "../../service";
+import { IProfile } from "../../service";
 
 export const IProfileDataStore = iocDecorator<IProfileDataStore>();
 
@@ -10,14 +10,6 @@ export interface IProfileDataStore {
   isLoading: boolean;
   isError: boolean;
   isEmpty: boolean;
-
-  updateToken(): Promise<IRefreshTokenResponse>;
-
-  signIn(params: ISignInRequest): Promise<void>;
-
-  signIn(params: ISignInRequest): Promise<void>;
-
-  // signUp(params: ISignUpRequest): void;
 
   getProfile(): Promise<IProfile | undefined>;
 }

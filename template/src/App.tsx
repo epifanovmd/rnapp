@@ -48,17 +48,20 @@ const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
-  const { initialize, restoreToken } = useAppDataStore();
+  const { initialize, sessionDataStore } = useAppDataStore();
 
   useEffect(() => {
+    const dispose = initialize();
+
+    sessionDataStore.restore().then();
+
     AsyncStorage.getItem("i18nextLng").then(async lang => {
       if (lang) {
         await changeLanguage(lang);
       }
     });
-    log.debug("CONFIG", JSON.stringify(Config));
 
-    const dispose = initialize();
+    log.debug("CONFIG", JSON.stringify(Config));
 
     return () => {
       disposer(dispose);
@@ -67,14 +70,12 @@ const App: FC = observer(() => {
   }, []);
 
   const onReady = useCallback(async () => {
-    const { accessToken } = await restoreToken();
-
-    if (!accessToken) {
-      navigationRef.navigate("Authorization");
-    }
+    // if (!sessionDataStore.isAuthorized) {
+    //   navigationRef.navigate("Authorization");
+    // }
 
     SplashScreen.hide();
-  }, [restoreToken]);
+  }, []);
 
   return (
     <GestureHandlerRootView style={ss.container}>

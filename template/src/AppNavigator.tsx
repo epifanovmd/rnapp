@@ -12,6 +12,7 @@ import { Linking } from "react-native";
 import Config from "react-native-config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useSessionDataStore } from "~@store";
 import { useTheme } from "~@theme";
 
 import {
@@ -38,16 +39,19 @@ interface IProps {
   onReady?: () => void;
 }
 
-export const SCREENS: StackScreens = {
+export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens },
 
   Post: { screen: PostScreen },
-  Authorization: { screen: Authorization },
   Notifications: { screen: Notifications },
   Pickers: { screen: Pickers },
   Components: { screen: Components },
   Modals: { screen: Modals },
   ChatScreen: { screen: ChatScreen },
+};
+
+export const PUBLIC_SCREENS: StackScreens = {
+  Authorization: { screen: Authorization },
 };
 
 const options: StackScreenOption = {
@@ -79,47 +83,27 @@ const getPathMap = (
 const linking: LinkingOptions<ScreenParamList> = {
   prefixes: [`${deeplinkBaseUrl}://`],
 
-  // Custom function to get the URL which was used to open the app
   async getInitialURL() {
-    // // First, you would need to get the initial URL from your third-party integration
-    // // The exact usage depend on the third-party SDK you use
-    // // For example, to get the initial URL for Firebase Dynamic Links:
-    // const {isAvailable} = utils().playServicesAvailability;
-    //
-    // if (isAvailable) {
-    //   const initialLink = await dynamicLinks().getInitialLink();
-    //
-    //   if (initialLink) {
-    //     return initialLink.url;
-    //   }
-    // }
-    //
-    // // As a fallback, you may want to do the default deep link handling
     return await Linking.getInitialURL();
   },
 
-  // Custom function to subscribe to incoming links
   subscribe: listener => {
-    // // Listen to incoming links from Firebase Dynamic Links
-    // const unsubscribeFirebase = dynamicLinks().onLink(({url}) => {
-    //   listener(url);
-    // });
-
-    // Listen to incoming links from deep linking
     const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
       listener(url);
     });
 
     return () => {
-      // Clean up the event listeners
-      // unsubscribeFirebase();
       linkingSubscription.remove();
     };
   },
 
   config: {
     // Deep link configuration
-    screens: getPathMap(SCREENS, "MAIN", TAB_SCREENS),
+    screens: getPathMap(
+      { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS },
+      "MAIN",
+      TAB_SCREENS,
+    ),
   },
 };
 
@@ -128,6 +112,7 @@ export const AppNavigator = observer(
     ({ onReady }, ref) => {
       const { theme } = useTheme();
       const safeAreaInsets = useSafeAreaInsets();
+      const { isAuthorized } = useSessionDataStore();
 
       const navigatorTheme = useMemo<ReactNavigation.Theme>(() => {
         return {
@@ -148,6 +133,14 @@ export const AppNavigator = observer(
         theme.color.grey.grey700,
       ]);
 
+      const routes = useMemo(() => {
+        if (isAuthorized) {
+          return { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS };
+        }
+
+        return PUBLIC_SCREENS;
+      }, [isAuthorized]);
+
       return (
         <HoldItemProvider safeAreaInsets={safeAreaInsets}>
           <NavigationContainer
@@ -156,7 +149,7 @@ export const AppNavigator = observer(
             onReady={onReady}
             theme={navigatorTheme}
           >
-            <StackNavigation routes={SCREENS} screenOptions={options} />
+            <StackNavigation routes={routes} screenOptions={options} />
           </NavigationContainer>
         </HoldItemProvider>
       );

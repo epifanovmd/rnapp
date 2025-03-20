@@ -1,13 +1,7 @@
-import { ApiResponse, DataHolder } from "@force-dev/utils";
+import { DataHolder } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
 
-import {
-  IProfile,
-  IProfileService,
-  ISignInRequest,
-  ISignInResponse,
-  ITokenService,
-} from "~@service";
+import { IProfile, IProfileService } from "~@service";
 
 import { IProfileDataStore } from "./ProfileData.types";
 
@@ -15,24 +9,8 @@ import { IProfileDataStore } from "./ProfileData.types";
 export class ProfileDataStore implements IProfileDataStore {
   public holder = new DataHolder<IProfile>();
 
-  constructor(
-    @IProfileService() private _profileService: IProfileService,
-    @ITokenService() private _tokenService: ITokenService,
-  ) {
+  constructor(@IProfileService() private _profileService: IProfileService) {
     makeAutoObservable(this, {}, { autoBind: true });
-  }
-
-  async updateToken() {
-    const refreshToken = await this._tokenService.restoreRefreshToken();
-
-    if (refreshToken) {
-      await this._refresh(refreshToken);
-    }
-
-    return {
-      accessToken: this._tokenService.accessToken,
-      refreshToken: this._tokenService.refreshToken,
-    };
   }
 
   get profile() {
@@ -51,22 +29,6 @@ export class ProfileDataStore implements IProfileDataStore {
     return this.holder.isEmpty;
   }
 
-  async signIn(params: ISignInRequest) {
-    this.holder.setLoading();
-
-    const res = await this._profileService.signIn(params);
-
-    this._updateProfileHolder(res);
-  }
-
-  // async signUp(params: TSignUpRequest) {
-  //   this.holder.setLoading();
-  //
-  //   const res = await this._profileService.signUp(params);
-  //
-  //   this._updateProfileHolder(res);
-  // }
-
   async getProfile() {
     this.holder.setLoading();
 
@@ -81,27 +43,5 @@ export class ProfileDataStore implements IProfileDataStore {
     }
 
     return undefined;
-  }
-
-  private async _refresh(refreshToken: string) {
-    const res = await this._profileService.refresh({ refreshToken });
-
-    if (res.error) {
-      this._tokenService.clear();
-    } else if (res.data) {
-      this._tokenService.setTokens(res.data.accessToken, res.data.refreshToken);
-    }
-  }
-
-  private _updateProfileHolder(res: ApiResponse<ISignInResponse>) {
-    if (res.error) {
-      this._tokenService.clear();
-      this.holder.setError({ msg: res.error.message });
-    } else if (res.data) {
-      const { accessToken, refreshToken, ...profile } = res.data;
-
-      this.holder.setData(profile);
-      this._tokenService.setTokens(accessToken, refreshToken);
-    }
   }
 }

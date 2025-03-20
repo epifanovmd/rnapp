@@ -1,9 +1,9 @@
 import { createServiceDecorator, SupportInitialize } from "@force-dev/utils";
 
-import { IRefreshTokenResponse } from "~@service";
+import { ISessionDataStore } from "~@store";
 
 export const IAppDataStore = createServiceDecorator<IAppDataStore>();
 
 export interface IAppDataStore extends SupportInitialize {
-  restoreToken(): Promise<IRefreshTokenResponse>;
+  sessionDataStore: ISessionDataStore;
 }

@@ -3,12 +3,10 @@ import { iocDecorator } from "@force-dev/utils";
 export const ITokenService = iocDecorator<ITokenService>();
 
 export interface ITokenService {
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
+  refreshToken: string | null;
 
   setTokens(accessToken: string, refreshToken: string): void;
-
-  restoreRefreshToken(): Promise<string>;
-
+  restoreRefreshToken(): Promise<string | null>;
   clear(): void;
 }

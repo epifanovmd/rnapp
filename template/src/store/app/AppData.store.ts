@@ -5,7 +5,6 @@ import { IApiService } from "~@api";
 import { ISocketService } from "~@service";
 
 import { INavigationService, NavigationService } from "../../navigation";
-import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "../session";
 import { IAppDataStore } from "./AppData.types";
 
@@ -14,10 +13,9 @@ export class AppDataStore implements IAppDataStore {
   private _interval = new Interval({ timeout: 6000 });
 
   constructor(
+    @ISessionDataStore() public sessionDataStore: ISessionDataStore,
     @IApiService() private _apiService: IApiService,
-    @IProfileDataStore() private _profileDataStore: IProfileDataStore,
     @ISocketService() private _socketService: ISocketService,
-    @ISessionDataStore() private _sessionDataStore: ISessionDataStore,
     @INavigationService() private _navigationService: NavigationService,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -27,42 +25,46 @@ export class AppDataStore implements IAppDataStore {
     const disposers = new Set<InitializeDispose>();
 
     this._apiService.onError(async ({ status }) => {
-      if (status === 401 && this._sessionDataStore.isAuthorized) {
+      if (status === 401 && this.sessionDataStore.isAuthorized) {
+        this.sessionDataStore.clear();
+
         this._navigationService.navigateTo("Authorization");
       }
 
       if (status === 403) {
-        await this.restoreToken();
+        const { accessToken } = await this.sessionDataStore.updateToken();
+
+        if (!accessToken) {
+          this._navigationService.navigateTo("Authorization");
+        }
       }
     });
 
+    disposers.add(this.sessionDataStore.initialize());
+
     return [
       reaction(
-        () => this._profileDataStore.profile,
-        profile => {
-          if (profile) {
-            disposers.add(this._socketService.initialize());
+        () => this.sessionDataStore.isAuthorized,
+        isAuthorized => {
+          if (isAuthorized) {
+            // disposers.add(this._socketService.initialize());
 
             this._interval.start(async () => {
-              await this.restoreToken();
+              await this.sessionDataStore.updateToken();
             });
           } else {
+            this._interval.stop();
+
             disposer(Array.from(disposers));
             disposers.clear();
-            this._interval.stop();
           }
         },
       ),
-      () => this._sessionDataStore.initialize(),
       () => this._interval.stop(),
       () => {
         disposer(Array.from(disposers));
         disposers.clear();
       },
     ];
-  }
-
-  restoreToken() {
-    return this._profileDataStore.updateToken();
   }
 }
