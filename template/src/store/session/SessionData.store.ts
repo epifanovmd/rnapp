@@ -1,5 +1,5 @@
 import { ApiResponse, DataHolder } from "@force-dev/utils";
-import { makeAutoObservable, reaction } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import {
   IProfileService,
@@ -25,7 +25,7 @@ export class SessionDataStore implements ISessionDataStore {
   }
 
   initialize() {
-    return [() => this.clear()];
+    return [];
   }
 
   get isLoading() {

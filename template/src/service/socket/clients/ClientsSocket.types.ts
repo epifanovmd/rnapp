@@ -1,6 +1,7 @@
-import { iocDecorator } from "@force-dev/utils";
+import { createServiceDecorator } from "@force-dev/utils";
 
-export const IClientsSocketService = iocDecorator<IClientsSocketService>();
+export const IClientsSocketService =
+  createServiceDecorator<IClientsSocketService>();
 
 export interface IClientsSocketService {}
 

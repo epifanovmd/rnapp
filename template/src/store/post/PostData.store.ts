@@ -15,7 +15,7 @@ export class PostDataStore implements IPostDataStore {
     this.dataSource = new AsyncDataSource(query =>
       this._postService.getPost(query),
     );
-    makeAutoObservable(this, {}, { autoBind: true });
+    // makeAutoObservable(this, {}, { autoBind: true });
   }
 
   get data() {

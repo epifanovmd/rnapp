@@ -39,7 +39,6 @@ import { ThemeProvider, useTheme } from "~@theme";
 import { AppNavigator } from "./AppNavigator";
 import { initLocalization, useTranslation } from "./localization";
 import { navigationRef } from "./navigation";
-
 configure({ enforceActions: "observed" });
 
 initLocalization({ initLang: "ru" });

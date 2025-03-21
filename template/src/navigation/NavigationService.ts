@@ -1,5 +1,5 @@
 import { iocHook } from "@force-dev/react";
-import { iocDecorator } from "@force-dev/utils";
+import { createServiceDecorator } from "@force-dev/utils";
 import {
   createNavigationContainerRef,
   StackActions,
@@ -13,7 +13,7 @@ import { ScreenName, ScreenParamList } from "./navigation.types";
 
 export const navigationRef = createNavigationContainerRef<ScreenParamList>();
 
-export const INavigationService = iocDecorator<NavigationService>();
+export const INavigationService = createServiceDecorator<NavigationService>();
 export const useNavigationService = iocHook(INavigationService);
 
 const routesHistoryReduce = (arr: any[]) => {

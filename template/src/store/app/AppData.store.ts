@@ -24,23 +24,22 @@ export class AppDataStore implements IAppDataStore {
   initialize() {
     const disposers = new Set<InitializeDispose>();
 
-    this._apiService.onError(async ({ status }) => {
-      if (status === 401 && this.sessionDataStore.isAuthorized) {
-        this.sessionDataStore.clear();
+    return [
+      this._apiService.onError(async ({ status }) => {
+        if (status === 401 && this.sessionDataStore.isAuthorized) {
+          this.sessionDataStore.clear();
 
-        this._navigationService.navigateTo("Authorization");
-      }
-
-      if (status === 403) {
-        const { accessToken } = await this.sessionDataStore.updateToken();
-
-        if (!accessToken) {
           this._navigationService.navigateTo("Authorization");
         }
-      }
-    });
 
-    return [
+        if (status === 403) {
+          const { accessToken } = await this.sessionDataStore.updateToken();
+
+          if (!accessToken) {
+            this._navigationService.navigateTo("Authorization");
+          }
+        }
+      }),
       reaction(
         () => this.sessionDataStore.isAuthorized,
         isAuthorized => {

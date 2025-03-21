@@ -1,8 +1,12 @@
-import { ApiResponse, CancelablePromise, iocDecorator } from "@force-dev/utils";
+import {
+  ApiResponse,
+  CancelablePromise,
+  createServiceDecorator,
+} from "@force-dev/utils";
 
 import { ApiRequest, BaseResponse } from "~@api";
 
-export const IPostsService = iocDecorator<IPostsService>();
+export const IPostsService = createServiceDecorator<IPostsService>();
 
 export interface IPostsService {
   getAll(

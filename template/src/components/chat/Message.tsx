@@ -179,13 +179,7 @@ export const Message: FC<MessageProps> = memo(
 
     if (currentMessage) {
       return (
-        <ReplySwipe
-          message={currentMessage}
-          replyIconColor={replyIconColor}
-          onReply={onReply}
-          renderReplyIcon={renderReplyIcon}
-          onLayout={onMessageLayout}
-        >
+        <>
           {_renderDay()}
           {isSystem ? (
             _renderSystemMessage()
@@ -204,7 +198,7 @@ export const Message: FC<MessageProps> = memo(
               )}
             </View>
           )}
-        </ReplySwipe>
+        </>
       );
     }
 

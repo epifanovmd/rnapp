@@ -1,16 +1,15 @@
-import { iocDecorator, ListCollectionHolder } from "@force-dev/utils";
+import { createServiceDecorator, ListCollectionHolder } from "@force-dev/utils";
 
 import { PostModel } from "../../models";
 import { IPost, IPostSearchRequest, IPostsRequest } from "../../service";
 
-export const IPostsDataStore = iocDecorator<IPostsDataStore>();
+export const IPostsDataStore = createServiceDecorator<IPostsDataStore>();
 
 export interface IPostsDataStore {
   holder: ListCollectionHolder<IPost>;
 
   data: IPost[];
   models: PostModel[];
-
   error?: string;
   loading: boolean;
   loaded: boolean;

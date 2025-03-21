@@ -1,7 +1,7 @@
 import {
   ApiService,
+  createServiceDecorator,
   IApiService as IIIApiService,
-  iocDecorator,
 } from "@force-dev/utils";
 import Config from "react-native-config";
 
@@ -11,7 +11,7 @@ export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
 export interface IApiService extends IIIApiService {}
-export const IApiService = iocDecorator<ApiService1>();
+export const IApiService = createServiceDecorator<ApiService1>();
 
 @IApiService({ inSingleton: true })
 class ApiService1 extends ApiService {
@@ -22,11 +22,7 @@ class ApiService1 extends ApiService {
         withCredentials: true,
         baseURL: BASE_URL,
       },
-      error => {
-        console.log("error", error);
-
-        return error;
-      },
+      error => error,
     );
 
     this.instance.interceptors.request.use(async request => {

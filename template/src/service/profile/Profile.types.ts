@@ -1,6 +1,10 @@
-import { ApiResponse, CancelablePromise, iocDecorator } from "@force-dev/utils";
+import {
+  ApiResponse,
+  CancelablePromise,
+  createServiceDecorator,
+} from "@force-dev/utils";
 
-export const IProfileService = iocDecorator<IProfileService>();
+export const IProfileService = createServiceDecorator<IProfileService>();
 
 export interface IProfileService {
   signIn(
