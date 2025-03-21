@@ -4,6 +4,8 @@ import {
   SafeArea,
   useModalRef,
 } from "@force-dev/react-mobile";
+import { pick } from "@react-native-documents/picker";
+import { PredefinedFileTypes } from "@react-native-documents/picker/src/fileTypes";
 import React, {
   createContext,
   FC,
@@ -16,11 +18,6 @@ import React, {
   useState,
 } from "react";
 import { Keyboard, Platform } from "react-native";
-import { pick } from "react-native-document-picker";
-import {
-  perPlatformTypes,
-  PlatformTypes,
-} from "react-native-document-picker/src/fileTypes";
 import {
   launchCamera,
   launchImageLibrary,
@@ -49,7 +46,7 @@ export interface AttachModalProps {
   images?: boolean;
   files?: boolean;
 
-  fileType?: keyof PlatformTypes;
+  fileType?: PredefinedFileTypes;
 }
 
 export interface AttachValue {
@@ -89,7 +86,7 @@ export const AttachModalProvider: FC<
     camera = true,
     images = true,
     files = true,
-    fileType = "allFiles",
+    fileType = "*/*",
     ...rest
   }) => {
     const ref = useModalRef();
@@ -99,7 +96,7 @@ export const AttachModalProvider: FC<
     const _quality = useRef<PhotoQuality>(quality);
     const _limit = useRef<number>(selectionLimit);
 
-    const _fileType = useRef<keyof PlatformTypes>(fileType);
+    const _fileType = useRef<PredefinedFileTypes>(fileType);
 
     const [_camera, setCamera] = useState<boolean>(camera);
     const [_images, setImages] = useState<boolean>(images);
@@ -195,7 +192,7 @@ export const AttachModalProvider: FC<
     const _launchDocument = useCallback(() => {
       ref.current?.close();
       pick({
-        type: perPlatformTypes[Platform.OS][_fileType.current],
+        type: _fileType.current,
       }).then(res => {
         res &&
           _onChange.current?.(

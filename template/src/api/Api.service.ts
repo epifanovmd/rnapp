@@ -22,7 +22,11 @@ class ApiService1 extends ApiService {
         withCredentials: true,
         baseURL: BASE_URL,
       },
-      error => error,
+      error => {
+        console.log("error", error);
+
+        return error;
+      },
     );
 
     this.instance.interceptors.request.use(async request => {

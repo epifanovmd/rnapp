@@ -23,13 +23,13 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import BootSplash from "react-native-bootsplash";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import SplashScreen from "react-native-splash-screen";
 
 import { AttachModalProvider } from "~@components";
 import { log } from "~@service";
@@ -53,8 +53,6 @@ const App: FC = observer(() => {
   useEffect(() => {
     const dispose = initialize();
 
-    sessionDataStore.restore().then();
-
     AsyncStorage.getItem("i18nextLng").then(async lang => {
       if (lang) {
         await changeLanguage(lang);
@@ -70,12 +68,12 @@ const App: FC = observer(() => {
   }, []);
 
   const onReady = useCallback(async () => {
-    // if (!sessionDataStore.isAuthorized) {
-    //   navigationRef.navigate("Authorization");
-    // }
+    await sessionDataStore.restore().then();
 
-    SplashScreen.hide();
-  }, []);
+    setTimeout(() => {
+      BootSplash.hide({ fade: true });
+    }, 500);
+  }, [sessionDataStore]);
 
   return (
     <GestureHandlerRootView style={ss.container}>

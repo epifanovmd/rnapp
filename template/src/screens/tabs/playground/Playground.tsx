@@ -9,6 +9,7 @@ import {
   SwitchTheme,
   Text,
 } from "~@components";
+import { useSessionDataStore } from "~@store";
 
 import { AppScreenProps } from "../../../navigation";
 import { Biometric } from "./Biometric";
@@ -16,6 +17,8 @@ import { Biometric } from "./Biometric";
 interface IProps extends AppScreenProps {}
 
 export const Playground: FC<IProps> = memo(({ navigation, route }) => {
+  const { clear } = useSessionDataStore();
+
   return (
     <Container>
       <Header />
@@ -58,6 +61,8 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
         <Col mt={8}>
           <Biometric />
         </Col>
+
+        <Button mt={8} title={"Выход"} onPress={() => clear()} />
       </Content>
     </Container>
   );

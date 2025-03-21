@@ -1281,7 +1281,7 @@ PODS:
     - react-native-config/App (= 1.4.5)
   - react-native-config/App (1.4.5):
     - React-Core
-  - react-native-document-picker (9.3.1):
+  - react-native-document-picker (10.1.1):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1397,8 +1397,6 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-splash-screen (3.3.0):
-    - React-Core
   - React-NativeModulesApple (0.78.1):
     - glog
     - hermes-engine
@@ -1686,6 +1684,27 @@ PODS:
     - React-logger (= 0.78.1)
     - React-perflogger (= 0.78.1)
     - React-utils (= 0.78.1)
+  - RNBootSplash (6.3.3):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - RNCAsyncStorage (1.24.0):
     - DoubleConversion
     - glog
@@ -1943,7 +1962,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNSVG (14.2.0):
+  - RNSVG (15.11.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1963,9 +1982,9 @@ PODS:
     - ReactCodegen
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
-    - RNSVG/common (= 14.2.0)
+    - RNSVG/common (= 15.11.2)
     - Yoga
-  - RNSVG/common (14.2.0):
+  - RNSVG/common (15.11.2):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2039,11 +2058,10 @@ DEPENDENCIES:
   - react-native-biometrics (from `../node_modules/react-native-biometrics`)
   - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
   - react-native-config (from `../node_modules/react-native-config`)
-  - react-native-document-picker (from `../node_modules/react-native-document-picker`)
+  - "react-native-document-picker (from `../node_modules/@react-native-documents/picker`)"
   - react-native-image-picker (from `../node_modules/react-native-image-picker`)
   - react-native-pager-view (from `../node_modules/react-native-pager-view`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
-  - react-native-splash-screen (from `../node_modules/react-native-splash-screen`)
   - React-NativeModulesApple (from `../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios`)
   - React-perflogger (from `../node_modules/react-native/ReactCommon/reactperflogger`)
   - React-performancetimeline (from `../node_modules/react-native/ReactCommon/react/performance/timeline`)
@@ -2072,6 +2090,7 @@ DEPENDENCIES:
   - ReactAppDependencyProvider (from `build/generated/ios`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCCheckbox (from `../node_modules/@react-native-community/checkbox`)"
   - RNFastImage (from `../node_modules/react-native-fast-image`)
@@ -2178,15 +2197,13 @@ EXTERNAL SOURCES:
   react-native-config:
     :path: "../node_modules/react-native-config"
   react-native-document-picker:
-    :path: "../node_modules/react-native-document-picker"
+    :path: "../node_modules/@react-native-documents/picker"
   react-native-image-picker:
     :path: "../node_modules/react-native-image-picker"
   react-native-pager-view:
     :path: "../node_modules/react-native-pager-view"
   react-native-safe-area-context:
     :path: "../node_modules/react-native-safe-area-context"
-  react-native-splash-screen:
-    :path: "../node_modules/react-native-splash-screen"
   React-NativeModulesApple:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios"
   React-perflogger:
@@ -2243,6 +2260,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNBootSplash:
+    :path: "../node_modules/react-native-bootsplash"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCCheckbox:
@@ -2311,11 +2330,10 @@ SPEC CHECKSUMS:
   react-native-biometrics: 352e5a794bfffc46a0c86725ea7dc62deb085bdc
   react-native-blur: b37343d4df1af48a17444156b674b26d5aec2425
   react-native-config: 6502b1879f97ed5ac570a029961fc35ea606cd14
-  react-native-document-picker: da64a39fd71a84a9d3f7f58c8b0623c393e9991c
+  react-native-document-picker: 5cb1c6615796389f4f1b7fe2e4f103e38e4d6398
   react-native-image-picker: 74b6c109144adcb00ab6b354e50aa8ad2822029d
   react-native-pager-view: e26e7a6f1ffb0c12ebfaf858ff9100b054de043d
   react-native-safe-area-context: 286b3e7b5589795bb85ffc38faf4c0706c48a092
-  react-native-splash-screen: 4312f786b13a81b5169ef346d76d33bc0c6dc457
   React-NativeModulesApple: fb48894de492e6f9a73e53d8f92a6a792e40666c
   React-perflogger: e1c8cc9ba55dfabb670966d73622eabcfa0ac29e
   React-performancetimeline: 6f8984a509036b7adc382b8d15193733f88ee749
@@ -2344,6 +2362,7 @@ SPEC CHECKSUMS:
   ReactAppDependencyProvider: 8a4769a6193da471cb229cf46e71cd11cd9a4acd
   ReactCodegen: a5efc9399f08ae7ddf99d222340bf859312b4630
   ReactCommon: bd309b74bda8850b05e814a0cc6120152783c0c1
+  RNBootSplash: 9819342743dd95b47440daf6c7cc9198bf5185e6
   RNCAsyncStorage: 36aec380620fbc4ce7b8a048071cdb12e13723f3
   RNCCheckbox: a3ca9978cb0846b981d28da4e9914bd437403d77
   RNFastImage: 5c9c9fed9c076e521b3f509fe79e790418a544e8
@@ -2353,7 +2372,7 @@ SPEC CHECKSUMS:
   RNReactNativeHapticFeedback: 5fdbbaedabc1698dc3bb2a72105fadf63136a451
   RNReanimated: ff71ce0443c71c8a77501ace7b9738ede83cfa55
   RNScreens: 9b9bb7f9dc3eb218d79d84e0ac15df65d0e349f2
-  RNSVG: c21a3d3b984ea722bcc74f88eaeeda3abfa349a5
+  RNSVG: 8588ee1ca9b2e6fd2c99466e35b3db0e9f81bb40
   SDWebImage: a7f831e1a65eb5e285e3fb046a23fcfbf08e696d
   SDWebImageWebPCoder: 908b83b6adda48effe7667cd2b7f78c897e5111d
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748

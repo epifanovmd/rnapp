@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import RNBootSplash
 
 @main
 class AppDelegate: RCTAppDelegate {
@@ -45,4 +46,9 @@ class AppDelegate: RCTAppDelegate {
   ) -> Bool {
     return RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
+
+    override func customize(_ rootView: RCTRootView!) {
+      super.customize(rootView)
+      RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView) // ⬅️ initialize the splash screen
+    }
 }

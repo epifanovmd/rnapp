@@ -19,7 +19,7 @@ export const Authorization: FC<StackProps> = observer(() => {
 
   return (
     <Container>
-      <Header backAction={true} />
+      <Header />
       <Content>
         <ScrollView>
           <Field>

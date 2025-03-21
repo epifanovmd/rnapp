@@ -22,7 +22,7 @@ export const PostScreen: FC<StackProps<"Post">> = observer(
 
     return (
       <Container safeAreBottom={false}>
-        <Header />
+        <Header backAction />
         <Content>{model && <Post post={model} />}</Content>
       </Container>
     );

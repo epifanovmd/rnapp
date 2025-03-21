@@ -25,21 +25,7 @@ export class SessionDataStore implements ISessionDataStore {
   }
 
   initialize() {
-    console.log("initialize");
-
-    return [
-      reaction(
-        () => this._tokenService.accessToken,
-        token => {
-          if (!token) {
-            this._profileDataStore.holder.clear();
-          }
-          console.log("token", token);
-
-          this.holder.setData(token);
-        },
-      ),
-    ];
+    return [() => this.clear()];
   }
 
   get isLoading() {
@@ -75,6 +61,7 @@ export class SessionDataStore implements ISessionDataStore {
       if (res.error) {
         this._tokenService.clear();
       } else if (res.data) {
+        this.holder.setData(res.data.accessToken);
         this._tokenService.setTokens(
           res.data.accessToken,
           res.data.refreshToken,
@@ -126,6 +113,7 @@ export class SessionDataStore implements ISessionDataStore {
       const { accessToken, refreshToken, ...profile } = res.data;
 
       this._profileDataStore.holder.setData(profile);
+      this.holder.setData(res.data.accessToken);
       this._tokenService.setTokens(accessToken, refreshToken);
     }
   }

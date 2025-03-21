@@ -40,8 +40,6 @@ export class AppDataStore implements IAppDataStore {
       }
     });
 
-    disposers.add(this.sessionDataStore.initialize());
-
     return [
       reaction(
         () => this.sessionDataStore.isAuthorized,

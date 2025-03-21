@@ -1,21 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
-              android:layout_width="match_parent"
-              android:layout_height="match_parent"
-              android:background="@color/bgSplashScreen"
-              android:gravity="center">
-    <ImageView
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:layout_marginTop="24dp"
-            android:src="@mipmap/bootsplash_logo"
-    />
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
-            android:text="Splash Screen"
-            android:textSize="28dp"
-            android:textColor="@color/white"/>
-</LinearLayout>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" android:opacity="opaque">
+    <item android:gravity="fill">
+        <color android:color="?attr/bootSplashBackground" />
+    </item>
+
+    <item android:gravity="fill">
+        <bitmap android:src="@mipmap/bootsplash_logo" android:gravity="center" />
+    </item>
+
+    <item android:gravity="fill" android:bottom="60dp">
+        <bitmap android:src="?bootSplashBrand" android:gravity="bottom|center_horizontal" />
+    </item>
+</layer-list>
