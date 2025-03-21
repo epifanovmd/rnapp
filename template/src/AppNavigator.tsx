@@ -34,6 +34,7 @@ import {
   TAB_SCREENS,
   TabScreens,
 } from "./screens";
+import { Gallery } from "./screens/stack/Gallery";
 
 interface IProps {
   onReady?: () => void;
@@ -44,6 +45,7 @@ export const PRIVATE_SCREENS: StackScreens = {
 
   Post: { screen: PostScreen },
   Notifications: { screen: Notifications },
+  Gallery: { screen: Gallery },
   Pickers: { screen: Pickers },
   Components: { screen: Components },
   Modals: { screen: Modals },

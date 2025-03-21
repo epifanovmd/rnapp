@@ -1,3 +1,5 @@
+import { Gallery } from "../screens/stack/Gallery";
+
 export enum TabScreenName {
   MAIN = "MAIN",
 
@@ -15,6 +17,7 @@ interface TabScreenParams {
 export enum StackScreenName {
   Authorization = "Authorization",
   Notifications = "Notifications",
+  Gallery = "Gallery",
   Pickers = "Pickers",
   Components = "Components",
   Modals = "Modals",
@@ -26,6 +29,7 @@ export enum StackScreenName {
 interface StackScreenParams {
   Authorization: any;
   Notifications: any;
+  Gallery: any;
   Pickers: any;
   Components: any;
   Modals: any;

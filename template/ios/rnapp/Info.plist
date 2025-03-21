@@ -20,6 +20,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Разрешите доступ к вашим фото</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
