@@ -23,6 +23,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import ReactNativeBiometrics, { BiometryTypes } from "react-native-biometrics";
 import BootSplash from "react-native-bootsplash";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -69,9 +70,34 @@ const App: FC = observer(() => {
   const onReady = useCallback(async () => {
     await sessionDataStore.restore().then();
 
-    setTimeout(() => {
-      BootSplash.hide({ fade: true });
-    }, 500);
+    const rnBiometrics = new ReactNativeBiometrics();
+    const { available, biometryType } = await rnBiometrics.isSensorAvailable();
+
+    if (available && biometryType === BiometryTypes.FaceID) {
+      // const { success, signature, error } = await rnBiometrics.createSignature({
+      //   promptMessage: "Sign in",
+      //   payload,
+      // });
+      //
+      // console.log("success", success);
+      // console.log("error", error);
+      // console.log("signature", signature);
+
+      const { success, error } = await rnBiometrics.simplePrompt({
+        promptMessage: "123",
+      });
+
+      console.log("success", success);
+      console.log("error", error);
+
+      if (success) {
+        BootSplash.hide({ fade: true });
+      }
+    }
+
+    // setTimeout(() => {
+    //   BootSplash.hide({ fade: true });
+    // }, 500);
   }, [sessionDataStore]);
 
   return (
