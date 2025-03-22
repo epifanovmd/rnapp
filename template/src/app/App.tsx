@@ -30,6 +30,7 @@ import { initLocalization, useTranslation } from "../localization";
 import { navigationRef } from "../navigation";
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
+
 configure({ enforceActions: "observed" });
 
 initLocalization({ initLang: "ru" });

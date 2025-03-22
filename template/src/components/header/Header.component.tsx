@@ -24,6 +24,7 @@ import { useNavigation, useRoute } from "../../navigation";
 import { useTheme } from "../../theme";
 import { BackIcon } from "../icons";
 import { Text, Touchable } from "../ui";
+
 import createAnimatedComponent = Animated.createAnimatedComponent;
 
 interface IProps {

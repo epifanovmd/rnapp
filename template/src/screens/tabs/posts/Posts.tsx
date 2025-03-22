@@ -7,7 +7,8 @@ import {
   Header,
   PostList,
   useAnimationHeader,
-} from "../../../components";
+} from "~@components";
+
 import { AppScreenProps } from "../../../navigation";
 import { usePostsVM } from "./hooks";
 

@@ -1,3 +1,4 @@
+import { DefaultTheme } from "@react-navigation/native";
 import { useMemo } from "react";
 
 import { useTheme } from "~@theme";
@@ -16,7 +17,7 @@ export const useAppNavigationTheme = () => {
         border: theme.color.grey.grey700,
         primary: theme.color.common.white,
       },
-      fonts: {} as any,
+      fonts: DefaultTheme.fonts,
     };
   }, [
     theme.color.background,
