@@ -27,13 +27,25 @@ export const ChatScreen: FC<StackProps> = observer(() => {
     [],
   );
 
-  const menu = useMemo<HoldMenuItemProp<{ messageId: string; text: string }>[]>(
+  const menu = useMemo<
+    HoldMenuItemProp<{
+      messageId: string;
+      text: string;
+      onReply?: () => void;
+    }>[]
+  >(
     () => [
       {
         text: "Скопировать",
+        onPress: ({ text }) => {
+          console.log("Скопировать", text);
+        },
+      },
+      {
+        text: "Ответить",
         withSeparator: true,
-        onPress: message => {
-          console.log("Скопировать", message);
+        onPress: ({ onReply }) => {
+          setTimeout(() => onReply?.(), 0);
         },
       },
       {
@@ -53,13 +65,29 @@ export const ChatScreen: FC<StackProps> = observer(() => {
     [],
   );
 
+  const isTyping = true;
+
+  const msgs = useMemo(
+    () =>
+      new Array(100).fill(1).map((_, index) => ({
+        id: `${_ + index}`,
+        user: { id: "1234", name: "User1" },
+        text: `Какой то текст сообщения + ${_ + index}`,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
+    [],
+  );
+
   const renderBubble = useCallback(
     (props: BubbleProps) => (
       <HoldItem
         data={{
           messageId: props.currentMessage.id,
           text: props.currentMessage.text,
+          onReply: () => props.onReply?.(props.currentMessage),
         }}
+        disablePresAnimation={true}
         items={menu}
         disableMove={false}
       >
@@ -68,8 +96,6 @@ export const ChatScreen: FC<StackProps> = observer(() => {
     ),
     [menu],
   );
-
-  const isTyping = true;
 
   return (
     <Container safeAreBottom={false} safeAreLeft={false} safeAreRight={false}>
@@ -81,6 +107,7 @@ export const ChatScreen: FC<StackProps> = observer(() => {
         user={{ id: "123", name: "User" }}
         insets={insets}
         messages={[
+          ...msgs,
           {
             id: "12345",
             user: { id: "123", name: "User" },

@@ -43,7 +43,7 @@ export const ReplySwipe: FC<PropsWithChildren<IReplySwipeProps>> = memo(
             if (gestureState.dx < 0 && !complete) {
               if (Math.ceil(gestureState.dx) < -70) {
                 setComplete(true);
-                haptic.trigger("impactHeavy");
+                haptic.trigger("impactLight");
                 onReply?.(message);
                 Animated.spring(animation, {
                   toValue: { x: 0, y: 0 },

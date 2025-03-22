@@ -61,6 +61,7 @@ export interface BubbleProps {
   // Handlers
   onPress?: (message: IMessage) => void;
   onLongPress?: (message: IMessage) => void;
+  onReply?: (message: IMessage) => void;
 
   // Renders
   renderMessageImage?: (props: MessageImageProps) => React.ReactElement | null;

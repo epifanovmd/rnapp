@@ -11,7 +11,6 @@ import {
 import { Avatar, AvatarProps } from "./Avatar";
 import { Bubble, BubbleProps } from "./Bubble";
 import { Day, DayProps } from "./Day";
-import { ReplySwipe } from "./ReplySwipe";
 import { SystemMessage, SystemMessageProps } from "./SystemMessage";
 import { IMessage, LeftRightStyle, User } from "./types";
 import { isSameUser } from "./utils";
@@ -36,7 +35,6 @@ export interface MessageProps extends BubbleProps {
   onPressAvatar?: (user: User) => void;
   onLongPressAvatar?: (user: User) => void;
   onMessageLayout?: (event: LayoutChangeEvent) => void;
-  onReply?: (message: IMessage) => void;
 
   // Renders
   renderBubble?: (props: BubbleProps) => React.ReactElement | null;
@@ -65,7 +63,6 @@ export const Message: FC<MessageProps> = memo(
     onPressAvatar,
     onLongPressAvatar,
     onMessageLayout,
-    onReply,
     renderBubble,
     renderDay,
     renderSystemMessage,
