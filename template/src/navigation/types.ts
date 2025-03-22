@@ -2,15 +2,13 @@ import {
   BottomTabNavigationOptions,
   BottomTabNavigationProp,
 } from "@react-navigation/bottom-tabs";
-import {
-  MaterialBottomTabNavigationOptions,
-  MaterialBottomTabNavigationProp,
-} from "@react-navigation/material-bottom-tabs";
+import { EventMapBase, ScreenListeners } from "@react-navigation/core";
 import {
   MaterialTopTabNavigationOptions,
   MaterialTopTabNavigationProp,
 } from "@react-navigation/material-top-tabs";
 import { RouteProp } from "@react-navigation/native";
+import { NavigationState, ParamListBase } from "@react-navigation/routers";
 import {
   StackNavigationOptions,
   StackNavigationProp,
@@ -21,10 +19,6 @@ import { ScreenName, ScreenParamList } from "./navigation.types";
 
 export type AppScreenOption = Partial<BottomTabNavigationOptions> | undefined;
 
-export type BottomTabScreenOption =
-  | Partial<MaterialBottomTabNavigationOptions>
-  | undefined;
-
 export type TabScreenOption =
   | Partial<MaterialTopTabNavigationOptions>
   | undefined;
@@ -34,20 +28,33 @@ export type StackScreenOption = Partial<StackNavigationOptions> | undefined;
 export interface Route<
   ScreenProps,
   ScreenOption = AppScreenOption,
-  ScreenParams = ScreenParamList[ScreenName],
+  ScreenParams extends ParamListBase = ScreenParamList[ScreenName],
 > {
   screen: React.ComponentType<ScreenProps>;
   options?: ScreenOption;
+
+  listeners?:
+    | ScreenListeners<NavigationState<ScreenParams>, EventMapBase>
+    | ((
+        props: AppScreenProps,
+      ) => ScreenListeners<NavigationState<ScreenParams>, EventMapBase>);
+
+  layout?: (
+    props: AppScreenProps & {
+      theme: ReactNavigation.Theme;
+      children: React.ReactElement;
+    },
+  ) => React.ReactElement;
+  getId?: ({
+    params,
+  }: {
+    params: Readonly<ScreenParams>;
+  }) => string | undefined;
   initialParams?: Partial<ScreenParams>;
 }
 
 export interface AppScreenProps<SN extends ScreenName = any> {
   navigation: BottomTabNavigationProp<ScreenParamList, SN>;
-  route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
-}
-
-export interface BottomTabProps<SN extends ScreenName = any> {
-  navigation: MaterialBottomTabNavigationProp<ScreenParamList, SN>;
   route: RouteProp<Record<SN, ScreenParamList[SN]>, SN>;
 }
 
@@ -66,11 +73,6 @@ export type AppTabRoute<SN extends ScreenName> = Route<
   AppScreenOption,
   ScreenParamList[SN]
 >;
-export type BottomTabRoute<SN extends ScreenName> = Route<
-  BottomTabProps<SN>,
-  BottomTabScreenOption,
-  ScreenParamList[SN]
->;
 export type TabRoute<SN extends ScreenName> = Route<
   TabProps<SN>,
   TabScreenOption,
@@ -84,9 +86,6 @@ export type StackRoute<SN extends ScreenName> = Route<
 
 export type AppTabScreens = {
   [K in ScreenName]?: AppTabRoute<K>;
-};
-export type BottomTabScreens = {
-  [K in ScreenName]?: BottomTabRoute<K>;
 };
 export type TabScreens = {
   [K in ScreenName]?: TabRoute<K>;

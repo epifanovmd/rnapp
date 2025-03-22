@@ -4,8 +4,8 @@ LogBox.ignoreLogs([
 ]);
 
 export const DebugVars = {
-  logNavHistory: false,
-  logRequest: false,
+  logNavHistory: __DEV__,
+  logRequest: __DEV__,
   disableLogs: false,
 };
 
@@ -13,7 +13,6 @@ if (DebugVars.disableLogs) {
   LogBox.ignoreAllLogs(true);
 }
 
-// Вкючение переменных
-// DebugVars.logNavHistory = true;
-DebugVars.logRequest = true;
+DebugVars.logNavHistory = false;
+// DebugVars.logRequest = false;
 // DebugVars.disableLogs = true;

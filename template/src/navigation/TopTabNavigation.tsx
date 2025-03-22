@@ -1,6 +1,5 @@
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import React, { FC, memo, useMemo } from "react";
-import { Dimensions } from "react-native";
 
 import { ScreenName, ScreenParamList } from "./navigation.types";
 import { TabScreenOption, TabScreens } from "./types";
@@ -15,12 +14,10 @@ interface IProps extends Omit<Props, "children"> {
   initialRouteName?: keyof TabScreens;
 }
 
-const initialLayout = { width: Dimensions.get("window").width };
-
-export const TabNavigation: FC<IProps> = memo(
+export const TopTabNavigation: FC<IProps> = memo(
   ({ routes, screenOptions, ...rest }) => {
     const _screenOptions: TabScreenOption = useMemo(
-      () => ({ backBehavior: "none", ...screenOptions }),
+      () => ({ headerShown: false, ...screenOptions }),
       [screenOptions],
     );
 
@@ -31,8 +28,8 @@ export const TabNavigation: FC<IProps> = memo(
 
           return (
             <MaterialTopTab.Screen
-              key={`tab-screen-${name}_${index}`}
-              navigationKey={`tab-screen-${name}_${index}`}
+              key={`top-tab-screen-${name}_${index}`}
+              navigationKey={`top-tab-screen-${name}_${index}`}
               name={name}
               component={screen as any}
               {...(rest as any)}
@@ -43,11 +40,7 @@ export const TabNavigation: FC<IProps> = memo(
     );
 
     return (
-      <MaterialTopTab.Navigator
-        screenOptions={_screenOptions}
-        initialLayout={initialLayout}
-        {...rest}
-      >
+      <MaterialTopTab.Navigator screenOptions={_screenOptions} {...rest}>
         {renderRoutes}
       </MaterialTopTab.Navigator>
     );

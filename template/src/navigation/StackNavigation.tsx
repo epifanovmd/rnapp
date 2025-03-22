@@ -1,8 +1,3 @@
-import {
-  DefaultNavigatorOptions,
-  StackNavigationState,
-  StackRouterOptions,
-} from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import React, { FC, memo, useMemo } from "react";
 
@@ -35,16 +30,19 @@ export const StackNavigation: FC<IProps> = memo(
 
     const renderRoutes = useMemo(
       () =>
-        (Object.keys(routes) as ScreenName[]).map((name, index) => (
-          <Stack.Screen
-            key={`screen-${index + 1}-${name}`}
-            options={routes[name]!.options}
-            navigationKey={`screen-${index + 1}-${name}`}
-            name={name}
-            component={routes[name]!.screen as any}
-            initialParams={routes[name]!.initialParams}
-          />
-        )),
+        (Object.keys(routes) as ScreenName[]).map((name, index) => {
+          const { screen, ...rest } = routes[name]!;
+
+          return (
+            <Stack.Screen
+              key={`stack-screen-${name}_${index}`}
+              navigationKey={`stack-screen-${name}_${index}`}
+              name={name}
+              component={screen as any}
+              {...(rest as any)}
+            />
+          );
+        }),
       [routes],
     );
 

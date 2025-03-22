@@ -1,5 +1,3 @@
-import { Gallery } from "../screens/stack/Gallery";
-
 export enum TabScreenName {
   MAIN = "MAIN",
 

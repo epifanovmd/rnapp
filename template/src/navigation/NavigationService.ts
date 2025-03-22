@@ -17,7 +17,7 @@ export const INavigationService = createServiceDecorator<NavigationService>();
 export const useNavigationService = iocHook(INavigationService);
 
 const routesHistoryReduce = (arr: any[]) => {
-  const result = arr.reduce((acc, item) => {
+  return arr.reduce((acc, item) => {
     acc.push(
       pickBy(
         {
@@ -40,8 +40,6 @@ const routesHistoryReduce = (arr: any[]) => {
     screen: ScreenName;
     params: ScreenParamList[ScreenName];
   }[];
-
-  return result;
 };
 
 @INavigationService({ inSingleton: true })

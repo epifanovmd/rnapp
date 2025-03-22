@@ -1,0 +1,28 @@
+import { StackScreens } from "../navigation";
+import {
+  Authorization,
+  ChatScreen,
+  Components,
+  Modals,
+  Notifications,
+  Pickers,
+  PostScreen,
+  TabScreens,
+} from "../screens";
+import { Gallery } from "../screens/stack/Gallery";
+
+export const PRIVATE_SCREENS: StackScreens = {
+  MAIN: { screen: TabScreens },
+
+  Post: { screen: PostScreen },
+  Notifications: { screen: Notifications },
+  Gallery: { screen: Gallery },
+  Pickers: { screen: Pickers },
+  Components: { screen: Components },
+  Modals: { screen: Modals },
+  ChatScreen: { screen: ChatScreen },
+};
+
+export const PUBLIC_SCREENS: StackScreens = {
+  Authorization: { screen: Authorization },
+};

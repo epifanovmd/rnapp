@@ -359,7 +359,6 @@ export const MessageContainer = memo(
               replyIconColor={
                 messageProps.replyIconColor ?? theme.replyIconColor
               }
-              flatListRef={_ref}
               {...messageProps}
             />
           );
