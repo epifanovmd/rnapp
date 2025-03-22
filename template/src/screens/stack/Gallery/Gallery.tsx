@@ -1,4 +1,3 @@
-import { ImageViewing } from "@force-dev/react-mobile";
 import {
   CameraRoll,
   PhotoIdentifier,
