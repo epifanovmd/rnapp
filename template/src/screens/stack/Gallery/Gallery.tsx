@@ -2,6 +2,7 @@ import {
   CameraRoll,
   PhotoIdentifier,
 } from "@react-native-camera-roll/camera-roll";
+import { FlashList } from "@shopify/flash-list";
 import React, {
   FC,
   memo,
@@ -10,7 +11,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { FlatList, Image, PermissionsAndroid, Platform } from "react-native";
+import { Image, PermissionsAndroid, Platform } from "react-native";
 
 import { StackProps } from "../../../navigation";
 
@@ -21,7 +22,7 @@ const GalleryItem: FC<{ item: PhotoIdentifier }> = memo(({ item }) => {
     <Image
       source={{ uri: item.node.image.uri }}
       style={{ width: 100, height: 100, margin: 2, backgroundColor: "gray" }}
-      resizeMode={"cover"}
+      resizeMode="cover"
     />
   );
 });
@@ -34,7 +35,7 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
   const isMounted = useRef<boolean>(true);
 
   useEffect(() => {
-    requestPermission().then();
+    requestPermission();
 
     return () => {
       isMounted.current = false; // При размонтировании меняем флаг на false
@@ -60,9 +61,8 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
 
   const loadInitialPhotos = async () => {
     try {
-      // Загружаем первые 50 фото для быстрого отображения
       const result = await CameraRoll.getPhotos({
-        first: FIRST_IMAGE_SIZE, // Загружаем первые 50 фото
+        first: FIRST_IMAGE_SIZE,
         assetType: "Photos",
       });
 
@@ -70,7 +70,7 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
         setPhotos(result.edges);
         afterCursor.current = result.page_info.end_cursor;
         hasNextPage.current = result.page_info.has_next_page;
-        loadRemainingPhotos().then();
+        loadRemainingPhotos();
       }
     } catch (error) {
       console.error(error);
@@ -92,7 +92,9 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
           after: currentCursor,
         });
 
-        setPhotos(prevPhotos => [...prevPhotos, ...result.edges]);
+        if (isMounted.current) {
+          setPhotos(prevPhotos => [...prevPhotos, ...result.edges]);
+        }
 
         afterCursor.current = result.page_info.end_cursor;
         hasNextPage.current = result.page_info.has_next_page;
@@ -107,31 +109,18 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
     }
   };
 
-  // Оптимизация с getItemLayout для FlatList
-  const getItemLayout = useCallback(
-    (_: unknown, index: number) => ({
-      length: 100, // Высота элемента
-      offset: 100 * index, // Смещение элемента
-      index,
-    }),
-    [],
-  );
-
   const renderItem = useCallback(
     ({ item }: { item: PhotoIdentifier }) => <GalleryItem item={item} />,
     [],
   );
 
   return (
-    <FlatList
+    <FlashList
       data={photos}
       keyExtractor={item => item.node.id}
       numColumns={3}
       renderItem={renderItem}
-      initialNumToRender={20}
-      maxToRenderPerBatch={5}
-      windowSize={3}
-      getItemLayout={getItemLayout}
+      estimatedItemSize={100} // Оптимизация для быстрого рендеринга
     />
   );
 });

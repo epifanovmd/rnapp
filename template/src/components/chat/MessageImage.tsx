@@ -48,21 +48,13 @@ export const MessageImage = memo(
         () => ({ ...imageSourceProps, uri: currentMessage?.image?.url }),
         [currentMessage?.image, imageSourceProps],
       );
-      const _wrapStyle = useMemo(
-        () => [styles.container, containerStyle],
-        [containerStyle],
-      );
-      const _imageStyle = useMemo(
-        () => [styles.image, imageStyle],
-        [imageStyle],
-      );
 
       if (currentMessage == null) {
         return null;
       }
 
       return (
-        <View style={_wrapStyle}>
+        <View style={[styles.container, containerStyle]}>
           <ImageViewing
             {...imageViewingProps}
             images={_images}
@@ -74,7 +66,7 @@ export const MessageImage = memo(
             <Image
               ref={ref}
               {...imageProps}
-              style={_imageStyle}
+              style={[styles.image, imageStyle]}
               source={source}
             />
           </TouchableOpacity>

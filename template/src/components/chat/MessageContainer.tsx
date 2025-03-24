@@ -1,6 +1,10 @@
 import { mergeRefs } from "@force-dev/react";
 import { ViewabilityConfig } from "@react-native/virtualized-lists";
-import { debounce } from "lodash";
+import {
+  FlashList,
+  FlashListProps,
+  ListRenderItemInfo,
+} from "@shopify/flash-list";
 import React, {
   forwardRef,
   memo,
@@ -11,19 +15,13 @@ import React, {
 } from "react";
 import {
   ColorValue,
-  FlatList,
-  FlatListProps,
-  ListRenderItemInfo,
   Platform,
-  ScrollView,
-  ScrollViewProps,
   StyleProp,
   StyleSheet,
   TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
-import { LayoutChangeEvent } from "react-native/Libraries/Types/CoreEventTypes";
 import Animated, {
   runOnJS,
   useAnimatedScrollHandler,
@@ -36,9 +34,12 @@ import { LoadEarlier, LoadEarlierProps } from "./LoadEarlier";
 import { Message, MessageProps } from "./Message";
 import { IMessage, User } from "./types";
 
+const AnimatedFlashList =
+  Animated.createAnimatedComponent<FlashListProps<IMessage>>(FlashList);
+
 const viewabilityConfig: ViewabilityConfig = {
   itemVisiblePercentThreshold: 60,
-  minimumViewTime: 10,
+  minimumViewTime: 250,
 };
 
 export interface MessageContainerProps
@@ -87,7 +88,7 @@ export interface MessageContainerProps
   infiniteScroll?: boolean;
   isLoadingEarlier?: boolean;
   listViewProps: Omit<
-    FlatListProps<IMessage>,
+    FlashListProps<IMessage>,
     | "data"
     | "renderItem"
     | "extraData"
@@ -113,7 +114,7 @@ export interface MessageContainerProps
 }
 
 export const MessageContainer = memo(
-  forwardRef<FlatList<IMessage>, MessageContainerProps>((props, ref) => {
+  forwardRef<FlashList<IMessage>, MessageContainerProps>((props, ref) => {
     const {
       user,
       messages,
@@ -167,7 +168,7 @@ export const MessageContainer = memo(
       renderReplyIcon,
     } = props;
 
-    const _ref = useRef<FlatList<IMessage>>(null);
+    const _ref = useRef<FlashList<IMessage>>(null);
     const [showScrollBottom, setShowScrollBottom] = useState(false);
     const loadedEarlier = useSharedValue(false);
     const scrollContentHeight = useSharedValue(0);
@@ -355,7 +356,6 @@ export const MessageContainer = memo(
 
           return (
             <Message
-              key={item.id}
               replyIconColor={
                 messageProps.replyIconColor ?? theme.replyIconColor
               }
@@ -435,22 +435,6 @@ export const MessageContainer = memo(
       [onLoadMore, inverted],
     );
 
-    const renderScrollComponent = useCallback((p: ScrollViewProps) => {
-      const _onLayout = p.onLayout
-        ? debounce<(event: LayoutChangeEvent) => void>(p.onLayout, 300)
-        : () => {};
-
-      return (
-        <ScrollView
-          {...p}
-          onLayout={event => {
-            event.persist();
-            _onLayout(event);
-          }}
-        />
-      );
-    }, []);
-
     const onViewableItemsChanged = useCallback(
       ({
         changed,
@@ -477,11 +461,14 @@ export const MessageContainer = memo(
       [onViewableMessages],
     );
 
-    const keyExtractor = useCallback((item: IMessage) => `${item.id}`, []);
+    const keyExtractor = useCallback(
+      (item: IMessage, index: number) => `${index}`,
+      [],
+    );
 
     return (
       <View style={styles.container}>
-        <Animated.FlatList
+        <AnimatedFlashList
           ref={mergeRefs([ref, _ref])}
           extraData={extraData}
           keyExtractor={keyExtractor}
@@ -489,20 +476,16 @@ export const MessageContainer = memo(
           inverted={inverted}
           data={messages}
           style={styles.listStyle}
-          contentContainerStyle={styles.contentContainerStyle}
           renderItem={_renderRow}
+          showsVerticalScrollIndicator={false}
+          estimatedItemSize={41}
           ListEmptyComponent={_renderChatEmpty}
           ListFooterComponent={inverted ? _renderHeader : _renderFooter}
           ListHeaderComponent={inverted ? _renderFooter : _renderHeader}
           onScroll={scrollEvent}
-          renderScrollComponent={renderScrollComponent}
-          scrollEventThrottle={100}
           onLayout={onLayoutList}
-          initialNumToRender={20}
-          maxToRenderPerBatch={40}
           viewabilityConfig={viewabilityConfig}
           onViewableItemsChanged={onViewableItemsChanged}
-          windowSize={40}
           {...listViewProps}
         />
         {showScrollBottom && scrollToBottom && _renderScrollToBottomWrapper()}
@@ -514,10 +497,6 @@ export const MessageContainer = memo(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  contentContainerStyle: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
   },
   emptyChatContainer: {
     flex: 1,

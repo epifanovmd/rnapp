@@ -16,6 +16,7 @@ import ReactNativeBiometrics, { BiometryTypes } from "react-native-biometrics";
 import BootSplash from "react-native-bootsplash";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -86,6 +87,7 @@ export const App: FC = observer(() => {
     }
 
     setTimeout(() => {
+      trigger(HapticFeedbackTypes.impactLight);
       BootSplash.hide({ fade: true });
     }, 500);
   }, [sessionDataStore]);

@@ -1,4 +1,5 @@
 import { ImageViewingProps } from "@force-dev/react-mobile";
+import { FlashList, FlashListProps } from "@shopify/flash-list";
 import React, {
   createRef,
   FC,
@@ -12,7 +13,6 @@ import React, {
 import {
   ColorValue,
   FlatList,
-  FlatListProps,
   ImageProps,
   ImageStyle,
   Insets,
@@ -87,7 +87,7 @@ export interface ChatProps {
   // props
   imageProps?: ImageProps;
   imageViewingProps?: ImageViewingProps;
-  listViewProps?: FlatListProps<IMessage>;
+  listViewProps?: FlashListProps<IMessage>;
   textInputProps?: ChatInputProps;
 
   // styles
@@ -241,7 +241,7 @@ export const Chat: FC<ChatProps> = memo(
     renderResetReplyIcon,
     renderReplyContainer,
   }) => {
-    const flatListRef = useRef<FlatList<IMessage>>(null);
+    const flashListRef = useRef<FlashList<IMessage>>(null);
     const isMountedRef = useRef(false);
     const [replyMessage, setReplyMessage] = useState<IMessage | undefined>(
       undefined,
@@ -321,7 +321,7 @@ export const Chat: FC<ChatProps> = memo(
 
     const _onSend = useCallback(
       (message: Partial<IMessage>, shouldResetInputToolbar = false) => {
-        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
 
         const newMessages: IMessage = {
           ...message,
@@ -497,7 +497,7 @@ export const Chat: FC<ChatProps> = memo(
             _renderLoading()
           ) : (
             <MessageContainer
-              ref={flatListRef}
+              ref={flashListRef}
               user={user}
               messages={messages}
               extraData={extraData}

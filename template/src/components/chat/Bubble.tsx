@@ -38,7 +38,6 @@ export interface BubbleProps {
   // Styles
   containerStyle?: LeftRightStyle<ViewStyle>;
   wrapperStyle?: LeftRightStyle<ViewStyle>;
-  replyWrapperStyle?: LeftRightStyle<ViewStyle>;
   textStyle?: LeftRightStyle<TextStyle>;
   bottomContainerStyle?: LeftRightStyle<ViewStyle>;
   tickStyle?: StyleProp<TextStyle>;
@@ -85,7 +84,6 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     reply,
     containerStyle,
     wrapperStyle,
-    replyWrapperStyle,
     textStyle,
     bottomContainerStyle,
     tickStyle,
@@ -111,21 +109,12 @@ export const Bubble: FC<BubbleProps> = memo(props => {
 
   const theme = useChatTheme();
 
-  const _onPress = useCallback(() => {
-    if (onPress) {
-      onPress(currentMessage);
-    }
-  }, [currentMessage, onPress]);
+  const _onPress = onPress ? () => onPress(currentMessage) : undefined;
+  const _onLongPress = onLongPress
+    ? () => onLongPress(currentMessage)
+    : undefined;
 
-  const _onLongPress = useCallback(() => {
-    if (onLongPress) {
-      onLongPress(currentMessage);
-    } else if (currentMessage && currentMessage.text) {
-      // Long press action
-    }
-  }, [currentMessage, onLongPress]);
-
-  const styledBubbleToNext = useCallback(() => {
+  const styledBubbleToNext = () => {
     if (
       currentMessage &&
       nextMessage &&
@@ -140,9 +129,9 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [containerToNextStyle, currentMessage, nextMessage, position]);
+  };
 
-  const styledBubbleToPrevious = useCallback(() => {
+  const styledBubbleToPrevious = () => {
     if (
       currentMessage &&
       previousMessage &&
@@ -157,9 +146,9 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [containerToPreviousStyle, currentMessage, position, previousMessage]);
+  };
 
-  const _renderMessageText = useCallback(() => {
+  const _renderMessageText = () => {
     if (currentMessage && currentMessage.text) {
       const messageTextProps: MessageTextProps = {
         currentMessage,
@@ -181,46 +170,27 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [
-    currentMessage,
-    parsePatterns,
-    position,
-    renderMessageText,
-    reply,
-    textStyle,
-  ]);
+  };
 
-  const _renderMessageImage = useCallback(() => {
-    if (currentMessage && currentMessage.image) {
-      const messageImageProps: MessageImageProps = {
+  const _renderMessageImage = () =>
+    currentMessage?.image &&
+    (renderMessageImage ? (
+      renderMessageImage({
         currentMessage,
         imageProps,
         imageStyle,
         imageViewingProps,
-      };
+      })
+    ) : (
+      <MessageImage
+        currentMessage={currentMessage}
+        imageProps={imageProps}
+        imageStyle={imageStyle}
+        imageViewingProps={imageViewingProps}
+      />
+    ));
 
-      if (renderMessageImage) {
-        return renderMessageImage(messageImageProps);
-      }
-
-      return (
-        <MessageImage
-          {...messageImageProps}
-          imageStyle={messageImageProps.imageStyle}
-        />
-      );
-    }
-
-    return null;
-  }, [
-    currentMessage,
-    imageProps,
-    imageStyle,
-    imageViewingProps,
-    renderMessageImage,
-  ]);
-
-  const _renderMessageVideo = useCallback(() => {
+  const _renderMessageVideo = () => {
     if (currentMessage && currentMessage.video) {
       const messageVideoProps: MessageVideoProps = {
         currentMessage,
@@ -234,9 +204,9 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [currentMessage, renderMessageVideo]);
+  };
 
-  const _renderMessageAudio = useCallback(() => {
+  const _renderMessageAudio = () => {
     if (currentMessage && currentMessage.audio) {
       const messageAudioProps: MessageAudioProps = {
         currentMessage,
@@ -250,85 +220,56 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [currentMessage, renderMessageAudio]);
+  };
 
-  const _renderTicks = useCallback(() => {
+  const _renderTicks = () => {
+    if (!currentMessage || (user && currentMessage.user.id !== user.id))
+      return null;
+
     if (renderTicks && currentMessage) {
       return renderTicks(currentMessage);
     }
-    if (
-      currentMessage &&
-      user &&
-      currentMessage.user &&
-      currentMessage.user.id !== user.id
-    ) {
-      return null;
-    }
-    if (
-      currentMessage &&
-      (currentMessage.sent || currentMessage.received || currentMessage.pending)
-    ) {
-      return (
-        <View style={styles.content.tickView}>
-          {!!currentMessage.sent && (
-            <Text
-              style={[
-                styles.content.tick,
-                {
-                  color:
-                    theme[`${position}TickColor`] ??
-                    theme[`${position}BubbleInfoColor`],
-                },
-                tickStyle,
-              ]}
-            >
-              ✓
-            </Text>
-          )}
-          {!!currentMessage.received && (
-            <Text
-              style={[
-                styles.content.tick,
-                {
-                  marginLeft: -5,
-                  color:
-                    theme[`${position}TickColor`] ??
-                    theme[`${position}BubbleInfoColor`],
-                },
-                tickStyle,
-              ]}
-            >
-              ✓
-            </Text>
-          )}
-          {!!currentMessage.pending && (
-            <Text
-              style={[
-                styles.content.tick,
-                {
-                  backgroundColor:
-                    theme[`${position}TickBackground`] ??
-                    theme[`${position}BubbleBackground`],
-                },
-                {
-                  color:
-                    theme[`${position}TickColor`] ??
-                    theme[`${position}BubbleInfoColor`],
-                },
-                tickStyle,
-              ]}
-            >
-              🕓
-            </Text>
-          )}
-        </View>
-      );
-    }
 
-    return null;
-  }, [currentMessage, position, renderTicks, theme, tickStyle, user]);
+    return (
+      <View style={styles.content.tickView}>
+        {currentMessage.sent && (
+          <Text
+            style={[
+              styles.content.tick,
+              { color: theme[`${position}TickColor`] },
+              tickStyle,
+            ]}
+          >
+            ✓
+          </Text>
+        )}
+        {currentMessage.received && (
+          <Text
+            style={[
+              styles.content.tick,
+              { marginLeft: -5, color: theme[`${position}TickColor`] },
+              tickStyle,
+            ]}
+          >
+            ✓
+          </Text>
+        )}
+        {currentMessage.pending && (
+          <Text
+            style={[
+              styles.content.tick,
+              { backgroundColor: theme[`${position}TickBackground`] },
+              tickStyle,
+            ]}
+          >
+            🕓
+          </Text>
+        )}
+      </View>
+    );
+  };
 
-  const _renderTime = useCallback(() => {
+  const _renderTime = () => {
     if (currentMessage && currentMessage.createdAt) {
       const timeProps: TimeProps = {
         currentMessage,
@@ -345,9 +286,9 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [currentMessage, position, renderTime, timeFormat, timeTextStyle]);
+  };
 
-  const _renderUsername = useCallback(() => {
+  const _renderUsername = () => {
     if (showUsernameOnMessage && currentMessage) {
       if (user && currentMessage.user.id === user.id) {
         return null;
@@ -372,74 +313,24 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return null;
-  }, [
-    currentMessage,
-    position,
-    renderUsername,
-    showUsernameOnMessage,
-    theme,
-    user,
-    usernameStyle,
-  ]);
+  };
 
-  const renderBubbleContent = useCallback(() => {
-    return (
-      <View>
-        {_renderMessageImage()}
-        {_renderMessageVideo()}
-        {_renderMessageAudio()}
-        {_renderMessageText()}
-      </View>
-    );
-  }, [
-    _renderMessageAudio,
-    _renderMessageImage,
-    _renderMessageText,
-    _renderMessageVideo,
-  ]);
-
-  const _containerStyle = useMemo(
-    () => [
-      styles[position].container,
-      containerStyle && containerStyle[position],
-    ],
-    [containerStyle, position],
-  );
-
-  const wrapStyle: StyleProp<ViewStyle> = useMemo(
-    () => [
-      styles[position].wrapper,
-      {
-        backgroundColor: theme[`${position}BubbleBackground`],
-      },
-      styledBubbleToNext(),
-      styledBubbleToPrevious(),
-      wrapperStyle && wrapperStyle[position],
-      reply
-        ? ([
-            {
-              borderLeftColor: theme.replyBorder,
-              borderLeftWidth: 4,
-              marginTop: 8,
-              marginLeft: 8,
-              marginRight: 8,
-              borderRadius: 4,
-              backgroundColor: theme.replyBackground,
-            },
-            replyWrapperStyle,
-          ] as StyleProp<ViewStyle>)
-        : [],
-    ],
-    [
-      replyWrapperStyle,
-      position,
-      reply,
-      styledBubbleToNext,
-      styledBubbleToPrevious,
-      theme,
-      wrapperStyle,
-    ],
-  );
+  const wrapStyle = [
+    styles[position].wrapper,
+    { backgroundColor: theme[`${position}BubbleBackground`] },
+    styledBubbleToNext(),
+    styledBubbleToPrevious(),
+    wrapperStyle?.[position],
+    reply && {
+      borderLeftColor: theme.replyBorder,
+      borderLeftWidth: 4,
+      marginTop: 8,
+      marginLeft: 8,
+      marginRight: 8,
+      borderRadius: 4,
+      backgroundColor: theme.replyBackground,
+    },
+  ];
 
   const bottomStyle = useMemo(
     () => [
@@ -450,7 +341,7 @@ export const Bubble: FC<BubbleProps> = memo(props => {
   );
 
   return (
-    <View style={_containerStyle}>
+    <View style={[styles[position].container, containerStyle?.[position]]}>
       <TouchableOpacity
         onPress={_onPress}
         onLongPress={_onLongPress}
@@ -462,7 +353,12 @@ export const Bubble: FC<BubbleProps> = memo(props => {
           {!reply && user && currentMessage.reply && (
             <Bubble {...props} reply currentMessage={currentMessage.reply} />
           )}
-          {renderBubbleContent()}
+          {[
+            _renderMessageImage(),
+            _renderMessageVideo(),
+            _renderMessageAudio(),
+            _renderMessageText(),
+          ].filter(Boolean)}
           {!reply && (
             <View style={bottomStyle}>
               {_renderUsername()}

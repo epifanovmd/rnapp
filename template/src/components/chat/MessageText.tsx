@@ -28,6 +28,25 @@ export interface MessageTextProps {
   numberOfLines?: number;
 }
 
+const onUrlPress = (url: string) => {
+  const formattedUrl = WWW_URL_PATTERN.test(url) ? `https://${url}` : url;
+
+  Linking.openURL(formattedUrl).catch(e =>
+    error(e, "No handler for URL:", formattedUrl),
+  );
+};
+
+const onPhonePress = (phone: string) => {
+  Linking.openURL(`tel:${phone}`).catch(e => {
+    error(e, "No handler for telephone");
+  });
+};
+
+const onEmailPress = (email: string) =>
+  Linking.openURL(`mailto:${email}`).catch(e =>
+    error(e, "No handler for mailto"),
+  );
+
 export const MessageText = memo(
   ({
     currentMessage,
@@ -42,32 +61,6 @@ export const MessageText = memo(
   }: MessageTextProps) => {
     const theme = useChatTheme();
 
-    const onUrlPress = useCallback((url: string) => {
-      // When someone sends a message that includes a website address beginning with "www." (omitting the scheme),
-      // react-native-parsed-text recognizes it as a valid url, but Linking fails to open due to the missing scheme.
-      if (WWW_URL_PATTERN.test(url)) {
-        onUrlPress(`https://${url}`);
-      } else {
-        Linking.openURL(url).catch(e => {
-          error(e, "No handler for URL:", url);
-        });
-      }
-    }, []);
-
-    const onPhonePress = useCallback((phone: string) => {
-      Linking.openURL(`tel:${phone}`).catch(e => {
-        error(e, "No handler for telephone");
-      });
-    }, []);
-
-    const onEmailPress = useCallback(
-      (email: string) =>
-        Linking.openURL(`mailto:${email}`).catch(e =>
-          error(e, "No handler for mailto"),
-        ),
-      [],
-    );
-
     const linkStyle: StyleProp<TextStyle> = useMemo(
       () => [styles[position].link, linkStyleProp && linkStyleProp[position]],
       [linkStyleProp, position],
@@ -75,43 +68,25 @@ export const MessageText = memo(
 
     const parse = useMemo<ParsedTextProps["parse"]>(
       () => [
-        {
-          type: "url",
-          style: linkStyle,
-          onPress: onUrlPress,
-        },
-        {
-          type: "phone",
-          style: linkStyle,
-          onPress: onPhonePress,
-        },
-        {
-          type: "email",
-          style: linkStyle,
-          onPress: onEmailPress,
-        },
+        { type: "url", style: linkStyle, onPress: onUrlPress },
+        { type: "phone", style: linkStyle, onPress: onPhonePress },
+        { type: "email", style: linkStyle, onPress: onEmailPress },
         ...(parsePatterns?.(linkStyle) || []),
       ],
-      [linkStyle, onEmailPress, onPhonePress, onUrlPress, parsePatterns],
+      [linkStyle, parsePatterns],
     );
 
-    const wrapStyle = useMemo(
-      () => [
-        styles[position].container,
-        containerStyle && containerStyle[position],
-      ],
-      [containerStyle, position],
-    );
+    const wrapStyle = [
+      styles[position].container,
+      containerStyle && containerStyle[position],
+    ];
 
-    const parseTextStyle = useMemo(
-      () => [
-        styles[position].text,
-        textStyle && textStyle[position],
-        { color: theme[`${position}TextColor`] },
-        customTextStyle,
-      ],
-      [customTextStyle, position, textStyle, theme],
-    );
+    const parseTextStyle = [
+      styles[position].text,
+      textStyle && textStyle[position],
+      { color: theme[`${position}TextColor`] },
+      customTextStyle,
+    ];
 
     return (
       <View style={wrapStyle}>

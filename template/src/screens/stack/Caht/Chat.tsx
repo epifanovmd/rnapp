@@ -69,9 +69,9 @@ export const ChatScreen: FC<StackProps> = observer(() => {
 
   const msgs = useMemo(
     () =>
-      new Array(100).fill(1).map((_, index) => ({
+      new Array(1000).fill(1).map((_, index) => ({
         id: `${_ + index}`,
-        user: { id: "1234", name: "User1" },
+        user: { id: index % 2 === 0 ? "123" : "1234", name: "User1" },
         text: `Какой то текст сообщения + ${_ + index}`,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -80,20 +80,23 @@ export const ChatScreen: FC<StackProps> = observer(() => {
   );
 
   const renderBubble = useCallback(
-    (props: BubbleProps) => (
-      <HoldItem
-        data={{
-          messageId: props.currentMessage.id,
-          text: props.currentMessage.text,
-          onReply: () => props.onReply?.(props.currentMessage),
-        }}
-        disablePresAnimation={true}
-        items={menu}
-        disableMove={false}
-      >
-        <Bubble {...props} />
-      </HoldItem>
-    ),
+    (props: BubbleProps) => {
+      // return <Bubble {...props} />;
+
+      return (
+        <HoldItem
+          data={{
+            messageId: props.currentMessage.id,
+            text: props.currentMessage.text,
+            onReply: () => props.onReply?.(props.currentMessage),
+          }}
+          // disablePresAnimation={true}
+          items={menu}
+        >
+          <Bubble {...props} />
+        </HoldItem>
+      );
+    },
     [menu],
   );
 

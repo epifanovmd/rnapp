@@ -1,5 +1,4 @@
-import { isEqual } from "lodash";
-import React, { FC, memo, useCallback, useMemo } from "react";
+import React, { FC, memo, useMemo } from "react";
 import {
   ColorValue,
   LayoutChangeEvent,
@@ -70,25 +69,39 @@ export const Message: FC<MessageProps> = memo(
     renderReplyIcon,
     ...bubbleProps
   }) => {
-    const _renderDay = useCallback(() => {
-      if (currentMessage && currentMessage.createdAt) {
-        const dayProps: DayProps = {
-          dateFormat: dateFormat,
-          currentMessage: currentMessage,
-          previousMessage: previousMessage,
-        };
+    const isSystem = useMemo(
+      () => !!currentMessage?.system,
+      [currentMessage?.system],
+    );
+    const sameUser = useMemo(
+      () => isSameUser(currentMessage, nextMessage),
+      [currentMessage, nextMessage],
+    );
 
-        if (renderDay) {
-          return renderDay(dayProps);
-        }
+    const messageStyle = useMemo(
+      () => [
+        stylesByPosition[position].container,
+        { marginBottom: sameUser || !inverted ? 2 : 10 },
+        containerStyle?.[position],
+      ],
+      [containerStyle, inverted, position, sameUser],
+    );
 
-        return <Day {...dayProps} />;
-      }
+    const _renderDay = useMemo(() => {
+      if (!currentMessage?.createdAt) return null;
 
-      return null;
+      return renderDay ? (
+        renderDay({ dateFormat, currentMessage, previousMessage })
+      ) : (
+        <Day
+          dateFormat={dateFormat}
+          currentMessage={currentMessage}
+          previousMessage={previousMessage}
+        />
+      );
     }, [currentMessage, dateFormat, previousMessage, renderDay]);
 
-    const _renderBubble = useCallback(() => {
+    const _renderBubble = useMemo(() => {
       const _bubbleProps: BubbleProps = {
         user,
         currentMessage,
@@ -113,27 +126,16 @@ export const Message: FC<MessageProps> = memo(
       user,
     ]);
 
-    const _renderSystemMessage = useCallback(() => {
-      const systemMessageProps: SystemMessageProps = {
-        currentMessage,
-      };
-
-      if (renderSystemMessage) {
-        return renderSystemMessage(systemMessageProps);
-      }
-
-      return <SystemMessage {...systemMessageProps} />;
+    const _renderSystemMessage = useMemo(() => {
+      return renderSystemMessage ? (
+        renderSystemMessage({ currentMessage })
+      ) : (
+        <SystemMessage currentMessage={currentMessage} />
+      );
     }, [currentMessage, renderSystemMessage]);
 
-    const _renderAvatar = useCallback(() => {
-      if (
-        currentMessage &&
-        currentMessage.user &&
-        user.id === currentMessage.user.id &&
-        !showUserAvatar
-      ) {
-        return null;
-      }
+    const _renderAvatar = useMemo(() => {
+      if (!showUserAvatar && user.id === currentMessage?.user?.id) return null;
 
       return (
         <Avatar
@@ -162,68 +164,54 @@ export const Message: FC<MessageProps> = memo(
       user.id,
     ]);
 
-    const isSystem = !!currentMessage.system;
+    if (!currentMessage) return null;
 
-    const messageStyle = useMemo(() => {
-      const sameUser = isSameUser(currentMessage, nextMessage);
-
-      return [
-        styles[position].container,
-        { marginBottom: sameUser || !inverted ? 2 : 10 },
-        containerStyle && containerStyle[position],
-      ];
-    }, [containerStyle, currentMessage, inverted, nextMessage, position]);
-
-    if (currentMessage) {
-      return (
-        <>
-          {_renderDay()}
-          {isSystem ? (
-            _renderSystemMessage()
-          ) : (
-            <View style={messageStyle}>
-              {position === "left" ? (
-                _renderAvatar()
-              ) : (
-                <View style={styles.fakeImage} />
-              )}
-              {_renderBubble()}
-              {position === "right" ? (
-                _renderAvatar()
-              ) : (
-                <View style={styles.fakeImage} />
-              )}
-            </View>
-          )}
-        </>
-      );
-    }
-
-    return null;
+    return (
+      <>
+        {_renderDay}
+        {isSystem ? (
+          _renderSystemMessage
+        ) : (
+          <View style={messageStyle}>
+            {position === "left" ? (
+              _renderAvatar
+            ) : (
+              <View style={styles.fakeImage} />
+            )}
+            {_renderBubble}
+            {position === "right" ? (
+              _renderAvatar
+            ) : (
+              <View style={styles.fakeImage} />
+            )}
+          </View>
+        )}
+      </>
+    );
   },
-  (prevProps, nextProps) => isEqual(prevProps, nextProps),
 );
 
-const styles = {
-  left: StyleSheet.create({
-    container: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "flex-start",
-      marginLeft: 8,
-      marginRight: 8,
-    },
-  }),
-  right: StyleSheet.create({
-    container: {
-      flexDirection: "row",
-      alignItems: "flex-end",
-      justifyContent: "flex-end",
-      marginLeft: 8,
-      marginRight: 8,
-    },
-  }),
+const styles = StyleSheet.create({
+  leftContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "flex-start",
+    marginLeft: 8,
+    marginRight: 8,
+  },
+  rightContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "flex-end",
+    marginLeft: 8,
+    marginRight: 8,
+  },
   fakeImage: {
     width: 44,
   },
+});
+
+const stylesByPosition = {
+  left: { container: styles.leftContainer },
+  right: { container: styles.rightContainer },
 };
