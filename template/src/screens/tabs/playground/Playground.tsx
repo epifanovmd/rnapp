@@ -12,6 +12,7 @@ import {
 import { useSessionDataStore } from "~@store";
 
 import { AppScreenProps } from "../../../navigation";
+import { Lottie } from "../../stack/Lottie";
 import { Biometric } from "./Biometric";
 
 interface IProps extends AppScreenProps {}
@@ -38,6 +39,12 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
           mt={8}
           title={"Gallery"}
           onPress={() => navigation.navigate("Gallery")}
+        />
+
+        <Button
+          mt={8}
+          title={"Lottie"}
+          onPress={() => navigation.navigate("Lottie")}
         />
 
         <Button

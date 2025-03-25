@@ -10,6 +10,7 @@ import {
   TabScreens,
 } from "../screens";
 import { Gallery } from "../screens/stack/Gallery";
+import { Lottie } from "../screens/stack/Lottie";
 
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens },
@@ -20,6 +21,7 @@ export const PRIVATE_SCREENS: StackScreens = {
   Pickers: { screen: Pickers },
   Components: { screen: Components },
   Modals: { screen: Modals },
+  Lottie: { screen: Lottie },
   ChatScreen: { screen: ChatScreen },
 };
 

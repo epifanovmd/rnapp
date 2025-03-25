@@ -19,6 +19,7 @@ export enum StackScreenName {
   Pickers = "Pickers",
   Components = "Components",
   Modals = "Modals",
+  Lottie = "Lottie",
   ChatScreen = "ChatScreen",
 
   Post = "Post",
@@ -31,6 +32,7 @@ interface StackScreenParams {
   Pickers: any;
   Components: any;
   Modals: any;
+  Lottie: any;
   ChatScreen: any;
 
   Post: { id: number };
