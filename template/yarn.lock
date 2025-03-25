@@ -1167,10 +1167,10 @@
   resolved "https://registry.yarnpkg.com/@expo/sdk-runtime-versions/-/sdk-runtime-versions-1.0.0.tgz#d7ebd21b19f1c6b0395e50d78da4416941c57f7c"
   integrity sha512-Doz2bfiPndXYFPMRwPyGa1k5QaKDVpY806UJj570epIiMzWaYyCtobasyfC++qfIXVb5Ocy7r3tP9d62hAQ7IQ==
 
-"@force-dev/react-mobile@^0.0.145":
-  version "0.0.145"
-  resolved "https://registry.yarnpkg.com/@force-dev/react-mobile/-/react-mobile-0.0.145.tgz#def1e47ebde50e393408d8194b229a858326b73b"
-  integrity sha512-jhobHCem+yrECYi6W8zkEVqCMtc1UihJIWpXue8VOUKk//Kj3xhz8xCgI8pj8MwZ7bT6ZYbHQx5tF+EE4WS0dA==
+"@force-dev/react-mobile@^0.0.146":
+  version "0.0.146"
+  resolved "https://registry.yarnpkg.com/@force-dev/react-mobile/-/react-mobile-0.0.146.tgz#1324cca95e7cd90366684fcb5535ddac71d87c61"
+  integrity sha512-Ir+udlIr0lhQbMi7VG+9rudc9zCsFzFP2nwmRnr8dfP2Klc893gksaTzFgMM0wUclH8T8th+XdUOJ3dHYhdPMA==
   dependencies:
     "@force-dev/react" "^1.1.25"
     "@gorhom/bottom-sheet" "^5.0.5"
