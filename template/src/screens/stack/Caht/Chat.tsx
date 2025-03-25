@@ -5,7 +5,13 @@ import { ActivityIndicator, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Container, Header, Text } from "~@components";
-import { Bubble, BubbleProps, Chat, TypingAnimation } from "~@components/chat";
+import {
+  Bubble,
+  BubbleProps,
+  Chat,
+  IMessage,
+  TypingAnimation,
+} from "~@components/chat";
 
 import { StackProps } from "../../../navigation";
 
@@ -69,12 +75,21 @@ export const ChatScreen: FC<StackProps> = observer(() => {
 
   const msgs = useMemo(
     () =>
-      new Array(1000).fill(1).map((_, index) => ({
+      new Array(1000).fill(1).map<IMessage>((_, index) => ({
         id: `${_ + index}`,
-        user: { id: index % 2 === 0 ? "123" : "1234", name: "User1" },
+        user: { id: index % 4 === 3 ? "123" : "1234", name: "User1" },
         text: `Какой то текст сообщения + ${_ + index}`,
         createdAt: new Date(),
         updatedAt: new Date(),
+        image: {
+          id: index,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          name: "name",
+          size: 1,
+          url: "https://dummyjson.com/image/400x200/282828?fontFamily=pacifico&text=I+am+a+pacifico+font",
+          type: "image/png",
+        },
       })),
     [],
   );
@@ -90,8 +105,7 @@ export const ChatScreen: FC<StackProps> = observer(() => {
             text: props.currentMessage.text,
             onReply: () => props.onReply?.(props.currentMessage),
           }}
-          // disablePresAnimation={true}
-          items={menu}
+          menu={menu}
         >
           <Bubble {...props} />
         </HoldItem>
@@ -150,6 +164,7 @@ export const ChatScreen: FC<StackProps> = observer(() => {
         ]}
         loading={false}
         renderLoading={renderLoading}
+        showUsernameOnMessage={true}
         renderChatEmpty={() => (
           <Text
             marginLeft={"auto"}

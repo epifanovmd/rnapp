@@ -113,6 +113,8 @@ export interface MessageContainerProps
   renderLoadEarlier?: (props: LoadEarlierProps) => React.ReactElement | null;
 }
 
+const keyExtractor = (_item: IMessage, index: number) => `${index}`;
+
 export const MessageContainer = memo(
   forwardRef<FlashList<IMessage>, MessageContainerProps>((props, ref) => {
     const {
@@ -461,11 +463,6 @@ export const MessageContainer = memo(
       [onViewableMessages],
     );
 
-    const keyExtractor = useCallback(
-      (item: IMessage, index: number) => `${index}`,
-      [],
-    );
-
     return (
       <View style={styles.container}>
         <AnimatedFlashList
@@ -475,7 +472,6 @@ export const MessageContainer = memo(
           automaticallyAdjustContentInsets={false}
           inverted={inverted}
           data={messages}
-          style={styles.listStyle}
           renderItem={_renderRow}
           showsVerticalScrollIndicator={false}
           estimatedItemSize={41}
@@ -506,9 +502,6 @@ const styles = StyleSheet.create({
     }),
   },
   headerWrapper: {
-    flex: 1,
-  },
-  listStyle: {
     flex: 1,
   },
   scrollToBottomStyle: {

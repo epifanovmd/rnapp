@@ -41,7 +41,7 @@ export const Post: FC<PropsWithChildren<IProps>> = observer(
     );
 
     return (
-      <HoldItem items={holdMenu} onPress={handlePress}>
+      <HoldItem menu={holdMenu} onPress={handlePress}>
         <Col mv={8} bg={"gray"} radius={10} pa={6}>
           <Text fontWeight={"bold"}>{post.data?.title}</Text>
           <Text>{post.data?.tags}</Text>

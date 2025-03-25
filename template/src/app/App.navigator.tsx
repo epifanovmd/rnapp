@@ -1,5 +1,3 @@
-import { HoldItemProvider } from "@force-dev/react-mobile";
-import { useLogger } from "@react-navigation/devtools";
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -7,7 +5,6 @@ import {
 import { CardStyleInterpolators } from "@react-navigation/stack";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useMemo } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSessionDataStore } from "~@store";
 
@@ -33,7 +30,6 @@ const options: StackScreenOption = {
 export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IAppNavigatorProps>(
     ({ onReady }, ref) => {
-      const safeAreaInsets = useSafeAreaInsets();
       const navigatorTheme = useAppNavigationTheme();
 
       // useLogger(ref as any);
@@ -49,16 +45,14 @@ export const AppNavigator = observer(
       }, [isAuthorized]);
 
       return (
-        <HoldItemProvider safeAreaInsets={safeAreaInsets}>
-          <NavigationContainer
-            ref={ref}
-            linking={linking}
-            onReady={onReady}
-            theme={navigatorTheme}
-          >
-            <StackNavigation routes={routes} screenOptions={options} />
-          </NavigationContainer>
-        </HoldItemProvider>
+        <NavigationContainer
+          ref={ref}
+          linking={linking}
+          onReady={onReady}
+          theme={navigatorTheme}
+        >
+          <StackNavigation routes={routes} screenOptions={options} />
+        </NavigationContainer>
       );
     },
   ),

@@ -1,5 +1,5 @@
 import { ImageViewingProps } from "@force-dev/react-mobile";
-import React, { FC, memo, useCallback, useMemo } from "react";
+import React, { FC } from "react";
 import {
   ImageProps,
   ImageStyle,
@@ -23,7 +23,8 @@ import { Time, TimeProps } from "./Time";
 import { IMessage, LeftRightStyle, User } from "./types";
 import { isSameDay, isSameUser } from "./utils";
 
-export interface BubbleProps {
+export interface BubbleProps
+  extends Omit<TouchableOpacityProps, "onPress" | "onLongPress"> {
   user?: User;
   currentMessage: IMessage;
   nextMessage?: IMessage;
@@ -31,13 +32,12 @@ export interface BubbleProps {
 
   // Settings
   position: "left" | "right";
-  touchableProps?: TouchableOpacityProps;
   showUsernameOnMessage?: boolean;
   reply?: boolean;
 
   // Styles
-  containerStyle?: LeftRightStyle<ViewStyle>;
   wrapperStyle?: LeftRightStyle<ViewStyle>;
+  replayWrapperStyle?: LeftRightStyle<ViewStyle>;
   textStyle?: LeftRightStyle<TextStyle>;
   bottomContainerStyle?: LeftRightStyle<ViewStyle>;
   tickStyle?: StyleProp<TextStyle>;
@@ -70,20 +70,20 @@ export interface BubbleProps {
   renderTime?: (timeProps: TimeProps) => React.ReactElement | null;
   renderTicks?: (currentMessage: IMessage) => React.ReactElement | null;
   renderUsername?: (user: User) => React.ReactElement | null;
+  renderReply?: (user: BubbleProps) => React.ReactElement | null;
 }
 
-export const Bubble: FC<BubbleProps> = memo(props => {
+export const Bubble: FC<BubbleProps> = props => {
   const {
     user,
     currentMessage,
     nextMessage,
     previousMessage,
     position = "left",
-    touchableProps,
     showUsernameOnMessage,
     reply,
-    containerStyle,
     wrapperStyle,
+    replayWrapperStyle,
     textStyle,
     bottomContainerStyle,
     tickStyle,
@@ -105,6 +105,8 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     renderTime,
     renderTicks,
     renderUsername,
+    renderReply,
+    ...rest
   } = props;
 
   const theme = useChatTheme();
@@ -231,11 +233,11 @@ export const Bubble: FC<BubbleProps> = memo(props => {
     }
 
     return (
-      <View style={styles.content.tickView}>
+      <View style={ss.tickView}>
         {currentMessage.sent && (
           <Text
             style={[
-              styles.content.tick,
+              ss.tick,
               { color: theme[`${position}TickColor`] },
               tickStyle,
             ]}
@@ -246,7 +248,7 @@ export const Bubble: FC<BubbleProps> = memo(props => {
         {currentMessage.received && (
           <Text
             style={[
-              styles.content.tick,
+              ss.tick,
               { marginLeft: -5, color: theme[`${position}TickColor`] },
               tickStyle,
             ]}
@@ -257,7 +259,7 @@ export const Bubble: FC<BubbleProps> = memo(props => {
         {currentMessage.pending && (
           <Text
             style={[
-              styles.content.tick,
+              ss.tick,
               { backgroundColor: theme[`${position}TickBackground`] },
               tickStyle,
             ]}
@@ -298,10 +300,10 @@ export const Bubble: FC<BubbleProps> = memo(props => {
       }
 
       return (
-        <View style={styles.content.usernameView}>
+        <View style={ss.usernameView}>
           <Text
             style={[
-              styles.content.username,
+              ss.username,
               { color: theme[`${position}UsernameColor`] },
               usernameStyle,
             ]}
@@ -316,127 +318,96 @@ export const Bubble: FC<BubbleProps> = memo(props => {
   };
 
   const wrapStyle = [
-    styles[position].wrapper,
+    ss.wrapper,
     { backgroundColor: theme[`${position}BubbleBackground`] },
     styledBubbleToNext(),
     styledBubbleToPrevious(),
     wrapperStyle?.[position],
     reply && {
       borderLeftColor: theme.replyBorder,
-      borderLeftWidth: 4,
+      borderLeftWidth: 2,
       marginTop: 8,
       marginLeft: 8,
       marginRight: 8,
       borderRadius: 4,
       backgroundColor: theme.replyBackground,
     },
+    reply && replayWrapperStyle?.[position],
   ];
 
-  const bottomStyle = useMemo(
-    () => [
-      styles[position].bottom,
-      bottomContainerStyle && bottomContainerStyle[position],
-    ],
-    [bottomContainerStyle, position],
-  );
-
   return (
-    <View style={[styles[position].container, containerStyle?.[position]]}>
-      <TouchableOpacity
-        onPress={_onPress}
-        onLongPress={_onLongPress}
-        disabled={!onPress && !onLongPress}
-        delayLongPress={300}
-        {...touchableProps}
-      >
-        <View style={wrapStyle}>
-          {!reply && user && currentMessage.reply && (
-            <Bubble {...props} reply currentMessage={currentMessage.reply} />
-          )}
-          {[
-            _renderMessageImage(),
-            _renderMessageVideo(),
-            _renderMessageAudio(),
-            _renderMessageText(),
-          ].filter(Boolean)}
-          {!reply && (
-            <View style={bottomStyle}>
-              {_renderUsername()}
-              <View style={ss.row}>
-                {_renderTime()}
-                {_renderTicks()}
-              </View>
-            </View>
-          )}
+    <TouchableOpacity
+      onPress={_onPress}
+      onLongPress={_onLongPress}
+      disabled={!onPress && !onLongPress}
+      delayLongPress={300}
+      {...rest}
+      style={[wrapStyle, rest.style]}
+    >
+      {!reply &&
+        user &&
+        currentMessage.reply &&
+        (renderReply?.(props) ?? (
+          <Bubble {...props} reply currentMessage={currentMessage.reply} />
+        ))}
+      {_renderMessageImage()}
+      {_renderMessageVideo()}
+      {_renderMessageAudio()}
+      {_renderMessageText()}
+      {!reply && (
+        <View
+          style={[{ flexDirection: "row" }, bottomContainerStyle?.[position]]}
+        >
+          {_renderUsername()}
+          <View style={ss.row}>
+            {_renderTime()}
+            {_renderTicks()}
+          </View>
         </View>
-      </TouchableOpacity>
-    </View>
+      )}
+    </TouchableOpacity>
   );
-});
+};
 
 const ss = StyleSheet.create({
   row: { flexDirection: "row", marginLeft: "auto" },
+  wrapper: {
+    borderRadius: 15,
+    minHeight: 20,
+  },
+  tick: {
+    fontSize: 10,
+  },
+  tickView: {
+    flexDirection: "row",
+    marginRight: 10,
+  },
+  username: {
+    top: -3,
+    left: 0,
+    fontSize: 12,
+  },
+  usernameView: {
+    flexDirection: "row",
+    marginHorizontal: 10,
+  },
 });
 
 const styles = {
   left: StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: "flex-start",
-    },
-    wrapper: {
-      borderRadius: 15,
-      minHeight: 20,
-      justifyContent: "flex-end",
-    },
     containerToNext: {
       borderBottomLeftRadius: 3,
     },
     containerToPrevious: {
       borderTopLeftRadius: 3,
     },
-    bottom: {
-      flexDirection: "row",
-      justifyContent: "flex-start",
-    },
   }),
   right: StyleSheet.create({
-    container: {
-      flex: 1,
-      alignItems: "flex-end",
-    },
-    wrapper: {
-      borderRadius: 15,
-      minHeight: 20,
-      justifyContent: "flex-end",
-    },
     containerToNext: {
       borderBottomRightRadius: 3,
     },
     containerToPrevious: {
       borderTopRightRadius: 3,
-    },
-    bottom: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
-    },
-  }),
-  content: StyleSheet.create({
-    tick: {
-      fontSize: 10,
-    },
-    tickView: {
-      flexDirection: "row",
-      marginRight: 10,
-    },
-    username: {
-      top: -3,
-      left: 0,
-      fontSize: 12,
-    },
-    usernameView: {
-      flexDirection: "row",
-      marginHorizontal: 10,
     },
   }),
 };
