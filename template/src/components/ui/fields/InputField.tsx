@@ -1,7 +1,7 @@
 import { createSlot, mergeRefs, useSlotProps } from "@force-dev/react";
 import {
   BottomSheetView,
-  ModalProps,
+  IModalProps,
   useModalRef,
 } from "@force-dev/react-mobile";
 import React, {
@@ -34,7 +34,7 @@ import { Text, TextProps } from "../text";
 
 interface InputFieldProps extends FieldProps {}
 
-type ModalPropsWithRenderClose = Partial<ModalProps> & {
+type ModalPropsWithRenderClose = Partial<IModalProps> & {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element;
 };
 

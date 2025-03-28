@@ -22,13 +22,14 @@ export const AppNotifications: FC<PropsWithChildren> = ({ children }) => {
 
   return (
     <NotificationProvider
-      style={styles.notificationProvider}
-      // onPress={() => {
-      //   console.log('press');
-      // }}
-      // onClose={() => {
-      //   console.log('onClose');
-      // }}
+      style={styles.toast}
+      // safeArea={true}
+      onPress={() => {
+        console.log("press");
+      }}
+      onClose={() => {
+        console.log("onClose");
+      }}
       renderType={renderType}
     >
       {children}
@@ -40,14 +41,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  notificationProvider: {
-    maxWidth: "100%",
-    width: "100%",
+  toast: {
+    minHeight: 60,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
+    // paddingTop: 60,
   },
   customToast: {
-    maxWidth: "100%",
+    marginHorizontal: 10,
     paddingHorizontal: 60,
     paddingVertical: 10,
     backgroundColor: "#fff",

@@ -1,8 +1,9 @@
 import {
   BottomSheetHandle,
   BottomSheetHandleProps,
+  IModalProps as FDModalProps,
   Modal as FDModal,
-  ModalProps as FDModalProps,
+  ModalRef as FDModalRef,
 } from "@force-dev/react-mobile";
 import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,10 +11,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useModalStyles } from "~@common";
 
 export type ModalProps = FDModalProps;
-export type Modal = FDModal;
+export type Modal = FDModalRef;
 
 export const Modal = memo(
-  forwardRef<FDModal, PropsWithChildren<ModalProps>>((props, ref) => {
+  forwardRef<Modal, PropsWithChildren<ModalProps>>((props, ref) => {
     const modalStyles = useModalStyles();
     const { top } = useSafeAreaInsets();
 
@@ -36,7 +37,9 @@ export const Modal = memo(
         keyboardBlurBehavior={"restore"}
         handleComponent={handleComponent}
         {...props}
-      />
+      >
+        {props.children}
+      </FDModal>
     );
   }),
 );

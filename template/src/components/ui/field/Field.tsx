@@ -1,10 +1,5 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import {
-  Col,
-  FlexProps,
-  RenderConditional,
-  Row,
-} from "@force-dev/react-mobile";
+import { Col, FlexProps, Row } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
 
 import { Text, TextProps } from "../text";
@@ -60,9 +55,7 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
           {leftIcon?.children}
 
           <Col flexGrow={1} flexShrink={1}>
-            <RenderConditional if={label?.text}>
-              <FieldLabel {...label} />
-            </RenderConditional>
+            {!!label?.text && <FieldLabel {...label} />}
             <FieldValue
               paddingTop={content?.children ? undefined : 0}
               {...contentValue}
@@ -73,11 +66,9 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
 
           {rightIcon?.children}
         </Row>
-        <RenderConditional
-          if={error?.text?.trim() || description?.text?.trim()}
-        >
+        {!!(error?.text?.trim() || description?.text?.trim()) && (
           <Text {...(error?.text ? error : description)} />
-        </RenderConditional>
+        )}
       </Touchable>
     );
   },

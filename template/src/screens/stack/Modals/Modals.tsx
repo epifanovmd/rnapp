@@ -1,4 +1,4 @@
-import { Row, useModalRef } from "@force-dev/react-mobile";
+import { Col, Row, useModalRef } from "@force-dev/react-mobile";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import React, { FC, memo } from "react";
 import Animated from "react-native-reanimated";
@@ -11,6 +11,7 @@ import {
   Modal,
   Text,
   Title,
+  Touchable,
   useAnimationHeader,
 } from "~@components";
 

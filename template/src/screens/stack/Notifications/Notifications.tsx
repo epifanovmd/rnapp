@@ -42,10 +42,35 @@ export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
       <Content>
         <Text>{route.name}</Text>
 
+        <Button mv={8} title={"normal"} onPress={() => show("normal")} />
+
         <Button
           mv={8}
-          title={"Show notify"}
-          onPress={() => show("Simple message")}
+          title={"success"}
+          onPress={() => show("success", { type: "success" })}
+        />
+
+        <Button
+          mv={8}
+          title={"warning"}
+          onPress={() => show("warning", { type: "warning" })}
+        />
+
+        <Button
+          mv={8}
+          title={"danger"}
+          onPress={() => show("danger", { type: "danger" })}
+        />
+
+        <Button
+          mv={8}
+          title={"custom_toast"}
+          onPress={() =>
+            show("custom_toast", {
+              type: "custom_toast",
+              data: { title: "Title" },
+            })
+          }
         />
 
         <Button mv={8} title={"hideMessage"} onPress={() => hide()} />

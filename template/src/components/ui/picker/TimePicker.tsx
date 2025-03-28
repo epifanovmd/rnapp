@@ -1,8 +1,8 @@
 import {
   BottomSheetView,
   Col,
+  IModalProps,
   Modal,
-  ModalProps,
   Picker,
   PickerChangeItem,
   PickerColumn,
@@ -33,7 +33,7 @@ export interface TimePickerProps extends TouchableProps {
   onChange?: (time: string) => void;
 
   pickerProps?: PickerProps;
-  modalProps?: ModalProps;
+  modalProps?: IModalProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;

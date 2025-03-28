@@ -1,5 +1,5 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { RenderConditional, useModalRef } from "@force-dev/react-mobile";
+import { useModalRef } from "@force-dev/react-mobile";
 import React, {
   FC,
   memo,
@@ -71,11 +71,8 @@ const _InputRangeField: FC<PropsWithChildren<InputRangeFieldProps>> = memo(
         <ModalField.Label text={title} {...label} />
         <ModalField.LeftIcon {...leftIcon} />
         <ModalField.Content {...content}>
-          {content?.children ?? (
-            <RenderConditional if={price}>
-              <Text color={"#fff"}>{price}</Text>
-            </RenderConditional>
-          )}
+          {content?.children ??
+            (!!price && <Text color={"#fff"}>{price}</Text>)}
         </ModalField.Content>
         <ModalField.ContentValue {...contentValue} />
         <ModalField.RightIcon {...rightIcon} />

@@ -67,13 +67,19 @@ export interface AttachModalContext {
   open: (options: AttachOptions) => void;
 }
 
-export const AttachModalContext = createContext<AttachModalContext>({
-  open: () => {
-    throw new Error("Context not initialized");
-  },
-});
+export const AttachModalContext = createContext<AttachModalContext>(
+  undefined as unknown as AttachModalContext,
+);
 
-export const useAttachModal = () => useContext(AttachModalContext);
+export const useAttachModal = () => {
+  const attachModalContext = useContext(AttachModalContext);
+
+  if (!attachModalContext) {
+    throw new Error("AttachModalContext is not provided");
+  }
+
+  return attachModalContext;
+};
 
 export const AttachModalProvider: FC<
   PropsWithChildren<AttachModalProps & ModalProps>

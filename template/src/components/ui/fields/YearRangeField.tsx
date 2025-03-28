@@ -1,5 +1,4 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { RenderConditional } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 
 import { Field, FieldProps, FieldSlots } from "../field";
@@ -99,11 +98,8 @@ const _YearRangeField: FC<PropsWithChildren<YearRangeFieldProps>> = memo(
           <Field.Label text={title} {...label} />
           <Field.LeftIcon {...leftIcon} />
           <Field.Content {...content}>
-            {content?.children ?? (
-              <RenderConditional if={value}>
-                <Text color={"#fff"}>{value}</Text>
-              </RenderConditional>
-            )}
+            {content?.children ??
+              (!!value && <Text color={"#fff"}>{value}</Text>)}
           </Field.Content>
           <Field.ContentValue {...contentValue} />
           <Field.RightIcon {...rightIcon} />

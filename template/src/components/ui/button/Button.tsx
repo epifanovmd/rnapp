@@ -1,4 +1,4 @@
-import { RenderConditional, Row } from "@force-dev/react-mobile";
+import { Row } from "@force-dev/react-mobile";
 import { isString } from "@force-dev/utils";
 import React, { memo } from "react";
 import {
@@ -24,7 +24,7 @@ export interface ButtonProps<T = unknown> extends TouchableProps<T> {
   indicatorProps?: ActivityIndicatorProps;
 }
 
-const _Button = <T = unknown,>({
+const _Button = <T extends any = unknown>({
   loading,
   leftSlot,
   title,
@@ -51,11 +51,11 @@ const _Button = <T = unknown,>({
       {...rest}
       disabled={rest.disabled || loading}
     >
-      <RenderConditional if={!!loading}>
+      {!!loading && (
         <ActivityIndicator size="small" color={color} {...indicatorProps} />
-      </RenderConditional>
+      )}
 
-      <RenderConditional if={!loading}>
+      {!loading && (
         <Row alignItems={"center"} style={contentStyle}>
           {leftSlot}
 
@@ -69,7 +69,7 @@ const _Button = <T = unknown,>({
 
           {rightSlot}
         </Row>
-      </RenderConditional>
+      )}
     </Touchable>
   );
 };

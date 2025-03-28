@@ -1,8 +1,8 @@
 import {
   BottomSheetView,
   Col,
+  IModalProps,
   Modal,
-  ModalProps,
   Picker,
   PickerChangeItem,
   PickerColumn,
@@ -69,7 +69,7 @@ export interface DatePickerProps extends TouchableProps {
   onChange: (date: dayjs.Dayjs) => void;
 
   pickerProps?: PickerProps;
-  modalProps?: ModalProps;
+  modalProps?: IModalProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;
