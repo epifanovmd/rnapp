@@ -1275,7 +1275,7 @@ PODS:
     - React-jsiexecutor
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
-  - react-mobile (0.0.151):
+  - react-mobile (0.0.152):
     - React-Core
   - react-native-biometrics (3.0.1):
     - React-Core
@@ -2403,7 +2403,7 @@ SPEC CHECKSUMS:
   React-logger: 88de26ac2b4ae3ebf55108f4be299f967151d0ec
   React-Mapbuffer: b6619632c9800e300a9dcfb5139009416cec6392
   React-microtasksnativemodule: e99c1d7791f5e8d5be370b78e02433e64d2391d8
-  react-mobile: 0d8a3acf4a15cf915f1afc2b3f046967f4b657cb
+  react-mobile: 2fd383bdaccaae377bfc89b92fd26137e0e0dd5c
   react-native-biometrics: 352e5a794bfffc46a0c86725ea7dc62deb085bdc
   react-native-blur: b37343d4df1af48a17444156b674b26d5aec2425
   react-native-cameraroll: cf8479c8b1d3a968e570c55d3d4e340ddbe17904

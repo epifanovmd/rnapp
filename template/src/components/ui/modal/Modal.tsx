@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useModalStyles } from "~@common";
 
+import { ModalBackdrop } from "./ModalBg";
+
 export type ModalProps = FDModalProps;
 export type Modal = FDModalRef;
 
@@ -36,6 +38,7 @@ export const Modal = memo(
         topInset={top}
         keyboardBlurBehavior={"restore"}
         handleComponent={handleComponent}
+        backdropComponent={ModalBackdrop}
         {...props}
       >
         {props.children}
