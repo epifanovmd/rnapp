@@ -1,4 +1,3 @@
-import { Bounceable, BounceableProps } from "@force-dev/react-mobile";
 import * as React from "react";
 import {
   PropsWithChildren,
@@ -10,10 +9,11 @@ import {
 import { ColorValue, StyleProp, View, ViewStyle } from "react-native";
 
 import { CheckBoldIcon } from "../../icons";
+import { Touchable, TouchableProps } from "../touchable";
 
 type IconProps = { height: number; width: number; fill: ColorValue };
 
-export interface CheckboxProps extends Omit<BounceableProps, "onPress"> {
+export interface CheckboxProps extends Omit<TouchableProps, "onPress"> {
   size?: number;
   radius?: number;
   checked?: boolean;
@@ -42,13 +42,6 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   renderIcon = (props: IconProps) => <CheckBoldIcon {...props} />,
   iconContainerStyle,
   innerIconContainerStyle,
-
-  bounceEffectIn = 0.9,
-  bounceEffectOut = 1,
-  bounceVelocityIn = 0.1,
-  bounceVelocityOut = 0.4,
-  bouncinessIn = 20,
-  bouncinessOut = 20,
 
   ...rest
 }) => {
@@ -81,16 +74,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   );
 
   return (
-    <Bounceable
-      bounceEffectIn={bounceEffectIn}
-      bounceEffectOut={bounceEffectOut}
-      bounceVelocityIn={bounceVelocityIn}
-      bounceVelocityOut={bounceVelocityOut}
-      bouncinessIn={bouncinessIn}
-      bouncinessOut={bouncinessOut}
-      {...rest}
-      onPress={handlePress}
-    >
+    <Touchable {...rest} onPress={handlePress}>
       <View style={iconContainer}>
         <View style={innerIconContainer}>
           {_checked &&
@@ -102,7 +86,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
         </View>
       </View>
       {rest?.children}
-    </Bounceable>
+    </Touchable>
   );
 };
 

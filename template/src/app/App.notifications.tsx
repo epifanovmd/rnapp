@@ -24,12 +24,12 @@ export const AppNotifications: FC<PropsWithChildren> = ({ children }) => {
     <NotificationProvider
       style={styles.toast}
       // safeArea={true}
-      onPress={() => {
-        console.log("press");
-      }}
-      onClose={() => {
-        console.log("onClose");
-      }}
+      // onPress={() => {
+      //   console.log("press");
+      // }}
+      // onClose={() => {
+      //   console.log("onClose");
+      // }}
       renderType={renderType}
     >
       {children}

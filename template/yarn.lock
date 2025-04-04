@@ -1213,9 +1213,24 @@
     swagger-typescript-api "^13.0.22"
 
 "@force-dev/utils@^1.4.1":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.4.1.tgz#143051f73437ce86d463d75d289b3703fd19e149"
-  integrity sha512-ZBFRbkeHoMYF+LctICpJrF/zmgz3TaoXt/wVTW9jBpSgaV/R1SYLqdJ0A499rOsDmmgm6dORayRR/FMZ+UEXMQ==
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.4.2.tgz#a070eac78f738ec25d5c65ce1e4d14fc652ed318"
+  integrity sha512-xCh/luCRG0FrwVGiwyDL77Pn82a2rWBKrHqsZ30AbZCPDQvHorjKCEWeId0o/10UHTnxLR4W9eOlgbsJFWnDiw==
+  dependencies:
+    "@types/shortid" "^0.0.32"
+    axios "^1.8.4"
+    inversify "^7.1.0"
+    inversify-inject-decorators "^3.1.0"
+    lodash "^4.17.21"
+    mobx "^6.13.7"
+    reflect-metadata "^0.2.2"
+    shortid "^2.2.17"
+    swagger-typescript-api "^13.0.23"
+
+"@force-dev/utils@^1.4.3":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.4.3.tgz#39f1494c21f078ee01511fd75efba321a14a74c8"
+  integrity sha512-nM/IerDVu4eJieAhs36wjZ9BwY7sF7EGxCr7qKoUJyqkm/l39+S/fGkmre9HNkTWTRXqyIOWqTFRnKhPP1p4Ew==
   dependencies:
     "@types/shortid" "^0.0.32"
     axios "^1.8.4"
@@ -1293,13 +1308,13 @@
   resolved "https://registry.yarnpkg.com/@inversifyjs/common/-/common-1.5.0.tgz#542cdb0cfc02e36cca5a19208af726ecf904d400"
   integrity sha512-Qj5BELk11AfI2rgZEAaLPmOftmQRLLmoCXgAjmaF0IngQN5vHomVT5ML7DZ3+CA5fgGcEVMcGbUDAun+Rz+oNg==
 
-"@inversifyjs/container@1.5.4":
-  version "1.5.4"
-  resolved "https://registry.yarnpkg.com/@inversifyjs/container/-/container-1.5.4.tgz#1ec2d798e5b348053ca4ff1344d9eeb009f6c754"
-  integrity sha512-mHAaWjAQb8m6TJksm5EJXW/kPcZFVEc1UKkWv5OnLbwbU0QvxM2UbEsuXzusGVHcrNY4TQp9Uh2wkRY6TN2WJg==
+"@inversifyjs/container@1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@inversifyjs/container/-/container-1.9.0.tgz#d7b7e0cc2d7d8996cd79986f841bfc316f4279be"
+  integrity sha512-swW69XZTMo8P+TR9Xl828XXwcajPtfskAnr0Vs2eEIjoBoLUtifM7JoHHddYWaJBlPa1+NuK/BV3eWRqV9VNlA==
   dependencies:
     "@inversifyjs/common" "1.5.0"
-    "@inversifyjs/core" "5.0.0"
+    "@inversifyjs/core" "5.1.0"
     "@inversifyjs/reflect-metadata-utils" "1.1.0"
 
 "@inversifyjs/core@1.3.5":
@@ -1310,10 +1325,10 @@
     "@inversifyjs/common" "1.4.0"
     "@inversifyjs/reflect-metadata-utils" "0.2.4"
 
-"@inversifyjs/core@5.0.0":
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/@inversifyjs/core/-/core-5.0.0.tgz#cb3ff2329d04a4287263c9ad1599b44a6073ffde"
-  integrity sha512-axOl+VZFGVA3nAMbs6RuHhQ8HvgO6/tKjlWJk4Nt0rUqed+1ksak4p5yZNtown1Kdm0GV2Oc57qLqqWd943hgA==
+"@inversifyjs/core@5.1.0":
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/@inversifyjs/core/-/core-5.1.0.tgz#b0abccce7102d59f9d4aed8eb4d2cb64631d1579"
+  integrity sha512-mxawKEUmRAwQeNGymf2WucPNEnyWnaGMTi2cOyIq9/zqMbo8LpXh8OFkGvJciFWznC6fDnP27O80u+sY/JjU9g==
   dependencies:
     "@inversifyjs/common" "1.5.0"
     "@inversifyjs/prototype-utils" "0.1.0"
@@ -3180,6 +3195,13 @@ ci-info@^3.2.0:
   resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-3.9.0.tgz#4279a62028a7b1f262f3473fc9605f5e218c59b4"
   integrity sha512-NIxF55hv4nSqQswkAeiOi1r83xy8JldOFDTWiug55KBu9Jnblncd2U6ViHmYgHf01TPZS77NJBhBMKdWj9HQMQ==
 
+citty@^0.1.6:
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/citty/-/citty-0.1.6.tgz#0f7904da1ed4625e1a9ea7e0fa780981aab7c5e4"
+  integrity sha512-tskPPKEs8D2KPafUypv2gxwJP8h/OaJmC82QQGGDQcHvXX43xF2VDACcJVmZ0EuSxkpO9Kc4MlrA3q0+FG58AQ==
+  dependencies:
+    consola "^3.2.3"
+
 clean-stack@^2.0.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/clean-stack/-/clean-stack-2.2.0.tgz#ee8472dbb129e727b31e8a10a427dee9dfe4008b"
@@ -3391,7 +3413,7 @@ connect@^3.6.5:
     parseurl "~1.3.3"
     utils-merge "1.0.1"
 
-consola@^3.2.3:
+consola@^3.2.3, consola@^3.4.2:
   version "3.4.2"
   resolved "https://registry.yarnpkg.com/consola/-/consola-3.4.2.tgz#5af110145397bb67afdab77013fdc34cae590ea7"
   integrity sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==
@@ -5097,13 +5119,13 @@ inversify@^6.0.1:
     "@inversifyjs/core" "1.3.5"
 
 inversify@^7.1.0:
-  version "7.1.0"
-  resolved "https://registry.yarnpkg.com/inversify/-/inversify-7.1.0.tgz#cabece2627f764ca33f2af0d05f5cfb7ecbca756"
-  integrity sha512-f8SlUTgecMZGr/rsFK36PD84/mH0+sp0/P/TuiGo3CcJywmF5kgoXeE2RW5IjaIt1SlqS5c5V9RuQc1+B8mw4Q==
+  version "7.5.0"
+  resolved "https://registry.yarnpkg.com/inversify/-/inversify-7.5.0.tgz#7d0f1ebaa651620f1fb131e73045a7d0f1b6cee1"
+  integrity sha512-HYVDGApOdkCf5v3k1M/1tY+jAG/QjWYRnU3o+7Vlb5BvNyP0iOL/PQvz4YV7SYX7W79LALbAxi755E84cDDb+Q==
   dependencies:
     "@inversifyjs/common" "1.5.0"
-    "@inversifyjs/container" "1.5.4"
-    "@inversifyjs/core" "5.0.0"
+    "@inversifyjs/container" "1.9.0"
+    "@inversifyjs/core" "5.1.0"
 
 is-absolute@^1.0.0:
   version "1.0.0"
@@ -6323,6 +6345,11 @@ nanoid@^3.3.1, nanoid@^3.3.7, nanoid@^3.3.8:
   resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-3.3.11.tgz#4f4f112cefbe303202f2199838128936266d185b"
   integrity sha512-N8SpfPUnUp1bK+PMYW8qSWdl9U+wwNWI4QKxOYDy9JAro3WMX7p2OeVRF9v+347pnakNevPmiHhNmZ2HbFA76w==
 
+nanoid@^5.1.5:
+  version "5.1.5"
+  resolved "https://registry.yarnpkg.com/nanoid/-/nanoid-5.1.5.tgz#f7597f9d9054eb4da9548cdd53ca70f1790e87de"
+  integrity sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==
+
 napi-build-utils@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/napi-build-utils/-/napi-build-utils-2.0.0.tgz#13c22c0187fcfccce1461844136372a47ddc027e"
@@ -7013,7 +7040,7 @@ prettier@^2.4.1:
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.8.8.tgz#e8c5d7e98a4305ffe3de2e1fc4aca1a71c28b1da"
   integrity sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==
 
-prettier@^3.3.3:
+prettier@^3.3.3, prettier@~3.5.3:
   version "3.5.3"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.5.3.tgz#4fc2ce0d657e7a02e602549f053b239cb7dfe1b5"
   integrity sha512-QQtaxnoDJeAkDvDKWCLiwIXkTgRhwYDEQCghU9Z6q03iyek/rxRh/2lC3HB7P8sWT2xC/y5JDctPLBIGzHKbhw==
@@ -8332,7 +8359,7 @@ swagger-schema-official@2.0.0-bab6bed:
   resolved "https://registry.yarnpkg.com/swagger-schema-official/-/swagger-schema-official-2.0.0-bab6bed.tgz#70070468d6d2977ca5237b2e519ca7d06a2ea3fd"
   integrity sha512-rCC0NWGKr/IJhtRuPq/t37qvZHI/mH4I4sxflVM+qgVe5Z2uOCivzWaVbuioJaB61kvm5UvB7b49E+oBY0M8jA==
 
-swagger-typescript-api@^13.0.22, swagger-typescript-api@^13.0.23:
+swagger-typescript-api@^13.0.22:
   version "13.0.23"
   resolved "https://registry.yarnpkg.com/swagger-typescript-api/-/swagger-typescript-api-13.0.23.tgz#411d421a64877c5f168260329fefda6d7bf4629f"
   integrity sha512-HhoIepxlFEU7Ol42Gh8/tvwhSxdkHcweX2tRkNhbZYBiEA+rK3C6N85MnwoeQR5XbidE3Kz8mLOqIerVGgR9uw==
@@ -8349,6 +8376,24 @@ swagger-typescript-api@^13.0.22, swagger-typescript-api@^13.0.23:
     swagger-schema-official "2.0.0-bab6bed"
     swagger2openapi "^7.0.8"
     typescript "~5.5.4"
+
+swagger-typescript-api@^13.0.23:
+  version "13.0.28"
+  resolved "https://registry.yarnpkg.com/swagger-typescript-api/-/swagger-typescript-api-13.0.28.tgz#f6252ef604cd41fbf71a5d79a826d78d021f0d05"
+  integrity sha512-8IwPD6nCFDTtzSl8rS7xlAx0NGMpBUlFfccJwgMV7t8d/nKw1yQWPVdC7h94XDsDPrLFvICd5xAJJm2TK2Pcpw==
+  dependencies:
+    "@types/swagger-schema-official" "^2.0.25"
+    citty "^0.1.6"
+    consola "^3.4.2"
+    cosmiconfig "^9.0.0"
+    eta "^2.2.0"
+    js-yaml "^4.1.0"
+    lodash "^4.17.21"
+    nanoid "^5.1.5"
+    prettier "~3.5.3"
+    swagger-schema-official "2.0.0-bab6bed"
+    swagger2openapi "^7.0.8"
+    typescript "~5.8.2"
 
 swagger2openapi@^7.0.8:
   version "7.0.8"
@@ -8621,7 +8666,7 @@ typed-array-length@^1.0.7:
     possible-typed-array-names "^1.0.0"
     reflect.getprototypeof "^1.0.6"
 
-typescript@^5.8.2:
+typescript@^5.8.2, typescript@~5.8.2:
   version "5.8.2"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-5.8.2.tgz#8170b3702f74b79db2e5a96207c15e65807999e4"
   integrity sha512-aJn6wq13/afZp/jT9QZmwEjDqqvSGp1VT5GVg+f/t6/oVyrgXM6BY1h9BRh/O5p3PlUPAe+WuiEZOmb/49RqoQ==

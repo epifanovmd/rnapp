@@ -90,15 +90,12 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         ref,
       ) => {
         const scrollRef = useRef<View | ScrollView | FlatList>(null);
-        const refreshingRef = useRef(false);
-        const isRefreshingRef = useRef(false);
         const timeoutRef = useRef<any>(null);
         const isDarggable = useSharedValue(false);
 
         const isScrolled = useSharedValue(false);
         const percentage = useSharedValue(0);
         const refreshPosition = useSharedValue(0);
-        const height = useSharedValue(0);
         const isRefreshing = useSharedValue(false);
 
         const [enabledPan, setEnabledPan] = useState(true);
@@ -116,23 +113,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           setIsScrollable(_isScrollable);
         }, [onRefresh]);
 
-        const onComplete = useCallback(() => {
-          refreshingRef.current = false;
-
-          // eslint-disable-next-line no-multi-assign
-          height.value = refreshPosition.value = withTiming(0, { duration });
-          scrollRef.current?.setNativeProps({ scrollEnabled: true });
-
-          setTimeout(() => {
-            isRefreshing.value = false;
-            isRefreshingRef.current = false;
-            percentage.value = 0;
-          }, duration);
-        }, [duration, height, isRefreshing, percentage, refreshPosition]);
-
         const startRefresh = useCallback(() => {
           isRefreshing.value = true;
-          isRefreshingRef.current = true;
 
           percentage.value = withTiming(100, { duration });
           refreshPosition.value = withTiming(maxDistance, { duration }, () => {
@@ -150,23 +132,39 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           refreshPosition,
         ]);
 
-        const onPanRelease = useCallback(() => {
-          height.value = withTiming(0, {
-            duration,
-          });
+        const onComplete = useCallback(() => {
+          refreshPosition.value = withTiming(0, { duration });
 
-          if (!refreshingRef.current) {
+          setTimeout(() => {
+            if (!isDarggable.value) {
+              isRefreshing.value = false;
+              percentage.value = 0;
+            }
+          }, duration);
+        }, [
+          duration,
+          isDarggable.value,
+          isRefreshing,
+          percentage,
+          refreshPosition,
+        ]);
+
+        const onPanRelease = useCallback(() => {
+          if (!isRefreshing.value) {
             refreshPosition.value = withTiming(0, {
               duration,
             });
             percentage.value = withTiming(0, {
               duration,
             });
+          } else if (refreshPosition.value === 0) {
+            isRefreshing.value = false;
+            percentage.value = 0;
           }
-        }, [duration, height, percentage, refreshPosition]);
+        }, [duration, isRefreshing, percentage, refreshPosition]);
 
         const onMove = useCallback(
-          (dy: number, withoutHeight = false) => {
+          (dy: number) => {
             if (!isDarggable.value) {
               return;
             }
@@ -174,47 +172,27 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             const _dy = dy > 0 ? dy : 0;
             const position = Math.min(maxDistance, _dy);
 
-            if (!isRefreshingRef.current) {
-              if (!withoutHeight) {
-                // eslint-disable-next-line no-multi-assign
-                height.value = refreshPosition.value = position;
-              } else {
-                refreshPosition.value = position;
-              }
+            if (!isRefreshing.value) {
+              refreshPosition.value = position;
               percentage.value = Math.min(100, _dy * (100 / maxDistance));
             }
 
-            if (position >= maxDistance && !isRefreshingRef.current) {
+            if (position >= maxDistance && !isRefreshing.value) {
               isRefreshing.value = true;
-              isRefreshingRef.current = true;
 
-              height.value = withTiming(0, {
-                duration,
-              });
               percentage.value = withRepeat(
                 withTiming(300, { duration: refreshDuration * 3 }),
                 -1,
               );
-
-              (scrollRef.current as FlatList)?.scrollToOffset?.({ offset: 0 });
-              (scrollRef.current as ScrollView)?.scrollTo?.({ y: 0 });
-              scrollRef.current?.setNativeProps({ scrollEnabled: false });
-
-              timeoutRef.current = setTimeout(() => {
-                onComplete();
-              }, 100);
 
               trigger("impactMedium");
               onRefresh?.();
             }
           },
           [
-            duration,
-            height,
             isDarggable.value,
             isRefreshing,
             maxDistance,
-            onComplete,
             onRefresh,
             percentage,
             refreshDuration,
@@ -228,7 +206,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               if (enabledPan) {
                 isScrolled.value = event.contentOffset.y > 1;
               } else if (isScrollable) {
-                runOnJS(onMove)(-1 * event.contentOffset.y, true);
+                runOnJS(onMove)(-1 * event.contentOffset.y);
               }
             },
             onBeginDrag: () => {
@@ -244,26 +222,31 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 
         const panResponder = useMemo(() => {
           return PanResponder.create({
-            onMoveShouldSetPanResponder: (event, gestureState) => {
+            onMoveShouldSetPanResponder: (_event, gestureState) => {
               return (
                 !isScrolled.value &&
                 gestureState.dy >= 0 &&
                 gestureState.dy <= maxDistance &&
-                !isRefreshingRef.current &&
-                !refreshingRef.current
+                !isRefreshing.value
               );
             },
-            onPanResponderMove: (event, gestureState) => {
+            onPanResponderMove: (_event, gestureState) => {
               onMove(gestureState.dy);
             },
             onPanResponderRelease: onPanRelease,
             onPanResponderTerminate: onPanRelease,
           });
-        }, [isScrolled.value, maxDistance, onMove, onPanRelease]);
+        }, [
+          isRefreshing.value,
+          isScrolled.value,
+          maxDistance,
+          onMove,
+          onPanRelease,
+        ]);
 
         useEffect(() => {
           if (refreshing) {
-            refreshingRef.current = true;
+            isRefreshing.value = true;
             timeoutRef.current && clearTimeout(timeoutRef.current);
             timeoutRef.current = setTimeout(() => {
               startRefresh();
@@ -271,28 +254,13 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           } else {
             timeoutRef.current && clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
-            if (isRefreshingRef.current || refreshingRef.current) {
+
+            if (isRefreshing.value) {
               onComplete();
             }
           }
           // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [refreshing]);
-
-        const childrenStyle = useAnimatedStyle(() => {
-          return {
-            transform: [
-              {
-                translateY: height.value,
-              },
-            ],
-          };
-        });
-
-        const refreshContainerStyle = useAnimatedStyle(() => {
-          return {
-            height: height.value,
-          };
-        });
 
         const activeRefreshStyle = useAnimatedStyle(() => {
           const scale = Math.min(1, Math.max(0, refreshPosition.value / 100));
@@ -313,28 +281,16 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         return (
           <SafeAreaView style={styles.root}>
             <View style={styles.root}>
-              <View
-                pointerEvents={"none"}
-                style={[
-                  styles.refreshRoot,
-                  {
-                    height: maxDistance,
-                  },
-                ]}
-              >
+              <View style={styles.refreshContainer}>
                 <Animated.View
-                  style={[styles.refreshContainer, refreshContainerStyle]}
+                  style={[styles.refreshIconWrap, activeRefreshStyle]}
                 >
-                  <Animated.View
-                    style={[styles.refreshIconWrap, activeRefreshStyle]}
-                  >
-                    <AnimatedRefreshing percentage={percentage} />
-                  </Animated.View>
+                  <AnimatedRefreshing percentage={percentage} />
                 </Animated.View>
               </View>
 
               <Animated.View
-                style={[styles.root, childrenStyle]}
+                style={styles.root}
                 {...(onRefresh && enabledPan && !refreshing
                   ? panResponder.panHandlers
                   : {})}
@@ -522,14 +478,8 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  refreshRoot: {
-    zIndex: Number.MAX_SAFE_INTEGER,
-    overflow: "hidden",
-    position: "absolute",
-    left: 0,
-    right: 0,
-  },
   refreshContainer: {
+    zIndex: 999999,
     overflow: "visible",
     position: "absolute",
     left: 0,
@@ -540,9 +490,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   refreshIconWrap: {
+    zIndex: 999999,
     position: "absolute",
     padding: 3,
     borderRadius: 100,
+    backgroundColor: "yellow",
   },
   refreshIcon: {
     height: 32,

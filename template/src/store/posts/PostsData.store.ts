@@ -38,7 +38,7 @@ export class PostsDataStore implements IPostsDataStore {
   }
 
   get loading() {
-    return this.holder.isLoading;
+    return this.holder.isLoading || this.holder.isRefreshing;
   }
 
   get loaded() {

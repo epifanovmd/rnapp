@@ -1,7 +1,7 @@
-import { Row } from "@force-dev/react-mobile";
+import { Col, Row } from "@force-dev/react-mobile";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
-import { ListRenderItemInfo } from "react-native";
+import { ListRenderItemInfo, SafeAreaView } from "react-native";
 import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 
@@ -69,6 +69,19 @@ export const PostList: FC<PropsWithChildren<IProps>> = observer(
       ),
       [],
     );
+
+    // return (
+    //   <SafeAreaView style={{ flex: 1 }}>
+    //     <Col flex={1} bg={"red"}>
+    //       <Col>
+    //         <Col height={100} bg={"yellow"}></Col>
+    //         <Col>
+    //           <Text>1234</Text>
+    //         </Col>
+    //       </Col>
+    //     </Col>
+    //   </SafeAreaView>
+    // );
 
     return (
       <RefreshingContainer.FlatList

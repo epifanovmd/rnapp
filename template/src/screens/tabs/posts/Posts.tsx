@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
+import React, { FC, useEffect } from "react";
 
 import {
   Container,
@@ -15,6 +15,11 @@ import { usePostsVM } from "./hooks";
 export const Posts: FC<AppScreenProps> = observer(() => {
   const { loading, list, onRefresh, onLoadMore } = usePostsVM();
   const { onScroll, animatedValue } = useAnimationHeader();
+
+  useEffect(() => {
+    onRefresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Container safeAreBottom={false}>
