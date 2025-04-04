@@ -6,10 +6,10 @@ export enum TabScreenName {
 }
 
 interface TabScreenParams {
-  MAIN: any;
+  MAIN: undefined;
 
-  Posts: any;
-  Playground: any;
+  Posts: undefined;
+  Playground: undefined;
 }
 
 export enum StackScreenName {
@@ -26,14 +26,14 @@ export enum StackScreenName {
 }
 
 interface StackScreenParams {
-  Authorization: any;
-  Notifications: any;
-  Gallery: any;
-  Pickers: any;
-  Components: any;
-  Modals: any;
-  Lottie: any;
-  ChatScreen: any;
+  Authorization: undefined;
+  Notifications: undefined;
+  Gallery: undefined;
+  Pickers: undefined;
+  Components: undefined;
+  Modals: undefined;
+  Lottie: undefined;
+  ChatScreen: undefined;
 
   Post: { id: number };
 }
