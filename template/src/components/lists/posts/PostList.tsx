@@ -2,7 +2,7 @@ import { Row } from "@force-dev/react-mobile";
 import { PostModel } from "@models";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
-import { ListRenderItemInfo } from "react-native";
+import { ActivityIndicator, ListRenderItemInfo } from "react-native";
 import { NativeScrollEvent } from "react-native/Libraries/Components/ScrollView/ScrollView";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 
@@ -62,8 +62,8 @@ export const PostList: FC<PropsWithChildren<IProps>> = observer(
     );
     const listFooterComponent = useMemo(
       () => (
-        <Row>
-          <Text>{"Footer"}</Text>
+        <Row padding={8} justifyContent={"center"}>
+          <ActivityIndicator size={"small"} />
         </Row>
       ),
       [],
