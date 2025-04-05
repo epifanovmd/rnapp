@@ -1,8 +1,7 @@
 import { Col, HoldItem } from "@force-dev/react-mobile";
+import { PostModel } from "@models";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren, useCallback, useMemo } from "react";
-
-import { PostModel } from "~@models";
 
 import { Text } from "../ui";
 

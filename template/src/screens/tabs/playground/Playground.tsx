@@ -1,6 +1,3 @@
-import { Col, Row } from "@force-dev/react-mobile";
-import React, { FC, memo } from "react";
-
 import {
   Button,
   Container,
@@ -8,8 +5,10 @@ import {
   Header,
   SwitchTheme,
   Text,
-} from "~@components";
-import { useSessionDataStore } from "~@store";
+} from "@components";
+import { Col, Row } from "@force-dev/react-mobile";
+import { useSessionDataStore } from "@store";
+import React, { FC, memo } from "react";
 
 import { AppScreenProps } from "../../../navigation";
 import { Lottie } from "../../stack/Lottie";

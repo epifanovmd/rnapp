@@ -1,8 +1,3 @@
-import { Col, Row, useModalRef } from "@force-dev/react-mobile";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import React, { FC, memo } from "react";
-import Animated from "react-native-reanimated";
-
 import {
   Button,
   Container,
@@ -11,21 +6,24 @@ import {
   Modal,
   Text,
   Title,
-  Touchable,
-  useAnimationHeader,
-} from "~@components";
+  useTransition,
+} from "@components";
+import { Col, Row, useModalRef } from "@force-dev/react-mobile";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import React, { FC, memo } from "react";
+import Animated from "react-native-reanimated";
 
 import { StackProps } from "../../../navigation";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
-  const { onScroll, animatedValue } = useAnimationHeader();
+  const { onScroll, transitionY } = useTransition();
 
   const modalRef = useModalRef();
 
   return (
     <Container>
       <Content>
-        <Header backAction={true} animatedValue={animatedValue} />
+        <Header backAction={true} animatedValue={transitionY} />
 
         <Animated.ScrollView onScroll={onScroll}>
           <Text>{route.name}</Text>

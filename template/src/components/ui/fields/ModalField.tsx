@@ -1,3 +1,4 @@
+import { useIsVisibleKeyboard, useModalStyles } from "@common";
 import { createSlot, mergeRefs, useSlotProps } from "@force-dev/react";
 import {
   BottomSheetView,
@@ -14,8 +15,6 @@ import React, {
   useCallback,
 } from "react";
 import { ColorValue, GestureResponderEvent } from "react-native";
-
-import { useIsVisibleKeyboard, useModalStyles } from "~@common";
 
 import { CloseIcon } from "../../icons";
 import { Field, FieldProps, FieldSlots } from "../field";

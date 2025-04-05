@@ -1,3 +1,5 @@
+import { ParamListBase } from "@react-navigation/routers";
+
 export enum TabScreenName {
   MAIN = "MAIN",
 
@@ -42,6 +44,9 @@ export type ScreenName =
   | keyof typeof TabScreenName
   | keyof typeof StackScreenName;
 
-interface ScreenParamsTypesMap extends TabScreenParams, StackScreenParams {}
+interface ScreenParamsTypesMap
+  extends ParamListBase,
+    TabScreenParams,
+    StackScreenParams {}
 
 export type ScreenParamList = { [K in ScreenName]: ScreenParamsTypesMap[K] };

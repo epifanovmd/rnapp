@@ -1,7 +1,6 @@
 import { DefaultTheme } from "@react-navigation/native";
+import { useTheme } from "@theme";
 import { useMemo } from "react";
-
-import { useTheme } from "~@theme";
 
 export const useAppNavigationTheme = () => {
   const { theme } = useTheme();

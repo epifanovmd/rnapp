@@ -1,6 +1,5 @@
+import { usePostDataStore } from "@store";
 import { useCallback } from "react";
-
-import { usePostDataStore } from "~@store";
 
 export const usePostVM = (id: number) => {
   const { data, model, onRefresh, loading } = usePostDataStore();

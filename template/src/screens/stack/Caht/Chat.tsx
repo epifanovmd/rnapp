@@ -1,18 +1,17 @@
-import { HoldItem, HoldMenuItemProp } from "@force-dev/react-mobile";
-import { observer } from "mobx-react-lite";
-import { FC, useCallback, useMemo } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { Container, Header, Text } from "~@components";
+import { Container, Header, Text } from "@components";
 import {
   Bubble,
   BubbleProps,
   Chat,
   IMessage,
   TypingAnimation,
-} from "~@components/chat";
+} from "@components/chat";
+import { HoldItem, HoldMenuItemProp } from "@force-dev/react-mobile";
+import { observer } from "mobx-react-lite";
+import { FC, useCallback, useMemo } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { StackProps } from "../../../navigation";
 

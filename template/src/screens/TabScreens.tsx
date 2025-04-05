@@ -1,6 +1,5 @@
+import { Text } from "@components";
 import React, { FC, memo, useMemo } from "react";
-
-import { Text } from "~@components";
 
 import { useTranslation } from "../localization";
 import {

@@ -3,9 +3,8 @@ import {
   createServiceDecorator,
   IApiService as IIIApiService,
 } from "@force-dev/utils";
+import { ITokenService } from "@service/token";
 import Config from "react-native-config";
-
-import { ITokenService } from "~@service/token";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;

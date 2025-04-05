@@ -1,7 +1,6 @@
+import { ModalProps } from "@components";
+import { useTheme } from "@theme";
 import { useMemo } from "react";
-
-import { ModalProps } from "~@components";
-import { useTheme } from "~@theme";
 
 export const useModalStyles = (): Pick<
   ModalProps,

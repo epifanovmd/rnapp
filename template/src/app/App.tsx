@@ -1,7 +1,11 @@
+import { AttachModalProvider } from "@components";
 import { HoldItemProvider } from "@force-dev/react-mobile";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { log } from "@service";
+import { useAppDataStore } from "@store/app";
+import { ThemeProvider, useTheme } from "@theme";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, {
@@ -21,11 +25,6 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
-import { AttachModalProvider } from "~@components";
-import { log } from "~@service";
-import { useAppDataStore } from "~@store/app";
-import { ThemeProvider, useTheme } from "~@theme";
 
 import { initLocalization, useTranslation } from "../localization";
 import { navigationRef } from "../navigation";

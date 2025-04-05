@@ -1,7 +1,6 @@
+import { Container, Content, Header, Post } from "@components";
 import { observer } from "mobx-react-lite";
 import React, { FC, useEffect } from "react";
-
-import { Container, Content, Header, Post } from "~@components";
 
 import { StackProps } from "../../../navigation";
 import { usePostVM } from "./hooks";

@@ -1,6 +1,5 @@
 import { createServiceDecorator, SupportInitialize } from "@force-dev/utils";
-
-import { ISessionDataStore } from "~@store";
+import { ISessionDataStore } from "@store";
 
 export const IAppDataStore = createServiceDecorator<IAppDataStore>();
 

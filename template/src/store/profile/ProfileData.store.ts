@@ -1,7 +1,6 @@
 import { DataHolder } from "@force-dev/utils";
+import { IProfile, IProfileService } from "@service";
 import { makeAutoObservable } from "mobx";
-
-import { IProfile, IProfileService } from "~@service";
 
 import { IProfileDataStore } from "./ProfileData.types";
 

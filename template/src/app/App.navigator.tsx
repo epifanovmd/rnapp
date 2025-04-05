@@ -3,10 +3,9 @@ import {
   NavigationContainerRef,
 } from "@react-navigation/native";
 import { CardStyleInterpolators } from "@react-navigation/stack";
+import { useSessionDataStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useMemo } from "react";
-
-import { useSessionDataStore } from "~@store";
 
 import { DebugVars } from "../../debugVars";
 import {

@@ -1,3 +1,4 @@
+import { useModalStyles } from "@common";
 import {
   BottomSheetView,
   Col,
@@ -23,8 +24,6 @@ import React, {
   useState,
 } from "react";
 import { ViewProps } from "react-native";
-
-import { useModalStyles } from "~@common";
 
 import { Touchable, TouchableProps } from "../touchable";
 

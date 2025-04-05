@@ -1,14 +1,4 @@
 import {
-  BottomSheetView,
-  Col,
-  ImageViewing,
-  Row,
-  useModalRef,
-} from "@force-dev/react-mobile";
-import React, { FC, memo, useCallback, useEffect, useState } from "react";
-import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
-
-import {
   AnimatedRefreshing,
   Button,
   Checkbox,
@@ -23,9 +13,18 @@ import {
   Text,
   Title,
   Touchable,
-  useAnimationHeader,
   useAttachModal,
-} from "~@components";
+  useTransition,
+} from "@components";
+import {
+  BottomSheetView,
+  Col,
+  ImageViewing,
+  Row,
+  useModalRef,
+} from "@force-dev/react-mobile";
+import React, { FC, memo, useCallback, useEffect, useState } from "react";
+import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 import { StackProps } from "../../../navigation";
 
@@ -33,7 +32,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
   const { open } = useAttachModal();
   const modalRef = useModalRef();
-  const { onScroll, animatedValue } = useAnimationHeader();
+  const { onScroll, transitionY } = useTransition();
 
   useEffect(() => {
     value.value = withTiming(100, { duration: 1000 }, () => {
@@ -55,7 +54,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
   return (
     <Container>
       <Content>
-        <Header backAction={true} animatedValue={animatedValue} />
+        <Header backAction={true} animatedValue={transitionY} />
 
         <Animated.ScrollView onScroll={onScroll}>
           <Text>{route.name}</Text>
@@ -96,15 +95,6 @@ export const Components: FC<StackProps> = memo(({ route }) => {
               placeholder={"Input"}
               placeholderTextColor={"red"}
             />
-          </InputField>
-
-          <InputField mt={8}>
-            <InputField.Input
-              inputTextColor={"red"}
-              placeholder={"Input"}
-              placeholderTextColor={"red"}
-            />
-            <InputField.Modal />
           </InputField>
 
           <Col mt={8} height={100} width={100}>

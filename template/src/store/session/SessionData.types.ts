@@ -1,6 +1,5 @@
 import { createServiceDecorator, SupportInitialize } from "@force-dev/utils";
-
-import { IRefreshTokenResponse, ISignInRequest } from "~@service";
+import { IRefreshTokenResponse, ISignInRequest } from "@service";
 
 export const ISessionDataStore = createServiceDecorator<ISessionDataStore>();
 

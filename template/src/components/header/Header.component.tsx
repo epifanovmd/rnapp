@@ -45,6 +45,7 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
 
     const onBack = useCallback(() => {
       navigation.goBack();
+      navigation.navigate("Posts");
     }, [navigation]);
 
     const animateStyle = useAnimatedStyle(() => ({
@@ -207,16 +208,3 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
     );
   },
 );
-
-export const useAnimationHeader = () => {
-  const animatedValue = useSharedValue(0);
-
-  return {
-    animatedValue,
-    onScroll: useAnimatedScrollHandler({
-      onScroll: event => {
-        animatedValue.value = event.contentOffset.y;
-      },
-    }),
-  };
-};

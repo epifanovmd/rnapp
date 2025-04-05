@@ -6,6 +6,7 @@ import {
 } from "@force-dev/react-mobile";
 import { pick } from "@react-native-documents/picker";
 import { PredefinedFileTypes } from "@react-native-documents/picker/src/fileTypes";
+import { useTheme } from "@theme";
 import React, {
   createContext,
   FC,
@@ -25,8 +26,6 @@ import {
   PhotoQuality,
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
-
-import { useTheme } from "~@theme";
 
 import { CameraIcon, FileDocumentIcon, ImageIcon } from "../../icons";
 import { Modal, ModalProps, Touchable } from "../../ui";

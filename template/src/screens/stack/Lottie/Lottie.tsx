@@ -1,8 +1,7 @@
+import { Container, Content, Header } from "@components";
 import { Col } from "@force-dev/react-mobile";
 import LottieView from "lottie-react-native";
 import React, { FC, memo } from "react";
-
-import { Container, Content, Header } from "~@components";
 
 import { StackProps } from "../../../navigation";
 

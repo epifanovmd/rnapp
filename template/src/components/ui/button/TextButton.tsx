@@ -1,6 +1,5 @@
+import { useTheme } from "@theme";
 import React, { FC, memo } from "react";
-
-import { useTheme } from "~@theme";
 
 import { Button, ButtonProps } from "./Button";
 

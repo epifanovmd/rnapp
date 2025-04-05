@@ -28,7 +28,10 @@ export type StackScreenOption = Partial<StackNavigationOptions> | undefined;
 export interface Route<
   ScreenProps,
   ScreenOption = AppScreenOption,
-  ScreenParams extends ParamListBase = ScreenParamList[ScreenName],
+  ScreenParams extends Record<string, any> = Record<
+    ScreenName,
+    ScreenParamList[ScreenName]
+  >,
 > {
   screen: React.ComponentType<ScreenProps>;
   options?: ScreenOption;
@@ -71,17 +74,17 @@ export interface StackProps<SN extends ScreenName = any> {
 export type AppTabRoute<SN extends ScreenName> = Route<
   AppScreenProps<SN>,
   AppScreenOption,
-  ScreenParamList[SN]
+  Record<ScreenName, ScreenParamList[SN]>
 >;
 export type TabRoute<SN extends ScreenName> = Route<
   TabProps<SN>,
   TabScreenOption,
-  ScreenParamList[SN]
+  Record<ScreenName, ScreenParamList[SN]>
 >;
 export type StackRoute<SN extends ScreenName> = Route<
   StackProps<SN>,
   StackScreenOption,
-  ScreenParamList[SN]
+  Record<ScreenName, ScreenParamList[SN]>
 >;
 
 export type AppTabScreens = {

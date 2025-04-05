@@ -1,7 +1,6 @@
 import { AsyncDataSource, createServiceDecorator } from "@force-dev/utils";
-
-import { PostModel } from "~@models";
-import { IPost } from "~@service";
+import { PostModel } from "@models";
+import { IPost } from "@service";
 
 export const IPostDataStore = createServiceDecorator<IPostDataStore>();
 

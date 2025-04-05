@@ -1,3 +1,4 @@
+import { useModalStyles } from "@common";
 import {
   BottomSheetHandle,
   BottomSheetHandleProps,
@@ -7,8 +8,6 @@ import {
 } from "@force-dev/react-mobile";
 import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-import { useModalStyles } from "~@common";
 
 import { ModalBackdrop } from "./ModalBg";
 

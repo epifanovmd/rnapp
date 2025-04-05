@@ -1,8 +1,7 @@
+import { IApiService } from "@api";
 import { disposer, InitializeDispose, Interval } from "@force-dev/utils";
+import { ISocketService } from "@service";
 import { makeAutoObservable, reaction } from "mobx";
-
-import { IApiService } from "~@api";
-import { ISocketService } from "~@service";
 
 import { INavigationService, NavigationService } from "../../navigation";
 import { ISessionDataStore } from "../session";

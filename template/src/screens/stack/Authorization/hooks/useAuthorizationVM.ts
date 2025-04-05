@@ -1,7 +1,6 @@
 import { useTextInput } from "@force-dev/react";
+import { useSessionDataStore } from "@store";
 import { useCallback } from "react";
-
-import { useSessionDataStore } from "~@store";
 
 export const useAuthorizationVM = () => {
   const username = useTextInput({ initialValue: "emilys" });

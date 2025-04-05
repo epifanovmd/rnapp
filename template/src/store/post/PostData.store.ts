@@ -1,8 +1,7 @@
 import { AsyncDataSource } from "@force-dev/utils";
+import { PostModel } from "@models";
+import { IPost, IPostsService } from "@service";
 import { makeAutoObservable } from "mobx";
-
-import { PostModel } from "~@models";
-import { IPost, IPostsService } from "~@service";
 
 import { IPostDataStore } from "./PostData.types";
 

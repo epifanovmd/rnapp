@@ -1,6 +1,3 @@
-import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
-
 import {
   Button,
   Container,
@@ -9,7 +6,9 @@ import {
   Header,
   Input,
   ScrollView,
-} from "~@components";
+} from "@components";
+import { observer } from "mobx-react-lite";
+import React, { FC } from "react";
 
 import { StackProps } from "../../../navigation";
 import { useAuthorizationVM } from "./hooks";

@@ -1,8 +1,7 @@
+import { Button } from "@components";
 import { Col } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 import ReactNativeBiometrics, { BiometryTypes } from "react-native-biometrics";
-
-import { Button } from "~@components";
 
 export interface IBiometricProps {}
 

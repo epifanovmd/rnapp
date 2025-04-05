@@ -1,13 +1,12 @@
 import { ApiResponse, DataHolder } from "@force-dev/utils";
-import { makeAutoObservable } from "mobx";
-
 import {
   IProfileService,
   IRefreshTokenResponse,
   ISignInRequest,
   ISignInResponse,
   ITokenService,
-} from "~@service";
+} from "@service";
+import { makeAutoObservable } from "mobx";
 
 import { IProfileDataStore } from "../profile";
 import { ISessionDataStore } from "./SessionData.types";
