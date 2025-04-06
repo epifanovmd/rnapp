@@ -1,5 +1,5 @@
 export * from "./Authorization";
-export * from "./Caht";
+export * from "./Chat";
 export * from "./Components";
 export * from "./Modals";
 export * from "./Notifications";

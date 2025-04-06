@@ -49,7 +49,7 @@ export const Posts: FC<AppScreenProps> = observer(() => {
         style={[
           styles,
           {
-            backgroundColor: "red",
+            backgroundColor: "#00000030",
             position: "absolute",
             left: 0,
             right: 0,

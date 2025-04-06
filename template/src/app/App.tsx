@@ -67,7 +67,7 @@ export const App: FC = observer(() => {
     if (available && biometryType === BiometryTypes.FaceID) {
       // const { success, signature, error } = await rnBiometrics.createSignature({
       //   promptMessage: "Sign in",
-      //   payload,
+      //   payload: "",
       // });
       //
       // console.log("success", success);
