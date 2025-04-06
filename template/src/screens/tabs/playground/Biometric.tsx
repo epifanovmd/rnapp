@@ -11,18 +11,24 @@ const _Biometric: FC<PropsWithChildren<IBiometricProps>> = () => {
     const { available, biometryType } = await rnBiometrics.isSensorAvailable();
 
     if (available && biometryType === BiometryTypes.FaceID) {
-      // const { success, signature, error } = await rnBiometrics.createSignature({
-      //   promptMessage: "Sign in",
-      //   payload,
-      // });
-      //
-      // console.log("success", success);
-      // console.log("error", error);
-      // console.log("signature", signature);
+      const registerBiometricKey = async () => {
+        const { keysExist } = await rnBiometrics.biometricKeysExist();
 
-      const { success, error } = await rnBiometrics.simplePrompt({
-        promptMessage: "123",
+        if (!keysExist) {
+          const { publicKey } = await rnBiometrics.createKeys();
+
+          console.log("publicKey", publicKey);
+        }
+      };
+
+      registerBiometricKey().then();
+
+      const { success, signature, error } = await rnBiometrics.createSignature({
+        promptMessage: "Sign in",
+        payload: "EP3cw3umbiJAF_p9gcV0fjd4SMpr7zVfIC4ytPL__Pk",
       });
+
+      console.log("signature", signature);
 
       console.log("success", success);
       console.log("error", error);
