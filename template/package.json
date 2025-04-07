@@ -31,6 +31,7 @@
     "@force-dev/react-mobile": "^0.0.152",
     "@force-dev/utils": "^1.4.3",
     "@hookform/resolvers": "^3.9.0",
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-camera-roll/camera-roll": "^7.10.0",
     "@react-native-community/blur": "^4.4.1",

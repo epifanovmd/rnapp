@@ -11,7 +11,6 @@ import { useSessionDataStore } from "@store";
 import React, { FC, memo } from "react";
 
 import { AppScreenProps } from "../../../navigation";
-import { Lottie } from "../../stack/Lottie";
 import { Biometric } from "./Biometric";
 
 interface IProps extends AppScreenProps {}

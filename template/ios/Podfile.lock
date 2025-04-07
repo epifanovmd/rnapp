@@ -1821,6 +1821,11 @@ PODS:
     - Yoga
   - RNLocalize (2.2.6):
     - React-Core
+  - RNNotifee (9.1.8):
+    - React-Core
+    - RNNotifee/NotifeeCore (= 9.1.8)
+  - RNNotifee/NotifeeCore (9.1.8):
+    - React-Core
   - RNPermissions (4.1.5):
     - DoubleConversion
     - glog
@@ -2164,6 +2169,7 @@ DEPENDENCIES:
   - "RNFlashList (from `../node_modules/@shopify/flash-list`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNLocalize (from `../node_modules/react-native-localize`)
+  - "RNNotifee (from `../node_modules/@notifee/react-native`)"
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
@@ -2347,6 +2353,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNLocalize:
     :path: "../node_modules/react-native-localize"
+  RNNotifee:
+    :path: "../node_modules/@notifee/react-native"
   RNPermissions:
     :path: "../node_modules/react-native-permissions"
   RNReactNativeHapticFeedback:
@@ -2447,6 +2455,7 @@ SPEC CHECKSUMS:
   RNFlashList: b84542632250e04d25a4500294e32aa83d0e2e6f
   RNGestureHandler: 9b05fab9a0b48fe48c968de7dbb9ca38a2b4f7ab
   RNLocalize: d4b8af4e442d4bcca54e68fc687a2129b4d71a81
+  RNNotifee: 4a6ee5c7deaf00e005050052d73ee6315dff7ec9
   RNPermissions: b2f90a2e1a4303b99c8e6f8d299dfd3f15751539
   RNReactNativeHapticFeedback: 5fdbbaedabc1698dc3bb2a72105fadf63136a451
   RNReanimated: ff71ce0443c71c8a77501ace7b9738ede83cfa55

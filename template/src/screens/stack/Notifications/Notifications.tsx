@@ -1,5 +1,6 @@
 import { Button, Container, Content, Header, Text } from "@components";
 import { useNotification } from "@force-dev/react-mobile";
+import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
 import { Alert } from "react-native";
 
@@ -8,32 +9,56 @@ import { StackProps } from "../../../navigation";
 export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
   const { show, hide } = useNotification();
 
-  React.useEffect(
-    () =>
-      navigation.addListener("beforeRemove", e => {
-        e.preventDefault();
+  const onDisplayNotification = async () => {
+    const channelId = await notifee.createChannel({
+      id: "default",
+      name: "Default Channel",
+      vibration: true, // Включение вибрации
+    });
 
-        Alert.alert(
-          "Отменить изменения?",
-          "У вас есть несохраненные изменения. Вы уверены, что хотите их отменить и выйти с экрана?",
-          [
-            {
-              text: "Остаться",
-              style: "cancel",
-              onPress: () => {
-                // Ничего не делать
-              },
-            },
-            {
-              text: "Выйти без сохранения",
-              style: "destructive",
-              onPress: () => navigation.dispatch(e.data.action),
-            },
-          ],
-        );
-      }),
-    [navigation],
-  );
+    await notifee.displayNotification({
+      title: "Уведомление",
+      body: "Нажмите, чтобы открыть ссылку",
+      data: {
+        url: "rnapp://Modals",
+      },
+      ios: {
+        sound: "default",
+        critical: true,
+      },
+      android: {
+        channelId,
+        vibrationPattern: [300, 500],
+      },
+    });
+  };
+
+  // React.useEffect(
+  //   () =>
+  //     navigation.addListener("beforeRemove", e => {
+  //       e.preventDefault();
+  //
+  //       Alert.alert(
+  //         "Отменить изменения?",
+  //         "У вас есть несохраненные изменения. Вы уверены, что хотите их отменить и выйти с экрана?",
+  //         [
+  //           {
+  //             text: "Остаться",
+  //             style: "cancel",
+  //             onPress: () => {
+  //               // Ничего не делать
+  //             },
+  //           },
+  //           {
+  //             text: "Выйти без сохранения",
+  //             style: "destructive",
+  //             onPress: () => navigation.dispatch(e.data.action),
+  //           },
+  //         ],
+  //       );
+  //     }),
+  //   [navigation],
+  // );
 
   return (
     <Container>
@@ -73,6 +98,12 @@ export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
         />
 
         <Button mv={8} title={"hideMessage"} onPress={() => hide()} />
+
+        <Button
+          mv={8}
+          title={"Push notification"}
+          onPress={onDisplayNotification}
+        />
       </Content>
     </Container>
   );

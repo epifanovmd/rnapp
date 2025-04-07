@@ -45,7 +45,6 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
 
     const onBack = useCallback(() => {
       navigation.goBack();
-      navigation.navigate("Posts");
     }, [navigation]);
 
     const animateStyle = useAnimatedStyle(() => ({
