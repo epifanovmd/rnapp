@@ -36,6 +36,7 @@ export const AppNavigation: FC<IProps> = observer(
       () => ({
         unmountOnBlur: false,
         headerShown: false,
+        animation: "shift",
         tabBarHideOnKeyboard: Platform.OS === "android",
         ...screenOptions,
       }),
