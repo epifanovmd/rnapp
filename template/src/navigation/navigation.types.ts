@@ -23,6 +23,7 @@ export enum StackScreenName {
   Modals = "Modals",
   Lottie = "Lottie",
   ChatScreen = "ChatScreen",
+  Carousel = "Carousel",
 
   Post = "Post",
 }
@@ -36,6 +37,7 @@ interface StackScreenParams {
   Modals: undefined;
   Lottie: undefined;
   ChatScreen: undefined;
+  Carousel: undefined;
 
   Post: { id: number };
 }

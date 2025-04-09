@@ -69,6 +69,12 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
           onPress={() => navigation.navigate("ChatScreen")}
         />
 
+        <Button
+          mt={8}
+          title={"Carousel"}
+          onPress={() => navigation.navigate("Carousel")}
+        />
+
         <Col mt={8}>
           <Biometric />
         </Col>

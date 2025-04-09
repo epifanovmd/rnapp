@@ -172,7 +172,6 @@ export const ChatScreen: FC<StackProps> = observer(() => {
       </Header>
 
       <Chat
-        listViewProps={listViewProps}
         user={user}
         insets={insets}
         messages={messages}
@@ -201,33 +200,3 @@ const renderEmpty = () => (
 );
 
 const user = { id: "123", name: "User" };
-
-const overrideItemLayout = (
-  layout: { span?: number; size?: number },
-  item: IMessage,
-  index: number,
-) => {
-  // Предварительный расчет высоты текста
-  const textHeight = calculateTextHeight(item.text || "", 16.5, 41);
-
-  const imageHeight = item.image ? 116 : 0;
-
-  layout.size =
-    Math.max(20, textHeight > 0 ? textHeight + 25 : 0) + imageHeight;
-};
-
-// Вспомогательная функция (можно заменить на библиотеку)
-const calculateTextHeight = (
-  text: string,
-  lineHeight: number,
-  maxWidth: number,
-) => {
-  const approxLines = Math.ceil(text.length / maxWidth);
-
-  return approxLines * lineHeight;
-};
-
-const listViewProps = {
-  // overrideItemLayout,
-  // drawDistance: 500,
-};

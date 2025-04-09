@@ -1,6 +1,7 @@
 import { StackScreens } from "../navigation";
 import {
   Authorization,
+  CarouselScreen,
   ChatScreen,
   Components,
   Modals,
@@ -23,6 +24,7 @@ export const PRIVATE_SCREENS: StackScreens = {
   Modals: { screen: Modals },
   Lottie: { screen: Lottie },
   ChatScreen: { screen: ChatScreen },
+  Carousel: { screen: CarouselScreen },
 };
 
 export const PUBLIC_SCREENS: StackScreens = {
