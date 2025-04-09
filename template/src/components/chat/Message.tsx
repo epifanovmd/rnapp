@@ -1,4 +1,4 @@
-import React, { FC, memo, useMemo } from "react";
+import React, { FC, memo } from "react";
 import {
   ColorValue,
   LayoutChangeEvent,
@@ -69,25 +69,16 @@ export const Message: FC<MessageProps> = memo(
     renderReplyIcon,
     ...bubbleProps
   }) => {
-    const isSystem = useMemo(
-      () => !!currentMessage?.system,
-      [currentMessage?.system],
-    );
-    const sameUser = useMemo(
-      () => isSameUser(currentMessage, nextMessage),
-      [currentMessage, nextMessage],
-    );
+    const isSystem = !!currentMessage?.system;
+    const sameUser = isSameUser(currentMessage, nextMessage);
 
-    const messageStyle = useMemo(
-      () => [
-        stylesByPosition[position].container,
-        { marginBottom: sameUser || !inverted ? 2 : 10 },
-        containerStyle?.[position],
-      ],
-      [containerStyle, inverted, position, sameUser],
-    );
+    const messageStyle = [
+      stylesByPosition[position].container,
+      { marginBottom: sameUser || !inverted ? 2 : 10 },
+      containerStyle?.[position],
+    ];
 
-    const _renderDay = useMemo(() => {
+    const _renderDay = () => {
       if (!currentMessage?.createdAt) return null;
 
       return renderDay ? (
@@ -99,9 +90,9 @@ export const Message: FC<MessageProps> = memo(
           previousMessage={previousMessage}
         />
       );
-    }, [currentMessage, dateFormat, previousMessage, renderDay]);
+    };
 
-    const _renderBubble = useMemo(() => {
+    const _renderBubble = () => {
       const _bubbleProps: BubbleProps = {
         user,
         currentMessage,
@@ -116,25 +107,17 @@ export const Message: FC<MessageProps> = memo(
       }
 
       return <Bubble {..._bubbleProps} />;
-    }, [
-      bubbleProps,
-      currentMessage,
-      nextMessage,
-      position,
-      previousMessage,
-      renderBubble,
-      user,
-    ]);
+    };
 
-    const _renderSystemMessage = useMemo(() => {
+    const _renderSystemMessage = () => {
       return renderSystemMessage ? (
         renderSystemMessage({ currentMessage })
       ) : (
         <SystemMessage currentMessage={currentMessage} />
       );
-    }, [currentMessage, renderSystemMessage]);
+    };
 
-    const _renderAvatar = useMemo(() => {
+    const _renderAvatar = () => {
       if (!showUserAvatar && user.id === currentMessage?.user?.id) return null;
 
       return (
@@ -150,37 +133,25 @@ export const Message: FC<MessageProps> = memo(
           renderAvatar={renderAvatar}
         />
       );
-    }, [
-      currentMessage,
-      nextMessage,
-      onLongPressAvatar,
-      onPressAvatar,
-      position,
-      previousMessage,
-      renderAvatar,
-      renderAvatarOnTop,
-      showAvatarForEveryMessage,
-      showUserAvatar,
-      user.id,
-    ]);
+    };
 
     if (!currentMessage) return null;
 
     return (
       <>
-        {_renderDay}
+        {_renderDay()}
         {isSystem ? (
-          _renderSystemMessage
+          _renderSystemMessage()
         ) : (
           <View style={messageStyle}>
             {position === "left" ? (
-              _renderAvatar
+              _renderAvatar()
             ) : (
               <View style={styles.fakeImage} />
             )}
-            {_renderBubble}
+            {_renderBubble()}
             {position === "right" ? (
-              _renderAvatar
+              _renderAvatar()
             ) : (
               <View style={styles.fakeImage} />
             )}

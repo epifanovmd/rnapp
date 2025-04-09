@@ -122,6 +122,49 @@ export const ChatScreen: FC<StackProps> = observer(() => {
     [menu],
   );
 
+  const messages = useMemo(
+    () => [
+      ...msgs,
+      {
+        id: "12345",
+        user: { id: "123", name: "User" },
+        text: "Какой то текст сообщения",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "324324",
+        user: { id: "123", name: "User" },
+        text: "Какой то текст сообщения",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "3242323с234",
+        user: { id: "1234", name: "User1" },
+        text: "Какой то текст сообщения",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+
+      {
+        id: "324324йу23",
+        user: { id: "1234", name: "User2" },
+        text: "Какой то текст сообщения и номер телефона +79040513805",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: "534534534",
+        user: { id: "екуе34534", name: "User3" },
+        text: "Какой то текст сообщения и ссылка http://wireguard.force-dev.ru",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ],
+    [msgs],
+  );
+
   return (
     <Container safeAreBottom={false} safeAreLeft={false} safeAreRight={false}>
       <Header backAction={true}>
@@ -129,60 +172,14 @@ export const ChatScreen: FC<StackProps> = observer(() => {
       </Header>
 
       <Chat
-        user={{ id: "123", name: "User" }}
+        listViewProps={listViewProps}
+        user={user}
         insets={insets}
-        messages={[
-          ...msgs,
-          {
-            id: "12345",
-            user: { id: "123", name: "User" },
-            text: "Какой то текст сообщения",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: "324324",
-            user: { id: "123", name: "User" },
-            text: "Какой то текст сообщения",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: "3242323с234",
-            user: { id: "1234", name: "User1" },
-            text: "Какой то текст сообщения",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-
-          {
-            id: "324324йу23",
-            user: { id: "1234", name: "User2" },
-            text: "Какой то текст сообщения и номер телефона +79040513805",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-          {
-            id: "534534534",
-            user: { id: "екуе34534", name: "User3" },
-            text: "Какой то текст сообщения и ссылка http://wireguard.force-dev.ru",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        ]}
+        messages={messages}
         loading={false}
         renderLoading={renderLoading}
         showUsernameOnMessage={true}
-        renderChatEmpty={() => (
-          <Text
-            marginLeft={"auto"}
-            marginRight={"auto"}
-            marginTop={"auto"}
-            marginBottom={"auto"}
-          >
-            {"Пусто"}
-          </Text>
-        )}
+        renderChatEmpty={renderEmpty}
         alwaysShowSend={true}
         scrollToBottom={true}
         renderBubble={renderBubble}
@@ -191,3 +188,46 @@ export const ChatScreen: FC<StackProps> = observer(() => {
     </Container>
   );
 });
+
+const renderEmpty = () => (
+  <Text
+    marginLeft={"auto"}
+    marginRight={"auto"}
+    marginTop={"auto"}
+    marginBottom={"auto"}
+  >
+    {"Пусто"}
+  </Text>
+);
+
+const user = { id: "123", name: "User" };
+
+const overrideItemLayout = (
+  layout: { span?: number; size?: number },
+  item: IMessage,
+  index: number,
+) => {
+  // Предварительный расчет высоты текста
+  const textHeight = calculateTextHeight(item.text || "", 16.5, 41);
+
+  const imageHeight = item.image ? 116 : 0;
+
+  layout.size =
+    Math.max(20, textHeight > 0 ? textHeight + 25 : 0) + imageHeight;
+};
+
+// Вспомогательная функция (можно заменить на библиотеку)
+const calculateTextHeight = (
+  text: string,
+  lineHeight: number,
+  maxWidth: number,
+) => {
+  const approxLines = Math.ceil(text.length / maxWidth);
+
+  return approxLines * lineHeight;
+};
+
+const listViewProps = {
+  // overrideItemLayout,
+  // drawDistance: 500,
+};

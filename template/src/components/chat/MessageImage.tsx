@@ -1,6 +1,5 @@
-import { useBoolean } from "@force-dev/react";
-import { ImageViewing, ImageViewingProps } from "@force-dev/react-mobile";
-import React, { forwardRef, memo, useMemo } from "react";
+import { ImageViewingProps } from "@force-dev/react-mobile";
+import React, { forwardRef, memo } from "react";
 import {
   Image,
   ImageProps,
@@ -8,7 +7,6 @@ import {
   ImageURISource,
   StyleProp,
   StyleSheet,
-  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
@@ -29,7 +27,6 @@ export const MessageImage = memo(
     (
       {
         containerStyle,
-        imageViewingProps,
         imageProps = {},
         imageSourceProps = {},
         imageStyle,
@@ -37,39 +34,18 @@ export const MessageImage = memo(
       },
       ref,
     ) => {
-      const [open, onOpen, onClose] = useBoolean();
-
-      const _images = useMemo(
-        () => [{ uri: currentMessage?.image?.url }],
-        [currentMessage?.image],
-      );
-
-      const source = useMemo(
-        () => ({ ...imageSourceProps, uri: currentMessage?.image?.url }),
-        [currentMessage?.image, imageSourceProps],
-      );
-
       if (currentMessage == null) {
         return null;
       }
 
       return (
         <View style={[styles.container, containerStyle]}>
-          <ImageViewing
-            {...imageViewingProps}
-            images={_images}
-            imageIndex={0}
-            visible={open}
-            onRequestClose={onClose}
+          <Image
+            ref={ref}
+            {...imageProps}
+            style={[styles.image, imageStyle]}
+            source={{ ...imageSourceProps, uri: currentMessage?.image?.url }}
           />
-          <TouchableOpacity onPress={onOpen}>
-            <Image
-              ref={ref}
-              {...imageProps}
-              style={[styles.image, imageStyle]}
-              source={source}
-            />
-          </TouchableOpacity>
         </View>
       );
     },

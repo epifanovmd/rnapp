@@ -87,7 +87,7 @@ export interface ChatProps {
   // props
   imageProps?: ImageProps;
   imageViewingProps?: ImageViewingProps;
-  listViewProps?: FlashListProps<IMessage>;
+  listViewProps?: Partial<FlashListProps<IMessage>>;
   textInputProps?: ChatInputProps;
 
   // styles
