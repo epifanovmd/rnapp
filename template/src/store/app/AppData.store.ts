@@ -27,16 +27,10 @@ export class AppDataStore implements IAppDataStore {
       this._apiService.onError(async ({ status }) => {
         if (status === 401 && this.sessionDataStore.isAuthorized) {
           this.sessionDataStore.clear();
-
-          this._navigationService.navigateTo("Authorization");
         }
 
         if (status === 403) {
-          const { accessToken } = await this.sessionDataStore.updateToken();
-
-          if (!accessToken) {
-            this._navigationService.navigateTo("Authorization");
-          }
+          await this.sessionDataStore.updateToken();
         }
       }),
       reaction(
@@ -53,6 +47,8 @@ export class AppDataStore implements IAppDataStore {
 
             disposer(Array.from(disposers));
             disposers.clear();
+
+            this._navigationService.navigateTo("Authorization");
           }
         },
       ),
