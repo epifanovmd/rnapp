@@ -1227,10 +1227,10 @@
     shortid "^2.2.17"
     swagger-typescript-api "^13.0.23"
 
-"@force-dev/utils@^1.4.3":
-  version "1.4.3"
-  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.4.3.tgz#39f1494c21f078ee01511fd75efba321a14a74c8"
-  integrity sha512-nM/IerDVu4eJieAhs36wjZ9BwY7sF7EGxCr7qKoUJyqkm/l39+S/fGkmre9HNkTWTRXqyIOWqTFRnKhPP1p4Ew==
+"@force-dev/utils@^1.4.6":
+  version "1.4.6"
+  resolved "https://registry.yarnpkg.com/@force-dev/utils/-/utils-1.4.6.tgz#58a4e39f4a8984a96f6b4c467f909f66f22c2236"
+  integrity sha512-yPTjVo8/e4OYhP/xZ5ji9lGrmj4c92V0TfmdmD4GvPs7Ec+FhOCvL0CSj02pxVzhu7TikxFv/hUbRhMte5pm3Q==
   dependencies:
     "@types/shortid" "^0.0.32"
     axios "^1.8.4"

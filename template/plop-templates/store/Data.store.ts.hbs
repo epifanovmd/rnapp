@@ -23,7 +23,7 @@ export class {{properCase name}}DataStore implements I{{properCase name}}DataSto
   }
 
   get error() {
-    return this.dataSource.error?.msg;
+    return this.dataSource.error;
   }
 
   get loading() {

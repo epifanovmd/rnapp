@@ -40,7 +40,7 @@ export class SessionDataStore implements ISessionDataStore {
 
     const res = await this._profileService.signIn(params);
 
-    this._updateProfileHolder(res);
+    this._handleResponse(res);
   }
 
   // public async signUp(params: TSignUpRequest) {
@@ -48,7 +48,7 @@ export class SessionDataStore implements ISessionDataStore {
   //
   //   const res = await this._apiService.signUp(params);
   //
-  //   this._updateProfileHolder(res);
+  //   this._handleResponse(res);
   // }
 
   public async updateToken(
@@ -104,10 +104,10 @@ export class SessionDataStore implements ISessionDataStore {
     this._profileDataStore.holder.clear();
   }
 
-  private _updateProfileHolder(res: ApiResponse<ISignInResponse>) {
+  private _handleResponse(res: ApiResponse<ISignInResponse>) {
     if (res.error) {
       this._tokenService.clear();
-      this.holder.setError({ msg: res.error.message });
+      this.holder.setError(res.error.message);
     } else if (res.data) {
       const { accessToken, refreshToken, ...profile } = res.data;
 

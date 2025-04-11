@@ -22,7 +22,7 @@ export class PostDataStore implements IPostDataStore {
   }
 
   get error() {
-    return this.dataSource.error?.msg;
+    return this.dataSource.error;
   }
 
   get loading() {

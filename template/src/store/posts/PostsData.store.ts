@@ -33,7 +33,7 @@ export class PostsDataStore implements IPostsDataStore {
   }
 
   get error() {
-    return this.holder.error?.msg;
+    return this.holder.error;
   }
 
   get loading() {
@@ -49,7 +49,7 @@ export class PostsDataStore implements IPostsDataStore {
     const res = await this._postsService.search(args);
 
     if (res.error) {
-      this.holder.setError({ msg: res.error.toString() });
+      this.holder.setError(res.error.toString());
     } else if (res.data) {
       this.holder.updateData(res.data.posts);
 
@@ -75,7 +75,7 @@ export class PostsDataStore implements IPostsDataStore {
     });
 
     if (res.error) {
-      this.holder.setError({ msg: res.error.toString() });
+      this.holder.setError(res.error.toString());
     } else if (res.data) {
       this.holder.updateData(res.data.posts);
 

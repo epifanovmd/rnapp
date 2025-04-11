@@ -34,7 +34,7 @@ export class ProfileDataStore implements IProfileDataStore {
     const res = await this._profileService.getProfile();
 
     if (res.error) {
-      this.holder.setError({ msg: res.error.message });
+      this.holder.setError(res.error.message);
     } else if (res.data) {
       this.holder.setData(res.data);
 

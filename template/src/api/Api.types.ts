@@ -1,4 +1,11 @@
-import { HttpExceptionReason } from "@force-dev/utils";
+import {
+  createServiceDecorator,
+  HttpExceptionReason,
+  IApiService as IIIApiService,
+} from "@force-dev/utils";
+
+export const IApiService = createServiceDecorator<IApiService>();
+export interface IApiService extends IIIApiService {}
 
 export type ApiRequest<T extends object = {}> = T & {
   skip?: number;

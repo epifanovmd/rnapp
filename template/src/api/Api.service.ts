@@ -1,19 +1,14 @@
-import {
-  ApiService,
-  createServiceDecorator,
-  IApiService as IIIApiService,
-} from "@force-dev/utils";
+import { ApiService } from "@force-dev/utils";
 import { ITokenService } from "@service/token";
 import Config from "react-native-config";
+
+import { IApiService } from "./Api.types";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
-export interface IApiService extends IIIApiService {}
-export const IApiService = createServiceDecorator<ApiService1>();
-
 @IApiService({ inSingleton: true })
-class ApiService1 extends ApiService {
+class ApiService1 extends ApiService implements IApiService {
   constructor(@ITokenService() private _tokenService: ITokenService) {
     super(
       {
