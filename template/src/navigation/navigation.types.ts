@@ -3,7 +3,7 @@ import { ParamListBase } from "@react-navigation/routers";
 export enum TabScreenName {
   MAIN = "MAIN",
 
-  Posts = "Posts",
+  Main = "Main",
   Playground = "Playground",
 }
 
@@ -15,7 +15,9 @@ interface TabScreenParams {
 }
 
 export enum StackScreenName {
-  Authorization = "Authorization",
+  SignIn = "SignIn",
+  SignUp = "SignUp",
+  RecoveryPassword = "RecoveryPassword",
   Notifications = "Notifications",
   Gallery = "Gallery",
   Pickers = "Pickers",
@@ -24,12 +26,12 @@ export enum StackScreenName {
   Lottie = "Lottie",
   ChatScreen = "ChatScreen",
   Carousel = "Carousel",
-
-  Post = "Post",
 }
 
 interface StackScreenParams {
-  Authorization: undefined;
+  SignIn: undefined;
+  SignUp: undefined;
+  RecoveryPassword: undefined;
   Notifications: undefined;
   Gallery: undefined;
   Pickers: undefined;
@@ -38,8 +40,6 @@ interface StackScreenParams {
   Lottie: undefined;
   ChatScreen: undefined;
   Carousel: undefined;
-
-  Post: { id: number };
 }
 
 export type ScreenName =

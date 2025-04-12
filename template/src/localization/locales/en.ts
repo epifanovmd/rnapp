@@ -2,7 +2,7 @@ import { ruLocale } from "./ru";
 
 export const enLocale = {
   navigation: {
-    Posts: "Posts",
+    Main: "Main",
     Playground: "Playground",
     Notifications: "Notifications",
     Pickers: "Pickers",

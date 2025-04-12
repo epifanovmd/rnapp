@@ -1,13 +1,14 @@
 import { StackScreens } from "../navigation";
 import {
-  Authorization,
   CarouselScreen,
   ChatScreen,
   Components,
   Modals,
   Notifications,
   Pickers,
-  PostScreen,
+  RecoveryPassword,
+  SignIn,
+  SignUp,
   TabScreens,
 } from "../screens";
 import { Gallery } from "../screens/stack/Gallery";
@@ -16,7 +17,6 @@ import { Lottie } from "../screens/stack/Lottie";
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens },
 
-  Post: { screen: PostScreen },
   Notifications: { screen: Notifications },
   Gallery: { screen: Gallery },
   Pickers: { screen: Pickers },
@@ -28,5 +28,7 @@ export const PRIVATE_SCREENS: StackScreens = {
 };
 
 export const PUBLIC_SCREENS: StackScreens = {
-  Authorization: { screen: Authorization },
+  SignIn: { screen: SignIn },
+  SignUp: { screen: SignUp },
+  RecoveryPassword: { screen: RecoveryPassword },
 };

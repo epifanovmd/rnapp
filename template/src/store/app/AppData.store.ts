@@ -48,7 +48,7 @@ export class AppDataStore implements IAppDataStore {
             disposer(Array.from(disposers));
             disposers.clear();
 
-            this._navigationService.navigateTo("Authorization");
+            this._navigationService.navigateTo("SignIn");
           }
         },
       ),

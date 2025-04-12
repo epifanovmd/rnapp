@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && pod install && cd ..",
+    "generate:api": "tsx ./scripts/generate-api.ts",
     "start": "react-native start --reset-cache",
     "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
     "android:Dev-Release": "react-native run-android --mode=developmentRelease",
@@ -76,6 +77,7 @@
     "react-native-tab-view": "^3.5.2",
     "set-cookie-parser": "^2.6.0",
     "socket.io-client": "^4.8.1",
+    "tsx": "^4.19.3",
     "zod": "^3.24.2"
   },
   "devDependencies": {

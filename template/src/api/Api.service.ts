@@ -1,14 +1,14 @@
-import { ApiService } from "@force-dev/utils";
 import { ITokenService } from "@service/token";
 import Config from "react-native-config";
 
-import { IApiService } from "./Api.types";
+import { ApiError, IApiService } from "./Api.types";
+import { Api } from "./api-gen/Api";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
 @IApiService({ inSingleton: true })
-class ApiService1 extends ApiService implements IApiService {
+class ApiService extends Api<ApiError, ApiError> implements IApiService {
   constructor(@ITokenService() private _tokenService: ITokenService) {
     super(
       {
@@ -16,7 +16,16 @@ class ApiService1 extends ApiService implements IApiService {
         withCredentials: true,
         baseURL: BASE_URL,
       },
-      error => error,
+      error => {
+        console.log("error", error);
+
+        return new ApiError(
+          error.response?.data.name ?? error.name,
+          error.response?.data.message ?? error.message,
+          error.status ?? 400,
+          error.response?.data.reason ?? error.cause,
+        );
+      },
     );
 
     this.instance.interceptors.request.use(async request => {

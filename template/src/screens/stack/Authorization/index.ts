@@ -1,1 +1,3 @@
-export * from "./Authorization";
+export * from "./RecoveryPassword";
+export * from "./SignIn";
+export * from "./SignUp";
