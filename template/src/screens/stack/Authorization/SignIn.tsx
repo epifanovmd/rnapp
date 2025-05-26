@@ -1,3 +1,4 @@
+import { useBiometric } from "@common";
 import {
   Button,
   Container,
@@ -7,10 +8,10 @@ import {
   Input,
   ScrollView,
 } from "@components";
+import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
-import { StackProps } from "../../../navigation";
 import { useSignInVM } from "./hooks";
 
 export const SignIn: FC<StackProps> = observer(() => {
@@ -20,6 +21,8 @@ export const SignIn: FC<StackProps> = observer(() => {
     handleNavigateSignUp,
     handleNavigateRecoveryPassword,
   } = useSignInVM();
+
+  const { available, authorization } = useBiometric();
 
   const login = form.watch("login");
   const password = form.watch("password");
@@ -52,6 +55,12 @@ export const SignIn: FC<StackProps> = observer(() => {
           <Button onPress={handleLogin} loading={form.formState.isSubmitting}>
             {"Войти"}
           </Button>
+
+          {available && (
+            <Button mt={8} onPress={authorization}>
+              {"Войти по биометрии"}
+            </Button>
+          )}
         </ScrollView>
       </Content>
     </Container>

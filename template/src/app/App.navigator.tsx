@@ -1,16 +1,13 @@
-import notifee from "@notifee/react-native";
+import { useBiometric } from "@common";
 import {
   NavigationContainer,
   NavigationContainerRef,
 } from "@react-navigation/native";
-import {
-  StackCardInterpolatedStyle,
-  StackCardInterpolationProps,
-} from "@react-navigation/stack";
-import { useSessionDataStore } from "@store";
+import { useAppDataStore, useSessionDataStore } from "@store";
 import { observer } from "mobx-react-lite";
-import React, { forwardRef, useEffect, useMemo } from "react";
-import { Animated } from "react-native";
+import React, { forwardRef, useCallback, useMemo } from "react";
+import BootSplash from "react-native-bootsplash";
+import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 
 import {
   ScreenParamList,
@@ -22,9 +19,7 @@ import { PRIVATE_SCREENS, PUBLIC_SCREENS } from "./App.screens";
 import { stackTransition } from "./common";
 import { useAppNavigationTheme } from "./hooks";
 
-interface IAppNavigatorProps {
-  onReady?: () => void;
-}
+interface IAppNavigatorProps {}
 
 const options: StackScreenOption = {
   gestureEnabled: true,
@@ -35,24 +30,33 @@ const options: StackScreenOption = {
 
 export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IAppNavigatorProps>(
-    ({ onReady }, ref) => {
+    (_props, ref) => {
       const navigatorTheme = useAppNavigationTheme();
+      const { sessionDataStore } = useAppDataStore();
+      const { available, authorization } = useBiometric();
 
       // useLogger(ref as any);
 
-      const { isAuthorized } = useSessionDataStore();
-
       const routes = useMemo(() => {
-        if (isAuthorized) {
+        if (sessionDataStore.isAuthorized) {
           return { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS };
         }
 
         return PUBLIC_SCREENS;
-      }, [isAuthorized]);
+      }, [sessionDataStore.isAuthorized]);
 
-      useEffect(() => {
-        notifee.requestPermission();
-      }, []);
+      const onReady = useCallback(async () => {
+        await sessionDataStore.restore();
+
+        if (available && !sessionDataStore.isAuthorized) {
+          await authorization();
+        }
+
+        setTimeout(() => {
+          trigger(HapticFeedbackTypes.impactLight);
+          BootSplash.hide({ fade: true });
+        }, 500);
+      }, [authorization, available, sessionDataStore]);
 
       return (
         <NavigationContainer

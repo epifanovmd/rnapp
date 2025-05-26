@@ -83,7 +83,10 @@ export class SessionDataStore implements ISessionDataStore {
 
     if (tokens) {
       this._tokenService.setTokens(tokens.accessToken, tokens.refreshToken);
+      this.holder.setData(tokens.accessToken);
       await this._userDataStore.getUser();
+
+      return;
     } else {
       const refreshToken = await this._tokenService.restoreRefreshToken();
 

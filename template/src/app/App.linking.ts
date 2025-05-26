@@ -39,14 +39,6 @@ export const linking: LinkingOptions<ScreenParamList> = {
   prefixes: [`${deeplinkBaseUrl}://`],
 
   async getInitialURL() {
-    const initialNotification = await notifee.getInitialNotification();
-
-    const url = initialNotification?.notification?.data?.url;
-
-    if (isString(url)) {
-      return url;
-    }
-
     return Linking.getInitialURL();
   },
   // Функция подписки на изменения URL (включая уведомления)
@@ -55,31 +47,8 @@ export const linking: LinkingOptions<ScreenParamList> = {
       listener(url);
     });
 
-    // Обработка нажатий на уведомления (foreground)
-    const notifeeForeground = notifee.onForegroundEvent(({ type, detail }) => {
-      if (type === EventType.PRESS && detail.notification?.data?.url) {
-        const url = detail?.notification?.data?.url;
-
-        if (isString(url)) {
-          listener(url);
-        }
-      }
-    });
-
-    // Обработка уведомлений в фоне (background)
-    notifee.onBackgroundEvent(async ({ type, detail }) => {
-      if (type === EventType.PRESS && detail.notification?.data?.url) {
-        const url = detail?.notification?.data?.url;
-
-        if (isString(url)) {
-          listener(url);
-        }
-      }
-    });
-
     return () => {
       linkingSubscription.remove();
-      notifeeForeground();
     };
   },
 

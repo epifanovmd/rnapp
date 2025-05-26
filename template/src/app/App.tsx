@@ -1,7 +1,9 @@
+import { useBiometric } from "@common";
 import { AttachModalProvider } from "@components";
 import { HoldItemProvider } from "@force-dev/react-mobile";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import notifee from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log } from "@service";
 import { useAppDataStore } from "@store/app";
@@ -16,11 +18,8 @@ import React, {
   useEffect,
 } from "react";
 import { StatusBar, StyleSheet, useColorScheme } from "react-native";
-import ReactNativeBiometrics, { BiometryTypes } from "react-native-biometrics";
-import BootSplash from "react-native-bootsplash";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -39,9 +38,11 @@ export const App: FC = observer(() => {
   const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
-  const { initialize, sessionDataStore } = useAppDataStore();
+  const { initialize } = useAppDataStore();
 
   useEffect(() => {
+    notifee.requestPermission().then();
+
     const dispose = initialize();
 
     AsyncStorage.getItem("i18nextLng").then(async lang => {
@@ -58,39 +59,6 @@ export const App: FC = observer(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onReady = useCallback(async () => {
-    await sessionDataStore.restore().then();
-
-    const rnBiometrics = new ReactNativeBiometrics();
-    const { available, biometryType } = await rnBiometrics.isSensorAvailable();
-
-    if (available && biometryType === BiometryTypes.FaceID) {
-      // const { success, signature, error } = await rnBiometrics.createSignature({
-      //   promptMessage: "Sign in",
-      //   payload: "",
-      // });
-      //
-      // console.log("success", success);
-      // console.log("error", error);
-      // console.log("signature", signature);
-      // const { success, error } = await rnBiometrics.simplePrompt({
-      //   promptMessage: "123",
-      // });
-      //
-      // console.log("success", success);
-      // console.log("error", error);
-      //
-      // if (success) {
-      //   BootSplash.hide({ fade: true });
-      // }
-    }
-
-    setTimeout(() => {
-      trigger(HapticFeedbackTypes.impactLight);
-      BootSplash.hide({ fade: true });
-    }, 500);
-  }, [sessionDataStore]);
-
   return (
     <GestureHandlerRootView style={ss.container}>
       <ThemeProvider>
@@ -100,7 +68,7 @@ export const App: FC = observer(() => {
             <_HoldItemProvider>
               <AttachModalProvider>
                 <AppNotifications>
-                  <AppNavigator ref={navigationRef} onReady={onReady} />
+                  <AppNavigator ref={navigationRef} />
                 </AppNotifications>
               </AttachModalProvider>
             </_HoldItemProvider>

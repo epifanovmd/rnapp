@@ -1,3 +1,4 @@
+import { useBiometric } from "@common";
 import {
   Button,
   Container,
@@ -7,16 +8,17 @@ import {
   Text,
 } from "@components";
 import { Col, Row } from "@force-dev/react-mobile";
-import { useSessionDataStore } from "@store";
+import { AppScreenProps } from "@navigation";
+import { useSessionDataStore, useUserDataStore } from "@store";
+import { observer } from "mobx-react-lite";
 import React, { FC, memo } from "react";
-
-import { AppScreenProps } from "../../../navigation";
-import { Biometric } from "./Biometric";
 
 interface IProps extends AppScreenProps {}
 
-export const Playground: FC<IProps> = memo(({ navigation, route }) => {
+export const Playground: FC<IProps> = observer(({ navigation, route }) => {
   const { clear } = useSessionDataStore();
+  const { user } = useUserDataStore();
+  const { support, registration } = useBiometric();
 
   return (
     <Container>
@@ -75,9 +77,17 @@ export const Playground: FC<IProps> = memo(({ navigation, route }) => {
           onPress={() => navigation.navigate("Carousel")}
         />
 
-        <Col mt={8}>
-          <Biometric />
-        </Col>
+        {support && !!user?.id && (
+          <Button
+            mt={8}
+            title={"Register biometric"}
+            onPress={async () => {
+              const success = await registration(user.id);
+
+              console.log("success", success);
+            }}
+          />
+        )}
 
         <Button mt={8} title={"Выход"} onPress={() => clear()} />
       </Content>
