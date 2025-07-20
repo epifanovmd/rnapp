@@ -4,11 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSessionDataStore } from "@store";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
-import {
-  getDeviceId,
-  getDeviceName,
-  getUniqueId,
-} from "react-native-device-info";
+import { getDeviceName, getUniqueId } from "react-native-device-info";
 
 const biometrics = new ReactNativeBiometrics();
 
@@ -30,10 +26,17 @@ export const useBiometric = () => {
     });
   }, []);
 
+  const onRemoveBiometric = useCallback(async () => {
+    await biometrics.deleteKeys();
+    await AsyncStorage.removeItem("biometricUserId");
+    setRegisteredUserId(null);
+  }, []);
+
   const getBiometricPublicKey = useCallback(async () => {
     const { keysExist } = await biometrics.biometricKeysExist();
+    const biometricUserId = await AsyncStorage.getItem("biometricUserId");
 
-    if (keysExist) {
+    if (keysExist && biometricUserId) {
       show("Биометрия уже подключена.", { type: "normal" });
 
       return null;
@@ -86,11 +89,12 @@ export const useBiometric = () => {
     }
 
     const userId = registeredUserId;
-    const deviceId = getDeviceId();
+    const deviceId = await getUniqueId();
 
     const response = await api.generateNonce({ userId });
 
     if (response.error) {
+      // await onRemoveBiometric();
       show(response.error.message, { type: "danger" });
     } else if (response.data) {
       const payload = response.data.nonce;
@@ -101,6 +105,7 @@ export const useBiometric = () => {
       });
 
       if (error) {
+        // await onRemoveBiometric();
         show(error, { type: "danger" });
       } else if (success && signature) {
         const response = await api.verifySignature({
@@ -110,6 +115,7 @@ export const useBiometric = () => {
         });
 
         if (response.error) {
+          await onRemoveBiometric();
           show(response.error.message, { type: "danger" });
         } else if (response.data?.verified) {
           await sessionDataStore.restore(response.data.tokens);
@@ -118,7 +124,7 @@ export const useBiometric = () => {
     }
 
     return false;
-  }, [registeredUserId, api, show, sessionDataStore]);
+  }, [registeredUserId, api, onRemoveBiometric, show, sessionDataStore]);
 
   return {
     available,

@@ -5,7 +5,7 @@ import {
 
 import { ITransitionContext } from "../Transition.types";
 
-export const useTransitionCreateContext = (): ITransitionContext => {
+export const useTransitionContext = (): ITransitionContext => {
   const isDrag = useSharedValue(false);
   const transitionX = useSharedValue(0);
   const transitionY = useSharedValue(0);

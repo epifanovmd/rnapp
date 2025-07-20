@@ -2,12 +2,12 @@ import { useContext } from "react";
 
 import { TransitionContext } from "../Transition.context";
 import { ITransitionContext } from "../Transition.types";
-import { useTransitionCreateContext } from "./useTransitionCreateContext";
+import { useTransitionContext } from "./useTransitionContext";
 
 export const useTransition = (): ITransitionContext => {
   const context = useContext(TransitionContext);
 
-  const localContext = useTransitionCreateContext();
+  const localContext = useTransitionContext();
 
   if (context) return context;
 

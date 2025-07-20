@@ -110,6 +110,7 @@ export class SessionDataStore implements ISessionDataStore {
   }
 
   private _handleResponse(res: ApiResponse<IUserWithTokensDto, ApiError>) {
+    console.log("res", res);
     if (res.error) {
       this._tokenService.clear();
       this.holder.setError(res.error.message);

@@ -1,5 +1,5 @@
 import { useBiometric } from "@common";
-import { AttachModalProvider } from "@components";
+import { AttachModalProvider, TransitionProvider } from "@components";
 import { HoldItemProvider } from "@force-dev/react-mobile";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -10,13 +10,7 @@ import { useAppDataStore } from "@store/app";
 import { ThemeProvider, useTheme } from "@theme";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
-import React, {
-  FC,
-  memo,
-  PropsWithChildren,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { FC, memo, PropsWithChildren, useEffect } from "react";
 import { StatusBar, StyleSheet, useColorScheme } from "react-native";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -61,20 +55,22 @@ export const App: FC = observer(() => {
 
   return (
     <GestureHandlerRootView style={ss.container}>
-      <ThemeProvider>
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-        <SafeAreaProvider>
-          <BottomSheetModalProvider>
-            <_HoldItemProvider>
-              <AttachModalProvider>
-                <AppNotifications>
-                  <AppNavigator ref={navigationRef} />
-                </AppNotifications>
-              </AttachModalProvider>
-            </_HoldItemProvider>
-          </BottomSheetModalProvider>
-        </SafeAreaProvider>
-      </ThemeProvider>
+      <TransitionProvider>
+        <ThemeProvider>
+          <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+          <SafeAreaProvider>
+            <BottomSheetModalProvider>
+              <_HoldItemProvider>
+                <AttachModalProvider>
+                  <AppNotifications>
+                    <AppNavigator ref={navigationRef} />
+                  </AppNotifications>
+                </AttachModalProvider>
+              </_HoldItemProvider>
+            </BottomSheetModalProvider>
+          </SafeAreaProvider>
+        </ThemeProvider>
+      </TransitionProvider>
     </GestureHandlerRootView>
   );
 });
