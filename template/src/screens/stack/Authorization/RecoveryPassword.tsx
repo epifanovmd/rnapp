@@ -29,24 +29,18 @@ export const RecoveryPassword: FC<StackProps> = observer(() => {
       <Header />
       <Content>
         <ScrollView>
-          <Field>
-            <Field.Label text={"Username"} />
-            <Field.Content>
-              <Input
-                value={login}
-                onChangeText={text => form.setValue("login", text)}
-              />
-            </Field.Content>
+          <Field label={"Username"}>
+            <Input
+              value={login}
+              onChangeText={text => form.setValue("login", text)}
+            />
           </Field>
 
-          <Field>
-            <Field.Label text={"Password"} />
-            <Field.Content>
-              <Input
-                value={password}
-                onChangeText={text => form.setValue("password", text)}
-              />
-            </Field.Content>
+          <Field label={"Password"}>
+            <Input
+              value={password}
+              onChangeText={text => form.setValue("password", text)}
+            />
           </Field>
 
           <Button onPress={handleLogin} loading={form.formState.isSubmitting}>

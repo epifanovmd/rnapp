@@ -4,9 +4,10 @@ import {
   Checkbox,
   Container,
   Content,
+  Field,
   Header,
   Image,
-  InputField,
+  Input,
   Modal,
   ModalActions,
   ModalHeader,
@@ -89,13 +90,11 @@ export const Components: FC<StackProps> = memo(({ route }) => {
             <Text ml={8}>{"only press checkbox"}</Text>
           </Row>
 
-          <InputField mt={8} bg={"yellow"}>
-            <InputField.Input
-              inputTextColor={"red"}
-              placeholder={"Input"}
-              placeholderTextColor={"red"}
-            />
-          </InputField>
+          <Input
+            inputTextColor={"red"}
+            placeholder={"Input"}
+            placeholderTextColor={"red"}
+          />
 
           <Col mt={8} height={100} width={100}>
             <ImageViewing

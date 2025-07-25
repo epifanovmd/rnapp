@@ -4,6 +4,7 @@ export const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
   background: "#354259",
   barStyle: "light-content",
   text: "#fff",
+  placeholder: "#ffffff70",
   common: {
     black: "#000",
     white: "#fff",

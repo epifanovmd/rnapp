@@ -1,85 +1,81 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { Col, FlexProps, Row } from "@force-dev/react-mobile";
+import { Col, Row } from "@force-dev/react-mobile";
+import { useTheme } from "@theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 
 import { Text, TextProps } from "../text";
 import { Touchable, TouchableProps } from "../touchable";
-import { FieldLabel } from "./FieldLabel";
-import { FieldValue } from "./FieldValue";
 
-export interface FieldProps extends TouchableProps {}
+export interface FieldProps extends TouchableProps {
+  label?: string;
+  error?: string;
+  description?: string;
+}
 
 const Label = createSlot<TextProps>("Label");
-const LeftIcon = createSlot("LeftIcon");
-const RightIcon = createSlot("RightIcon");
-const Content = createSlot<FlexProps>("Content");
-const ContentValue = createSlot<FlexProps>("ContentValue");
 const Description = createSlot<TextProps>("Description");
 const Error = createSlot<TextProps>("Error");
 
 export interface FieldSlots {
   Label: typeof Label;
-  LeftIcon: typeof LeftIcon;
-  RightIcon: typeof RightIcon;
-  Content: typeof Content;
-  ContentValue: typeof ContentValue;
   Description: typeof Description;
   Error: typeof Error;
 }
 
 const _Field: FC<PropsWithChildren<FieldProps>> = memo(
-  ({ children, ...rest }) => {
+  ({
+    label: _label,
+    error: _error,
+    description: _description,
+    children,
+    ...rest
+  }) => {
     const {
-      leftIcon,
-      label,
-      content,
-      contentValue,
-      rightIcon,
-      description,
-      error,
-    } = useSlotProps(Field, children);
+      theme: { color },
+    } = useTheme();
 
-    const borderColor =
-      (error?.text ? "red" : content?.borderColor) || "#5f5f5f40";
+    const { $children, label, description, error } = useSlotProps(
+      Field,
+      children,
+    );
+
+    const labelText = label?.text || _label;
+    const errorText = (error?.text || _error || "").trim();
+    const descriptionText = (description?.text || _description || "").trim();
 
     return (
       <Touchable flexShrink={1} {...rest}>
-        <Row
-          alignItems={"center"}
-          borderBottomWidth={1}
-          minHeight={44}
-          flexShrink={1}
-          {...content}
-          borderColor={borderColor}
-        >
-          {leftIcon?.children}
-
-          <Col flexGrow={1} flexShrink={1}>
-            {!!label?.text && <FieldLabel {...label} />}
-            <FieldValue
-              paddingTop={content?.children ? undefined : 0}
-              {...contentValue}
-            >
-              {content?.children}
-            </FieldValue>
-          </Col>
-
-          {rightIcon?.children}
-        </Row>
-        {!!(error?.text?.trim() || description?.text?.trim()) && (
-          <Text {...(error?.text ? error : description)} />
+        <Col flexGrow={1} flexShrink={1}>
+          {!!labelText && (
+            <Text
+              ml={8}
+              mr={8}
+              mb={4}
+              fontSize={11}
+              ellipsizeMode={"tail"}
+              text={labelText}
+              {...label}
+            />
+          )}
+          <Row>{$children}</Row>
+        </Col>
+        {!!(errorText || descriptionText) && (
+          <Text
+            ml={8}
+            mr={8}
+            mt={2}
+            color={errorText ? color.error.light : undefined}
+            text={errorText || descriptionText}
+            {...(errorText ? error : description)}
+          />
         )}
       </Touchable>
     );
   },
 );
 
-export const Field = _Field as typeof _Field & FieldSlots;
-
-Field.Label = Label;
-Field.LeftIcon = LeftIcon;
-Field.RightIcon = RightIcon;
-Field.Content = Content;
-Field.ContentValue = ContentValue;
-Field.Description = Description;
-Field.Error = Error;
+export const Field = Object.assign(_Field, {
+  Label,
+  Description,
+  Error,
+});

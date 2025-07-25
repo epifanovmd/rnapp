@@ -22,7 +22,7 @@ export const Text: FC<TextProps> = memo(({ text, children, ...rest }) => {
 
   return (
     <Component
-      style={[styles.wrap, { color: theme.color.text }, style]}
+      style={[styles.wrap, style, { color: style.color ?? theme.color.text }]}
       {...ownProps}
     >
       {text ?? children}

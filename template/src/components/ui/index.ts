@@ -1,7 +1,6 @@
 export * from "./button";
 export * from "./checkBox";
 export * from "./field";
-export * from "./fields";
 export * from "./image";
 export * from "./input";
 export * from "./modal";

@@ -1,5 +1,6 @@
 import { mergeRefs } from "@force-dev/react";
 import { replaceInputString } from "@force-dev/utils";
+import { useTheme } from "@theme";
 import React, {
   forwardRef,
   memo,
@@ -27,7 +28,11 @@ type OmittedTextProps = Omit<
   "editable" | "textContentType" | "secureTextEntry" | "cursorColor" | "style"
 >;
 
+export type TVariant = "default" | "filled" | "outlined";
+
 export interface InputProps extends OmittedTextProps {
+  valid?: boolean;
+  variant?: TVariant;
   containerStyle?: StyleProp<ViewStyle>;
 
   inputStyle?: StyleProp<TextStyle>;
@@ -57,6 +62,8 @@ export const Input = memo(
   forwardRef<TextInput, InputProps>(
     (
       {
+        variant,
+        valid,
         containerStyle,
         value,
         onChangeText,
@@ -65,8 +72,8 @@ export const Input = memo(
         disabled,
         keyboardType,
 
-        inputTextColor = "#ffffff",
-        placeholderTextColor = "#ffffff90",
+        inputTextColor,
+        placeholderTextColor,
 
         leftSlot,
         rightSlot,
@@ -80,6 +87,12 @@ export const Input = memo(
       const textInputRef = useRef<TextInput>(null);
       const [visiblePassword, setVisiblePassword] = useState(false);
       const [hasValue, setHasValue] = useState(!!value);
+
+      const {
+        theme: {
+          color: { error, success, text, placeholder },
+        },
+      } = useTheme();
 
       useEffect(() => {
         if (value !== undefined && hasValue !== !!value) {
@@ -116,8 +129,8 @@ export const Input = memo(
       }, [onChangeText]);
 
       const style = useMemo(
-        () => [s.input, { color: inputTextColor }, rest.inputStyle],
-        [inputTextColor, rest.inputStyle],
+        () => [s.input, { color: inputTextColor ?? text }, rest.inputStyle],
+        [inputTextColor, text, rest.inputStyle],
       );
 
       const numberType = type === "number" || type === "floating";
@@ -129,7 +142,16 @@ export const Input = memo(
       const secureTextEntry = type === "password" && !visiblePassword;
 
       return (
-        <View style={[s.containerStyle, containerStyle]}>
+        <View
+          style={[
+            s.containerStyle,
+            containerStyle,
+            variants[variant ?? "default"],
+            valid === true && validVariants(success.main)[variant ?? "default"],
+            valid === false &&
+              invalidVariants(error.main)[variant ?? "default"],
+          ]}
+        >
           {leftSlot}
 
           <TextInput
@@ -137,8 +159,8 @@ export const Input = memo(
             {...rest}
             style={style}
             value={value}
-            cursorColor={inputTextColor}
-            placeholderTextColor={placeholderTextColor}
+            cursorColor={inputTextColor ?? text}
+            placeholderTextColor={placeholderTextColor ?? placeholder}
             onChangeText={_onChangeText}
             editable={editable}
             keyboardType={_keyboardType}
@@ -146,19 +168,19 @@ export const Input = memo(
             secureTextEntry={secureTextEntry}
           />
 
-          {!!(clearable && hasValue && !disabled) &&
-            renderClearableIcon(onClear, disabled, inputTextColor)}
-
           {type === "password" &&
             !disabled &&
             renderSecurityIcon(
               toggleVisiblePassword,
               visiblePassword,
               disabled,
-              inputTextColor,
+              inputTextColor ?? text,
             )}
 
           {rightSlot}
+
+          {!!(clearable && hasValue && !disabled) &&
+            renderClearableIcon(onClear, disabled, inputTextColor ?? text)}
         </View>
       );
     },
@@ -167,18 +189,68 @@ export const Input = memo(
 
 const s = StyleSheet.create({
   containerStyle: {
+    borderRadius: 8,
+    flexGrow: 1,
+    flexShrink: 1,
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 8,
+    paddingRight: 8,
     flexDirection: "row",
+    gap: 8,
   },
   input: {
+    minHeight: 36,
+    flex: 1,
     flexGrow: 1,
     padding: 0,
     flexShrink: 1,
     fontSize: 16,
-    marginVertical: 2,
     width: "100%",
+  },
+});
+
+const validVariants = (color: string) =>
+  StyleSheet.create({
+    default: {
+      borderBottomWidth: 1,
+      borderColor: color,
+    },
+    outlined: {
+      borderColor: color,
+    },
+    filled: {
+      backgroundColor: color,
+    },
+  });
+
+const invalidVariants = (color: string) =>
+  StyleSheet.create({
+    default: {
+      borderBottomWidth: 1,
+      borderColor: color,
+    },
+    outlined: {
+      borderColor: color,
+    },
+    filled: {
+      backgroundColor: color,
+    },
+  });
+
+const variants = StyleSheet.create({
+  default: {
+    borderRadius: 0,
+  },
+  outlined: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: "#9e9e9e",
+  },
+  filled: {
+    backgroundColor: "#00000030",
+    borderColor: "#9e9e9e",
   },
 });
 
@@ -187,11 +259,7 @@ const _renderClearableIcon = (
   disabled?: boolean,
   fill?: ColorValue,
 ) => (
-  <TouchableOpacity
-    disabled={disabled}
-    onPress={onClear}
-    style={{ paddingHorizontal: 4 }}
-  >
+  <TouchableOpacity disabled={disabled} onPress={onClear}>
     <Svg viewBox="0 0 24 24" height={18} width={18} fill={fill}>
       <Path d="M12 2C17.53 2 22 6.47 22 12C22 17.53 17.53 22 12 22C6.47 22 2 17.53 2 12C2 6.47 6.47 2 12 2ZM15.59 7L12 10.59L8.41 7L7 8.41L10.59 12L7 15.59L8.41 17L12 13.41L15.59 17L17 15.59L13.41 12L17 8.41L15.59 7Z" />
     </Svg>
@@ -204,11 +272,7 @@ const _renderSecurityIcon = (
   disabled?: boolean,
   fill?: ColorValue,
 ) => (
-  <TouchableOpacity
-    disabled={disabled}
-    onPress={onToggle}
-    style={{ paddingHorizontal: 4 }}
-  >
+  <TouchableOpacity disabled={disabled} onPress={onToggle}>
     {visible ? (
       <Svg viewBox="0 0 24 24" height={18} width={18} fill={fill}>
         <Path d="M12 9C11.2044 9 10.4413 9.31607 9.87868 9.87868C9.31607 10.4413 9 11.2044 9 12C9 12.7956 9.31607 13.5587 9.87868 14.1213C10.4413 14.6839 11.2044 15 12 15C12.7956 15 13.5587 14.6839 14.1213 14.1213C14.6839 13.5587 15 12.7956 15 12C15 11.2044 14.6839 10.4413 14.1213 9.87868C13.5587 9.31607 12.7956 9 12 9ZM12 17C10.6739 17 9.40215 16.4732 8.46447 15.5355C7.52678 14.5979 7 13.3261 7 12C7 10.6739 7.52678 9.40215 8.46447 8.46447C9.40215 7.52678 10.6739 7 12 7C13.3261 7 14.5979 7.52678 15.5355 8.46447C16.4732 9.40215 17 10.6739 17 12C17 13.3261 16.4732 14.5979 15.5355 15.5355C14.5979 16.4732 13.3261 17 12 17ZM12 4.5C7 4.5 2.73 7.61 1 12C2.73 16.39 7 19.5 12 19.5C17 19.5 21.27 16.39 23 12C21.27 7.61 17 4.5 12 4.5Z" />
