@@ -48,8 +48,6 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
         <Col flexGrow={1} flexShrink={1}>
           {!!labelText && (
             <Text
-              ml={8}
-              mr={8}
               mb={4}
               fontSize={11}
               ellipsizeMode={"tail"}
@@ -61,8 +59,6 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
         </Col>
         {!!(errorText || descriptionText) && (
           <Text
-            ml={8}
-            mr={8}
             mt={2}
             color={errorText ? color.error.light : undefined}
             text={errorText || descriptionText}

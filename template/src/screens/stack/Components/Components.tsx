@@ -90,11 +90,31 @@ export const Components: FC<StackProps> = memo(({ route }) => {
             <Text ml={8}>{"only press checkbox"}</Text>
           </Row>
 
-          <Input
-            inputTextColor={"red"}
-            placeholder={"Input"}
-            placeholderTextColor={"red"}
-          />
+          <Col style={{ gap: 8 }}>
+            <Input placeholder={"First name"} clearable />
+            <Input
+              variant={"outlined"}
+              placeholder={"Password"}
+              type={"password"}
+              clearable
+            />
+
+            <Field label={"Test label"} error={"1"} description={"Desc"}>
+              <Input variant={"filled"} placeholder={"Last name"} clearable />
+            </Field>
+
+            <Field label={"Test label"} error={"1"} description={"Desc"}>
+              <Input
+                placeholder={"First name"}
+                clearable
+                inputStyle={{ padding: 0, minHeight: "auto" }}
+              />
+            </Field>
+
+            <Field label={"Test label"} error={"1"} description={"Desc"}>
+              <Text>{"Test simple text"}</Text>
+            </Field>
+          </Col>
 
           <Col mt={8} height={100} width={100}>
             <ImageViewing
