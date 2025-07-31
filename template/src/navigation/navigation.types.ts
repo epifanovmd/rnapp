@@ -1,5 +1,7 @@
 import { ParamListBase } from "@react-navigation/routers";
 
+import { IPdfViewProps, IWebViewProps } from "../screens";
+
 export enum TabScreenName {
   MAIN = "MAIN",
 
@@ -26,6 +28,8 @@ export enum StackScreenName {
   Lottie = "Lottie",
   ChatScreen = "ChatScreen",
   Carousel = "Carousel",
+  PdfView = "PdfView",
+  WebView = "WebView",
 }
 
 interface StackScreenParams {
@@ -40,6 +44,8 @@ interface StackScreenParams {
   Lottie: undefined;
   ChatScreen: undefined;
   Carousel: undefined;
+  PdfView: IPdfViewProps;
+  WebView: IWebViewProps;
 }
 
 export type ScreenName =

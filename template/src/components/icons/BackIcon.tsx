@@ -29,8 +29,6 @@ export const BackIcon: FC<IProps> = ({
     },
   } = useTheme();
 
-  console.log("text", text);
-
   return (
     <Svg
       viewBox="0 0 24 24"

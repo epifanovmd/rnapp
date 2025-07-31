@@ -29,6 +29,29 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
           <Text>{route.name}</Text>
           <SwitchTheme marginLeft={"auto"} />
         </Row>
+
+        <Button
+          mt={8}
+          title={"Pdf view"}
+          onPress={() =>
+            navigation.navigate("PdfView", {
+              title: "Pdf view page",
+              url: "https://www.princexml.com/samples/catalogue/PrinceCatalogue.pdf",
+            })
+          }
+        />
+
+        <Button
+          mt={8}
+          title={"Web view"}
+          onPress={() =>
+            navigation.navigate("WebView", {
+              title: "Web view page",
+              url: "https://google.com",
+            })
+          }
+        />
+
         <Button
           mt={8}
           title={"Notifications"}

@@ -16,12 +16,6 @@ const Label = createSlot<TextProps>("Label");
 const Description = createSlot<TextProps>("Description");
 const Error = createSlot<TextProps>("Error");
 
-export interface FieldSlots {
-  Label: typeof Label;
-  Description: typeof Description;
-  Error: typeof Error;
-}
-
 const _Field: FC<PropsWithChildren<FieldProps>> = memo(
   ({
     label: _label,
