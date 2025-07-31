@@ -42,6 +42,7 @@ export const WebView: FC<StackProps<"WebView">> = memo(({ route }) => {
         renderLoading={() => <AnimatedRefreshing percentage={percentage} />}
         source={{ uri: params.url }}
         style={{ paddingBottom: bottom }}
+        allowsBackForwardNavigationGestures={true}
       />
     </Container>
   );

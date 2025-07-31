@@ -4,6 +4,7 @@ import {
   Container,
   Content,
   Header,
+  ScrollView,
   SwitchTheme,
   Text,
 } from "@components";
@@ -21,99 +22,101 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
   const { support, registration } = useBiometric();
 
   return (
-    <Container>
+    <Container safeAreBottom={false}>
       <Header />
 
-      <Content>
-        <Row mb={32}>
-          <Text>{route.name}</Text>
-          <SwitchTheme marginLeft={"auto"} />
-        </Row>
+      <ScrollView>
+        <Content>
+          <Row mb={32}>
+            <Text>{route.name}</Text>
+            <SwitchTheme marginLeft={"auto"} />
+          </Row>
 
-        <Button
-          mt={8}
-          title={"Pdf view"}
-          onPress={() =>
-            navigation.navigate("PdfView", {
-              title: "Pdf view page",
-              url: "https://www.princexml.com/samples/catalogue/PrinceCatalogue.pdf",
-            })
-          }
-        />
-
-        <Button
-          mt={8}
-          title={"Web view"}
-          onPress={() =>
-            navigation.navigate("WebView", {
-              title: "Web view page",
-              url: "https://google.com",
-            })
-          }
-        />
-
-        <Button
-          mt={8}
-          title={"Notifications"}
-          onPress={() => navigation.navigate("Notifications")}
-        />
-
-        <Button
-          mt={8}
-          title={"Gallery"}
-          onPress={() => navigation.navigate("Gallery")}
-        />
-
-        <Button
-          mt={8}
-          title={"Lottie"}
-          onPress={() => navigation.navigate("Lottie")}
-        />
-
-        <Button
-          mt={8}
-          title={"Components"}
-          onPress={() => navigation.navigate("Components")}
-        />
-
-        <Button
-          mt={8}
-          title={"Modals"}
-          onPress={() => navigation.navigate("Modals")}
-        />
-
-        <Button
-          mt={8}
-          title={"Pickers"}
-          onPress={() => navigation.navigate("Pickers")}
-        />
-
-        <Button
-          mt={8}
-          title={"ChatScreen"}
-          onPress={() => navigation.navigate("ChatScreen")}
-        />
-
-        <Button
-          mt={8}
-          title={"Carousel"}
-          onPress={() => navigation.navigate("Carousel")}
-        />
-
-        {support && !!user?.id && (
           <Button
             mt={8}
-            title={"Register biometric"}
-            onPress={async () => {
-              const success = await registration(user.id);
-
-              console.log("success", success);
-            }}
+            title={"Pdf view"}
+            onPress={() =>
+              navigation.navigate("PdfView", {
+                title: "Pdf view page",
+                url: "https://www.princexml.com/samples/catalogue/PrinceCatalogue.pdf",
+              })
+            }
           />
-        )}
 
-        <Button mt={8} title={"Выход"} onPress={() => clear()} />
-      </Content>
+          <Button
+            mt={8}
+            title={"Web view"}
+            onPress={() =>
+              navigation.navigate("WebView", {
+                title: "Web view page",
+                url: "https://google.com",
+              })
+            }
+          />
+
+          <Button
+            mt={8}
+            title={"Notifications"}
+            onPress={() => navigation.navigate("Notifications")}
+          />
+
+          <Button
+            mt={8}
+            title={"Gallery"}
+            onPress={() => navigation.navigate("Gallery")}
+          />
+
+          <Button
+            mt={8}
+            title={"Lottie"}
+            onPress={() => navigation.navigate("Lottie")}
+          />
+
+          <Button
+            mt={8}
+            title={"Components"}
+            onPress={() => navigation.navigate("Components")}
+          />
+
+          <Button
+            mt={8}
+            title={"Modals"}
+            onPress={() => navigation.navigate("Modals")}
+          />
+
+          <Button
+            mt={8}
+            title={"Pickers"}
+            onPress={() => navigation.navigate("Pickers")}
+          />
+
+          <Button
+            mt={8}
+            title={"ChatScreen"}
+            onPress={() => navigation.navigate("ChatScreen")}
+          />
+
+          <Button
+            mt={8}
+            title={"Carousel"}
+            onPress={() => navigation.navigate("Carousel")}
+          />
+
+          {support && !!user?.id && (
+            <Button
+              mt={8}
+              title={"Register biometric"}
+              onPress={async () => {
+                const success = await registration(user.id);
+
+                console.log("success", success);
+              }}
+            />
+          )}
+
+          <Button mt={8} title={"Выход"} onPress={() => clear()} />
+        </Content>
+      </ScrollView>
     </Container>
   );
 });
