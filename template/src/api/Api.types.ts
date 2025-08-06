@@ -3,7 +3,9 @@ import { createServiceDecorator, HttpExceptionReason } from "@force-dev/utils";
 import { Api } from "./api-gen/Api";
 
 export const IApiService = createServiceDecorator<IApiService>();
-export type IApiService = Api<ApiError, ApiError>;
+export interface IApiService extends Api<ApiError, ApiError> {
+  updateToken(): Promise<void>;
+}
 
 export type ApiRequest<T extends object = {}> = T & {
   skip?: number;

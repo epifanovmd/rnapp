@@ -1,9 +1,9 @@
 import { IApiService } from "@api";
 import { disposer, InitializeDispose, Interval } from "@force-dev/utils";
+import { INavigationService, NavigationService } from "@navigation";
 import { ISocketService } from "@service";
 import { makeAutoObservable, reaction } from "mobx";
 
-import { INavigationService, NavigationService } from "../../navigation";
 import { ISessionDataStore } from "../session";
 import { IAppDataStore } from "./AppData.types";
 
@@ -24,15 +24,6 @@ export class AppDataStore implements IAppDataStore {
     const disposers = new Set<InitializeDispose>();
 
     return [
-      this._apiService.onError(async ({ status }) => {
-        if (status === 401 && this.sessionDataStore.isAuthorized) {
-          this.sessionDataStore.clear();
-        }
-
-        if (status === 403) {
-          await this.sessionDataStore.updateToken();
-        }
-      }),
       reaction(
         () => this.sessionDataStore.isAuthorized,
         isAuthorized => {

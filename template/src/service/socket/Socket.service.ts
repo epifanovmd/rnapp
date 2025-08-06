@@ -1,8 +1,6 @@
-import { SOCKET_BASE_URL } from "@api";
+import { IApiService, IApiTokenProvider, SOCKET_BASE_URL } from "@api";
 import { connect, Socket } from "socket.io-client";
 
-import { ISessionDataStore } from "../../store/session/SessionData.types";
-import { ITokenService } from "../token";
 import { ISocketService, SocketEmitEvents, SocketEvents } from "./Socket.types";
 
 const SOCKET_CONFIG = {
@@ -23,8 +21,8 @@ export class SocketService implements ISocketService {
   private _isManualDisconnect = false;
 
   constructor(
-    @ITokenService() private _tokenService: ITokenService,
-    @ISessionDataStore() private _sessionDataStore: ISessionDataStore,
+    @IApiTokenProvider() private _tokenProvider: IApiTokenProvider,
+    @IApiService() private _apiService: IApiService,
   ) {}
 
   get isConnected(): boolean {
@@ -42,7 +40,7 @@ export class SocketService implements ISocketService {
   private setupSocket() {
     if (this._socket) return this._socket;
 
-    const accessToken = this._tokenService.accessToken;
+    const accessToken = this._tokenProvider.accessToken;
 
     if (!accessToken) throw new Error("No access token available");
 
@@ -103,7 +101,7 @@ export class SocketService implements ISocketService {
 
   private async handleTokenRefresh(): Promise<void> {
     try {
-      await this._sessionDataStore.updateToken();
+      await this._apiService.updateToken();
       await this.reconnect();
     } catch (refreshError) {
       console.error("Token refresh failed:", refreshError);
