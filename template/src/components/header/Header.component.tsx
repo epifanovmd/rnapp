@@ -22,8 +22,8 @@ import Animated, {
 import { useTranslation } from "../../localization";
 import { useNavigation, useRoute } from "../../navigation";
 import { useTheme } from "../../theme";
-import { BackIcon } from "../icons";
 import { Text, Touchable } from "../ui";
+import { Icon } from "../ui/icon";
 
 import createAnimatedComponent = Animated.createAnimatedComponent;
 
@@ -151,7 +151,7 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
           >
             {!!backAction && (
               <Touchable onPress={onBack}>
-                <BackIcon fill={theme.color.text} />
+                <Icon name={"back"} />
               </Touchable>
             )}
           </Row>

@@ -7,7 +7,6 @@ import {
   Field,
   Header,
   Image,
-  Input,
   Modal,
   ModalActions,
   ModalHeader,
@@ -17,6 +16,7 @@ import {
   useAttachModal,
   useTransition,
 } from "@components";
+import { TextField } from "@components/ui/input/TextField";
 import {
   BottomSheetView,
   Col,
@@ -24,10 +24,9 @@ import {
   Row,
   useModalRef,
 } from "@force-dev/react-mobile";
+import { StackProps } from "@navigation";
 import React, { FC, memo, useCallback, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
-
-import { StackProps } from "../../../navigation";
 
 export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
@@ -51,6 +50,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
   }, [open]);
 
   const [uri, setUri] = useState<string | null>(null);
+  const [inputValue, setValue] = useState("");
 
   return (
     <Container>
@@ -91,25 +91,17 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           </Row>
 
           <Col style={{ gap: 8 }}>
-            <Input placeholder={"First name"} clearable />
-            <Input
-              variant={"outlined"}
-              placeholder={"Password"}
-              type={"password"}
-              clearable
+            <TextField
+              style={{ marginTop: 16 }}
+              label={"Text field with error"}
+              value={inputValue}
+              error={!inputValue && "Value is required"}
+              clearable={true}
+              hint={"$"}
+              hintPosition={"left"}
+              keyboardType={"numeric"}
+              onChangeText={setValue}
             />
-
-            <Field label={"Test label"} error={"1"} description={"Desc"}>
-              <Input variant={"filled"} placeholder={"Last name"} clearable />
-            </Field>
-
-            <Field label={"Test label"} error={"1"} description={"Desc"}>
-              <Input
-                placeholder={"First name"}
-                clearable
-                inputStyle={{ padding: 0, minHeight: "auto" }}
-              />
-            </Field>
 
             <Field label={"Test label"} error={"1"} description={"Desc"}>
               <Text>{"Test simple text"}</Text>

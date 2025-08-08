@@ -27,8 +27,8 @@ import {
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
 
-import { CameraIcon, FileDocumentIcon, ImageIcon } from "../../icons";
 import { Modal, ModalProps, Touchable } from "../../ui";
+import { Icon } from "../icon";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -230,7 +230,7 @@ export const AttachModalProvider: FC<
                   width={100}
                   radius={8}
                 >
-                  <CameraIcon fill={theme.color.text} />
+                  <Icon name={"camera"} />
                 </Touchable>
               )}
 
@@ -246,7 +246,7 @@ export const AttachModalProvider: FC<
                   width={100}
                   radius={8}
                 >
-                  <ImageIcon fill={theme.color.text} />
+                  <Icon name={"image"} />
                 </Touchable>
               )}
 
@@ -262,7 +262,7 @@ export const AttachModalProvider: FC<
                   width={100}
                   radius={8}
                 >
-                  <FileDocumentIcon fill={"#000"} />
+                  <Icon name={"document"} />
                 </Touchable>
               )}
             </Row>

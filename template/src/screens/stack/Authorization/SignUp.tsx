@@ -2,15 +2,14 @@ import {
   Button,
   Container,
   Content,
-  Field,
   Header,
-  Input,
   ScrollView,
+  TextField,
 } from "@components";
+import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
-import { StackProps } from "../../../navigation";
 import { useSignInVM } from "./hooks";
 
 export const SignUp: FC<StackProps> = observer(() => {
@@ -29,19 +28,17 @@ export const SignUp: FC<StackProps> = observer(() => {
       <Header />
       <Content>
         <ScrollView>
-          <Field label={"Username"}>
-            <Input
-              value={login}
-              onChangeText={text => form.setValue("login", text)}
-            />
-          </Field>
+          <TextField
+            label={"Username"}
+            value={login}
+            onChangeText={text => form.setValue("login", text)}
+          />
 
-          <Field label={"Password"}>
-            <Input
-              value={password}
-              onChangeText={text => form.setValue("password", text)}
-            />
-          </Field>
+          <TextField
+            label={"Password"}
+            value={password}
+            onChangeText={text => form.setValue("password", text)}
+          />
 
           <Button onPress={handleLogin} loading={form.formState.isSubmitting}>
             {"Войти"}

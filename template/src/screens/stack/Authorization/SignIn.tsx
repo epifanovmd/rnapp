@@ -1,16 +1,5 @@
 import { useBiometric } from "@common";
-import {
-  BackIcon,
-  Button,
-  Container,
-  Content,
-  Field,
-  Header,
-  Input,
-  ScrollView,
-  SwitchTheme,
-  Text,
-} from "@components";
+import { Button, Container, Content, TextField } from "@components";
 import { Col, Row } from "@force-dev/react-mobile";
 import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
@@ -35,18 +24,20 @@ export const SignIn: FC<StackProps> = observer(() => {
     <Container>
       <Content justifyContent={"center"}>
         <Col style={{ gap: 8 }}>
-          <Input
+          <TextField
+            label={"Логин"}
             value={login}
-            placeholder={"Логин"}
-            variant={"filled"}
+            iconName={"check"}
+            clearable={true}
             onChangeText={text => form.setValue("login", text)}
           />
 
-          <Input
+          <TextField
+            label={"Пароль"}
             value={password}
-            placeholder={"Пароль"}
-            variant={"filled"}
             onChangeText={text => form.setValue("password", text)}
+            secureTextEntry={true}
+            clearable={true}
           />
 
           <Col mt={8}>

@@ -8,7 +8,7 @@ import {
 } from "react";
 import { ColorValue, StyleProp, View, ViewStyle } from "react-native";
 
-import { CheckBoldIcon } from "../../icons";
+import { Icon } from "../icon";
 import { Touchable, TouchableProps } from "../touchable";
 
 type IconProps = { height: number; width: number; fill: ColorValue };
@@ -39,7 +39,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   unFillColor = "transparent",
   iconColor = "#fff",
 
-  renderIcon = (props: IconProps) => <CheckBoldIcon {...props} />,
+  renderIcon = (props: IconProps) => <Icon name={"checkBold"} {...props} />,
   iconContainerStyle,
   innerIconContainerStyle,
 
