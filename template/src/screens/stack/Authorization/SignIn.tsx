@@ -27,8 +27,6 @@ export const SignIn: FC<StackProps> = observer(() => {
           <TextField
             label={"Логин"}
             value={login}
-            iconName={"check"}
-            clearable={true}
             onChangeText={text => form.setValue("login", text)}
           />
 
@@ -37,7 +35,6 @@ export const SignIn: FC<StackProps> = observer(() => {
             value={password}
             onChangeText={text => form.setValue("password", text)}
             secureTextEntry={true}
-            clearable={true}
           />
 
           <Col mt={8}>
