@@ -36,12 +36,7 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
     const { rejectButton, acceptButton } = useSlotProps(ModalActions, children);
 
     return (
-      <Row
-        marginTop={"auto"}
-        pa={16}
-        justifyContent={"space-between"}
-        {...rest}
-      >
+      <Row marginTop={"auto"} pa={8} justifyContent={"space-between"} {...rest}>
         {!!onReject && (
           <TextButton
             color={rejectColor}

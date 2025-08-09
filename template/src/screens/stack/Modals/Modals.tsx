@@ -4,9 +4,12 @@ import {
   Content,
   Header,
   Modal,
+  ModalActions,
+  ModalHeader,
   Row,
   Text,
   Title,
+  useAttachModal,
   useModalRef,
   useTransition,
 } from "@components";
@@ -16,13 +19,23 @@ import {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { StackProps } from "@navigation";
-import React, { FC, memo } from "react";
+import React, { FC, memo, useCallback } from "react";
 import Animated from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
   const { onScroll, transitionY } = useTransition();
+  const { open } = useAttachModal();
+  const onAttach = useCallback(() => {
+    open({
+      onChange: value => {
+        console.log("value", value);
+      },
+    });
+  }, [open]);
 
-  const modalRef = useModalRef();
+  const modalRefScroll = useModalRef();
+  const modalRefView = useModalRef();
 
   return (
     <Container>
@@ -30,19 +43,24 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
         <Header backAction={true} animatedValue={transitionY} />
 
         <Animated.ScrollView onScroll={onScroll}>
-          <Text>{route.name}</Text>
           <Title />
 
+          <Button onPress={onAttach}>{"Attach"}</Button>
           <Button
-            mv={8}
-            title="Open Bottom Sheet A"
-            onPress={() => modalRef.current?.present()}
+            mt={8}
+            title={"Scroll view modal"}
+            onPress={() => modalRefScroll.current?.present()}
+          />
+          <Button
+            mt={8}
+            title={"View modal"}
+            onPress={() => modalRefView.current?.present()}
           />
         </Animated.ScrollView>
       </Content>
 
       <Modal
-        ref={modalRef}
+        ref={modalRefScroll}
         snapPoints={[100, "30%", "80%"]}
         enableDynamicSizing={false}
       >
@@ -53,6 +71,33 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
             </Row>
           ))}
         </BottomSheetScrollView>
+      </Modal>
+
+      <Modal ref={modalRefView}>
+        <BottomSheetView>
+          <ModalHeader
+            label={"Заголовок"}
+            onClose={() => {
+              modalRefView.current?.dismiss();
+            }}
+          />
+          <Row ph={16}>
+            <Text>{"Контент"}</Text>
+          </Row>
+          <ModalActions
+            onAccept={() => {
+              console.log("onAccept");
+            }}
+            onReject={() => {
+              console.log("onReject");
+              modalRefView.current?.dismiss();
+            }}
+          >
+            <ModalActions.AcceptButton color={"red"} title={"Готово"} />
+            <ModalActions.RejectButton color={"red"} title={"Отмена"} />
+          </ModalActions>
+          <SafeAreaView edges={["bottom"]} />
+        </BottomSheetView>
       </Modal>
     </Container>
   );

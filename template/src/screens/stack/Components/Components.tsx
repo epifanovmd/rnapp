@@ -28,8 +28,6 @@ import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
-  const { open } = useAttachModal();
-  const modalRef = useModalRef();
   const { onScroll, transitionY } = useTransition();
 
   useEffect(() => {
@@ -38,14 +36,6 @@ export const Components: FC<StackProps> = memo(({ route }) => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const onAttach = useCallback(() => {
-    open({
-      onChange: value => {
-        console.log("value", value);
-      },
-    });
-  }, [open]);
 
   const [uri, setUri] = useState<string | null>(null);
   const [inputValue, setValue] = useState("");
@@ -61,13 +51,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
 
           <AnimatedRefreshing percentage={value} />
 
-          <Button onPress={onAttach}>{"Attach button"}</Button>
-
-          <Button
-            mv={8}
-            title={"show modal"}
-            onPress={() => modalRef.current?.present()}
-          />
+          <Button>{"Button"}</Button>
 
           <Row>
             <Checkbox
@@ -132,33 +116,6 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           </Col>
         </Animated.ScrollView>
       </Content>
-
-      <Modal ref={modalRef}>
-        <BottomSheetView>
-          <ModalHeader
-            label={"Заголовок"}
-            onClose={() => {
-              modalRef.current?.close();
-            }}
-          />
-          <Row ph={16}>
-            <Text>{"Контент"}</Text>
-          </Row>
-          <ModalActions
-            onAccept={() => {
-              console.log("onAccept");
-            }}
-            onReject={() => {
-              console.log("onReject");
-              modalRef.current?.close();
-            }}
-          >
-            <ModalActions.AcceptButton color={"red"} title={"Accept"} />
-            <ModalActions.RejectButton color={"red"} title={"Reject"} />
-          </ModalActions>
-          {/* <SafeArea bottom />*/}
-        </BottomSheetView>
-      </Modal>
     </Container>
   );
 });
