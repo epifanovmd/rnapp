@@ -1,4 +1,4 @@
-import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
+import { FlexProps, useFlexProps } from "@components";
 import { useTheme } from "@theme";
 import { FC, memo, PropsWithChildren } from "react";
 import { SvgProps } from "react-native-svg";

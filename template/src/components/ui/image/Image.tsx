@@ -1,8 +1,9 @@
 import { toAbsoluteUrl } from "@api";
-import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
 import React, { FC, memo, useMemo } from "react";
 import { Animated, ImageStyle } from "react-native";
 import FastImage, { FastImageProps } from "react-native-fast-image";
+
+import { FlexProps, useFlexProps } from "../../flexView";
 import createAnimatedComponent = Animated.createAnimatedComponent;
 
 export interface ImageProps

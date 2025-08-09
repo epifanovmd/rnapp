@@ -1,4 +1,3 @@
-import { FlexProps, FlexView } from "@force-dev/react-mobile";
 import { useTheme } from "@theme";
 import React, {
   FC,
@@ -8,6 +7,8 @@ import React, {
   useState,
 } from "react";
 import { ActivityIndicator } from "react-native";
+
+import { FlexProps, FlexView } from "../flexView";
 
 interface IProps extends FlexProps {
   loading?: boolean;

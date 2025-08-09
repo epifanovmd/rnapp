@@ -1,15 +1,4 @@
-import {
-  BottomSheetView,
-  Col,
-  Picker,
-  PickerChangeItem,
-  PickerColumn,
-  PickerItem,
-  PickerProps,
-  Row,
-  SafeArea,
-  useModalRef,
-} from "@force-dev/react-mobile";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
   JSX,
   memo,
@@ -20,8 +9,17 @@ import React, {
   useState,
 } from "react";
 import { ViewProps } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Modal, ModalProps } from "../modal";
+import { Col, Row } from "../../flexView";
+import {
+  Picker,
+  PickerChangeItem,
+  PickerColumn,
+  PickerItem,
+  PickerProps,
+} from "../../picker";
+import { Modal, ModalProps, useModalRef } from "../modal";
 import { Touchable, TouchableProps } from "../touchable";
 
 export interface RangePickerProps<T extends string | number>
@@ -134,7 +132,7 @@ export const RangePicker: RangePicker = memo(
 
     const handleOpen = useCallback(() => {
       onUpdate();
-      modalRef.current?.present();
+      modalRef.current?.expand();
     }, [modalRef, onUpdate]);
 
     const handleFirst = useCallback(
@@ -229,7 +227,7 @@ export const RangePicker: RangePicker = memo(
             </Row>
 
             {renderFooter?.({ onReset, onApply })}
-            <SafeArea bottom={true} />
+            <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
         </Modal>
       </Touchable>

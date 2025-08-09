@@ -2,28 +2,26 @@ import {
   AnimatedRefreshing,
   Button,
   Checkbox,
+  Col,
   Container,
   Content,
   Field,
   Header,
   Image,
+  ImageViewing,
   Modal,
   ModalActions,
   ModalHeader,
+  Row,
   Text,
   Title,
   Touchable,
   useAttachModal,
+  useModalRef,
   useTransition,
 } from "@components";
 import { TextField } from "@components/ui/input/TextField";
-import {
-  BottomSheetView,
-  Col,
-  ImageViewing,
-  Row,
-  useModalRef,
-} from "@force-dev/react-mobile";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { StackProps } from "@navigation";
 import React, { FC, memo, useCallback, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
@@ -68,7 +66,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           <Button
             mv={8}
             title={"show modal"}
-            onPress={() => modalRef.current?.present()}
+            onPress={() => modalRef.current?.expand()}
           />
 
           <Row>
@@ -140,7 +138,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           <ModalHeader
             label={"Заголовок"}
             onClose={() => {
-              modalRef.current?.dismiss();
+              modalRef.current?.close();
             }}
           />
           <Row ph={16}>
@@ -152,7 +150,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
             }}
             onReject={() => {
               console.log("onReject");
-              modalRef.current?.dismiss();
+              modalRef.current?.close();
             }}
           >
             <ModalActions.AcceptButton color={"red"} title={"Accept"} />

@@ -1,10 +1,11 @@
-import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
 import React, { FC, memo } from "react";
 import {
   Animated,
   ScrollView as _ScrollView,
   ScrollViewProps as _ScrollViewProps,
 } from "react-native";
+
+import { FlexProps, useFlexProps } from "../../flexView";
 
 export interface ScrollViewProps
   extends FlexProps,

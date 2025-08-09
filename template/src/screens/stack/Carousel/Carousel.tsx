@@ -1,5 +1,5 @@
 import { Container, Header, Text } from "@components";
-import { Col } from "@force-dev/react-mobile";
+import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import { ImageStyle, StyleProp } from "react-native";
@@ -12,7 +12,6 @@ import {
 } from "react-native-reanimated-carousel";
 import Carousel from "react-native-reanimated-carousel";
 
-import { StackProps } from "../../../navigation";
 import { SlideItem } from "./SlideItem";
 
 const defaultDataWith6Colors = [

@@ -1,4 +1,4 @@
-import { ImageViewingProps } from "@force-dev/react-mobile";
+import { ImageViewingProps } from "@components";
 import React, { FC } from "react";
 import {
   ImageProps,

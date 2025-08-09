@@ -1,8 +1,11 @@
-import { useBiometric } from "@common";
-import { AttachModalProvider, TransitionProvider } from "@components";
-import { HoldItemProvider } from "@force-dev/react-mobile";
+import {
+  AttachModalProvider,
+  HoldItemProvider,
+  TransitionProvider,
+} from "@components";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { navigationRef } from "@navigation";
 import notifee from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log } from "@service";
@@ -20,7 +23,6 @@ import {
 } from "react-native-safe-area-context";
 
 import { initLocalization, useTranslation } from "../localization";
-import { navigationRef } from "../navigation";
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
 

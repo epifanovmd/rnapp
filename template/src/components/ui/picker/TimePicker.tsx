@@ -1,18 +1,5 @@
 import { useModalStyles } from "@common";
-import {
-  BottomSheetView,
-  Col,
-  IModalProps,
-  Modal,
-  Picker,
-  PickerChangeItem,
-  PickerColumn,
-  PickerItem,
-  PickerProps,
-  Row,
-  SafeArea,
-  useModalRef,
-} from "@force-dev/react-mobile";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
   FC,
   JSX,
@@ -24,7 +11,17 @@ import React, {
   useState,
 } from "react";
 import { ViewProps } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Col, Row } from "../../flexView";
+import {
+  Picker,
+  PickerChangeItem,
+  PickerColumn,
+  PickerItem,
+  PickerProps,
+} from "../../picker";
+import { Modal, ModalProps, useModalRef } from "../modal";
 import { Touchable, TouchableProps } from "../touchable";
 
 export interface TimePickerProps extends TouchableProps {
@@ -32,7 +29,7 @@ export interface TimePickerProps extends TouchableProps {
   onChange?: (time: string) => void;
 
   pickerProps?: PickerProps;
-  modalProps?: IModalProps;
+  modalProps?: ModalProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;
@@ -104,7 +101,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const handleOpen = useCallback(() => {
       onReset();
-      modalRef.current?.present();
+      modalRef.current?.expand();
     }, [modalRef, onReset]);
 
     const handleFirst = useCallback(
@@ -195,7 +192,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
             </Row>
 
             {renderFooter?.({ onReset, onApply })}
-            <SafeArea bottom />
+            <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
         </Modal>
       </Touchable>

@@ -1,10 +1,10 @@
 import { useApi } from "@api";
-import { useNotification } from "@force-dev/react-mobile";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigation } from "@navigation";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 
-import { useNavigation } from "../../../../navigation";
+import { useNotification } from "../../../../notification";
 import {
   recoveryPasswordValidationSchema,
   TRecoveryPasswordForm,

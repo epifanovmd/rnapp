@@ -1,9 +1,7 @@
-import { Container, Content, Header } from "@components";
-import { Col } from "@force-dev/react-mobile";
+import { Col, Container, Content, Header } from "@components";
+import { StackProps } from "@navigation";
 import LottieView from "lottie-react-native";
 import React, { FC, memo } from "react";
-
-import { StackProps } from "../../../navigation";
 
 export const Lottie: FC<StackProps> = memo(() => {
   return (

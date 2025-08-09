@@ -1,5 +1,6 @@
-import { Col, FlexProps } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
+
+import { Col, FlexProps } from "../flexView";
 
 interface IProps extends FlexProps {}
 

@@ -1,8 +1,8 @@
-import { FlexProps, Row } from "@force-dev/react-mobile";
+import { DEFAULT_LIGHT_THEME_ID, useTheme } from "@theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 import SwitchToggle from "react-native-switch-toggle";
 
-import { DEFAULT_LIGHT_THEME_ID, useTheme } from "../../theme";
+import { FlexProps, Row } from "../flexView";
 
 interface IProps extends FlexProps {}
 

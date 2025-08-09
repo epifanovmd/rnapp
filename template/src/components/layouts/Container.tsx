@@ -1,34 +1,22 @@
-import { Col, FlexProps, SafeArea } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
-import { ViewProps } from "react-native";
+import { StyleSheet, ViewProps } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Edges } from "react-native-safe-area-context/src/SafeArea.types";
+
+import { Col, FlexProps } from "../flexView";
 
 interface IProps extends FlexProps, ViewProps {
-  safeAreBottom?: boolean;
-  safeAreLeft?: boolean;
-  safeAreRight?: boolean;
-  safeAreTop?: boolean;
+  edges?: Edges;
 }
 
 export const Container: FC<PropsWithChildren<IProps>> = memo(
-  ({
-    safeAreBottom = true,
-    safeAreLeft,
-    safeAreRight,
-    safeAreTop = true,
-    children,
-    ...rest
-  }) => {
+  ({ edges = ["top", "bottom"] as Edges, style, children, ...rest }) => {
     return (
-      <SafeArea
-        bottom={safeAreBottom}
-        left={safeAreLeft}
-        right={safeAreRight}
-        top={safeAreTop}
-      >
+      <SafeAreaView edges={edges} style={[{ flex: 1 }, style]}>
         <Col flex={1} {...rest}>
           {children}
         </Col>
-      </SafeArea>
+      </SafeAreaView>
     );
   },
 );

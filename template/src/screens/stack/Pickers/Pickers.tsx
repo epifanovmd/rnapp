@@ -1,4 +1,5 @@
 import {
+  Col,
   Container,
   Content,
   DatePicker,
@@ -9,10 +10,8 @@ import {
   TimePicker,
   YearRangePicker,
 } from "@components";
-import { Col } from "@force-dev/react-mobile";
+import { StackProps } from "@navigation";
 import React, { FC, memo } from "react";
-
-import { StackProps } from "../../../navigation";
 
 export const Pickers: FC<StackProps> = memo(({ route }) => (
   <Container>

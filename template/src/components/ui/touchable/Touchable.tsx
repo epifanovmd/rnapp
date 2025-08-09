@@ -1,4 +1,3 @@
-import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
 import React, { FC, memo, useCallback } from "react";
 import {
   GestureResponderEvent,
@@ -10,6 +9,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+
+import { FlexProps, useFlexProps } from "../../flexView";
 
 export interface TouchableProps<T = unknown>
   extends FlexProps,

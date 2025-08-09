@@ -1,8 +1,8 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { FlexProps, Row } from "@force-dev/react-mobile";
 import React, { FC, memo, PropsWithChildren } from "react";
 import { ColorValue } from "react-native";
 
+import { FlexProps, Row } from "../../flexView";
 import { ButtonProps, TextButton } from "../../ui";
 
 export interface ModalActionsProps extends FlexProps {

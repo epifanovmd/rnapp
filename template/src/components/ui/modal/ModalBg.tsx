@@ -1,8 +1,8 @@
-import { useBottomSheetInternal } from "@force-dev/react-mobile";
 import {
   BottomSheetBackdropProps,
   useBottomSheet,
   useBottomSheetGestureHandlers,
+  useBottomSheetInternal,
 } from "@gorhom/bottom-sheet";
 import { memo, useMemo } from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";

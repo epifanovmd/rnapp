@@ -1,10 +1,11 @@
 import { useApi } from "@api";
-import { useNotification } from "@force-dev/react-mobile";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useSessionDataStore } from "@store";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
 import { getDeviceName, getUniqueId } from "react-native-device-info";
+
+import { useNotification } from "../../notification";
 
 const biometrics = new ReactNativeBiometrics();
 

@@ -1,9 +1,9 @@
-import { Col, FlexProps, Row, useFlexProps } from "@force-dev/react-mobile";
+import { useRoute } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren } from "react";
 
 import { useTranslation } from "../../../localization";
-import { useRoute } from "../../../navigation";
+import { Col, FlexProps, Row, useFlexProps } from "../../flexView";
 import { Text, TextProps } from "../text";
 
 export interface TitleProps extends FlexProps {

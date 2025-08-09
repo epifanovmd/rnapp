@@ -1,9 +1,4 @@
-import {
-  BottomSheetView,
-  Row,
-  SafeArea,
-  useModalRef,
-} from "@force-dev/react-mobile";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { pick } from "@react-native-documents/picker";
 import { PredefinedFileTypes } from "@react-native-documents/picker/src/fileTypes";
 import { useTheme } from "@theme";
@@ -26,9 +21,12 @@ import {
   PhotoQuality,
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Row } from "../../flexView";
 import { Modal, ModalProps, Touchable } from "../../ui";
 import { Icon } from "../icon";
+import { useModalRef } from "./hooks";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -124,7 +122,8 @@ export const AttachModalProvider: FC<
           setFiles(value?.files ?? files);
 
           _onChange.current = value.onChange;
-          ref.current?.present();
+          console.log("ref.current", ref.current);
+          ref.current?.expand();
         },
       }),
       [
@@ -138,6 +137,8 @@ export const AttachModalProvider: FC<
         selectionLimit,
       ],
     );
+
+    console.log("ref.current", ref.current);
 
     const _launchImageLibrary = useCallback(() => {
       ref.current?.close();
@@ -216,7 +217,7 @@ export const AttachModalProvider: FC<
       <AttachModalContext.Provider value={contextValue}>
         {children}
         <Modal ref={ref} {...rest}>
-          <BottomSheetView>
+          <BottomSheetView style={{ flex: 1 }}>
             <Row pa={16}>
               {_camera && (
                 <Touchable
@@ -266,7 +267,7 @@ export const AttachModalProvider: FC<
                 </Touchable>
               )}
             </Row>
-            <SafeArea bottom={true} />
+            <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
         </Modal>
       </AttachModalContext.Provider>

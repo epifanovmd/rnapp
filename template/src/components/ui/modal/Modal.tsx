@@ -2,17 +2,16 @@ import { useModalStyles } from "@common";
 import {
   BottomSheetHandle,
   BottomSheetHandleProps,
-  IModalProps as FDModalProps,
-  Modal as FDModal,
-  ModalRef as FDModalRef,
-} from "@force-dev/react-mobile";
+  BottomSheetModal,
+  BottomSheetModalProps,
+} from "@gorhom/bottom-sheet";
 import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ModalBackdrop } from "./ModalBg";
 
-export type ModalProps = FDModalProps;
-export type Modal = FDModalRef;
+export type ModalProps = BottomSheetModalProps;
+export type Modal = BottomSheetModal;
 
 export const Modal = memo(
   forwardRef<Modal, PropsWithChildren<ModalProps>>((props, ref) => {
@@ -31,7 +30,7 @@ export const Modal = memo(
     );
 
     return (
-      <FDModal
+      <BottomSheetModal
         ref={ref}
         {...modalStyles}
         topInset={top}
@@ -41,7 +40,7 @@ export const Modal = memo(
         {...props}
       >
         {props.children}
-      </FDModal>
+      </BottomSheetModal>
     );
   }),
 );

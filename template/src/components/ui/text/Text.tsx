@@ -1,4 +1,3 @@
-import { FlexProps, useFlexProps } from "@force-dev/react-mobile";
 import { ITheme, useTheme, useThemeAwareObject } from "@theme";
 import React, { FC, memo } from "react";
 import {
@@ -8,6 +7,8 @@ import {
   TextProps as RNTextProps,
   TextStyle,
 } from "react-native";
+
+import { FlexProps, useFlexProps } from "../../flexView";
 
 export interface TextProps extends FlexProps<TextStyle>, RNTextProps {
   text?: string;

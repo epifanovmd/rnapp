@@ -1,10 +1,8 @@
-import {
-  NotificationProvider,
-  NotificationToastProps,
-} from "@force-dev/react-mobile";
 import React, { FC, PropsWithChildren, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { NotificationProvider, NotificationToastProps } from "../notification";
 
 export const AppNotifications: FC<PropsWithChildren> = ({ children }) => {
   const { top } = useSafeAreaInsets();

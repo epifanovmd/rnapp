@@ -1,4 +1,4 @@
-import { ImageViewingProps } from "@force-dev/react-mobile";
+import { ImageViewingProps } from "@components";
 import React, { forwardRef, memo } from "react";
 import {
   Image,

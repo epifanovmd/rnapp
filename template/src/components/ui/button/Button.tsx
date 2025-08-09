@@ -1,4 +1,3 @@
-import { Row } from "@force-dev/react-mobile";
 import { isString } from "@force-dev/utils";
 import React, { memo } from "react";
 import {
@@ -10,6 +9,7 @@ import {
   ViewStyle,
 } from "react-native";
 
+import { Row } from "../../flexView";
 import { Text } from "../text";
 import { Touchable, TouchableProps } from "../touchable";
 

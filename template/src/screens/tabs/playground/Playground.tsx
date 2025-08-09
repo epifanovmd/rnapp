@@ -4,11 +4,11 @@ import {
   Container,
   Content,
   Header,
+  Row,
   ScrollView,
   SwitchTheme,
   Text,
 } from "@components";
-import { Col, Row } from "@force-dev/react-mobile";
 import { AppScreenProps } from "@navigation";
 import { useSessionDataStore, useUserDataStore } from "@store";
 import { observer } from "mobx-react-lite";
@@ -22,7 +22,7 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
   const { support, registration } = useBiometric();
 
   return (
-    <Container safeAreBottom={false}>
+    <Container edges={["top"]}>
       <Header />
 
       <ScrollView>

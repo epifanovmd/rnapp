@@ -27,7 +27,7 @@ export const WebView: FC<StackProps<"WebView">> = memo(({ route }) => {
   }));
 
   return (
-    <Container safeAreTop={false} safeAreBottom={false}>
+    <Container edges={[]}>
       <Header backAction={true} title={params.title} />
 
       <Animated.View style={[styles.progressBar, animatedStyle]} />

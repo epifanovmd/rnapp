@@ -1,4 +1,4 @@
-import { FlexProps, Row } from "@force-dev/react-mobile";
+import { FlexProps, Row } from "@components";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 import SwitchToggle from "react-native-switch-toggle";
 

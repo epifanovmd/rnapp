@@ -1,4 +1,5 @@
-import { Col, Row } from "@force-dev/react-mobile";
+import { useNavigation, useRoute } from "@navigation";
+import { useTheme } from "@theme";
 import { observer } from "mobx-react-lite";
 import React, {
   FC,
@@ -20,8 +21,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useTranslation } from "../../localization";
-import { useNavigation, useRoute } from "../../navigation";
-import { useTheme } from "../../theme";
+import { Col, Row } from "../flexView";
 import { Text, Touchable } from "../ui";
 import { Icon } from "../ui/icon";
 

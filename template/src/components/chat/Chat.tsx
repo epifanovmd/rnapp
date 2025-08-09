@@ -1,4 +1,4 @@
-import { ImageViewingProps } from "@force-dev/react-mobile";
+import { ImageViewingProps } from "@components";
 import { FlashList, FlashListProps } from "@shopify/flash-list";
 import React, {
   createRef,

@@ -1275,8 +1275,6 @@ PODS:
     - React-jsiexecutor
     - React-RCTFBReactNativeSpec
     - ReactCommon/turbomodule/core
-  - react-mobile (0.0.152):
-    - React-Core
   - react-native-biometrics (3.0.1):
     - React-Core
   - react-native-blob-util (0.22.2):
@@ -2190,7 +2188,6 @@ DEPENDENCIES:
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
   - React-microtasksnativemodule (from `../node_modules/react-native/ReactCommon/react/nativemodule/microtasks`)
-  - "react-mobile (from `../node_modules/@force-dev/react-mobile`)"
   - react-native-biometrics (from `../node_modules/react-native-biometrics`)
   - react-native-blob-util (from `../node_modules/react-native-blob-util`)
   - "react-native-blur (from `../node_modules/@react-native-community/blur`)"
@@ -2334,8 +2331,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   React-microtasksnativemodule:
     :path: "../node_modules/react-native/ReactCommon/react/nativemodule/microtasks"
-  react-mobile:
-    :path: "../node_modules/@force-dev/react-mobile"
   react-native-biometrics:
     :path: "../node_modules/react-native-biometrics"
   react-native-blob-util:
@@ -2488,7 +2483,6 @@ SPEC CHECKSUMS:
   React-logger: 74ddb793d36b48bba176328c7af75e5e656fd405
   React-Mapbuffer: 39e87693178fd6483bb5ca8b851fae362d49409a
   React-microtasksnativemodule: b740ebae7fad70aa78bc24cc0dfc15ac9637b6eb
-  react-mobile: 5bcc42871b90e0c8f53de4dd21b40e2a0a736d4b
   react-native-biometrics: 43ed5b828646a7862dbc7945556446be00798e7d
   react-native-blob-util: 6c24f01d84371a7db0e5265beea34dd7619f0f0a
   react-native-blur: c4d838e8cd2896379328aec8a600c6ddad589c78

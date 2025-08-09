@@ -4,16 +4,16 @@ import {
   Content,
   Header,
   Modal,
+  Row,
   Text,
   Title,
+  useModalRef,
   useTransition,
 } from "@components";
-import { Col, Row, useModalRef } from "@force-dev/react-mobile";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { StackProps } from "@navigation";
 import React, { FC, memo } from "react";
 import Animated from "react-native-reanimated";
-
-import { StackProps } from "../../../navigation";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
   const { onScroll, transitionY } = useTransition();
@@ -32,7 +32,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           <Button
             mv={8}
             title="Open Bottom Sheet A"
-            onPress={() => modalRef.current?.present()}
+            onPress={() => modalRef.current?.expand()}
           />
 
           <Button

@@ -1,8 +1,8 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { Col, Row } from "@force-dev/react-mobile";
 import { useTheme } from "@theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 
+import { Col, Row } from "../../flexView";
 import { Text, TextProps } from "../text";
 import { Touchable, TouchableProps } from "../touchable";
 
