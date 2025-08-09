@@ -66,7 +66,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
           <Button
             mv={8}
             title={"show modal"}
-            onPress={() => modalRef.current?.expand()}
+            onPress={() => modalRef.current?.present()}
           />
 
           <Row>

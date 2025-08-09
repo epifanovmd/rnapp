@@ -122,8 +122,7 @@ export const AttachModalProvider: FC<
           setFiles(value?.files ?? files);
 
           _onChange.current = value.onChange;
-          console.log("ref.current", ref.current);
-          ref.current?.expand();
+          ref.current?.present();
         },
       }),
       [
@@ -137,8 +136,6 @@ export const AttachModalProvider: FC<
         selectionLimit,
       ],
     );
-
-    console.log("ref.current", ref.current);
 
     const _launchImageLibrary = useCallback(() => {
       ref.current?.close();

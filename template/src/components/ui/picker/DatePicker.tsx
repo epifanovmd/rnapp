@@ -217,7 +217,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const handleOpen = useCallback(() => {
       onReset();
-      modalRef.current?.expand();
+      modalRef.current?.present();
     }, [modalRef, onReset]);
 
     return (

@@ -181,30 +181,28 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
       );
 
       return (
-        <GestureHandlerRootView style={styles.wrap}>
-          <HoldItemContext.Provider value={contextValue}>
-            <PortalProvider>
-              {children}
-              <Backdrop />
-              <Animated.ScrollView
-                style={[styles.holdItem, animatedPortalStyle]}
-                animatedProps={animatedPortalProps}
-                bounces={false}
-                contentContainerStyle={styles.content}
-              >
-                {value?.content}
-              </Animated.ScrollView>
-              {value?.menu && (
-                <HoldMenu
-                  items={value.menu}
-                  transformContent={transformContent}
-                  menuPosition={menuPosition}
-                  onLayout={onChangeMenuHeight}
-                />
-              )}
-            </PortalProvider>
-          </HoldItemContext.Provider>
-        </GestureHandlerRootView>
+        <HoldItemContext.Provider value={contextValue}>
+          <PortalProvider>
+            {children}
+            <Backdrop />
+            <Animated.ScrollView
+              style={[styles.holdItem, animatedPortalStyle]}
+              animatedProps={animatedPortalProps}
+              bounces={false}
+              contentContainerStyle={styles.content}
+            >
+              {value?.content}
+            </Animated.ScrollView>
+            {value?.menu && (
+              <HoldMenu
+                items={value.menu}
+                transformContent={transformContent}
+                menuPosition={menuPosition}
+                onLayout={onChangeMenuHeight}
+              />
+            )}
+          </PortalProvider>
+        </HoldItemContext.Provider>
       );
     },
   );

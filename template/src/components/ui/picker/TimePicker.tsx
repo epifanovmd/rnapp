@@ -101,7 +101,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const handleOpen = useCallback(() => {
       onReset();
-      modalRef.current?.expand();
+      modalRef.current?.present();
     }, [modalRef, onReset]);
 
     const handleFirst = useCallback(

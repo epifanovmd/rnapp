@@ -61,15 +61,15 @@ export const App: FC = observer(() => {
         <ThemeProvider>
           <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
           <SafeAreaProvider>
-            <BottomSheetModalProvider>
-              <_HoldItemProvider>
+            <_HoldItemProvider>
+              <BottomSheetModalProvider>
                 <AttachModalProvider>
                   <AppNotifications>
                     <AppNavigator ref={navigationRef} />
                   </AppNotifications>
                 </AttachModalProvider>
-              </_HoldItemProvider>
-            </BottomSheetModalProvider>
+              </BottomSheetModalProvider>
+            </_HoldItemProvider>
           </SafeAreaProvider>
         </ThemeProvider>
       </TransitionProvider>

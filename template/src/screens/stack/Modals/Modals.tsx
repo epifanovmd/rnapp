@@ -10,7 +10,11 @@ import {
   useModalRef,
   useTransition,
 } from "@components";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import {
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
 import { StackProps } from "@navigation";
 import React, { FC, memo } from "react";
 import Animated from "react-native-reanimated";
@@ -32,13 +36,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           <Button
             mv={8}
             title="Open Bottom Sheet A"
-            onPress={() => modalRef.current?.expand()}
-          />
-
-          <Button
-            mv={8}
-            title="Close Bottom Sheet A"
-            onPress={() => modalRef.current?.close()}
+            onPress={() => modalRef.current?.present()}
           />
         </Animated.ScrollView>
       </Content>

@@ -132,7 +132,7 @@ export const RangePicker: RangePicker = memo(
 
     const handleOpen = useCallback(() => {
       onUpdate();
-      modalRef.current?.expand();
+      modalRef.current?.present();
     }, [modalRef, onUpdate]);
 
     const handleFirst = useCallback(
