@@ -9,11 +9,11 @@ import {
 import { ColorValue, StyleProp, View, ViewStyle } from "react-native";
 
 import { Icon } from "../icon";
-import { Touchable, TouchableProps } from "../touchable";
+import { ITouchableProps, Touchable } from "../touchable";
 
 type IconProps = { height: number; width: number; fill: ColorValue };
 
-export interface CheckboxProps extends Omit<TouchableProps, "onPress"> {
+export interface CheckboxProps extends Omit<ITouchableProps, "onPress"> {
   size?: number;
   radius?: number;
   checked?: boolean;

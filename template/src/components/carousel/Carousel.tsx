@@ -15,7 +15,7 @@ import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { Col, FlexProps, Row } from "../flexView";
 
-export interface CarouselProps<T = any>
+export interface ICarouselProps<T = any>
   extends Omit<
     FlatListProps<T>,
     | "ListEmptyComponent"
@@ -33,11 +33,11 @@ export interface CarouselProps<T = any>
 }
 
 export interface CarouselFC<P = null> {
-  <T>(props: CarouselProps<P extends null ? T : P>): ReturnType<FC>;
+  <T>(props: ICarouselProps<P extends null ? T : P>): ReturnType<FC>;
 }
 
 export const Carousel: CarouselFC = memo(
-  forwardRef<FlatList, CarouselProps>(
+  forwardRef<FlatList, ICarouselProps>(
     (
       {
         renderItem,

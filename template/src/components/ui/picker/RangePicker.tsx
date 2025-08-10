@@ -12,18 +12,18 @@ import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Col, Row } from "../../flexView";
+import { Modal, ModalProps, useModalRef } from "../modal";
+import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
   PickerChangeItem,
   PickerColumn,
   PickerItem,
   PickerProps,
-} from "../../picker";
-import { Modal, ModalProps, useModalRef } from "../modal";
-import { Touchable, TouchableProps } from "../touchable";
+} from "./shared";
 
 export interface RangePickerProps<T extends string | number>
-  extends TouchableProps {
+  extends ITouchableProps {
   items: T[];
   range?: [T | undefined, T | undefined] | null;
   onChange?: (range: [T, T]) => void;

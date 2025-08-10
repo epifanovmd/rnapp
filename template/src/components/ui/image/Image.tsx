@@ -1,10 +1,10 @@
 import { toAbsoluteUrl } from "@api";
 import React, { FC, memo, useMemo } from "react";
-import { Animated, ImageStyle } from "react-native";
+import { ImageStyle } from "react-native";
 import FastImage, { FastImageProps } from "react-native-fast-image";
+import Animated from "react-native-reanimated";
 
 import { FlexProps, useFlexProps } from "../../flexView";
-import createAnimatedComponent = Animated.createAnimatedComponent;
 
 export interface ImageProps
   extends FlexProps<ImageStyle>,
@@ -12,7 +12,7 @@ export interface ImageProps
   url: string;
 }
 
-const AnimatedFastImage = createAnimatedComponent(FastImage);
+const AnimatedFastImage = Animated.createAnimatedComponent(FastImage);
 
 export const Image: FC<ImageProps> = memo(props => {
   const { style, ownProps, animated } = useFlexProps(props);

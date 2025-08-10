@@ -20,7 +20,7 @@ import { LayoutChangeEvent } from "react-native/Libraries/Types/CoreEventTypes";
 
 import AnimatedProps = Animated.AnimatedProps;
 
-export interface CollapsableProps extends ViewProps {
+export interface ICollapsableProps extends ViewProps {
   collapsed: boolean;
   collapsedHeight?: number;
   duration?: number;
@@ -39,7 +39,7 @@ export interface Collapsable {
 }
 
 export const Collapsable = memo(
-  forwardRef<Collapsable, PropsWithChildren<CollapsableProps>>(
+  forwardRef<Collapsable, PropsWithChildren<ICollapsableProps>>(
     (
       {
         collapsed: initialCollapsed = false,

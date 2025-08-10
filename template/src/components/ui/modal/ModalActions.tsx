@@ -3,7 +3,7 @@ import React, { FC, memo, PropsWithChildren } from "react";
 import { ColorValue } from "react-native";
 
 import { FlexProps, Row } from "../../flexView";
-import { ButtonProps, TextButton } from "../../ui";
+import { IButtonProps, TextButton } from "../../ui";
 
 export interface ModalActionsProps extends FlexProps {
   onReject?: () => void;
@@ -14,8 +14,8 @@ export interface ModalActionsProps extends FlexProps {
   rejectColor?: ColorValue;
 }
 
-const RejectButton = createSlot<Omit<ButtonProps, "onPress">>("RejectButton");
-const AcceptButton = createSlot<Omit<ButtonProps, "onPress">>("AcceptButton");
+const RejectButton = createSlot<Omit<IButtonProps, "onPress">>("RejectButton");
+const AcceptButton = createSlot<Omit<IButtonProps, "onPress">>("AcceptButton");
 
 export interface ModalActionsSlots {
   RejectButton: typeof RejectButton;

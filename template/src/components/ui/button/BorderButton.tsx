@@ -1,8 +1,8 @@
 import React, { FC, memo } from "react";
 
-import { Button, ButtonProps } from "./Button";
+import { Button, IButtonProps } from "./Button";
 
-interface BorderButtonProps extends ButtonProps {}
+interface BorderButtonProps extends IButtonProps {}
 
 export const BorderButton: FC<BorderButtonProps> = memo(
   ({ color = "#000", ...rest }) => {

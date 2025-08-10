@@ -3,18 +3,18 @@ import { useTheme } from "@theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 
 import { Col, Row } from "../../flexView";
-import { Text, TextProps } from "../text";
-import { Touchable, TouchableProps } from "../touchable";
+import { ITextProps, Text } from "../text";
+import { ITouchableProps, Touchable } from "../touchable";
 
-export interface FieldProps extends TouchableProps {
+export interface FieldProps extends ITouchableProps {
   label?: string;
   error?: string;
   description?: string;
 }
 
-const Label = createSlot<TextProps>("Label");
-const Description = createSlot<TextProps>("Description");
-const Error = createSlot<TextProps>("Error");
+const Label = createSlot<ITextProps>("Label");
+const Description = createSlot<ITextProps>("Description");
+const Error = createSlot<ITextProps>("Error");
 
 const _Field: FC<PropsWithChildren<FieldProps>> = memo(
   ({

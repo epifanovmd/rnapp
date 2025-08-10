@@ -1,16 +1,16 @@
+import { ScreenName } from "@navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import React, { FC, memo, useCallback } from "react";
 
-import { ScreenName } from "../../navigation";
-import { Touchable, TouchableProps } from "../ui";
+import { ITouchableProps, Touchable } from "../ui";
 
-interface IProps extends TouchableProps {
+export interface INavLinkProps extends ITouchableProps {
   to: ScreenName;
   screen?: ScreenName;
   params?: { [key in string]: string | number | undefined };
 }
 
-export const NavLink: FC<IProps> = memo(
+export const NavLink: FC<INavLinkProps> = memo(
   ({ children, to, params, screen, ...rest }) => {
     const { navigate } = useNavigation<NavigationProp<any>>();
 

@@ -11,9 +11,9 @@ import {
 
 import { Row } from "../../flexView";
 import { Text } from "../text";
-import { Touchable, TouchableProps } from "../touchable";
+import { ITouchableProps, Touchable } from "../touchable";
 
-export interface ButtonProps<T = unknown> extends TouchableProps<T> {
+export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
   loading?: boolean;
   leftSlot?: React.JSX.Element;
   title?: React.JSX.Element | string;
@@ -35,7 +35,7 @@ const _Button = <T extends any = unknown>({
   indicatorProps,
   children,
   ...rest
-}: ButtonProps<T>) => {
+}: IButtonProps<T>) => {
   return (
     <Touchable
       activeOpacity={0.7}
@@ -51,11 +51,9 @@ const _Button = <T extends any = unknown>({
       {...rest}
       disabled={rest.disabled || loading}
     >
-      {!!loading && (
+      {loading ? (
         <ActivityIndicator size="small" color={color} {...indicatorProps} />
-      )}
-
-      {!loading && (
+      ) : (
         <Row alignItems={"center"} style={contentStyle}>
           {leftSlot}
 

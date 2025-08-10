@@ -1,11 +1,11 @@
 import { useTheme } from "@theme";
 import React, { FC, memo } from "react";
 
-import { Button, ButtonProps } from "./Button";
+import { Button, IButtonProps } from "./Button";
 
-interface TextButtonProps extends ButtonProps {}
+interface ITextButtonProps extends IButtonProps {}
 
-export const TextButton: FC<TextButtonProps> = memo(({ ...rest }) => {
+export const TextButton: FC<ITextButtonProps> = memo(({ ...rest }) => {
   const { theme } = useTheme();
 
   return (

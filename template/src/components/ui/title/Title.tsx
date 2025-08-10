@@ -4,16 +4,15 @@ import React, { FC, PropsWithChildren } from "react";
 
 import { useTranslation } from "../../../localization";
 import { Col, FlexProps, Row, useFlexProps } from "../../flexView";
-import { Text, TextProps } from "../text";
+import { ITextProps, Text } from "../text";
 
-export interface TitleProps extends FlexProps {
+export interface ITitleProps extends FlexProps {
   title?: string;
   rightSlot?: React.JSX.Element;
-
-  textProps?: TextProps;
+  textProps?: ITextProps;
 }
 
-export const Title: FC<PropsWithChildren<TitleProps>> = observer(
+export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
   ({ title, rightSlot, textProps, children, ...rest }) => {
     const { flexProps, animated } = useFlexProps(rest);
     const route = useRoute();

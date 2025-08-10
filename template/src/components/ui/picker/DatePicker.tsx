@@ -17,15 +17,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { useTranslation } from "../../../localization";
 import { Col, Row } from "../../flexView";
+import { Modal, ModalProps, useModalRef } from "../modal";
+import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
   PickerChangeItem,
   PickerColumn,
   PickerItem,
   PickerProps,
-} from "../../picker";
-import { Modal, ModalProps, useModalRef } from "../modal";
-import { Touchable, TouchableProps } from "../touchable";
+} from "./shared";
 
 dayjs.extend(localeData);
 
@@ -60,7 +60,7 @@ const generateDays = (month: number, year: number) => {
   );
 };
 
-export interface DatePickerProps extends TouchableProps {
+export interface DatePickerProps extends ITouchableProps {
   date?: dayjs.Dayjs | null;
   onChange: (date: dayjs.Dayjs) => void;
 

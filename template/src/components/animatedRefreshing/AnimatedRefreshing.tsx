@@ -18,7 +18,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 export const AnimatedRefreshing = memo(
   forwardRef<Svg, AnimatedCircularProgressProps>(
     (
-      { radius = 16, color = "#ff457a", percentage, borderWidth = 4, ...rest },
+      { radius = 16, color = "#458fff", percentage, borderWidth = 4, ...rest },
       ref,
     ) => {
       const loaderRadius = PixelRatio.roundToNearestPixel(radius);

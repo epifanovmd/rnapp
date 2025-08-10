@@ -1,24 +1,26 @@
 import React, { FC, memo } from "react";
 import {
-  Animated,
-  ScrollView as _ScrollView,
-  ScrollViewProps as _ScrollViewProps,
+  ScrollView as RNScrollView,
+  ScrollViewProps as RNScrollViewProps,
 } from "react-native";
+import Animated from "react-native-reanimated";
 
 import { FlexProps, useFlexProps } from "../../flexView";
 
-export interface ScrollViewProps
+export interface IScrollViewProps
   extends FlexProps,
-    Omit<_ScrollViewProps, "style" | "centerContent"> {}
+    Omit<RNScrollViewProps, "style" | "centerContent"> {}
 
-export const ScrollView: FC<ScrollViewProps> = memo(({ children, ...rest }) => {
-  const { style, ownProps, animated } = useFlexProps(rest);
+export const ScrollView: FC<IScrollViewProps> = memo(
+  ({ children, ...rest }) => {
+    const { style, ownProps, animated } = useFlexProps(rest);
 
-  const Component = animated ? Animated.ScrollView : _ScrollView;
+    const Component = animated ? Animated.ScrollView : RNScrollView;
 
-  return (
-    <Component style={style} {...ownProps}>
-      {children}
-    </Component>
-  );
-});
+    return (
+      <Component style={style} {...ownProps}>
+        {children}
+      </Component>
+    );
+  },
+);
