@@ -150,7 +150,7 @@ export const Header: FC<PropsWithChildren<IProps>> = observer(
             alignItems={"center"}
           >
             {!!backAction && (
-              <Touchable onPress={onBack}>
+              <Touchable pa={8} onPress={onBack}>
                 <Icon name={"back"} />
               </Touchable>
             )}

@@ -1,21 +1,21 @@
 import React, { FC, memo, PropsWithChildren } from "react";
-import { StyleSheet, ViewProps } from "react-native";
+import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Edges } from "react-native-safe-area-context/src/SafeArea.types";
 
-import { Col, FlexProps } from "../flexView";
+import { FlexProps, useFlexProps } from "../flexView";
 
 interface IProps extends FlexProps, ViewProps {
   edges?: Edges;
 }
 
 export const Container: FC<PropsWithChildren<IProps>> = memo(
-  ({ edges = ["top", "bottom"] as Edges, style, children, ...rest }) => {
+  ({ edges = ["top", "bottom"] as Edges, children, ...rest }) => {
+    const { style, ownProps } = useFlexProps(rest, { flex: 1 });
+
     return (
-      <SafeAreaView edges={edges} style={[{ flex: 1 }, style]}>
-        <Col flex={1} {...rest}>
-          {children}
-        </Col>
+      <SafeAreaView edges={edges} style={style} {...ownProps}>
+        {children}
       </SafeAreaView>
     );
   },

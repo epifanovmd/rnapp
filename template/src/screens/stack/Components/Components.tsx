@@ -9,21 +9,15 @@ import {
   Header,
   Image,
   ImageViewing,
-  Modal,
-  ModalActions,
-  ModalHeader,
   Row,
   Text,
   Title,
   Touchable,
-  useAttachModal,
-  useModalRef,
   useTransition,
 } from "@components";
 import { TextField } from "@components/ui/input/TextField";
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { StackProps } from "@navigation";
-import React, { FC, memo, useCallback, useEffect, useState } from "react";
+import React, { FC, memo, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 export const Components: FC<StackProps> = memo(({ route }) => {
@@ -42,9 +36,8 @@ export const Components: FC<StackProps> = memo(({ route }) => {
 
   return (
     <Container>
+      <Header backAction={true} animatedValue={transitionY} />
       <Content>
-        <Header backAction={true} animatedValue={transitionY} />
-
         <Animated.ScrollView onScroll={onScroll}>
           <Text>{route.name}</Text>
           <Title />
