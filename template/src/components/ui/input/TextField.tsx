@@ -79,7 +79,28 @@ export const TextField = memo(
       const [localValue, setLocalValue] = useState("");
       const [secureTextEntry, setsSecureTextEntry] = useState(_secureTextEntry);
 
-      const ss = useTextFieldStyles();
+      const ss = useMemo(() => {
+        const captionMTextStyle = { fontSize: 12, lineHeight: 16 };
+        const bodyMTextStyle = { fontSize: 16, lineHeight: 20 };
+
+        const elevationColor = "#F5F5F7";
+        const primaryColor = "#007AFF";
+        const primaryTextColor = "#18191C";
+        const secondaryColor = "#75767F";
+        const redColor = "#D73434";
+        const tertiaryTextColor = "#B2B2B7";
+
+        return {
+          elevationColor,
+          captionMTextStyle,
+          bodyMTextStyle,
+          primaryColor,
+          primaryTextColor,
+          secondaryColor,
+          redColor,
+          tertiaryTextColor,
+        };
+      }, []);
 
       useEffect(() => {
         setLocalValue("");
@@ -231,7 +252,6 @@ export const TextField = memo(
       const transformHint = {
         transform: [{ translateX: -(maxWidth.current - width) }],
       };
-      const rightIconStyles = [s.iconMargin, s.iconSize];
       const errorStyles = [ss.captionMTextStyle, { color: ss.redColor }];
       const counterStyles = [ss.captionMTextStyle, { color: counterColor }];
 
@@ -313,7 +333,7 @@ export const TextField = memo(
                     onPress={toggleSecureTextEntry}
                   >
                     <Icon
-                      style={rightIconStyles}
+                      style={s.iconSize}
                       fill={ss.tertiaryTextColor}
                       name={secureIcon}
                     />
@@ -327,7 +347,7 @@ export const TextField = memo(
                     onPress={handleClear}
                   >
                     <Icon
-                      style={rightIconStyles}
+                      style={s.iconSize}
                       fill={ss.tertiaryTextColor}
                       name={"close"}
                     />
@@ -336,7 +356,7 @@ export const TextField = memo(
                 {isShowError && (
                   <View style={s.iconWrap}>
                     <Icon
-                      style={rightIconStyles}
+                      style={s.iconSize}
                       fill={ss.redColor}
                       name={"closeCircle"}
                     />
@@ -375,7 +395,6 @@ const s = StyleSheet.create({
     minHeight: 60,
   },
   label: {
-    height: 16,
     position: "absolute",
   },
   inputRow: {
@@ -405,10 +424,8 @@ const s = StyleSheet.create({
     height: 24,
     width: 24,
   },
-  iconMargin: {
-    margin: 8,
-  },
   left: {
+    gap: 8,
     paddingVertical: 8,
     flexDirection: "row",
     marginBottom: "auto",
@@ -421,6 +438,8 @@ const s = StyleSheet.create({
     alignSelf: "stretch",
   },
   right: {
+    gap: 8,
+    paddingVertical: 8,
     flexDirection: "row",
     marginBottom: "auto",
     marginLeft: 8,
@@ -435,28 +454,3 @@ const s = StyleSheet.create({
     marginLeft: "auto",
   },
 });
-
-const useTextFieldStyles = () => {
-  return useMemo(() => {
-    const captionMTextStyle = { fontSize: 12, lineHeight: 16 };
-    const bodyMTextStyle = { fontSize: 16, lineHeight: 20 };
-
-    const elevationColor = "#F5F5F7";
-    const primaryColor = "#007AFF";
-    const primaryTextColor = "#18191C";
-    const secondaryColor = "#75767F";
-    const redColor = "#D73434";
-    const tertiaryTextColor = "#B2B2B7";
-
-    return {
-      elevationColor,
-      captionMTextStyle,
-      bodyMTextStyle,
-      primaryColor,
-      primaryTextColor,
-      secondaryColor,
-      redColor,
-      tertiaryTextColor,
-    };
-  }, []);
-};
