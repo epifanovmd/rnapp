@@ -1,11 +1,4 @@
-import {
-  Col,
-  Container,
-  Content,
-  Header,
-  Text,
-  useTransition,
-} from "@components";
+import { Col, Container, Content, Text, useTransition } from "@components";
 import { RefreshingContainer } from "@components/layouts/RefreshingContainer";
 import { AppScreenProps } from "@navigation";
 import { observer } from "mobx-react-lite";
@@ -14,11 +7,9 @@ import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const Main: FC<AppScreenProps> = observer(() => {
   const { onScroll, transitionY } = useTransition();
-  const { top } = useSafeAreaInsets();
 
   const styles = useAnimatedStyle(() => {
     return {
@@ -32,8 +23,7 @@ export const Main: FC<AppScreenProps> = observer(() => {
   });
 
   return (
-    <Container edges={[]} style={{ paddingTop: top }}>
-      <Header animatedValue={transitionY} />
+    <Container edges={[]}>
       <Animated.Image
         style={[
           styles,

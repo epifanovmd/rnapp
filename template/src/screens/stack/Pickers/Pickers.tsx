@@ -3,7 +3,6 @@ import {
   Container,
   Content,
   DatePicker,
-  Header,
   RangePicker,
   Text,
   TextButton,
@@ -15,7 +14,6 @@ import React, { FC, memo } from "react";
 
 export const Pickers: FC<StackProps> = memo(({ route }) => (
   <Container>
-    <Header backAction={true} />
     <Content>
       <Text>{route.name}</Text>
 

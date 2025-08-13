@@ -3,7 +3,6 @@ export * from "./animatedRefreshing";
 export * from "./carousel";
 export * from "./collapsable";
 export * from "./flexView";
-export * from "./header";
 export * from "./holldItemMenu";
 export * from "./imageViewing";
 export * from "./layouts";

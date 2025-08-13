@@ -3,16 +3,15 @@ import {
   Button,
   Container,
   Content,
-  Header,
+  Navbar,
   Row,
   ScrollView,
-  SwitchTheme,
   Text,
 } from "@components";
 import { AppScreenProps } from "@navigation";
 import { useSessionDataStore, useUserDataStore } from "@store";
 import { observer } from "mobx-react-lite";
-import React, { FC, memo } from "react";
+import React, { FC } from "react";
 
 interface IProps extends AppScreenProps {}
 
@@ -22,14 +21,11 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
   const { support, registration } = useBiometric();
 
   return (
-    <Container edges={["top"]}>
-      <Header />
-
+    <Container edges={[]}>
       <ScrollView>
         <Content>
           <Row mb={32}>
             <Text>{route.name}</Text>
-            <SwitchTheme marginLeft={"auto"} />
           </Row>
 
           <Button

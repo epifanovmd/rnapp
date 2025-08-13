@@ -1,14 +1,18 @@
 import { useBiometric } from "@common";
+import { Navbar, SwitchTheme } from "@components";
 import {
   NavigationContainer,
   NavigationContainerRef,
 } from "@react-navigation/native";
-import { useAppDataStore, useSessionDataStore } from "@store";
+import { StackHeaderProps } from "@react-navigation/stack";
+import { useAppDataStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useCallback, useMemo } from "react";
+import { View } from "react-native";
 import BootSplash from "react-native-bootsplash";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 
+import { useTranslation } from "../localization";
 import {
   ScreenParamList,
   StackNavigation,
@@ -21,11 +25,30 @@ import { useAppNavigationTheme } from "./hooks";
 
 interface IAppNavigatorProps {}
 
+const AppHeader = ({ route: { name } }: StackHeaderProps) => {
+  const { t } = useTranslation();
+
+  return (
+    <Navbar
+      title={t(`navigation.${name}` as any)}
+      subTitle={"Sub title"}
+      safeArea={true}
+      right={
+        <View style={{ margin: 12 }}>
+          <SwitchTheme marginLeft={"auto"} />
+        </View>
+      }
+    />
+  );
+};
+
 const options: StackScreenOption = {
   gestureEnabled: true,
   cardOverlayEnabled: true,
   cardStyleInterpolator: stackTransition,
   // cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+  headerShown: true,
+  header: AppHeader,
 };
 
 export const AppNavigator = observer(

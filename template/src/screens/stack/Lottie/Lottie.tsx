@@ -1,4 +1,4 @@
-import { Col, Container, Content, Header } from "@components";
+import { Col, Container, Content } from "@components";
 import { StackProps } from "@navigation";
 import LottieView from "lottie-react-native";
 import React, { FC, memo } from "react";
@@ -7,8 +7,6 @@ export const Lottie: FC<StackProps> = memo(() => {
   return (
     <Container>
       <Content>
-        <Header backAction={true} />
-
         <Col justifyContent={"center"} flex={1} row>
           <LottieView
             source={require("./assets/animation.json")}

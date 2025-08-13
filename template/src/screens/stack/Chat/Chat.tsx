@@ -1,8 +1,9 @@
 import {
   Container,
-  Header,
   HoldItem,
   HoldMenuItemProp,
+  Navbar,
+  NavbarTitle,
   Text,
 } from "@components";
 import {
@@ -19,7 +20,7 @@ import { ActivityIndicator, View } from "react-native";
 import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export const ChatScreen: FC<StackProps> = observer(() => {
+export const ChatScreen: FC<StackProps> = observer(({ route }) => {
   const insets = useSafeAreaInsets();
 
   const renderLoading = useCallback(
@@ -170,10 +171,15 @@ export const ChatScreen: FC<StackProps> = observer(() => {
   );
 
   return (
-    <Container edges={["top"]}>
-      <Header backAction={true}>
-        {isTyping ? <TypingAnimation color={"#000"} text={"печатает"} /> : null}
-      </Header>
+    <Container edges={[]}>
+      <Navbar safeArea={true}>
+        <View style={{ gap: 2 }}>
+          <NavbarTitle>{route.name}</NavbarTitle>
+          {isTyping ? (
+            <TypingAnimation color={"#000"} text={"печатает"} />
+          ) : null}
+        </View>
+      </Navbar>
 
       <Chat
         user={user}

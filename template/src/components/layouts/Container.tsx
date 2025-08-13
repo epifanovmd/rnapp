@@ -1,7 +1,6 @@
 import React, { FC, memo, PropsWithChildren } from "react";
 import { ViewProps } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Edges } from "react-native-safe-area-context/src/SafeArea.types";
+import { Edges, SafeAreaView } from "react-native-safe-area-context";
 
 import { FlexProps, useFlexProps } from "../flexView";
 
@@ -10,7 +9,7 @@ interface IProps extends FlexProps, ViewProps {
 }
 
 export const Container: FC<PropsWithChildren<IProps>> = memo(
-  ({ edges = ["top", "bottom"] as Edges, children, ...rest }) => {
+  ({ edges = ["bottom"] as Edges, children, ...rest }) => {
     const { style, ownProps } = useFlexProps(rest, { flex: 1 });
 
     return (

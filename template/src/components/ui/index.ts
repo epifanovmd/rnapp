@@ -4,6 +4,7 @@ export * from "./field";
 export * from "./image";
 export * from "./input";
 export * from "./modal";
+export * from "./navbar";
 export * from "./picker";
 export * from "./scrollView";
 export * from "./text";

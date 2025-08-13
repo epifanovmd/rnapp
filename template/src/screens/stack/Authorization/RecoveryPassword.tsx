@@ -1,11 +1,4 @@
-import {
-  Button,
-  Container,
-  Content,
-  Header,
-  ScrollView,
-  TextField,
-} from "@components";
+import { Button, Container, Content, ScrollView, TextField } from "@components";
 import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -25,7 +18,6 @@ export const RecoveryPassword: FC<StackProps> = observer(() => {
 
   return (
     <Container>
-      <Header />
       <Content>
         <ScrollView>
           <TextField

@@ -1,4 +1,4 @@
-import { AnimatedRefreshing, Container, Header } from "@components";
+import { AnimatedRefreshing, Container, Navbar } from "@components";
 import { StackProps } from "@navigation";
 import React, { FC, memo, useEffect } from "react";
 import { StyleSheet } from "react-native";
@@ -28,7 +28,7 @@ export const WebView: FC<StackProps<"WebView">> = memo(({ route }) => {
 
   return (
     <Container edges={[]}>
-      <Header backAction={true} title={params.title} />
+      <Navbar title={params.title} />
 
       <Animated.View style={[styles.progressBar, animatedStyle]} />
       <RNWebView

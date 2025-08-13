@@ -1,5 +1,7 @@
-import { Text } from "@components";
+import { Navbar, SwitchTheme, Text } from "@components";
+import { BottomTabHeaderProps } from "@react-navigation/bottom-tabs";
 import React, { FC, memo, useMemo } from "react";
+import { View } from "react-native";
 
 import { useTranslation } from "../localization";
 import {
@@ -50,5 +52,27 @@ export const TabScreens: FC<IProps> = memo(() => {
     [t],
   );
 
-  return <AppNavigation routes={tabs} />;
+  return (
+    <AppNavigation
+      routes={tabs}
+      screenOptions={{
+        headerShown: true,
+        header: ({ route: { name } }: BottomTabHeaderProps) => {
+          return (
+            <Navbar
+              title={t(`navigation.${name}` as any)}
+              subTitle={"Sub title"}
+              safeArea={true}
+              backButton={false}
+              right={
+                <View style={{ margin: 12 }}>
+                  <SwitchTheme marginLeft={"auto"} />
+                </View>
+              }
+            />
+          );
+        },
+      }}
+    />
+  );
 });

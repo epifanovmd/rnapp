@@ -6,7 +6,6 @@ import {
   Container,
   Content,
   Field,
-  Header,
   Image,
   ImageViewing,
   Row,
@@ -22,7 +21,7 @@ import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 
 export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
-  const { onScroll, transitionY } = useTransition();
+  const { onScroll } = useTransition();
 
   useEffect(() => {
     value.value = withTiming(100, { duration: 1000 }, () => {
@@ -36,7 +35,6 @@ export const Components: FC<StackProps> = memo(({ route }) => {
 
   return (
     <Container>
-      <Header backAction={true} animatedValue={transitionY} />
       <Content>
         <Animated.ScrollView onScroll={onScroll}>
           <Text>{route.name}</Text>

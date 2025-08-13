@@ -2,7 +2,6 @@ import {
   Button,
   Container,
   Content,
-  Header,
   Modal,
   ModalActions,
   ModalHeader,
@@ -24,7 +23,7 @@ import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
-  const { onScroll, transitionY } = useTransition();
+  const { onScroll } = useTransition();
   const { open } = useAttachModal();
   const onAttach = useCallback(() => {
     open({
@@ -40,8 +39,6 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
   return (
     <Container>
       <Content>
-        <Header backAction={true} animatedValue={transitionY} />
-
         <Animated.ScrollView onScroll={onScroll}>
           <Title />
 

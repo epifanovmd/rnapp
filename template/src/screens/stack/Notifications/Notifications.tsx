@@ -1,4 +1,4 @@
-import { Button, Container, Content, Header, Text } from "@components";
+import { Button, Container, Content, Text } from "@components";
 import { StackProps } from "@navigation";
 import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
@@ -61,7 +61,6 @@ export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
 
   return (
     <Container>
-      <Header backAction={true} />
       <Content>
         <Text>{route.name}</Text>
 

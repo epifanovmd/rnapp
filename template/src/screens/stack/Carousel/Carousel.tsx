@@ -1,4 +1,4 @@
-import { Container, Header, Text } from "@components";
+import { Container } from "@components";
 import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -59,7 +59,6 @@ export const CarouselScreen: FC<StackProps> = observer(() => {
 
   return (
     <Container>
-      <Header backAction={true} />
       <Carousel
         ref={ref}
         vertical={false}
