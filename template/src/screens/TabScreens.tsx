@@ -1,5 +1,8 @@
 import { Navbar, SwitchTheme, Text } from "@components";
-import { BottomTabHeaderProps } from "@react-navigation/bottom-tabs";
+import {
+  BottomTabHeaderProps,
+  BottomTabNavigationOptions,
+} from "@react-navigation/bottom-tabs";
 import React, { FC, memo, useMemo } from "react";
 import { View } from "react-native";
 
@@ -13,6 +16,21 @@ import {
 import { Main, Playground } from "./tabs";
 
 interface IProps extends StackProps {}
+
+const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
+  return (
+    <Navbar
+      title={title}
+      safeArea={true}
+      backButton={false}
+      right={
+        <View style={{ margin: 12 }}>
+          <SwitchTheme marginLeft={"auto"} />
+        </View>
+      }
+    />
+  );
+};
 
 export const TAB_SCREENS: AppTabScreens = {
   Main: {
@@ -29,6 +47,11 @@ export const TAB_SCREENS: AppTabScreens = {
       tabBarIcon: () => <Text>{"PG"}</Text>,
     },
   },
+};
+
+const screenOptions: BottomTabNavigationOptions = {
+  headerShown: true,
+  header: TabHeader,
 };
 
 export const TabScreens: FC<IProps> = memo(() => {
@@ -52,27 +75,5 @@ export const TabScreens: FC<IProps> = memo(() => {
     [t],
   );
 
-  return (
-    <AppNavigation
-      routes={tabs}
-      screenOptions={{
-        headerShown: true,
-        header: ({ route: { name } }: BottomTabHeaderProps) => {
-          return (
-            <Navbar
-              title={t(`navigation.${name}` as any)}
-              subTitle={"Sub title"}
-              safeArea={true}
-              backButton={false}
-              right={
-                <View style={{ margin: 12 }}>
-                  <SwitchTheme marginLeft={"auto"} />
-                </View>
-              }
-            />
-          );
-        },
-      }}
-    />
-  );
+  return <AppNavigation routes={tabs} screenOptions={screenOptions} />;
 });

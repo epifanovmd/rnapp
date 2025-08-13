@@ -25,13 +25,12 @@ import { useAppNavigationTheme } from "./hooks";
 
 interface IAppNavigatorProps {}
 
-const AppHeader = ({ route: { name } }: StackHeaderProps) => {
+const AppHeader = ({ route: { name }, options }: StackHeaderProps) => {
   const { t } = useTranslation();
 
   return (
     <Navbar
-      title={t(`navigation.${name}` as any)}
-      subTitle={"Sub title"}
+      title={options.title ?? t(`navigation.${name}` as any)}
       safeArea={true}
       right={
         <View style={{ margin: 12 }}>

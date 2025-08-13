@@ -4,6 +4,7 @@ import {
   HoldMenuItemProp,
   Navbar,
   NavbarTitle,
+  SwitchTheme,
   Text,
 } from "@components";
 import {
@@ -15,7 +16,7 @@ import {
 } from "@components/chat";
 import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
-import { FC, useCallback, useMemo } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -76,7 +77,17 @@ export const ChatScreen: FC<StackProps> = observer(({ route }) => {
     [],
   );
 
-  const isTyping = true;
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setIsTyping(state => !state);
+    }, 5000);
+
+    return () => {
+      clearInterval(id);
+    };
+  }, []);
 
   const msgs = useMemo(
     () =>
@@ -172,12 +183,17 @@ export const ChatScreen: FC<StackProps> = observer(({ route }) => {
 
   return (
     <Container edges={[]}>
-      <Navbar safeArea={true}>
+      <Navbar
+        safeArea={true}
+        right={
+          <View style={{ margin: 12 }}>
+            <SwitchTheme marginLeft={"auto"} />
+          </View>
+        }
+      >
         <View style={{ gap: 2 }}>
           <NavbarTitle>{route.name}</NavbarTitle>
-          {isTyping ? (
-            <TypingAnimation color={"#000"} text={"печатает"} />
-          ) : null}
+          {isTyping && <TypingAnimation color={"#000"} text={"печатает"} />}
         </View>
       </Navbar>
 

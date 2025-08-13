@@ -27,7 +27,10 @@ export const PRIVATE_SCREENS: StackScreens = {
   Components: { screen: Components },
   Modals: { screen: Modals },
   Lottie: { screen: Lottie },
-  ChatScreen: { screen: ChatScreen, options: { headerShown: false } },
+  ChatScreen: {
+    screen: ChatScreen,
+    options: { headerShown: false, title: "Чат" },
+  },
   Carousel: { screen: CarouselScreen },
   PdfView: {
     screen: PdfView,
