@@ -113,12 +113,10 @@ export const Navbar = memo<INavbarProps>(
 const SS = StyleSheet.create({
   container: {
     overflow: "hidden",
-    // paddingHorizontal: 4,
-    // paddingVertical: 8,
+    padding: 4,
     flexDirection: "row",
     justifyContent: "space-between",
-    // minHeight: 64,
-    // flex: 1,
+    minHeight: 64,
   },
   left: {
     flexDirection: "row",
