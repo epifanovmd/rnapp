@@ -10,14 +10,9 @@ import {
   Title,
   useAttachModal,
   useModalRef,
-  useTransition,
 } from "@components";
-import { StackProps } from "@core";
-import {
-  BottomSheetModal,
-  BottomSheetScrollView,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import { StackProps, useTransition } from "@core";
+import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { FC, memo, useCallback } from "react";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";

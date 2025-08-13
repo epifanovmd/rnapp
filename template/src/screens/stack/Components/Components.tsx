@@ -12,10 +12,9 @@ import {
   Text,
   Title,
   Touchable,
-  useTransition,
 } from "@components";
 import { TextField } from "@components/ui/input/TextField";
-import { StackProps } from "@core";
+import { StackProps, useTransition } from "@core";
 import React, { FC, memo, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 

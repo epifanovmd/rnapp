@@ -1,11 +1,8 @@
-import {
-  AttachModalProvider,
-  HoldItemProvider,
-  TransitionProvider,
-} from "@components";
+import { AttachModalProvider, HoldItemProvider } from "@components";
 import {
   initLocalization,
   ThemeProvider,
+  TransitionProvider,
   useTheme,
   useTranslation,
 } from "@core";
