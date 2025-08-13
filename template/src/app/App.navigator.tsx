@@ -1,6 +1,12 @@
 import { useBiometric } from "@common";
 import { Navbar, SwitchTheme } from "@components";
 import {
+  ScreenParamList,
+  StackNavigation,
+  StackScreenOption,
+  useTranslation,
+} from "@core";
+import {
   NavigationContainer,
   NavigationContainerRef,
 } from "@react-navigation/native";
@@ -12,12 +18,6 @@ import { View } from "react-native";
 import BootSplash from "react-native-bootsplash";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 
-import { useTranslation } from "../localization";
-import {
-  ScreenParamList,
-  StackNavigation,
-  StackScreenOption,
-} from "../navigation";
 import { linking } from "./App.linking";
 import { PRIVATE_SCREENS, PUBLIC_SCREENS } from "./App.screens";
 import { stackTransition } from "./common";

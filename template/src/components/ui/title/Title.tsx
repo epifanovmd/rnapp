@@ -1,8 +1,7 @@
-import { useRoute } from "@navigation";
+import { useRoute, useTranslation } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren } from "react";
 
-import { useTranslation } from "../../../localization";
 import { Col, FlexProps, Row, useFlexProps } from "../../flexView";
 import { ITextProps, Text } from "../text";
 

@@ -1,4 +1,4 @@
-import { StackScreens } from "@navigation";
+import { StackScreens } from "@core";
 import { CardStyleInterpolators } from "@react-navigation/stack";
 
 import {

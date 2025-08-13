@@ -1,5 +1,5 @@
 import { Col, Container, Content } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import LottieView from "lottie-react-native";
 import React, { FC, memo } from "react";
 

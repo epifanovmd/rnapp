@@ -1,4 +1,5 @@
 import { useModalStyles } from "@common";
+import { useTranslation } from "@core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
@@ -15,7 +16,6 @@ import React, {
 import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { useTranslation } from "../../../localization";
 import { Col, Row } from "../../flexView";
 import { Modal, ModalProps, useModalRef } from "../modal";
 import { ITouchableProps, Touchable } from "../touchable";

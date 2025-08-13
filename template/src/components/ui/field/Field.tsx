@@ -1,5 +1,5 @@
+import { useTheme } from "@core";
 import { createSlot, useSlotProps } from "@force-dev/react";
-import { useTheme } from "@theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 
 import { Col, Row } from "../../flexView";

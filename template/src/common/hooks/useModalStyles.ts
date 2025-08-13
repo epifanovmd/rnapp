@@ -1,5 +1,5 @@
 import { ModalProps } from "@components";
-import { useTheme } from "@theme";
+import { useTheme } from "@core";
 import { useMemo } from "react";
 
 export const useModalStyles = (): Pick<

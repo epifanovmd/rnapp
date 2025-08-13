@@ -1,18 +1,18 @@
 import { Navbar, SwitchTheme, Text } from "@components";
 import {
+  AppNavigation,
+  AppTabScreens,
+  ScreenName,
+  StackProps,
+  useTranslation,
+} from "@core";
+import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,
 } from "@react-navigation/bottom-tabs";
 import React, { FC, memo, useMemo } from "react";
 import { View } from "react-native";
 
-import { useTranslation } from "../localization";
-import {
-  AppNavigation,
-  AppTabScreens,
-  ScreenName,
-  StackProps,
-} from "../navigation";
 import { Main, Playground } from "./tabs";
 
 interface IProps extends StackProps {}

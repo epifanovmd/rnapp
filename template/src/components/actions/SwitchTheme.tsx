@@ -1,4 +1,4 @@
-import { DEFAULT_LIGHT_THEME_ID, useTheme } from "@theme";
+import { DEFAULT_LIGHT_THEME_ID, useTheme } from "@core";
 import React, { FC, memo, PropsWithChildren } from "react";
 import SwitchToggle from "react-native-switch-toggle";
 

@@ -12,12 +12,12 @@ import {
   useModalRef,
   useTransition,
 } from "@components";
+import { StackProps } from "@core";
 import {
   BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
-import { StackProps } from "@navigation";
 import React, { FC, memo, useCallback } from "react";
 import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";

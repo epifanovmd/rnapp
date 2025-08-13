@@ -1,9 +1,7 @@
 import { Button, Container, Content, Text } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps, useNotification } from "@core";
 import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
-
-import { useNotification } from "../../../notification";
 
 export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
   const { show, hide } = useNotification();

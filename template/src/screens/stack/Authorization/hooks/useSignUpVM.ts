@@ -1,11 +1,10 @@
 import { isEmail, isPhone } from "@common";
+import { useNavigation, useNotification } from "@core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigation } from "@navigation";
 import { useSessionDataStore } from "@store";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 
-import { useNotification } from "../../../../notification";
 import { signUpFormValidationSchema, TSignUpForm } from "../validations";
 
 export const useSignUpVM = () => {

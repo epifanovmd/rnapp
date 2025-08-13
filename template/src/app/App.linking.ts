@@ -1,16 +1,13 @@
-import { isString } from "@force-dev/utils";
-import notifee from "@notifee/react-native";
-import { EventType } from "@notifee/react-native/src/types/Notification";
-import { LinkingOptions, PathConfigMap } from "@react-navigation/native";
-import { Linking } from "react-native";
-import Config from "react-native-config";
-
 import {
   AppTabScreens,
   ScreenName,
   ScreenParamList,
   StackScreens,
-} from "../navigation";
+} from "@core";
+import { LinkingOptions, PathConfigMap } from "@react-navigation/native";
+import { Linking } from "react-native";
+import Config from "react-native-config";
+
 import { TAB_SCREENS } from "../screens";
 import { PRIVATE_SCREENS, PUBLIC_SCREENS } from "./App.screens";
 

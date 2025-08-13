@@ -3,14 +3,18 @@ import {
   HoldItemProvider,
   TransitionProvider,
 } from "@components";
+import {
+  initLocalization,
+  ThemeProvider,
+  useTheme,
+  useTranslation,
+} from "@core";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { navigationRef } from "@navigation";
 import notifee from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { log } from "@service";
+import { log, navigationRef } from "@service";
 import { useAppDataStore } from "@store/app";
-import { ThemeProvider, useTheme } from "@theme";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, { FC, memo, PropsWithChildren, useEffect } from "react";
@@ -22,7 +26,6 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
-import { initLocalization, useTranslation } from "../localization";
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
 

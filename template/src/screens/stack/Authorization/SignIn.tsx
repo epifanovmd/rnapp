@@ -1,6 +1,6 @@
 import { useBiometric } from "@common";
 import { Button, Col, Container, Content, TextField } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 

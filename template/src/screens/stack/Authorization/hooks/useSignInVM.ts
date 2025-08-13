@@ -1,5 +1,5 @@
+import { useNavigation } from "@core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigation } from "@navigation";
 import { useSessionDataStore } from "@store";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";

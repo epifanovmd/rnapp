@@ -22,10 +22,8 @@
       "@service/*": ["./src/service/*"],
       "@store": ["./src/store"],
       "@store/*": ["./src/store/*"],
-      "@navigation": ["./src/navigation"],
-      "@navigation/*": ["./src/navigation/*"],
-      "@theme": ["./src/theme"],
-      "@theme/*": ["./src/theme/*"]
+      "@core": ["./src/core"],
+      "@core/*": ["./src/core/*"]
     }
   },
   "include": ["./src/**/*"],

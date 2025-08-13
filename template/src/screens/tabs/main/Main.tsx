@@ -1,6 +1,6 @@
 import { Col, Container, Content, Text, useTransition } from "@components";
 import { RefreshingContainer } from "@components/layouts/RefreshingContainer";
-import { AppScreenProps } from "@navigation";
+import { AppScreenProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import Animated, {

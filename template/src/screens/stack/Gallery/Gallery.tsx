@@ -1,3 +1,4 @@
+import { StackProps } from "@core";
 import {
   CameraRoll,
   PhotoIdentifier,
@@ -12,8 +13,6 @@ import React, {
   useState,
 } from "react";
 import { Image, PermissionsAndroid, Platform } from "react-native";
-
-import { StackProps } from "../../../navigation";
 
 const FIRST_IMAGE_SIZE = 50;
 

@@ -9,7 +9,7 @@ import {
   TimePicker,
   YearRangePicker,
 } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import React, { FC, memo } from "react";
 
 export const Pickers: FC<StackProps> = memo(({ route }) => (

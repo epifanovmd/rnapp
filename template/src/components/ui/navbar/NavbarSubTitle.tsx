@@ -1,5 +1,5 @@
 import { ITextProps, Text } from "@components";
-import { useTheme } from "@theme";
+import { useTheme } from "@core";
 import React, { memo } from "react";
 
 export interface INavbarSubTitleProps extends ITextProps {}

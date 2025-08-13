@@ -1,8 +1,7 @@
 import { FlexProps, Row } from "@components";
+import { useTranslation } from "@core";
 import React, { FC, memo, PropsWithChildren, useCallback } from "react";
 import SwitchToggle from "react-native-switch-toggle";
-
-import { useTranslation } from "../../localization";
 
 interface IProps extends FlexProps {}
 

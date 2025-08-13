@@ -15,7 +15,7 @@ import {
   useTransition,
 } from "@components";
 import { TextField } from "@components/ui/input/TextField";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import React, { FC, memo, useEffect, useState } from "react";
 import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
 

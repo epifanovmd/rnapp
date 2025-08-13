@@ -1,3 +1,4 @@
+import { ScreenName, ScreenParamList } from "@core/navigation";
 import { iocHook } from "@force-dev/react";
 import { createServiceDecorator } from "@force-dev/utils";
 import {
@@ -5,11 +6,10 @@ import {
   StackActions,
 } from "@react-navigation/native";
 import { identity, pickBy } from "lodash";
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 
-import { DebugVars } from "../../debugVars";
-import { log } from "../service";
-import { ScreenName, ScreenParamList } from "./navigation.types";
+import { DebugVars } from "../../../debugVars";
+import { log } from "../logs";
 
 export const navigationRef = createNavigationContainerRef<ScreenParamList>();
 
@@ -50,8 +50,10 @@ export class NavigationService {
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
+  }
 
-    this._navigationRef.addListener("state", e => {
+  subscribe() {
+    return this._navigationRef.addListener("state", e => {
       runInAction(() => {
         this._currentScreenName =
           this._navigationRef?.current?.getCurrentRoute()?.name as ScreenName;

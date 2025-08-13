@@ -1,6 +1,6 @@
 import { ParamListBase } from "@react-navigation/routers";
 
-import { IPdfViewProps, IWebViewProps } from "../screens";
+import { IPdfViewProps, IWebViewProps } from "../../screens";
 
 export enum TabScreenName {
   MAIN = "MAIN",

@@ -1,5 +1,5 @@
 import { AnimatedRefreshing, Container, Navbar } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import React, { FC, memo, useEffect } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {

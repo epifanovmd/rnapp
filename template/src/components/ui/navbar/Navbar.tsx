@@ -1,5 +1,5 @@
+import { useTheme } from "@core";
 import { useNavigation } from "@react-navigation/native";
-import { useTheme } from "@theme";
 import React, { memo, useCallback, useRef } from "react";
 import {
   GestureResponderEvent,

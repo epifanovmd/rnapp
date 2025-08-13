@@ -1,7 +1,7 @@
+import { useTheme } from "@core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { pick } from "@react-native-documents/picker";
 import { PredefinedFileTypes } from "@react-native-documents/picker/src/fileTypes";
-import { useTheme } from "@theme";
 import React, {
   createContext,
   FC,

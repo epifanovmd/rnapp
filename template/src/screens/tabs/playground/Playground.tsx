@@ -1,6 +1,6 @@
 import { useBiometric } from "@common";
 import { Button, Container, Content, Row, ScrollView, Text } from "@components";
-import { AppScreenProps } from "@navigation";
+import { AppScreenProps } from "@core";
 import { useSessionDataStore, useUserDataStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";

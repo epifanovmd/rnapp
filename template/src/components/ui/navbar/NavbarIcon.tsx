@@ -1,4 +1,4 @@
-import { useTheme } from "@theme";
+import { useTheme } from "@core";
 import React, { memo } from "react";
 import { StyleSheet } from "react-native";
 

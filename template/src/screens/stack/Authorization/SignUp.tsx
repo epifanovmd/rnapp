@@ -1,5 +1,5 @@
 import { Button, Container, Content, ScrollView, TextField } from "@components";
-import { StackProps } from "@navigation";
+import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 

@@ -1,6 +1,6 @@
+import { useTheme } from "@core";
 import { mergeRefs } from "@force-dev/react";
 import { replaceInputString } from "@force-dev/utils";
-import { useTheme } from "@theme";
 import React, {
   forwardRef,
   memo,

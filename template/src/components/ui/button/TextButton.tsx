@@ -1,4 +1,4 @@
-import { useTheme } from "@theme";
+import { useTheme } from "@core";
 import React, { FC, memo } from "react";
 
 import { Button, IButtonProps } from "./Button";
