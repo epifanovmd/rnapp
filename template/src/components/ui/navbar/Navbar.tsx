@@ -117,6 +117,7 @@ const SS = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     minHeight: 64,
+    zIndex: 9999,
   },
   left: {
     flexDirection: "row",

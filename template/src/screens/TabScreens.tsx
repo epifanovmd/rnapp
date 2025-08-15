@@ -38,6 +38,7 @@ export const TAB_SCREENS: AppTabScreens = {
     options: {
       title: "navigation.Main",
       tabBarIcon: () => <Text>{"Main"}</Text>,
+      headerShown: false,
     },
   },
   Playground: {

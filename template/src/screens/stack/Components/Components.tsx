@@ -9,18 +9,18 @@ import {
   Image,
   ImageViewing,
   Row,
+  ScrollView,
   Text,
   Title,
   Touchable,
 } from "@components";
 import { TextField } from "@components/ui/input/TextField";
-import { StackProps, useTransition } from "@core";
+import { StackProps } from "@core";
 import React, { FC, memo, useEffect, useState } from "react";
-import Animated, { useSharedValue, withTiming } from "react-native-reanimated";
+import { useSharedValue, withTiming } from "react-native-reanimated";
 
 export const Components: FC<StackProps> = memo(({ route }) => {
   const value = useSharedValue(0);
-  const { onScroll } = useTransition();
 
   useEffect(() => {
     value.value = withTiming(100, { duration: 1000 }, () => {
@@ -35,7 +35,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
   return (
     <Container>
       <Content>
-        <Animated.ScrollView onScroll={onScroll}>
+        <ScrollView>
           <Text>{route.name}</Text>
           <Title />
 
@@ -104,7 +104,7 @@ export const Components: FC<StackProps> = memo(({ route }) => {
               />
             </Touchable>
           </Col>
-        </Animated.ScrollView>
+        </ScrollView>
       </Content>
     </Container>
   );

@@ -6,19 +6,18 @@ import {
   ModalActions,
   ModalHeader,
   Row,
+  ScrollView,
   Text,
   Title,
   useAttachModal,
   useModalRef,
 } from "@components";
-import { StackProps, useTransition } from "@core";
+import { StackProps } from "@core";
 import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { FC, memo, useCallback } from "react";
-import Animated from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
-  const { onScroll } = useTransition();
   const { open } = useAttachModal();
   const onAttach = useCallback(() => {
     open({
@@ -34,7 +33,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
   return (
     <Container>
       <Content>
-        <Animated.ScrollView onScroll={onScroll}>
+        <ScrollView>
           <Title />
 
           <Button onPress={onAttach}>{"Attach"}</Button>
@@ -48,7 +47,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
             title={"View modal"}
             onPress={() => modalRefView.current?.present()}
           />
-        </Animated.ScrollView>
+        </ScrollView>
       </Content>
 
       <Modal

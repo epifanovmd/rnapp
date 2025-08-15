@@ -17,7 +17,6 @@ import {
   FlatList,
   PanResponder,
   Platform,
-  SafeAreaView,
   ScrollView,
   ScrollViewProps,
   StyleSheet,
@@ -279,32 +278,30 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         }, [activeRefreshBackground]);
 
         return (
-          <SafeAreaView style={styles.root}>
-            <View style={styles.root}>
-              <View style={styles.refreshContainer}>
-                <Animated.View
-                  style={[styles.refreshIconWrap, activeRefreshStyle]}
-                >
-                  <AnimatedRefreshing percentage={percentage} />
-                </Animated.View>
-              </View>
-
+          <View style={styles.root}>
+            <View style={styles.refreshContainer}>
               <Animated.View
-                style={styles.root}
-                {...(onRefresh && enabledPan && !refreshing
-                  ? panResponder.panHandlers
-                  : {})}
+                style={[styles.refreshIconWrap, activeRefreshStyle]}
               >
-                {children &&
-                  React.cloneElement(children as any, {
-                    ref: mergeRefs([ref, scrollRef]),
-                    onScroll: scrollHandler,
-                    nativeOnScroll: onScroll,
-                    scrollEventThrottle: 16,
-                  })}
+                <AnimatedRefreshing percentage={percentage} />
               </Animated.View>
             </View>
-          </SafeAreaView>
+
+            <Animated.View
+              style={styles.root}
+              {...(onRefresh && enabledPan && !refreshing
+                ? panResponder.panHandlers
+                : {})}
+            >
+              {children &&
+                React.cloneElement(children as any, {
+                  ref: mergeRefs([ref, scrollRef]),
+                  onScroll: scrollHandler,
+                  nativeOnScroll: onScroll,
+                  scrollEventThrottle: 16,
+                })}
+            </Animated.View>
+          </View>
         );
       },
     ),

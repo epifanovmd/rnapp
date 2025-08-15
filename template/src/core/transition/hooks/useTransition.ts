@@ -9,7 +9,5 @@ export const useTransition = (): ITransitionContext => {
 
   const localContext = useTransitionContext();
 
-  if (context) return context;
-
-  return localContext;
+  return context ?? localContext;
 };

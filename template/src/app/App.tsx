@@ -2,7 +2,6 @@ import { AttachModalProvider, HoldItemProvider } from "@components";
 import {
   initLocalization,
   ThemeProvider,
-  TransitionProvider,
   useTheme,
   useTranslation,
 } from "@core";
@@ -57,22 +56,20 @@ export const App: FC = observer(() => {
 
   return (
     <GestureHandlerRootView style={ss.container}>
-      <TransitionProvider>
-        <ThemeProvider>
-          <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-          <SafeAreaProvider>
-            <_HoldItemProvider>
-              <BottomSheetModalProvider>
-                <AttachModalProvider>
-                  <AppNotifications>
-                    <AppNavigator ref={navigationRef} />
-                  </AppNotifications>
-                </AttachModalProvider>
-              </BottomSheetModalProvider>
-            </_HoldItemProvider>
-          </SafeAreaProvider>
-        </ThemeProvider>
-      </TransitionProvider>
+      <ThemeProvider>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        <SafeAreaProvider>
+          <_HoldItemProvider>
+            <BottomSheetModalProvider>
+              <AttachModalProvider>
+                <AppNotifications>
+                  <AppNavigator ref={navigationRef} />
+                </AppNotifications>
+              </AttachModalProvider>
+            </BottomSheetModalProvider>
+          </_HoldItemProvider>
+        </SafeAreaProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 });
