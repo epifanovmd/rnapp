@@ -38,7 +38,7 @@ export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
       return {
         top,
         transform: [{ translateY }],
-        opacity,
+        // opacity,
       };
     }, [top, navbarHeight]);
 
