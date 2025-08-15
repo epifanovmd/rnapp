@@ -8,7 +8,7 @@ import {
   View,
   ViewProps,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { NavbarIcon } from "./NavbarIcon";
 import { NavbarSubTitle } from "./NavbarSubTitle";
@@ -45,7 +45,6 @@ export const Navbar = memo<INavbarProps>(
     const { canGoBack, goBack } = useNavigation();
     const isCanGoBack = canGoBack();
     const showBackButton = backButton && (isCanGoBack || !!onBackPress);
-    const { top } = useSafeAreaInsets();
 
     const onUpdateWidth = useCallback(() => {
       if (leftRef.current && rightRef.current) {
@@ -71,41 +70,42 @@ export const Navbar = memo<INavbarProps>(
     );
 
     return (
-      <View
-        style={[
-          SS.container,
-          {
-            backgroundColor: theme.color.background,
-            paddingTop: safeArea ? top : undefined,
-          },
-          style,
-        ]}
-        {...rest}
-      >
-        <View style={[SS.left, { minWidth: width }]}>
-          <View ref={leftRef} style={SS.row} onLayout={onUpdateWidth}>
-            {showBackButton && (
-              <TouchableOpacity onPress={handleBackPress}>
-                <NavbarIcon name={"back"} />
-              </TouchableOpacity>
-            )}
-            {left}
-          </View>
-        </View>
-        <View style={[SS.center]}>
-          {children ?? (
-            <View style={[SS.content]}>
-              {!!title && <NavbarTitle>{title}</NavbarTitle>}
-              {!!subTitle && <NavbarSubTitle>{subTitle}</NavbarSubTitle>}
+      <SafeAreaView edges={safeArea ? ["top"] : []}>
+        <View
+          style={[
+            SS.container,
+            {
+              backgroundColor: theme.color.background,
+            },
+            style,
+          ]}
+          {...rest}
+        >
+          <View style={[SS.left, { minWidth: width }]}>
+            <View ref={leftRef} style={SS.row} onLayout={onUpdateWidth}>
+              {showBackButton && (
+                <TouchableOpacity onPress={handleBackPress}>
+                  <NavbarIcon name={"back"} />
+                </TouchableOpacity>
+              )}
+              {left}
             </View>
-          )}
-        </View>
-        <View style={[SS.right, { minWidth: width }]}>
-          <View ref={rightRef} style={SS.row} onLayout={onUpdateWidth}>
-            {right}
+          </View>
+          <View style={[SS.center]}>
+            {children ?? (
+              <View style={[SS.content]}>
+                {!!title && <NavbarTitle>{title}</NavbarTitle>}
+                {!!subTitle && <NavbarSubTitle>{subTitle}</NavbarSubTitle>}
+              </View>
+            )}
+          </View>
+          <View style={[SS.right, { minWidth: width }]}>
+            <View ref={rightRef} style={SS.row} onLayout={onUpdateWidth}>
+              {right}
+            </View>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   },
 );

@@ -20,12 +20,12 @@ export const useTransitionContext = (): ITransitionContext => {
 
   const showNavbar = () => {
     "worklet";
-    navbarOffset.value = withTiming(0);
+    navbarOffset.value = withTiming(0, { duration: 150 });
   };
 
   const hideNavbar = () => {
     "worklet";
-    navbarOffset.value = withTiming(navbarHeight);
+    navbarOffset.value = withTiming(navbarHeight, { duration: 150 });
   };
 
   const onScroll = useAnimatedScrollHandler({
