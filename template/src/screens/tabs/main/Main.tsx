@@ -14,7 +14,7 @@ import {
   useTransitionContext,
 } from "@core";
 import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { View } from "react-native";
 
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
@@ -35,7 +35,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   //   };
   // });
 
-  console.log("navbarHeight", context.navbarHeight);
+  const [refreshing, setRefreshing] = useState(false);
 
   return (
     <TransitionProvider context={context}>
@@ -66,9 +66,17 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
         {/* />*/}
         <Content>
           <RefreshingContainer.ScrollView
+            refreshing={refreshing}
             onScroll={context.onScroll}
             style={{ paddingTop: context.navbarHeight }}
             showsVerticalScrollIndicator={false}
+            onRefresh={() => {
+              setRefreshing(true);
+
+              setTimeout(() => {
+                setRefreshing(false);
+              }, 1000);
+            }}
           >
             {new Array(50).fill(0).map((_, i) => (
               <Col height={60} key={i}>

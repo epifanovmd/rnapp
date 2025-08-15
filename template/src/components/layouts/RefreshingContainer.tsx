@@ -89,13 +89,13 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         ref,
       ) => {
         const scrollRef = useRef<View | ScrollView | FlatList>(null);
-        const timeoutRef = useRef<any>(null);
         const isDarggable = useSharedValue(false);
 
         const isScrolled = useSharedValue(false);
         const percentage = useSharedValue(0);
         const refreshPosition = useSharedValue(0);
         const isRefreshing = useSharedValue(false);
+        const isCompleteScroll = useSharedValue(false);
 
         const [enabledPan, setEnabledPan] = useState(true);
         const [isScrollable, setIsScrollable] = useState(false);
@@ -137,11 +137,13 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           setTimeout(() => {
             if (!isDarggable.value) {
               isRefreshing.value = false;
+              isCompleteScroll.value = false;
               percentage.value = 0;
             }
           }, duration);
         }, [
           duration,
+          isCompleteScroll,
           isDarggable.value,
           isRefreshing,
           percentage,
@@ -150,6 +152,10 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 
         const onPanRelease = useCallback(() => {
           if (!isRefreshing.value) {
+            onComplete();
+          }
+
+          if (!isCompleteScroll.value) {
             refreshPosition.value = withTiming(0, {
               duration,
             });
@@ -158,9 +164,17 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             });
           } else if (refreshPosition.value === 0) {
             isRefreshing.value = false;
+            isCompleteScroll.value = false;
             percentage.value = 0;
           }
-        }, [duration, isRefreshing, percentage, refreshPosition]);
+        }, [
+          duration,
+          isCompleteScroll,
+          isRefreshing,
+          onComplete,
+          percentage,
+          refreshPosition,
+        ]);
 
         const onMove = useCallback(
           (dy: number) => {
@@ -171,30 +185,25 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             const _dy = dy > 0 ? dy : 0;
             const position = Math.min(maxDistance, _dy);
 
-            if (!isRefreshing.value) {
+            if (!isCompleteScroll.value) {
               refreshPosition.value = position;
               percentage.value = Math.min(100, _dy * (100 / maxDistance));
             }
 
-            if (position >= maxDistance && !isRefreshing.value) {
-              isRefreshing.value = true;
-
-              percentage.value = withRepeat(
-                withTiming(300, { duration: refreshDuration * 3 }),
-                -1,
-              );
+            if (position >= maxDistance && !isCompleteScroll.value) {
+              isCompleteScroll.value = true;
+              percentage.value = 100;
 
               trigger("impactMedium");
               onRefresh?.();
             }
           },
           [
+            isCompleteScroll,
             isDarggable.value,
-            isRefreshing,
             maxDistance,
             onRefresh,
             percentage,
-            refreshDuration,
             refreshPosition,
           ],
         );
@@ -246,17 +255,10 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
         useEffect(() => {
           if (refreshing) {
             isRefreshing.value = true;
-            timeoutRef.current && clearTimeout(timeoutRef.current);
-            timeoutRef.current = setTimeout(() => {
-              startRefresh();
-            }, delay);
-          } else {
-            timeoutRef.current && clearTimeout(timeoutRef.current);
-            timeoutRef.current = null;
-
-            if (isRefreshing.value) {
-              onComplete();
-            }
+            isCompleteScroll.value = true;
+            startRefresh();
+          } else if (isRefreshing.value) {
+            onComplete();
           }
           // eslint-disable-next-line react-hooks/exhaustive-deps
         }, [refreshing]);
@@ -265,7 +267,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
           const scale = Math.min(1, Math.max(0, refreshPosition.value / 100));
 
           return {
-            backgroundColor: isRefreshing.value
+            backgroundColor: isCompleteScroll.value
               ? activeRefreshBackground
               : "transparent",
             opacity: scale,
@@ -296,7 +298,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               {children &&
                 React.cloneElement(children as any, {
                   ref: mergeRefs([ref, scrollRef]),
-                  onScroll: scrollHandler,
+                  onScroll: onRefresh ? scrollHandler : undefined,
                   nativeOnScroll: onScroll,
                   scrollEventThrottle: 16,
                 })}
