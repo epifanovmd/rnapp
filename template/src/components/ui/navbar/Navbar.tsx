@@ -73,7 +73,6 @@ export const Navbar = memo<INavbarProps>(
       <SafeAreaView
         edges={safeArea ? ["top"] : []}
         style={[{ backgroundColor: theme.color.background }, style]}
-        mode={"margin"}
         {...rest}
       >
         <View style={SS.container}>
