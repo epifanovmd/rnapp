@@ -70,17 +70,13 @@ export const Navbar = memo<INavbarProps>(
     );
 
     return (
-      <SafeAreaView edges={safeArea ? ["top"] : []}>
-        <View
-          style={[
-            SS.container,
-            {
-              backgroundColor: theme.color.background,
-            },
-            style,
-          ]}
-          {...rest}
-        >
+      <SafeAreaView
+        edges={safeArea ? ["top"] : []}
+        style={[{ backgroundColor: theme.color.background }, style]}
+        mode={"margin"}
+        {...rest}
+      >
+        <View style={SS.container}>
           <View style={[SS.left, { minWidth: width }]}>
             <View ref={leftRef} style={SS.row} onLayout={onUpdateWidth}>
               {showBackButton && (
@@ -116,7 +112,7 @@ const SS = StyleSheet.create({
     padding: 4,
     flexDirection: "row",
     justifyContent: "space-between",
-    minHeight: 64,
+    minHeight: 56,
     zIndex: 9999,
   },
   left: {

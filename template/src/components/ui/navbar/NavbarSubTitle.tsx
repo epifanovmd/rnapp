@@ -10,6 +10,12 @@ export const NavbarSubTitle = memo<INavbarSubTitleProps>(
 
     const color = theme?.color.text;
 
-    return <Text style={[{ color }, style]} numberOfLines={1} {...props} />;
+    return (
+      <Text
+        style={[{ color, fontSize: 12 }, style]}
+        numberOfLines={1}
+        {...props}
+      />
+    );
   },
 );
