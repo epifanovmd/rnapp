@@ -67,6 +67,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
         <Content>
           <RefreshingContainer.ScrollView
             refreshing={refreshing}
+            refreshingOffset={context.navbarHeight}
             onScroll={context.onScroll}
             style={{ paddingTop: context.navbarHeight }}
             showsVerticalScrollIndicator={false}

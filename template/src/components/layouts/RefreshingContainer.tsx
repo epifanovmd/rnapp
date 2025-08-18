@@ -39,13 +39,13 @@ import Animated, {
 import { AnimatedRefreshing } from "../animatedRefreshing";
 
 export interface RefreshingContainerProps extends PropsWithChildren {
-  delay?: number;
   maxDistance?: number;
   refreshing?: boolean;
   onRefresh?: () => void;
   duration?: number;
   refreshDuration?: number;
   activeRefreshBackground?: ColorValue;
+  refreshingOffset?: number;
   onScroll?:
     | ((event: NativeSyntheticEvent<NativeScrollEvent>) => void)
     | undefined;
@@ -76,13 +76,13 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
     forwardRef<any, RefreshingContainerProps>(
       (
         {
-          delay = 350,
           maxDistance = 100,
           refreshing = false,
           onRefresh,
           duration = 300,
           refreshDuration = 300,
           activeRefreshBackground = "#fff",
+          refreshingOffset = 0,
           onScroll,
           children,
         },
@@ -141,14 +141,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               percentage.value = 0;
             }
           }, duration);
-        }, [
-          duration,
-          isCompleteScroll,
-          isDarggable.value,
-          isRefreshing,
-          percentage,
-          refreshPosition,
-        ]);
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [duration, refreshPosition]);
 
         const onPanRelease = useCallback(() => {
           if (!isRefreshing.value) {
@@ -167,14 +161,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             isCompleteScroll.value = false;
             percentage.value = 0;
           }
-        }, [
-          duration,
-          isCompleteScroll,
-          isRefreshing,
-          onComplete,
-          percentage,
-          refreshPosition,
-        ]);
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [duration, onComplete]);
 
         const onMove = useCallback(
           (dy: number) => {
@@ -198,14 +186,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               onRefresh?.();
             }
           },
-          [
-            isCompleteScroll,
-            isDarggable.value,
-            maxDistance,
-            onRefresh,
-            percentage,
-            refreshPosition,
-          ],
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+          [maxDistance, onRefresh],
         );
 
         const scrollHandler = useAnimatedScrollHandler(
@@ -244,13 +226,8 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             onPanResponderRelease: onPanRelease,
             onPanResponderTerminate: onPanRelease,
           });
-        }, [
-          isRefreshing.value,
-          isScrolled.value,
-          maxDistance,
-          onMove,
-          onPanRelease,
-        ]);
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [maxDistance, onMove, onPanRelease]);
 
         useEffect(() => {
           if (refreshing) {
@@ -281,7 +258,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
 
         return (
           <View style={styles.root}>
-            <View style={styles.refreshContainer}>
+            <View style={[styles.refreshContainer, { top: refreshingOffset }]}>
               <Animated.View
                 style={[styles.refreshIconWrap, activeRefreshStyle]}
               >
@@ -332,6 +309,8 @@ RefreshingContainer.FlatList = memo(
         onRefresh,
         duration,
         refreshDuration,
+        activeRefreshBackground,
+        refreshingOffset,
         onScroll,
         children,
         bounces = true,
@@ -346,6 +325,8 @@ RefreshingContainer.FlatList = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
+          activeRefreshBackground={activeRefreshBackground}
+          refreshingOffset={refreshingOffset}
           onScroll={onScroll}
         >
           <AnimatedFlatList ref={ref} bounces={bounces} {...rest}>
@@ -366,6 +347,8 @@ RefreshingContainer.ScrollView = memo(
         onRefresh,
         duration,
         refreshDuration,
+        activeRefreshBackground,
+        refreshingOffset,
         onScroll,
         children,
         bounces = true,
@@ -380,6 +363,8 @@ RefreshingContainer.ScrollView = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
+          activeRefreshBackground={activeRefreshBackground}
+          refreshingOffset={refreshingOffset}
           onScroll={onScroll}
         >
           <AnimatedScrollView ref={ref} bounces={bounces} {...rest}>
@@ -400,6 +385,8 @@ RefreshingContainer.View = memo(
         onRefresh,
         duration,
         refreshDuration,
+        activeRefreshBackground,
+        refreshingOffset,
         onScroll,
         children,
         ...rest
@@ -413,6 +400,8 @@ RefreshingContainer.View = memo(
           onRefresh={onRefresh}
           duration={duration}
           refreshDuration={refreshDuration}
+          activeRefreshBackground={activeRefreshBackground}
+          refreshingOffset={refreshingOffset}
           onScroll={onScroll}
         >
           <Animated.View ref={ref} {...rest}>
@@ -473,7 +462,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#f5f5f5",
     borderLeftColor: "green",
   },
-
   root: {
     flex: 1,
   },
