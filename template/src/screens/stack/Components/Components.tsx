@@ -64,29 +64,16 @@ export const Components: FC<StackProps> = memo(({ route }) => {
 
           <Col style={{ gap: 8 }}>
             <TextField
-              type={"custom"}
+              type={"datetime"}
               options={{
-                mask: "+7 (999) 999-99-99",
-                getRawValue: value => {
-                  const rawValue = value.replace(/\D/g, "");
-
-                  if (rawValue.length > 0 && rawValue[0] === "8") {
-                    return "7" + rawValue.substring(1);
-                  }
-
-                  if (rawValue.length > 0 && rawValue[0] !== "7") {
-                    return "7" + rawValue;
-                  }
-
-                  return rawValue;
-                },
+                format: "DD.MM.YYYY",
               }}
               style={{ marginTop: 16 }}
               label={"Text field with error"}
               value={inputValue}
               error={!inputValue && "Value is required"}
               clearable={true}
-              hint={"$"}
+              hint={"Дата"}
               hintPosition={"left"}
               keyboardType={"numeric"}
               onChangeText={setValue}
