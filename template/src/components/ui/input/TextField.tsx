@@ -14,8 +14,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
-  TextInput,
-  TextInputProps,
+  TextInput as RNTextInput,
   TouchableOpacity,
   View,
   ViewStyle,
@@ -26,6 +25,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Icon, TIconName } from "../icon";
+import { TextInput, TextInputProps } from "./Input";
 
 export interface IRNVITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly label?: string;
@@ -43,7 +43,7 @@ export interface IRNVITextFieldProps extends Omit<TextInputProps, "style"> {
 const ANIMATION_DURATION = 150;
 
 export const TextField = memo(
-  forwardRef<TextInput, IRNVITextFieldProps>(
+  forwardRef<RNTextInput, IRNVITextFieldProps>(
     (
       {
         label,
@@ -71,7 +71,7 @@ export const TextField = memo(
       },
       ref,
     ) => {
-      const inputRef = React.useRef<TextInput>(null);
+      const inputRef = React.useRef<RNTextInput>(null);
       const maxWidth = useRef(0);
       const [width, setWidth] = useState(0);
       const [isFocused, setFocused] = useState(false);
