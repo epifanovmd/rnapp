@@ -415,11 +415,12 @@ RefreshingContainer.View = memo(
 
 const AnimatedScrollView = Animated.createAnimatedComponent(
   forwardRef<Animated.ScrollView, ComponentProps<typeof Animated.ScrollView>>(
-    ({ children, ...rest }, ref) => {
+    ({ keyboardShouldPersistTaps = "handled", children, ...rest }, ref) => {
       return (
         <Animated.ScrollView
           ref={ref}
           {...rest}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           onScroll={rest.onScroll ?? (rest as any).nativeOnScroll}
         >
           {children}

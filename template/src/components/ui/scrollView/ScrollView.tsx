@@ -12,13 +12,17 @@ export interface IScrollViewProps
     Omit<RNScrollViewProps, "style" | "centerContent"> {}
 
 export const ScrollView: FC<IScrollViewProps> = memo(
-  ({ children, ...rest }) => {
+  ({ children, keyboardShouldPersistTaps = "handled", ...rest }) => {
     const { style, ownProps, animated } = useFlexProps(rest);
 
     const Component = animated ? Animated.ScrollView : RNScrollView;
 
     return (
-      <Component style={style} {...ownProps}>
+      <Component
+        style={style}
+        keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        {...ownProps}
+      >
         {children}
       </Component>
     );
