@@ -8,8 +8,13 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { LayoutChangeEvent, StyleSheet, ViewProps } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import {
+  LayoutChangeEvent,
+  StyleProp,
+  StyleSheet,
+  ViewProps,
+  ViewStyle,
+} from "react-native";
 import Animated, {
   runOnJS,
   useAnimatedProps,
@@ -24,7 +29,7 @@ import { EdgeInsets } from "react-native-safe-area-context";
 
 import { Backdrop } from "./backdrop";
 import { HoldItemContext, IHoldItemContext } from "./HoldItemContext";
-import { HoldMenu } from "./holdMenu";
+import { HoldMenu, IHoldMenuProps } from "./holdMenu";
 import {
   useDeviceOrientation,
   usePosition,
@@ -40,6 +45,7 @@ import {
 } from "./utils";
 
 export interface HoldItemProviderProps {
+  style?: StyleProp<ViewStyle>;
   theme?: "dark" | "light";
   safeAreaInsets?: EdgeInsets;
   menuPosition?: TMenuPosition;
@@ -47,6 +53,7 @@ export interface HoldItemProviderProps {
   onClose?: () => void;
   disableMove?: boolean;
   duration?: number;
+  holdMenuProps?: IHoldMenuProps;
 }
 
 export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
@@ -60,11 +67,13 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
         bottom: 0,
         left: 0,
       },
+      style,
       menuPosition,
       onOpen,
       onClose,
       disableMove = false,
       duration = HOLD_ITEM_DURATION,
+      holdMenuProps,
     }) => {
       const orientation = useDeviceOrientation();
       const [value, setValue] = useState<IHoldItemValue<any> | null>(null);
@@ -186,7 +195,7 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
             {children}
             <Backdrop />
             <Animated.ScrollView
-              style={[styles.holdItem, animatedPortalStyle]}
+              style={[styles.holdItem, animatedPortalStyle, style]}
               animatedProps={animatedPortalProps}
               bounces={false}
               contentContainerStyle={styles.content}
@@ -199,6 +208,7 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
                 transformContent={transformContent}
                 menuPosition={menuPosition}
                 onLayout={onChangeMenuHeight}
+                {...holdMenuProps}
               />
             )}
           </PortalProvider>

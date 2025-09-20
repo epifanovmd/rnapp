@@ -16,12 +16,12 @@ import {
 import { Separator } from "./Separator";
 import { HoldMenuItemProp } from "./types";
 
-export interface HoldMenuItemProps {
+export interface IHoldMenuItemProps {
   item: HoldMenuItemProp;
   isLast?: boolean;
 }
 
-export const HoldMenuItem = memo(({ item, isLast }: HoldMenuItemProps) => {
+export const HoldMenuItem = memo(({ item, isLast }: IHoldMenuItemProps) => {
   const { state, theme, data } = useHoldItemContext();
 
   const handleOnPress = () => {

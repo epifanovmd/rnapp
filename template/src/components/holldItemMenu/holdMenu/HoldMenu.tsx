@@ -16,13 +16,13 @@ import {
 import { HoldMenuList } from "./HoldMenuList";
 import { HoldMenuItemProp } from "./types";
 
-export interface IHoldMenuItemProps extends ViewProps {
+export interface IHoldMenuProps extends ViewProps {
   items: HoldMenuItemProp[];
   menuPosition?: TMenuPosition;
   transformContent: SharedValue<number>;
 }
 
-export const HoldMenu = memo<IHoldMenuItemProps>(
+export const HoldMenu = memo<IHoldMenuProps>(
   ({ items, menuPosition = "center", transformContent, ...props }) => {
     const { state, position, duration } = useHoldItemContext();
 
