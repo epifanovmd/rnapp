@@ -213,7 +213,6 @@ const styles = StyleSheet.create({
     flex: 1,
     zIndex: 10,
     position: "absolute",
-    borderRadius: 8,
   },
   content: {
     flexGrow: 1,
