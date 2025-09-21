@@ -1,75 +1,101 @@
-import { ColorTheme, ITheme, SpacingTheme } from "../types";
+import { ITheme, TColorTheme } from "../types";
 
-export const DEFAULT_DARK_COLOR_THEME: ColorTheme = {
+export const DARK_COLOR_THEME: TColorTheme = {
+  // Primary colors
+  primary: "#90CAF9",
+  primaryLight: "#E3F2FD",
+  primaryDark: "#42A5F5",
+
+  // Secondary colors
+  secondary: "#F48FB1",
+  secondaryLight: "#FCE4EC",
+  secondaryDark: "#EC407A",
+
+  // Background colors
   background: "#354259",
-  barStyle: "light-content",
-  text: "#fff",
-  placeholder: "#ffffff70",
-  common: {
-    black: "#000",
-    white: "#fff",
-  },
-  primary: {
-    main: "#1c3e94",
-    light: "rgb(73, 100, 169)",
-    dark: "rgb(19, 43, 103)",
-    contrastText: "#fff",
-  },
-  secondary: {
-    main: "#ee2e24",
-    light: "rgb(241, 87, 79)",
-    dark: "rgb(166, 32, 25)",
-    contrastText: "#fff",
-  },
-  error: {
-    light: "#e57373",
-    main: "#f44336",
-    dark: "#d32f2f",
-    contrastText: "#fff",
-  },
-  warning: {
-    light: "#ffb74d",
-    main: "#ff9800",
-    dark: "#f57c00",
-    contrastText: "rgba(0, 0, 0, 0.87)",
-  },
-  info: {
-    light: "#64b5f6",
-    main: "#2196f3",
-    dark: "#1976d2",
-    contrastText: "#fff",
-  },
-  success: {
-    light: "#81c784",
-    main: "#4caf50",
-    dark: "#388e3c",
-    contrastText: "rgba(0, 0, 0, 0.87)",
-  },
-  grey: {
-    grey50: "#fafafa",
-    grey100: "#f5f5f5",
-    grey200: "#eeeeee",
-    grey300: "#e0e0e0",
-    grey400: "#bdbdbd",
-    grey500: "#9e9e9e",
-    grey600: "#757575",
-    grey700: "#616161",
-    grey800: "#424242",
-    grey900: "#212121",
-    greyA100: "#d5d5d5",
-    greyA200: "#aaaaaa",
-    greyA400: "#303030",
-    greyA700: "#616161",
-  },
-};
-export const DEFAULT_DARK_SPACING_THEME: SpacingTheme = {
-  base: 8,
-  double: 16,
+  surface: "#2A3647",
+  error: "#CF6679",
+
+  // On colors (text on colored backgrounds)
+  onPrimary: "#000000",
+  onSecondary: "#000000",
+  onBackground: "#FFFFFF",
+  onSurface: "#FFFFFF",
+  onError: "#000000",
+
+  // Text colors
+  textPrimary: "rgba(255, 255, 255, 0.87)",
+  textSecondary: "rgba(255, 255, 255, 0.6)",
+  textDisabled: "rgba(255, 255, 255, 0.38)",
+  textHint: "rgba(255, 255, 255, 0.38)",
+
+  // Divider and borders
+  divider: "rgba(255, 255, 255, 0.12)",
+  border: "rgba(255, 255, 255, 0.12)",
+
+  // States
+  disabled: "rgba(255, 255, 255, 0.26)",
+  hover: "rgba(255, 255, 255, 0.04)",
+  focus: "rgba(255, 255, 255, 0.12)",
+  selected: "rgba(255, 255, 255, 0.08)",
+  activated: "rgba(255, 255, 255, 0.12)",
+  pressed: "rgba(255, 255, 255, 0.16)",
+  dragged: "rgba(255, 255, 255, 0.08)",
+
+  // Elevation surfaces (darker for dark theme)
+  elevation0: "#121212",
+  elevation1: "#1E1E1E",
+  elevation2: "#222222",
+  elevation3: "#242424",
+  elevation4: "#272727",
+  elevation6: "#2C2C2C",
+  elevation8: "#2E2E2E",
+  elevation12: "#333333",
+  elevation16: "#363636",
+  elevation24: "#383838",
+
+  // Material Design color palette (lighter variants for dark theme)
+  red: "#F44336",
+  pink: "#F48FB1",
+  purple: "#CE93D8",
+  deepPurple: "#B39DDB",
+  indigo: "#9FA8DA",
+  blue: "#90CAF9",
+  lightBlue: "#81D4FA",
+  cyan: "#80DEEA",
+  teal: "#80CBC4",
+  green: "#A5D6A7",
+  lightGreen: "#C5E1A5",
+  lime: "#E6EE9C",
+  yellow: "#FFF59D",
+  amber: "#FFE082",
+  orange: "#FFCC80",
+  deepOrange: "#FFAB91",
+  brown: "#BCAAA4",
+  grey: "#EEEEEE",
+  blueGrey: "#B0BEC5",
+
+  // Grey scale (inverted for dark theme)
+  grey50: "#212121",
+  grey100: "#424242",
+  grey200: "#616161",
+  grey300: "#757575",
+  grey400: "#9E9E9E",
+  grey500: "#BDBDBD",
+  grey600: "#E0E0E0",
+  grey700: "#EEEEEE",
+  grey800: "#F5F5F5",
+  grey900: "#FAFAFA",
+
+  // Black and white
+  black: "#000000",
+  white: "#FFFFFF",
+
+  // Transparent
+  transparent: "transparent",
 };
 
-export const DEFAULT_DARK_THEME_ID = "default-dark";
-export const DEFAULT_DARK_THEME: ITheme = {
-  id: DEFAULT_DARK_THEME_ID,
-  color: DEFAULT_DARK_COLOR_THEME,
-  spacing: DEFAULT_DARK_SPACING_THEME,
+export const DARK_THEME: ITheme = {
+  name: "Dark",
+  colors: DARK_COLOR_THEME,
 };

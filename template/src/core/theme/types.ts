@@ -1,27 +1,16 @@
-import { StatusBarStyle } from "react-native/Libraries/Components/StatusBar/StatusBar";
+import { LIGHT_COLOR_THEME } from "./variants";
 
-import {
-  DEFAULT_DARK_THEME_ID,
-  DEFAULT_LIGHT_COLOR_THEME,
-  DEFAULT_LIGHT_SPACING_THEME,
-  DEFAULT_LIGHT_THEME_ID,
-} from "./variants";
+export type TColorTheme = typeof LIGHT_COLOR_THEME;
 
-export type ColorTheme = typeof DEFAULT_LIGHT_COLOR_THEME & {
-  barStyle: string | StatusBarStyle;
-};
-
-export type SpacingTheme = typeof DEFAULT_LIGHT_SPACING_THEME & {};
-
-export interface IThemeContext {
-  theme: ITheme;
+export interface IThemeContext extends ITheme {
   toggleTheme: () => void;
-  isDark: boolean;
   isLight: boolean;
+  isDark: boolean;
 }
 
+export type TThemeName = "Light" | "Dark";
+
 export interface ITheme {
-  id: typeof DEFAULT_LIGHT_THEME_ID | typeof DEFAULT_DARK_THEME_ID;
-  color: ColorTheme;
-  spacing: SpacingTheme;
+  name: TThemeName;
+  colors: TColorTheme;
 }

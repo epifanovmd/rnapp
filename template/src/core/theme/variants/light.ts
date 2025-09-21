@@ -1,75 +1,101 @@
 import { ITheme } from "../types";
 
-export const DEFAULT_LIGHT_COLOR_THEME = {
+export const LIGHT_COLOR_THEME = {
+  // Primary colors
+  primary: "#1976D2",
+  primaryLight: "#42A5F5",
+  primaryDark: "#1565C0",
+
+  // Secondary colors
+  secondary: "#DC004E",
+  secondaryLight: "#FF5983",
+  secondaryDark: "#9A0036",
+
+  // Background colors
   background: "#ECE5C7",
-  barStyle: "dark-content",
-  text: "#000",
-  placeholder: "#00000070",
-  common: {
-    black: "#000",
-    white: "#fff",
-  },
-  primary: {
-    main: "#1c3e94",
-    light: "rgb(73, 100, 169)",
-    dark: "rgb(19, 43, 103)",
-    contrastText: "#fff",
-  },
-  secondary: {
-    main: "#ee2e24",
-    light: "rgb(241, 87, 79)",
-    dark: "rgb(166, 32, 25)",
-    contrastText: "#fff",
-  },
-  error: {
-    light: "#e57373",
-    main: "#f44336",
-    dark: "#d32f2f",
-    contrastText: "#fff",
-  },
-  warning: {
-    light: "#ffb74d",
-    main: "#ff9800",
-    dark: "#f57c00",
-    contrastText: "rgba(0, 0, 0, 0.87)",
-  },
-  info: {
-    light: "#64b5f6",
-    main: "#2196f3",
-    dark: "#1976d2",
-    contrastText: "#fff",
-  },
-  success: {
-    light: "#81c784",
-    main: "#4caf50",
-    dark: "#388e3c",
-    contrastText: "rgba(0, 0, 0, 0.87)",
-  },
-  grey: {
-    grey50: "#fafafa",
-    grey100: "#f5f5f5",
-    grey200: "#eeeeee",
-    grey300: "#e0e0e0",
-    grey400: "#bdbdbd",
-    grey500: "#9e9e9e",
-    grey600: "#757575",
-    grey700: "#616161",
-    grey800: "#424242",
-    grey900: "#212121",
-    greyA100: "#d5d5d5",
-    greyA200: "#aaaaaa",
-    greyA400: "#303030",
-    greyA700: "#616161",
-  },
-};
-export const DEFAULT_LIGHT_SPACING_THEME = {
-  base: 8,
-  double: 16,
+  surface: "#F5F0DC",
+  error: "#B00020",
+
+  // On colors (text on colored backgrounds)
+  onPrimary: "#FFFFFF",
+  onSecondary: "#FFFFFF",
+  onBackground: "#000000",
+  onSurface: "#000000",
+  onError: "#FFFFFF",
+
+  // Text colors
+  textPrimary: "rgba(0, 0, 0, 0.87)",
+  textSecondary: "rgba(0, 0, 0, 0.6)",
+  textDisabled: "rgba(0, 0, 0, 0.38)",
+  textHint: "rgba(0, 0, 0, 0.38)",
+
+  // Divider and borders
+  divider: "rgba(0, 0, 0, 0.12)",
+  border: "rgba(0, 0, 0, 0.12)",
+
+  // States
+  disabled: "rgba(0, 0, 0, 0.26)",
+  hover: "rgba(0, 0, 0, 0.04)",
+  focus: "rgba(0, 0, 0, 0.12)",
+  selected: "rgba(0, 0, 0, 0.08)",
+  activated: "rgba(0, 0, 0, 0.12)",
+  pressed: "rgba(0, 0, 0, 0.16)",
+  dragged: "rgba(0, 0, 0, 0.08)",
+
+  // Elevation shadows (for surfaces)
+  elevation0: "#FFFFFF",
+  elevation1: "#FFFFFF",
+  elevation2: "#FFFFFF",
+  elevation3: "#FFFFFF",
+  elevation4: "#FFFFFF",
+  elevation6: "#FFFFFF",
+  elevation8: "#FFFFFF",
+  elevation12: "#FFFFFF",
+  elevation16: "#FFFFFF",
+  elevation24: "#FFFFFF",
+
+  // Material Design color palette
+  red: "#F44336",
+  pink: "#E91E63",
+  purple: "#9C27B0",
+  deepPurple: "#673AB7",
+  indigo: "#3F51B5",
+  blue: "#2196F3",
+  lightBlue: "#03A9F4",
+  cyan: "#00BCD4",
+  teal: "#009688",
+  green: "#4CAF50",
+  lightGreen: "#8BC34A",
+  lime: "#CDDC39",
+  yellow: "#FFEB3B",
+  amber: "#FFC107",
+  orange: "#FF9800",
+  deepOrange: "#FF5722",
+  brown: "#795548",
+  grey: "#9E9E9E",
+  blueGrey: "#607D8B",
+
+  // Grey scale
+  grey50: "#FAFAFA",
+  grey100: "#F5F5F5",
+  grey200: "#EEEEEE",
+  grey300: "#E0E0E0",
+  grey400: "#BDBDBD",
+  grey500: "#9E9E9E",
+  grey600: "#757575",
+  grey700: "#616161",
+  grey800: "#424242",
+  grey900: "#212121",
+
+  // Black and white
+  black: "#000000",
+  white: "#FFFFFF",
+
+  // Transparent
+  transparent: "transparent",
 };
 
-export const DEFAULT_LIGHT_THEME_ID = "default-light";
 export const DEFAULT_LIGHT_THEME: ITheme = {
-  id: DEFAULT_LIGHT_THEME_ID,
-  color: DEFAULT_LIGHT_COLOR_THEME,
-  spacing: DEFAULT_LIGHT_SPACING_THEME,
+  name: "Light",
+  colors: LIGHT_COLOR_THEME,
 };

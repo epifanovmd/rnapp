@@ -75,7 +75,7 @@ export const Icon = memo<PropsWithChildren<IIconProps>>(
     ...rest
   }) => {
     const { style, ownProps } = useFlexProps(rest);
-    const { theme } = useTheme();
+    const { colors } = useTheme();
 
     const Component = icoMap[name];
 
@@ -97,7 +97,7 @@ export const Icon = memo<PropsWithChildren<IIconProps>>(
         fontWeight={fontWeight}
         letterSpacing={letterSpacing}
         style={style}
-        color={theme.color.text}
+        color={colors.textPrimary}
         {...ownProps}
       />
     );

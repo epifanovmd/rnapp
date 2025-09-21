@@ -93,7 +93,7 @@ export const AttachModalProvider: FC<
     ...rest
   }) => {
     const ref = useModalRef();
-    const { theme } = useTheme();
+    const { colors } = useTheme();
 
     const _saveToPhotos = useRef<boolean>(saveToPhotos);
     const _quality = useRef<PhotoQuality>(quality);

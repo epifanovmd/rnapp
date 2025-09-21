@@ -3,6 +3,7 @@ import { useNavigation } from "@react-navigation/native";
 import React, { memo, useCallback, useRef } from "react";
 import {
   GestureResponderEvent,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -37,7 +38,7 @@ export const Navbar = memo<INavbarProps>(
     children,
     ...rest
   }) => {
-    const { theme } = useTheme();
+    const { colors } = useTheme();
     const leftRef = useRef<View>(null);
     const rightRef = useRef<View>(null);
     const [width, setWidth] = React.useState<number>();
@@ -72,7 +73,7 @@ export const Navbar = memo<INavbarProps>(
     return (
       <SafeAreaView
         edges={safeArea ? ["top"] : []}
-        style={[{ backgroundColor: theme.color.background }, style]}
+        style={[{ backgroundColor: colors.background }, style]}
         {...rest}
       >
         <View style={SS.container}>

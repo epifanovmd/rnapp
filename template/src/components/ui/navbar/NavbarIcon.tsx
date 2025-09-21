@@ -7,9 +7,9 @@ import { Icon, IIconProps } from "../icon";
 export interface INavbarIconProps extends IIconProps {}
 
 export const NavbarIcon = memo<INavbarIconProps>(({ style, ...props }) => {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
-  const fill = theme?.color.text;
+  const fill = colors.textPrimary;
 
   return <Icon style={[SS.icon, style]} fill={fill} {...props} />;
 });

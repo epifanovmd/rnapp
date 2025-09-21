@@ -15,9 +15,7 @@ import { ITouchableProps, Touchable } from "../touchable";
 
 export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
   loading?: boolean;
-  leftSlot?: React.JSX.Element;
   title?: React.JSX.Element | string;
-  rightSlot?: React.JSX.Element;
   color?: ColorValue;
   contentStyle?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
@@ -26,9 +24,7 @@ export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
 
 const _Button = <T extends any = unknown>({
   loading,
-  leftSlot,
   title,
-  rightSlot,
   color = "#fff",
   contentStyle,
   textStyle,
@@ -55,8 +51,6 @@ const _Button = <T extends any = unknown>({
         <ActivityIndicator size="small" color={color} {...indicatorProps} />
       ) : (
         <Row alignItems={"center"} style={contentStyle}>
-          {leftSlot}
-
           {isString(title ?? children) ? (
             <Text lineBreakMode={"tail"} color={color} style={textStyle}>
               {title ?? children}
@@ -64,8 +58,6 @@ const _Button = <T extends any = unknown>({
           ) : (
             title ?? children
           )}
-
-          {rightSlot}
         </Row>
       )}
     </Touchable>

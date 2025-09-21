@@ -6,14 +6,14 @@ import { Button, IButtonProps } from "./Button";
 interface ITextButtonProps extends IButtonProps {}
 
 export const TextButton: FC<ITextButtonProps> = memo(({ ...rest }) => {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
   return (
     <Button
       borderColor={"transparent"}
       bg={"transparent"}
       borderWidth={0}
-      color={theme.color.text}
+      color={colors.textPrimary}
       {...rest}
     />
   );

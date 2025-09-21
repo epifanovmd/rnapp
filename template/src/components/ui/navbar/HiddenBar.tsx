@@ -13,9 +13,7 @@ export interface IHiddenNavBarProps {
 
 export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
   ({ children, safeArea }) => {
-    const {
-      theme: { color },
-    } = useTheme();
+    const { colors } = useTheme();
     const { navbarHeight, setNavbarHeight, navbarOffset } = useTransition();
     const insets = useSafeAreaInsets();
     const top = safeArea ? insets.top : 0;
@@ -42,7 +40,7 @@ export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
       };
     }, [top, navbarHeight]);
 
-    const backgroundColor = color.background;
+    const backgroundColor = colors.background;
 
     return (
       <View style={[styles.container, { paddingTop: top }]}>

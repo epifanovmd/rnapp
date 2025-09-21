@@ -6,13 +6,13 @@ import { StatusBarStyle } from "react-native/Libraries/Components/StatusBar/Stat
 interface IProps extends StatusBarProps {}
 
 export const StatusBar: FC<IProps> = memo(props => {
-  const { theme } = useTheme();
+  const { colors, isLight } = useTheme();
 
   return (
     <RNStatusBar
-      barStyle={theme.color.barStyle as StatusBarStyle}
+      barStyle={isLight ? "dark-content" : "light-content"}
       translucent={false}
-      backgroundColor={theme.color.background}
+      backgroundColor={colors.background}
       {...props}
     />
   );

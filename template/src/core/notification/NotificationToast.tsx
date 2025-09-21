@@ -1,11 +1,18 @@
-import React, { forwardRef, memo, useEffect, useImperativeHandle } from "react";
+import React, {
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import {
+  LayoutChangeEvent,
   StyleProp,
   StyleSheet,
   Text,
   TextStyle,
   TouchableWithoutFeedback,
-  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
@@ -16,6 +23,8 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+
+import { useTheme } from "../theme";
 
 export interface NotificationToastOptions {
   icon?: React.JSX.Element;
@@ -91,9 +100,11 @@ export const NotificationToast = memo(
       renderType,
     } = props;
 
+    const { colors } = useTheme();
+
     const opacity = useSharedValue(0);
     const translateY = useSharedValue(-20);
-    const { height } = useWindowDimensions();
+    const [height, setHeight] = useState(0);
 
     useEffect(() => {
       opacity.value = withTiming(1, { duration: animationDuration });
@@ -145,7 +156,10 @@ export const NotificationToast = memo(
         }
       })
       .onEnd(event => {
-        if (event.translationY < -30) {
+        if (
+          Math.abs(event.translationY) > 20 ||
+          Math.abs(event.velocityY) > 250
+        ) {
           opacity.value = withTiming(0, { duration: animationDuration });
           translateY.value = withTiming(
             -height,
@@ -182,17 +196,17 @@ export const NotificationToast = memo(
       }
     }
 
-    let backgroundColor = normalColor || "#333";
+    let backgroundColor = normalColor || colors.primary;
 
     switch (type) {
       case "success":
-        backgroundColor = successColor || "rgb(46, 125, 50)";
+        backgroundColor = successColor || colors.green;
         break;
       case "danger":
-        backgroundColor = dangerColor || "rgb(211, 47, 47)";
+        backgroundColor = dangerColor || colors.red;
         break;
       case "warning":
-        backgroundColor = warningColor || "rgb(237, 108, 2)";
+        backgroundColor = warningColor || colors.orange;
         break;
     }
 
@@ -200,9 +214,16 @@ export const NotificationToast = memo(
       hide: handleClose,
     }));
 
+    const handleLayout = useCallback((event: LayoutChangeEvent) => {
+      setHeight(event.nativeEvent.layout.height);
+    }, []);
+
     return (
       <GestureDetector gesture={panGesture}>
-        <Animated.View style={[styles.container, animatedStyle]}>
+        <Animated.View
+          style={[styles.container, animatedStyle]}
+          onLayout={handleLayout}
+        >
           {renderType?.[type] ? (
             renderType[type](props)
           ) : renderToast ? (
@@ -217,7 +238,11 @@ export const NotificationToast = memo(
                 {React.isValidElement(message) ? (
                   message
                 ) : (
-                  <Text style={[styles.message, textStyle]}>{message}</Text>
+                  <Text
+                    style={[styles.message, textStyle, { color: colors.white }]}
+                  >
+                    {message}
+                  </Text>
                 )}
               </View>
             </TouchableWithoutFeedback>
@@ -239,7 +264,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   message: {
-    color: "#fff",
     fontWeight: "500",
   },
   iconContainer: {

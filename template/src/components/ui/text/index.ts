@@ -1,1 +1,2 @@
-export * from "./Text";
+export * from "./Text.component";
+export * from "./Text.style";

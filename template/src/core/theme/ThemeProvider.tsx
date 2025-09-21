@@ -3,17 +3,12 @@ import React, { PropsWithChildren, useEffect } from "react";
 import { useColorScheme } from "react-native";
 
 import { ThemeContext } from "./ThemeContext";
-import { ITheme, IThemeContext } from "./types";
-import {
-  DEFAULT_DARK_THEME,
-  DEFAULT_DARK_THEME_ID,
-  DEFAULT_LIGHT_THEME,
-  DEFAULT_LIGHT_THEME_ID,
-} from "./variants";
+import { ITheme, IThemeContext, TThemeName } from "./types";
+import { DARK_THEME, DEFAULT_LIGHT_THEME } from "./variants";
 
-const THEMES: { [key in string]: ITheme } = {
-  [DEFAULT_LIGHT_THEME_ID]: DEFAULT_DARK_THEME,
-  [DEFAULT_DARK_THEME_ID]: DEFAULT_LIGHT_THEME,
+const THEMES: { [key in TThemeName]: ITheme } = {
+  Dark: DARK_THEME,
+  Light: DEFAULT_LIGHT_THEME,
 };
 
 export const ThemeProvider = React.memo<PropsWithChildren>(props => {
@@ -22,13 +17,13 @@ export const ThemeProvider = React.memo<PropsWithChildren>(props => {
 
   const toggleThemeCallback = React.useCallback(() => {
     setTheme(currentTheme => {
-      if (currentTheme!.id === DEFAULT_LIGHT_THEME_ID) {
-        AsyncStorage.setItem("themeId", DEFAULT_LIGHT_THEME_ID);
+      if (currentTheme!.name === "Light") {
+        AsyncStorage.setItem("themeName", "Dark").then();
 
-        return DEFAULT_DARK_THEME;
+        return DARK_THEME;
       }
-      if (currentTheme!.id === DEFAULT_DARK_THEME_ID) {
-        AsyncStorage.setItem("themeId", DEFAULT_DARK_THEME_ID);
+      if (currentTheme!.name === "Dark") {
+        AsyncStorage.setItem("themeName", "Light").then();
 
         return DEFAULT_LIGHT_THEME;
       }
@@ -38,15 +33,12 @@ export const ThemeProvider = React.memo<PropsWithChildren>(props => {
   }, []);
 
   useEffect(() => {
-    AsyncStorage.getItem("themeId").then(themeId => {
-      if (themeId) {
-        setTheme({ ...THEMES[themeId] });
+    AsyncStorage.getItem("themeName").then(themeName => {
+      if (themeName) {
+        setTheme({ ...THEMES[themeName as TThemeName] });
       } else {
-        setTheme(isDarkMode ? DEFAULT_DARK_THEME : DEFAULT_LIGHT_THEME);
-        AsyncStorage.setItem(
-          "themeId",
-          isDarkMode ? DEFAULT_DARK_THEME_ID : DEFAULT_LIGHT_THEME_ID,
-        );
+        setTheme(isDarkMode ? DARK_THEME : DEFAULT_LIGHT_THEME);
+        AsyncStorage.setItem("themeName", isDarkMode ? "Dark" : "Light").then();
       }
     });
 
@@ -55,10 +47,11 @@ export const ThemeProvider = React.memo<PropsWithChildren>(props => {
 
   const memoizedValue = React.useMemo(() => {
     const value: IThemeContext = {
-      theme: theme,
+      name: theme.name,
+      colors: theme.colors,
       toggleTheme: toggleThemeCallback,
-      isLight: theme.id === DEFAULT_LIGHT_THEME_ID,
-      isDark: theme.id === DEFAULT_DARK_THEME_ID,
+      isLight: theme.name === "Light",
+      isDark: theme.name === "Dark",
     };
 
     return value;

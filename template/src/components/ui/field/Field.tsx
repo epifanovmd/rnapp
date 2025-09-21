@@ -24,9 +24,7 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
     children,
     ...rest
   }) => {
-    const {
-      theme: { color },
-    } = useTheme();
+    const { colors } = useTheme();
 
     const { $children, label, description, error } = useSlotProps(
       Field,
@@ -54,7 +52,7 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
         {!!(errorText || descriptionText) && (
           <Text
             mt={2}
-            color={errorText ? color.error.light : undefined}
+            color={errorText ? colors.error : undefined}
             text={errorText || descriptionText}
             {...(errorText ? error : description)}
           />

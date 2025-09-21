@@ -1,4 +1,4 @@
-import { DEFAULT_LIGHT_THEME_ID, useTheme } from "@core";
+import { useTheme } from "@core";
 import React, { FC, memo, PropsWithChildren } from "react";
 import SwitchToggle from "react-native-switch-toggle";
 
@@ -8,23 +8,22 @@ interface IProps extends FlexProps {}
 
 export const SwitchTheme: FC<PropsWithChildren<IProps>> = memo(
   ({ ...rest }) => {
-    const { theme, toggleTheme } = useTheme();
+    const { name, isLight, toggleTheme } = useTheme();
 
     return (
       <Row {...rest}>
         <SwitchToggle
-          switchOn={theme.id === DEFAULT_LIGHT_THEME_ID}
-          backTextRight={theme.id === DEFAULT_LIGHT_THEME_ID ? "Light" : "Dark"}
+          switchOn={isLight}
+          backTextRight={name}
           buttonStyle={{
             position: "absolute",
             zIndex: 10,
             backgroundColor: "#62c28e",
-            marginLeft: theme.id === DEFAULT_LIGHT_THEME_ID ? -1 : 1,
+            marginLeft: isLight ? -1 : 1,
           }}
           rightContainerStyle={{
             flex: 1,
-            alignItems:
-              theme.id === DEFAULT_LIGHT_THEME_ID ? "flex-start" : "flex-end",
+            alignItems: isLight ? "flex-start" : "flex-end",
             zIndex: 9,
             borderRadius: 16,
             paddingHorizontal: 6,

@@ -10,13 +10,13 @@ export const useModalStyles = (): Pick<
   | "handleStyle"
   | "handleIndicatorStyle"
 > => {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
   const backgroundStyle = useMemo<ModalProps["backgroundStyle"]>(
     () => ({
-      backgroundColor: theme.color.background,
+      backgroundColor: colors.background,
     }),
-    [theme.color.background],
+    [colors.background],
   );
 
   return {

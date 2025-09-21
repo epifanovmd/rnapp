@@ -3,24 +3,27 @@ import { DefaultTheme } from "@react-navigation/native";
 import { useMemo } from "react";
 
 export const useAppNavigationTheme = () => {
-  const { theme } = useTheme();
+  const { colors } = useTheme();
 
   return useMemo<ReactNavigation.Theme>(() => {
     return {
       dark: true,
       colors: {
-        background: theme.color.background,
-        text: theme.color.common.white,
-        notification: "red",
-        card: theme.color.grey.grey700,
-        border: theme.color.grey.grey700,
-        primary: theme.color.common.white,
+        primary: colors.primary,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.textPrimary,
+        border: colors.border,
+        notification: colors.red,
       },
       fonts: DefaultTheme.fonts,
     };
   }, [
-    theme.color.background,
-    theme.color.common.white,
-    theme.color.grey.grey700,
+    colors.primary,
+    colors.background,
+    colors.surface,
+    colors.textPrimary,
+    colors.border,
+    colors.red,
   ]);
 };

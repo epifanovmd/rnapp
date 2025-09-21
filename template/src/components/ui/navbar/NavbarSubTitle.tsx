@@ -6,9 +6,9 @@ export interface INavbarSubTitleProps extends ITextProps {}
 
 export const NavbarSubTitle = memo<INavbarSubTitleProps>(
   ({ style, ...props }) => {
-    const { theme } = useTheme();
+    const { colors } = useTheme();
 
-    const color = theme?.color.text;
+    const color = colors.textPrimary;
 
     return (
       <Text
