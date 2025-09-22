@@ -1,3 +1,4 @@
+import { useDimensions } from "@common";
 import {
   Container,
   HoldItem,
@@ -18,7 +19,6 @@ import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const ChatScreen: FC<StackProps> = observer(({ route }) => {

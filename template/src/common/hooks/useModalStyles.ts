@@ -1,9 +1,9 @@
-import { ModalProps } from "@components";
+import { BottomSheetProps } from "@components";
 import { useTheme } from "@core";
 import { useMemo } from "react";
 
 export const useModalStyles = (): Pick<
-  ModalProps,
+  BottomSheetProps,
   | "style"
   | "backgroundStyle"
   | "containerStyle"
@@ -12,11 +12,11 @@ export const useModalStyles = (): Pick<
 > => {
   const { colors } = useTheme();
 
-  const backgroundStyle = useMemo<ModalProps["backgroundStyle"]>(
+  const backgroundStyle = useMemo<BottomSheetProps["backgroundStyle"]>(
     () => ({
-      backgroundColor: colors.background,
+      backgroundColor: colors.surface,
     }),
-    [colors.background],
+    [colors.surface],
   );
 
   return {

@@ -12,7 +12,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-export const ModalBackdrop = memo(
+export const BottomSheetBackdrop = memo(
   ({ animatedIndex, style }: BottomSheetBackdropProps) => {
     const { handlePanGestureHandler } = useBottomSheetGestureHandlers();
     const { snapToIndex, close } = useBottomSheet();

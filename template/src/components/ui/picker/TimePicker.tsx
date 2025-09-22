@@ -14,7 +14,11 @@ import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Col, Row } from "../../flexView";
-import { Modal, ModalProps, useModalRef } from "../modal";
+import {
+  BottomSheet,
+  BottomSheetProps,
+  useBottomSheetRef,
+} from "../bottomSheet";
 import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
@@ -29,7 +33,7 @@ export interface TimePickerProps extends ITouchableProps {
   onChange?: (time: string) => void;
 
   pickerProps?: PickerProps;
-  modalProps?: ModalProps;
+  bottomSheetProps?: BottomSheetProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;
@@ -60,13 +64,13 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     onChange,
     children,
     pickerProps,
-    modalProps,
+    bottomSheetProps,
     containerProps,
     renderHeader,
     renderFooter,
     ...rest
   }) => {
-    const modalRef = useModalRef();
+    const modalRef = useBottomSheetRef();
     const modalStyles = useModalStyles();
 
     const [hour, minute] = useMemo(() => {
@@ -178,7 +182,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal ref={modalRef} {...modalStyles} {...modalProps}>
+        <BottomSheet ref={modalRef} {...modalStyles} {...bottomSheetProps}>
           <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
@@ -194,7 +198,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
             {renderFooter?.({ onReset, onApply })}
             <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
-        </Modal>
+        </BottomSheet>
       </Touchable>
     );
   },

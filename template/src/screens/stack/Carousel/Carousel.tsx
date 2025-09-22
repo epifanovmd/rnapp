@@ -1,9 +1,9 @@
+import { useDimensions } from "@common";
 import { Container } from "@components";
 import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import { ImageStyle, StyleProp } from "react-native";
-import { useDimensions } from "react-native-modalize/lib/utils/use-dimensions";
 import { useSharedValue } from "react-native-reanimated";
 import {
   CarouselRenderItem,

@@ -12,7 +12,11 @@ import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Col, Row } from "../../flexView";
-import { Modal, ModalProps, useModalRef } from "../modal";
+import {
+  BottomSheet,
+  BottomSheetProps,
+  useBottomSheetRef,
+} from "../bottomSheet";
 import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
@@ -31,7 +35,7 @@ export interface RangePickerProps<T extends string | number>
   reverse?: boolean;
 
   pickerProps?: Omit<PickerProps, "onChange">;
-  modalProps?: ModalProps;
+  bottomSheetProps?: BottomSheetProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;
@@ -58,13 +62,13 @@ export const RangePicker: RangePicker = memo(
     reverse = false,
     children,
     pickerProps,
-    modalProps,
+    bottomSheetProps,
     containerProps,
     renderHeader,
     renderFooter,
     ...rest
   }: PropsWithChildren<RangePickerProps<any>>) => {
-    const modalRef = useModalRef();
+    const modalRef = useBottomSheetRef();
 
     const items = useMemo(
       () => [empty, ...(reverse ? [..._items].reverse() : _items)],
@@ -213,7 +217,7 @@ export const RangePicker: RangePicker = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal ref={modalRef} {...modalProps}>
+        <BottomSheet ref={modalRef} {...bottomSheetProps}>
           <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
@@ -229,7 +233,7 @@ export const RangePicker: RangePicker = memo(
             {renderFooter?.({ onReset, onApply })}
             <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
-        </Modal>
+        </BottomSheet>
       </Touchable>
     );
   },

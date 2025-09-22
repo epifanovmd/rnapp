@@ -24,7 +24,7 @@ export interface ModalHeaderProps extends ViewProps {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element | null;
 }
 
-export const ModalHeader: FC<PropsWithChildren<ModalHeaderProps>> = ({
+export const BottomSheetHeader: FC<PropsWithChildren<ModalHeaderProps>> = ({
   label,
   textStyle,
   touchableStyle,

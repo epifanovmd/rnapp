@@ -17,7 +17,11 @@ import { ViewProps } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Col, Row } from "../../flexView";
-import { Modal, ModalProps, useModalRef } from "../modal";
+import {
+  BottomSheet,
+  BottomSheetProps,
+  useBottomSheetRef,
+} from "../bottomSheet";
 import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
@@ -65,7 +69,7 @@ export interface DatePickerProps extends ITouchableProps {
   onChange: (date: dayjs.Dayjs) => void;
 
   pickerProps?: PickerProps;
-  modalProps?: ModalProps;
+  bottomSheetProps?: BottomSheetProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;
@@ -80,7 +84,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     date,
     onChange,
     pickerProps,
-    modalProps,
+    bottomSheetProps,
     containerProps,
     renderHeader,
     renderFooter,
@@ -89,7 +93,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   }) => {
     const { i18n } = useTranslation();
 
-    const modalRef = useModalRef();
+    const modalRef = useBottomSheetRef();
     const modalStyles = useModalStyles();
 
     const months = useMemo(
@@ -224,7 +228,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <Modal ref={modalRef} {...modalStyles} {...modalProps}>
+        <BottomSheet ref={modalRef} {...modalStyles} {...bottomSheetProps}>
           <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 
@@ -255,7 +259,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
             {renderFooter?.({ onReset, onApply })}
             <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
-        </Modal>
+        </BottomSheet>
       </Touchable>
     );
   },

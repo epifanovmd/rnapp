@@ -33,7 +33,10 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
     children,
     ...rest
   }) => {
-    const { rejectButton, acceptButton } = useSlotProps(ModalActions, children);
+    const { rejectButton, acceptButton } = useSlotProps(
+      BottomSheetActions,
+      children,
+    );
 
     return (
       <Row marginTop={"auto"} pa={8} justifyContent={"space-between"} {...rest}>
@@ -59,8 +62,8 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
   },
 );
 
-export const ModalActions = _ModalActions as typeof _ModalActions &
+export const BottomSheetActions = _ModalActions as typeof _ModalActions &
   ModalActionsSlots;
 
-ModalActions.RejectButton = RejectButton;
-ModalActions.AcceptButton = AcceptButton;
+BottomSheetActions.RejectButton = RejectButton;
+BottomSheetActions.AcceptButton = AcceptButton;

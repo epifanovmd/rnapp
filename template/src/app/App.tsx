@@ -7,6 +7,7 @@ import {
 } from "@core";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import { PortalHost, PortalProvider } from "@gorhom/portal";
 import notifee from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log, navigationRef } from "@service";
@@ -63,6 +64,7 @@ export const App: FC = observer(() => {
             <BottomSheetModalProvider>
               <AttachModalProvider>
                 <AppNotifications>
+                  <PortalHost name={"modal"} />
                   <AppNavigator ref={navigationRef} />
                 </AppNotifications>
               </AttachModalProvider>

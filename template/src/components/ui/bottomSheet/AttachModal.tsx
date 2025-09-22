@@ -24,9 +24,9 @@ import { PERMISSIONS, request } from "react-native-permissions";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Row } from "../../flexView";
-import { Modal, ModalProps, Touchable } from "../../ui";
+import { BottomSheet, BottomSheetProps, Touchable } from "../../ui";
 import { Icon } from "../icon";
-import { useModalRef } from "./hooks";
+import { useBottomSheetRef } from "./hooks";
 
 const permission = Platform.select({
   ios: PERMISSIONS.IOS.CAMERA,
@@ -79,7 +79,7 @@ export const useAttachModal = () => {
 };
 
 export const AttachModalProvider: FC<
-  PropsWithChildren<AttachModalProps & ModalProps>
+  PropsWithChildren<AttachModalProps & BottomSheetProps>
 > = memo(
   ({
     saveToPhotos = true,
@@ -92,7 +92,7 @@ export const AttachModalProvider: FC<
     fileType = "*/*",
     ...rest
   }) => {
-    const ref = useModalRef();
+    const ref = useBottomSheetRef();
     const { colors } = useTheme();
 
     const _saveToPhotos = useRef<boolean>(saveToPhotos);
@@ -213,7 +213,7 @@ export const AttachModalProvider: FC<
     return (
       <AttachModalContext.Provider value={contextValue}>
         {children}
-        <Modal ref={ref} {...rest}>
+        <BottomSheet ref={ref} {...rest}>
           <BottomSheetView style={{ flex: 1 }}>
             <Row pa={16}>
               {_camera && (
@@ -266,7 +266,7 @@ export const AttachModalProvider: FC<
             </Row>
             <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
-        </Modal>
+        </BottomSheet>
       </AttachModalContext.Provider>
     );
   },

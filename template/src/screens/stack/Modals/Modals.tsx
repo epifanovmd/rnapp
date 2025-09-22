@@ -1,16 +1,17 @@
 import {
+  BottomSheet,
+  BottomSheetActions,
+  BottomSheetHeader,
   Button,
   Container,
   Content,
-  Modal,
-  ModalActions,
-  ModalHeader,
+  Dialog,
   Row,
   ScrollView,
   Text,
   Title,
   useAttachModal,
-  useModalRef,
+  useBottomSheetRef,
 } from "@components";
 import { StackProps } from "@core";
 import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
@@ -27,8 +28,10 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
     });
   }, [open]);
 
-  const modalRefScroll = useModalRef();
-  const modalRefView = useModalRef();
+  const modalRefScroll = useBottomSheetRef();
+  const modalRefView = useBottomSheetRef();
+
+  const [isVisible, setVisible] = React.useState(false);
 
   return (
     <Container>
@@ -44,29 +47,66 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           />
           <Button
             mt={8}
-            title={"View modal"}
-            onPress={() => modalRefView.current?.present()}
+            title={"View bottom sheet"}
+            onPress={() => {
+              modalRefView.current?.present();
+            }}
+          />
+
+          <Button
+            mt={8}
+            title={"View dialog"}
+            onPress={() => {
+              setVisible(true);
+            }}
           />
         </ScrollView>
       </Content>
 
-      <Modal
-        ref={modalRefScroll}
-        snapPoints={[100, "30%", "80%"]}
-        enableDynamicSizing={false}
+      <Dialog
+        isVisible={isVisible}
+        onClose={() => setVisible(false)}
+        animationDuration={250}
+        animationType={"slide"}
+        swipeDirection={"up"}
+        style={{ borderRadius: 16, flexShrink: 1, padding: 16 }}
+        enableBackdropClose={false}
+        enableSwipeClose={false}
       >
-        <BottomSheetScrollView>
+        <ScrollView>
+          {new Array(10).fill(0).map((_, i) => (
+            <Row key={i}>
+              <Text>{`Item B - ${i + 1}`}</Text>
+            </Row>
+          ))}
+        </ScrollView>
+        <Button
+          mt={8}
+          title={"Close modal"}
+          onPress={() => {
+            setVisible(false);
+          }}
+        />
+      </Dialog>
+
+      <BottomSheet
+        ref={modalRefScroll}
+        snapPoints={[200, "50%", "80%"]}
+        enableDynamicSizing={false}
+        maxDynamicContentSize={300}
+      >
+        <BottomSheetScrollView style={{ padding: 16, marginBottom: 30 }}>
           {new Array(30).fill(0).map((_, i) => (
             <Row key={i}>
-              <Text color={"red"}>{`Item B - ${i + 1}`}</Text>
+              <Text>{`Item B - ${i + 1}`}</Text>
             </Row>
           ))}
         </BottomSheetScrollView>
-      </Modal>
+      </BottomSheet>
 
-      <Modal ref={modalRefView}>
+      <BottomSheet ref={modalRefView}>
         <BottomSheetView>
-          <ModalHeader
+          <BottomSheetHeader
             label={"Заголовок"}
             onClose={() => {
               modalRefView.current?.dismiss();
@@ -75,7 +115,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           <Row ph={16}>
             <Text>{"Контент"}</Text>
           </Row>
-          <ModalActions
+          <BottomSheetActions
             onAccept={() => {
               console.log("onAccept");
             }}
@@ -84,12 +124,12 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
               modalRefView.current?.dismiss();
             }}
           >
-            <ModalActions.AcceptButton color={"red"} title={"Готово"} />
-            <ModalActions.RejectButton color={"red"} title={"Отмена"} />
-          </ModalActions>
+            <BottomSheetActions.AcceptButton color={"red"} title={"Готово"} />
+            <BottomSheetActions.RejectButton color={"red"} title={"Отмена"} />
+          </BottomSheetActions>
           <SafeAreaView edges={["bottom"]} />
         </BottomSheetView>
-      </Modal>
+      </BottomSheet>
     </Container>
   );
 });
