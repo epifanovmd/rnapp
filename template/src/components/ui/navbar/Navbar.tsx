@@ -1,9 +1,8 @@
 import { useTheme } from "@core";
-import { useNavigation } from "@react-navigation/native";
-import React, { memo, useCallback, useRef } from "react";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import React, { memo, useCallback, useRef, useState } from "react";
 import {
   GestureResponderEvent,
-  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -42,9 +41,16 @@ export const Navbar = memo<INavbarProps>(
     const leftRef = useRef<View>(null);
     const rightRef = useRef<View>(null);
     const [width, setWidth] = React.useState<number>();
+    const [isCanGoBack, setIsCanGoBack] = useState(false);
 
     const { canGoBack, goBack } = useNavigation();
-    const isCanGoBack = canGoBack();
+
+    useFocusEffect(() => {
+      if (backButton && !onBackPress) {
+        setIsCanGoBack(canGoBack());
+      }
+    });
+
     const showBackButton = backButton && (isCanGoBack || !!onBackPress);
 
     const onUpdateWidth = useCallback(() => {
