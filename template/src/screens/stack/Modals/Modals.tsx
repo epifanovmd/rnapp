@@ -46,7 +46,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           <Button onPress={onAttach}>{"Attach"}</Button>
           <Button
             mt={8}
-            title={"Scroll view modal"}
+            title={"View bottom sheet with snap point"}
             onPress={() => modalRefScroll.current?.present()}
           />
           <Button
@@ -102,7 +102,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
 
       <BottomSheet
         ref={modalRefScroll}
-        snapPoints={[200, "50%", "80%"]}
+        snapPoints={[200, "80%"]}
         enableDynamicSizing={false}
         maxDynamicContentSize={300}
       >
@@ -113,7 +113,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           }}
         />
         <BottomSheetScrollView style={{ paddingHorizontal: 16 }}>
-          {new Array(30).fill(0).map((_, i) => (
+          {new Array(90).fill(0).map((_, i) => (
             <Row key={i}>
               <Text>{`Item B - ${i + 1}`}</Text>
             </Row>
