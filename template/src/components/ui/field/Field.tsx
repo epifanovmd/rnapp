@@ -52,7 +52,7 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
         {!!(errorText || descriptionText) && (
           <Text
             mt={2}
-            color={errorText ? colors.error : undefined}
+            color={errorText ? colors.alertError : undefined}
             text={errorText || descriptionText}
             {...(errorText ? error : description)}
           />

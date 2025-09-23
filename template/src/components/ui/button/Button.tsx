@@ -1,64 +1,51 @@
 import { isString } from "@force-dev/utils";
 import React, { memo } from "react";
-import {
-  ActivityIndicator,
-  ActivityIndicatorProps,
-  ColorValue,
-  StyleProp,
-  TextStyle,
-  ViewStyle,
-} from "react-native";
+import { ActivityIndicator } from "react-native";
 
-import { Row } from "../../flexView";
+import { Icon } from "../icon";
 import { Text } from "../text";
-import { ITouchableProps, Touchable } from "../touchable";
-
-export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
-  loading?: boolean;
-  title?: React.JSX.Element | string;
-  color?: ColorValue;
-  contentStyle?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
-  indicatorProps?: ActivityIndicatorProps;
-}
+import { Touchable } from "../touchable";
+import { useButtonStyles } from "./hooks";
+import { IButtonProps } from "./types";
 
 const _Button = <T extends any = unknown>({
   loading,
   title,
-  color = "#fff",
-  contentStyle,
-  textStyle,
+  style,
   indicatorProps,
   children,
+  type = "primaryFilled",
+  size,
+  color: customColor,
+  disabled,
+  leftIcon,
+  rightIcon,
   ...rest
 }: IButtonProps<T>) => {
+  const { styles, color } = useButtonStyles(type, size, disabled, customColor);
+
   return (
     <Touchable
       activeOpacity={0.7}
       delayPressIn={100}
-      radius={4}
-      row={true}
-      bg={"#20AB7D"}
-      justifyContent={"center"}
-      alignItems={"center"}
-      overflow={"hidden"}
-      pa={8}
-      minHeight={44}
+      style={[styles, style]}
       {...rest}
-      disabled={rest.disabled || loading}
+      disabled={disabled || loading}
     >
       {loading ? (
         <ActivityIndicator size="small" color={color} {...indicatorProps} />
       ) : (
-        <Row alignItems={"center"} style={contentStyle}>
+        <>
+          {leftIcon && <Icon name={leftIcon} fill={color} />}
           {isString(title ?? children) ? (
-            <Text lineBreakMode={"tail"} color={color} style={textStyle}>
+            <Text lineBreakMode={"tail"} textStyle={"Body_S1"} color={color}>
               {title ?? children}
             </Text>
           ) : (
             title ?? children
           )}
-        </Row>
+          {rightIcon && <Icon name={rightIcon} fill={color} />}
+        </>
       )}
     </Touchable>
   );

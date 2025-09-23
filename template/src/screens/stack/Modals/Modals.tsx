@@ -139,16 +139,15 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           </Col>
         </BottomSheetScrollView>
         <BottomSheetActions
-          onAccept={() => {
+          onPrimary={() => {
             console.log("onAccept");
           }}
-          onReject={() => {
-            console.log("onReject");
+          onSecondary={() => {
             modalRefView.current?.dismiss();
           }}
         >
-          <BottomSheetActions.AcceptButton color={"red"} title={"Готово"} />
-          <BottomSheetActions.RejectButton color={"red"} title={"Отмена"} />
+          <BottomSheetActions.PrimaryButton title={"Готово"} />
+          <BottomSheetActions.SecondaryButton title={"Отмена"} />
         </BottomSheetActions>
       </BottomSheet>
     </Container>

@@ -1,8 +1,13 @@
 import { useTheme } from "@core";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import {
+  useFocusEffect,
+  useIsFocused,
+  useNavigation,
+} from "@react-navigation/native";
 import React, { memo, useCallback, useRef, useState } from "react";
 import {
   GestureResponderEvent,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
   View,

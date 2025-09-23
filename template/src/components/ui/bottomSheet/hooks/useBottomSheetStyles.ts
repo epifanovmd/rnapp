@@ -30,10 +30,10 @@ export const useBottomSheetStyles = (): Pick<
     BottomSheetProps["handleIndicatorStyle"]
   >(
     () => ({
-      backgroundColor: colors.divider,
+      backgroundColor: colors.onSurfaceMedium,
       width: 50,
     }),
-    [colors.divider],
+    [colors.onSurfaceMedium],
   );
 
   return {

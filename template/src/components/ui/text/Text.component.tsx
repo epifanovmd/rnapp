@@ -28,7 +28,7 @@ export const Text: FC<ITextProps> = memo(
         style={[
           style,
           _textStyle,
-          { color: style.color ?? colors.textPrimary },
+          { color: style.color ?? colors.onSurfaceHigh },
         ]}
         {...ownProps}
       >

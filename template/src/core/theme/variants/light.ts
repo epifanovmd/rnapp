@@ -2,78 +2,52 @@ import { ITheme } from "../types";
 
 export const LIGHT_COLOR_THEME = {
   // Primary colors
-  primary: "#1976D2",
-  primaryLight: "#42A5F5",
-  primaryDark: "#1565C0",
+  primary: "#2572ED",
+  primaryBright: "#538DFF",
+  primaryDim: "#002D6D",
+  primaryDisabled: "#004299",
 
   // Secondary colors
-  secondary: "#DC004E",
-  secondaryLight: "#FF5983",
-  secondaryDark: "#9A0036",
+  secondary: "#444954",
+  secondaryBright: "#70778B",
+  secondaryDim: "#293042",
+  secondaryDisabled: "#404759",
 
   // Background colors
-  background: "#ECE5C7",
-  surface: "#F5F0DC",
-  error: "#B00020",
+  surface: "#EFF0FA",
+  surfaceBright: "#E7E7F2",
+  surfaceBrighter: "#D8D9E3",
+  surfaceDim: "#FAF8FF",
 
-  // On colors (text on colored backgrounds)
-  onPrimary: "#FFFFFF",
-  onSecondary: "#FFFFFF",
-  onBackground: "#000000",
-  onSurface: "#000000",
-  onError: "#FFFFFF",
+  background: "#FEFBFF",
+  backgroundDim: "#FFFFFF",
+  backgroundDim64: "#FFFFFF64",
 
-  // Text colors
-  textPrimary: "rgba(0, 0, 0, 0.87)",
-  textSecondary: "rgba(0, 0, 0, 0.6)",
-  textDisabled: "rgba(0, 0, 0, 0.38)",
-  textHint: "rgba(0, 0, 0, 0.38)",
+  // On colors
+  onPrimaryHigh: "#FFFFFF",
+  onPrimaryMedium: "#CCDAFF",
+  onPrimaryDisabled: "#A9ABB4",
 
-  // Divider and borders
-  divider: "rgba(0, 0, 0, 0.12)",
-  border: "rgba(0, 0, 0, 0.12)",
+  onSecondaryHigh: "#FFFFFF",
+  onSecondaryMedium: "#D3D9F0",
+  onSecondaryDisabled: "#A4ABC0",
 
-  // States
-  disabled: "rgba(0, 0, 0, 0.26)",
-  hover: "rgba(0, 0, 0, 0.04)",
-  focus: "rgba(0, 0, 0, 0.12)",
-  selected: "rgba(0, 0, 0, 0.08)",
-  activated: "rgba(0, 0, 0, 0.12)",
-  pressed: "rgba(0, 0, 0, 0.16)",
-  dragged: "rgba(0, 0, 0, 0.08)",
+  onSurfaceHigh: "#191B23",
+  onSurfaceMedium: "#2E3038",
+  onSurfaceDisabled: "#A9ABB4",
 
-  // Elevation shadows (for surfaces)
-  elevation0: "#FFFFFF",
-  elevation1: "#FFFFFF",
-  elevation2: "#FFFFFF",
-  elevation3: "#FFFFFF",
-  elevation4: "#FFFFFF",
-  elevation6: "#FFFFFF",
-  elevation8: "#FFFFFF",
-  elevation12: "#FFFFFF",
-  elevation16: "#FFFFFF",
-  elevation24: "#FFFFFF",
+  // Border colors
+  border: "#ECEDF7",
+  borderLight: "#2D3440",
 
-  // Material Design color palette
-  red: "#F44336",
-  pink: "#E91E63",
-  purple: "#9C27B0",
-  deepPurple: "#673AB7",
-  indigo: "#3F51B5",
-  blue: "#2196F3",
-  lightBlue: "#03A9F4",
-  cyan: "#00BCD4",
-  teal: "#009688",
-  green: "#4CAF50",
-  lightGreen: "#8BC34A",
-  lime: "#CDDC39",
-  yellow: "#FFEB3B",
-  amber: "#FFC107",
-  orange: "#FF9800",
-  deepOrange: "#FF5722",
-  brown: "#795548",
-  grey: "#9E9E9E",
-  blueGrey: "#607D8B",
+  // Alert colors
+  alertGreen: "#36B37E",
+  alertWarning: "#FFAB00",
+  alertError: "#C74E5B",
+  alertErrorBright: "#FFB2B6",
+  alertErrorBrighter: "#FFEDEC",
+  alertErrorDim: "#270005",
+  alertErrorDisabled: "#8F3742",
 
   // Grey scale
   grey50: "#FAFAFA",

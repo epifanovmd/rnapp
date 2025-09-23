@@ -200,13 +200,13 @@ export const NotificationToast = memo(
 
     switch (type) {
       case "success":
-        backgroundColor = successColor || colors.green;
+        backgroundColor = successColor || colors.alertGreen;
         break;
       case "danger":
-        backgroundColor = dangerColor || colors.red;
+        backgroundColor = dangerColor || colors.alertError;
         break;
       case "warning":
-        backgroundColor = warningColor || colors.orange;
+        backgroundColor = warningColor || colors.alertWarning;
         break;
     }
 

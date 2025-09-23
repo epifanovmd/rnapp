@@ -62,7 +62,7 @@ export const Picker = memo(
     const [viewWidth, setViewWidth] = useState(windowWidth);
     const { colors } = useTheme();
 
-    const textColor = _textColor ?? colors.textPrimary;
+    const textColor = _textColor ?? colors.onSurfaceHigh;
 
     const { data, columnWidths, selectedIndexes } = useNativePickerColumns({
       children,

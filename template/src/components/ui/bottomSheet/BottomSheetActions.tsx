@@ -1,60 +1,70 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
 import React, { FC, memo, PropsWithChildren } from "react";
-import { ColorValue } from "react-native";
 
 import { FlexProps, Row } from "../../flexView";
-import { IButtonProps, TextButton } from "../../ui";
+import { Button, IButtonProps } from "../../ui";
 
 export interface ModalActionsProps extends FlexProps {
-  onReject?: () => void;
-  onAccept?: () => void;
-  acceptTitle?: string;
-  rejectTitle?: string;
-  acceptColor?: ColorValue;
-  rejectColor?: ColorValue;
+  primaryTitle?: string;
+  secondaryTitle?: string;
+  onPrimary?: () => void;
+  onSecondary?: () => void;
 }
 
-const RejectButton = createSlot<Omit<IButtonProps, "onPress">>("RejectButton");
-const AcceptButton = createSlot<Omit<IButtonProps, "onPress">>("AcceptButton");
+const SecondaryButton =
+  createSlot<Omit<IButtonProps, "onPress">>("SecondaryButton");
+const PrimaryButton =
+  createSlot<Omit<IButtonProps, "onPress">>("PrimaryButton");
 
 export interface ModalActionsSlots {
-  RejectButton: typeof RejectButton;
-  AcceptButton: typeof AcceptButton;
+  SecondaryButton: typeof SecondaryButton;
+  PrimaryButton: typeof PrimaryButton;
 }
 
 export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
   ({
-    onReject,
-    onAccept,
-    acceptTitle = "Применить",
-    rejectTitle = "Отмена",
-    acceptColor = "red",
-    rejectColor = "red",
+    primaryTitle = "Применить",
+    secondaryTitle = "Отмена",
+    onPrimary,
+    onSecondary,
     children,
     ...rest
   }) => {
-    const { rejectButton, acceptButton } = useSlotProps(
+    const { primaryButton, secondaryButton } = useSlotProps(
       BottomSheetActions,
       children,
     );
 
     return (
-      <Row marginTop={"auto"} ph={8} justifyContent={"space-between"} {...rest}>
-        {!!onReject && (
-          <TextButton
-            color={rejectColor}
-            title={rejectTitle}
-            {...rejectButton}
-            onPress={onReject}
+      <Row
+        marginTop={"auto"}
+        gap={8}
+        pa={16}
+        pb={8}
+        justifyContent={"space-between"}
+        {...rest}
+      >
+        {!!onSecondary && (
+          <Button
+            type={"secondaryFilled"}
+            size={"small"}
+            flex={1}
+            flexBasis={0}
+            title={secondaryTitle}
+            {...secondaryButton}
+            onPress={onSecondary}
           />
         )}
-        {!!onAccept && (
-          <TextButton
+        {!!onPrimary && (
+          <Button
+            type={"primaryFilled"}
+            size={"small"}
+            flex={1}
+            flexBasis={0}
             marginLeft={"auto"}
-            color={acceptColor}
-            title={acceptTitle}
-            {...acceptButton}
-            onPress={onAccept}
+            title={primaryTitle}
+            {...primaryButton}
+            onPress={onPrimary}
           />
         )}
       </Row>
@@ -65,5 +75,5 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
 export const BottomSheetActions = _ModalActions as typeof _ModalActions &
   ModalActionsSlots;
 
-BottomSheetActions.RejectButton = RejectButton;
-BottomSheetActions.AcceptButton = AcceptButton;
+BottomSheetActions.SecondaryButton = SecondaryButton;
+BottomSheetActions.PrimaryButton = PrimaryButton;

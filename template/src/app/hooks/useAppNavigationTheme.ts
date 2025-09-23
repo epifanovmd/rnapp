@@ -12,9 +12,9 @@ export const useAppNavigationTheme = () => {
         primary: colors.primary,
         background: colors.background,
         card: colors.surface,
-        text: colors.textPrimary,
+        text: colors.onSurfaceHigh,
         border: colors.border,
-        notification: colors.red,
+        notification: colors.alertError,
       },
       fonts: DefaultTheme.fonts,
     };
@@ -22,8 +22,8 @@ export const useAppNavigationTheme = () => {
     colors.primary,
     colors.background,
     colors.surface,
-    colors.textPrimary,
+    colors.onSurfaceHigh,
     colors.border,
-    colors.red,
+    colors.alertError,
   ]);
 };

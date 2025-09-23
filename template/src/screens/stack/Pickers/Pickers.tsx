@@ -1,11 +1,11 @@
 import {
+  Button,
   Col,
   Container,
   Content,
   DatePicker,
   RangePicker,
   Text,
-  TextButton,
   TimePicker,
   YearRangePicker,
 } from "@components";
@@ -19,11 +19,11 @@ export const Pickers: FC<StackProps> = memo(({ route }) => (
 
       <Col mt={16}>
         <RangePicker items={[1, 2, 3]}>
-          <TextButton>{"Range picker"}</TextButton>
+          <Button>{"Range picker"}</Button>
         </RangePicker>
 
         <YearRangePicker>
-          <TextButton>{"Year range picker"}</TextButton>
+          <Button>{"Year range picker"}</Button>
         </YearRangePicker>
 
         <DatePicker
@@ -31,7 +31,7 @@ export const Pickers: FC<StackProps> = memo(({ route }) => (
             console.log("date", date);
           }}
         >
-          <TextButton>{"Date picker"}</TextButton>
+          <Button>{"Date picker"}</Button>
         </DatePicker>
 
         <TimePicker
@@ -39,7 +39,7 @@ export const Pickers: FC<StackProps> = memo(({ route }) => (
             console.log("time", time);
           }}
         >
-          <TextButton>{"Time picker"}</TextButton>
+          <Button>{"Time picker"}</Button>
         </TimePicker>
       </Col>
     </Content>

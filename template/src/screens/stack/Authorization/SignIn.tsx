@@ -1,5 +1,5 @@
 import { useBiometric } from "@common";
-import { Button, Col, Container, Content, TextField } from "@components";
+import { Button, Col, Container, Content, Row, TextField } from "@components";
 import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -36,17 +36,22 @@ export const SignIn: FC<StackProps> = observer(() => {
             secureTextEntry={true}
           />
 
-          <Col mt={8}>
-            <Button onPress={handleLogin} loading={form.formState.isSubmitting}>
+          <Row gap={8} mt={8}>
+            <Button
+              flex={1}
+              size={"small"}
+              onPress={handleLogin}
+              loading={form.formState.isSubmitting}
+            >
               {"Войти"}
             </Button>
 
             {available && (
-              <Button mt={8} onPress={authorization}>
+              <Button flex={1} size={"small"} onPress={authorization}>
                 {"Войти по биометрии"}
               </Button>
             )}
-          </Col>
+          </Row>
         </Col>
       </Content>
     </Container>
