@@ -106,7 +106,13 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
         enableDynamicSizing={false}
         maxDynamicContentSize={300}
       >
-        <BottomSheetScrollView style={{ padding: 16, marginBottom: 30 }}>
+        <BottomSheetHeader
+          label={"Заголовок"}
+          onClose={() => {
+            modalRefScroll.current?.dismiss();
+          }}
+        />
+        <BottomSheetScrollView style={{ paddingHorizontal: 16 }}>
           {new Array(30).fill(0).map((_, i) => (
             <Row key={i}>
               <Text>{`Item B - ${i + 1}`}</Text>
