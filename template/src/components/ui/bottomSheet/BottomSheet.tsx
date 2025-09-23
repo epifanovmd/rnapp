@@ -1,14 +1,12 @@
-import { useModalStyles } from "@common";
+import { BottomSheetModal, BottomSheetModalProps } from "@gorhom/bottom-sheet";
+import React, { forwardRef, memo, PropsWithChildren } from "react";
 import {
-  BottomSheetHandle,
-  BottomSheetHandleProps,
-  BottomSheetModal,
-  BottomSheetModalProps,
-} from "@gorhom/bottom-sheet";
-import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
+import { useBottomSheetStyles } from "./hooks";
 
 export type BottomSheetProps = BottomSheetModalProps;
 export type BottomSheet = BottomSheetModal;
@@ -16,19 +14,8 @@ export type BottomSheet = BottomSheetModal;
 export const BottomSheet = memo(
   forwardRef<BottomSheetModal, PropsWithChildren<BottomSheetProps>>(
     (props, ref) => {
-      const modalStyles = useModalStyles();
+      const modalStyles = useBottomSheetStyles();
       const { top } = useSafeAreaInsets();
-
-      const handleComponent = useCallback(
-        (handleProps: BottomSheetHandleProps) => (
-          <BottomSheetHandle
-            {...handleProps}
-            style={{ padding: 6 }}
-            indicatorStyle={{ width: 50 }}
-          />
-        ),
-        [],
-      );
 
       return (
         <BottomSheetModal
@@ -36,11 +23,11 @@ export const BottomSheet = memo(
           {...modalStyles}
           topInset={top}
           keyboardBlurBehavior={"restore"}
-          handleComponent={handleComponent}
           backdropComponent={BottomSheetBackdrop}
           {...props}
         >
           {props.children}
+          <SafeAreaView edges={["bottom"]} />
         </BottomSheetModal>
       );
     },

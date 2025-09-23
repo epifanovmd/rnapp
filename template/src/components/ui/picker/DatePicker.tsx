@@ -1,4 +1,3 @@
-import { useModalStyles } from "@common";
 import { useTranslation } from "@core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import dayjs from "dayjs";
@@ -92,9 +91,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     ...rest
   }) => {
     const { i18n } = useTranslation();
-
     const modalRef = useBottomSheetRef();
-    const modalStyles = useModalStyles();
 
     const months = useMemo(
       () =>
@@ -228,7 +225,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <BottomSheet ref={modalRef} {...modalStyles} {...bottomSheetProps}>
+        <BottomSheet ref={modalRef} {...bottomSheetProps}>
           <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 

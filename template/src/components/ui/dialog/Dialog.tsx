@@ -1,6 +1,12 @@
 import { useTheme } from "@core";
 import { Portal } from "@gorhom/portal";
-import React, { memo, useEffect, useState } from "react";
+import React, {
+  memo,
+  PropsWithChildren,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Dimensions,
   Keyboard,
@@ -19,66 +25,72 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export type AnimationType = "scale" | "slide" | "fade" | "scaleSlide";
-
-export interface CenterModalProps extends ViewProps {
-  isVisible: boolean;
-  onClose?: () => void;
-  children: React.ReactNode;
-  width?: ViewStyle["width"];
-  height?: ViewStyle["height"];
-  backdropOpacity?: number;
-  animationType?: AnimationType;
-  animationDuration?: number;
-  enableBackdropClose?: boolean;
-  enableSwipeClose?: boolean;
-  swipeDirection?: "up" | "down" | "left" | "right";
-  swipeThreshold?: number; // Порог свайпа для закрытия (0-1)
-  customBackdropColor?: string;
-}
+import { DIALOG_HOST_NAME, DialogHost } from "./DialogHost";
 
 const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
 
-export const Dialog: React.FC<CenterModalProps> = memo(
+export type AnimationType = "scale" | "slide" | "fade" | "scaleSlide";
+export type PlacementType = "top" | "center" | "bottom";
+
+export interface CenterModalProps extends ViewProps {
+  isVisible: boolean;
+  width?: ViewStyle["width"];
+  height?: ViewStyle["height"];
+  offset?: number;
+  placement?: PlacementType;
+  animationType?: AnimationType;
+  animationDuration?: number;
+  animationDirection?: "up" | "down" | "left" | "right";
+  enableBackdropClose?: boolean;
+  enableSwipeClose?: boolean;
+  swipeThreshold?: number;
+  backdropOpacity?: number;
+  backdropColor?: string;
+  onClose?: () => void;
+}
+
+const _Dialog: React.FC<PropsWithChildren<CenterModalProps>> = memo(
   ({
     isVisible,
-    onClose,
-    children,
-    width = "90%",
+    width = "85%",
     height = "auto",
-    backdropOpacity = 0.5,
-    animationType = "scaleSlide",
-    animationDuration = 300,
+    offset = 50,
+    placement = "center",
+    animationType = "slide",
+    animationDuration: duration = 250,
+    animationDirection = "down",
     enableBackdropClose = true,
     enableSwipeClose = true,
-    swipeDirection = "down",
     swipeThreshold = 0.3,
-    customBackdropColor,
+    backdropOpacity = 0.6,
+    backdropColor = "#000000",
+    onClose,
+    children,
     ...rest
   }) => {
     const { colors } = useTheme();
+    const { top, bottom } = useSafeAreaInsets();
 
     const [isRenderDialog, setIsRenderDialog] = useState(false);
     const modalVisible = useSharedValue(0);
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
 
-    const backdropColor =
-      customBackdropColor || `rgba(0, 0, 0, ${backdropOpacity})`;
-
     const backdropAnimatedStyle = useAnimatedStyle(() => {
       const opacity = interpolate(
         modalVisible.value,
         [0, 1],
-        [0, 1],
+        [0, backdropOpacity],
         Extrapolation.CLAMP,
       );
 
       return {
         opacity,
+        backgroundColor: backdropColor,
       };
-    });
+    }, [backdropColor]);
 
     const modalAnimatedStyle = useAnimatedStyle(() => {
       const scale =
@@ -91,18 +103,22 @@ export const Dialog: React.FC<CenterModalProps> = memo(
             )
           : 1;
 
-      const baseTranslate =
-        animationType === "slide" || animationType === "scaleSlide"
-          ? interpolate(
-              modalVisible.value,
-              [0, 1],
-              [
-                swipeDirection === "left" || swipeDirection === "up" ? -50 : 50,
-                0,
-              ],
-              Extrapolation.CLAMP,
-            )
-          : 0;
+      // Базовое смещение для анимации появления
+      let baseTranslate = 0;
+
+      if (animationType === "slide" || animationType === "scaleSlide") {
+        baseTranslate = interpolate(
+          modalVisible.value,
+          [0, 1],
+          [
+            animationDirection === "left" || animationDirection === "up"
+              ? -50
+              : 50,
+            0,
+          ],
+          Extrapolation.CLAMP,
+        );
+      }
 
       const opacity = interpolate(
         modalVisible.value,
@@ -111,12 +127,12 @@ export const Dialog: React.FC<CenterModalProps> = memo(
         Extrapolation.CLAMP,
       );
       const isLeftOrRight =
-        swipeDirection === "left" || swipeDirection === "right";
+        animationDirection === "left" || animationDirection === "right";
       const isTopOrBottom =
-        swipeDirection === "up" || swipeDirection === "down";
+        animationDirection === "up" || animationDirection === "down";
 
       return {
-        opacity: opacity,
+        opacity,
         transform: [
           { scale },
           {
@@ -139,7 +155,7 @@ export const Dialog: React.FC<CenterModalProps> = memo(
       translateX.value = 0;
       translateY.value = 0;
       modalVisible.value = withTiming(1, {
-        duration: animationDuration,
+        duration,
       });
     };
 
@@ -148,7 +164,7 @@ export const Dialog: React.FC<CenterModalProps> = memo(
       modalVisible.value = withTiming(
         0,
         {
-          duration: animationDuration - 50,
+          duration,
         },
         () => {
           runOnJS(setIsRenderDialog)(false);
@@ -172,10 +188,13 @@ export const Dialog: React.FC<CenterModalProps> = memo(
         "worklet";
         const { translationX, translationY } = event;
 
-        if (swipeDirection === "down" || swipeDirection === "up") {
+        if (animationDirection === "down" || animationDirection === "up") {
           translateX.value = 0;
           translateY.value = translationY;
-        } else if (swipeDirection === "left" || swipeDirection === "right") {
+        } else if (
+          animationDirection === "left" ||
+          animationDirection === "right"
+        ) {
           translateX.value = translationX;
           translateY.value = 0;
         }
@@ -193,25 +212,25 @@ export const Dialog: React.FC<CenterModalProps> = memo(
         let shouldClose = false;
 
         // Проверяем условия для закрытия в зависимости от направления
-        if (swipeDirection === "down") {
+        if (animationDirection === "down") {
           const dragToss = 0.05;
           const endOffset = translationY + velocityY * dragToss;
 
           shouldClose =
             endOffset > modalHeight * swipeThreshold || velocityY > 500;
-        } else if (swipeDirection === "up") {
+        } else if (animationDirection === "up") {
           const dragToss = 0.05;
           const endOffset = translationY + velocityY * dragToss;
 
           shouldClose =
             endOffset < -modalHeight * swipeThreshold || velocityY < -500;
-        } else if (swipeDirection === "left") {
+        } else if (animationDirection === "left") {
           const dragToss = 0.05;
           const endOffset = translationX + velocityX * dragToss;
 
           shouldClose =
             endOffset < -modalWidth * swipeThreshold || velocityX < -500;
-        } else if (swipeDirection === "right") {
+        } else if (animationDirection === "right") {
           const dragToss = 0.05;
           const endOffset = translationX + velocityX * dragToss;
 
@@ -223,8 +242,8 @@ export const Dialog: React.FC<CenterModalProps> = memo(
           closeModal(onClose);
         } else {
           // Возвращаем модалку на место
-          translateX.value = withTiming(0, { duration: 200 });
-          translateY.value = withTiming(0, { duration: 200 });
+          translateX.value = withTiming(0, { duration });
+          translateY.value = withTiming(0, { duration });
         }
       });
 
@@ -238,30 +257,38 @@ export const Dialog: React.FC<CenterModalProps> = memo(
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isVisible]);
 
-    // Рассчитываем стили для модалки
-    const getModalStyle = (): StyleProp<ViewStyle> => {
+    // Рассчитываем стили для модалки с учетом placement
+    const contentStyle = useMemo<StyleProp<ViewStyle>>(() => {
       const baseStyle: ViewStyle = {
         backgroundColor: colors.surface,
+        width,
+        height,
       };
-
-      // Ширина
-      if (width) {
-        baseStyle.width = width;
-      }
-
-      // Высота
-      if (height !== "auto") {
-        if (height) {
-          baseStyle.height = height;
-        }
-      }
 
       // Ограничения
       baseStyle.maxWidth = "90%";
       baseStyle.maxHeight = "85%";
 
-      return baseStyle;
-    };
+      return [styles.content, baseStyle];
+    }, [colors.surface, height, width]);
+
+    // Стиль контейнера для размещения
+    const contentContainerStyle = useMemo<StyleProp<ViewStyle>>(() => {
+      const baseStyle = {
+        paddingTop: top || offset,
+        paddingBottom: bottom || offset,
+      };
+
+      switch (placement) {
+        case "top":
+          return [baseStyle, styles.topContainer];
+        case "bottom":
+          return [baseStyle, styles.bottomContainer];
+        case "center":
+        default:
+          return [baseStyle, styles.centerContainer];
+      }
+    }, [bottom, offset, placement, top]);
 
     // Не рендерим если модалка полностью скрыта
     if (!isRenderDialog) {
@@ -269,38 +296,31 @@ export const Dialog: React.FC<CenterModalProps> = memo(
     }
 
     return (
-      <Portal name={"modal"} hostName={"modal"}>
+      <Portal hostName={DIALOG_HOST_NAME}>
         <View style={styles.container}>
           <GestureDetector gesture={panGesture}>
-            <Animated.View style={styles.gestureContainer}>
+            <View style={contentContainerStyle}>
               <GestureDetector gesture={tapGesture}>
                 <Animated.View
-                  style={[
-                    styles.backdrop,
-                    { backgroundColor: backdropColor },
-                    backdropAnimatedStyle,
-                  ]}
+                  style={[styles.backdrop, backdropAnimatedStyle]}
                 />
               </GestureDetector>
 
               <Animated.View
                 {...rest}
-                style={[
-                  styles.modalContent,
-                  getModalStyle(),
-                  modalAnimatedStyle,
-                  rest.style,
-                ]}
+                style={[contentStyle, modalAnimatedStyle, rest.style]}
               >
                 {children}
               </Animated.View>
-            </Animated.View>
+            </View>
           </GestureDetector>
         </View>
       </Portal>
     );
   },
 );
+
+export const Dialog = Object.assign(_Dialog, { Host: DialogHost });
 
 const styles = StyleSheet.create({
   container: {
@@ -310,13 +330,20 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     zIndex: 99999,
+  },
+  centerContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  gestureContainer: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
+  topContainer: {
+    flex: 1,
+    justifyContent: "flex-start",
+    alignItems: "center",
+  },
+  bottomContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
     alignItems: "center",
   },
   backdrop: {
@@ -326,7 +353,9 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  modalContent: {
+  content: {
     overflow: "hidden",
+    padding: 16,
+    borderRadius: 16,
   },
 });

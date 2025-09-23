@@ -3,6 +3,7 @@ import {
   BottomSheetActions,
   BottomSheetHeader,
   Button,
+  Col,
   Container,
   Content,
   Dialog,
@@ -10,16 +11,19 @@ import {
   ScrollView,
   Text,
   Title,
-  useAttachModal,
+  Touchable,
+  useBottomSheetAttach,
   useBottomSheetRef,
 } from "@components";
+import { Icon } from "@components/ui/icon";
 import { StackProps } from "@core";
 import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { FC, memo, useCallback } from "react";
+import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
-  const { open } = useAttachModal();
+  const { open } = useBottomSheetAttach();
   const onAttach = useCallback(() => {
     open({
       onChange: value => {
@@ -66,15 +70,22 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
       <Dialog
         isVisible={isVisible}
         onClose={() => setVisible(false)}
-        animationDuration={250}
-        animationType={"slide"}
-        swipeDirection={"up"}
-        style={{ borderRadius: 16, flexShrink: 1, padding: 16 }}
         enableBackdropClose={false}
-        enableSwipeClose={false}
+        enableSwipeClose={true}
       >
+        <Row
+          alignItems={"center"}
+          gap={8}
+          justifyContent={"space-between"}
+          pb={16}
+        >
+          <Text textStyle={"Title_L"}>{"Заголовок"}</Text>
+          <Touchable onPress={() => setVisible(false)}>
+            <Icon name={"closeCircle"} />
+          </Touchable>
+        </Row>
         <ScrollView>
-          {new Array(10).fill(0).map((_, i) => (
+          {new Array(20).fill(0).map((_, i) => (
             <Row key={i}>
               <Text>{`Item B - ${i + 1}`}</Text>
             </Row>
@@ -104,31 +115,35 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
         </BottomSheetScrollView>
       </BottomSheet>
 
-      <BottomSheet ref={modalRefView}>
-        <BottomSheetView>
-          <BottomSheetHeader
-            label={"Заголовок"}
-            onClose={() => {
-              modalRefView.current?.dismiss();
-            }}
-          />
-          <Row ph={16}>
+      <BottomSheet ref={modalRefView} maxDynamicContentSize={300}>
+        <BottomSheetHeader
+          label={"Заголовок"}
+          onClose={() => {
+            modalRefView.current?.dismiss();
+          }}
+        />
+        <BottomSheetScrollView>
+          <Col ph={16}>
             <Text>{"Контент"}</Text>
-          </Row>
-          <BottomSheetActions
-            onAccept={() => {
-              console.log("onAccept");
-            }}
-            onReject={() => {
-              console.log("onReject");
-              modalRefView.current?.dismiss();
-            }}
-          >
-            <BottomSheetActions.AcceptButton color={"red"} title={"Готово"} />
-            <BottomSheetActions.RejectButton color={"red"} title={"Отмена"} />
-          </BottomSheetActions>
-          <SafeAreaView edges={["bottom"]} />
-        </BottomSheetView>
+            {new Array(30).fill(0).map((_, i) => (
+              <Row key={i}>
+                <Text>{`Item B - ${i + 1}`}</Text>
+              </Row>
+            ))}
+          </Col>
+        </BottomSheetScrollView>
+        <BottomSheetActions
+          onAccept={() => {
+            console.log("onAccept");
+          }}
+          onReject={() => {
+            console.log("onReject");
+            modalRefView.current?.dismiss();
+          }}
+        >
+          <BottomSheetActions.AcceptButton color={"red"} title={"Готово"} />
+          <BottomSheetActions.RejectButton color={"red"} title={"Отмена"} />
+        </BottomSheetActions>
       </BottomSheet>
     </Container>
   );

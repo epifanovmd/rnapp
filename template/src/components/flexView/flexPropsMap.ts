@@ -38,6 +38,7 @@ export const flexPropsMap = {
   ...smg(["flexBasis"]),
   ...smg(["flexWrap"]),
   ...smg(["flexShrink"], ["flexShrink"], 1),
+  ...smg(["gap"], ["gap"]),
 
   ...smg(["row"], ["flexDirection"], "row"),
   ...smg(["col"], ["flexDirection"], "column"),

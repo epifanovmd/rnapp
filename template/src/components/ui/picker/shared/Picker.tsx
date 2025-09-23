@@ -1,3 +1,4 @@
+import { useTheme } from "@core";
 import React, {
   Children,
   memo,
@@ -48,7 +49,7 @@ export const Picker = memo(
     indicatorColor = "hsla(0, 0%, 0%, 0.1)",
     indicatorSize = 1,
     itemSpace = 12,
-    textColor = "#000000",
+    textColor: _textColor,
     textSize = 20,
     loop,
     numberOfLines = 1,
@@ -59,6 +60,10 @@ export const Picker = memo(
   }: PickerProps) => {
     const { width: windowWidth } = useWindowDimensions();
     const [viewWidth, setViewWidth] = useState(windowWidth);
+    const { colors } = useTheme();
+
+    const textColor = _textColor ?? colors.textPrimary;
+
     const { data, columnWidths, selectedIndexes } = useNativePickerColumns({
       children,
       textColor,

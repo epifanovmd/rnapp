@@ -115,6 +115,7 @@ type FlexLayoutProps = {
   flexWrap?: "wrap" | "nowrap" | "wrap-reverse";
   // Более короткая запись <Col flexShrink/>, вместо <Col flexShrink={1}/>
   flexShrink?: number | true;
+  gap?: number | string;
 };
 
 type FlexDirectionProps = {

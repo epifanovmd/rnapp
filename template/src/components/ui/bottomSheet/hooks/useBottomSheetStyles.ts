@@ -2,7 +2,7 @@ import { BottomSheetProps } from "@components";
 import { useTheme } from "@core";
 import { useMemo } from "react";
 
-export const useModalStyles = (): Pick<
+export const useBottomSheetStyles = (): Pick<
   BottomSheetProps,
   | "style"
   | "backgroundStyle"
@@ -19,7 +19,26 @@ export const useModalStyles = (): Pick<
     [colors.surface],
   );
 
+  const handleStyle = useMemo<BottomSheetProps["handleStyle"]>(
+    () => ({
+      padding: 8,
+    }),
+    [],
+  );
+
+  const handleIndicatorStyle = useMemo<
+    BottomSheetProps["handleIndicatorStyle"]
+  >(
+    () => ({
+      backgroundColor: colors.divider,
+      width: 50,
+    }),
+    [colors.divider],
+  );
+
   return {
     backgroundStyle,
+    handleStyle,
+    handleIndicatorStyle,
   };
 };

@@ -33,7 +33,7 @@ const permission = Platform.select({
   android: PERMISSIONS.ANDROID.CAMERA,
 });
 
-export interface AttachModalProps {
+export interface BottomSheetAttachProps {
   saveToPhotos?: boolean;
   quality?: PhotoQuality;
   mediaType?: MediaType;
@@ -56,20 +56,20 @@ export interface AttachValue {
   fileName?: string;
 }
 
-export interface AttachOptions extends AttachModalProps {
+export interface BottomSheetAttachOptions extends BottomSheetAttachProps {
   onChange: (value: AttachValue[]) => void;
 }
 
-export interface AttachModalContext {
-  open: (options: AttachOptions) => void;
+export interface BottomSheetAttachContext {
+  open: (options: BottomSheetAttachOptions) => void;
 }
 
-export const AttachModalContext = createContext<AttachModalContext>(
-  undefined as unknown as AttachModalContext,
+export const BottomSheetAttachContext = createContext<BottomSheetAttachContext>(
+  undefined as unknown as BottomSheetAttachContext,
 );
 
-export const useAttachModal = () => {
-  const attachModalContext = useContext(AttachModalContext);
+export const useBottomSheetAttach = () => {
+  const attachModalContext = useContext(BottomSheetAttachContext);
 
   if (!attachModalContext) {
     throw new Error("AttachModalContext is not provided");
@@ -78,8 +78,8 @@ export const useAttachModal = () => {
   return attachModalContext;
 };
 
-export const AttachModalProvider: FC<
-  PropsWithChildren<AttachModalProps & BottomSheetProps>
+export const BottomSheetAttachProvider: FC<
+  PropsWithChildren<BottomSheetAttachProps & BottomSheetProps>
 > = memo(
   ({
     saveToPhotos = true,
@@ -105,9 +105,9 @@ export const AttachModalProvider: FC<
     const [_images, setImages] = useState<boolean>(images);
     const [_files, setFiles] = useState<boolean>(files);
 
-    const _onChange = useRef<AttachOptions["onChange"]>(null);
+    const _onChange = useRef<BottomSheetAttachOptions["onChange"]>(null);
 
-    const contextValue = useMemo<AttachModalContext>(
+    const contextValue = useMemo<BottomSheetAttachContext>(
       () => ({
         open: value => {
           Keyboard.dismiss();
@@ -211,7 +211,7 @@ export const AttachModalProvider: FC<
     }, [ref]);
 
     return (
-      <AttachModalContext.Provider value={contextValue}>
+      <BottomSheetAttachContext.Provider value={contextValue}>
         {children}
         <BottomSheet ref={ref} {...rest}>
           <BottomSheetView style={{ flex: 1 }}>
@@ -267,7 +267,7 @@ export const AttachModalProvider: FC<
             <SafeAreaView edges={["bottom"]} />
           </BottomSheetView>
         </BottomSheet>
-      </AttachModalContext.Provider>
+      </BottomSheetAttachContext.Provider>
     );
   },
 );

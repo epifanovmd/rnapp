@@ -1,4 +1,3 @@
-import { useModalStyles } from "@common";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
   FC,
@@ -71,7 +70,6 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
     ...rest
   }) => {
     const modalRef = useBottomSheetRef();
-    const modalStyles = useModalStyles();
 
     const [hour, minute] = useMemo(() => {
       const _time = new Date().toTimeString().split(":");
@@ -182,7 +180,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <BottomSheet ref={modalRef} {...modalStyles} {...bottomSheetProps}>
+        <BottomSheet ref={modalRef} {...bottomSheetProps}>
           <BottomSheetView {...containerProps}>
             {renderHeader?.(onClose)}
 

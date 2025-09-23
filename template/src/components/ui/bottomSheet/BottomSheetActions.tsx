@@ -39,7 +39,7 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
     );
 
     return (
-      <Row marginTop={"auto"} pa={8} justifyContent={"space-between"} {...rest}>
+      <Row marginTop={"auto"} ph={8} justifyContent={"space-between"} {...rest}>
         {!!onReject && (
           <TextButton
             color={rejectColor}

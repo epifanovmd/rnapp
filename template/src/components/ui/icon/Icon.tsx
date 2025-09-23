@@ -1,6 +1,6 @@
 import { FlexProps, useFlexProps } from "@components";
 import { useTheme } from "@core";
-import { FC, memo, PropsWithChildren } from "react";
+import { memo, PropsWithChildren } from "react";
 import { SvgProps } from "react-native-svg";
 
 import {
@@ -18,21 +18,15 @@ import {
   SearchIcon,
 } from "./icons";
 
-export type TIconName =
-  | "back"
-  | "camera"
-  | "check"
-  | "checkBold"
-  | "closeCircle"
-  | "close"
-  | "document"
-  | "eye"
-  | "eyeOff"
-  | "image"
-  | "save"
-  | "search";
+type TOmitFlexPropsKeys =
+  | "height"
+  | "opacity"
+  | "scale"
+  | "translateY"
+  | "translateX";
+type TIconFlexProps = Omit<FlexProps, TOmitFlexPropsKeys>;
 
-const icoMap: Record<TIconName, FC<SvgProps>> = {
+const ICONS_MAP = {
   back: BackIcon,
   camera: CameraIcon,
   check: CheckIcon,
@@ -47,12 +41,9 @@ const icoMap: Record<TIconName, FC<SvgProps>> = {
   search: SearchIcon,
 };
 
-export interface IIconProps
-  extends Omit<
-      FlexProps,
-      "height" | "opacity" | "scale" | "translateY" | "translateX"
-    >,
-    SvgProps {
+export type TIconName = keyof typeof ICONS_MAP;
+
+export interface IIconProps extends TIconFlexProps, SvgProps {
   width?: string | number;
   height?: string | number;
   name: TIconName;
@@ -77,7 +68,7 @@ export const Icon = memo<PropsWithChildren<IIconProps>>(
     const { style, ownProps } = useFlexProps(rest);
     const { colors } = useTheme();
 
-    const Component = icoMap[name];
+    const Component = ICONS_MAP[name];
 
     if (!Component) {
       return null;

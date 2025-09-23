@@ -12,10 +12,12 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+const BACKDROP_OPACITY = 0.6;
+
 export const BottomSheetBackdrop = memo(
   ({ animatedIndex, style }: BottomSheetBackdropProps) => {
     const { handlePanGestureHandler } = useBottomSheetGestureHandlers();
-    const { snapToIndex, close } = useBottomSheet();
+    const { close } = useBottomSheet();
 
     const {
       activeOffsetX,
@@ -92,29 +94,18 @@ export const BottomSheetBackdrop = memo(
 
     // Анимация прозрачности
     const containerAnimatedStyle = useAnimatedStyle(() => ({
+      backgroundColor: "#000000",
       opacity: interpolate(
         animatedIndex.value,
         [-1, 0, 1],
-        [0, 0.5, 0.5],
+        [0, BACKDROP_OPACITY, BACKDROP_OPACITY],
         Extrapolation.CLAMP,
       ),
     }));
 
-    // Стили
-    const containerStyle = useMemo(
-      () => [
-        style,
-        {
-          backgroundColor: "rgba(0, 0, 0, 0.5)", // можно заменить на "red", если хочешь
-        },
-        containerAnimatedStyle,
-      ],
-      [style, containerAnimatedStyle],
-    );
-
     return (
       <GestureDetector gesture={combinedGesture}>
-        <Animated.View style={containerStyle} />
+        <Animated.View style={[containerAnimatedStyle, style]} />
       </GestureDetector>
     );
   },

@@ -1,4 +1,8 @@
-import { AttachModalProvider, HoldItemProvider } from "@components";
+import {
+  BottomSheetAttachProvider,
+  Dialog,
+  HoldItemProvider,
+} from "@components";
 import {
   initLocalization,
   ThemeProvider,
@@ -62,12 +66,12 @@ export const App: FC = observer(() => {
         <SafeAreaProvider>
           <_HoldItemProvider>
             <BottomSheetModalProvider>
-              <AttachModalProvider>
+              <BottomSheetAttachProvider>
                 <AppNotifications>
-                  <PortalHost name={"modal"} />
+                  <Dialog.Host />
                   <AppNavigator ref={navigationRef} />
                 </AppNotifications>
-              </AttachModalProvider>
+              </BottomSheetAttachProvider>
             </BottomSheetModalProvider>
           </_HoldItemProvider>
         </SafeAreaProvider>
