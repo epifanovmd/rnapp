@@ -1,21 +1,8 @@
 import { ITextProps, Text } from "@components";
-import { useTheme } from "@core";
 import React, { memo } from "react";
 
 export interface INavbarSubTitleProps extends ITextProps {}
 
-export const NavbarSubTitle = memo<INavbarSubTitleProps>(
-  ({ style, ...props }) => {
-    const { colors } = useTheme();
-
-    const color = colors.textPrimary;
-
-    return (
-      <Text
-        style={[{ color, fontSize: 12 }, style]}
-        numberOfLines={1}
-        {...props}
-      />
-    );
-  },
-);
+export const NavbarSubTitle = memo<INavbarSubTitleProps>(props => {
+  return <Text numberOfLines={1} textStyle={"Body_S2"} {...props} />;
+});
