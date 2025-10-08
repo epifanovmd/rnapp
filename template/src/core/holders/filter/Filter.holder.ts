@@ -1,0 +1,96 @@
+import { isEqual } from "lodash";
+import { makeAutoObservable } from "mobx";
+
+import { IFilterItemHolder, IFilterOption } from "./Filter.types";
+
+export class FilterHolder<Value = any, Multiple extends boolean = false>
+  implements IFilterItemHolder<Value, Multiple>
+{
+  public readonly title: string;
+  public readonly hint?: string;
+  public readonly multiple?: Multiple;
+  public value?: Multiple extends true ? Value[] : Value;
+  public defaultValue?: Multiple extends true ? Value[] : Value;
+  public readonly expandable?: boolean;
+  public readonly expandCount?: number;
+  public expanded: boolean = true;
+
+  private readonly _options: IFilterOption<Value>[];
+
+  constructor(data: IFilterItemHolder<Value, Multiple>) {
+    this.title = data.title;
+    this.hint = data.hint;
+    this.multiple = data.multiple;
+    this.value = data.value ?? data.defaultValue;
+    this.defaultValue = data.defaultValue;
+    this.expandable = data.expandable;
+    this.expandCount = data.expandCount;
+    this.expanded = !(data.expandable && data.expandCount);
+
+    this._options = data.options;
+
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  public get options() {
+    if (this.expandable && this.expandCount) {
+      if (this.expanded) {
+        return this._options;
+      }
+
+      return this._options.slice(0, this.expandCount);
+    }
+
+    return this._options;
+  }
+
+  public checkActive(value: Value) {
+    if (this.multiple && Array.isArray(this.value)) {
+      return this.value.includes(value);
+    } else {
+      return this.value === value;
+    }
+  }
+
+  public setValue(value?: Value) {
+    if (value !== undefined) {
+      if (this.multiple) {
+        if (Array.isArray(this.value)) {
+          if (this.value.includes(value)) {
+            this.value = this.value.filter(
+              item => item !== value,
+            ) as Multiple extends true ? Value[] : Value;
+          } else {
+            this.value = [...this.value, value] as Multiple extends true
+              ? Value[]
+              : Value;
+          }
+        } else {
+          this.value = [value] as Multiple extends true ? Value[] : Value;
+        }
+      } else {
+        this.value = value as Multiple extends true ? Value[] : Value;
+      }
+    }
+  }
+
+  public reset(value?: Multiple extends true ? Value[] : Value) {
+    if (value !== undefined) {
+      this.value = value;
+    } else {
+      this.value = this.defaultValue;
+    }
+  }
+
+  public get isEqual() {
+    return isEqual(this.value, this.defaultValue);
+  }
+
+  public get isDirty() {
+    return !this.isEqual;
+  }
+
+  public toggleExpand() {
+    this.expanded = !this.expanded;
+  }
+}

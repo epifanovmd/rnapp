@@ -1,21 +1,34 @@
-import { BottomSheetModal, BottomSheetModalProps } from "@gorhom/bottom-sheet";
+import { createSlot, useSlotProps } from "@force-dev/react";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import React, { forwardRef, memo, PropsWithChildren } from "react";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
+import { BottomSheetContent } from "./BottomSheetContent";
+import { BottomSheetFooter } from "./BottomSheetFooter";
 import { useBottomSheetStyles } from "./hooks";
+import { BottomSheetStyles } from "./styles";
+import {
+  TBottomSheetContentProps,
+  TBottomSheetHeaderProps,
+  TBottomSheetProps,
+} from "./types";
 
-export type BottomSheetProps = BottomSheetModalProps;
+const Header = createSlot<TBottomSheetHeaderProps>("Header");
+const Content = createSlot<TBottomSheetContentProps>("Content");
+const Footer = BottomSheetFooter;
+
 export type BottomSheet = BottomSheetModal;
 
-export const BottomSheet = memo(
-  forwardRef<BottomSheetModal, PropsWithChildren<BottomSheetProps>>(
+const _BottomSheet = memo(
+  forwardRef<BottomSheetModal, PropsWithChildren<TBottomSheetProps>>(
     (props, ref) => {
       const modalStyles = useBottomSheetStyles();
       const { top } = useSafeAreaInsets();
+      const { header, content, footer } = useSlotProps(
+        BottomSheet,
+        props.children,
+      );
 
       return (
         <BottomSheetModal
@@ -25,11 +38,22 @@ export const BottomSheet = memo(
           keyboardBlurBehavior={"restore"}
           backdropComponent={BottomSheetBackdrop}
           {...props}
+          style={[BottomSheetStyles.container, props.style]}
         >
-          {props.children}
-          <SafeAreaView edges={["bottom"]} />
+          <BottomSheetContent
+            header={header}
+            footer={footer}
+            bounces={false}
+            {...content}
+          />
         </BottomSheetModal>
       );
     },
   ),
 );
+
+export const BottomSheet = Object.assign(_BottomSheet, {
+  Header,
+  Content,
+  Footer,
+});

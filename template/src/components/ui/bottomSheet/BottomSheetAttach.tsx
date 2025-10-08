@@ -1,5 +1,3 @@
-import { useTheme } from "@core";
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { pick } from "@react-native-documents/picker";
 import { PredefinedFileTypes } from "@react-native-documents/picker/src/fileTypes";
 import React, {
@@ -21,10 +19,9 @@ import {
   PhotoQuality,
 } from "react-native-image-picker";
 import { PERMISSIONS, request } from "react-native-permissions";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Row } from "../../flexView";
-import { BottomSheet, BottomSheetProps, Touchable } from "../../ui";
+import { BottomSheet, TBottomSheetProps, Touchable } from "../../ui";
 import { Icon } from "../icon";
 import { useBottomSheetRef } from "./hooks";
 
@@ -79,7 +76,7 @@ export const useBottomSheetAttach = () => {
 };
 
 export const BottomSheetAttachProvider: FC<
-  PropsWithChildren<BottomSheetAttachProps & BottomSheetProps>
+  PropsWithChildren<BottomSheetAttachProps & TBottomSheetProps>
 > = memo(
   ({
     saveToPhotos = true,
@@ -93,7 +90,6 @@ export const BottomSheetAttachProvider: FC<
     ...rest
   }) => {
     const ref = useBottomSheetRef();
-    const { colors } = useTheme();
 
     const _saveToPhotos = useRef<boolean>(saveToPhotos);
     const _quality = useRef<PhotoQuality>(quality);
@@ -214,8 +210,8 @@ export const BottomSheetAttachProvider: FC<
       <BottomSheetAttachContext.Provider value={contextValue}>
         {children}
         <BottomSheet ref={ref} {...rest}>
-          <BottomSheetView style={{ flex: 1 }}>
-            <Row pa={16}>
+          <BottomSheet.Content style={{ flex: 1 }}>
+            <Row>
               {_camera && (
                 <Touchable
                   onPress={_launchCamera}
@@ -264,8 +260,7 @@ export const BottomSheetAttachProvider: FC<
                 </Touchable>
               )}
             </Row>
-            <SafeAreaView edges={["bottom"]} />
-          </BottomSheetView>
+          </BottomSheet.Content>
         </BottomSheet>
       </BottomSheetAttachContext.Provider>
     );

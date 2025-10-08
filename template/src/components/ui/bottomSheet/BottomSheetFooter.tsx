@@ -1,10 +1,11 @@
 import { createSlot, useSlotProps } from "@force-dev/react";
-import React, { FC, memo, PropsWithChildren } from "react";
+import React, { FC, memo } from "react";
+import { ViewProps } from "react-native";
 
 import { FlexProps, Row } from "../../flexView";
 import { Button, IButtonProps } from "../../ui";
 
-export interface ModalActionsProps extends FlexProps {
+export interface BottomSheetFooterProps extends FlexProps, ViewProps {
   primaryTitle?: string;
   secondaryTitle?: string;
   onPrimary?: () => void;
@@ -16,12 +17,7 @@ const SecondaryButton =
 const PrimaryButton =
   createSlot<Omit<IButtonProps, "onPress">>("PrimaryButton");
 
-export interface ModalActionsSlots {
-  SecondaryButton: typeof SecondaryButton;
-  PrimaryButton: typeof PrimaryButton;
-}
-
-export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
+export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
   ({
     primaryTitle = "Применить",
     secondaryTitle = "Отмена",
@@ -31,7 +27,7 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
     ...rest
   }) => {
     const { primaryButton, secondaryButton } = useSlotProps(
-      BottomSheetActions,
+      BottomSheetFooter,
       children,
     );
 
@@ -39,8 +35,6 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
       <Row
         marginTop={"auto"}
         gap={8}
-        pa={16}
-        pb={8}
         justifyContent={"space-between"}
         {...rest}
       >
@@ -72,8 +66,7 @@ export const _ModalActions: FC<PropsWithChildren<ModalActionsProps>> = memo(
   },
 );
 
-export const BottomSheetActions = _ModalActions as typeof _ModalActions &
-  ModalActionsSlots;
-
-BottomSheetActions.SecondaryButton = SecondaryButton;
-BottomSheetActions.PrimaryButton = PrimaryButton;
+export const BottomSheetFooter = Object.assign(_BottomSheetFooter, {
+  SecondaryButton,
+  PrimaryButton,
+});

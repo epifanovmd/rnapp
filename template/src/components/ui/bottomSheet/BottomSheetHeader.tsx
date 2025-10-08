@@ -6,17 +6,17 @@ import {
   TextStyle,
   TouchableOpacity,
   TouchableOpacityProps,
-  View,
   ViewProps,
   ViewStyle,
 } from "react-native";
 
+import { FlexProps, Row } from "../../flexView";
 import { Icon } from "../icon";
 import { Text } from "../text";
 
 const hitSlop = { top: 16, right: 16, bottom: 16, left: 16 };
 
-export interface ModalHeaderProps extends ViewProps {
+export interface BottomSheetHeaderProps extends FlexProps, ViewProps {
   label?: string;
   textStyle?: StyleProp<TextStyle>;
   touchableStyle?: StyleProp<ViewStyle>;
@@ -27,7 +27,9 @@ export interface ModalHeaderProps extends ViewProps {
   renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element | null;
 }
 
-export const BottomSheetHeader: FC<PropsWithChildren<ModalHeaderProps>> = ({
+export const BottomSheetHeader: FC<
+  PropsWithChildren<BottomSheetHeaderProps>
+> = ({
   label,
   textStyle,
   touchableStyle,
@@ -38,11 +40,12 @@ export const BottomSheetHeader: FC<PropsWithChildren<ModalHeaderProps>> = ({
   renderCloseIcon = (fill?: ColorValue) => (
     <Icon name={"closeCircle"} fill={fill} />
   ),
+  style,
   children,
   ...rest
 }) => {
   return (
-    <View style={[s.viewStyle, rest.style]}>
+    <Row style={[s.viewStyle, style]} {...rest}>
       {children ?? (
         <Text textStyle={"Title_L"} style={[{ color }, textStyle]}>
           {label}
@@ -60,16 +63,13 @@ export const BottomSheetHeader: FC<PropsWithChildren<ModalHeaderProps>> = ({
           )}
         </TouchableOpacity>
       )}
-    </View>
+    </Row>
   );
 };
 
 const s = StyleSheet.create({
   viewStyle: {
     minHeight: 24,
-    paddingLeft: 16,
-    paddingRight: 16,
-    marginBottom: 16,
     flexDirection: "row",
     alignItems: "center",
   },

@@ -1,6 +1,6 @@
 import {
   BottomSheet,
-  BottomSheetActions,
+  BottomSheetFooter,
   BottomSheetHeader,
   Button,
   Col,
@@ -19,8 +19,8 @@ import { Icon } from "@components/ui/icon";
 import { StackProps } from "@core";
 import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { FC, memo, useCallback } from "react";
-import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+
+import { CustomFilter } from "./CustomFilter";
 
 export const Modals: FC<StackProps> = memo(({ route }) => {
   const { open } = useBottomSheetAttach();
@@ -32,6 +32,7 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
     });
   }, [open]);
 
+  const filterRef = useBottomSheetRef();
   const modalRefScroll = useBottomSheetRef();
   const modalRefView = useBottomSheetRef();
 
@@ -44,6 +45,11 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           <Title />
 
           <Button onPress={onAttach}>{"Attach"}</Button>
+          <Button
+            mt={8}
+            title={"Open filter"}
+            onPress={() => filterRef.current?.present()}
+          />
           <Button
             mt={8}
             title={"View bottom sheet with snap point"}
@@ -66,6 +72,8 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           />
         </ScrollView>
       </Content>
+
+      <CustomFilter ref={filterRef} />
 
       <Dialog
         isVisible={isVisible}
@@ -106,39 +114,49 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
         enableDynamicSizing={false}
         maxDynamicContentSize={300}
       >
-        <BottomSheetHeader
+        <BottomSheet.Header
           label={"Заголовок"}
           onClose={() => {
             modalRefScroll.current?.dismiss();
           }}
         />
-        <BottomSheetScrollView style={{ paddingHorizontal: 16 }}>
+        <BottomSheet.Content>
           {new Array(90).fill(0).map((_, i) => (
             <Row key={i}>
               <Text>{`Item B - ${i + 1}`}</Text>
             </Row>
           ))}
-        </BottomSheetScrollView>
+        </BottomSheet.Content>
+
+        <BottomSheetFooter
+          onPrimary={() => {
+            console.log("onAccept");
+          }}
+          onSecondary={() => {
+            modalRefScroll.current?.dismiss();
+          }}
+        >
+          <BottomSheetFooter.PrimaryButton title={"Готово"} />
+          <BottomSheetFooter.SecondaryButton title={"Отмена"} />
+        </BottomSheetFooter>
       </BottomSheet>
 
       <BottomSheet ref={modalRefView} maxDynamicContentSize={300}>
-        <BottomSheetHeader
+        <BottomSheet.Header
           label={"Заголовок"}
           onClose={() => {
             modalRefView.current?.dismiss();
           }}
         />
-        <BottomSheetScrollView>
-          <Col ph={16}>
-            <Text>{"Контент"}</Text>
-            {new Array(30).fill(0).map((_, i) => (
-              <Row key={i}>
-                <Text>{`Item B - ${i + 1}`}</Text>
-              </Row>
-            ))}
-          </Col>
-        </BottomSheetScrollView>
-        <BottomSheetActions
+        <BottomSheet.Content>
+          <Text>{"Контент"}</Text>
+          {new Array(50).fill(0).map((_, i) => (
+            <Row key={i}>
+              <Text>{`Item B - ${i + 1}`}</Text>
+            </Row>
+          ))}
+        </BottomSheet.Content>
+        <BottomSheetFooter
           onPrimary={() => {
             console.log("onAccept");
           }}
@@ -146,9 +164,9 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
             modalRefView.current?.dismiss();
           }}
         >
-          <BottomSheetActions.PrimaryButton title={"Готово"} />
-          <BottomSheetActions.SecondaryButton title={"Отмена"} />
-        </BottomSheetActions>
+          <BottomSheetFooter.PrimaryButton title={"Готово"} />
+          <BottomSheetFooter.SecondaryButton title={"Отмена"} />
+        </BottomSheetFooter>
       </BottomSheet>
     </Container>
   );
