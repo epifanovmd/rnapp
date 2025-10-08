@@ -5,27 +5,13 @@ import { ViewProps } from "react-native";
 import { FlexProps, Row } from "../../flexView";
 import { Button, IButtonProps } from "../../ui";
 
-export interface BottomSheetFooterProps extends FlexProps, ViewProps {
-  primaryTitle?: string;
-  secondaryTitle?: string;
-  onPrimary?: () => void;
-  onSecondary?: () => void;
-}
+export interface BottomSheetFooterProps extends FlexProps, ViewProps {}
 
-const SecondaryButton =
-  createSlot<Omit<IButtonProps, "onPress">>("SecondaryButton");
-const PrimaryButton =
-  createSlot<Omit<IButtonProps, "onPress">>("PrimaryButton");
+const SecondaryButton = createSlot<IButtonProps>("SecondaryButton");
+const PrimaryButton = createSlot<IButtonProps>("PrimaryButton");
 
 export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
-  ({
-    primaryTitle = "Применить",
-    secondaryTitle = "Отмена",
-    onPrimary,
-    onSecondary,
-    children,
-    ...rest
-  }) => {
+  ({ children, ...rest }) => {
     const { primaryButton, secondaryButton } = useSlotProps(
       BottomSheetFooter,
       children,
@@ -38,27 +24,25 @@ export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
         justifyContent={"space-between"}
         {...rest}
       >
-        {!!onSecondary && (
+        {!!secondaryButton && (
           <Button
             type={"secondaryFilled"}
             size={"small"}
             flex={1}
             flexBasis={0}
-            title={secondaryTitle}
+            title={"Отмена"}
             {...secondaryButton}
-            onPress={onSecondary}
           />
         )}
-        {!!onPrimary && (
+        {!!primaryButton && (
           <Button
             type={"primaryFilled"}
             size={"small"}
             flex={1}
             flexBasis={0}
             marginLeft={"auto"}
-            title={primaryTitle}
+            title={"Применить"}
             {...primaryButton}
-            onPress={onPrimary}
           />
         )}
       </Row>

@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Col, Row } from "../../flexView";
 import {
   BottomSheet,
-  BottomSheetProps,
+  TBottomSheetProps,
   useBottomSheetRef,
 } from "../bottomSheet";
 import { ITouchableProps, Touchable } from "../touchable";
@@ -32,7 +32,7 @@ export interface TimePickerProps extends ITouchableProps {
   onChange?: (time: string) => void;
 
   pickerProps?: PickerProps;
-  bottomSheetProps?: BottomSheetProps;
+  bottomSheetProps?: TBottomSheetProps;
   containerProps?: ViewProps;
 
   renderHeader?: (onClose: () => void) => JSX.Element | null;

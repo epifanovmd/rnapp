@@ -2,47 +2,39 @@ import { BottomSheet, Col, Row, Text, useBottomSheetRef } from "@components";
 import { FilterHolder, FiltersHolder } from "@core/holders";
 import { mergeRefs } from "@force-dev/react";
 import { observer, useLocalObservable } from "mobx-react-lite";
-import React, { forwardRef, memo, useEffect, useRef } from "react";
+import React, { forwardRef } from "react";
 import { TouchableOpacity } from "react-native";
 
 export interface ICustomFilterProps {}
+
+const filters = {
+  first: new FilterHolder({
+    title: "First filter",
+    options: [
+      { text: "1", value: { text: "1" } },
+      { text: "2", value: { text: "2" } },
+    ],
+  }),
+  second: new FilterHolder({
+    title: "Second filter",
+    options: new Array(20).fill(0).map((_, i) => ({ text: `${i}`, value: i })),
+    expandable: true,
+    expandCount: 5,
+    multiple: true,
+    defaultValue: [4],
+  }),
+};
 
 export const CustomFilter = observer(
   forwardRef<BottomSheet, ICustomFilterProps>((props, ref) => {
     const modalRefView = useBottomSheetRef();
 
-    const filter = useLocalObservable(
-      () =>
-        new FiltersHolder({
-          first: new FilterHolder({
-            title: "First filter",
-            options: [
-              { text: "1", value: 1 },
-              { text: "2", value: 2 },
-            ],
-          }),
-          second: new FilterHolder({
-            title: "Second filter",
-            options: new Array(20)
-              .fill(0)
-              .map((_, i) => ({ text: `${i}`, value: i })),
-            expandable: true,
-            expandCount: 5,
-            multiple: true,
-            value: [4],
-          }),
-        }),
-    );
-
-    console.log("filter.filters", filter.filters);
+    const filter = useLocalObservable(() => new FiltersHolder(filters));
 
     return (
       <BottomSheet
-        // snapPoints={[300]}
-        // snapPoints={["30%", "50%"]}
-        // enableDynamicSizing={false}
         onDismiss={() => {
-          filter.reset();
+          filter.cancel();
         }}
         ref={mergeRefs([ref, modalRefView])}
       >
@@ -54,12 +46,6 @@ export const CustomFilter = observer(
         />
 
         <BottomSheet.Content>
-          {/* {new Array(30).fill(0).map((_, i) => (*/}
-          {/*  <Row key={i}>*/}
-          {/*    <Text>{`Item B - ${i + 1}`}</Text>*/}
-          {/*  </Row>*/}
-          {/* ))}*/}
-
           {filter.filters.map((filter, index) => {
             return (
               <Col key={index} gap={8} mb={16}>
@@ -71,13 +57,13 @@ export const CustomFilter = observer(
                       <TouchableOpacity
                         activeOpacity={1}
                         key={ind}
-                        onPress={() => filter.setValue(option.value)}
+                        onPress={option.onPress}
                       >
                         <Col
                           radius={16}
                           ph={16}
                           pv={8}
-                          bg={filter.checkActive(option.value) ? "red" : "pink"}
+                          bg={option.isActive ? "red" : "pink"}
                         >
                           <Text>{option.text}</Text>
                         </Col>
@@ -96,16 +82,25 @@ export const CustomFilter = observer(
           })}
         </BottomSheet.Content>
 
-        <BottomSheet.Footer
-          onPrimary={() => {
-            console.log("onAccept");
-          }}
-          onSecondary={() => {
-            modalRefView.current?.dismiss();
-          }}
-        >
-          <BottomSheet.Footer.PrimaryButton title={"Готово"} />
-          <BottomSheet.Footer.SecondaryButton title={"Отмена"} />
+        <BottomSheet.Footer>
+          <BottomSheet.Footer.PrimaryButton
+            onPress={() => {
+              filter.accept();
+              console.log("data", JSON.stringify(filter.request));
+              modalRefView.current?.dismiss();
+            }}
+            disabled={!filter.isDirty}
+            title={"Применить"}
+          />
+          {!filter.isEqual && (
+            <BottomSheet.Footer.SecondaryButton
+              title={"Сбросить"}
+              onPress={() => {
+                filter.reset();
+                modalRefView.current?.dismiss();
+              }}
+            />
+          )}
         </BottomSheet.Footer>
       </BottomSheet>
     );

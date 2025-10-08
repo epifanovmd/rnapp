@@ -9,8 +9,9 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
   public readonly title: string;
   public readonly hint?: string;
   public readonly multiple?: Multiple;
-  public value?: Multiple extends true ? Value[] : Value;
   public defaultValue?: Multiple extends true ? Value[] : Value;
+  public value?: Multiple extends true ? Value[] : Value;
+  public savedValue?: Multiple extends true ? Value[] : Value;
   public readonly expandable?: boolean;
   public readonly expandCount?: number;
   public expanded: boolean = true;
@@ -21,8 +22,9 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     this.title = data.title;
     this.hint = data.hint;
     this.multiple = data.multiple;
-    this.value = data.value ?? data.defaultValue;
     this.defaultValue = data.defaultValue;
+    this.value = data.value ?? this.defaultValue;
+    this.savedValue = this.value;
     this.expandable = data.expandable;
     this.expandCount = data.expandCount;
     this.expanded = !(data.expandable && data.expandCount);
@@ -33,15 +35,27 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
   }
 
   public get options() {
-    if (this.expandable && this.expandCount) {
-      if (this.expanded) {
-        return this._options;
+    const getOptions = () => {
+      if (this.expandable && this.expandCount) {
+        if (this.expanded) {
+          return this._options;
+        }
+
+        return this._options.slice(0, this.expandCount);
       }
 
-      return this._options.slice(0, this.expandCount);
-    }
+      return this._options;
+    };
 
-    return this._options;
+    return getOptions().map(option => {
+      return {
+        ...option,
+        onPress: () => {
+          this.setValue(option.value);
+        },
+        isActive: this.checkActive(option.value),
+      };
+    });
   }
 
   public checkActive(value: Value) {
@@ -78,8 +92,18 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     if (value !== undefined) {
       this.value = value;
     } else {
+      console.log("this.defaultValue", this.defaultValue);
       this.value = this.defaultValue;
+      this.savedValue = this.value;
     }
+  }
+
+  public accept() {
+    this.savedValue = this.value;
+  }
+
+  public cancel() {
+    this.value = this.savedValue ?? this.defaultValue;
   }
 
   public get isEqual() {
@@ -87,7 +111,7 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
   }
 
   public get isDirty() {
-    return !this.isEqual;
+    return !isEqual(this.value, this.savedValue);
   }
 
   public toggleExpand() {

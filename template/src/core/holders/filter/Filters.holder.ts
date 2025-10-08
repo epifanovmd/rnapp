@@ -25,20 +25,20 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
   }
 
   public get isDirty() {
-    return !this.isEqual;
+    return this.filters.some(filter => filter.isDirty);
   }
 
-  public get filterValue() {
+  public get request() {
     return Object.keys(this.data).reduce(
       (acc, key) => {
         const k = key as keyof TConfig;
 
-        acc[k] = this.data[k].value;
+        acc[k] = this.data[k].savedValue;
 
         return acc;
       },
       {} as {
-        [K in keyof TConfig]: TConfig[K]["value"];
+        [K in keyof TConfig]: TConfig[K]["savedValue"];
       },
     );
   }
@@ -55,6 +55,14 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     value?: TConfig[K]["value"],
   ) {
     this.data[key].reset(value);
+  }
+
+  public accept() {
+    this.filters.forEach(filter => filter.accept());
+  }
+
+  public cancel() {
+    this.filters.forEach(filter => filter.cancel());
   }
 
   public getFilter<K extends keyof TConfig>(key: K): TConfig[K] {

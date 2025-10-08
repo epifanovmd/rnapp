@@ -1,9 +1,9 @@
-import { BottomSheetProps } from "@components";
+import { TBottomSheetProps } from "@components";
 import { useTheme } from "@core";
 import { useMemo } from "react";
 
 export const useBottomSheetStyles = (): Pick<
-  BottomSheetProps,
+  TBottomSheetProps,
   | "style"
   | "backgroundStyle"
   | "containerStyle"
@@ -12,14 +12,14 @@ export const useBottomSheetStyles = (): Pick<
 > => {
   const { colors } = useTheme();
 
-  const backgroundStyle = useMemo<BottomSheetProps["backgroundStyle"]>(
+  const backgroundStyle = useMemo<TBottomSheetProps["backgroundStyle"]>(
     () => ({
       backgroundColor: colors.surface,
     }),
     [colors.surface],
   );
 
-  const handleStyle = useMemo<BottomSheetProps["handleStyle"]>(
+  const handleStyle = useMemo<TBottomSheetProps["handleStyle"]>(
     () => ({
       padding: 8,
     }),
@@ -27,7 +27,7 @@ export const useBottomSheetStyles = (): Pick<
   );
 
   const handleIndicatorStyle = useMemo<
-    BottomSheetProps["handleIndicatorStyle"]
+    TBottomSheetProps["handleIndicatorStyle"]
   >(
     () => ({
       backgroundColor: colors.onSurfaceMedium,
