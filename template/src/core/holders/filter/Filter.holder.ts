@@ -34,28 +34,33 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
+  public get isEqual() {
+    return isEqual(this.value, this.defaultValue);
+  }
+
+  public get isDirty() {
+    return !isEqual(this.value, this.savedValue);
+  }
+
   public get options() {
-    const getOptions = () => {
-      if (this.expandable && this.expandCount) {
-        if (this.expanded) {
-          return this._options;
-        }
+    const options =
+      this.expandable && this.expandCount && !this.expanded
+        ? this._options.slice(0, this.expandCount)
+        : this._options;
 
-        return this._options.slice(0, this.expandCount);
-      }
+    return options.map(option => ({
+      ...option,
+      onPress: () => this.setValue(option.value),
+      isActive: this.checkActive(option.value),
+    }));
+  }
 
-      return this._options;
-    };
+  public apply() {
+    this.savedValue = this.value;
+  }
 
-    return getOptions().map(option => {
-      return {
-        ...option,
-        onPress: () => {
-          this.setValue(option.value);
-        },
-        isActive: this.checkActive(option.value),
-      };
-    });
+  public cancel() {
+    this.value = this.savedValue ?? this.defaultValue;
   }
 
   public checkActive(value: Value) {
@@ -92,26 +97,9 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     if (value !== undefined) {
       this.value = value;
     } else {
-      console.log("this.defaultValue", this.defaultValue);
       this.value = this.defaultValue;
       this.savedValue = this.value;
     }
-  }
-
-  public accept() {
-    this.savedValue = this.value;
-  }
-
-  public cancel() {
-    this.value = this.savedValue ?? this.defaultValue;
-  }
-
-  public get isEqual() {
-    return isEqual(this.value, this.defaultValue);
-  }
-
-  public get isDirty() {
-    return !isEqual(this.value, this.savedValue);
   }
 
   public toggleExpand() {

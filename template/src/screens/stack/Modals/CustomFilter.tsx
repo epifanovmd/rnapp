@@ -85,7 +85,7 @@ export const CustomFilter = observer(
         <BottomSheet.Footer>
           <BottomSheet.Footer.PrimaryButton
             onPress={() => {
-              filter.accept();
+              filter.apply();
               console.log("data", JSON.stringify(filter.request));
               modalRefView.current?.dismiss();
             }}

@@ -57,8 +57,8 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     this.data[key].reset(value);
   }
 
-  public accept() {
-    this.filters.forEach(filter => filter.accept());
+  public apply() {
+    this.filters.forEach(filter => filter.apply());
   }
 
   public cancel() {
