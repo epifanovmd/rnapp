@@ -2,7 +2,7 @@ import { useTheme } from "@core";
 import React, { memo } from "react";
 import { StyleSheet } from "react-native";
 
-import { Icon, IIconProps } from "../icon";
+import { Icon, IIconProps } from "../ui/icon";
 
 export interface INavbarIconProps extends IIconProps {}
 

@@ -6,4 +6,5 @@ export * from "./flexView";
 export * from "./holldItemMenu";
 export * from "./imageViewing";
 export * from "./layouts";
+export * from "./navbar";
 export * from "./ui";
