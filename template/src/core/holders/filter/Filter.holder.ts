@@ -23,8 +23,8 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     this.hint = data.hint;
     this.multiple = data.multiple;
     this.defaultValue = data.defaultValue;
-    this.value = data.value ?? this.defaultValue;
-    this.savedValue = this.value;
+    this.value = data.value ?? data.defaultValue;
+    this.savedValue = data.value;
     this.expandable = data.expandable;
     this.expandCount = data.expandCount;
     this.expanded = !(data.expandable && data.expandCount);
