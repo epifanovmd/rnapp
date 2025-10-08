@@ -1,3 +1,4 @@
+import { TColorTheme } from "@core";
 import React from "react";
 import {
   ActivityIndicatorProps,
@@ -24,7 +25,7 @@ export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
   title?: React.JSX.Element | string;
   type?: TButtonType;
   size?: TButtonSize;
-  color?: ColorValue;
+  color?: keyof TColorTheme;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
   indicatorProps?: ActivityIndicatorProps;

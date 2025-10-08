@@ -1,9 +1,7 @@
 import {
   BottomSheet,
   BottomSheetFooter,
-  BottomSheetHeader,
   Button,
-  Col,
   Container,
   Content,
   Dialog,
@@ -17,7 +15,6 @@ import {
 } from "@components";
 import { Icon } from "@components/ui/icon";
 import { StackProps } from "@core";
-import { BottomSheetScrollView, BottomSheetView } from "@gorhom/bottom-sheet";
 import React, { FC, memo, useCallback } from "react";
 
 import { CustomFilter } from "./CustomFilter";
@@ -128,16 +125,14 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           ))}
         </BottomSheet.Content>
 
-        <BottomSheetFooter
-          onPrimary={() => {
-            console.log("onAccept");
-          }}
-          onSecondary={() => {
-            modalRefScroll.current?.dismiss();
-          }}
-        >
+        <BottomSheetFooter>
           <BottomSheetFooter.PrimaryButton title={"Готово"} />
-          <BottomSheetFooter.SecondaryButton title={"Отмена"} />
+          <BottomSheetFooter.SecondaryButton
+            title={"Отмена"}
+            onPress={() => {
+              modalRefScroll.current?.dismiss();
+            }}
+          />
         </BottomSheetFooter>
       </BottomSheet>
 
@@ -156,16 +151,14 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
             </Row>
           ))}
         </BottomSheet.Content>
-        <BottomSheetFooter
-          onPrimary={() => {
-            console.log("onAccept");
-          }}
-          onSecondary={() => {
-            modalRefView.current?.dismiss();
-          }}
-        >
+        <BottomSheetFooter>
           <BottomSheetFooter.PrimaryButton title={"Готово"} />
-          <BottomSheetFooter.SecondaryButton title={"Отмена"} />
+          <BottomSheetFooter.SecondaryButton
+            title={"Отмена"}
+            onPress={() => {
+              modalRefView.current?.dismiss();
+            }}
+          />
         </BottomSheetFooter>
       </BottomSheet>
     </Container>

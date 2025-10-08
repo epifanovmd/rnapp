@@ -13,7 +13,7 @@ export interface ITitleProps extends FlexProps {
 
 export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
   ({ title, rightSlot, textProps, children, ...rest }) => {
-    const { flexProps, animated } = useFlexProps(rest);
+    const { flexProps } = useFlexProps(rest);
     const route = useRoute();
     const { t } = useTranslation();
 
@@ -27,7 +27,6 @@ export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
         alignItems={"center"}
         justifyContent={"space-between"}
         {...flexProps}
-        animated={animated}
       >
         {children ?? (
           <Text fontSize={18} fontWeight={"600"} {...textProps}>

@@ -1,27 +1,55 @@
-import { BottomSheet, Col, Row, Text, useBottomSheetRef } from "@components";
+import {
+  BottomSheet,
+  Button,
+  Chip,
+  Col,
+  Row,
+  Text,
+  useBottomSheetRef,
+} from "@components";
 import { FilterHolder, FiltersHolder } from "@core/holders";
 import { mergeRefs } from "@force-dev/react";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import React, { forwardRef } from "react";
-import { TouchableOpacity } from "react-native";
 
 export interface ICustomFilterProps {}
 
 const filters = {
   first: new FilterHolder({
-    title: "First filter",
+    title: "Марка",
     options: [
-      { text: "1", value: { text: "1" } },
-      { text: "2", value: { text: "2" } },
+      { text: "BMW", value: "BMW" },
+      { text: "Audi", value: "Audi" },
+      { text: "Mercedes", value: "Mercedes" },
+    ],
+    // defaultValue: "BMW",
+  }),
+  first1: new FilterHolder({
+    title: "Марка",
+    options: [
+      { text: "BMW", value: "BMW" },
+      { text: "Audi", value: "Audi" },
+      { text: "Mercedes", value: "Mercedes" },
+    ],
+    defaultValue: "BMW",
+  }),
+  first2: new FilterHolder({
+    title: "Марка",
+    options: [
+      { text: "BMW", value: "BMW" },
+      { text: "Audi", value: "Audi" },
+      { text: "Mercedes", value: "Mercedes" },
     ],
   }),
   second: new FilterHolder({
-    title: "Second filter",
-    options: new Array(20).fill(0).map((_, i) => ({ text: `${i}`, value: i })),
+    title: "Год",
+    options: new Array(10)
+      .fill(0)
+      .map((_, i) => ({ text: `201${i}`, value: i })),
     expandable: true,
     expandCount: 5,
     multiple: true,
-    defaultValue: [4],
+    defaultValue: [1, 2],
   }),
 };
 
@@ -51,30 +79,24 @@ export const CustomFilter = observer(
               <Col key={index} gap={8} mb={16}>
                 <Text textStyle={"Title_S1"}>{filter.title}</Text>
 
-                <Row gap={8} wrap>
+                <Row alignItems={"center"} gap={8} wrap>
                   {filter.options.map((option, ind) => {
                     return (
-                      <TouchableOpacity
-                        activeOpacity={1}
+                      <Chip
                         key={ind}
+                        text={option.text}
+                        isActive={option.isActive}
                         onPress={option.onPress}
-                      >
-                        <Col
-                          radius={16}
-                          ph={16}
-                          pv={8}
-                          bg={option.isActive ? "red" : "pink"}
-                        >
-                          <Text>{option.text}</Text>
-                        </Col>
-                      </TouchableOpacity>
+                      />
                     );
                   })}
 
-                  {filter.expandable && (
-                    <TouchableOpacity onPress={filter.toggleExpand}>
-                      <Text>{"Еще"}</Text>
-                    </TouchableOpacity>
+                  {filter.expandable && !filter.expanded && (
+                    <Button
+                      type={"text"}
+                      title={"Еще..."}
+                      onPress={filter.toggleExpand}
+                    />
                   )}
                 </Row>
               </Col>

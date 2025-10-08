@@ -1,29 +1,32 @@
 import * as React from "react";
 import { forwardRef, memo, PropsWithChildren } from "react";
-import { Animated, View, ViewProps } from "react-native";
+import { View, ViewProps } from "react-native";
 
+import { useFlexProps } from "./hooks";
 import { FlexProps } from "./types";
-import { useFlexProps } from "./useFlexProps";
+import { createFlexViewComponent } from "./utils";
 
-type Props = FlexProps & ViewProps;
+export type FlexViewProps = PropsWithChildren<FlexProps & ViewProps>;
 
-export const FlexView = memo(
-  forwardRef<View, PropsWithChildren<Props>>((props, ref) => {
-    const { ownProps, style, animated } = useFlexProps(props);
+export const _FlexView = memo(
+  forwardRef<View, FlexViewProps>((props, ref) => {
+    const { ownProps, style } = useFlexProps(props);
 
-    const Component = animated ? Animated.View : View;
-
-    return <Component ref={ref} style={style} {...ownProps} />;
+    return <View ref={ref} style={style} {...ownProps} />;
   }),
 );
 
+export const FlexView = Object.assign(_FlexView, {
+  createFlexViewComponent,
+});
+
 export const Col = memo(
-  forwardRef<View, PropsWithChildren<Props>>((props, ref) => (
-    <FlexView ref={ref} col={true} {...props} />
+  forwardRef<View, FlexViewProps>((props, ref) => (
+    <_FlexView ref={ref} col={true} {...props} />
   )),
 );
 export const Row = memo(
-  forwardRef<View, PropsWithChildren<Props>>((props, ref) => (
-    <FlexView ref={ref} row={true} {...props} />
+  forwardRef<View, FlexViewProps>((props, ref) => (
+    <_FlexView ref={ref} row={true} {...props} />
   )),
 );

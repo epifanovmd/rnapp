@@ -1,7 +1,7 @@
 import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 
+import { FlexProps } from "../types";
 import { flexPropsMap } from "./flexPropsMap";
-import { FlexProps } from "./types";
 
 export const flexPropsConverter = <
   TProps extends FlexProps,

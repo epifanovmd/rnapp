@@ -1,6 +1,7 @@
 export * from "./bottomSheet";
 export * from "./button";
 export * from "./checkBox";
+export * from "./chip";
 export * from "./dialog";
 export * from "./field";
 export * from "./image";

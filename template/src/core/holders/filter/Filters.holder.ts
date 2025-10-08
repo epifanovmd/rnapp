@@ -1,7 +1,6 @@
 import { makeAutoObservable } from "mobx";
 
-import { FilterHolder } from "./Filter.holder";
-import { TFilterConfig } from "./Filter.types";
+import { FilterHolder, TFilterConfig } from "./Filter.holder";
 
 export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
   data: TConfig;

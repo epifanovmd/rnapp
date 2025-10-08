@@ -1,5 +1,4 @@
 import {
-  Animated,
   ColorValue,
   FlexAlignType,
   ImageStyle,
@@ -7,9 +6,6 @@ import {
   TextStyle,
   ViewStyle,
 } from "react-native";
-
-type AnimatedProps<T> = Animated.AnimatedProps<T>;
-type WithAnimatedValue<T> = Animated.WithAnimatedValue<T>;
 
 export type JustifyContentType =
   | "flex-start"
@@ -143,20 +139,20 @@ type PositionProps = {
 
 type BorderProps = {
   // borderRadius
-  radius?: WithAnimatedValue<number>;
-  topRadius?: WithAnimatedValue<number>;
-  bottomRadius?: WithAnimatedValue<number>;
-  leftRadius?: WithAnimatedValue<number>;
-  rightRadius?: WithAnimatedValue<number>;
+  radius?: number;
+  topRadius?: number;
+  bottomRadius?: number;
+  leftRadius?: number;
+  rightRadius?: number;
   // circle - диаметр круга
   circle?: number;
   overflow?: "visible" | "hidden" | "scroll";
-  borderColor?: WithAnimatedValue<ColorValue>;
-  borderWidth?: WithAnimatedValue<number>;
-  borderBottomWidth?: WithAnimatedValue<number>;
-  borderTopWidth?: WithAnimatedValue<number>;
-  borderLeftWidth?: WithAnimatedValue<number>;
-  borderRightWidth?: WithAnimatedValue<number>;
+  borderColor?: ColorValue;
+  borderWidth?: number;
+  borderBottomWidth?: number;
+  borderTopWidth?: number;
+  borderLeftWidth?: number;
+  borderRightWidth?: number;
 };
 
 type TransformProps = {
@@ -181,9 +177,9 @@ type ColorProps = {
 };
 
 type TextProps = {
-  color?: WithAnimatedValue<ColorValue>;
+  color?: ColorValue;
   fontFamily?: string;
-  fontSize?: number | Animated.Animated;
+  fontSize?: number;
   fontStyle?: "normal" | "italic";
   fontWeight?:
     | "normal"
@@ -197,8 +193,8 @@ type TextProps = {
     | "700"
     | "800"
     | "900";
-  letterSpacing?: number | Animated.Animated;
-  lineHeight?: number | Animated.Animated;
+  letterSpacing?: number;
+  lineHeight?: number;
   textAlign?: "auto" | "left" | "right" | "center" | "justify";
   textDecorationLine?:
     | "none"
@@ -206,16 +202,16 @@ type TextProps = {
     | "line-through"
     | "underline line-through";
   textDecorationStyle?: "solid" | "double" | "dotted" | "dashed";
-  textDecorationColor?: WithAnimatedValue<ColorValue>;
+  textDecorationColor?: ColorValue;
   textTransform?: "none" | "capitalize" | "uppercase" | "lowercase";
 };
 
-type CommonFlexProps = AnimatedProps<PaddingGridProps> &
-  AnimatedProps<MargingGridProps> &
-  AnimatedProps<SideProps> &
-  AnimatedProps<SizeProps> &
-  AnimatedProps<PaddingProps> &
-  AnimatedProps<MarginProps> &
+type CommonFlexProps = PaddingGridProps &
+  MargingGridProps &
+  SideProps &
+  SizeProps &
+  PaddingProps &
+  MarginProps &
   FlexLayoutProps &
   FlexDirectionProps &
   AlignProps &
@@ -223,8 +219,8 @@ type CommonFlexProps = AnimatedProps<PaddingGridProps> &
   DebugProps &
   ShadowProps &
   BorderProps &
-  AnimatedProps<TransformProps> &
-  AnimatedProps<ColorProps>;
+  TransformProps &
+  ColorProps;
 
 export type FlexStyle = ViewStyle & TextStyle;
 
@@ -233,6 +229,5 @@ export type FlexProps<
 > = (Omit<TextStyle, keyof ViewStyle> extends TStyleSource
   ? CommonFlexProps & TextProps
   : CommonFlexProps) & {
-  animated?: true;
   style?: StyleProp<TStyleSource>;
 };

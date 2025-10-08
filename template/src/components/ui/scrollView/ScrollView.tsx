@@ -3,7 +3,6 @@ import {
   ScrollView as RNScrollView,
   ScrollViewProps as RNScrollViewProps,
 } from "react-native";
-import Animated from "react-native-reanimated";
 
 import { FlexProps, useFlexProps } from "../../flexView";
 
@@ -13,18 +12,16 @@ export interface IScrollViewProps
 
 export const ScrollView: FC<IScrollViewProps> = memo(
   ({ children, keyboardShouldPersistTaps = "handled", ...rest }) => {
-    const { style, ownProps, animated } = useFlexProps(rest);
-
-    const Component = animated ? Animated.ScrollView : RNScrollView;
+    const { style, ownProps } = useFlexProps(rest);
 
     return (
-      <Component
+      <RNScrollView
         style={style}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         {...ownProps}
       >
         {children}
-      </Component>
+      </RNScrollView>
     );
   },
 );

@@ -1,14 +1,14 @@
+import { flexPropsConverter } from "@components";
 import { useMemo } from "react";
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 
-import { flexPropsConverter } from "./flexPropsConverter";
-import { FlexProps } from "./types";
+import { FlexProps } from "../types";
 
 export const useFlexProps = <
   OwnProps extends Object,
   TStyleSource extends ViewStyle | TextStyle | ImageStyle,
 >(
-  { animated, ...props }: FlexProps<TStyleSource> & OwnProps,
+  props: FlexProps<TStyleSource> & OwnProps,
   defaultProps?: Partial<FlexProps<TStyleSource>>,
 ) =>
   useMemo(() => {
@@ -32,7 +32,6 @@ export const useFlexProps = <
     }
 
     return {
-      animated,
       style: style.style,
       flexProps,
       ownProps,

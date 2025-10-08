@@ -11,7 +11,7 @@ const COLOR_MAP: Record<TButtonType, keyof TColorTheme> = {
   secondaryOutline: "onSurfaceHigh",
   dangerFilled: "alertErrorBrighter",
   dangerOutline: "onSurfaceHigh",
-  text: "onSurfaceHigh",
+  text: "primaryBright",
 };
 
 const COLOR_MAP_DISABLED: Record<TButtonType, keyof TColorTheme> = {
@@ -28,7 +28,7 @@ export const useButtonStyles = (
   type: TButtonType,
   size: TButtonSize = "medium",
   disabled: boolean = false,
-  customColor?: ColorValue,
+  customColor?: keyof TColorTheme,
 ) => {
   const { colors } = useTheme();
 
@@ -46,7 +46,7 @@ export const useButtonStyles = (
         ...sizeStyle,
         ...variantStyle,
       },
-      color: customColor ?? colors[colorMap[type]],
+      color: customColor ?? colorMap[type],
     };
   }, [disabled, type, size, colors, customColor]);
 };

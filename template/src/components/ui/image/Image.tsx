@@ -1,7 +1,6 @@
-import React, { FC, memo, useMemo } from "react";
+import React, { FC, memo } from "react";
 import { ImageStyle } from "react-native";
 import FastImage, { FastImageProps } from "react-native-fast-image";
-import Animated from "react-native-reanimated";
 
 import { FlexProps, useFlexProps } from "../../flexView";
 
@@ -11,14 +10,10 @@ export interface ImageProps
   url: string;
 }
 
-const AnimatedFastImage = Animated.createAnimatedComponent(FastImage);
-
 export const Image: FC<ImageProps> = memo(props => {
-  const { style, ownProps, animated } = useFlexProps(props);
-
-  const Component = animated ? AnimatedFastImage : FastImage;
+  const { style, ownProps } = useFlexProps(props);
 
   return (
-    <Component style={style as any} source={{ uri: props.url }} {...ownProps} />
+    <FastImage style={style as any} source={{ uri: props.url }} {...ownProps} />
   );
 });

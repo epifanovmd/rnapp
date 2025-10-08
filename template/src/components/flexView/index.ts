@@ -1,3 +1,4 @@
 export * from "./FlexView";
+export * from "./hooks";
 export * from "./types";
-export * from "./useFlexProps";
+export * from "./utils";

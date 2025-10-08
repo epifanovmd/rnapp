@@ -1,6 +1,6 @@
+import { FlexProps, FlexStyle } from "../types";
 import { shadowStyle } from "./shadowStyle";
 import { smg, tSmg } from "./styleMapGenerator";
-import { FlexProps, FlexStyle } from "./types";
 
 export const flexPropsMap = {
   ...smg(["paddingLeft", "pl"], ["paddingLeft"]),
@@ -74,8 +74,6 @@ export const flexPropsMap = {
   ...smg(["borderTopWidth"]),
   ...smg(["borderLeftWidth"]),
   ...smg(["borderRightWidth"]),
-
-  ...smg(["animated"], ["transform"], []),
 
   ...tSmg("rotate"),
   ...tSmg("translateX"),

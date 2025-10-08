@@ -1,4 +1,3 @@
-import { useTheme } from "@core";
 import { createSlot, useSlotProps } from "@force-dev/react";
 import React, { FC, memo, PropsWithChildren } from "react";
 
@@ -24,8 +23,6 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
     children,
     ...rest
   }) => {
-    const { colors } = useTheme();
-
     const { $children, label, description, error } = useSlotProps(
       Field,
       children,
@@ -52,7 +49,7 @@ const _Field: FC<PropsWithChildren<FieldProps>> = memo(
         {!!(errorText || descriptionText) && (
           <Text
             mt={2}
-            color={errorText ? colors.alertError : undefined}
+            color={errorText ? "alertError" : undefined}
             text={errorText || descriptionText}
             {...(errorText ? error : description)}
           />

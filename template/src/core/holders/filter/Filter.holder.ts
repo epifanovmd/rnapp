@@ -1,30 +1,39 @@
 import { isEqual } from "lodash";
 import { makeAutoObservable } from "mobx";
 
-import { IFilterItemHolder, IFilterOption } from "./Filter.types";
+import {
+  IFilterItemHolder,
+  IFilterOption,
+  TFilterMultipleType,
+  TFilterValueType,
+} from "./Filter.types";
 
-export class FilterHolder<Value = any, Multiple extends boolean = false>
-  implements IFilterItemHolder<Value, Multiple>
-{
+export type TFilterConfig = Record<string, FilterHolder<any, any, boolean>>;
+
+export class FilterHolder<
+  Value = any,
+  Default extends Value | undefined = undefined,
+  Multiple extends boolean = false,
+> {
   public readonly title: string;
   public readonly hint?: string;
   public readonly multiple?: Multiple;
-  public defaultValue?: Multiple extends true ? Value[] : Value;
-  public value?: Multiple extends true ? Value[] : Value;
-  public savedValue?: Multiple extends true ? Value[] : Value;
+  public defaultValue?: TFilterMultipleType<Default, Multiple>;
+  public value: TFilterValueType<Value, Default, Multiple>;
+  public savedValue: TFilterValueType<Value, Default, Multiple>;
   public readonly expandable?: boolean;
   public readonly expandCount?: number;
   public expanded: boolean = true;
 
   private readonly _options: IFilterOption<Value>[];
 
-  constructor(data: IFilterItemHolder<Value, Multiple>) {
+  constructor(data: IFilterItemHolder<Value, Default, Multiple>) {
     this.title = data.title;
     this.hint = data.hint;
     this.multiple = data.multiple;
     this.defaultValue = data.defaultValue;
-    this.value = data.value ?? data.defaultValue;
-    this.savedValue = data.value;
+    this.value = (data.value ?? data.defaultValue) as typeof this.value;
+    this.savedValue = (data.value ?? data.defaultValue) as typeof this.value;
     this.expandable = data.expandable;
     this.expandCount = data.expandCount;
     this.expanded = !(data.expandable && data.expandCount);
@@ -55,14 +64,6 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
     }));
   }
 
-  public apply() {
-    this.savedValue = this.value;
-  }
-
-  public cancel() {
-    this.value = this.savedValue ?? this.defaultValue;
-  }
-
   public checkActive(value: Value) {
     if (this.multiple && Array.isArray(this.value)) {
       return this.value.includes(value);
@@ -78,31 +79,49 @@ export class FilterHolder<Value = any, Multiple extends boolean = false>
           if (this.value.includes(value)) {
             this.value = this.value.filter(
               item => item !== value,
-            ) as Multiple extends true ? Value[] : Value;
+            ) as typeof this.value;
           } else {
-            this.value = [...this.value, value] as Multiple extends true
-              ? Value[]
-              : Value;
+            this.value = [...this.value, value] as typeof this.value;
           }
         } else {
-          this.value = [value] as Multiple extends true ? Value[] : Value;
+          this.value = [value] as typeof this.value;
         }
       } else {
-        this.value = value as Multiple extends true ? Value[] : Value;
+        this.value = value as typeof this.value;
       }
     }
   }
 
-  public reset(value?: Multiple extends true ? Value[] : Value) {
+  public apply() {
+    this.savedValue = this.value;
+
+    this.cancelExpand();
+  }
+
+  public cancel() {
+    this.value = (this.savedValue ?? this.defaultValue) as typeof this.value;
+
+    this.cancelExpand();
+  }
+
+  public reset(value?: typeof this.value) {
     if (value !== undefined) {
       this.value = value;
     } else {
-      this.value = this.defaultValue;
+      this.value = this.defaultValue as typeof this.value;
       this.savedValue = this.value;
+
+      this.cancelExpand();
     }
   }
 
   public toggleExpand() {
     this.expanded = !this.expanded;
+  }
+
+  public cancelExpand() {
+    if (this.expandable && this.expanded) {
+      this.expanded = false;
+    }
   }
 }
