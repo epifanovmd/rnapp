@@ -130,8 +130,6 @@ export class FilterHolder<
 
   public cancel() {
     this.value = (this.savedValue ?? this.defaultValue) as typeof this.value;
-
-    this.cancelExpand();
   }
 
   public reset(value?: typeof this.value) {

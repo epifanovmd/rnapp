@@ -121,6 +121,7 @@ export const CustomFilter = observer(
       <BottomSheet
         onDismiss={() => {
           filter.cancel();
+          filter.cancelExpand();
         }}
         ref={mergeRefs([ref, modalRefView])}
       >
@@ -135,7 +136,16 @@ export const CustomFilter = observer(
           {filter.filters.map((filter, index) => {
             return (
               <Col key={index} gap={8} mb={16}>
-                <Text textStyle={"Title_S1"}>{filter.title}</Text>
+                <Row alignItems={"center"} justifyContent={"space-between"}>
+                  <Text textStyle={"Title_S1"}>{filter.title}</Text>
+                  {filter.isDirty && (
+                    <Button
+                      type={"text"}
+                      title={"Сбросить"}
+                      onPress={filter.cancel}
+                    />
+                  )}
+                </Row>
 
                 <Row alignItems={"center"} gap={8} wrap>
                   {filter.isLoading && <Chip>{"Загрузка..."}</Chip>}

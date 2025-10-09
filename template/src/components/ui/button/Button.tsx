@@ -22,13 +22,19 @@ const _Button = <T extends any = unknown>({
   rightIcon,
   ...rest
 }: IButtonProps<T>) => {
-  const { styles, color } = useButtonStyles(type, size, disabled, customColor);
+  const { styles, color, hitSlop } = useButtonStyles(
+    type,
+    size,
+    disabled,
+    customColor,
+  );
 
   return (
     <Touchable
       activeOpacity={0.7}
       delayPressIn={100}
       style={[styles, style]}
+      hitSlop={hitSlop}
       {...rest}
       disabled={disabled || loading}
     >

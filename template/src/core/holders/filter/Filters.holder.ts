@@ -68,6 +68,10 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     this.filters.forEach(filter => filter.cancel());
   }
 
+  public cancelExpand() {
+    this.filters.forEach(filter => filter.cancelExpand());
+  }
+
   public getFilter<K extends keyof TConfig>(key: K): TConfig[K] {
     return this.data[key];
   }

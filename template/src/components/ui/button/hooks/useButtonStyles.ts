@@ -47,6 +47,8 @@ export const useButtonStyles = (
         ...variantStyle,
       },
       color: customColor ?? colorMap[type],
+      hitSlop:
+        type === "text" ? { left: 8, right: 8, top: 8, bottom: 8 } : undefined,
     };
   }, [disabled, type, size, colors, customColor]);
 };
@@ -97,5 +99,5 @@ const BUTTON_STYLES = StyleSheet.create({
   },
   medium: { paddingHorizontal: 16, paddingVertical: 8, minHeight: 48 },
   small: { paddingHorizontal: 12, paddingVertical: 4, minHeight: 40 },
-  textSize: { paddingHorizontal: 4, paddingVertical: 2, minHeight: 30 },
+  textSize: { paddingHorizontal: 4 },
 });
