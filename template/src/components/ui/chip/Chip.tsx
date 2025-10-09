@@ -68,9 +68,6 @@ export const Chip = memo<PropsWithChildren<IChipProps>>(
 
     return (
       <AnimatedTouchableOpacity
-        onLayout={e => {
-          console.log("e", e.nativeEvent.layout.height);
-        }}
         activeOpacity={1}
         style={[SS.container, style, animatedStyle]}
         {...rest}

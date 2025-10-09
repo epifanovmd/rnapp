@@ -1,3 +1,4 @@
+import { ValueHolder } from "@force-dev/utils";
 import { isEqual } from "lodash";
 import { makeAutoObservable } from "mobx";
 
@@ -11,7 +12,7 @@ import {
 export type TFilterConfig = Record<string, FilterHolder<any, any, boolean>>;
 
 export class FilterHolder<
-  Value = any,
+  Value = unknown,
   Default extends Value | undefined = undefined,
   Multiple extends boolean = false,
 > {
@@ -25,7 +26,7 @@ export class FilterHolder<
   public readonly expandCount?: number;
   public expanded: boolean = true;
 
-  private readonly _options: IFilterOption<Value>[];
+  private readonly _optionsHolder = new ValueHolder<IFilterOption<Value>[]>([]);
 
   constructor(data: IFilterItemHolder<Value, Default, Multiple>) {
     this.title = data.title;
@@ -38,7 +39,7 @@ export class FilterHolder<
     this.expandCount = data.expandCount;
     this.expanded = !(data.expandable && data.expandCount);
 
-    this._options = data.options;
+    this._optionsHolder.setValue(data.options);
 
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -78,7 +79,7 @@ export class FilterHolder<
         if (Array.isArray(this.value)) {
           if (this.value.includes(value)) {
             this.value = this.value.filter(
-              item => item !== value,
+              item => !isEqual(item, value),
             ) as typeof this.value;
           } else {
             this.value = [...this.value, value] as typeof this.value;
@@ -93,7 +94,15 @@ export class FilterHolder<
   }
 
   public apply() {
-    this.savedValue = this.value;
+    if (
+      this.value &&
+      this._options.length > 0 &&
+      this._options.some(item => isEqual(item.value, this.value))
+    ) {
+      this.savedValue = this.value;
+    } else {
+      this.reset();
+    }
 
     this.cancelExpand();
   }
@@ -123,5 +132,9 @@ export class FilterHolder<
     if (this.expandable && this.expanded) {
       this.expanded = false;
     }
+  }
+
+  private get _options() {
+    return this._optionsHolder.value;
   }
 }

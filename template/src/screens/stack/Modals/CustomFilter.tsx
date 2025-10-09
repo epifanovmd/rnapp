@@ -14,42 +14,50 @@ import React, { forwardRef } from "react";
 
 export interface ICustomFilterProps {}
 
+const marks = new FilterHolder({
+  title: "Марка",
+  options: [
+    { text: "BMW", value: "BMW" },
+    { text: "Audi", value: "AUDI" },
+    { text: "Mercedes", value: "MERCEDES" },
+  ],
+  defaultValue: "BMW",
+});
+
+const models = new FilterHolder({
+  title: "Модель",
+  options: () =>
+    marks.value === "BMW"
+      ? [
+          { text: "BMW 3", value: "3er" },
+          { text: "BMW 5", value: "5er" },
+          { text: "BMW 7", value: "7er" },
+        ]
+      : marks.value === "AUDI"
+      ? [
+          { text: "A3", value: "A3" },
+          { text: "A4", value: "A5" },
+          { text: "A6", value: "A6" },
+        ]
+      : [
+          { text: "C класс", value: "C" },
+          { text: "E класс", value: "E" },
+          { text: "S класс", value: "S" },
+        ],
+});
+
 const filters = {
-  first: new FilterHolder({
-    title: "Марка",
-    options: [
-      { text: "BMW", value: "BMW" },
-      { text: "Audi", value: "Audi" },
-      { text: "Mercedes", value: "Mercedes" },
-    ],
-    // defaultValue: "BMW",
-  }),
-  first1: new FilterHolder({
-    title: "Марка",
-    options: [
-      { text: "BMW", value: "BMW" },
-      { text: "Audi", value: "Audi" },
-      { text: "Mercedes", value: "Mercedes" },
-    ],
-    defaultValue: "BMW",
-  }),
-  first2: new FilterHolder({
-    title: "Марка",
-    options: [
-      { text: "BMW", value: "BMW" },
-      { text: "Audi", value: "Audi" },
-      { text: "Mercedes", value: "Mercedes" },
-    ],
-  }),
-  second: new FilterHolder({
+  marks,
+  models,
+  years: new FilterHolder({
     title: "Год",
     options: new Array(10)
       .fill(0)
-      .map((_, i) => ({ text: `201${i}`, value: i })),
+      .map((_, i) => ({ text: `201${i}`, value: `201${i}` })),
     expandable: true,
     expandCount: 5,
     multiple: true,
-    defaultValue: [1, 2],
+    defaultValue: ["2010", "2011"],
   }),
 };
 

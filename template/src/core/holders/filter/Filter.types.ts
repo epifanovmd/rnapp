@@ -1,3 +1,5 @@
+import { LambdaValue } from "@force-dev/utils";
+
 export interface IFilterOption<V> {
   readonly text: string;
   readonly value: V;
@@ -12,14 +14,14 @@ export type TFilterValueType<Value, Default, Multiple> = Default extends Value
   : TFilterMultipleType<Value, Multiple> | undefined;
 
 export interface IFilterItemHolder<
-  Value = any,
+  Value = unknown,
   Default extends Value | undefined = undefined,
   Multiple extends boolean = false,
 > {
   readonly title: string;
   readonly hint?: string;
   readonly multiple?: Multiple;
-  readonly options: IFilterOption<Value>[];
+  readonly options: LambdaValue<IFilterOption<Value>[]>;
   readonly defaultValue?: TFilterMultipleType<Default, Multiple>;
   readonly value?: TFilterValueType<Value, Default, Multiple>;
   readonly expandable?: boolean;

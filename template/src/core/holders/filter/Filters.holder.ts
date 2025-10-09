@@ -15,6 +15,10 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     return Object.values(this.data) as TConfig[keyof TConfig][];
   }
 
+  public get activeFiltersCount() {
+    return this.filters.filter(filter => !filter.isEqual).length;
+  }
+
   public reset() {
     this.filters.forEach(filter => filter.reset());
   }
