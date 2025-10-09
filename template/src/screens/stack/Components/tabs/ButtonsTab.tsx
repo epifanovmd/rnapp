@@ -18,7 +18,7 @@ export const ButtonsTab = memo<TabProps>(() => {
         <Button type={"text"} title={"Text button"} onPress={onPress} />
         <Button
           type={"secondaryFilled"}
-          title={"Secondary filled"}
+          title={"Secondary Filled"}
           onPress={onPress}
         />
         <Button
