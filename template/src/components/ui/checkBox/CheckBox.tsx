@@ -17,6 +17,7 @@ export interface CheckboxProps extends Omit<PressableProps, "onPress"> {
   isActive?: boolean;
   onChange?: (checked: boolean) => void;
   disabled?: boolean;
+  circe?: boolean;
   duration?: number;
 }
 
@@ -33,6 +34,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
   isActive = true,
   onChange,
   disabled,
+  circe,
   duration = 250,
   style,
   ...rest
@@ -99,7 +101,11 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
 
   return (
     <AnimatedPressable
-      style={[SS.container, animatedContainerStyle]}
+      style={[
+        SS.container,
+        { borderRadius: circe ? 12 : 8 },
+        animatedContainerStyle,
+      ]}
       onPress={handlePress}
       disabled={disabled}
       hitSlop={hitSlop}
@@ -124,7 +130,6 @@ const SS = StyleSheet.create({
     borderStyle: "solid",
     width: 24,
     height: 24,
-    borderRadius: 8,
   },
   content: {
     justifyContent: "center",
