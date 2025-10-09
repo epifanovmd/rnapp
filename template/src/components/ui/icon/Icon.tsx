@@ -1,8 +1,8 @@
-import { FlexProps, useFlexProps } from "@components";
 import { useTheme } from "@core";
 import { memo, PropsWithChildren } from "react";
 import { SvgProps } from "react-native-svg";
 
+import { FlexProps, useFlexProps } from "../../flexView";
 import {
   BackIcon,
   CameraIcon,

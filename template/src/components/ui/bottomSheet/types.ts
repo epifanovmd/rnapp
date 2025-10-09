@@ -1,6 +1,8 @@
-import { BottomSheetFooterProps, BottomSheetHeaderProps } from "@components";
 import { BottomSheetModalProps } from "@gorhom/bottom-sheet";
 import { ScrollViewProps } from "react-native";
+
+import { BottomSheetFooterProps } from "./BottomSheetFooter";
+import { BottomSheetHeaderProps } from "./BottomSheetHeader";
 
 export type TBottomSheetProps = BottomSheetModalProps;
 export type TBottomSheetHeaderProps = BottomSheetHeaderProps;

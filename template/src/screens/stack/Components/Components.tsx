@@ -1,115 +1,38 @@
-import {
-  AnimatedRefreshing,
-  Button,
-  Checkbox,
-  Col,
-  Container,
-  Content,
-  Field,
-  Image,
-  ImageViewing,
-  Row,
-  ScrollView,
-  Text,
-  Title,
-  Touchable,
-} from "@components";
-import { TextField } from "@components/ui/input/TextField";
-import { StackProps } from "@core";
-import React, { FC, memo, useEffect, useState } from "react";
-import { useSharedValue, withTiming } from "react-native-reanimated";
+import { Tabs } from "@components/ui/tabs";
+import { StackProps, TabScreens, TopTabNavigation } from "@core";
+import React, { FC, memo } from "react";
 
-export const Components: FC<StackProps> = memo(({ route }) => {
-  const value = useSharedValue(0);
+import { ButtonsTab, NotificationsTab } from "./tabs";
+import { ModalsTab } from "./tabs/Modals";
+import { PickersTab } from "./tabs/PickersTab";
 
-  useEffect(() => {
-    value.value = withTiming(100, { duration: 1000 }, () => {
-      value.value = withTiming(30, { duration: 1000 });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+const routes: TabScreens = {
+  Buttons: { screen: ButtonsTab },
+  Notifications: { screen: NotificationsTab },
+  Modals: { screen: ModalsTab },
+  Pickers: { screen: PickersTab },
+};
 
-  const [uri, setUri] = useState<string | null>(null);
-  const [inputValue, setValue] = useState("");
-
+export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
   return (
-    <Container>
-      <Content>
-        <ScrollView>
-          <Text>{route.name}</Text>
-          <Title />
-
-          <AnimatedRefreshing percentage={value} />
-
-          <Button>{"Button"}</Button>
-
-          <Row>
-            <Checkbox
-              onPress={v => console.log("checkbox", v)}
-              row={true}
-              alignItems={"center"}
-            >
-              <Text ml={8}>{"press row or checkbox"}</Text>
-            </Checkbox>
-          </Row>
-
-          <Row mt={8} alignItems={"center"}>
-            <Checkbox
-              onPress={v => console.log("checkbox", v)}
-              row={true}
-              alignItems={"center"}
-            />
-            <Text ml={8}>{"only press checkbox"}</Text>
-          </Row>
-
-          <Col style={{ gap: 8 }}>
-            <TextField
-              type={"datetime"}
-              options={{
-                format: "DD.MM.YYYY",
-              }}
-              style={{ marginTop: 16 }}
-              label={"Text field with error"}
-              value={inputValue}
-              error={!inputValue && "Value is required"}
-              clearable={true}
-              hint={"Дата"}
-              hintPosition={"left"}
-              keyboardType={"numeric"}
-              onChangeText={setValue}
-            />
-
-            <Field label={"Test label"} error={"1"} description={"Desc"}>
-              <Text>{"Test simple text"}</Text>
-            </Field>
-          </Col>
-
-          <Col mt={8} height={100} width={100}>
-            <ImageViewing
-              imageIndex={0}
-              onRequestClose={() => {
-                setUri(null);
-              }}
-              visible={!!uri}
-              images={uri ? [{ uri }] : []}
-            />
-            <Touchable
-              ctx={
-                "https://random-image-pepebigotes.vercel.app/api/random-image"
-              }
-              onPress={setUri}
-            >
-              <Image
-                height={"100%"}
-                width={"100%"}
-                url={
-                  "https://random-image-pepebigotes.vercel.app/api/random-image"
-                }
-              />
-            </Touchable>
-          </Col>
-        </ScrollView>
-      </Content>
-    </Container>
+    <TopTabNavigation
+      tabBar={({ state: { routes, index }, navigation }) => {
+        return (
+          <Tabs
+            activeIndex={index}
+            onPress={routeName => {
+              navigation.navigate(routeName);
+            }}
+            items={routes.map(route => ({
+              title: route.name,
+              value: route.name,
+            }))}
+          />
+        );
+      }}
+      initialRouteName={route.params?.initialRouteName}
+      routes={routes}
+      screenOptions={{}}
+    />
   );
 });

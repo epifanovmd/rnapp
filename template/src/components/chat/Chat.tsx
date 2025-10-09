@@ -1,4 +1,3 @@
-import { ImageViewingProps } from "@components";
 import { FlashList, FlashListProps } from "@shopify/flash-list";
 import React, {
   createRef,
@@ -28,6 +27,7 @@ import {
 import { ParsedTextProps } from "react-native-parsed-text";
 import { generate } from "shortid";
 
+import { ImageViewingProps } from "../imageViewing";
 import { attachButtonProps } from "./AttachButton";
 import { AvatarProps } from "./Avatar";
 import { BubbleProps } from "./Bubble";

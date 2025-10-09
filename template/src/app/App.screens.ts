@@ -5,10 +5,7 @@ import {
   CarouselScreen,
   ChatScreen,
   Components,
-  Modals,
-  Notifications,
   PdfView,
-  Pickers,
   RecoveryPassword,
   SignIn,
   SignUp,
@@ -21,11 +18,8 @@ import { Lottie } from "../screens/stack/Lottie";
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens, options: { headerShown: false } },
 
-  Notifications: { screen: Notifications },
   Gallery: { screen: Gallery },
-  Pickers: { screen: Pickers },
   Components: { screen: Components },
-  Modals: { screen: Modals },
   Lottie: { screen: Lottie },
   ChatScreen: {
     screen: ChatScreen,

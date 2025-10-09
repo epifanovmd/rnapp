@@ -18,6 +18,8 @@ export const ScrollView: FC<IScrollViewProps> = memo(
       <RNScrollView
         style={style}
         keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
         {...ownProps}
       >
         {children}

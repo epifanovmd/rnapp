@@ -1,8 +1,8 @@
-import { flexPropsConverter } from "@components";
 import { useMemo } from "react";
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 
 import { FlexProps } from "../types";
+import { flexPropsConverter } from "../utils";
 
 export const useFlexProps = <
   OwnProps extends Object,

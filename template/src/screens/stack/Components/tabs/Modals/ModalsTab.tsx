@@ -2,24 +2,22 @@ import {
   BottomSheet,
   BottomSheetFooter,
   Button,
-  Container,
-  Content,
+  Col,
   Dialog,
   Row,
   ScrollView,
   Text,
-  Title,
   Touchable,
   useBottomSheetAttach,
   useBottomSheetRef,
 } from "@components";
 import { Icon } from "@components/ui/icon";
-import { StackProps } from "@core";
+import { TabProps } from "@core";
 import React, { FC, memo, useCallback } from "react";
 
 import { CustomFilter } from "./CustomFilter";
 
-export const Modals: FC<StackProps> = memo(({ route }) => {
+export const ModalsTab: FC<TabProps> = memo(({ route }) => {
   const { open } = useBottomSheetAttach();
   const onAttach = useCallback(() => {
     open({
@@ -36,39 +34,29 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
   const [isVisible, setVisible] = React.useState(false);
 
   return (
-    <Container>
-      <Content>
-        <ScrollView>
-          <Title />
+    <Col ph={16} gap={8}>
+      <Button onPress={onAttach}>{"Attach"}</Button>
+      <Button
+        title={"Open filter"}
+        onPress={() => filterRef.current?.present()}
+      />
+      <Button
+        title={"View bottom sheet with snap point"}
+        onPress={() => modalRefScroll.current?.present()}
+      />
+      <Button
+        title={"View bottom sheet"}
+        onPress={() => {
+          modalRefView.current?.present();
+        }}
+      />
 
-          <Button onPress={onAttach}>{"Attach"}</Button>
-          <Button
-            mt={8}
-            title={"Open filter"}
-            onPress={() => filterRef.current?.present()}
-          />
-          <Button
-            mt={8}
-            title={"View bottom sheet with snap point"}
-            onPress={() => modalRefScroll.current?.present()}
-          />
-          <Button
-            mt={8}
-            title={"View bottom sheet"}
-            onPress={() => {
-              modalRefView.current?.present();
-            }}
-          />
-
-          <Button
-            mt={8}
-            title={"View dialog"}
-            onPress={() => {
-              setVisible(true);
-            }}
-          />
-        </ScrollView>
-      </Content>
+      <Button
+        title={"View dialog"}
+        onPress={() => {
+          setVisible(true);
+        }}
+      />
 
       <CustomFilter ref={filterRef} />
 
@@ -161,6 +149,6 @@ export const Modals: FC<StackProps> = memo(({ route }) => {
           />
         </BottomSheetFooter>
       </BottomSheet>
-    </Container>
+    </Col>
   );
 });

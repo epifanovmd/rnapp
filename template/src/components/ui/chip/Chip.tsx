@@ -1,4 +1,3 @@
-import { Text } from "@components";
 import { useTheme } from "@core";
 import { memo, PropsWithChildren, useEffect } from "react";
 import {
@@ -14,6 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Icon, TIconName } from "../icon";
+import { Text } from "../text";
 
 export interface IChipProps extends TouchableOpacityProps {
   text?: string;

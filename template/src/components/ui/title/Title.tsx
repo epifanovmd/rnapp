@@ -29,7 +29,7 @@ export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
         {...flexProps}
       >
         {children ?? (
-          <Text fontSize={18} fontWeight={"600"} {...textProps}>
+          <Text textStyle={"Title_L"} {...textProps}>
             {_title}
           </Text>
         )}

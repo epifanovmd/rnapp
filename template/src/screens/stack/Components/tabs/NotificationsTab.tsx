@@ -1,9 +1,9 @@
-import { Button, Container, Content, Text } from "@components";
-import { StackProps, useNotification } from "@core";
+import { Button, Col } from "@components";
+import { TabProps, useNotification } from "@core";
 import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
 
-export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
+export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
   const { show, hide } = useNotification();
 
   const onDisplayNotification = async () => {
@@ -58,49 +58,37 @@ export const Notifications: FC<StackProps> = memo(({ route, navigation }) => {
   // );
 
   return (
-    <Container>
-      <Content>
-        <Text>{route.name}</Text>
+    <Col ph={16} gap={8}>
+      <Button title={"normal"} onPress={() => show("normal")} />
 
-        <Button mv={8} title={"normal"} onPress={() => show("normal")} />
+      <Button
+        title={"success"}
+        onPress={() => show("success", { type: "success" })}
+      />
 
-        <Button
-          mv={8}
-          title={"success"}
-          onPress={() => show("success", { type: "success" })}
-        />
+      <Button
+        title={"warning"}
+        onPress={() => show("warning", { type: "warning" })}
+      />
 
-        <Button
-          mv={8}
-          title={"warning"}
-          onPress={() => show("warning", { type: "warning" })}
-        />
+      <Button
+        title={"danger"}
+        onPress={() => show("danger", { type: "danger" })}
+      />
 
-        <Button
-          mv={8}
-          title={"danger"}
-          onPress={() => show("danger", { type: "danger" })}
-        />
+      <Button
+        title={"custom_toast"}
+        onPress={() =>
+          show("custom_toast", {
+            type: "custom_toast",
+            data: { title: "Title" },
+          })
+        }
+      />
 
-        <Button
-          mv={8}
-          title={"custom_toast"}
-          onPress={() =>
-            show("custom_toast", {
-              type: "custom_toast",
-              data: { title: "Title" },
-            })
-          }
-        />
+      <Button title={"hideMessage"} onPress={() => hide()} />
 
-        <Button mv={8} title={"hideMessage"} onPress={() => hide()} />
-
-        <Button
-          mv={8}
-          title={"Push notification"}
-          onPress={onDisplayNotification}
-        />
-      </Content>
-    </Container>
+      <Button title={"Push notification"} onPress={onDisplayNotification} />
+    </Col>
   );
 });

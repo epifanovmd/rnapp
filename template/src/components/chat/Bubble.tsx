@@ -1,4 +1,3 @@
-import { ImageViewingProps } from "@components";
 import React, { FC } from "react";
 import {
   ImageProps,
@@ -14,6 +13,7 @@ import {
 } from "react-native";
 import { ParsedTextProps } from "react-native-parsed-text";
 
+import { ImageViewingProps } from "../imageViewing";
 import { useChatTheme } from "./ChatThemeProvider";
 import { MessageAudio, MessageAudioProps } from "./MessageAudio";
 import { MessageImage, MessageImageProps } from "./MessageImage";

@@ -1,6 +1,7 @@
 import { useBiometric } from "@common";
 import { Button, Container, Content, Row, ScrollView, Text } from "@components";
 import { AppScreenProps } from "@core";
+import { CommonActions } from "@react-navigation/native";
 import { useSessionDataStore, useUserDataStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -44,12 +45,6 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
 
           <Button
             mt={8}
-            title={"Notifications"}
-            onPress={() => navigation.navigate("Notifications")}
-          />
-
-          <Button
-            mt={8}
             title={"Gallery"}
             onPress={() => navigation.navigate("Gallery")}
           />
@@ -63,19 +58,11 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
           <Button
             mt={8}
             title={"Components"}
-            onPress={() => navigation.navigate("Components")}
-          />
-
-          <Button
-            mt={8}
-            title={"Modals"}
-            onPress={() => navigation.navigate("Modals")}
-          />
-
-          <Button
-            mt={8}
-            title={"Pickers"}
-            onPress={() => navigation.navigate("Pickers")}
+            onPress={() =>
+              navigation.navigate("Components", {
+                initialRouteName: "Notifications",
+              })
+            }
           />
 
           <Button

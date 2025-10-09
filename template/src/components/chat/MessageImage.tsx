@@ -1,4 +1,3 @@
-import { ImageViewingProps } from "@components";
 import React, { forwardRef, memo } from "react";
 import {
   Image,
@@ -11,6 +10,7 @@ import {
   ViewStyle,
 } from "react-native";
 
+import { ImageViewingProps } from "../imageViewing";
 import { IMessage } from "./types";
 
 export interface MessageImageProps {

@@ -1,4 +1,3 @@
-import { BottomSheetFooter, BottomSheetHeader } from "@components";
 import {
   createBottomSheetScrollableComponent,
   SCROLLABLE_TYPE,
@@ -22,6 +21,8 @@ import {
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BottomSheetFooter } from "./BottomSheetFooter";
+import { BottomSheetHeader } from "./BottomSheetHeader";
 import { BottomSheetStyles } from "./styles";
 import { TBottomSheetFooterProps, TBottomSheetHeaderProps } from "./types";
 

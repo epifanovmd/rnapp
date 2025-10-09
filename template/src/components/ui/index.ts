@@ -8,6 +8,7 @@ export * from "./image";
 export * from "./input";
 export * from "./picker";
 export * from "./scrollView";
+export * from "./tabs";
 export * from "./text";
 export * from "./title";
 export * from "./touchable";

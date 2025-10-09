@@ -1,6 +1,7 @@
-import { TBottomSheetProps } from "@components";
 import { useTheme } from "@core";
 import { useMemo } from "react";
+
+import { TBottomSheetProps } from "../types";
 
 export const useBottomSheetStyles = (): Pick<
   TBottomSheetProps,
