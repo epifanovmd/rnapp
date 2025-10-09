@@ -26,28 +26,10 @@ const marks = new FilterHolder({
 
 const models = new FilterHolder({
   title: "Модель",
-  options: () => {
-    const mark = marks.value;
+  options: () =>
+    new Promise<IFilterOption<string>[]>(resolve => {
+      const mark = marks.value;
 
-    // return mark === "BMW"
-    //   ? [
-    //       { label: "BMW 3", value: "3er" },
-    //       { label: "BMW 5", value: "5er" },
-    //       { label: "BMW 7", value: "7er" },
-    //     ]
-    //   : mark === "AUDI"
-    //   ? [
-    //       { label: "A3", value: "A3" },
-    //       { label: "A4", value: "A5" },
-    //       { label: "A6", value: "A6" },
-    //     ]
-    //   : [
-    //       { label: "C класс", value: "C" },
-    //       { label: "E класс", value: "E" },
-    //       { label: "S класс", value: "S" },
-    //     ];
-
-    return new Promise<IFilterOption<string>[]>(resolve => {
       setTimeout(() => {
         resolve(
           mark === "BMW"
@@ -69,8 +51,7 @@ const models = new FilterHolder({
               ],
         );
       }, 500);
-    });
-  },
+    }),
 });
 
 const filters = {
@@ -79,17 +60,20 @@ const filters = {
   user: new FilterHolder({
     title: "Users",
     multiple: true,
-    options: async (): Promise<IFilterOption<number>[]> => {
-      const response = await fetch(
-        "https://jsonplaceholder.typicode.com/users",
-      );
-      const users = await response.json();
+    options: new Promise<IFilterOption<number>[]>(resolve => {
+      fetch("https://jsonplaceholder.typicode.com/users").then(
+        async response => {
+          const users = await response.json();
 
-      return users.map((user: { name: string; id: number }) => ({
-        label: user.name,
-        value: user.id,
-      }));
-    },
+          resolve(
+            users.map((user: { name: string; id: number }) => ({
+              label: user.name,
+              value: user.id,
+            })),
+          );
+        },
+      );
+    }),
     expandable: true,
     expandCount: 5,
   }),
