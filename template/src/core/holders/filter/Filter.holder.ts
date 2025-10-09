@@ -56,7 +56,7 @@ export class FilterHolder<
   }
 
   public get isEqual() {
-    return isEqual(this.value, this.defaultValue);
+    return isEqual(this.savedValue, this.defaultValue);
   }
 
   public get isDirty() {
