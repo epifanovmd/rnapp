@@ -60,7 +60,7 @@ export const Switch = memo<PropsWithChildren<ISwitchProps>>(
         backgroundColor: interpolateColor(
           position.value,
           [0, 1],
-          [colors.secondaryBright, colors.primaryBright],
+          [colors.secondaryBright, colors.primary],
         ),
         opacity,
         transform: [
