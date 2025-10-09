@@ -10,7 +10,7 @@ import {
 import { FilterHolder, FiltersHolder, IFilterOption } from "@core/holders";
 import { mergeRefs } from "@force-dev/react";
 import { observer, useLocalObservable } from "mobx-react-lite";
-import React, { forwardRef } from "react";
+import React, { forwardRef, useEffect } from "react";
 
 export interface ICustomFilterProps {}
 
@@ -117,6 +117,10 @@ export const CustomFilter = observer(
 
     const filter = useLocalObservable(() => new FiltersHolder(filters));
 
+    useEffect(() => {
+      console.log("data", JSON.stringify(filter.request));
+    }, [filter.request]);
+
     return (
       <BottomSheet
         onDismiss={() => {
@@ -138,11 +142,11 @@ export const CustomFilter = observer(
               <Col key={index} gap={8} mb={16}>
                 <Row alignItems={"center"} justifyContent={"space-between"}>
                   <Text textStyle={"Title_S1"}>{filter.title}</Text>
-                  {filter.isDirty && (
+                  {!filter.isEqual && (
                     <Button
                       type={"text"}
                       title={"Сбросить"}
-                      onPress={filter.cancel}
+                      onPress={() => filter.reset()}
                     />
                   )}
                 </Row>
@@ -177,7 +181,6 @@ export const CustomFilter = observer(
           <BottomSheet.Footer.PrimaryButton
             onPress={() => {
               filter.apply();
-              console.log("data", JSON.stringify(filter.request));
               modalRefView.current?.dismiss();
             }}
             disabled={!filter.isDirty}
