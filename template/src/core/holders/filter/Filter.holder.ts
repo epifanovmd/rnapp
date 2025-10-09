@@ -1,11 +1,12 @@
 import { ValueHolder } from "@force-dev/utils";
 import { isEqual } from "lodash";
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 
 import {
   IFilterItemHolder,
   IFilterOption,
   TFilterMultipleType,
+  TFilterOptions,
   TFilterValueType,
 } from "./Filter.types";
 
@@ -25,8 +26,12 @@ export class FilterHolder<
   public readonly expandable?: boolean;
   public readonly expandCount?: number;
   public expanded: boolean = true;
+  public isLoading: boolean = false;
 
-  private readonly _optionsHolder = new ValueHolder<IFilterOption<Value>[]>([]);
+  private readonly _optionsHolder = new ValueHolder<TFilterOptions<Value>>([]);
+  private readonly _optionsDataHolder = new ValueHolder<IFilterOption<Value>[]>(
+    [],
+  );
 
   constructor(data: IFilterItemHolder<Value, Default, Multiple>) {
     this.title = data.title;
@@ -42,6 +47,12 @@ export class FilterHolder<
     this._optionsHolder.setValue(data.options);
 
     makeAutoObservable(this, {}, { autoBind: true });
+
+    reaction(
+      () => this._optionsHolder.value,
+      opts => this._loadOptions(opts),
+      { fireImmediately: true },
+    );
   }
 
   public get isEqual() {
@@ -63,6 +74,10 @@ export class FilterHolder<
       onPress: () => this.setValue(option.value),
       isActive: this.checkActive(option.value),
     }));
+  }
+
+  public get hasOptions() {
+    return this._options.length > 0;
   }
 
   public checkActive(value: Value) {
@@ -94,16 +109,22 @@ export class FilterHolder<
   }
 
   public apply() {
-    if (
-      this.value &&
-      this._options.length > 0 &&
-      this._options.some(item => isEqual(item.value, this.value))
-    ) {
-      this.savedValue = this.value;
-    } else {
-      this.reset();
+    if (this.value && this._options.length > 0) {
+      const isValidValue =
+        this.multiple && Array.isArray(this.value)
+          ? this.value.every(val =>
+              this._options.some(option => isEqual(option.value, val)),
+            )
+          : this._options.some(option => isEqual(option.value, this.value));
+
+      if (!isValidValue) {
+        this.reset();
+
+        return;
+      }
     }
 
+    this.savedValue = this.value;
     this.cancelExpand();
   }
 
@@ -135,6 +156,24 @@ export class FilterHolder<
   }
 
   private get _options() {
-    return this._optionsHolder.value;
+    return this._optionsDataHolder.value;
+  }
+
+  private async _loadOptions(options: TFilterOptions<Value>) {
+    try {
+      if (options instanceof Promise) {
+        this.isLoading = true;
+        this._optionsDataHolder.setValue([]);
+        this._optionsDataHolder.setValue(await options);
+      } else {
+        this._optionsDataHolder.setValue(options);
+      }
+    } catch {
+      this._optionsDataHolder.setValue([]);
+    } finally {
+      runInAction(() => {
+        this.isLoading = false;
+      });
+    }
   }
 }

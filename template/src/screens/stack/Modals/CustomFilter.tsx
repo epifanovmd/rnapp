@@ -7,7 +7,7 @@ import {
   Text,
   useBottomSheetRef,
 } from "@components";
-import { FilterHolder, FiltersHolder } from "@core/holders";
+import { FilterHolder, FiltersHolder, IFilterOption } from "@core/holders";
 import { mergeRefs } from "@force-dev/react";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import React, { forwardRef } from "react";
@@ -17,47 +17,113 @@ export interface ICustomFilterProps {}
 const marks = new FilterHolder({
   title: "Марка",
   options: [
-    { text: "BMW", value: "BMW" },
-    { text: "Audi", value: "AUDI" },
-    { text: "Mercedes", value: "MERCEDES" },
+    { label: "BMW", value: "BMW" },
+    { label: "Audi", value: "AUDI" },
+    { label: "Mercedes", value: "MERCEDES" },
   ],
   defaultValue: "BMW",
 });
 
 const models = new FilterHolder({
   title: "Модель",
-  options: () =>
-    marks.value === "BMW"
-      ? [
-          { text: "BMW 3", value: "3er" },
-          { text: "BMW 5", value: "5er" },
-          { text: "BMW 7", value: "7er" },
-        ]
-      : marks.value === "AUDI"
-      ? [
-          { text: "A3", value: "A3" },
-          { text: "A4", value: "A5" },
-          { text: "A6", value: "A6" },
-        ]
-      : [
-          { text: "C класс", value: "C" },
-          { text: "E класс", value: "E" },
-          { text: "S класс", value: "S" },
-        ],
+  options: () => {
+    const mark = marks.value;
+
+    // return mark === "BMW"
+    //   ? [
+    //       { label: "BMW 3", value: "3er" },
+    //       { label: "BMW 5", value: "5er" },
+    //       { label: "BMW 7", value: "7er" },
+    //     ]
+    //   : mark === "AUDI"
+    //   ? [
+    //       { label: "A3", value: "A3" },
+    //       { label: "A4", value: "A5" },
+    //       { label: "A6", value: "A6" },
+    //     ]
+    //   : [
+    //       { label: "C класс", value: "C" },
+    //       { label: "E класс", value: "E" },
+    //       { label: "S класс", value: "S" },
+    //     ];
+
+    return new Promise<IFilterOption<string>[]>(resolve => {
+      setTimeout(() => {
+        resolve(
+          mark === "BMW"
+            ? [
+                { label: "BMW 3", value: "3er" },
+                { label: "BMW 5", value: "5er" },
+                { label: "BMW 7", value: "7er" },
+              ]
+            : mark === "AUDI"
+            ? [
+                { label: "A3", value: "A3" },
+                { label: "A4", value: "A5" },
+                { label: "A6", value: "A6" },
+              ]
+            : [
+                { label: "C класс", value: "C" },
+                { label: "E класс", value: "E" },
+                { label: "S класс", value: "S" },
+              ],
+        );
+      }, 500);
+    });
+  },
 });
 
 const filters = {
   marks,
   models,
+  user: new FilterHolder({
+    title: "Users",
+    multiple: true,
+    options: async (): Promise<IFilterOption<number>[]> => {
+      const response = await fetch(
+        "https://jsonplaceholder.typicode.com/users",
+      );
+      const users = await response.json();
+
+      return users.map((user: { name: string; id: number }) => ({
+        label: user.name,
+        value: user.id,
+      }));
+    },
+    expandable: true,
+    expandCount: 5,
+  }),
   years: new FilterHolder({
     title: "Год",
     options: new Array(10)
       .fill(0)
-      .map((_, i) => ({ text: `201${i}`, value: `201${i}` })),
+      .map((_, i) => ({ label: `201${i}`, value: `201${i}` })),
     expandable: true,
     expandCount: 5,
     multiple: true,
     defaultValue: ["2010", "2011"],
+  }),
+  bodyType: new FilterHolder({
+    title: "Тип кузова",
+    options: [
+      { value: "sedan", label: "Седан" },
+      { value: "suv", label: "Внедорожник" },
+      { value: "hatchback", label: "Хэтчбек" },
+      { value: "coupe", label: "Купе" },
+      { value: "convertible", label: "Кабриолет" },
+      { value: "minivan", label: "Минивэн" },
+    ],
+    multiple: true,
+  }),
+
+  fuelType: new FilterHolder({
+    title: "Топливо",
+    options: [
+      { value: "petrol", label: "Бензин" },
+      { value: "diesel", label: "Дизель" },
+      { value: "electric", label: "Электро" },
+      { value: "hybrid", label: "Гибрид" },
+    ],
   }),
 };
 
@@ -88,11 +154,12 @@ export const CustomFilter = observer(
                 <Text textStyle={"Title_S1"}>{filter.title}</Text>
 
                 <Row alignItems={"center"} gap={8} wrap>
+                  {filter.isLoading && <Chip>{"Загрузка..."}</Chip>}
                   {filter.options.map((option, ind) => {
                     return (
                       <Chip
                         key={ind}
-                        text={option.text}
+                        text={option.label}
                         isActive={option.isActive}
                         onPress={option.onPress}
                       />
