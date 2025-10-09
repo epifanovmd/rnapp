@@ -181,7 +181,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheetView {...containerProps}>
+          <BottomSheet.Content {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pa={8} justifyContent={"space-around"}>
@@ -195,7 +195,7 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
             {renderFooter?.({ onReset, onApply })}
             <SafeAreaView edges={["bottom"]} />
-          </BottomSheetView>
+          </BottomSheet.Content>
         </BottomSheet>
       </Touchable>
     );

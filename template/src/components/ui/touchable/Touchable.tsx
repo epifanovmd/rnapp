@@ -33,7 +33,7 @@ const _Touchable = <T extends any = undefined>({
   ctx,
   children,
   animatedOpacity = 0.6,
-  animatedScale = 0.99,
+  animatedScale = 0.95,
   duration = 150,
   onPressIn: _onPressIn,
   onPressOut: _onPressOut,

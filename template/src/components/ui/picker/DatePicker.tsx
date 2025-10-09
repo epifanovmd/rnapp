@@ -226,7 +226,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheetView {...containerProps}>
+          <BottomSheet.Content {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pa={8} justifyContent={"space-between"}>
@@ -254,8 +254,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
             </Row>
 
             {renderFooter?.({ onReset, onApply })}
-            <SafeAreaView edges={["bottom"]} />
-          </BottomSheetView>
+          </BottomSheet.Content>
         </BottomSheet>
       </Touchable>
     );

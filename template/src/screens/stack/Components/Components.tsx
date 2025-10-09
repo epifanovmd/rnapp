@@ -2,15 +2,20 @@ import { Tabs } from "@components/ui/tabs";
 import { StackProps, TabScreens, TopTabNavigation } from "@core";
 import React, { FC, memo } from "react";
 
-import { ButtonsTab, NotificationsTab } from "./tabs";
-import { ModalsTab } from "./tabs/Modals";
-import { PickersTab } from "./tabs/PickersTab";
+import {
+  ButtonsTab,
+  ElementsTab,
+  ModalsTab,
+  NotificationsTab,
+  PickersTab,
+} from "./tabs";
 
 const routes: TabScreens = {
   Buttons: { screen: ButtonsTab },
   Notifications: { screen: NotificationsTab },
   Modals: { screen: ModalsTab },
   Pickers: { screen: PickersTab },
+  ElementsTab: { screen: ElementsTab },
 };
 
 export const Components: FC<StackProps<"Components">> = memo(({ route }) => {

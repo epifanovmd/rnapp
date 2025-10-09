@@ -49,6 +49,7 @@ export enum ComponentsScreenName {
   Notifications = "Notifications",
   Modals = "Modals",
   Pickers = "Pickers",
+  ElementsTab = "ElementsTab",
 }
 
 interface ComponentsScreenParams {
@@ -56,6 +57,7 @@ interface ComponentsScreenParams {
   Notifications: undefined;
   Modals: undefined;
   Pickers: undefined;
+  ElementsTab: undefined;
 }
 
 export type ScreenName =

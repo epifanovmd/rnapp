@@ -218,7 +218,7 @@ export const RangePicker: RangePicker = memo(
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheetView {...containerProps}>
+          <BottomSheet.Content {...containerProps}>
             {renderHeader?.(onClose)}
 
             <Row pv={16} ph={8} justifyContent={"space-around"}>
@@ -232,7 +232,7 @@ export const RangePicker: RangePicker = memo(
 
             {renderFooter?.({ onReset, onApply })}
             <SafeAreaView edges={["bottom"]} />
-          </BottomSheetView>
+          </BottomSheet.Content>
         </BottomSheet>
       </Touchable>
     );
