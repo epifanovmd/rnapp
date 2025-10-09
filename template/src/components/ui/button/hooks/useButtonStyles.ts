@@ -34,8 +34,9 @@ export const useButtonStyles = (
 
   return useMemo(() => {
     const colorMap = disabled ? COLOR_MAP_DISABLED : COLOR_MAP;
-    const sizeStyle =
-      type === "text" ? BUTTON_STYLES.textSize : BUTTON_STYLES[size];
+    const isTextType = type === "text";
+    const sizeStyle = isTextType ? BUTTON_STYLES.textSize : BUTTON_STYLES[size];
+    const hitSlop = { left: 8, right: 8, top: 8, bottom: 8 };
 
     const variantStyle = getVariantStyle(colors, disabled, type, customColor);
 
@@ -47,13 +48,11 @@ export const useButtonStyles = (
         ...variantStyle,
       },
       color: customColor ?? colorMap[type],
-      hitSlop:
-        type === "text" ? { left: 8, right: 8, top: 8, bottom: 8 } : undefined,
+      hitSlop: isTextType ? hitSlop : undefined,
     };
   }, [disabled, type, size, colors, customColor]);
 };
 
-// Выносим логику вариантов в отдельную функцию
 const getVariantStyle = (
   colors: TColorTheme,
   disabled: boolean,
