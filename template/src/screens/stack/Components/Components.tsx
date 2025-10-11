@@ -1,5 +1,13 @@
+import { HiddenBar } from "@components";
 import { Tabs } from "@components/ui/tabs";
-import { StackProps, TabScreens, TopTabNavigation } from "@core";
+import {
+  StackProps,
+  TabScreens,
+  TopTabNavigation,
+  TransitionProvider,
+  useTheme,
+  useTransitionContext,
+} from "@core";
 import React, { FC, memo } from "react";
 
 import {
@@ -19,25 +27,38 @@ const routes: TabScreens = {
 };
 
 export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
+  const context = useTransitionContext();
+
   return (
-    <TopTabNavigation
-      tabBar={({ state: { routes, index }, navigation }) => {
-        return (
-          <Tabs
-            activeIndex={index}
-            onPress={routeName => {
-              navigation.navigate(routeName);
-            }}
-            items={routes.map(route => ({
-              title: route.name,
-              value: route.name,
-            }))}
-          />
-        );
-      }}
-      initialRouteName={route.params?.initialRouteName}
-      routes={routes}
-      screenOptions={{}}
-    />
+    <TransitionProvider context={context}>
+      <TopTabNavigation
+        tabBar={({ state: { routes, index }, navigation }) => {
+          return (
+            <HiddenBar safeArea title={"Компоненты"}>
+              <Tabs
+                activeIndex={index}
+                onPress={routeName => {
+                  navigation.navigate(routeName);
+                }}
+                items={routes.map(route => ({
+                  title: route.name,
+                  value: route.name,
+                }))}
+              />
+            </HiddenBar>
+          );
+        }}
+        initialRouteName={route.params?.initialRouteName}
+        routes={routes}
+        screenListeners={{
+          blur: e => {
+            context.showNavbar();
+          },
+          focus: e => {
+            context.showNavbar();
+          },
+        }}
+      />
+    </TransitionProvider>
   );
 });

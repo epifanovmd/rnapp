@@ -1,9 +1,6 @@
 import {
-  Button,
   Col,
-  Container,
   Content,
-  HiddenBar,
   Navbar,
   RefreshingContainer,
   SwitchTheme,
@@ -14,81 +11,97 @@ import {
   TransitionProvider,
   useTransitionContext,
 } from "@core";
-import { noop } from "lodash";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 import { View } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const context = useTransitionContext();
 
-  // const styles = useAnimatedStyle(() => {
-  //   return {
-  //     height: interpolate(
-  //       context.transitionY.value,
-  //       [0, 205, 300],
-  //       [300, 95, 95],
-  //     ),
-  //     opacity: interpolate(
-  //       context.transitionY.value,
-  //       [0, 200, 250, 300],
-  //       [1, 1, 0.4, 0.4],
-  //     ),
-  //   };
-  // });
+  const styles = useAnimatedStyle(() => {
+    return {
+      height: interpolate(
+        context.transitionY.value,
+        [0, 205, 300],
+        [300, 95, 95],
+      ),
+      opacity: interpolate(
+        context.transitionY.value,
+        [0, 200, 250, 300],
+        [1, 1, 0.4, 0.4],
+      ),
+    };
+  });
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const { transitionY } = context;
+
+  const stylesImage = useAnimatedStyle(() => {
+    return {
+      height: 200,
+      transform: [
+        {
+          translateY: -transitionY.value,
+        },
+      ],
+    };
+  });
+
   return (
     <TransitionProvider context={context}>
-      <Container edges={[]}>
-        <HiddenBar safeArea>
-          <Navbar
-            title={name}
-            right={
-              <View style={{ margin: 12 }}>
-                <SwitchTheme marginLeft={"auto"} />
-              </View>
-            }
-          />
-        </HiddenBar>
-        {/* <Animated.Image*/}
-        {/*  style={[*/}
-        {/*    styles,*/}
-        {/*    {*/}
-        {/*      backgroundColor: "#00000030",*/}
-        {/*      position: "absolute",*/}
-        {/*      left: 0,*/}
-        {/*      right: 0,*/}
-        {/*      top: 0,*/}
-        {/*      bottom: 0,*/}
-        {/*    },*/}
-        {/*  ]}*/}
-        {/*  source={{ uri: "https://picsum.photos/275/300" }}*/}
-        {/* />*/}
-        <Content>
-          <RefreshingContainer.ScrollView
-            refreshing={refreshing}
-            refreshingOffset={context.navbarHeight}
-            onScroll={context.onScroll}
-            style={{ paddingTop: context.navbarHeight }}
-            showsVerticalScrollIndicator={false}
-            onRefresh={() => {
-              setRefreshing(true);
+      <Navbar
+        transparent
+        safeArea
+        title={name}
+        right={
+          <View style={{ margin: 12 }}>
+            <SwitchTheme marginLeft={"auto"} />
+          </View>
+        }
+      />
+      <Animated.Image
+        style={[
+          styles,
+          {
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            borderBottomRightRadius: 24,
+            borderBottomLeftRadius: 24,
+          },
+        ]}
+        source={{ uri: "https://picsum.photos/275/300" }}
+      />
+      <Content>
+        <RefreshingContainer.ScrollView
+          refreshing={refreshing}
+          refreshingOffset={context.navbarHeight}
+          onScroll={context.onScroll}
+          // style={{ paddingTop: context.navbarHeight }}
+          contentContainerStyle={{ paddingTop: 210 }}
+          showsVerticalScrollIndicator={false}
+          onRefresh={() => {
+            setRefreshing(true);
 
-              setTimeout(() => {
-                setRefreshing(false);
-              }, 1000);
-            }}
-          >
-            {new Array(50).fill(0).map((_, i) => (
-              <Col height={60} key={i}>
-                <Text>{`Item ${i + 1}`}</Text>
-              </Col>
-            ))}
-          </RefreshingContainer.ScrollView>
-        </Content>
-      </Container>
+            setTimeout(() => {
+              setRefreshing(false);
+            }, 1000);
+          }}
+        >
+          {new Array(50).fill(0).map((_, i) => (
+            <Col height={60} key={i}>
+              <Text>{`Item ${i + 1}`}</Text>
+            </Col>
+          ))}
+        </RefreshingContainer.ScrollView>
+      </Content>
     </TransitionProvider>
   );
 });

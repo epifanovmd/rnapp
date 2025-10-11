@@ -1,3 +1,4 @@
+import { LayoutChangeEvent } from "react-native";
 import { ScrollHandlerProcessed, SharedValue } from "react-native-reanimated";
 
 export type TTransitionDirection = "up" | "down" | "left" | "right" | null;
@@ -13,4 +14,5 @@ export interface ITransitionContext {
   showNavbar: () => void;
   hideNavbar: () => void;
   setNavbarHeight: (height: number) => void;
+  onLayoutNavBar: (event: LayoutChangeEvent) => void;
 }

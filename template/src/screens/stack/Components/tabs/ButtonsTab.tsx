@@ -1,18 +1,28 @@
 import { Button, Col, ScrollView } from "@components";
-import { TabProps } from "@core";
+import { TabProps, useTransition } from "@core";
 import { memo, useCallback } from "react";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const ButtonsTab = memo<TabProps>(() => {
   const { bottom } = useSafeAreaInsets();
+  const { onScroll, navbarHeight } = useTransition();
 
   const onPress = useCallback(() => {
     console.log("Press button");
   }, []);
 
   return (
-    <Col ph={16} gap={8}>
-      <ScrollView contentContainerStyle={{ gap: 8, paddingBottom: bottom }}>
+    <Col gap={8}>
+      <Animated.ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          gap: 8,
+          paddingBottom: bottom,
+          paddingTop: navbarHeight,
+        }}
+        onScroll={onScroll}
+      >
         <Button size={"small"} title={"Size sm"} onPress={onPress} />
         <Button title={"Size normal"} onPress={onPress} />
         <Button type={"text"} title={"Text button"} onPress={onPress} />
@@ -100,7 +110,7 @@ export const ButtonsTab = memo<TabProps>(() => {
           title={"Danger Outline (disabled)"}
           onPress={onPress}
         />
-      </ScrollView>
+      </Animated.ScrollView>
     </Col>
   );
 });
