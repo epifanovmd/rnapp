@@ -29,8 +29,8 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
   return (
     <TransitionProvider context={context}>
-      <ImageBar uri={"https://picsum.photos/275/300"}>
-        <Navbar transparent safeArea title={name}>
+      <ImageBar safeArea uri={"https://picsum.photos/275/300"}>
+        <Navbar transparent title={name}>
           <Navbar.Title color={"white"} />
           <Navbar.Right>
             <View style={{ margin: 12 }}>
