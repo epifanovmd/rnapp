@@ -1,11 +1,10 @@
-import { HiddenBar } from "@components";
+import { HiddenBar, Navbar } from "@components";
 import { Tabs } from "@components/ui/tabs";
 import {
   StackProps,
   TabScreens,
   TopTabNavigation,
   TransitionProvider,
-  useTheme,
   useTransitionContext,
 } from "@core";
 import React, { FC, memo } from "react";
@@ -34,17 +33,22 @@ export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
       <TopTabNavigation
         tabBar={({ state: { routes, index }, navigation }) => {
           return (
-            <HiddenBar safeArea title={"Компоненты"}>
-              <Tabs
-                activeIndex={index}
-                onPress={routeName => {
-                  navigation.navigate(routeName);
-                }}
-                items={routes.map(route => ({
-                  title: route.name,
-                  value: route.name,
-                }))}
-              />
+            <HiddenBar safeArea>
+              <Navbar title={"Компоненты"}>
+                <Navbar.BackButton />
+              </Navbar>
+              <HiddenBar.StickyContent>
+                <Tabs
+                  activeIndex={index}
+                  onPress={routeName => {
+                    navigation.navigate(routeName);
+                  }}
+                  items={routes.map(route => ({
+                    title: route.name,
+                    value: route.name,
+                  }))}
+                />
+              </HiddenBar.StickyContent>
             </HiddenBar>
           );
         }}

@@ -183,14 +183,13 @@ export const ChatScreen: FC<StackProps> = observer(({ route }) => {
 
   return (
     <Container edges={[]}>
-      <Navbar
-        safeArea={true}
-        right={
+      <Navbar safeArea={true}>
+        <Navbar.BackButton />
+        <Navbar.Right>
           <View style={{ margin: 12 }}>
             <SwitchTheme marginLeft={"auto"} />
           </View>
-        }
-      >
+        </Navbar.Right>
         <View style={{ gap: 2 }}>
           <NavbarTitle>{route.name}</NavbarTitle>
           {isTyping && <TypingAnimation color={"#000"} text={"печатает"} />}

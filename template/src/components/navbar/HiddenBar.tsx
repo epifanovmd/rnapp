@@ -1,25 +1,25 @@
 import { useTheme, useTransition } from "@core";
-import { memo, PropsWithChildren, useCallback, useState } from "react";
-import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { createSlot, useSlotProps } from "@force-dev/react";
+import React, { memo, PropsWithChildren, useCallback, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {
   interpolate,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { INavbarProps, Navbar } from "./Navbar";
-
-export interface IHiddenNavBarProps extends INavbarProps {
+export interface IHiddenNavbarProps extends ViewProps {
   safeArea?: boolean;
-  stickyContent?: boolean;
 }
 
-export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
-  ({ safeArea, stickyContent = true, children, ...rest }) => {
+const _HiddenBar = memo<PropsWithChildren<IHiddenNavbarProps>>(
+  ({ safeArea, style, children, ...rest }) => {
     const { colors } = useTheme();
     const [contentHeight, setContentHeight] = useState(0);
     const { navbarHeight, onLayoutNavBar, navbarOffset } = useTransition();
     const insets = useSafeAreaInsets();
+    const { $children, stickyContent } = useSlotProps(HiddenBar, children);
+
     const top = safeArea ? insets.top : 0;
 
     const navHeight = navbarHeight - (stickyContent ? contentHeight : 0);
@@ -57,7 +57,10 @@ export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
     }, []);
 
     return (
-      <View style={[styles.container, { backgroundColor, paddingTop: top }]}>
+      <View
+        style={[styles.container, { backgroundColor, paddingTop: top }, style]}
+        {...rest}
+      >
         {safeArea && (
           <View
             style={[styles.overlay, { backgroundColor, paddingTop: top }]}
@@ -67,19 +70,22 @@ export const HiddenBar = memo<PropsWithChildren<IHiddenNavBarProps>>(
           onLayout={onLayoutNavBar}
           style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
         >
-          <Navbar {...rest} />
-          <View onLayout={onLayout}>{children}</View>
+          {$children}
+          <View onLayout={onLayout} {...stickyContent} />
         </Animated.View>
       </View>
     );
   },
 );
 
+export const HiddenBar = Object.assign(_HiddenBar, {
+  StickyContent: createSlot<ViewProps>("StickyContent"),
+});
+
 const styles = StyleSheet.create({
   container: {
     position: "relative",
     zIndex: 999,
-    backgroundColor: "pink",
   },
   overlay: {
     position: "absolute",

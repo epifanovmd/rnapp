@@ -28,7 +28,7 @@
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {
-    "@force-dev/react": "^1.1.24",
+    "@force-dev/react": "^1.1.28",
     "@force-dev/utils": "^1.4.6",
     "@gorhom/bottom-sheet": "^5.1.8",
     "@gorhom/portal": "^1.0.14",

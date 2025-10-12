@@ -1,44 +1,36 @@
 import { useTheme } from "@core";
+import { createSlot, useSlotProps } from "@force-dev/react";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { memo, useCallback, useRef, useState } from "react";
 import {
   GestureResponderEvent,
   StyleSheet,
   TouchableOpacity,
+  TouchableOpacityProps,
   View,
   ViewProps,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NavbarIcon } from "./NavbarIcon";
-import { NavbarSubTitle } from "./NavbarSubTitle";
-import { NavbarTitle } from "./NavbarTitle";
+import { INavbarSubTitleProps, NavbarSubTitle } from "./NavbarSubTitle";
+import { INavbarTitleProps, NavbarTitle } from "./NavbarTitle";
 
 export interface INavbarProps extends ViewProps {
-  readonly title?: string;
-  readonly subTitle?: string;
-  readonly backButton?: boolean;
-  readonly onBackPress?: (e: GestureResponderEvent) => void;
-  readonly left?: React.ReactNode;
-  readonly right?: React.ReactNode;
-  readonly safeArea?: boolean;
-  readonly transparent?: boolean;
+  title?: string;
+  safeArea?: boolean;
+  transparent?: boolean;
 }
 
-export const Navbar = memo<INavbarProps>(
-  ({
-    title,
-    subTitle,
-    style,
-    backButton = true,
-    onBackPress,
-    left,
-    right,
-    safeArea,
-    transparent,
-    children,
-    ...rest
-  }) => {
+const BackButton = createSlot<TouchableOpacityProps>("BackButton");
+const Left = createSlot<ViewProps>("Left");
+const Content = createSlot<ViewProps>("Content");
+const Title = createSlot<INavbarTitleProps>("Title");
+const Subtitle = createSlot<INavbarSubTitleProps>("Subtitle");
+const Right = createSlot<ViewProps>("Right");
+
+const _Navbar = memo<INavbarProps>(
+  ({ title: titleText, style, safeArea, transparent, children, ...rest }) => {
     const { colors } = useTheme();
     const leftRef = useRef<View>(null);
     const rightRef = useRef<View>(null);
@@ -46,15 +38,18 @@ export const Navbar = memo<INavbarProps>(
     const [isCanGoBack, setIsCanGoBack] = useState(false);
     const { top } = useSafeAreaInsets();
 
+    const { $children, left, backButton, content, title, subtitle, right } =
+      useSlotProps(Navbar, children);
+
     const { canGoBack, goBack } = useNavigation();
 
     useFocusEffect(() => {
-      if (backButton && !onBackPress) {
+      if (backButton && !backButton.onPress) {
         setIsCanGoBack(canGoBack());
       }
     });
 
-    const showBackButton = backButton && (isCanGoBack || !!onBackPress);
+    const showBackButton = backButton && (isCanGoBack || !!backButton.onPress);
 
     const onUpdateWidth = useCallback(() => {
       if (leftRef.current && rightRef.current) {
@@ -70,13 +65,13 @@ export const Navbar = memo<INavbarProps>(
 
     const handleBackPress = useCallback(
       (e: GestureResponderEvent) => {
-        if (onBackPress) {
-          onBackPress(e);
+        if (backButton?.onPress) {
+          backButton.onPress(e);
         } else if (isCanGoBack) {
           goBack();
         }
       },
-      [isCanGoBack, goBack, onBackPress],
+      [backButton, isCanGoBack, goBack],
     );
 
     const backgroundColor = transparent ? undefined : colors.background;
@@ -94,26 +89,43 @@ export const Navbar = memo<INavbarProps>(
                 <NavbarIcon name={"back"} />
               </TouchableOpacity>
             )}
-            {left}
+            <View {...left} />
           </View>
         </View>
         <View style={SS.center}>
-          {children ?? (
-            <View style={[SS.content]}>
-              {!!title && <NavbarTitle>{title}</NavbarTitle>}
-              {!!subTitle && <NavbarSubTitle>{subTitle}</NavbarSubTitle>}
-            </View>
-          )}
+          <View style={[SS.content]}>
+            {$children?.length ? (
+              $children
+            ) : content ? (
+              <View {...content} />
+            ) : (
+              <>
+                {!!(title || titleText) && (
+                  <NavbarTitle text={titleText} {...title} />
+                )}
+                {!!subtitle && <NavbarSubTitle {...subtitle} />}
+              </>
+            )}
+          </View>
         </View>
         <View style={[SS.right, { minWidth: width }]}>
           <View ref={rightRef} style={SS.row} onLayout={onUpdateWidth}>
-            {right}
+            <View {...right} />
           </View>
         </View>
       </View>
     );
   },
 );
+
+export const Navbar = Object.assign(_Navbar, {
+  BackButton,
+  Left,
+  Content,
+  Title,
+  Subtitle,
+  Right,
+});
 
 const SS = StyleSheet.create({
   container: {

@@ -19,16 +19,13 @@ interface IProps extends StackProps {}
 
 const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
   return (
-    <Navbar
-      title={title}
-      safeArea={true}
-      backButton={false}
-      right={
+    <Navbar title={title} safeArea={true}>
+      <Navbar.Right>
         <View style={{ margin: 12 }}>
           <SwitchTheme marginLeft={"auto"} />
         </View>
-      }
-    />
+      </Navbar.Right>
+    </Navbar>
   );
 };
 

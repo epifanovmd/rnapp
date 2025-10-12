@@ -1,11 +1,14 @@
 import {
   Col,
   Content,
+  HiddenBar,
   Navbar,
   RefreshingContainer,
   SwitchTheme,
+  Tabs,
   Text,
 } from "@components";
+import { ImageBar } from "@components/navbar/ImageBar";
 import {
   AppScreenProps,
   TransitionProvider,
@@ -22,70 +25,29 @@ import Animated, {
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const context = useTransitionContext();
 
-  const styles = useAnimatedStyle(() => {
-    return {
-      height: interpolate(
-        context.transitionY.value,
-        [0, 205, 300],
-        [300, 95, 95],
-      ),
-      opacity: interpolate(
-        context.transitionY.value,
-        [0, 200, 250, 300],
-        [1, 1, 0.4, 0.4],
-      ),
-    };
-  });
-
   const [refreshing, setRefreshing] = useState(false);
-
-  const { transitionY } = context;
-
-  const stylesImage = useAnimatedStyle(() => {
-    return {
-      height: 200,
-      transform: [
-        {
-          translateY: -transitionY.value,
-        },
-      ],
-    };
-  });
 
   return (
     <TransitionProvider context={context}>
-      <Navbar
-        transparent
-        safeArea
-        title={name}
-        right={
-          <View style={{ margin: 12 }}>
-            <SwitchTheme marginLeft={"auto"} />
-          </View>
-        }
-      />
-      <Animated.Image
-        style={[
-          styles,
-          {
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            borderBottomRightRadius: 24,
-            borderBottomLeftRadius: 24,
-          },
-        ]}
-        source={{ uri: "https://picsum.photos/275/300" }}
-      />
+      <ImageBar uri={"https://picsum.photos/275/300"}>
+        <Navbar transparent safeArea title={name}>
+          <Navbar.Title color={"white"} />
+          <Navbar.Right>
+            <View style={{ margin: 12 }}>
+              <SwitchTheme marginLeft={"auto"} />
+            </View>
+          </Navbar.Right>
+        </Navbar>
+      </ImageBar>
+
       <Content>
         <RefreshingContainer.ScrollView
           refreshing={refreshing}
           refreshingOffset={context.navbarHeight}
           onScroll={context.onScroll}
-          // style={{ paddingTop: context.navbarHeight }}
-          contentContainerStyle={{ paddingTop: 210 }}
+          contentContainerStyle={{
+            paddingTop: 250 - context.navbarHeight + 16,
+          }}
           showsVerticalScrollIndicator={false}
           onRefresh={() => {
             setRefreshing(true);

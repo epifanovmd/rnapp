@@ -32,12 +32,14 @@ const AppHeader = ({ route: { name }, options }: StackHeaderProps) => {
     <Navbar
       title={options.title ?? t(`navigation.${name}` as any)}
       safeArea={true}
-      right={
+    >
+      <Navbar.BackButton />
+      <Navbar.Right>
         <View style={{ margin: 12 }}>
           <SwitchTheme marginLeft={"auto"} />
         </View>
-      }
-    />
+      </Navbar.Right>
+    </Navbar>
   );
 };
 
