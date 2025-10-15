@@ -55,8 +55,6 @@ export interface IUserDto {
 }
 
 export interface IUserUpdateRequest {
-  firstName?: string;
-  lastName?: string;
   email?: string;
   phone?: string;
   roleId?: string;
@@ -543,7 +541,7 @@ export interface GetUsersParams {
    */
   offset?: number;
   /**
-   * Лимит количества возвращаемых профилей
+   * Лимит количества возвращаемых пользователей
    * @format double
    */
   limit?: number;

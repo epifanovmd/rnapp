@@ -76,11 +76,11 @@ export class Api<
   EBody = unknown,
 > extends HttpClient<E, EBody> {
   /**
-   * @description Получить пользователя. Этот эндпоинт позволяет получить данные профиля пользователя, который выполнил запрос. Используется для получения информации о текущем пользователе, например, его имени, email, и других данных.
+   * @description Получить пользователя. Этот эндпоинт позволяет получить данные пользователя, который выполнил запрос.
    *
    * @tags User
    * @name GetMyUser
-   * @summary Получение профиля текущего пользователя
+   * @summary Получение данных текущего пользователя
    * @request GET:/api/user/my
    * @secure
    */
@@ -92,11 +92,11 @@ export class Api<
       ...params,
     });
   /**
-   * @description Обновить пользователя. Этот эндпоинт позволяет пользователю обновить свои данные, такие как имя, email и другие параметры профиля.
+   * @description Обновить пользователя. Этот эндпоинт позволяет пользователю обновить свои данные, такие как email, телефон и другие параметры пользователя.
    *
    * @tags User
    * @name UpdateMyUser
-   * @summary Обновление профиля текущего пользователя
+   * @summary Обновление данных текущего пользователя
    * @request PATCH:/api/user/my/update
    * @secure
    */
@@ -114,7 +114,7 @@ export class Api<
    *
    * @tags User
    * @name DeleteMyUser
-   * @summary Удаление профиля текущего пользователя
+   * @summary Удаление текущего пользователя
    * @request DELETE:/api/user/my/delete
    * @secure
    */
@@ -126,11 +126,11 @@ export class Api<
       ...params,
     });
   /**
-   * @description Получить все профили. Этот эндпоинт позволяет администраторам получить список всех пользователей системы. Он поддерживает пагинацию через параметры `offset` и `limit`.
+   * @description Получить всех пользователей. Этот эндпоинт позволяет администраторам получить список всех пользователей системы. Он поддерживает пагинацию через параметры `offset` и `limit`.
    *
    * @tags User
    * @name GetUsers
-   * @summary Получение всех профилей
+   * @summary Получение всех пользователей
    * @request GET:/api/user/all
    * @secure
    */
@@ -147,7 +147,7 @@ export class Api<
    *
    * @tags User
    * @name GetUserById
-   * @summary Получение профиля по ID
+   * @summary Получение пользователя по ID
    * @request GET:/api/user/{id}
    * @secure
    */
@@ -216,7 +216,7 @@ export class Api<
    *
    * @tags User
    * @name UpdateUser
-   * @summary Обновление профиля другого пользователя
+   * @summary Обновление другого пользователя
    * @request PATCH:/api/user/update/{id}
    * @secure
    */
@@ -256,7 +256,7 @@ export class Api<
    *
    * @tags User
    * @name DeleteUser
-   * @summary Удаление профиля другого пользователя
+   * @summary Удаление другого пользователя
    * @request DELETE:/api/user/delete/{id}
    * @secure
    */
