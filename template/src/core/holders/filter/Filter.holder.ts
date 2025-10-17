@@ -55,11 +55,18 @@ export class FilterHolder<
     );
   }
 
+  public get isEqualValueDefault() {
+    // Сравниваем текущее значение с дефолтным
+    return isEqual(this.value, this.defaultValue);
+  }
+
   public get isEqual() {
+    // Сравниваем сохраненное значение с дефолтным
     return isEqual(this.savedValue, this.defaultValue);
   }
 
   public get isDirty() {
+    // Сравниваем текущее значение с сохраненным
     return !isEqual(this.value, this.savedValue);
   }
 
@@ -130,6 +137,14 @@ export class FilterHolder<
 
   public cancel() {
     this.value = (this.savedValue ?? this.defaultValue) as typeof this.value;
+  }
+
+  public resetSoft(value?: typeof this.value) {
+    if (value !== undefined) {
+      this.value = value;
+    } else {
+      this.value = this.defaultValue as typeof this.value;
+    }
   }
 
   public reset(value?: typeof this.value) {

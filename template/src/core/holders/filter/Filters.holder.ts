@@ -19,8 +19,8 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     return this.filters.filter(filter => !filter.isEqual).length;
   }
 
-  public reset() {
-    this.filters.forEach(filter => filter.reset());
+  public get isEqualValueDefault() {
+    return this.filters.every(filter => filter.isEqualValueDefault);
   }
 
   public get isEqual() {
@@ -53,11 +53,26 @@ export class FiltersHolder<TConfig extends TFilterConfig = TFilterConfig> {
     this.data[key].setValue(value);
   }
 
+  public resetFilterSoft<K extends keyof TConfig>(
+    key: K,
+    value?: TConfig[K]["value"],
+  ) {
+    this.data[key].resetSoft(value);
+  }
+
   public resetFilter<K extends keyof TConfig>(
     key: K,
     value?: TConfig[K]["value"],
   ) {
     this.data[key].reset(value);
+  }
+
+  public resetSoft() {
+    this.filters.forEach(filter => filter.resetSoft());
+  }
+
+  public reset() {
+    this.filters.forEach(filter => filter.reset());
   }
 
   public apply() {

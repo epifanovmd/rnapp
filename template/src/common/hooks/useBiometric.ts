@@ -16,7 +16,7 @@ export const useBiometric = () => {
   const sessionDataStore = useSessionDataStore();
   const { show } = useNotification();
 
-  const available = registeredUserId && support;
+  const available = !!registeredUserId && support;
 
   useEffect(() => {
     AsyncStorage.getItem("biometricUserId").then(setRegisteredUserId);
