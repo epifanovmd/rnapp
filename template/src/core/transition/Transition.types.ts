@@ -12,8 +12,11 @@ export interface ITransitionContext {
   onScroll: ScrollHandlerProcessed;
   scrollDirection: SharedValue<TTransitionDirection>;
   navbarOffset: SharedValue<number>;
+  tabBarOffset: SharedValue<number>;
   showNavbar: () => void;
   hideNavbar: () => void;
+  showTabBar: () => void;
+  hideTabBar: () => void;
   setNavbarHeight: (height: number) => void;
   onLayoutNavBar: (event: LayoutChangeEvent) => void;
   setTabBarHeight: (height: number) => void;

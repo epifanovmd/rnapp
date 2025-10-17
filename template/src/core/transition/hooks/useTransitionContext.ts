@@ -18,9 +18,20 @@ export const useTransitionContext = (): ITransitionContext => {
   const prevScrollX = useSharedValue(0);
   const prevScrollY = useSharedValue(0);
   const navbarOffset = useSharedValue(0);
+  const tabBarOffset = useSharedValue(0);
   const direction = useSharedValue<TTransitionDirection>(null);
   const prevDirection = useSharedValue<TTransitionDirection>(null);
   const isBouncing = useSharedValue(false);
+
+  const showTabBar = () => {
+    "worklet";
+    tabBarOffset.value = withTiming(0, { duration: 150 });
+  };
+
+  const hideTabBar = () => {
+    "worklet";
+    tabBarOffset.value = withTiming(tabBarHeight, { duration: 150 });
+  };
 
   const showNavbar = () => {
     "worklet";
@@ -103,6 +114,30 @@ export const useTransitionContext = (): ITransitionContext => {
         console.warn("Navbar height is not defined");
       }
 
+      if (isBouncing.value) {
+        if (prevDirection.value === "down") {
+          hideTabBar();
+        } else if (prevDirection.value === "up") {
+          showTabBar();
+        }
+      } else if (tabBarHeight) {
+        if (y > 0) {
+          const delta = clamp(y - prevScrollY.value, -3, 3);
+          const offset = tabBarOffset.value;
+
+          // Показываем или скрываем navbar
+          if (delta > 0) {
+            tabBarOffset.value = Math.min(offset + delta, tabBarHeight);
+          } else {
+            tabBarOffset.value = Math.max(offset + delta, 0);
+          }
+        } else {
+          showTabBar();
+        }
+      } else if (__DEV__) {
+        console.warn("TabBar height is not defined");
+      }
+
       prevScrollX.value = x;
       prevScrollY.value = y;
     },
@@ -125,8 +160,11 @@ export const useTransitionContext = (): ITransitionContext => {
     scrollDirection: direction,
     onScroll,
     navbarOffset,
+    tabBarOffset,
     showNavbar,
     hideNavbar,
+    showTabBar,
+    hideTabBar,
     setNavbarHeight,
     onLayoutNavBar,
     setTabBarHeight,

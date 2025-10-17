@@ -1,5 +1,5 @@
-import { Row, Text, Touchable } from "@components";
-import { useTransition } from "@core";
+import { Text, Touchable } from "@components";
+import { useTheme, useTransition } from "@core";
 import { BlurView } from "@react-native-community/blur";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import React, { memo, useCallback, useState } from "react";
@@ -19,9 +19,11 @@ export const TabBar = memo<BottomTabBarProps>(
     const [width, setWidth] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
     const animatedIndex = useSharedValue(index);
-    const { setTabBarHeight } = useTransition();
+    const { setTabBarHeight, tabBarOffset, showTabBar } = useTransition();
+    const { isLight } = useTheme();
 
     React.useEffect(() => {
+      showTabBar();
       animatedIndex.set(index);
 
       return () => {
@@ -75,16 +77,29 @@ export const TabBar = memo<BottomTabBarProps>(
       [bottom, setTabBarHeight],
     );
 
+    const as = useAnimatedStyle(() => {
+      return {
+        transform: [
+          {
+            translateY: tabBarOffset.value,
+          },
+        ],
+      };
+    });
+
     return (
-      <Row style={[SS.container, { bottom }]} onLayout={onLayout}>
+      <Animated.View
+        style={[SS.container, { bottom, flexDirection: "row" }, as]}
+        onLayout={onLayout}
+      >
         <BlurView
           style={StyleSheet.absoluteFillObject}
-          blurType={"dark"}
+          blurType={isLight ? "dark" : "light"}
           blurAmount={1}
         />
         <AnimatedBlurView
           style={[SS.active, activeIndicatorStyle]}
-          blurType={"light"}
+          blurType={isLight ? "light" : "dark"}
           blurAmount={1}
         />
         {routes.map(route => {
@@ -104,7 +119,7 @@ export const TabBar = memo<BottomTabBarProps>(
             </Touchable>
           );
         })}
-      </Row>
+      </Animated.View>
     );
   },
 );

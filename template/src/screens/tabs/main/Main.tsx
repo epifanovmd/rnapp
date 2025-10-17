@@ -10,8 +10,8 @@ import { ImageBar } from "@components/navbar/ImageBar";
 import {
   AppScreenProps,
   TransitionProvider,
+  useTheme,
   useTransition,
-  useTransitionContext,
 } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
@@ -19,6 +19,7 @@ import { View } from "react-native";
 
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const context = useTransition();
+  const { colors } = useTheme();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -36,7 +37,8 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
       </ImageBar>
 
       <Content>
-        <RefreshingContainer.ScrollView
+        <RefreshingContainer.FlatList
+          data={new Array(50).fill(0)}
           refreshing={refreshing}
           refreshingOffset={context.navbarHeight}
           onScroll={context.onScroll}
@@ -52,13 +54,25 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
               setRefreshing(false);
             }, 1000);
           }}
-        >
-          {new Array(50).fill(0).map((_, i) => (
-            <Col height={60} key={i}>
-              <Text>{`Item ${i + 1}`}</Text>
+          ItemSeparatorComponent={() => <Col height={8} />}
+          renderItem={({ index }) => (
+            <Col
+              bg={colors.surface}
+              radius={16}
+              pa={8}
+              height={120}
+              key={index}
+            >
+              <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
+              <Text textStyle={"Body_M1"} color={"secondary"}>
+                {"Текст"}
+              </Text>
+              <Text textStyle={"Body_M1"} color={"secondary"}>
+                {"Текст"}
+              </Text>
             </Col>
-          ))}
-        </RefreshingContainer.ScrollView>
+          )}
+        />
       </Content>
     </TransitionProvider>
   );
