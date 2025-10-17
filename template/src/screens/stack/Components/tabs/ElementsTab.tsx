@@ -1,13 +1,14 @@
 import { Checkbox, Col, Switch } from "@components";
-import { TabProps } from "@core";
+import { TabProps, useTransition } from "@core";
 import React, { FC, memo, useState } from "react";
 
 export const ElementsTab: FC<TabProps> = memo(({ route }) => {
   const [disabled, setDisabled] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const { navbarHeight } = useTransition();
 
   return (
-    <Col ph={16} gap={8}>
+    <Col ph={16} gap={8} pt={navbarHeight}>
       <Switch isActive={disabled} onChange={setDisabled} />
 
       <Switch isActive={isActive} onChange={setIsActive} disabled={disabled} />

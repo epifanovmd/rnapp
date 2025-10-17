@@ -12,13 +12,14 @@ import {
   useBottomSheetRef,
 } from "@components";
 import { Icon } from "@components/ui/icon";
-import { TabProps } from "@core";
+import { TabProps, useTransition } from "@core";
 import React, { FC, memo, useCallback } from "react";
 
 import { CustomFilter } from "./CustomFilter";
 
 export const ModalsTab: FC<TabProps> = memo(({ route }) => {
   const { open } = useBottomSheetAttach();
+  const { navbarHeight } = useTransition();
   const onAttach = useCallback(() => {
     open({
       onChange: value => {
@@ -34,7 +35,7 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
   const [isVisible, setVisible] = React.useState(false);
 
   return (
-    <Col ph={16} gap={8}>
+    <Col ph={16} gap={8} pt={navbarHeight}>
       <Button onPress={onAttach}>{"Attach"}</Button>
       <Button
         title={"Open filter"}

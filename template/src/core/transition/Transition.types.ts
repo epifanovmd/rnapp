@@ -5,6 +5,7 @@ export type TTransitionDirection = "up" | "down" | "left" | "right" | null;
 
 export interface ITransitionContext {
   navbarHeight: number;
+  tabBarHeight: number;
   isDrag: SharedValue<boolean>;
   transitionX: SharedValue<number>;
   transitionY: SharedValue<number>;
@@ -15,4 +16,6 @@ export interface ITransitionContext {
   hideNavbar: () => void;
   setNavbarHeight: (height: number) => void;
   onLayoutNavBar: (event: LayoutChangeEvent) => void;
+  setTabBarHeight: (height: number) => void;
+  onLayoutTabBar: (event: LayoutChangeEvent) => void;
 }

@@ -1,10 +1,11 @@
 import { Button, Col } from "@components";
-import { TabProps, useNotification } from "@core";
+import { TabProps, useNotification, useTransition } from "@core";
 import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
 
 export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
   const { show, hide } = useNotification();
+  const { navbarHeight } = useTransition();
 
   const onDisplayNotification = async () => {
     const channelId = await notifee.createChannel({
@@ -58,7 +59,7 @@ export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
   // );
 
   return (
-    <Col ph={16} gap={8}>
+    <Col ph={16} gap={8} pt={navbarHeight}>
       <Button title={"normal"} onPress={() => show("normal")} />
 
       <Button

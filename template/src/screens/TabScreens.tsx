@@ -1,9 +1,11 @@
-import { Navbar, SwitchTheme, Text } from "@components";
+import { Navbar, SwitchTheme, TabBar, Text } from "@components";
 import {
   AppNavigation,
   AppTabScreens,
   ScreenName,
   StackProps,
+  TransitionProvider,
+  useTransition,
   useTranslation,
 } from "@core";
 import {
@@ -54,6 +56,7 @@ const screenOptions: BottomTabNavigationOptions = {
 
 export const TabScreens: FC<IProps> = memo(() => {
   const { t } = useTranslation();
+  const context = useTransition();
 
   const tabs = useMemo(
     () =>
@@ -73,5 +76,13 @@ export const TabScreens: FC<IProps> = memo(() => {
     [t],
   );
 
-  return <AppNavigation routes={tabs} screenOptions={screenOptions} />;
+  return (
+    <TransitionProvider context={context}>
+      <AppNavigation
+        tabBar={props => <TabBar {...props} />}
+        routes={tabs}
+        screenOptions={screenOptions}
+      />
+    </TransitionProvider>
+  );
 });

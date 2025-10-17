@@ -11,6 +11,7 @@ import { ITransitionContext, TTransitionDirection } from "../Transition.types";
 
 export const useTransitionContext = (): ITransitionContext => {
   const [navbarHeight, setNavbarHeight] = useState(0);
+  const [tabBarHeight, setTabBarHeight] = useState(0);
   const isDrag = useSharedValue(false);
   const transitionX = useSharedValue(0);
   const transitionY = useSharedValue(0);
@@ -111,8 +112,13 @@ export const useTransitionContext = (): ITransitionContext => {
     setNavbarHeight(nativeEvent.layout.height);
   }, []);
 
+  const onLayoutTabBar = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
+    setTabBarHeight(nativeEvent.layout.height);
+  }, []);
+
   return {
     navbarHeight,
+    tabBarHeight,
     isDrag,
     transitionX,
     transitionY,
@@ -123,5 +129,7 @@ export const useTransitionContext = (): ITransitionContext => {
     hideNavbar,
     setNavbarHeight,
     onLayoutNavBar,
+    setTabBarHeight,
+    onLayoutTabBar,
   };
 };

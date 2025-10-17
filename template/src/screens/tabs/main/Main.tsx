@@ -1,29 +1,24 @@
 import {
   Col,
   Content,
-  HiddenBar,
   Navbar,
   RefreshingContainer,
   SwitchTheme,
-  Tabs,
   Text,
 } from "@components";
 import { ImageBar } from "@components/navbar/ImageBar";
 import {
   AppScreenProps,
   TransitionProvider,
+  useTransition,
   useTransitionContext,
 } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 import { View } from "react-native";
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-} from "react-native-reanimated";
 
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
-  const context = useTransitionContext();
+  const context = useTransition();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -47,6 +42,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           onScroll={context.onScroll}
           contentContainerStyle={{
             paddingTop: 250 - context.navbarHeight + 16,
+            paddingBottom: context.tabBarHeight,
           }}
           showsVerticalScrollIndicator={false}
           onRefresh={() => {

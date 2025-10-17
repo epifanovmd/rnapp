@@ -7,33 +7,37 @@ import {
   Title,
   YearRangePicker,
 } from "@components";
-import { TabProps } from "@core";
+import { TabProps, useTransition } from "@core";
 import React, { FC, memo } from "react";
 
-export const PickersTab: FC<TabProps> = memo(({ route }) => (
-  <Col ph={16} gap={8}>
-    <RangePicker items={[1, 2, 3]}>
-      <Button>{"Range picker"}</Button>
-    </RangePicker>
+export const PickersTab: FC<TabProps> = memo(({ route }) => {
+  const { navbarHeight } = useTransition();
 
-    <YearRangePicker>
-      <Button>{"Year range picker"}</Button>
-    </YearRangePicker>
+  return (
+    <Col ph={16} gap={8} pt={navbarHeight}>
+      <RangePicker items={[1, 2, 3]}>
+        <Button>{"Range picker"}</Button>
+      </RangePicker>
 
-    <DatePicker
-      onChange={date => {
-        console.log("date", date);
-      }}
-    >
-      <Button>{"Date picker"}</Button>
-    </DatePicker>
+      <YearRangePicker>
+        <Button>{"Year range picker"}</Button>
+      </YearRangePicker>
 
-    <TimePicker
-      onChange={time => {
-        console.log("time", time);
-      }}
-    >
-      <Button>{"Time picker"}</Button>
-    </TimePicker>
-  </Col>
-));
+      <DatePicker
+        onChange={date => {
+          console.log("date", date);
+        }}
+      >
+        <Button>{"Date picker"}</Button>
+      </DatePicker>
+
+      <TimePicker
+        onChange={time => {
+          console.log("time", time);
+        }}
+      >
+        <Button>{"Time picker"}</Button>
+      </TimePicker>
+    </Col>
+  );
+});
