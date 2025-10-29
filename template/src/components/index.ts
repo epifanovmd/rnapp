@@ -8,4 +8,5 @@ export * from "./imageViewing";
 export * from "./layouts";
 export * from "./navbar";
 export * from "./tabBar";
+export * from "./ticket";
 export * from "./ui";

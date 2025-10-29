@@ -16,13 +16,15 @@ import {
   NotificationsTab,
   PickersTab,
 } from "./tabs";
+import { TicketTab } from "./tabs/Ticket";
 
 const routes: TabScreens = {
   Buttons: { screen: ButtonsTab },
   Notifications: { screen: NotificationsTab },
   Modals: { screen: ModalsTab },
   Pickers: { screen: PickersTab },
-  ElementsTab: { screen: ElementsTab },
+  Elements: { screen: ElementsTab },
+  Ticket: { screen: TicketTab },
 };
 
 export const Components: FC<StackProps<"Components">> = memo(({ route }) => {

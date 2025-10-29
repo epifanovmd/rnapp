@@ -1,6 +1,7 @@
 import { ParamListBase } from "@react-navigation/routers";
 
 import { IPdfViewProps, IWebViewProps } from "../../screens";
+import { TicketTab } from "../../screens/stack/Components/tabs/Ticket";
 
 export enum TabScreenName {
   MAIN = "MAIN",
@@ -49,7 +50,8 @@ export enum ComponentsScreenName {
   Notifications = "Notifications",
   Modals = "Modals",
   Pickers = "Pickers",
-  ElementsTab = "ElementsTab",
+  Elements = "Elements",
+  Ticket = "Elements",
 }
 
 interface ComponentsScreenParams {
@@ -57,7 +59,8 @@ interface ComponentsScreenParams {
   Notifications: undefined;
   Modals: undefined;
   Pickers: undefined;
-  ElementsTab: undefined;
+  Elements: undefined;
+  Ticket: undefined;
 }
 
 export type ScreenName =
