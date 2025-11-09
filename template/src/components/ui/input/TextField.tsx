@@ -205,10 +205,7 @@ export const TextField = memo(
         [isLocalValue],
       );
 
-      const onChangeText = useMergedCallback<[string]>(
-        _onChangeText,
-        handleChangeText,
-      );
+      const onChangeText = useMergedCallback(_onChangeText, handleChangeText);
 
       const handleClear = useCallback(() => {
         inputRef.current?.clear();

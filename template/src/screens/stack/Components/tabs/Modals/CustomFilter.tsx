@@ -123,6 +123,7 @@ export const CustomFilter = observer(
 
     return (
       <BottomSheet
+        haptic={true}
         onDismiss={() => {
           filter.cancel();
           filter.cancelExpand();

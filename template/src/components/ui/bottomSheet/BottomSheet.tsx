@@ -1,6 +1,8 @@
+import { useMergedCallback } from "@common";
 import { createSlot, useSlotProps } from "@force-dev/react";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
-import React, { forwardRef, memo, PropsWithChildren } from "react";
+import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
+import haptic from "react-native-haptic-feedback";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
@@ -22,13 +24,24 @@ export type BottomSheet = BottomSheetModal;
 
 const _BottomSheet = memo(
   forwardRef<BottomSheetModal, PropsWithChildren<TBottomSheetProps>>(
-    (props, ref) => {
+    ({ haptic: hapticEnable, ...props }, ref) => {
       const modalStyles = useBottomSheetStyles();
       const { top } = useSafeAreaInsets();
       const { header, content, footer } = useSlotProps(
         BottomSheet,
         props.children,
       );
+
+      const animateWithHaptic = useCallback(
+        (fromIndex: number) => {
+          if (fromIndex === -1 && hapticEnable) {
+            haptic.trigger();
+          }
+        },
+        [hapticEnable],
+      );
+
+      const onAnimate = useMergedCallback(props.onAnimate, animateWithHaptic);
 
       return (
         <BottomSheetModal
@@ -38,6 +51,7 @@ const _BottomSheet = memo(
           keyboardBlurBehavior={"restore"}
           backdropComponent={BottomSheetBackdrop}
           {...props}
+          onAnimate={onAnimate}
           style={[BottomSheetStyles.container, props.style]}
         >
           <BottomSheetContent

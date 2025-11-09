@@ -162,7 +162,11 @@ export const RangePicker: RangePicker = memo(
 
             <Row pv={16} ph={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
-                <Picker onChange={handleChange} {...pickerProps}>
+                <Picker
+                  hasCurtain={false}
+                  onChange={handleChange}
+                  {...pickerProps}
+                >
                   <PickerColumn selectedValue={currentFirstItem}>
                     {firstItems.map(item => {
                       return (
