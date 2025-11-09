@@ -82,6 +82,7 @@ export const TabScreens: FC<IProps> = memo(() => {
         tabBar={props => <TabBar {...props} />}
         routes={tabs}
         screenOptions={screenOptions}
+        initialRouteName={"Playground"}
       />
     </TransitionProvider>
   );

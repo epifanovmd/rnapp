@@ -1,5 +1,6 @@
-package com.reactmobile.rnwheelpicker;
+package com.rnapp.rnwheelpicker;
 
+import com.rnapp.R;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Camera;

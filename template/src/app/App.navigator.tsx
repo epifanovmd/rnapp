@@ -66,7 +66,7 @@ export const AppNavigator = observer(
           return { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS };
         }
 
-        return PUBLIC_SCREENS;
+        return PRIVATE_SCREENS;
       }, [sessionDataStore.isAuthorized]);
 
       const onReady = useCallback(async () => {

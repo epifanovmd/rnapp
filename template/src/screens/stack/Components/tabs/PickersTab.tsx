@@ -15,11 +15,15 @@ export const PickersTab: FC<TabProps> = memo(({ route }) => {
 
   return (
     <Col ph={16} gap={8} pt={navbarHeight}>
-      <RangePicker items={[1, 2, 3]}>
+      <RangePicker items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>
         <Button>{"Range picker"}</Button>
       </RangePicker>
 
-      <YearRangePicker>
+      <YearRangePicker
+        onChange={date => {
+          console.log("date", date);
+        }}
+      >
         <Button>{"Year range picker"}</Button>
       </YearRangePicker>
 

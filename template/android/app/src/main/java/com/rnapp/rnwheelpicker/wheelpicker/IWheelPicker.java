@@ -1,4 +1,4 @@
-package com.reactmobile.rnwheelpicker;
+package com.rnapp.rnwheelpicker;
 
 import android.graphics.Typeface;
 

@@ -89,7 +89,7 @@ export const RangePicker: RangePicker = memo(
       } else {
         return items.filter(
           (item, index) =>
-            (reverse ? item <= currentSecondItem : item >= currentSecondItem) ||
+            (reverse ? item >= currentSecondItem : item <= currentSecondItem) ||
             index === 0,
         );
       }
@@ -101,7 +101,7 @@ export const RangePicker: RangePicker = memo(
       } else {
         return items.filter(
           (item, index) =>
-            (reverse ? item >= currentFirstItem : item <= currentFirstItem) ||
+            (reverse ? item <= currentFirstItem : item >= currentFirstItem) ||
             index === 0,
         );
       }
@@ -121,14 +121,23 @@ export const RangePicker: RangePicker = memo(
       onUpdate();
     }, [onUpdate]);
 
-    const handleChange = useCallback(() => {
-      const from = currentFirstItem === empty ? undefined : currentFirstItem;
-      const to = currentSecondItem === empty ? undefined : currentSecondItem;
+    const handleChange = useCallback(
+      ({ value, column }: PickerChangeItem) => {
+        const from = currentFirstItem === empty ? undefined : currentFirstItem;
+        const to = currentSecondItem === empty ? undefined : currentSecondItem;
 
-      if (onChange) {
-        onChange([from, to]);
-      }
-    }, [currentFirstItem, currentSecondItem, onChange]);
+        if (column === 0) {
+          setCurrentFirstItem(value);
+        } else {
+          setCurrentSecondItem(value);
+        }
+
+        if (onChange && !renderFooter) {
+          onChange([from, to]);
+        }
+      },
+      [currentFirstItem, currentSecondItem, onChange, renderFooter],
+    );
 
     const onApply = useCallback(() => {
       modalRef.current?.close();
@@ -138,76 +147,6 @@ export const RangePicker: RangePicker = memo(
       onUpdate();
       modalRef.current?.present();
     }, [modalRef, onUpdate]);
-
-    const handleFirst = useCallback(
-      ({ value }: PickerChangeItem) => {
-        if (value !== undefined) {
-          if (!renderFooter) {
-            handleChange();
-          }
-          setCurrentFirstItem(value);
-        }
-      },
-      [handleChange, renderFooter],
-    );
-
-    const handleSecond = useCallback(
-      ({ value }: PickerChangeItem) => {
-        if (value !== undefined) {
-          if (!renderFooter) {
-            handleChange();
-          }
-          setCurrentSecondItem(value);
-        }
-      },
-      [handleChange, renderFooter],
-    );
-
-    const renderFirstItems = useMemo(
-      () =>
-        firstItems.map(item => {
-          return (
-            <PickerItem
-              key={item + "first"}
-              label={item === empty ? emptyLabel[0] : String(item)}
-              value={item}
-            />
-          );
-        }),
-      [emptyLabel, firstItems],
-    );
-
-    const renderSecondItems = useMemo(
-      () =>
-        secondItems.map(item => {
-          return (
-            <PickerItem
-              key={item + "second"}
-              label={item === empty ? emptyLabel[1] : String(item)}
-              value={item}
-            />
-          );
-        }),
-      [emptyLabel, secondItems],
-    );
-
-    const first = useMemo(
-      () => (
-        <PickerColumn selectedValue={currentFirstItem} onChange={handleFirst}>
-          {renderFirstItems}
-        </PickerColumn>
-      ),
-      [currentFirstItem, handleFirst, renderFirstItems],
-    );
-
-    const second = useMemo(
-      () => (
-        <PickerColumn selectedValue={currentSecondItem} onChange={handleSecond}>
-          {renderSecondItems}
-        </PickerColumn>
-      ),
-      [currentSecondItem, handleSecond, renderSecondItems],
-    );
 
     const onClose = useCallback(() => {
       modalRef.current?.close();
@@ -223,10 +162,30 @@ export const RangePicker: RangePicker = memo(
 
             <Row pv={16} ph={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
-                <Picker {...pickerProps}>{first}</Picker>
-              </Col>
-              <Col flexGrow={1} flexBasis={0} pl={8}>
-                <Picker {...pickerProps}>{second}</Picker>
+                <Picker onChange={handleChange} {...pickerProps}>
+                  <PickerColumn selectedValue={currentFirstItem}>
+                    {firstItems.map(item => {
+                      return (
+                        <PickerItem
+                          key={item + "first"}
+                          label={item === empty ? emptyLabel[0] : String(item)}
+                          value={item}
+                        />
+                      );
+                    })}
+                  </PickerColumn>
+                  <PickerColumn selectedValue={currentSecondItem}>
+                    {secondItems.map(item => {
+                      return (
+                        <PickerItem
+                          key={item + "second"}
+                          label={item === empty ? emptyLabel[1] : String(item)}
+                          value={item}
+                        />
+                      );
+                    })}
+                  </PickerColumn>
+                </Picker>
               </Col>
             </Row>
 

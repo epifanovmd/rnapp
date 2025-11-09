@@ -28,7 +28,9 @@ export const PdfView: FC<StackProps<"PdfView">> = memo(({ route }) => {
 
   return (
     <Container edges={[]}>
-      <Navbar title={params.title} />
+      <Navbar title={params.title}>
+        <Navbar.BackButton />
+      </Navbar>
 
       <Animated.View style={[styles.progressBar, animatedStyle]} />
 

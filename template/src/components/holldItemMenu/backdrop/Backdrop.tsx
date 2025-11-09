@@ -1,10 +1,13 @@
 import { BlurView } from "@react-native-community/blur";
 import { BlurViewProps } from "@react-native-community/blur/src";
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
+  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 
@@ -15,6 +18,22 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export const Backdrop = memo<BlurViewProps>(props => {
   const { state, duration } = useHoldItemContext();
+  const animatedOpacity = useSharedValue(0);
+  const [visible, setVisible] = useState(
+    state.value === CONTEXT_MENU_STATE.ACTIVE,
+  );
+
+  useAnimatedReaction(
+    () => state.value,
+    () => {
+      const isActive = state.value === CONTEXT_MENU_STATE.ACTIVE;
+
+      runOnJS(setVisible)(isActive);
+      animatedOpacity.value = withTiming(isActive ? 1 : 0, {
+        duration,
+      });
+    },
+  );
 
   const tapGesture = Gesture.Tap().onStart(() => {
     if (state.value === CONTEXT_MENU_STATE.ACTIVE) {
@@ -23,14 +42,14 @@ export const Backdrop = memo<BlurViewProps>(props => {
   });
 
   const style = useAnimatedStyle(() => {
-    const isActive = state.value === CONTEXT_MENU_STATE.ACTIVE;
-
     return {
-      opacity: withTiming(isActive ? 1 : 0, {
-        duration,
-      }),
+      opacity: animatedOpacity.value,
     };
   });
+
+  if (!visible) {
+    return null;
+  }
 
   return (
     <GestureDetector gesture={tapGesture}>

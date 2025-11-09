@@ -1,9 +1,8 @@
-package com.reactmobile.rnwheelpicker.events;
+package com.rnapp.rnwheelpicker.events;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.Event;
-import com.facebook.react.uimanager.events.RCTEventEmitter;
 
 public class ItemSelectedEvent extends Event<ItemSelectedEvent> {
 
@@ -25,19 +24,24 @@ public class ItemSelectedEvent extends Event<ItemSelectedEvent> {
     return EVENT_NAME;
   }
 
-//  @Override
-//  public WritableMap getEventData() {
-//    WritableMap eventData = Arguments.createMap();
-//
-//    Class mValueClass = mValue.getClass();
-//    if (mValueClass == Integer.class) {
-//      eventData.putInt("data", (Integer) mValue);
-//    } else if (mValueClass == String.class) {
-//      eventData.putString("data", mValue.toString());
-//    }
-//
-//    return eventData;
-//  }
+  // Fabric-совместимый метод для создания данных события
+  public static WritableMap createEventData(Object value, int index, int column) {
+    WritableMap eventData = Arguments.createMap();
+
+    Class valueClass = value.getClass();
+    if (valueClass == Integer.class) {
+      eventData.putInt("value", (Integer) value);
+    } else if (valueClass == Double.class) {
+      eventData.putDouble("value", (Double) value);
+    } else if (valueClass == String.class) {
+      eventData.putString("value", value.toString());
+    }
+
+    eventData.putInt("index", index);
+    eventData.putInt("column", column);
+
+    return eventData;
+  }
 
   @Override
   public void dispatch(RCTEventEmitter rctEventEmitter) {
@@ -45,20 +49,11 @@ public class ItemSelectedEvent extends Event<ItemSelectedEvent> {
   }
 
   private WritableMap serializeEventData() {
-    WritableMap eventData = Arguments.createMap();
+    return createEventData(mValue, mIndex, mColumn);
+  }
 
-    Class mValueClass = mValue.getClass();
-    if (mValueClass == Integer.class) {
-      eventData.putInt("value", (Integer) mValue);
-    } else if (mValueClass == Double.class) {
-      eventData.putDouble("value", (Double) mValue);
-    } else if (mValueClass == String.class) {
-      eventData.putString("value", mValue.toString());
-    }
-
-    eventData.putInt("index", mIndex);
-    eventData.putInt("column", mColumn);
-
-    return eventData;
+  @Override
+  public boolean canCoalesce() {
+    return false;
   }
 }
