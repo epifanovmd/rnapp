@@ -1,5 +1,6 @@
 import { ApiError, IApiService, IApiTokenProvider } from "@api";
 import {
+  AuthenticatePayload,
   ISignInRequest,
   ITokensDto,
   IUserWithTokensDto,
@@ -39,6 +40,14 @@ export class SessionDataStore implements ISessionDataStore {
     this.holder.setLoading();
 
     const res = await this._apiService.signIn(params);
+
+    this._handleResponse(res);
+  }
+
+  public async auth(body: AuthenticatePayload) {
+    this.holder.setLoading();
+
+    const res = await this._apiService.authenticate(body);
 
     this._handleResponse(res);
   }

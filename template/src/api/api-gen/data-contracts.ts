@@ -547,6 +547,11 @@ export interface GetUsersParams {
   limit?: number;
 }
 
+/** Данные для входа */
+export interface AuthenticatePayload {
+  code: string;
+}
+
 /** Тело запроса с refresh токеном */
 export interface RefreshPayload {
   refreshToken: string;

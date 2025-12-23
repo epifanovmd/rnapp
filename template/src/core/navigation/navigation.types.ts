@@ -31,7 +31,7 @@ export enum StackScreenName {
 }
 
 interface StackScreenParams {
-  SignIn: undefined;
+  SignIn: { code?: string };
   SignUp: undefined;
   RecoveryPassword: undefined;
   Gallery: undefined;

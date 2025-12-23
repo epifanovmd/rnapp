@@ -14,6 +14,7 @@ import type { AxiosError } from "axios";
 import {
   AddAvatarPayload,
   ApiResponse,
+  AuthenticatePayload,
   Base64URLString,
   COSEAlgorithmIdentifier,
   DialogCreateRequest,
@@ -295,6 +296,23 @@ export class Api<
   signIn = (data: ISignInRequest, params: RequestParams = {}) =>
     this.request<IUserWithTokensDto, any>({
       url: `/api/auth/sign-in`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Авторизация пользователя через OAuth code GitHub
+   *
+   * @tags Authorization
+   * @name Authenticate
+   * @summary Вход в систему
+   * @request POST:/api/auth/authenticate
+   */
+  authenticate = (data: AuthenticatePayload, params: RequestParams = {}) =>
+    this.request<IUserWithTokensDto, any>({
+      url: `/api/auth/authenticate`,
       method: "POST",
       data: data,
       type: EContentType.Json,

@@ -6,6 +6,7 @@ import {
   StackScreenOption,
   useTranslation,
 } from "@core";
+import { useLogger } from "@react-navigation/devtools";
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -59,7 +60,7 @@ export const AppNavigator = observer(
       const { sessionDataStore } = useAppDataStore();
       const { available, authorization } = useBiometric();
 
-      // useLogger(ref as any);
+      useLogger(ref as any);
 
       const routes = useMemo(() => {
         if (sessionDataStore.isAuthorized) {

@@ -18,15 +18,17 @@ const getPathMap = (
   tabsScreenName?: ScreenName,
   tabScreens?: AppTabScreens,
 ) =>
-  Object.keys(screens).reduce<PathConfigMap<ScreenParamList>>((acc, key) => {
+  Object.keys(screens).reduce<PathConfigMap<ScreenParamList>>((acc, _key) => {
+    const key = _key as ScreenName;
+
     if (tabsScreenName && tabScreens && key === tabsScreenName) {
-      acc[key as ScreenName] = {
+      acc[key] = {
         screens: {
           ...getPathMap(tabScreens),
         },
       };
     } else {
-      acc[key as ScreenName] = key;
+      acc[key] = key.toLowerCase();
     }
 
     return acc;
@@ -36,12 +38,15 @@ export const linking: LinkingOptions<ScreenParamList> = {
   prefixes: [`${deeplinkBaseUrl}://`],
 
   async getInitialURL() {
-    return Linking.getInitialURL();
+    const url = await Linking.getInitialURL();
+
+    return url?.toLowerCase();
   },
   // Функция подписки на изменения URL (включая уведомления)
   subscribe(listener) {
     const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
-      listener(url);
+      console.log("url.toLowerCase()", url.toLowerCase());
+      listener(url.toLowerCase());
     });
 
     return () => {

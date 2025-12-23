@@ -1,4 +1,5 @@
 import {
+  AuthenticatePayload,
   ISignInRequest,
   ITokensDto,
   TSignUpRequest,
@@ -15,6 +16,7 @@ export interface ISessionDataStore extends SupportInitialize {
     refreshToken?: string,
   ): Promise<Record<keyof ITokensDto, string | null>>;
   signIn(params: ISignInRequest): Promise<void>;
+  auth({ code }: AuthenticatePayload): Promise<void>;
   signUp(params: TSignUpRequest): Promise<void>;
   restore(tokens?: ITokensDto): Promise<void>;
   clear(): void;
