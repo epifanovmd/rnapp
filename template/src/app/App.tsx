@@ -21,6 +21,7 @@ import React, { FC, memo, PropsWithChildren, useEffect } from "react";
 import { StatusBar, StyleSheet, useColorScheme } from "react-native";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -68,7 +69,9 @@ export const App: FC = observer(() => {
               <BottomSheetAttachProvider>
                 <AppNotifications>
                   <Dialog.Host />
-                  <AppNavigator ref={navigationRef} />
+                  <KeyboardProvider>
+                    <AppNavigator ref={navigationRef} />
+                  </KeyboardProvider>
                 </AppNotifications>
               </BottomSheetAttachProvider>
             </BottomSheetModalProvider>

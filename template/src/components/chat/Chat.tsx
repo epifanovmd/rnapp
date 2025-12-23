@@ -15,7 +15,6 @@ import {
   ImageProps,
   ImageStyle,
   Insets,
-  KeyboardAvoidingView,
   Platform,
   StyleProp,
   StyleSheet,
@@ -24,6 +23,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { ParsedTextProps } from "react-native-parsed-text";
 import { generate } from "shortid";
 
@@ -488,7 +488,7 @@ export const Chat: FC<ChatProps> = memo(
 
     return (
       <KeyboardAvoidingView
-        keyboardVerticalOffset={(insets?.bottom ?? 0) / 2}
+        keyboardVerticalOffset={-(insets?.bottom ?? 0)}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
