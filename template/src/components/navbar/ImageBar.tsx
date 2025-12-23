@@ -8,6 +8,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import absoluteFill = StyleSheet.absoluteFill;
 
 export interface IImageBarProps extends ViewProps {
   uri?: string;
@@ -54,14 +55,27 @@ const _ImageBar = memo<PropsWithChildren<IImageBarProps>>(
     return (
       <Animated.View
         onLayout={onLayoutNavBar}
-        style={[{ backgroundColor, paddingTop: top }]}
+        style={[
+          StyleSheet.absoluteFill,
+          SS.containerStyle,
+          {
+            backgroundColor,
+            paddingTop: top,
+            borderRadius: 24,
+          },
+        ]}
         {...rest}
       >
         {(uri || image) && (
           <Animated.Image
             source={{ uri }}
             {...image}
-            style={[SS.image, animatedStyles, image?.style]}
+            style={[
+              StyleSheet.absoluteFill,
+              SS.image,
+              animatedStyles,
+              image?.style,
+            ]}
           />
         )}
         {$children}
@@ -75,12 +89,13 @@ export const ImageBar = Object.assign(_ImageBar, {
 });
 
 const SS = StyleSheet.create({
+  containerStyle: {
+    bottom: "auto",
+    zIndex: 1,
+    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 24,
+  },
   image: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
   },

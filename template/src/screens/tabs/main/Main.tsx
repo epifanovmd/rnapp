@@ -25,7 +25,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
   return (
     <TransitionProvider context={context}>
-      <ImageBar safeArea uri={"https://picsum.photos/275/300"}>
+      <ImageBar height={300} safeArea uri={"https://picsum.photos/275/300"}>
         <Navbar transparent title={name}>
           <Navbar.Title color={"white"} />
           <Navbar.Right>
@@ -43,7 +43,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           refreshingOffset={context.navbarHeight}
           onScroll={context.onScroll}
           contentContainerStyle={{
-            paddingTop: 250 - context.navbarHeight + 16,
+            paddingTop: 316,
             paddingBottom: context.tabBarHeight,
           }}
           showsVerticalScrollIndicator={false}
