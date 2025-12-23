@@ -61,7 +61,6 @@ export interface MessageContainerProps
     | "parsePatterns"
     | "imageProps"
     | "imageStyle"
-    | "imageViewingProps"
     | "timeFormat"
     | "timeTextStyle"
     | "onPress"
@@ -155,7 +154,6 @@ export const MessageContainer = memo(
       parsePatterns,
       imageProps,
       imageStyle,
-      imageViewingProps,
       timeFormat,
       timeTextStyle,
       onPress,
@@ -340,7 +338,6 @@ export const MessageContainer = memo(
             parsePatterns,
             imageProps,
             imageStyle,
-            imageViewingProps,
             timeFormat,
             timeTextStyle,
             renderMessageImage,
@@ -372,7 +369,6 @@ export const MessageContainer = memo(
         dateFormat,
         imageProps,
         imageStyle,
-        imageViewingProps,
         inverted,
         messages,
         onLongPress,

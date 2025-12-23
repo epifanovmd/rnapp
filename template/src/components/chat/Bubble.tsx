@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { ParsedTextProps } from "react-native-parsed-text";
 
-import { ImageViewingProps } from "../imageViewing";
 import { useChatTheme } from "./ChatThemeProvider";
 import { MessageAudio, MessageAudioProps } from "./MessageAudio";
 import { MessageImage, MessageImageProps } from "./MessageImage";
@@ -51,7 +50,6 @@ export interface BubbleProps
   // Image
   imageProps?: Partial<ImageProps>;
   imageStyle?: StyleProp<ImageStyle>;
-  imageViewingProps?: ImageViewingProps;
 
   // Time
   timeFormat?: string;
@@ -93,7 +91,6 @@ export const Bubble: FC<BubbleProps> = props => {
     parsePatterns,
     imageProps,
     imageStyle,
-    imageViewingProps,
     timeFormat,
     timeTextStyle,
     onPress,
@@ -181,14 +178,12 @@ export const Bubble: FC<BubbleProps> = props => {
         currentMessage,
         imageProps,
         imageStyle,
-        imageViewingProps,
       })
     ) : (
       <MessageImage
         currentMessage={currentMessage}
         imageProps={imageProps}
         imageStyle={imageStyle}
-        imageViewingProps={imageViewingProps}
       />
     ));
 

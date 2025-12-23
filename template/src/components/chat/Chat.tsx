@@ -27,7 +27,6 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { ParsedTextProps } from "react-native-parsed-text";
 import { generate } from "shortid";
 
-import { ImageViewingProps } from "../imageViewing";
 import { attachButtonProps } from "./AttachButton";
 import { AvatarProps } from "./Avatar";
 import { BubbleProps } from "./Bubble";
@@ -86,7 +85,6 @@ export interface ChatProps {
 
   // props
   imageProps?: ImageProps;
-  imageViewingProps?: ImageViewingProps;
   listViewProps?: Partial<FlashListProps<IMessage>>;
   textInputProps?: ChatInputProps;
 
@@ -178,18 +176,13 @@ export const Chat: FC<ChatProps> = memo(
     replyIconColor,
     renderAvatarOnTop,
     inverted = true,
-    keyboardShouldPersistTaps = Platform.select<"handled" | "never">({
-      ios: "handled",
-      android: "handled",
-      default: "never",
-    }),
+    keyboardShouldPersistTaps = "handled",
     maxInputLength,
     alwaysShowSend,
     maxInputHeight = 166,
     infiniteScroll,
 
     imageProps,
-    imageViewingProps,
     listViewProps,
     textInputProps,
 
@@ -535,7 +528,6 @@ export const Chat: FC<ChatProps> = memo(
               parsePatterns={parsePatterns}
               imageProps={imageProps}
               imageStyle={imageStyle}
-              imageViewingProps={imageViewingProps}
               timeFormat={timeFormat}
               timeTextStyle={timeTextStyle}
               onPress={onPress}

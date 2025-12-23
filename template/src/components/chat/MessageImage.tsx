@@ -10,7 +10,6 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { ImageViewingProps } from "../imageViewing";
 import { IMessage } from "./types";
 
 export interface MessageImageProps {
@@ -19,7 +18,6 @@ export interface MessageImageProps {
   imageSourceProps?: Partial<ImageURISource>;
   imageStyle?: StyleProp<ImageStyle>;
   imageProps?: Partial<ImageProps>;
-  imageViewingProps?: ImageViewingProps;
 }
 
 export const MessageImage = memo(
