@@ -11,7 +11,7 @@ export const RecoveryPassword: FC<StackProps> = observer(() => {
     handleLogin,
     handleNavigateSignUp,
     handleNavigateRecoveryPassword,
-  } = useSignInVM();
+  } = useSignInVM({});
 
   const login = form.watch("login");
   const password = form.watch("password");

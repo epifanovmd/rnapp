@@ -42,7 +42,7 @@ export class AppDataStore implements IAppDataStore {
             disposer(Array.from(disposers));
             disposers.clear();
 
-            this._navigationService.navigateTo("SignIn");
+            this._navigationService.navigateTo("SignIn", {});
           }
         },
       ),

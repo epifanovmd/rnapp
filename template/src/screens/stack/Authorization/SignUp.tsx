@@ -3,18 +3,14 @@ import { StackProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
-import { useSignInVM } from "./hooks";
+import { useSignUpVM } from "./hooks";
 
 export const SignUp: FC<StackProps> = observer(() => {
-  const {
-    form,
-    handleLogin,
-    handleNavigateSignUp,
-    handleNavigateRecoveryPassword,
-  } = useSignInVM();
+  const { form, handleSignUp } = useSignUpVM();
 
   const login = form.watch("login");
   const password = form.watch("password");
+  const confirmPassword = form.watch("confirmPassword");
 
   return (
     <Container>
@@ -32,8 +28,14 @@ export const SignUp: FC<StackProps> = observer(() => {
             onChangeText={text => form.setValue("password", text)}
           />
 
-          <Button onPress={handleLogin} loading={form.formState.isSubmitting}>
-            {"Войти"}
+          <TextField
+            label={"confirmPassword"}
+            value={confirmPassword}
+            onChangeText={text => form.setValue("confirmPassword", text)}
+          />
+
+          <Button onPress={handleSignUp} loading={form.formState.isSubmitting}>
+            {"Зарегистрироваться"}
           </Button>
         </ScrollView>
       </Content>

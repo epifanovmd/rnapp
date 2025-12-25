@@ -31,7 +31,7 @@ export const useRecoveryPassword = () => {
         if (res.data.message) {
           show(res.data.message, { type: "success" });
         }
-        navigation.navigate("SignIn");
+        navigation.navigate("SignIn", {});
       }
     })();
   }, [form, api, show, navigation]);
