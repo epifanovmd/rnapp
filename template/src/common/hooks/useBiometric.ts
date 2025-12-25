@@ -1,7 +1,7 @@
 import { useApi } from "@api";
 import { useNotification } from "@core";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useSessionDataStore } from "@store";
+import { useSessionDataStore, useUserDataStore } from "@store";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
 import { getDeviceName, getUniqueId } from "react-native-device-info";
@@ -14,6 +14,7 @@ export const useBiometric = () => {
 
   const api = useApi();
   const sessionDataStore = useSessionDataStore();
+  const { user } = useUserDataStore();
   const { show } = useNotification();
 
   const available = !!registeredUserId && support;
@@ -30,13 +31,13 @@ export const useBiometric = () => {
     await biometrics.deleteKeys();
     await AsyncStorage.removeItem("biometricUserId");
     setRegisteredUserId(null);
-  }, []);
+    show("Биометрия успешно отключена.", { type: "success" });
+  }, [show]);
 
   const getBiometricPublicKey = useCallback(async () => {
     const { keysExist } = await biometrics.biometricKeysExist();
-    const biometricUserId = await AsyncStorage.getItem("biometricUserId");
 
-    if (keysExist && biometricUserId) {
+    if (keysExist && registeredUserId) {
       show("Биометрия уже подключена.", { type: "normal" });
 
       return null;
@@ -45,43 +46,45 @@ export const useBiometric = () => {
 
       return publicKey;
     }
-  }, [show]);
+  }, [registeredUserId, show]);
 
-  const registration = useCallback(
-    async (userId: string) => {
-      const deviceId = await getUniqueId();
-      const deviceName = await getDeviceName();
+  const registration = useCallback(async () => {
+    const userId = user?.id;
 
-      const publicKey = await getBiometricPublicKey();
-
-      if (publicKey) {
-        const response = await api.registerBiometric({
-          deviceName,
-          deviceId,
-          userId,
-          publicKey,
-        });
-
-        if (response.error) {
-          show(response.error.message, { type: "danger" });
-        } else if (response.data) {
-          if (response.data.registered) {
-            show("Биометрия успешно подключена.", { type: "success" });
-            await AsyncStorage.setItem("biometricUserId", userId);
-            setRegisteredUserId(userId);
-          } else {
-            show("Не удалось подключить биометрию.", { type: "normal" });
-            await biometrics.deleteKeys();
-          }
-
-          return response.data.registered;
-        }
-      }
-
+    if (!userId) {
       return false;
-    },
-    [api, getBiometricPublicKey, show],
-  );
+    }
+    const deviceId = await getUniqueId();
+    const deviceName = await getDeviceName();
+
+    const publicKey = await getBiometricPublicKey();
+
+    if (publicKey) {
+      const response = await api.registerBiometric({
+        deviceName,
+        deviceId,
+        userId,
+        publicKey,
+      });
+
+      if (response.error) {
+        show(response.error.message, { type: "danger" });
+      } else if (response.data) {
+        if (response.data.registered) {
+          show("Биометрия успешно подключена.", { type: "success" });
+          await AsyncStorage.setItem("biometricUserId", userId);
+          setRegisteredUserId(userId);
+        } else {
+          show("Не удалось подключить биометрию.", { type: "normal" });
+          await biometrics.deleteKeys();
+        }
+
+        return response.data.registered;
+      }
+    }
+
+    return false;
+  }, [api, getBiometricPublicKey, show, user?.id]);
 
   const authorization = useCallback(async () => {
     if (!registeredUserId) {
@@ -131,5 +134,6 @@ export const useBiometric = () => {
     registration,
     authorization,
     support,
+    onRemoveBiometric,
   };
 };

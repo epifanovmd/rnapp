@@ -1,20 +1,13 @@
-import { useBiometric } from "@common";
 import { Button, Container, Content, Row, ScrollView, Text } from "@components";
 import { AppScreenProps } from "@core";
-import { CommonActions } from "@react-navigation/native";
-import { useSessionDataStore, useUserDataStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
 interface IProps extends AppScreenProps {}
 
 export const Playground: FC<IProps> = observer(({ navigation, route }) => {
-  const { clear } = useSessionDataStore();
-  const { user } = useUserDataStore();
-  const { support, registration } = useBiometric();
-
   return (
-    <Container edges={[]}>
+    <Container>
       <ScrollView>
         <Content>
           <Row mb={32}>
@@ -76,20 +69,6 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
             title={"Carousel"}
             onPress={() => navigation.navigate("Carousel")}
           />
-
-          {support && !!user?.id && (
-            <Button
-              mt={8}
-              title={"Register biometric"}
-              onPress={async () => {
-                const success = await registration(user.id);
-
-                console.log("success", success);
-              }}
-            />
-          )}
-
-          <Button mt={8} title={"Выход"} onPress={() => clear()} />
         </Content>
       </ScrollView>
     </Container>

@@ -1,3 +1,4 @@
+import { TColorTheme } from "@core";
 import {
   ColorValue,
   FlexAlignType,
@@ -147,7 +148,7 @@ type BorderProps = {
   // circle - диаметр круга
   circle?: number;
   overflow?: "visible" | "hidden" | "scroll";
-  borderColor?: ColorValue;
+  borderColor?: keyof TColorTheme | ColorValue;
   borderWidth?: number;
   borderBottomWidth?: number;
   borderTopWidth?: number;
@@ -172,12 +173,12 @@ type DebugProps = {
 };
 
 type ColorProps = {
-  bg?: string;
+  bg?: keyof TColorTheme | ColorValue;
   opacity?: number | string;
 };
 
 type TextProps = {
-  color?: ColorValue;
+  color?: keyof TColorTheme | ColorValue;
   fontFamily?: string;
   fontSize?: number;
   fontStyle?: "normal" | "italic";
@@ -202,7 +203,7 @@ type TextProps = {
     | "line-through"
     | "underline line-through";
   textDecorationStyle?: "solid" | "double" | "dotted" | "dashed";
-  textDecorationColor?: ColorValue;
+  textDecorationColor?: keyof TColorTheme | ColorValue;
   textTransform?: "none" | "capitalize" | "uppercase" | "lowercase";
 };
 

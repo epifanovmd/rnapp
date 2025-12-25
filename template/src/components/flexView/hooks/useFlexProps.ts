@@ -1,3 +1,4 @@
+import { useTheme } from "@core";
 import { useMemo } from "react";
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 
@@ -10,8 +11,10 @@ export const useFlexProps = <
 >(
   props: FlexProps<TStyleSource> & OwnProps,
   defaultProps?: Partial<FlexProps<TStyleSource>>,
-) =>
-  useMemo(() => {
+) => {
+  const { colors } = useTheme();
+
+  return useMemo(() => {
     const flexProps = {} as Omit<FlexProps, "style">;
     const ownProps = {} as Omit<
       FlexProps<TStyleSource> & OwnProps,
@@ -19,8 +22,18 @@ export const useFlexProps = <
     >;
     const styleSource = {} as TStyleSource;
 
+    const p: any = props;
+    const c: any = colors;
+
     flexPropsConverter(
-      { ...defaultProps, ...props },
+      {
+        ...defaultProps,
+        ...p,
+        bg: c[p.bg] ?? p.bg,
+        color: c[p.color] ?? p.color,
+        borderColor: c[p.borderColor] ?? p.borderColor,
+        textDecorationColor: c[p.textDecorationColor] ?? p.textDecorationColor,
+      },
       flexProps,
       ownProps,
       styleSource,
@@ -38,3 +51,4 @@ export const useFlexProps = <
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props]);
+};

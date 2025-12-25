@@ -1,4 +1,4 @@
-import { Navbar, SwitchTheme, TabBar, Text } from "@components";
+import { Navbar, TabBar } from "@components";
 import {
   AppNavigation,
   AppTabScreens,
@@ -12,39 +12,39 @@ import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,
 } from "@react-navigation/bottom-tabs";
+import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import React, { FC, memo, useMemo } from "react";
-import { View } from "react-native";
 
 import { Main, Playground } from "./tabs";
+import { Settings } from "./tabs/settings";
 
 interface IProps extends StackProps {}
 
 const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
-  return (
-    <Navbar title={title} safeArea={true}>
-      <Navbar.Right>
-        <View style={{ margin: 12 }}>
-          <SwitchTheme marginLeft={"auto"} />
-        </View>
-      </Navbar.Right>
-    </Navbar>
-  );
+  return <Navbar title={title} safeArea={true} />;
 };
 
 export const TAB_SCREENS: AppTabScreens = {
   Main: {
     screen: Main,
     options: {
-      title: "navigation.Main",
-      tabBarIcon: () => <Text>{"Main"}</Text>,
+      tabBarIcon: ({ size, color }) => <HomeIcon size={size} color={color} />,
       headerShown: false,
     },
   },
   Playground: {
     screen: Playground,
     options: {
-      title: "navigation.Playground",
-      tabBarIcon: () => <Text>{"PG"}</Text>,
+      tabBarIcon: ({ size, color }) => <ListIcon size={size} color={color} />,
+    },
+  },
+  Settings: {
+    screen: Settings,
+    options: {
+      tabBarIcon: ({ size, color }) => (
+        <SettingsIcon size={size} color={color} />
+      ),
+      headerShown: false,
     },
   },
 };

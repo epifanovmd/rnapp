@@ -2,12 +2,14 @@ import { ParamListBase } from "@react-navigation/routers";
 
 import { IPdfViewProps, IWebViewProps } from "../../screens";
 import { TicketTab } from "../../screens/stack/Components/tabs/Ticket";
+import { Settings } from "../../screens/tabs/settings";
 
 export enum TabScreenName {
   MAIN = "MAIN",
 
   Main = "Main",
   Playground = "Playground",
+  Settings = "Settings",
 }
 
 interface TabScreenParams {
@@ -15,6 +17,7 @@ interface TabScreenParams {
 
   Posts: undefined;
   Playground: undefined;
+  Settings: undefined;
 }
 
 export enum StackScreenName {

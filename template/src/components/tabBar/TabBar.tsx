@@ -15,7 +15,12 @@ import Animated, {
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 export const TabBar = memo<BottomTabBarProps>(
-  ({ state: { routes, index }, insets: { bottom }, navigation }) => {
+  ({
+    state: { routes, index },
+    insets: { bottom },
+    navigation,
+    descriptors,
+  }) => {
     const [width, setWidth] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
     const animatedIndex = useSharedValue(index);
@@ -102,7 +107,14 @@ export const TabBar = memo<BottomTabBarProps>(
           blurType={isLight ? "light" : "dark"}
           blurAmount={1}
         />
-        {routes.map(route => {
+        {routes.map((route, ind) => {
+          const icon = descriptors[route.key]?.options.tabBarIcon?.({
+            focused: ind === index,
+            color: "white",
+            size: 24,
+          });
+          const title = descriptors[route.key]?.options.title;
+
           return (
             <Touchable
               ctx={route.name}
@@ -110,12 +122,15 @@ export const TabBar = memo<BottomTabBarProps>(
               style={SS.tabTouchable}
               onPress={handleTabPress}
             >
-              <Text
-                color={"white"}
-                textStyle={"Caption_M1"}
-                numberOfLines={1}
-                text={route.name}
-              />
+              {icon}
+              {!!title && (
+                <Text
+                  color={"white"}
+                  textStyle={"Caption_M1"}
+                  numberOfLines={1}
+                  text={title}
+                />
+              )}
             </Touchable>
           );
         })}

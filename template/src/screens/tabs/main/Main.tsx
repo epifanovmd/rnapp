@@ -28,11 +28,6 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
       <ImageBar height={300} safeArea uri={"https://picsum.photos/275/300"}>
         <Navbar transparent title={name}>
           <Navbar.Title color={"white"} />
-          <Navbar.Right>
-            <View style={{ margin: 12 }}>
-              <SwitchTheme marginLeft={"auto"} />
-            </View>
-          </Navbar.Right>
         </Navbar>
       </ImageBar>
 
