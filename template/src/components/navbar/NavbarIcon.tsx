@@ -9,7 +9,7 @@ export interface INavbarIconProps extends IIconProps {}
 export const NavbarIcon = memo<INavbarIconProps>(({ style, ...props }) => {
   const { colors } = useTheme();
 
-  const fill = colors.onSurfaceHigh;
+  const fill = colors.textPrimary;
 
   return <Icon style={[SS.icon, style]} fill={fill} {...props} />;
 });

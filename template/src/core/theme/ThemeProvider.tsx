@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { PropsWithChildren, useEffect } from "react";
-import { useColorScheme } from "react-native";
+import { StatusBar, useColorScheme } from "react-native";
 
 import { ThemeContext } from "./ThemeContext";
 import { ITheme, IThemeContext, TThemeName } from "./types";
@@ -59,6 +59,9 @@ export const ThemeProvider = React.memo<PropsWithChildren>(props => {
 
   return (
     <ThemeContext.Provider value={memoizedValue}>
+      <StatusBar
+        barStyle={memoizedValue.isDark ? "light-content" : "dark-content"}
+      />
       {theme ? props.children : null}
     </ThemeContext.Provider>
   );

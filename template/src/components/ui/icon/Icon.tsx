@@ -88,7 +88,7 @@ export const Icon = memo<PropsWithChildren<IIconProps>>(
         fontWeight={fontWeight}
         letterSpacing={letterSpacing}
         style={style}
-        color={colors.onSurfaceHigh}
+        color={colors.textPrimary}
         {...ownProps}
       />
     );

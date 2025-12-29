@@ -99,12 +99,12 @@ export const TabBar = memo<BottomTabBarProps>(
       >
         <BlurView
           style={StyleSheet.absoluteFillObject}
-          blurType={isLight ? "dark" : "light"}
+          blurType={"dark"}
           blurAmount={1}
         />
         <AnimatedBlurView
           style={[SS.active, activeIndicatorStyle]}
-          blurType={isLight ? "light" : "dark"}
+          blurType={isLight ? "dark" : "light"}
           blurAmount={1}
         />
         {routes.map((route, ind) => {

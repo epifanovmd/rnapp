@@ -5,23 +5,23 @@ import { ColorValue, StyleSheet, ViewStyle } from "react-native";
 import { TButtonSize, TButtonType } from "../types";
 
 const COLOR_MAP: Record<TButtonType, keyof TColorTheme> = {
-  primaryFilled: "onPrimaryHigh",
-  primaryOutline: "onSurfaceHigh",
-  secondaryFilled: "onSecondaryHigh",
-  secondaryOutline: "onSurfaceHigh",
-  dangerFilled: "alertErrorBrighter",
-  dangerOutline: "onSurfaceHigh",
-  text: "primaryBright",
+  primaryFilled: "buttonPrimaryText",
+  primaryOutline: "buttonPrimaryBackground",
+  secondaryFilled: "buttonSecondaryText",
+  secondaryOutline: "buttonSecondaryText",
+  dangerFilled: "buttonDangerText",
+  dangerOutline: "buttonDangerBackground",
+  text: "blue500",
 };
 
 const COLOR_MAP_DISABLED: Record<TButtonType, keyof TColorTheme> = {
-  primaryFilled: "onPrimaryDisabled",
-  primaryOutline: "onSurfaceDisabled",
-  secondaryFilled: "onSecondaryDisabled",
-  secondaryOutline: "onSurfaceDisabled",
-  dangerFilled: "alertErrorBright",
-  dangerOutline: "onSurfaceDisabled",
-  text: "onSurfaceDisabled",
+  primaryFilled: "buttonPrimaryDisabledText",
+  primaryOutline: "buttonPrimaryDisabledBackground",
+  secondaryFilled: "buttonSecondaryDisabledText",
+  secondaryOutline: "buttonSecondaryDisabledBackground",
+  dangerFilled: "buttonDangerDisabledText",
+  dangerOutline: "buttonDangerDisabledBackground",
+  text: "blue500",
 };
 
 export const useButtonStyles = (
@@ -60,9 +60,15 @@ const getVariantStyle = (
   customColor?: ColorValue,
 ): ViewStyle => {
   const baseColors = {
-    primary: disabled ? colors.primaryDisabled : colors.primary,
-    secondary: disabled ? colors.secondaryDisabled : colors.secondary,
-    danger: disabled ? colors.alertErrorDisabled : colors.alertError,
+    primary: disabled
+      ? colors.buttonPrimaryDisabledBackground
+      : colors.buttonPrimaryBackground,
+    secondary: disabled
+      ? colors.buttonSecondaryDisabledBackground
+      : colors.buttonSecondaryBackground,
+    danger: disabled
+      ? colors.buttonDangerDisabledBackground
+      : colors.buttonDangerBackground,
   };
 
   const styles: Record<TButtonType, ViewStyle> = {

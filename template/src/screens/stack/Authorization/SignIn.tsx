@@ -62,22 +62,22 @@ export const SignIn: FC<StackProps<"SignIn">> = observer(
 
               {available && (
                 <Button flex={1} size={"small"} onPress={authorization}>
-                  <ScanFace color={colors["onSurfaceHigh"]} />
+                  <ScanFace color={colors["textPrimary"]} />
                 </Button>
               )}
             </Row>
             <Row gap={8} alignItems={"center"}>
               <Col
-                bg={colors["onSurfaceHigh"]}
+                bg={colors["textPrimary"]}
                 style={{ borderStyle: "dashed" }}
                 height={1}
                 flex={1}
               />
-              <Text color={"onSurfaceHigh"} textAlign={"center"}>
+              <Text color={"textPrimary"} textAlign={"center"}>
                 {"или"}
               </Text>
               <Col
-                bg={colors["onSurfaceHigh"]}
+                bg={colors["textPrimary"]}
                 style={{ borderStyle: "dashed" }}
                 height={1}
                 flex={1}

@@ -1,71 +1,81 @@
 import { ITheme } from "../types";
 
+// Светлая тема в оттенках Slate
 export const LIGHT_COLOR_THEME = {
-  // Primary colors
-  primary: "#2572ED",
-  primaryBright: "#538DFF",
-  primaryDim: "#002D6D",
-  primaryDisabled: "#004299",
+  textPrimary: "#0F172A",
+  textSecondary: "#475569",
+  textTertiary: "#64748B",
+  textDisabled: "#94A3B8",
 
-  // Secondary colors
-  secondary: "#444954",
-  secondaryBright: "#70778B",
-  secondaryDim: "#293042",
-  secondaryDisabled: "#404759",
+  blue50: "#EFF6FF",
+  blue100: "#DBEAFE",
+  blue200: "#BFDBFE",
+  blue300: "#93C5FD",
+  blue400: "#60A5FA",
+  blue500: "#3B82F6",
+  blue600: "#2563EB",
+  blue700: "#1D4ED8",
+  blue800: "#1E40AF",
+  blue900: "#1E3A8A",
 
-  // Background colors
-  surface: "#EFF0FA",
-  surfaceBright: "#E7E7F2",
-  surfaceBrighter: "#D8D9E3",
-  surfaceDim: "#FAF8FF",
+  slate50: "#F8FAFC",
+  slate100: "#F1F5F9",
+  slate200: "#E2E8F0",
+  slate300: "#CBD5E1",
+  slate400: "#94A3B8",
+  slate500: "#64748B",
+  slate600: "#475569",
+  slate700: "#334155",
+  slate800: "#1E293B",
+  slate900: "#0F172A",
 
-  background: "#FEFBFF",
-  backgroundDim: "#FFFFFF",
-  backgroundDim64: "#FFFFFF64",
+  gray100: "#F5F5F5",
+  gray300: "#D4D4D4",
+  gray500: "#737373",
+  gray700: "#404040",
+  gray900: "#171717",
 
-  // On colors
-  onPrimaryHigh: "#FFFFFF",
-  onPrimaryMedium: "#CCDAFF",
-  onPrimaryDisabled: "#A9ABB4",
+  green50: "#ECFDF5",
+  green100: "#D1FAE5",
+  green500: "#10B981",
+  green600: "#059669",
+  green700: "#047857",
 
-  onSecondaryHigh: "#FFFFFF",
-  onSecondaryMedium: "#D3D9F0",
-  onSecondaryDisabled: "#A4ABC0",
+  orange50: "#FFFBEB",
+  orange100: "#FEF3C7",
+  orange500: "#F59E0B",
+  orange600: "#D97706",
+  orange700: "#B45309",
 
-  onSurfaceHigh: "#191B23",
-  onSurfaceMedium: "#2E3038",
-  onSurfaceDisabled: "#A9ABB4",
+  red50: "#FEF2F2",
+  red100: "#FEE2E2",
+  red500: "#EF4444",
+  red600: "#DC2626",
+  red700: "#B91C1C",
 
-  // Border colors
-  border: "#ECEDF7",
-  borderLight: "#2D3440",
+  // Кнопки
+  buttonPrimaryBackground: "#2563EB",
+  buttonPrimaryDisabledBackground: "#93C5FD",
+  buttonPrimaryText: "#FFFFFF",
+  buttonPrimaryDisabledText: "#FFFFFF",
 
-  // Alert colors
-  alertGreen: "#36B37E",
-  alertWarning: "#FFAB00",
-  alertError: "#C74E5B",
-  alertErrorBright: "#FFB2B6",
-  alertErrorBrighter: "#FFEDEC",
-  alertErrorDim: "#270005",
-  alertErrorDisabled: "#8F3742",
+  buttonSecondaryBackground: "#CBD5E1",
+  buttonSecondaryDisabledBackground: "#E2E8F0",
+  buttonSecondaryText: "#1E293B",
+  buttonSecondaryDisabledText: "#64748B",
 
-  // Grey scale
-  grey50: "#FAFAFA",
-  grey100: "#F5F5F5",
-  grey200: "#EEEEEE",
-  grey300: "#E0E0E0",
-  grey400: "#BDBDBD",
-  grey500: "#9E9E9E",
-  grey600: "#757575",
-  grey700: "#616161",
-  grey800: "#424242",
-  grey900: "#212121",
+  buttonDangerBackground: "#DC2626",
+  buttonDangerDisabledBackground: "#FCA5A5",
+  buttonDangerText: "#FFFFFF",
+  buttonDangerDisabledText: "#FFFFFF",
 
-  // Black and white
+  // Фоновые цвета (основа - slate)
+  background: "#eaeff6",
+  surface: "#f9fafb",
+  onSurface: "#ffffff",
+
   black: "#000000",
   white: "#FFFFFF",
-
-  // Transparent
   transparent: "transparent",
 };
 

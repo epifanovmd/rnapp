@@ -35,7 +35,6 @@ configure({ enforceActions: "observed" });
 initLocalization({ initLang: "ru" });
 
 export const App: FC = observer(() => {
-  const isDarkMode = useColorScheme() === "dark";
   const { changeLanguage } = useTranslation();
 
   const { initialize } = useAppDataStore();
@@ -62,7 +61,6 @@ export const App: FC = observer(() => {
   return (
     <GestureHandlerRootView style={ss.container}>
       <ThemeProvider>
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <SafeAreaProvider>
           <_HoldItemProvider>
             <BottomSheetModalProvider>

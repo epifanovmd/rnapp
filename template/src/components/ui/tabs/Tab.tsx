@@ -34,7 +34,7 @@ export const Tab = <Value extends any = unknown>({
         interpolateColor(
           isActive ? 1 : 0,
           [0, 1],
-          [colors.secondary, colors.primary],
+          [colors.textSecondary, colors.blue500],
         ),
         { duration: 150 },
       ),

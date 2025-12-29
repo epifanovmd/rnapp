@@ -23,7 +23,7 @@ export const Text: FC<ITextProps> = memo(
     const { ownProps, style } = useFlexProps(rest);
     const _textStyle = getTextStyle(textStyle);
 
-    const color = style.color ?? colors[_color ?? "onSurfaceHigh"];
+    const color = style.color ?? colors[_color ?? "textPrimary"];
 
     return (
       <RNText style={[style, _textStyle, { color }]} {...ownProps}>

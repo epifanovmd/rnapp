@@ -31,10 +31,10 @@ export const useBottomSheetStyles = (): Pick<
     TBottomSheetProps["handleIndicatorStyle"]
   >(
     () => ({
-      backgroundColor: colors.onSurfaceMedium,
+      backgroundColor: colors.textSecondary,
       width: 50,
     }),
-    [colors.onSurfaceMedium],
+    [colors.textSecondary],
   );
 
   return {

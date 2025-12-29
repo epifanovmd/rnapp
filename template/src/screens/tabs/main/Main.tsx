@@ -52,17 +52,17 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           ItemSeparatorComponent={() => <Col height={8} />}
           renderItem={({ index }) => (
             <Col
-              bg={colors.surface}
+              bg={colors.onSurface}
               radius={16}
               pa={8}
               height={120}
               key={index}
             >
               <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
-              <Text textStyle={"Body_M1"} color={"secondary"}>
+              <Text textStyle={"Body_M1"} color={"textSecondary"}>
                 {"Текст"}
               </Text>
-              <Text textStyle={"Body_M1"} color={"secondary"}>
+              <Text textStyle={"Body_M1"} color={"textSecondary"}>
                 {"Текст"}
               </Text>
             </Col>

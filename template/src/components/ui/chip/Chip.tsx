@@ -47,8 +47,11 @@ export const Chip = memo<PropsWithChildren<IChipProps>>(
           active.value,
           isActive ? [0, 1] : [1, 0],
           isActive
-            ? [colors.secondaryBright, colors.primaryBright]
-            : [colors.primaryBright, colors.secondaryBright],
+            ? [colors.buttonSecondaryBackground, colors.buttonPrimaryBackground]
+            : [
+                colors.buttonPrimaryBackground,
+                colors.buttonSecondaryBackground,
+              ],
         ),
         {
           duration: 150,

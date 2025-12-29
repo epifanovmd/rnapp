@@ -1,4 +1,4 @@
-import { Checkbox, Col, Switch } from "@components";
+import { Checkbox, Col, Switch, SwitchTheme } from "@components";
 import { TabProps, useTransition } from "@core";
 import React, { FC, memo, useState } from "react";
 
@@ -9,6 +9,7 @@ export const ElementsTab: FC<TabProps> = memo(({ route }) => {
 
   return (
     <Col ph={16} gap={8} pt={navbarHeight}>
+      <SwitchTheme />
       <Switch isActive={disabled} onChange={setDisabled} />
 
       <Switch isActive={isActive} onChange={setIsActive} disabled={disabled} />

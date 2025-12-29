@@ -13,6 +13,7 @@ import {
 import {
   AppScreenProps,
   TransitionProvider,
+  useTheme,
   useTransitionContext,
 } from "@core";
 import { useSessionDataStore, useUserDataStore } from "@store";
@@ -37,6 +38,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const { support, registration, available, onRemoveBiometric } =
     useBiometric();
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   const navbarHeight = context.navbarHeight + insets.top;
 
@@ -93,9 +95,9 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
                 circle={80}
                 overflow={"hidden"}
                 centerContent={true}
-                bg={"onSurfaceMedium"}
+                bg={"onSurface"}
               >
-                <User color={"white"} />
+                <User color={colors.textPrimary} />
               </AnimatedCol>
 
               <Navbar
@@ -144,7 +146,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
             <Col bg={"surface"} radius={16}>
               <Row centerContent={true} pa={16}>
-                <Button color={"alertError"} type={"text"} onPress={clear}>
+                <Button color={"red500"} type={"text"} onPress={clear}>
                   {"Выйти"}
                 </Button>
               </Row>

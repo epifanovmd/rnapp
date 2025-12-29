@@ -62,7 +62,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     const backgroundColor = interpolateColor(
       animatedActive.value,
       [0, 1],
-      [colors.transparent, colors.primary],
+      [colors.transparent, colors.blue500],
     );
 
     const opacity = withTiming(
@@ -73,7 +73,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     return {
       borderWidth,
       backgroundColor,
-      borderColor: colors.onSurfaceDisabled,
+      borderColor: colors.slate400,
       opacity,
     };
   }, [disabled, colors, duration]);
@@ -112,12 +112,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
       {...rest}
     >
       <Animated.View style={[SS.content, animatedIconStyle]}>
-        <Icon
-          height={16}
-          width={16}
-          name={"checkBold"}
-          fill={colors.onPrimaryHigh}
-        />
+        <Icon height={16} width={16} name={"checkBold"} fill={colors.white} />
       </Animated.View>
     </AnimatedPressable>
   );

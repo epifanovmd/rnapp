@@ -196,17 +196,17 @@ export const NotificationToast = memo(
       }
     }
 
-    let backgroundColor = normalColor || colors.primary;
+    let backgroundColor = normalColor || colors.blue500;
 
     switch (type) {
       case "success":
-        backgroundColor = successColor || colors.alertGreen;
+        backgroundColor = successColor || colors.green500;
         break;
       case "danger":
-        backgroundColor = dangerColor || colors.alertError;
+        backgroundColor = dangerColor || colors.red500;
         break;
       case "warning":
-        backgroundColor = warningColor || colors.alertWarning;
+        backgroundColor = warningColor || colors.orange500;
         break;
     }
 
@@ -239,7 +239,11 @@ export const NotificationToast = memo(
                   message
                 ) : (
                   <Text
-                    style={[styles.message, textStyle, { color: colors.white }]}
+                    style={[
+                      styles.message,
+                      textStyle,
+                      { color: colors.textPrimary },
+                    ]}
                   >
                     {message}
                   </Text>

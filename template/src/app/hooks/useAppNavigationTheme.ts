@@ -7,23 +7,23 @@ export const useAppNavigationTheme = () => {
 
   return useMemo<ReactNavigation.Theme>(() => {
     return {
-      dark: true,
+      dark: true, // Обратите внимание: если используете обе темы, нужно сделать это динамическим
       colors: {
-        primary: colors.primary,
+        primary: colors.blue500,
         background: colors.background,
         card: colors.surface,
-        text: colors.onSurfaceHigh,
-        border: colors.border,
-        notification: colors.alertError,
+        text: colors.textPrimary,
+        border: colors.slate400,
+        notification: colors.red500,
       },
       fonts: DefaultTheme.fonts,
     };
   }, [
-    colors.primary,
+    colors.blue500,
     colors.background,
     colors.surface,
-    colors.onSurfaceHigh,
-    colors.border,
-    colors.alertError,
+    colors.textPrimary,
+    colors.slate400,
+    colors.red500,
   ]);
 };

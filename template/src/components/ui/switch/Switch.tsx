@@ -60,7 +60,7 @@ export const Switch = memo<PropsWithChildren<ISwitchProps>>(
         backgroundColor: interpolateColor(
           position.value,
           [0, 1],
-          [colors.secondary, colors.primary],
+          [colors.buttonSecondaryBackground, colors.buttonPrimaryBackground],
         ),
         opacity,
         transform: [
@@ -77,7 +77,7 @@ export const Switch = memo<PropsWithChildren<ISwitchProps>>(
         interpolateColor(
           disabled ? 0 : 1,
           [0, 1],
-          [colors.onSurfaceDisabled, colors.onSurfaceMedium],
+          [colors.slate400, colors.slate600],
         ),
       ),
     }));
