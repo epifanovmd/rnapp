@@ -7,6 +7,7 @@ import {
 } from "@service";
 import { makeAutoObservable, reaction } from "mobx";
 
+import { IPushNotificationDataStore } from "../pushNotification";
 import { ISessionDataStore } from "../session";
 import { IAppDataStore } from "./AppData.types";
 
@@ -17,6 +18,8 @@ export class AppDataStore implements IAppDataStore {
   constructor(
     @ISessionDataStore() public sessionDataStore: ISessionDataStore,
     @IApiService() private _apiService: IApiService,
+    @IPushNotificationDataStore()
+    private _pushNotificationDataStore: IPushNotificationDataStore,
     @ISocketService() private _socketService: ISocketService,
     @INavigationService() private _navigationService: NavigationService,
   ) {
@@ -31,7 +34,8 @@ export class AppDataStore implements IAppDataStore {
         () => this.sessionDataStore.isAuthorized,
         isAuthorized => {
           if (isAuthorized) {
-            // disposers.add(this._socketService.initialize());
+            // disposers.add(this._pushNotificationDataStore.initialize());
+            disposers.add(this._socketService.initialize());
 
             this._interval.start(async () => {
               await this.sessionDataStore.updateToken();

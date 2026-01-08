@@ -1,4 +1,12 @@
-import { Button, Container, Content, Row, ScrollView, Text } from "@components";
+import {
+  Button,
+  Container,
+  Content,
+  Navbar,
+  Row,
+  ScrollView,
+  Text,
+} from "@components";
 import { AppScreenProps } from "@core";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -7,13 +15,12 @@ interface IProps extends AppScreenProps {}
 
 export const Playground: FC<IProps> = observer(({ navigation, route }) => {
   return (
-    <Container>
+    <Container edges={["top"]}>
+      <Navbar>
+        <Navbar.Title text={route.name} />
+      </Navbar>
       <ScrollView>
         <Content>
-          <Row mb={32}>
-            <Text>{route.name}</Text>
-          </Row>
-
           <Button
             mt={8}
             title={"Pdf view"}
@@ -56,12 +63,6 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
                 initialRouteName: "Notifications",
               })
             }
-          />
-
-          <Button
-            mt={8}
-            title={"ChatScreen"}
-            onPress={() => navigation.navigate("ChatScreen")}
           />
 
           <Button

@@ -10,6 +10,71 @@
  * ---------------------------------------------------------------
  */
 
+export interface IFileDto {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  /** @format double */
+  size: number;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+}
+
+export interface ProfileDto {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  /** @format date-time */
+  birthDate?: string | null;
+  gender?: string;
+  status?: string;
+  /** @format date-time */
+  lastOnline?: string | null;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  avatar: IFileDto | null;
+}
+
+export enum EProfileStatus {
+  Online = "online",
+  Offline = "offline",
+}
+
+export interface IProfileUpdateRequestDto {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  /** @format date-time */
+  birthDate?: string;
+  gender?: string;
+  status?: EProfileStatus;
+}
+
+export interface PublicProfileDto {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string | null;
+  status: EProfileStatus;
+  /** @format date-time */
+  lastOnline?: string;
+}
+
+export interface IProfileListDto {
+  /** @format double */
+  count?: number;
+  /** @format double */
+  offset?: number;
+  /** @format double */
+  limit?: number;
+  data: PublicProfileDto[];
+}
+
 export enum ERole {
   Admin = "admin",
   User = "user",
@@ -41,24 +106,31 @@ export interface IRoleDto {
   permissions: IPermissionDto[];
 }
 
-export interface IUserDto {
+export interface UserDto {
   id: string;
   email?: string;
   emailVerified?: boolean;
   phone?: string;
-  challenge?: string;
+  challenge?: string | null;
+  profile?: ProfileDto;
+  role: IRoleDto;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
-  role: IRoleDto;
 }
 
-export interface IUserUpdateRequest {
+export interface IUserUpdateRequestDto {
   email?: string;
   phone?: string;
   roleId?: string;
-  challenge?: string;
+  challenge?: string | null;
+}
+
+export interface PublicUserDto {
+  userId: string;
+  email: string;
+  profile: PublicProfileDto;
 }
 
 export interface IUserListDto {
@@ -68,20 +140,20 @@ export interface IUserListDto {
   offset?: number;
   /** @format double */
   limit?: number;
-  data: IUserDto[];
+  data: PublicUserDto[];
 }
 
-export interface IUserPrivilegesRequest {
+export interface IUserPrivilegesRequestDto {
   roleName: ERole;
   permissions: EPermissions[];
 }
 
-export interface ApiResponse {
+export interface ApiResponseDto {
   message?: string;
   data?: any;
 }
 
-export interface IUserPassword {
+export interface IUserChangePasswordDto {
   password: string;
 }
 
@@ -95,16 +167,17 @@ export interface IUserWithTokensDto {
   email?: string;
   emailVerified?: boolean;
   phone?: string;
-  challenge?: string;
+  challenge?: string | null;
+  profile?: ProfileDto;
+  role: IRoleDto;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
-  role: IRoleDto;
   tokens: ITokensDto;
 }
 
-export type TSignUpRequest = {
+export type TSignUpRequestDto = {
   password: string;
   lastName?: string;
   firstName?: string;
@@ -119,42 +192,42 @@ export type TSignUpRequest = {
     }
 );
 
-export interface ISignInRequest {
+export interface ISignInRequestDto {
   /** Может быть телефоном, email-ом и username-ом */
   login: string;
   password: string;
 }
 
-export interface IUserLogin {
+export interface IUserLoginRequestDto {
   /** Может быть телефоном, email-ом и username-ом */
   login: string;
 }
 
-export interface IUserResetPasswordRequest {
+export interface IUserResetPasswordRequestDto {
   password: string;
   token: string;
 }
 
-export interface IRegisterBiometricResponse {
+export interface IRegisterBiometricResponseDto {
   registered: boolean;
 }
 
-export interface IRegisterBiometricRequest {
+export interface IRegisterBiometricRequestDto {
   userId: string;
   deviceId: string;
   deviceName: string;
   publicKey: string;
 }
 
-export interface IGenerateNonceResponse {
+export interface IGenerateNonceResponseDto {
   nonce: string;
 }
 
-export interface IGenerateNonceRequest {
+export interface IGenerateNonceRequestDto {
   userId: string;
 }
 
-export interface IVerifyBiometricSignatureResponse {
+export interface IVerifyBiometricSignatureResponseDto {
   verified: boolean;
   tokens: {
     refreshToken: string;
@@ -162,13 +235,13 @@ export interface IVerifyBiometricSignatureResponse {
   };
 }
 
-export interface IVerifyBiometricSignatureRequest {
+export interface IVerifyBiometricSignatureRequestDto {
   userId: string;
   deviceId: string;
   signature: string;
 }
 
-export interface FCMMessage {
+export interface IFCMMessageDto {
   dialogId?: string;
   link?: string;
   to: string;
@@ -195,52 +268,18 @@ export interface FcmTokenDto {
   updatedAt: string;
 }
 
-export interface FcmTokenRequest {
+export interface FcmTokenRequestDto {
   token: string;
 }
 
-export interface DialogMembersDto {
+export interface DialogLastMessagesDto {
   id: string;
-  userId: string;
-  dialogId: string;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-  user: IUserDto;
-}
-
-export interface IFileDto {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  /** @format double */
-  size: number;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-}
-
-export interface IDialogMessagesDto {
-  id: string;
-  userId: string;
-  dialogId: string;
   text: string;
-  system?: boolean;
-  sent?: boolean;
   received?: boolean;
-  replyId?: string | null;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
-  user: IUserDto;
-  images?: IFileDto[];
-  videos?: IFileDto[];
-  audios?: IFileDto[];
-  reply?: IDialogMessagesDto;
 }
 
 export interface DialogDto {
@@ -250,9 +289,8 @@ export interface DialogDto {
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
-  owner: IUserDto;
-  members: DialogMembersDto[];
-  lastMessage: IDialogMessagesDto[] | null;
+  participants: PublicUserDto[];
+  lastMessage: DialogLastMessagesDto | null;
   /** @format double */
   unreadMessagesCount: number;
 }
@@ -267,17 +305,70 @@ export interface IDialogListDto {
   data: DialogDto[];
 }
 
-export interface DialogFindRequest {
+export interface DialogDetailDto {
+  id: string;
+  ownerId: string;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  owner: PublicUserDto;
+  participants: PublicUserDto[];
+  lastMessage: DialogLastMessagesDto | null;
+  /** @format double */
+  unreadMessagesCount: number;
+}
+
+export interface IDialogFindResponseDto {
+  dialogId: string | null;
+}
+
+export interface IDialogFindRequestDto {
   recipientId: string[];
 }
 
-export interface DialogCreateRequest {
+export interface IDialogFindOrCreateResponseDto {
+  dialogId: string;
+}
+
+export interface IDialogCreateRequestDto {
   recipientId: string[];
 }
 
-export interface DialogMembersAddRequest {
+export interface DialogMembersDto {
+  id: string;
+  userId: string;
+  dialogId: string;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  user: PublicUserDto;
+}
+
+export interface IDialogMembersAddRequestDto {
   dialogId: string;
   members: string[];
+}
+
+export interface DialogMessagesDto {
+  id: string;
+  userId: string;
+  dialogId: string;
+  text: string;
+  system?: boolean;
+  sent?: boolean;
+  received?: boolean;
+  replyId?: string | null;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  user: PublicUserDto;
+  images?: IFileDto[];
+  videos?: IFileDto[];
+  audios?: IFileDto[];
+  reply?: DialogMessagesDto;
 }
 
 export interface IDialogListMessagesDto {
@@ -287,10 +378,10 @@ export interface IDialogListMessagesDto {
   offset?: number;
   /** @format double */
   limit?: number;
-  data: IDialogMessagesDto[];
+  data: DialogMessagesDto[];
 }
 
-export interface IMessagesRequest {
+export interface IMessagesRequestDto {
   dialogId: string;
   text: string;
   system?: boolean;
@@ -301,7 +392,7 @@ export interface IMessagesRequest {
   audioIds?: string[];
 }
 
-export interface IMessagesUpdateRequest {
+export interface IMessagesUpdateRequestDto {
   text?: string;
   system?: boolean;
   received?: boolean;
@@ -430,7 +521,7 @@ export interface RegistrationResponseJSON {
   type: PublicKeyCredentialType;
 }
 
-export interface IVerifyRegistrationRequest {
+export interface IVerifyRegistrationRequestDto {
   userId: string;
   /**
    * A slightly-modified RegistrationCredential to simplify working with ArrayBuffers that
@@ -441,7 +532,7 @@ export interface IVerifyRegistrationRequest {
   data: RegistrationResponseJSON;
 }
 
-export interface IVerifyAuthenticationResponse {
+export interface IVerifyAuthenticationResponseDto {
   verified: boolean;
   tokens?: ITokensDto;
 }
@@ -486,7 +577,7 @@ export interface AuthenticationResponseJSON {
   type: PublicKeyCredentialType;
 }
 
-export interface IVerifyAuthenticationRequest {
+export interface IVerifyAuthenticationRequestDto {
   userId: string;
   /**
    * A slightly-modified AuthenticationCredential to simplify working with ArrayBuffers that
@@ -497,41 +588,38 @@ export interface IVerifyAuthenticationRequest {
   data: AuthenticationResponseJSON;
 }
 
-export interface IProfileDto {
+export interface GetFileByIdParams {
+  /** ID файла, который нужно получить */
   id: string;
-  firstName?: string;
-  lastName?: string;
-  /** @format date-time */
-  birthDate?: string | null;
-  gender?: string;
-  status?: string;
-  /** @format date-time */
-  lastOnline?: string | null;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-  avatar: IFileDto | null;
 }
 
-export interface IProfileUpdateRequest {
-  firstName?: string;
-  lastName?: string;
-  bio?: string;
-  /** @format date-time */
-  birthDate?: string;
-  gender?: string;
-  status?: string;
+export interface UploadFilePayload {
+  /**
+   * Файл, который нужно загрузить
+   * @format binary
+   */
+  file: File;
 }
 
-export interface IProfileListDto {
-  /** @format double */
-  count?: number;
-  /** @format double */
+export interface GetProfilesParams {
+  /**
+   * Смещение для пагинации
+   * @format double
+   */
   offset?: number;
-  /** @format double */
+  /**
+   * Лимит количества возвращаемых профилей
+   * @format double
+   */
   limit?: number;
-  data: IProfileDto[];
+}
+
+export interface AddAvatarPayload {
+  /**
+   * Файл изображения аватара
+   * @format binary
+   */
+  file: File;
 }
 
 export interface GetUsersParams {
@@ -612,44 +700,10 @@ export interface GetLastMessageParams {
   dialogId: string;
 }
 
-export interface GetFileByIdParams {
-  /** ID файла, который нужно получить */
-  id: string;
-}
-
-export interface UploadFilePayload {
-  /**
-   * Файл, который нужно загрузить
-   * @format binary
-   */
-  file: File;
-}
-
 export interface GenerateRegistrationOptionsPayload {
   userId: string;
 }
 
 export interface GenerateAuthenticationOptionsPayload {
   userId: string;
-}
-
-export interface GetProfilesParams {
-  /**
-   * Смещение для пагинации
-   * @format double
-   */
-  offset?: number;
-  /**
-   * Лимит количества возвращаемых профилей
-   * @format double
-   */
-  limit?: number;
-}
-
-export interface AddAvatarPayload {
-  /**
-   * Файл изображения аватара
-   * @format binary
-   */
-  file: File;
 }

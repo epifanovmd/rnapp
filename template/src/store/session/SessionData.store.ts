@@ -1,10 +1,10 @@
 import { ApiError, IApiService, IApiTokenProvider } from "@api";
 import {
   AuthenticatePayload,
-  ISignInRequest,
+  ISignInRequestDto,
   ITokensDto,
   IUserWithTokensDto,
-  TSignUpRequest,
+  TSignUpRequestDto,
 } from "@api/api-gen/data-contracts";
 import { ApiResponse, DataHolder } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
@@ -36,7 +36,7 @@ export class SessionDataStore implements ISessionDataStore {
     return this.holder.isFilled;
   }
 
-  public async signIn(params: ISignInRequest) {
+  public async signIn(params: ISignInRequestDto) {
     this.holder.setLoading();
 
     const res = await this._apiService.signIn(params);
@@ -52,7 +52,7 @@ export class SessionDataStore implements ISessionDataStore {
     this._handleResponse(res);
   }
 
-  public async signUp(params: TSignUpRequest) {
+  public async signUp(params: TSignUpRequestDto) {
     this.holder.setLoading();
 
     const res = await this._apiService.signUp(params);

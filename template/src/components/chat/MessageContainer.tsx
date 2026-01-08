@@ -15,6 +15,7 @@ import React, {
 } from "react";
 import {
   ColorValue,
+  DimensionValue,
   Platform,
   StyleProp,
   StyleSheet,
@@ -172,6 +173,8 @@ export const MessageContainer = memo(
     const [showScrollBottom, setShowScrollBottom] = useState(false);
     const loadedEarlier = useSharedValue(false);
     const scrollContentHeight = useSharedValue(0);
+    const [containerHeight, setContainerHeight] =
+      useState<DimensionValue>("auto");
 
     const theme = useChatTheme();
 
@@ -237,17 +240,25 @@ export const MessageContainer = memo(
 
     const _renderChatEmpty = useCallback(() => {
       if (renderChatEmpty) {
-        return !inverted ? (
-          renderChatEmpty(props)
-        ) : (
-          <View style={styles.emptyChatContainer}>
-            {renderChatEmpty(props)}
+        return (
+          <View
+            style={{
+              minHeight: containerHeight,
+            }}
+          >
+            {!inverted ? (
+              renderChatEmpty(props)
+            ) : (
+              <View style={styles.emptyChatContainer}>
+                {renderChatEmpty(props)}
+              </View>
+            )}
           </View>
         );
       }
 
       return <View style={styles.container} />;
-    }, [inverted, props, renderChatEmpty]);
+    }, [containerHeight, inverted, props, renderChatEmpty]);
 
     const _renderHeader = useMemo(
       () => <View style={styles.headerWrapper}>{_renderLoadEarlier()}</View>,
@@ -460,7 +471,12 @@ export const MessageContainer = memo(
     );
 
     return (
-      <View style={styles.container}>
+      <View
+        style={styles.container}
+        onLayout={({ nativeEvent: { layout } }) => {
+          setContainerHeight(layout.height);
+        }}
+      >
         <AnimatedFlashList
           ref={mergeRefs([ref, _ref])}
           extraData={extraData}

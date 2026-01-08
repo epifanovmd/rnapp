@@ -2,6 +2,7 @@ import { ParamListBase } from "@react-navigation/routers";
 
 import { IPdfViewProps, IWebViewProps } from "../../screens";
 import { TicketTab } from "../../screens/stack/Components/tabs/Ticket";
+import { Dialogs } from "../../screens/tabs/dialogs";
 import { Settings } from "../../screens/tabs/settings";
 
 export enum TabScreenName {
@@ -9,6 +10,7 @@ export enum TabScreenName {
 
   Main = "Main",
   Playground = "Playground",
+  Dialogs = "Dialogs",
   Settings = "Settings",
 }
 
@@ -17,6 +19,7 @@ interface TabScreenParams {
 
   Posts: undefined;
   Playground: undefined;
+  Dialogs: undefined;
   Settings: undefined;
 }
 
@@ -42,7 +45,7 @@ interface StackScreenParams {
     initialRouteName: keyof typeof ComponentsScreenName;
   };
   Lottie: undefined;
-  ChatScreen: undefined;
+  ChatScreen: { dialogId: string };
   Carousel: undefined;
   PdfView: IPdfViewProps;
   WebView: IWebViewProps;

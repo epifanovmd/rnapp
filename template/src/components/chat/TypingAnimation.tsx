@@ -1,12 +1,7 @@
+import { Text } from "@components";
 import * as React from "react";
 import { forwardRef, memo, useEffect, useMemo } from "react";
-import {
-  ColorValue,
-  StyleProp,
-  StyleSheet,
-  Text,
-  ViewStyle,
-} from "react-native";
+import { ColorValue, StyleProp, StyleSheet, ViewStyle } from "react-native";
 import Animated from "react-native-reanimated";
 import Reanimated, {
   useAnimatedStyle,
@@ -90,7 +85,13 @@ export const TypingAnimation = memo(
         <Reanimated.View style={[styles.dot, _color, firstDotStyle]} />
         <Reanimated.View style={[styles.dot, _color, secondDotStyle]} />
         <Reanimated.View style={[styles.dot, _color, thirdDotStyle]} />
-        <Text style={{ color, marginTop: -3, marginLeft: 2 }}>{text}</Text>
+        <Text
+          textStyle={"Caption_M3"}
+          color={"textSecondary"}
+          style={{ color, marginTop: -3, marginLeft: 2 }}
+        >
+          {text}
+        </Text>
       </Reanimated.View>
     );
   }),

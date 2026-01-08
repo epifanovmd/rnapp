@@ -1,14 +1,14 @@
-import { IUserDto } from "@api/api-gen/data-contracts";
+import { UserDto } from "@api/api-gen/data-contracts";
 import { createServiceDecorator, DataHolder } from "@force-dev/utils";
 
 export const IUserDataStore = createServiceDecorator<IUserDataStore>();
 
 export interface IUserDataStore {
-  holder: DataHolder<IUserDto>;
-  user?: IUserDto;
+  holder: DataHolder<UserDto>;
+  user?: UserDto;
   isLoading: boolean;
   isError: boolean;
   isEmpty: boolean;
 
-  getUser(): Promise<IUserDto | undefined>;
+  getUser(): Promise<UserDto | undefined>;
 }

@@ -1,4 +1,5 @@
 import { IApiService, IApiTokenProvider, SOCKET_BASE_URL } from "@api";
+import { Interval } from "@force-dev/utils";
 import { connect, Socket } from "socket.io-client";
 
 import { ISocketService, SocketEmitEvents, SocketEvents } from "./Socket.types";
@@ -19,6 +20,7 @@ export class SocketService implements ISocketService {
   private _socket: Socket | null = null;
   private _listeners: Map<string, (...args: any[]) => void> = new Map();
   private _isManualDisconnect = false;
+  private _onlineInterval = new Interval({ timeout: 3000 });
 
   constructor(
     @IApiTokenProvider() private _tokenProvider: IApiTokenProvider,
@@ -29,15 +31,15 @@ export class SocketService implements ISocketService {
     return this._socket?.connected ?? false;
   }
 
-  initialize() {
+  initialize = () => {
     this.connect().then();
 
     return () => {
       this.disconnect();
     };
-  }
+  };
 
-  private setupSocket() {
+  private setupSocket = () => {
     if (this._socket) return this._socket;
 
     const accessToken = this._tokenProvider.accessToken;
@@ -57,9 +59,9 @@ export class SocketService implements ISocketService {
     this.setupEventHandlers();
 
     return this._socket;
-  }
+  };
 
-  private setupEventHandlers(): void {
+  private setupEventHandlers = (): void => {
     if (!this._socket) return;
 
     // Базовая обработка событий
@@ -70,36 +72,42 @@ export class SocketService implements ISocketService {
     // Обработка ошибок аутентификации
     this._socket.on("unauthorized", this.handleUnauthorized.bind(this));
     this._socket.on("token_expired", this.handleTokenExpired.bind(this));
-  }
+  };
 
-  private async handleConnect(): Promise<void> {
+  private handleConnect = async (): Promise<void> => {
     console.log("Socket connected");
     // Можно добавить синхронизацию состояния
-  }
 
-  private handleDisconnect(reason: string): void {
+    this._onlineInterval.start(() => {
+      this.emit("online", true).then();
+    });
+  };
+
+  private handleDisconnect = (reason: string): void => {
     console.log(`Socket disconnected: ${reason}`);
     if (!this._isManualDisconnect && reason !== "io server disconnect") {
       setTimeout(() => this.reconnect(), 3000);
     }
-  }
 
-  private async handleConnectError(err: Error): Promise<void> {
+    this._onlineInterval.stop();
+  };
+
+  private handleConnectError = async (err: Error): Promise<void> => {
     console.error("Connection error:", err.message);
     await this.handleConnectionFailure();
-  }
+  };
 
-  private async handleUnauthorized(): Promise<void> {
+  private handleUnauthorized = async (): Promise<void> => {
     console.warn("Unauthorized, attempting to refresh token...");
     await this.handleTokenRefresh();
-  }
+  };
 
-  private async handleTokenExpired(): Promise<void> {
+  private handleTokenExpired = async (): Promise<void> => {
     console.warn("Token expired, refreshing...");
     await this.handleTokenRefresh();
-  }
+  };
 
-  private async handleTokenRefresh(): Promise<void> {
+  private handleTokenRefresh = async (): Promise<void> => {
     try {
       await this._apiService.updateToken();
       await this.reconnect();
@@ -107,37 +115,41 @@ export class SocketService implements ISocketService {
       console.error("Token refresh failed:", refreshError);
       this.disconnect();
     }
-  }
+  };
 
-  private async handleConnectionFailure(): Promise<void> {
+  private handleConnectionFailure = async (): Promise<void> => {
     if (this._socket) {
       this._socket.close();
       this._socket = null;
     }
     await new Promise(resolve => setTimeout(resolve, 5000));
     await this.reconnect();
-  }
+  };
 
-  connect() {
+  connect = () => {
     return new Promise<Socket | undefined>(resolve => {
+      console.log("connect");
       const socket = this.setupSocket();
 
       if (socket.connected) resolve(socket);
 
       socket.once("connect", () => resolve(socket));
-      socket.once("connect_error", () => resolve(undefined));
+      socket.once("connect_error", err => {
+        console.log("err", err);
+        resolve(undefined);
+      });
 
       socket.connect();
     });
-  }
+  };
 
-  async reconnect() {
+  reconnect = async () => {
     this.disconnect();
 
     return this.connect();
-  }
+  };
 
-  disconnect(): void {
+  disconnect = (): void => {
     this._isManualDisconnect = true;
 
     // Очистка всех слушателей
@@ -151,12 +163,12 @@ export class SocketService implements ISocketService {
       this._socket.disconnect();
       this._socket = null;
     }
-  }
+  };
 
-  emit<K extends keyof SocketEmitEvents>(
+  emit = <K extends keyof SocketEmitEvents>(
     event: K,
     ...args: Parameters<SocketEmitEvents[K]>
-  ): Promise<Socket> {
+  ): Promise<Socket> => {
     return new Promise((resolve, reject) => {
       const socket = this._socket;
 
@@ -172,13 +184,13 @@ export class SocketService implements ISocketService {
         }
       });
     });
-  }
+  };
 
-  on<K extends keyof SocketEvents>(
+  on = <K extends keyof SocketEvents>(
     event: K,
     callback: SocketEvents[K],
     unsubscribe?: () => void,
-  ): () => void {
+  ): (() => void) => {
     if (!this._socket) {
       throw new Error("Socket is not initialized");
     }
@@ -191,5 +203,5 @@ export class SocketService implements ISocketService {
       this._listeners.delete(event);
       unsubscribe?.();
     };
-  }
+  };
 }
