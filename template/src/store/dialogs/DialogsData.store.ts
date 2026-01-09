@@ -107,33 +107,41 @@ export class DialogsDataStore implements IDialogsDataStore {
       }
     });
 
-    const disposers = new Set<InitializeDispose>();
+    this._socketService.on("messageReceived", ({ messageIds, dialogId }) => {
+      const dialog = this.data.find(item => item.id === dialogId);
 
-    disposers.add(
-      this._socketService.on("newDialog", async dialogId => {
-        const res = await this._apiService.getDialogById(dialogId);
-
-        if (res.data) {
-          this._appendDialog(res.data);
-        }
-      }),
-    );
-
-    disposers.add(
-      this._socketService.on("deleteDialog", id => {
+      if (dialog) {
         this._holder.updateData(
-          this.data.filter(item => item.id !== id),
+          this.data.map(item =>
+            item.id === dialogId
+              ? {
+                  ...item,
+                  unreadMessagesCount: Math.min(
+                    0,
+                    item.unreadMessagesCount - messageIds.length,
+                  ),
+                }
+              : item,
+          ),
           { replace: true },
         );
-      }),
-    );
+      }
+    });
 
-    return () => {
-      disposer(Array.from(disposers));
-      disposers.clear();
+    this._socketService.on("newDialog", async dialogId => {
+      const res = await this._apiService.getDialogById(dialogId);
 
-      this._holder.clear();
-    };
+      if (res.data) {
+        this._appendDialog(res.data);
+      }
+    });
+
+    this._socketService.on("deleteDialog", id => {
+      this._holder.updateData(
+        this.data.filter(item => item.id !== id),
+        { replace: true },
+      );
+    });
   }
 
   get data() {

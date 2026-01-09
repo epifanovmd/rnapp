@@ -11,8 +11,6 @@ import {
   Touchable,
 } from "@components";
 import { AppScreenProps, useTheme } from "@core";
-import { disposer } from "@force-dev/utils";
-import { useUserDataStore } from "@store";
 import { useDialogsDataStore } from "@store/dialogs";
 import { UserIcon } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
@@ -29,15 +27,10 @@ export const Dialogs: FC<AppScreenProps> = observer(
       loadMore,
       onViewableItemsChanged,
     } = useDialogsDataStore();
-    const { user } = useUserDataStore();
     const { colors } = useTheme();
 
     useEffect(() => {
-      const dispose = initialize();
-
-      return () => {
-        disposer(dispose);
-      };
+      initialize();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -63,9 +56,13 @@ export const Dialogs: FC<AppScreenProps> = observer(
                 online,
               },
             }) => {
-              const participant =
-                participants.find(item => item.userId !== user?.id) ??
-                participants[0];
+              const participant = participants[0];
+              const profile = participant.profile;
+              const username =
+                [profile.firstName, profile.lastName]
+                  .filter(Boolean)
+                  .join(" ")
+                  .trim() || participant.email;
 
               return (
                 <Touchable
@@ -93,9 +90,7 @@ export const Dialogs: FC<AppScreenProps> = observer(
 
                       <Col flex={1}>
                         <Row alignItems={"center"} gap={8}>
-                          <Text textStyle={"Title_M"}>
-                            {participant.profile.firstName || participant.email}
-                          </Text>
+                          <Text textStyle={"Title_M"}>{username}</Text>
 
                           {!!online && (
                             <Text textStyle={"Caption_M3"} color={"green500"}>

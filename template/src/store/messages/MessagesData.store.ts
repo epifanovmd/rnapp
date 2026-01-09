@@ -58,7 +58,6 @@ export class MessagesDataStore implements IMessagesDataStore {
 
     disposers.add(
       this._socketService.on("message", args => {
-        console.log("args", args);
         this._holder.updateData([args, ...this.data], { replace: true });
       }),
     );

@@ -175,13 +175,21 @@ export const ChatScreen: FC<StackProps<"ChatScreen">> = observer(
       [dialogId, sendMessage],
     );
 
+    const username = useMemo(() => {
+      const participant = dialog?.participants[0];
+      const profile = participant?.profile;
+
+      return (
+        [profile?.firstName, profile?.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || participant?.email
+      );
+    }, [dialog?.participants]);
+
     if (!user) {
       return null;
     }
-
-    const participant =
-      dialog?.participants.find(item => item.userId !== user.id) ??
-      dialog?.participants[0];
 
     return (
       <Container edges={[]}>
@@ -194,9 +202,7 @@ export const ChatScreen: FC<StackProps<"ChatScreen">> = observer(
           </Navbar.Right>
           <View style={{ gap: 2, alignItems: "center" }}>
             <Row gap={8} alignItems={"center"}>
-              <NavbarTitle>
-                {participant?.profile.firstName || participant?.email}
-              </NavbarTitle>
+              <NavbarTitle>{username}</NavbarTitle>
             </Row>
             {isOnline && !isTyping && (
               <Text textStyle={"Caption_M3"} color={"green500"}>

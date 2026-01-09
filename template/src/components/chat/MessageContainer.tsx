@@ -9,6 +9,7 @@ import React, {
   forwardRef,
   memo,
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -39,8 +40,8 @@ const AnimatedFlashList =
   Animated.createAnimatedComponent<FlashListProps<IMessage>>(FlashList);
 
 const viewabilityConfig: ViewabilityConfig = {
-  itemVisiblePercentThreshold: 60,
-  minimumViewTime: 250,
+  itemVisiblePercentThreshold: 50,
+  minimumViewTime: 150,
 };
 
 export interface MessageContainerProps
@@ -124,7 +125,7 @@ export const MessageContainer = memo(
       inverted,
       loadEarlier,
       scrollToBottom,
-      scrollToBottomOffset = 200,
+      scrollToBottomOffset = 60,
       infiniteScroll,
       isLoadingEarlier,
       listViewProps,
@@ -192,7 +193,7 @@ export const MessageContainer = memo(
         if (inverted) {
           _scrollTo({ offset: 0, animated });
         } else if (_ref.current) {
-          _ref.current!.scrollToEnd({ animated });
+          _ref.current.scrollToEnd({ animated });
         }
       },
       [_scrollTo, inverted],
@@ -446,7 +447,7 @@ export const MessageContainer = memo(
 
     const onViewableItemsChanged = useCallback(
       ({
-        changed,
+        viewableItems,
       }: {
         viewableItems: {
           item: IMessage;
@@ -461,8 +462,8 @@ export const MessageContainer = memo(
           isViewable: boolean;
         }[];
       }) => {
-        const items = changed
-          .filter(item => item.isViewable)
+        const items = viewableItems
+          .filter(item => item.isViewable && !item.item.received)
           .map(({ item }) => item);
 
         onViewableMessages?.(items);

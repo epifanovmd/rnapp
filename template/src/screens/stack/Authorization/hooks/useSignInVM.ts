@@ -16,10 +16,10 @@ export const useSignInVM = ({ code }: Partial<AuthenticatePayload>) => {
 
   const form = useForm<TSignInForm>({
     defaultValues: {
-      // login: "user@example.com",
-      // password: "password123",
-      login: "epifanovmd@gmail.com",
-      password: "Epifan123",
+      login: "user@example.com",
+      password: "password123",
+      // login: "epifanovmd@gmail.com",
+      // password: "Epifan123",
     },
     resolver: zodResolver(signInFormValidationSchema),
   });
