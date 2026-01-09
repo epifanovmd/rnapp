@@ -191,6 +191,8 @@ export const ChatScreen: FC<StackProps<"ChatScreen">> = observer(
       return null;
     }
 
+    // return <RecycleTestComponent />;
+
     return (
       <Container edges={[]}>
         <Navbar safeArea={true}>

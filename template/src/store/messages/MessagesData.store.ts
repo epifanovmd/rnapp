@@ -39,7 +39,7 @@ export class MessagesDataStore implements IMessagesDataStore {
           .then(res => {
             const data = res.data?.data ?? [];
 
-            this._holder.updateData(data);
+            this._holder.updateData(data.reverse());
 
             return data;
           })
@@ -58,7 +58,7 @@ export class MessagesDataStore implements IMessagesDataStore {
 
     disposers.add(
       this._socketService.on("message", args => {
-        this._holder.updateData([args, ...this.data], { replace: true });
+        this._holder.updateData([...this.data, args], { replace: true });
       }),
     );
 
@@ -121,6 +121,7 @@ export class MessagesDataStore implements IMessagesDataStore {
 
     this._holder.updateData(
       [
+        ...this.data,
         {
           text: message.text,
           userId: user.id,
@@ -138,7 +139,6 @@ export class MessagesDataStore implements IMessagesDataStore {
 
           reply: replyMessage,
         },
-        ...this.data,
       ],
       { replace: true },
     );

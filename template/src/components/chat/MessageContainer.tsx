@@ -3,13 +3,13 @@ import { ViewabilityConfig } from "@react-native/virtualized-lists";
 import {
   FlashList,
   FlashListProps,
+  FlashListRef,
   ListRenderItemInfo,
 } from "@shopify/flash-list";
 import React, {
   forwardRef,
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -17,6 +17,7 @@ import React, {
 import {
   ColorValue,
   DimensionValue,
+  LayoutChangeEvent,
   Platform,
   StyleProp,
   StyleSheet,
@@ -26,7 +27,9 @@ import {
 } from "react-native";
 import Animated, {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedScrollHandler,
+  useDerivedValue,
   useSharedValue,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
@@ -36,12 +39,19 @@ import { LoadEarlier, LoadEarlierProps } from "./LoadEarlier";
 import { Message, MessageProps } from "./Message";
 import { IMessage, User } from "./types";
 
-const AnimatedFlashList =
-  Animated.createAnimatedComponent<FlashListProps<IMessage>>(FlashList);
+const AnimatedFlashList = Animated.createAnimatedComponent<
+  FlashListProps<IMessage> & { ref?: React.Ref<FlashListRef<IMessage>> }
+>(FlashList);
 
 const viewabilityConfig: ViewabilityConfig = {
   itemVisiblePercentThreshold: 50,
   minimumViewTime: 150,
+};
+
+const maintainVisibleContentPosition = {
+  autoscrollToBottomThreshold: 0.01,
+  animateAutoScrollToBottom: false,
+  startRenderingFromBottom: true,
 };
 
 export interface MessageContainerProps
@@ -114,10 +124,10 @@ export interface MessageContainerProps
   renderLoadEarlier?: (props: LoadEarlierProps) => React.ReactElement | null;
 }
 
-const keyExtractor = (_item: IMessage, index: number) => `${index}`;
+const keyExtractor = (_item: IMessage) => _item.id;
 
 export const MessageContainer = memo(
-  forwardRef<FlashList<IMessage>, MessageContainerProps>((props, ref) => {
+  forwardRef<FlashListRef<IMessage>, MessageContainerProps>((props, ref) => {
     const {
       user,
       messages,
@@ -170,43 +180,26 @@ export const MessageContainer = memo(
       renderReplyIcon,
     } = props;
 
-    const _ref = useRef<FlashList<IMessage>>(null);
+    const _ref = useRef<FlashListRef<IMessage>>(null);
     const [showScrollBottom, setShowScrollBottom] = useState(false);
-    const loadedEarlier = useSharedValue(false);
-    const scrollContentHeight = useSharedValue(0);
+    const scrollY = useSharedValue(0);
+    const contentHeight = useSharedValue(0);
+    const listHeight = useSharedValue(0);
     const [containerHeight, setContainerHeight] =
       useState<DimensionValue>("auto");
 
     const theme = useChatTheme();
 
-    const _scrollTo = useCallback(
-      (options: { animated?: boolean; offset: number }) => {
-        if (_ref.current && options) {
-          _ref.current.scrollToOffset(options);
-        }
-      },
-      [],
-    );
-
     const _scrollToBottom = useCallback(
       (animated: boolean = true) => {
         if (inverted) {
-          _scrollTo({ offset: 0, animated });
+          _ref.current?.scrollToEnd({ animated });
         } else if (_ref.current) {
-          _ref.current.scrollToEnd({ animated });
+          _ref.current.scrollToTop({ animated });
         }
       },
-      [_scrollTo, inverted],
+      [inverted],
     );
-
-    const onLayoutList = useCallback(() => {
-      if (!inverted && !!messages && messages?.length) {
-        setTimeout(
-          () => scrollToBottom && _scrollToBottom(false),
-          15 * messages.length,
-        );
-      }
-    }, [_scrollToBottom, inverted, messages, scrollToBottom]);
 
     const onLoadMore = useCallback(() => {
       if (infiniteScroll && loadEarlier && onLoadEarlier && !isLoadingEarlier) {
@@ -317,10 +310,8 @@ export const MessageContainer = memo(
         index,
       }: ListRenderItemInfo<IMessage>): React.ReactElement | null => {
         if (messages && user) {
-          const previousMessage =
-            (inverted ? messages[index + 1] : messages[index - 1]) || {};
-          const nextMessage =
-            (inverted ? messages[index - 1] : messages[index + 1]) || {};
+          const previousMessage = messages[index - 1] || {};
+          const nextMessage = messages[index + 1] || {};
 
           const messageProps: MessageProps = {
             user,
@@ -413,36 +404,27 @@ export const MessageContainer = memo(
       ],
     );
 
-    const scrollEvent = useAnimatedScrollHandler(
-      {
-        onScroll: event => {
-          const contentHeight =
-            event.contentSize.height - event.layoutMeasurement.height;
-
-          const contentOffsetY = event.contentOffset?.y ?? 0;
-
-          if (scrollContentHeight.value < contentHeight) {
-            scrollContentHeight.value = contentHeight;
-            loadedEarlier.value = false;
-          } else if (
-            !loadedEarlier.value &&
-            contentOffsetY > contentHeight / 1.6
-          ) {
-            loadedEarlier.value = true;
-            runOnJS(onLoadMore)();
-          }
-
-          if (inverted) {
-            runOnJS(setShowScrollBottom)(contentOffsetY > scrollToBottomOffset);
-          } else {
-            runOnJS(setShowScrollBottom)(
-              contentOffsetY < scrollToBottomOffset &&
-                contentHeight > scrollToBottomOffset,
-            );
-          }
-        },
+    const scrollEvent = useAnimatedScrollHandler({
+      onScroll: event => {
+        scrollY.value = event.contentOffset.y;
+        contentHeight.value = event.contentSize.height;
+        listHeight.value = event.layoutMeasurement.height;
       },
-      [onLoadMore, inverted],
+    });
+
+    const showScrollBottomDv = useDerivedValue(() => {
+      const visibleScroll = inverted
+        ? contentHeight.value - listHeight.value - scrollY.value
+        : scrollY.value;
+
+      return visibleScroll > scrollToBottomOffset;
+    });
+
+    useAnimatedReaction(
+      () => showScrollBottomDv.value,
+      shouldShow => {
+        runOnJS(setShowScrollBottom)(shouldShow);
+      },
     );
 
     const onViewableItemsChanged = useCallback(
@@ -471,29 +453,41 @@ export const MessageContainer = memo(
       [onViewableMessages],
     );
 
+    const _maintainVisibleContentPosition = useMemo(
+      () => (inverted ? maintainVisibleContentPosition : undefined),
+      [inverted],
+    );
+
+    const handleLayout = useCallback(
+      ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
+        setContainerHeight(layout.height);
+      },
+      [],
+    );
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const refs = useMemo(() => mergeRefs([ref, _ref]), []);
+
     return (
-      <View
-        style={styles.container}
-        onLayout={({ nativeEvent: { layout } }) => {
-          setContainerHeight(layout.height);
-        }}
-      >
+      <View style={styles.container} onLayout={handleLayout}>
         <AnimatedFlashList
-          ref={mergeRefs([ref, _ref])}
+          ref={refs}
           extraData={extraData}
           keyExtractor={keyExtractor}
           automaticallyAdjustContentInsets={false}
-          inverted={inverted}
+          maintainVisibleContentPosition={_maintainVisibleContentPosition}
           data={messages}
           renderItem={_renderRow}
           showsVerticalScrollIndicator={false}
-          estimatedItemSize={43}
           ListEmptyComponent={_renderChatEmpty}
           ListFooterComponent={inverted ? _renderHeader : _renderFooter}
           ListHeaderComponent={inverted ? _renderFooter : _renderHeader}
           onScroll={scrollEvent}
-          onLayout={onLayoutList}
-          viewabilityConfig={viewabilityConfig}
+          onStartReached={inverted ? onLoadMore : undefined}
+          onEndReached={inverted ? undefined : onLoadMore}
+          onStartReachedThreshold={1}
+          onEndReachedThreshold={1}
+          viewabilityConfig={onViewableMessages ? viewabilityConfig : undefined}
           onViewableItemsChanged={onViewableItemsChanged}
           {...listViewProps}
         />

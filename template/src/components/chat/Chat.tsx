@@ -1,4 +1,4 @@
-import { FlashList, FlashListProps } from "@shopify/flash-list";
+import { FlashListProps, FlashListRef } from "@shopify/flash-list";
 import React, {
   createRef,
   FC,
@@ -234,7 +234,7 @@ export const Chat: FC<ChatProps> = memo(
     renderResetReplyIcon,
     renderReplyContainer,
   }) => {
-    const flashListRef = useRef<FlashList<IMessage>>(null);
+    const flashListRef = useRef<FlashListRef<IMessage>>(null);
     const isMountedRef = useRef(false);
     const [replyMessage, setReplyMessage] = useState<IMessage | undefined>(
       undefined,
@@ -463,11 +463,10 @@ export const Chat: FC<ChatProps> = memo(
 
     const _listViewProps = useMemo(
       () => ({
-        inverted: inverted,
         keyboardShouldPersistTaps: keyboardShouldPersistTaps,
         ...listViewProps,
       }),
-      [inverted, keyboardShouldPersistTaps, listViewProps],
+      [keyboardShouldPersistTaps, listViewProps],
     );
 
     const handleReply = useCallback(
