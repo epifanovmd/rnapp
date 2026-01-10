@@ -81,7 +81,6 @@ export interface ChatProps {
   maxInputLength?: number;
   alwaysShowSend?: boolean;
   maxInputHeight?: number;
-  infiniteScroll?: boolean;
 
   // props
   imageProps?: ImageProps;
@@ -180,7 +179,6 @@ export const Chat: FC<ChatProps> = memo(
     maxInputLength,
     alwaysShowSend,
     maxInputHeight = 166,
-    infiniteScroll,
 
     imageProps,
     listViewProps,
@@ -497,7 +495,6 @@ export const Chat: FC<ChatProps> = memo(
               loadEarlier={loadEarlier}
               scrollToBottom={scrollToBottom}
               scrollToBottomOffset={scrollToBottomOffset}
-              infiniteScroll={infiniteScroll}
               isLoadingEarlier={isLoadingEarlier}
               listViewProps={_listViewProps}
               scrollToBottomStyle={scrollToBottomStyle}

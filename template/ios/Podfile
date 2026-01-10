@@ -33,16 +33,14 @@ setup_permissions([
   # 'StoreKit',
 ])
 
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+use_frameworks! :linkage => :static
 
 target 'rnapp' do
   config = use_native_modules!
 
   pod 'react-native-config', :path => '../node_modules/react-native-config'
+  pod 'Firebase/Core', :modular_headers => true
+  pod 'Firebase/Messaging', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],
@@ -51,7 +49,6 @@ target 'rnapp' do
   )
 
   post_install do |installer|
-    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
       installer,
       config[:reactNativePath],

@@ -119,7 +119,6 @@ export const Gallery: FC<StackProps> = memo(({ route }) => {
       keyExtractor={item => item.node.id}
       numColumns={3}
       renderItem={renderItem}
-      estimatedItemSize={100} // Оптимизация для быстрого рендеринга
     />
   );
 });

@@ -161,7 +161,7 @@ const SS = StyleSheet.create({
     minHeight: 36,
   },
   active: {
-    borderRadius: 32,
+    borderRadius: 20,
     position: "absolute",
     left: 8,
     top: 8,

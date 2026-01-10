@@ -33,11 +33,13 @@ export class MessagesDataStore implements IMessagesDataStore {
 
   initialize(dialogId: string) {
     this._holder.initialize({
-      onFetchData: args =>
-        this._apiService
+      onFetchData: args => {
+        return this._apiService
           .getMessages({ dialogId, ...args })
           .then(res => {
             const data = res.data?.data ?? [];
+
+            console.log("data", data.length);
 
             this._holder.updateData(data.reverse());
 
@@ -49,9 +51,10 @@ export class MessagesDataStore implements IMessagesDataStore {
             }
 
             return [];
-          }),
+          });
+      },
       keyExtractor: item => item.id,
-      pageSize: 20,
+      pageSize: 60,
     });
 
     const disposers = new Set<InitializeDispose>();

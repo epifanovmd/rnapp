@@ -39,9 +39,7 @@ import { LoadEarlier, LoadEarlierProps } from "./LoadEarlier";
 import { Message, MessageProps } from "./Message";
 import { IMessage, User } from "./types";
 
-const AnimatedFlashList = Animated.createAnimatedComponent<
-  FlashListProps<IMessage> & { ref?: React.Ref<FlashListRef<IMessage>> }
->(FlashList);
+const AnimatedFlashList = Animated.createAnimatedComponent<any>(FlashList);
 
 const viewabilityConfig: ViewabilityConfig = {
   itemVisiblePercentThreshold: 50,
@@ -96,7 +94,6 @@ export interface MessageContainerProps
   loadEarlier?: boolean;
   scrollToBottom?: boolean;
   scrollToBottomOffset?: number;
-  infiniteScroll?: boolean;
   isLoadingEarlier?: boolean;
   listViewProps: Omit<
     FlashListProps<IMessage>,
@@ -136,7 +133,6 @@ export const MessageContainer = memo(
       loadEarlier,
       scrollToBottom,
       scrollToBottomOffset = 60,
-      infiniteScroll,
       isLoadingEarlier,
       listViewProps,
       scrollToBottomStyle,
@@ -202,10 +198,10 @@ export const MessageContainer = memo(
     );
 
     const onLoadMore = useCallback(() => {
-      if (infiniteScroll && loadEarlier && onLoadEarlier && !isLoadingEarlier) {
+      if (onLoadEarlier && !isLoadingEarlier) {
         onLoadEarlier();
       }
-    }, [infiniteScroll, isLoadingEarlier, loadEarlier, onLoadEarlier]);
+    }, [isLoadingEarlier, onLoadEarlier]);
 
     const _renderFooter = useMemo(() => {
       if (renderFooter) {
@@ -216,7 +212,7 @@ export const MessageContainer = memo(
     }, [props, renderFooter]);
 
     const _renderLoadEarlier = useCallback(() => {
-      if (loadEarlier) {
+      if (loadEarlier || isLoadingEarlier) {
         const loadEarlierProps: LoadEarlierProps = {
           isLoadingEarlier,
           onLoadEarlier,
@@ -480,8 +476,8 @@ export const MessageContainer = memo(
           renderItem={_renderRow}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={_renderChatEmpty}
-          ListFooterComponent={inverted ? _renderHeader : _renderFooter}
-          ListHeaderComponent={inverted ? _renderFooter : _renderHeader}
+          ListFooterComponent={_renderFooter}
+          ListHeaderComponent={_renderHeader}
           onScroll={scrollEvent}
           onStartReached={inverted ? onLoadMore : undefined}
           onEndReached={inverted ? undefined : onLoadMore}

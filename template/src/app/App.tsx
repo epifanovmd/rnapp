@@ -11,14 +11,13 @@ import {
 } from "@core";
 import { disposer } from "@force-dev/utils";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import notifee from "@notifee/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { log, navigationRef } from "@service";
 import { useAppDataStore } from "@store/app";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, { FC, memo, PropsWithChildren, useEffect } from "react";
-import { StatusBar, StyleSheet, useColorScheme } from "react-native";
+import { StyleSheet } from "react-native";
 import Config from "react-native-config";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -40,8 +39,6 @@ export const App: FC = observer(() => {
   const { initialize } = useAppDataStore();
 
   useEffect(() => {
-    notifee.requestPermission().then();
-
     const dispose = initialize();
 
     AsyncStorage.getItem("i18nextLng").then(async lang => {
