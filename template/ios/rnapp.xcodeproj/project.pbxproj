@@ -36,6 +36,7 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1A881F2A2E47D2E80057B776 /* Picker */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Picker; sourceTree = "<group>"; };
+		1AC571762F17D541001D7A3C /* RNGridView */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = RNGridView; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,6 +54,7 @@
 		13B07FAE1A68108700A75B9A /* rnapp */ = {
 			isa = PBXGroup;
 			children = (
+				1AC571762F17D541001D7A3C /* RNGridView */,
 				1A8368022F13070100FB3432 /* GoogleService-Info.plist */,
 				1A881F2A2E47D2E80057B776 /* Picker */,
 				1A8169D92D8B10590020AC31 /* AppDelegate.swift */,
@@ -137,6 +139,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				1A881F2A2E47D2E80057B776 /* Picker */,
+				1AC571762F17D541001D7A3C /* RNGridView */,
 			);
 			name = rnapp;
 			productName = rnapp;
@@ -322,7 +325,7 @@
 				DEVELOPMENT_TEAM = 7A89C8T284;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = rnapp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -355,7 +358,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7A89C8T284;
 				INFOPLIST_FILE = rnapp/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -437,7 +440,7 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",
@@ -518,7 +521,7 @@
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers",
 					"${PODS_CONFIGURATION_BUILD_DIR}/React-graphics/React_graphics.framework/Headers/react/renderer/graphics/platform/ios",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					/usr/lib/swift,
 					"$(inherited)",

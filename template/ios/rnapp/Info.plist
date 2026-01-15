@@ -22,8 +22,6 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-  <key>NSPhotoLibraryUsageDescription</key>
-  <string>Разрешите доступ к вашим фото</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -60,6 +58,12 @@
 	<string>Enabling Face ID allows you quick access to RealApp</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Разрешите доступ к вашим фото</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>BootSplash</string>
 	<key>UIRequiredDeviceCapabilities</key>
