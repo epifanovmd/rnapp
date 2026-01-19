@@ -20,6 +20,7 @@ RCT_EXPORT_VIEW_PROPERTY(bounces, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(initialScrollIndex, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(initialScrollId, NSString)
 RCT_EXPORT_VIEW_PROPERTY(initialScrollOffset, NSNumber)
+RCT_EXPORT_VIEW_PROPERTY(initialScrollDate, NSNumber)
 
 
 RCT_EXPORT_VIEW_PROPERTY(onEndReached, RCTDirectEventBlock)

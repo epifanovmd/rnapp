@@ -41,6 +41,7 @@ target 'rnapp' do
   pod 'react-native-config', :path => '../node_modules/react-native-config'
   pod 'Firebase/Core', :modular_headers => true
   pod 'Firebase/Messaging', :modular_headers => true
+  pod 'DifferenceKit', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],
