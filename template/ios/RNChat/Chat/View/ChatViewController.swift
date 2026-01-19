@@ -28,6 +28,8 @@ final class ChatViewController: UIViewController {
   var onScrollUpdateInterval: TimeInterval = 0.1 // Как часто уведомлять о скролле (сек)
   var scrollVelocityThreshold: CGFloat = 2000 // Скорость, выше которой чтение не засчитывается
   
+  private var keyboardScrollOffset: CGFloat = 0
+  
   var viewabilityConfig = Constants.ViewabilityConfig()
   
   private var lastReportedOffset: CGPoint = .zero
@@ -97,6 +99,10 @@ final class ChatViewController: UIViewController {
     super.init(nibName: nil, bundle: nil)
   }
   
+  deinit {
+    NotificationCenter.default.removeObserver(self)
+  }
+  
   @available(*, unavailable, message: "Use init(messageController:) instead")
   override convenience init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
     fatalError()
@@ -120,6 +126,7 @@ final class ChatViewController: UIViewController {
     chatLayout.keepContentAtBottomOfVisibleArea = true
     
     collectionView = UICollectionView(frame: view.frame, collectionViewLayout: chatLayout)
+    collectionView.alpha = 0
     
     view.addSubview(collectionView)
     
@@ -147,6 +154,7 @@ final class ChatViewController: UIViewController {
     dataSource.prepare(with: collectionView)
     
     setupScrollDownButton()
+    KeyboardListener.shared.add(delegate: self)
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -200,23 +208,28 @@ final class ChatViewController: UIViewController {
   }
   
   func setDirectionalLockEnabled(_ enabled: Bool) {
-      collectionView.isDirectionalLockEnabled = enabled
+    collectionView.isDirectionalLockEnabled = enabled
   }
-
+  
   func setKeyboardDismissMode(_ mode: UIScrollView.KeyboardDismissMode = .interactive) {
     collectionView.keyboardDismissMode = mode
   }
-
+  
+  func setKeyboardScrollOffset(_ offset: CGFloat = 0) {
+    print("set offset \(offset)")
+    keyboardScrollOffset = offset
+  }
+  
   func setScrollsToTop(_ enabled: Bool) {
-      collectionView.scrollsToTop = enabled
+    collectionView.scrollsToTop = enabled
   }
-
+  
   func setShowsVerticalScrollIndicator(_ visible: Bool) {
-      collectionView.showsVerticalScrollIndicator = visible
+    collectionView.showsVerticalScrollIndicator = visible
   }
-
+  
   func setScrollEnabled(_ enabled: Bool) {
-      collectionView.isScrollEnabled = enabled
+    collectionView.isScrollEnabled = enabled
   }
 }
 
@@ -295,22 +308,22 @@ extension ChatViewController: UIScrollViewDelegate {
   }
   
   func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        userHasInteracted = true
-        delegate?.onScrollMessagesBeginDrag()
-    }
-
+    userHasInteracted = true
+    delegate?.onScrollMessagesBeginDrag()
+  }
+  
   func scrollViewDidEndDragging(_ scrollView: UIScrollView, willowDecelerate decelerate: Bool) {
-      if !decelerate {
-          delegate?.onScrollMessagesEndDrag()
-      }
+    if !decelerate {
+      delegate?.onScrollMessagesEndDrag()
+    }
   }
-
+  
   func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-      delegate?.onMomentumScrollMessagesEnd()
+    delegate?.onMomentumScrollMessagesEnd()
   }
-
+  
   func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
-      delegate?.onScrollMessagesAnimationEnd()
+    delegate?.onScrollMessagesAnimationEnd()
   }
   
   private func updateScrollDownButtonVisibility(_ scrollView: UIScrollView) {
@@ -353,93 +366,93 @@ extension ChatViewController: UIScrollViewDelegate {
     
     // Прерываем системный скролл, если он идет
     collectionView.setContentOffset(collectionView.contentOffset, animated: false)
-      
+    
     guard isViewLoaded else {
-        initialScrollId = messageId
-        initialScrollIndex = index
-        initialScrollOffset = offset
-        completion?()
-        return
+      initialScrollId = messageId
+      initialScrollIndex = index
+      initialScrollOffset = offset
+      completion?()
+      return
     }
-
+    
     let startOffset = collectionView.contentOffset
     var targetOffset: CGPoint?
-
+    
     // 1. Определяем целевой IndexPath или сразу Offset
     if let offset = offset {
-        let height = chatLayout.collectionViewContentSize.height
-        let viewportHeight = collectionView.frame.height
-        let bottomInset = collectionView.adjustedContentInset.bottom
-        let topInset = collectionView.adjustedContentInset.top
-        let maxAllowed = max(-topInset, height - viewportHeight + bottomInset)
-        
-        let calculatedY = height - viewportHeight + bottomInset - offset
-        targetOffset = CGPoint(x: 0, y: min(maxAllowed, max(-topInset, calculatedY)))
+      let height = chatLayout.collectionViewContentSize.height
+      let viewportHeight = collectionView.frame.height
+      let bottomInset = collectionView.adjustedContentInset.bottom
+      let topInset = collectionView.adjustedContentInset.top
+      let maxAllowed = max(-topInset, height - viewportHeight + bottomInset)
+      
+      let calculatedY = height - viewportHeight + bottomInset - offset
+      targetOffset = CGPoint(x: 0, y: min(maxAllowed, max(-topInset, calculatedY)))
     } else {
-        var targetIndexPath: IndexPath?
-        
-        if let messageId = messageId {
-            targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
-                if case let .message(msg, _) = cell { return msg.id == messageId }
-                return false
-            }
-        } else if let index = index {
-            targetIndexPath = getIndexPath(fromMessageIndex: index, in: dataSource.sections)
-        } else if let date = date {
-            targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
-                if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: date) }
-                return false
-            }
+      var targetIndexPath: IndexPath?
+      
+      if let messageId = messageId {
+        targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
+          if case let .message(msg, _) = cell { return msg.id == messageId }
+          return false
         }
-
-        if let indexPath = targetIndexPath {
-            // ТРЮК: Вычисляем финальную позицию через мгновенный переход
-            let snapshot = ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
-            UIView.performWithoutAnimation {
-                self.chatLayout.restoreContentOffset(with: snapshot)
-                targetOffset = self.collectionView.contentOffset
-                // Возвращаем вью в исходное состояние для начала анимации
-                self.collectionView.contentOffset = startOffset
-            }
+      } else if let index = index {
+        targetIndexPath = getIndexPath(fromMessageIndex: index, in: dataSource.sections)
+      } else if let date = date {
+        targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
+          if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: date) }
+          return false
         }
+      }
+      
+      if let indexPath = targetIndexPath {
+        // ТРЮК: Вычисляем финальную позицию через мгновенный переход
+        let snapshot = ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
+        UIView.performWithoutAnimation {
+          self.chatLayout.restoreContentOffset(with: snapshot)
+          targetOffset = self.collectionView.contentOffset
+          // Возвращаем вью в исходное состояние для начала анимации
+          self.collectionView.contentOffset = startOffset
+        }
+      }
     }
-
+    
     // 2. Выполняем анимацию, если цель найдена
     guard let finalPoint = targetOffset else {
-        completion?()
-        return
+      completion?()
+      return
     }
-
+    
     if !animated {
-        collectionView.setContentOffset(finalPoint, animated: false)
-        completion?()
-        return
+      collectionView.setContentOffset(finalPoint, animated: false)
+      completion?()
+      return
     }
-
+    
     let delta = finalPoint.y - startOffset.y
     if abs(delta) < 0.1 {
-        completion?()
-        return
+      completion?()
+      return
     }
-
+    
     // Используем ManualAnimator для длинных дистанций или сложного лейаута
     if abs(delta) > chatLayout.visibleBounds.height {
-        animator = ManualAnimator()
-        animator?.animate(duration: 0.4, curve: .parametric) { [weak self] percentage in
-            guard let self = self else { return }
-            self.collectionView.contentOffset.y = startOffset.y + (delta * percentage)
-            if percentage == 1.0 {
-                self.animator = nil
-                completion?()
-            }
+      animator = ManualAnimator()
+      animator?.animate(duration: 0.4, curve: .parametric) { [weak self] percentage in
+        guard let self = self else { return }
+        self.collectionView.contentOffset.y = startOffset.y + (delta * percentage)
+        if percentage == 1.0 {
+          self.animator = nil
+          completion?()
         }
+      }
     } else {
-        // Для коротких дистанций стандартная анимация ощущается нативнее
-        UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
-            self.collectionView.contentOffset = finalPoint
-        }, completion: { _ in
-            completion?()
-        })
+      // Для коротких дистанций стандартная анимация ощущается нативнее
+      UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
+        self.collectionView.contentOffset = finalPoint
+      }, completion: { _ in
+        completion?()
+      })
     }
   }
   
@@ -525,7 +538,7 @@ extension ChatViewController: UIScrollViewDelegate {
   
   private func applyInitialScroll(in sections: [Section]) {
     if isInitialScrollDone || sections.isEmpty { return }
-
+    
     // Используем универсальный метод scrollTo для исключения дублирования логики
     if let scrollOffset = initialScrollOffset {
       scrollTo(offset: scrollOffset, animated: false)
@@ -736,7 +749,9 @@ extension ChatViewController: ChatViewControllerDelegate {
             
             if !self.isInitialScrollDone {
               self.applyInitialScroll(in: sections)
-              self.isInitialScrollDone = true
+              UIView.animate(withDuration: 0.2) {
+                self.collectionView.alpha = 1
+              }
             }
             
             completion?()
@@ -756,5 +771,98 @@ extension ChatViewController: ChatViewControllerDelegate {
         process()
       }
     }
+  }
+}
+
+extension ChatViewController: KeyboardListenerDelegate {
+  func keyboardWillChangeFrame(info: KeyboardInfo) {
+    guard !currentInterfaceActions.options.contains(.changingFrameSize),
+          collectionView.contentInsetAdjustmentBehavior != .never else {
+      return
+    }
+    
+    // Если пользователь активно скроллит - не вмешиваемся
+    guard !isUserInitiatedScrolling else {
+      return
+    }
+    
+    currentInterfaceActions.options.insert(.changingKeyboardFrame)
+    
+    let keyboardHeight = info.frameEnd.height
+    let isKeyboardVisible = keyboardHeight > 0
+    
+    if isKeyboardVisible {
+      // Клавиатура показывается - ВСЕГДА поднимаем контент
+      guard let keyboardFrame = collectionView.window?.convert(info.frameEnd, to: view),
+            keyboardFrame.minY > 0 else {
+        currentInterfaceActions.options.remove(.changingKeyboardFrame)
+        return
+      }
+      
+      // Вычисляем высоту клавиатуры над safe area
+      let keyboardTop = keyboardFrame.minY
+      let visibleAreaBottom = collectionView.frame.maxY - collectionView.safeAreaInsets.bottom
+      let keyboardOverlap = visibleAreaBottom - keyboardTop
+      
+      if keyboardOverlap > 0 {
+        // НОВОЕ: Добавляем текущий keyboardScrollOffset к смещению
+        let neededOffset = keyboardOverlap + keyboardScrollOffset
+        
+        var targetOffset = collectionView.contentOffset
+        targetOffset.y = collectionView.contentOffset.y + neededOffset
+        
+        // Ограничиваем максимальное значение
+        let maxOffset = chatLayout.collectionViewContentSize.height -
+        collectionView.bounds.height +
+        collectionView.contentInset.bottom
+        targetOffset.y = min(targetOffset.y, maxOffset)
+        
+        // Не даём уйти выше нуля (с учетом contentInset)
+        targetOffset.y = max(targetOffset.y, -collectionView.contentInset.top)
+        
+        
+        // Анимируем изменение позиции скролла
+        UIView.animate(withDuration: info.animationDuration, animations: {
+          self.collectionView.contentOffset = targetOffset
+        }, completion: { _ in
+          self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
+        })
+      } else {
+        currentInterfaceActions.options.remove(.changingKeyboardFrame)
+      }
+    } else {
+      // Клавиатура скрывается - ВСЕГДА возвращаем контент обратно
+      let neededOffset = info.frameEnd.origin.y - info.frameBegin.origin.y
+      
+      var targetOffset = collectionView.contentOffset
+      // НОВОЕ: Учитываем накопленное смещение при возврате
+      targetOffset.y = collectionView.contentOffset.y + neededOffset - keyboardScrollOffset
+      
+      // Ограничиваем максимальное значение
+      let maxOffset = chatLayout.collectionViewContentSize.height -
+      collectionView.bounds.height +
+      collectionView.contentInset.bottom
+      targetOffset.y = min(targetOffset.y, maxOffset)
+      
+      // Не даём уйти выше нуля (с учетом contentInset)
+      targetOffset.y = max(targetOffset.y, -collectionView.contentInset.top)
+      
+      if targetOffset != collectionView.contentOffset {
+        UIView.animate(withDuration: info.animationDuration, animations: {
+          self.collectionView.contentOffset = targetOffset
+        }, completion: { _ in
+          self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
+        })
+      } else {
+        currentInterfaceActions.options.remove(.changingKeyboardFrame)
+      }
+    }
+  }
+  
+  func keyboardDidChangeFrame(info: KeyboardInfo) {
+    guard currentInterfaceActions.options.contains(.changingKeyboardFrame) else {
+      return
+    }
+    currentInterfaceActions.options.remove(.changingKeyboardFrame)
   }
 }

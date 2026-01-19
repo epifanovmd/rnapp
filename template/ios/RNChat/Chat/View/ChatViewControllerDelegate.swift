@@ -13,6 +13,6 @@
 import Foundation
 
 protocol ChatViewControllerDelegate: AnyObject {
-    func update(with sections: [Section], requiresIsolatedProcess: Bool)
-    func update(with sections: [Section], requiresIsolatedProcess: Bool, animated: Bool)
+  func update(with sections: [Section], requiresIsolatedProcess: Bool)
+  func update(with sections: [Section], requiresIsolatedProcess: Bool, animated: Bool)
 }

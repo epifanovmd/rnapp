@@ -13,13 +13,13 @@
 import Foundation
 
 protocol ChatControllerDelegate: AnyObject {
-    func onVisibleMessages(_ messageIds: [UUID])
-    func onLoadPreviousMessages(completion: @escaping () -> Void)
-    func onDeleteMessage(messageId: UUID)
-    func onScrollMessages(offset: CGPoint, contentSize: CGSize)
+  func onVisibleMessages(_ messageIds: [UUID])
+  func onLoadPreviousMessages(completion: @escaping () -> Void)
+  func onDeleteMessage(messageId: UUID)
+  func onScrollMessages(offset: CGPoint, contentSize: CGSize)
   
-    func onScrollMessagesBeginDrag()
-    func onScrollMessagesEndDrag()
-    func onMomentumScrollMessagesEnd()
-    func onScrollMessagesAnimationEnd()
+  func onScrollMessagesBeginDrag()
+  func onScrollMessagesEndDrag()
+  func onMomentumScrollMessagesEnd()
+  func onScrollMessagesAnimationEnd()
 }

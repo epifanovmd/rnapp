@@ -1,0 +1,946 @@
+//
+// ChatLayout
+// CollectionViewChatLayout.swift
+// https://github.com/ekazaev/ChatLayout
+//
+// Created by Eugene Kazaev in 2020-2026.
+// Distributed under the MIT license.
+//
+// Become a sponsor:
+// https://github.com/sponsors/ekazaev
+//
+
+import Foundation
+import UIKit
+
+/// A custom collection view layout designed to present items in a grid-like format, similar to UITableView, while aligning content to
+/// either the leading or trailing edge of the UICollectionView. This layout supports chat-style interfaces by preserving a consistent
+/// content offset from the bottom. It also accommodates self-sizing cells and supplementary views, ensuring dynamic and responsive
+/// content presentation.
+///
+/// ### Custom Properties:
+/// `CollectionViewChatLayout.delegate`
+///
+/// `CollectionViewChatLayout.settings`
+///
+/// `CollectionViewChatLayout.keepContentOffsetAtBottomOnBatchUpdates`
+///
+/// `CollectionViewChatLayout.processOnlyVisibleItemsOnAnimatedBatchUpdates`
+///
+/// `CollectionViewChatLayout.keepContentAtBottomOfVisibleArea`
+///
+/// `CollectionViewChatLayout.visibleBounds`
+///
+/// `CollectionViewChatLayout.layoutFrame`
+///
+/// ### Custom Methods:
+/// `CollectionViewChatLayout.getContentOffsetSnapshot(...)`
+///
+/// `CollectionViewChatLayout.restoreContentOffset(...)`
+///
+/// `CollectionViewChatLayout.reconfigureItems(...)`
+///
+/// `CollectionViewChatLayout.indexPathForItePinnedAt(...)`
+///
+open class CollectionViewChatLayout: UICollectionViewLayout {
+    // MARK: Custom Properties
+
+    /// `CollectionViewChatLayout` delegate.
+    open weak var delegate: ChatLayoutDelegate?
+
+    /// Additional settings for `CollectionViewChatLayout`.
+    public var settings = ChatLayoutSettings() {
+        didSet {
+            guard collectionView != nil,
+                  settings != oldValue else {
+                return
+            }
+            invalidateLayout()
+        }
+    }
+
+    /// By default, `UIScrollView` maintains a constant content offset relative to the top edge. When this flag is set to true,
+    /// `CollectionViewChatLayout` will attempt to adjust for batch updates in order to keep the currently visible content anchored
+    /// to the bottom of the UICollectionView.
+    ///
+    /// **NB:**
+    /// If the content inset changes during the batch update—for example, due to keyboard frame adjustments - `CollectionViewChatLayout`
+    /// typically receives this information after the animation begins and may not be able to account for it automatically. In such cases, manual
+    /// compensation is required.
+    public var keepContentOffsetAtBottomOnBatchUpdates: Bool = false
+
+    /// By default, `UICollectionView` positions its cells at the top of the visible area when the content size is smaller than the viewport.
+    /// Enabling this flag reverses that behavior, allowing cells to align with the bottom edge of the `UICollectionView` - similar to the behavior
+    /// seen in applications like Telegram.
+    public var keepContentAtBottomOfVisibleArea: Bool = false
+
+    /// Sometimes `UIScrollView` can behave weirdly if there are too many corrections in it's `contentOffset` during the animation. Especially when content size of the `UIScrollView`
+    /// is getting smaller first and then expands again as the newly appearing cells sizes are being calculated. That is why `CollectionViewChatLayout`
+    /// tries to process only the elements that are currently visible on the screen. But often it is not needed. This flag allows you to have fine control over this behaviour.
+    /// It set to `true` by default to keep the compatibility with the older versions of the library.
+    ///
+    /// **NB:**
+    /// This flag is only to provide fine control over the batch updates. If in doubts - keep it `true`.
+    public var processOnlyVisibleItemsOnAnimatedBatchUpdates: Bool = true
+
+    /// Enables a mode for automatic self-sizing invalidation in response to Auto Layout changes. While this can be useful in certain scenarios,
+    /// it is generally recommended to continue using explicit reload/reconfigure methods - particularly when multiple changes occur
+    /// simultaneously with animation. This ensures that `CollectionViewChatLayout` can manage layout updates while preserving content
+    /// offset consistency.
+    ///
+    /// **NB:**
+    /// This is an experimental feature and should be used only when no more reliable alternatives are available.
+    @available(iOS 16.0, *)
+    public var supportSelfSizingInvalidation: Bool {
+        get {
+            _supportSelfSizingInvalidation
+        }
+        set {
+            _supportSelfSizingInvalidation = newValue
+        }
+    }
+
+    /// Represent the currently visible rectangle.
+    open var visibleBounds: CGRect {
+        guard let collectionView else {
+            return .zero
+        }
+        return CGRect(
+            x: adjustedContentInset.left,
+            y: collectionView.contentOffset.y + adjustedContentInset.top,
+            width: collectionView.bounds.width - adjustedContentInset.left - adjustedContentInset.right,
+            height: collectionView.bounds.height - adjustedContentInset.top - adjustedContentInset.bottom
+        )
+    }
+
+    /// Represent the rectangle where all the items are aligned.
+    open var layoutFrame: CGRect {
+        guard let collectionView else {
+            return .zero
+        }
+        let additionalInsets = settings.additionalInsets
+        return CGRect(
+            x: adjustedContentInset.left + additionalInsets.left,
+            y: adjustedContentInset.top + additionalInsets.top,
+            width: collectionView.bounds.width - additionalInsets.left - additionalInsets.right - adjustedContentInset.left - adjustedContentInset.right,
+            height: controller.contentHeight(at: state) - additionalInsets.top - additionalInsets.bottom - adjustedContentInset.top - adjustedContentInset.bottom
+        )
+    }
+
+    // MARK: Inherited Properties
+
+    /// The direction of the language you used when designing `CollectionViewChatLayout` layout.
+    open override var developmentLayoutDirection: UIUserInterfaceLayoutDirection {
+        .leftToRight
+    }
+
+    /// A Boolean value that indicates whether the horizontal coordinate system is automatically flipped at appropriate times.
+    open override var flipsHorizontallyInOppositeLayoutDirection: Bool {
+        _flipsHorizontallyInOppositeLayoutDirection
+    }
+
+    /// Custom layoutAttributesClass is `ChatLayoutAttributes`.
+    public override class var layoutAttributesClass: AnyClass {
+        ChatLayoutAttributes.self
+    }
+
+    /// Custom invalidationContextClass is `ChatLayoutInvalidationContext`.
+    public override class var invalidationContextClass: AnyClass {
+        ChatLayoutInvalidationContext.self
+    }
+
+    /// The width and height of the collection view’s contents.
+    open override var collectionViewContentSize: CGSize {
+        let contentSize: CGSize
+        if state == .beforeUpdate {
+            contentSize = controller.contentSize(for: .beforeUpdate)
+        } else {
+            contentSize = controller.contentSize(for: .afterUpdate)
+        }
+        return contentSize
+    }
+
+    /// There is an issue in IOS 15.1 that proposed content offset is being ignored by the UICollectionView when user is scrolling.
+    /// This flag enables a hack to compensate this offset later. You can disable it if necessary.
+    /// Bug reported: https://feedbackassistant.apple.com/feedback/9727104
+    ///
+    /// PS: This issue was fixed in 15.2
+    public var enableIOS15_1Fix: Bool = true
+
+    // MARK: Internal Properties
+
+    var adjustedContentInset: UIEdgeInsets {
+        guard let collectionView else {
+            return .zero
+        }
+        return collectionView.adjustedContentInset
+    }
+
+    var viewSize: CGSize {
+        guard let collectionView else {
+            return .zero
+        }
+        return collectionView.frame.size
+    }
+
+    // MARK: Private Properties
+
+    private struct PrepareActions: OptionSet {
+        let rawValue: UInt
+
+        static let recreateSectionModels = PrepareActions(rawValue: 1 << 0)
+        static let updateLayoutMetrics = PrepareActions(rawValue: 1 << 1)
+        static let cachePreviousWidth = PrepareActions(rawValue: 1 << 2)
+        static let cachePreviousContentInsets = PrepareActions(rawValue: 1 << 3)
+        static let switchStates = PrepareActions(rawValue: 1 << 4)
+        static let updatePinnedInfo = PrepareActions(rawValue: 1 << 5)
+    }
+
+    private struct InvalidationActions: OptionSet {
+        let rawValue: UInt
+
+        static let shouldInvalidateOnBoundsChange = InvalidationActions(rawValue: 1 << 0)
+    }
+
+    private lazy var controller = StateController(layoutRepresentation: self)
+
+    private var state: ModelState = .beforeUpdate
+
+    private var prepareActions: PrepareActions = []
+
+    private var invalidationActions: InvalidationActions = []
+
+    private var cachedCollectionViewSize: CGSize?
+
+    private var cachedCollectionViewInset: UIEdgeInsets?
+
+    private var contentOffsetBeforeUpdate: CGPoint?
+
+    private var dontReturnAttributes: Bool = true
+
+    private var currentPositionSnapshot: ChatLayoutPositionSnapshot?
+
+    private let _flipsHorizontallyInOppositeLayoutDirection: Bool
+
+    private var reconfigureItemsIndexPaths: [IndexPath] = []
+
+    private var _supportSelfSizingInvalidation: Bool = false
+
+    // MARK: IOS 15.1 fix flags
+
+    private var needsIOS15_1IssueFix: Bool {
+        guard enableIOS15_1Fix else {
+            return false
+        }
+        guard #unavailable(iOS 15.2) else {
+            return false
+        }
+        guard #available(iOS 15.1, *) else {
+            return false
+        }
+        return isUserInitiatedScrolling && !controller.isAnimatedBoundsChange
+    }
+
+    // MARK: Constructors
+
+    /// Default constructor.
+    /// - Parameters:
+    ///   - flipsHorizontallyInOppositeLayoutDirection: Indicates whether the horizontal coordinate
+    ///     system is automatically flipped at appropriate times. In practice, this is used to support
+    ///     right-to-left layout.
+    public init(flipsHorizontallyInOppositeLayoutDirection: Bool = true) {
+        _flipsHorizontallyInOppositeLayoutDirection = flipsHorizontallyInOppositeLayoutDirection
+        super.init()
+    }
+
+    /// Returns an object initialized from data in a given unarchiver.
+    public required init?(coder aDecoder: NSCoder) {
+        _flipsHorizontallyInOppositeLayoutDirection = true
+        super.init(coder: aDecoder)
+    }
+
+    // MARK: Custom Methods
+
+    /// Get current offset of the item closest to the provided edge.
+    /// - Parameter edge: The edge of the `UICollectionView`
+    /// - Returns: `ChatLayoutPositionSnapshot`
+    open func getContentOffsetSnapshot(from edge: ChatLayoutPositionSnapshot.Edge) -> ChatLayoutPositionSnapshot? {
+        guard let collectionView else {
+            return nil
+        }
+        let insets = UIEdgeInsets(
+            top: -collectionView.frame.height,
+            left: 0,
+            bottom: -collectionView.frame.height,
+            right: 0
+        )
+        let visibleBounds = visibleBounds
+        let layoutAttributes = controller.layoutAttributesForElements(
+            in: visibleBounds.inset(by: insets),
+            state: state,
+            ignoreCache: true
+        )
+        .sorted(by: { $0.frame.maxY < $1.frame.maxY })
+
+        switch edge {
+        case .top:
+            guard let firstVisibleItemAttributes = layoutAttributes.first(where: { $0.frame.minY >= visibleBounds.higherPoint.y }) else {
+                return nil
+            }
+            let visibleBoundsTopOffset = firstVisibleItemAttributes.frame.minY - visibleBounds.higherPoint.y - settings.additionalInsets.top
+            return ChatLayoutPositionSnapshot(
+                indexPath: firstVisibleItemAttributes.indexPath,
+                edge: .top,
+                offset: visibleBoundsTopOffset
+            )
+        case .bottom:
+            guard let lastVisibleItemAttributes = layoutAttributes.last(where: { $0.frame.minY <= visibleBounds.lowerPoint.y }) else {
+                return nil
+            }
+            let visibleBoundsBottomOffset = visibleBounds.lowerPoint.y - lastVisibleItemAttributes.frame.maxY - settings.additionalInsets.bottom
+            return ChatLayoutPositionSnapshot(
+                indexPath: lastVisibleItemAttributes.indexPath,
+                edge: .bottom,
+                offset: visibleBoundsBottomOffset
+            )
+        }
+    }
+
+    /// Invalidates layout of the `UICollectionView` and trying to keep the offset of the item provided in `ChatLayoutPositionSnapshot`
+    /// - Parameter snapshot: `ChatLayoutPositionSnapshot`
+    open func restoreContentOffset(with snapshot: ChatLayoutPositionSnapshot) {
+        guard let collectionView else {
+            return
+        }
+
+        // We do not want to return attributes while we just looking for a position so that `UICollectionView` wont
+        // create unnecessary cells that may not be used when we find the actual position.
+        dontReturnAttributes = true
+        collectionView.setNeedsLayout()
+        collectionView.layoutIfNeeded()
+        currentPositionSnapshot = snapshot
+        let context = ChatLayoutInvalidationContext()
+        context.invalidateLayoutMetrics = false
+        invalidateLayout(with: context)
+
+        dontReturnAttributes = false
+        collectionView.setNeedsLayout()
+        collectionView.layoutIfNeeded()
+        currentPositionSnapshot = nil
+    }
+
+    /// If you want to use new `UICollectionView.reconfigureItems(..)` api and expect the reconfiguration to happen animated as well
+    /// - you must call this method next to the `UICollectionView` one. `UIKit` in its classic way uses private API to process it.
+    ///
+    /// NB: Reconfigure items is not exposed to the layout, it may behave strange and if you experience something like
+    /// this - move to the `UICollectionView.reloadItems(..)` as a safer option.
+    open func reconfigureItems(at indexPaths: [IndexPath]) {
+        reconfigureItemsIndexPaths = indexPaths
+    }
+
+    /// Returns index path of currently pinned item.
+    open func indexPathForItePinnedAt(_ pinningType: ChatItemPinningType) -> IndexPath? {
+        controller.pinnedIndexPaths[pinningType]?.current
+    }
+
+    // MARK: Providing Layout Attributes
+
+    /// Tells the layout object to update the current layout.
+    open override func prepare() {
+        super.prepare()
+
+        guard let collectionView,
+              !prepareActions.isEmpty else {
+            return
+        }
+
+        if prepareActions.contains(.switchStates) {
+            controller.commitUpdates()
+            state = .beforeUpdate
+            contentOffsetBeforeUpdate = nil
+        }
+
+        if prepareActions.contains(.recreateSectionModels) {
+            var sections: ContiguousArray<SectionModel<CollectionViewChatLayout>> = []
+            for sectionIndex in 0..<collectionView.numberOfSections {
+
+                // Items
+                var items: ContiguousArray<ItemModel> = []
+                for itemIndex in 0..<collectionView.numberOfItems(inSection: sectionIndex) {
+                    let itemPath = IndexPath(item: itemIndex, section: sectionIndex)
+                    items.append(ItemModel(with: configuration(at: itemPath)))
+                }
+
+                var section = SectionModel(
+                    interSectionSpacing: interSectionSpacing(at: sectionIndex),
+                    header: nil,
+                    footer: nil,
+                    items: items,
+                    collectionLayout: self
+                )
+                section.assembleLayout()
+                sections.append(section)
+            }
+            controller.set(sections, at: .beforeUpdate)
+        }
+
+        if prepareActions.contains(.updateLayoutMetrics),
+           !prepareActions.contains(.recreateSectionModels) {
+            var sections: ContiguousArray<SectionModel> = controller.layout(at: state).sections
+            sections.withUnsafeMutableBufferPointer { directlyMutableSections in
+                for sectionIndex in 0..<directlyMutableSections.count {
+                    var section = directlyMutableSections[sectionIndex]
+
+
+                    // Items
+                    var items: ContiguousArray<ItemModel> = section.items
+                    items.withUnsafeMutableBufferPointer { directlyMutableItems in
+                        nonisolated(unsafe) let directlyMutableItems = directlyMutableItems
+                        DispatchQueue.concurrentPerform(iterations: directlyMutableItems.count) { rowIndex in
+                            directlyMutableItems[rowIndex].resetSize()
+                        }
+                    }
+                    section.set(items: items)
+
+                    section.assembleLayout()
+                    directlyMutableSections[sectionIndex] = section
+                }
+            }
+            controller.set(sections, at: state)
+        }
+
+        if prepareActions.contains(.cachePreviousContentInsets) {
+            cachedCollectionViewInset = adjustedContentInset
+        }
+
+        if prepareActions.contains(.cachePreviousWidth) {
+            cachedCollectionViewSize = collectionView.bounds.size
+        }
+
+        if prepareActions.contains(.updatePinnedInfo) ||
+            prepareActions.contains(.updateLayoutMetrics) ||
+            prepareActions.contains(.recreateSectionModels) {
+            controller.updatePinnedInfo(at: state)
+        }
+
+        prepareActions = []
+    }
+
+    /// Retrieves the layout attributes for all of the cells and views in the specified rectangle.
+    open override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+        // This early return prevents an issue that causes overlapping / misplaced elements after an
+        // off-screen batch update occurs. The root cause of this issue is that `UICollectionView`
+        // expects `layoutAttributesForElementsInRect:` to return post-batch-update layout attributes
+        // immediately after an update is sent to the collection view via the insert/delete/reload/move
+        // functions. Unfortunately, this is impossible - when batch updates occur, `invalidateLayout:`
+        // is invoked immediately with a context that has `invalidateDataSourceCounts` set to `true`.
+        // At this time, `CollectionViewChatLayout` has no way of knowing the details of this data source count
+        // change (where the insert/delete/move took place). `CollectionViewChatLayout` only gets this additional
+        // information once `prepareForCollectionViewUpdates:` is invoked. At that time, we're able to
+        // update our layout's source of truth, the `StateController`, which allows us to resolve the
+        // post-batch-update layout and return post-batch-update layout attributes from this function.
+        // Between the time that `invalidateLayout:` is invoked with `invalidateDataSourceCounts` set to
+        // `true`, and when `prepareForCollectionViewUpdates:` is invoked with details of the updates,
+        // `layoutAttributesForElementsInRect:` is invoked with the expectation that we already have a
+        // fully resolved layout. If we return incorrect layout attributes at that time, then we'll have
+        // overlapping elements / visual defects. To prevent this, we can return `nil` in this
+        // situation, which works around the bug.
+        // `UICollectionViewCompositionalLayout`, in classic UIKit fashion, avoids this bug / feature by
+        // implementing the private function
+        // `_prepareForCollectionViewUpdates:withDataSourceTranslator:`, which provides the layout with
+        // details about the updates to the collection view before `layoutAttributesForElementsInRect:`
+        // is invoked, enabling them to resolve their layout in time.
+        guard !dontReturnAttributes else {
+            return nil
+        }
+
+        let visibleAttributes = controller.layoutAttributesForElements(in: rect, state: state)
+        return visibleAttributes
+    }
+
+    /// Retrieves layout information for an item at the specified index path with a corresponding cell.
+    open override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        guard !dontReturnAttributes else {
+            return nil
+        }
+        let attributes = controller.itemAttributes(for: indexPath.itemPath, at: state, withPinnning: true)
+        return attributes
+    }
+
+    // MARK: Coordinating Animated Changes
+
+    /// Prepares the layout object for animated changes to the view’s bounds or the insertion or deletion of items.
+    open override func prepare(forAnimatedBoundsChange oldBounds: CGRect) {
+        controller.isAnimatedBoundsChange = true
+        controller.process(changeItems: [])
+        state = .afterUpdate
+        prepareActions.remove(.switchStates)
+        guard let collectionView,
+              oldBounds.width != collectionView.bounds.width,
+              keepContentOffsetAtBottomOnBatchUpdates,
+              controller.isLayoutBiggerThanVisibleBounds(at: state) else {
+            return
+        }
+        let newBounds = collectionView.bounds
+        let heightDifference = oldBounds.height - newBounds.height
+        controller.proposedCompensatingOffset += heightDifference + (oldBounds.origin.y - newBounds.origin.y)
+        controller.updatePinnedInfo(at: state)
+    }
+
+    /// Cleans up after any animated changes to the view’s bounds or after the insertion or deletion of items.
+    open override func finalizeAnimatedBoundsChange() {
+        if controller.isAnimatedBoundsChange {
+            state = .beforeUpdate
+            controller.commitUpdates()
+            controller.isAnimatedBoundsChange = false
+            controller.proposedCompensatingOffset = 0
+            controller.batchUpdateCompensatingOffset = 0
+        }
+    }
+
+    // MARK: Context Invalidation
+
+    /// Asks the layout object if changes to a self-sizing cell require a layout update.
+    open override func shouldInvalidateLayout(
+        forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
+        withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes
+    ) -> Bool {
+        let preferredAttributesItemPath = preferredAttributes.indexPath.itemPath
+        guard let preferredMessageAttributes = preferredAttributes as? ChatLayoutAttributes,
+              let item = controller.item(for: preferredAttributesItemPath, at: state) else {
+            return true
+        }
+
+        let shouldInvalidateLayout = item.calculatedSize == nil
+            || (_supportSelfSizingInvalidation ? (item.size.height - preferredMessageAttributes.size.height).rounded() != 0 : false)
+            || item.alignment != preferredMessageAttributes.alignment
+            || item.interItemSpacing != preferredMessageAttributes.interItemSpacing
+            || item.pinningType != preferredMessageAttributes.pinningType
+
+        return shouldInvalidateLayout
+    }
+
+    /// Retrieves a context object that identifies the portions of the layout that should change in response to dynamic cell changes.
+    open override func invalidationContext(
+        forPreferredLayoutAttributes preferredAttributes: UICollectionViewLayoutAttributes,
+        withOriginalAttributes originalAttributes: UICollectionViewLayoutAttributes
+    ) -> UICollectionViewLayoutInvalidationContext {
+        guard let preferredMessageAttributes = preferredAttributes as? ChatLayoutAttributes,
+              // Can be called ofter the model update in iOS <16. Checking if model for this index path exists.
+              controller.item(for: preferredMessageAttributes.indexPath.itemPath, at: state) != nil else {
+            return super.invalidationContext(forPreferredLayoutAttributes: preferredAttributes, withOriginalAttributes: originalAttributes)
+        }
+
+        let preferredAttributesItemPath = preferredMessageAttributes.indexPath.itemPath
+
+        let newItemSize = itemSize(with: preferredMessageAttributes)
+        let newItemAlignment = alignment(at: preferredMessageAttributes.indexPath)
+        let newInterItemSpacing = interItemSpacing(at: preferredMessageAttributes.indexPath)
+        let newPinningType = pinningType(at: preferredMessageAttributes.indexPath)
+        controller.update(
+            preferredSize: newItemSize,
+            alignment: newItemAlignment,
+            interItemSpacing: newInterItemSpacing,
+            pinningType: newPinningType,
+            for: preferredAttributesItemPath,
+            at: state
+        )
+
+        let context = super.invalidationContext(forPreferredLayoutAttributes: preferredMessageAttributes, withOriginalAttributes: originalAttributes) as! ChatLayoutInvalidationContext
+
+        let heightDifference = newItemSize.height - originalAttributes.size.height
+        let isAboveBottomEdge = originalAttributes.frame.minY.rounded() <= visibleBounds.maxY.rounded()
+
+        let shouldApplyCompensations = !controller.isPinnedItem(indexPath: preferredMessageAttributes.indexPath)
+        if heightDifference != 0,
+           shouldApplyCompensations,
+           (keepContentOffsetAtBottomOnBatchUpdates && controller.contentHeight(at: state).rounded() + heightDifference > visibleBounds.height.rounded()) || isUserInitiatedScrolling,
+           isAboveBottomEdge {
+            let offsetCompensation: CGFloat = min(controller.contentHeight(at: state) - collectionView!.frame.height + adjustedContentInset.bottom + adjustedContentInset.top, heightDifference)
+            context.contentOffsetAdjustment.y += offsetCompensation
+            invalidationActions.formUnion([.shouldInvalidateOnBoundsChange])
+        }
+
+        if let attributes = controller.itemAttributes(for: preferredAttributesItemPath, at: state)?.typedCopy() {
+            if state == .afterUpdate,
+               shouldApplyCompensations {
+                controller.totalProposedCompensatingOffset += heightDifference
+
+                if controller.insertedIndexes.contains(preferredMessageAttributes.indexPath) ||
+                    controller.insertedSectionsIndexes.contains(preferredMessageAttributes.indexPath.section) {
+                }
+            }
+        }
+
+        context.invalidateItems(at: [preferredMessageAttributes.indexPath])
+
+        context.invalidateLayoutMetrics = false
+
+        return context
+    }
+
+    /// Asks the layout object if the new bounds require a layout update.
+    open override func shouldInvalidateLayout(forBoundsChange newBounds: CGRect) -> Bool {
+        let shouldInvalidateLayout = cachedCollectionViewSize != .some(newBounds.size) ||
+            cachedCollectionViewInset != .some(adjustedContentInset) ||
+            invalidationActions.contains(.shouldInvalidateOnBoundsChange)
+            || ((isUserInitiatedScrolling || !controller.pinnedIndexPaths.isEmpty) && state == .beforeUpdate)
+
+        invalidationActions.remove(.shouldInvalidateOnBoundsChange)
+        prepareActions.insert(.updatePinnedInfo)
+        return shouldInvalidateLayout
+    }
+
+    /// Retrieves a context object that defines the portions of the layout that should change when a bounds change occurs.
+    open override func invalidationContext(forBoundsChange newBounds: CGRect) -> UICollectionViewLayoutInvalidationContext {
+        let invalidationContext = super.invalidationContext(forBoundsChange: newBounds) as! ChatLayoutInvalidationContext
+        invalidationContext.invalidateLayoutMetrics = false
+        return invalidationContext
+    }
+
+    /// Invalidates the current layout using the information in the provided context object.
+    open override func invalidateLayout(with context: UICollectionViewLayoutInvalidationContext) {
+        guard let collectionView else {
+            super.invalidateLayout(with: context)
+            return
+        }
+
+        guard let context = context as? ChatLayoutInvalidationContext else {
+            assertionFailure("`context` must be an instance of `ChatLayoutInvalidationContext`.")
+            return
+        }
+
+        controller.resetCachedAttributes()
+
+        dontReturnAttributes = context.invalidateDataSourceCounts && !context.invalidateEverything
+
+        if context.invalidateEverything {
+            prepareActions.formUnion([.recreateSectionModels])
+        }
+
+        // Checking `cachedCollectionViewWidth != collectionView.bounds.size.width` is necessary
+        // because the collection view's width can change without a `contentSizeAdjustment` occurring.
+        if context.contentSizeAdjustment.width != 0 || cachedCollectionViewSize != collectionView.bounds.size {
+            prepareActions.formUnion([.cachePreviousWidth])
+        }
+
+        if cachedCollectionViewInset != adjustedContentInset {
+            prepareActions.formUnion([.cachePreviousContentInsets])
+        }
+
+        if context.invalidateLayoutMetrics, !context.invalidateDataSourceCounts {
+            prepareActions.formUnion([.updateLayoutMetrics])
+        }
+
+        if let currentPositionSnapshot {
+            let contentHeight = controller.contentHeight(at: state)
+            if let frame = controller.itemFrame(for: currentPositionSnapshot.indexPath.itemPath, at: state, isFinal: true),
+               contentHeight != 0 {
+                let adjustedContentInset: UIEdgeInsets = collectionView.adjustedContentInset
+                let maxAllowed = max(-adjustedContentInset.top, contentHeight - collectionView.frame.height + adjustedContentInset.bottom)
+                switch currentPositionSnapshot.edge {
+                case .top:
+                    let desiredOffset = max(min(maxAllowed, frame.minY - currentPositionSnapshot.offset - adjustedContentInset.top - settings.additionalInsets.top), -adjustedContentInset.top)
+                    context.contentOffsetAdjustment.y = desiredOffset - collectionView.contentOffset.y
+                case .bottom:
+                    let desiredOffset = max(min(maxAllowed, frame.maxY + currentPositionSnapshot.offset - collectionView.bounds.height + adjustedContentInset.bottom + settings.additionalInsets.bottom), -adjustedContentInset.top)
+                    context.contentOffsetAdjustment.y = desiredOffset - collectionView.contentOffset.y
+                }
+            }
+        }
+        super.invalidateLayout(with: context)
+    }
+
+    /// Invalidates the current layout and triggers a layout update.
+    open override func invalidateLayout() {
+        super.invalidateLayout()
+    }
+
+    /// Retrieves the content offset to use after an animated layout update or change.
+    open override func targetContentOffset(forProposedContentOffset proposedContentOffset: CGPoint) -> CGPoint {
+        if controller.proposedCompensatingOffset != 0,
+           let collectionView {
+            let minPossibleContentOffset = -collectionView.adjustedContentInset.top
+            let newProposedContentOffset = CGPoint(x: proposedContentOffset.x, y: max(minPossibleContentOffset, min(collectionView.contentOffset.y + controller.proposedCompensatingOffset, maxPossibleContentOffset.y)))
+            invalidationActions.formUnion([.shouldInvalidateOnBoundsChange])
+            if needsIOS15_1IssueFix {
+                controller.proposedCompensatingOffset = 0
+                collectionView.contentOffset = newProposedContentOffset
+                return newProposedContentOffset
+            } else {
+                controller.proposedCompensatingOffset = 0
+                return newProposedContentOffset
+            }
+        }
+        return super.targetContentOffset(forProposedContentOffset: proposedContentOffset)
+    }
+
+    // MARK: Responding to Collection View Updates
+
+    /// Notifies the layout object that the contents of the collection view are about to change.
+    open override func prepare(forCollectionViewUpdates updateItems: [UICollectionViewUpdateItem]) {
+        var changeItems = updateItems.compactMap { ChangeItem(with: $0) }
+        changeItems.append(contentsOf: reconfigureItemsIndexPaths.map { .itemReconfigure(itemIndexPath: $0) })
+        controller.process(changeItems: changeItems)
+        state = .afterUpdate
+        dontReturnAttributes = false
+        contentOffsetBeforeUpdate = collectionView?.contentOffset
+        if !reconfigureItemsIndexPaths.isEmpty,
+           let collectionView {
+            reconfigureItemsIndexPaths
+                .filter { collectionView.indexPathsForVisibleItems.contains($0) && !controller.reloadedIndexes.contains($0) }
+                .forEach { indexPath in
+                    let cell = collectionView.cellForItem(at: indexPath)
+
+                    if let originalAttributes = controller.itemAttributes(for: indexPath.itemPath, at: .beforeUpdate),
+                       let preferredAttributes = cell?.preferredLayoutAttributesFitting(originalAttributes.typedCopy()) as? ChatLayoutAttributes,
+                       let itemIdentifierBeforeUpdate = controller.itemIdentifier(for: indexPath.itemPath, at: .beforeUpdate),
+                       let indexPathAfterUpdate = controller.itemPath(by: itemIdentifierBeforeUpdate, at: .afterUpdate)?.indexPath,
+                       let itemAfterUpdate = controller.item(for: indexPathAfterUpdate.itemPath, at: .afterUpdate),
+                       (itemAfterUpdate.size.height - preferredAttributes.size.height).rounded() != 0 {
+                        originalAttributes.indexPath = indexPathAfterUpdate
+                        preferredAttributes.indexPath = indexPathAfterUpdate
+                        _ = invalidationContext(forPreferredLayoutAttributes: preferredAttributes, withOriginalAttributes: originalAttributes)
+                    }
+                }
+            reconfigureItemsIndexPaths = []
+        }
+
+        super.prepare(forCollectionViewUpdates: updateItems)
+    }
+
+    /// Performs any additional animations or clean up needed during a collection view update.
+    open override func finalizeCollectionViewUpdates() {
+        controller.proposedCompensatingOffset = 0
+
+        if keepContentOffsetAtBottomOnBatchUpdates,
+           controller.isLayoutBiggerThanVisibleBounds(at: state),
+           controller.batchUpdateCompensatingOffset != 0,
+           let collectionView {
+            let compensatingOffset: CGFloat
+            if controller.contentSize(for: .beforeUpdate).height > visibleBounds.size.height {
+                compensatingOffset = controller.batchUpdateCompensatingOffset - min(0, maxPossibleContentOffset.y - (contentOffsetBeforeUpdate?.y ?? 0))
+            } else {
+                compensatingOffset = maxPossibleContentOffset.y - collectionView.contentOffset.y
+            }
+            controller.batchUpdateCompensatingOffset = 0
+            let context = ChatLayoutInvalidationContext()
+            context.contentOffsetAdjustment.y = compensatingOffset
+            invalidateLayout(with: context)
+        } else {
+            controller.batchUpdateCompensatingOffset = 0
+            let context = ChatLayoutInvalidationContext()
+            invalidateLayout(with: context)
+        }
+
+        prepareActions.formUnion(.switchStates)
+        super.finalizeCollectionViewUpdates()
+    }
+
+    // MARK: - Cell Appearance Animation
+
+    /// Retrieves the starting layout information for an item being inserted into the collection view.
+    open override func initialLayoutAttributesForAppearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        var attributes: ChatLayoutAttributes?
+
+        let itemPath = itemIndexPath.itemPath
+        if state == .afterUpdate {
+            if controller.insertedIndexes.contains(itemIndexPath) || controller.insertedSectionsIndexes.contains(itemPath.section) {
+                attributes = controller.itemAttributes(for: itemPath, at: .afterUpdate)?.typedCopy()
+                controller.offsetByTotalCompensation(attributes: attributes, for: state, backward: true)
+                attributes.map { attributes in
+                    guard let delegate else {
+                        attributes.alpha = 0
+                        return
+                    }
+                    delegate.initialLayoutAttributesForInsertedItem(self, at: itemIndexPath, modifying: attributes, on: .initial)
+                }
+
+            } else if let itemIdentifier = controller.itemIdentifier(for: itemPath, at: .afterUpdate),
+                      let initialIndexPath = controller.itemPath(by: itemIdentifier, at: .beforeUpdate) {
+                attributes = controller.itemAttributes(for: initialIndexPath, at: .beforeUpdate)?.typedCopy() ?? ChatLayoutAttributes(forCellWith: itemIndexPath)
+                attributes?.indexPath = itemIndexPath
+            } else {
+                attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)
+            }
+        } else {
+            attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)
+        }
+
+        return attributes
+    }
+
+    /// Retrieves the final layout information for an item that is about to be removed from the collection view.
+    open override func finalLayoutAttributesForDisappearingItem(at itemIndexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        var attributes: ChatLayoutAttributes?
+
+        let itemPath = itemIndexPath.itemPath
+        if state == .afterUpdate {
+            if controller.deletedIndexes.contains(itemIndexPath) || controller.deletedSectionsIndexes.contains(itemPath.section) {
+                attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)?.typedCopy() ?? ChatLayoutAttributes(forCellWith: itemIndexPath)
+                controller.offsetByTotalCompensation(attributes: attributes, for: state, backward: false)
+                if keepContentOffsetAtBottomOnBatchUpdates,
+                   controller.isLayoutBiggerThanVisibleBounds(at: state),
+                   let attributes {
+                    attributes.frame = attributes.frame.offsetBy(dx: 0, dy: attributes.frame.height * 0.8)
+                }
+                attributes.map { attributes in
+                    guard let delegate else {
+                        attributes.alpha = 0
+                        return
+                    }
+                    delegate.finalLayoutAttributesForDeletedItem(self, at: itemIndexPath, modifying: attributes)
+                }
+            } else if let itemIdentifier = controller.itemIdentifier(for: itemPath, at: .beforeUpdate),
+                      let finalIndexPath = controller.itemPath(by: itemIdentifier, at: .afterUpdate) {
+                if controller.movedIndexes.contains(itemIndexPath) || controller.movedSectionsIndexes.contains(itemPath.section) ||
+                    controller.reloadedIndexes.contains(itemIndexPath) || controller.reconfiguredIndexes.contains(itemIndexPath) || controller.reloadedSectionsIndexes.contains(itemPath.section) {
+                    attributes = controller.itemAttributes(for: finalIndexPath, at: .afterUpdate)?.typedCopy()
+                } else {
+                    attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)?.typedCopy()
+                }
+
+
+                attributes?.indexPath = itemIndexPath
+
+                if controller.reloadedIndexes.contains(itemIndexPath) || controller.reloadedSectionsIndexes.contains(itemPath.section) {
+                    attributes?.alpha = 0
+                    attributes?.transform = CGAffineTransform(scaleX: 0, y: 0)
+                }
+            } else {
+                attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)
+            }
+        } else {
+            attributes = controller.itemAttributes(for: itemPath, at: .beforeUpdate)
+        }
+
+        return attributes
+    }
+}
+
+extension CollectionViewChatLayout {
+    func configuration(at indexPath: IndexPath) -> ItemModel.Configuration {
+        let itemSize = estimatedSize(at: indexPath)
+        let interItemSpacing: CGFloat
+
+        interItemSpacing = self.interItemSpacing(at: indexPath)
+
+        return ItemModel.Configuration(
+            alignment: alignment(at: indexPath),
+            pinningType: pinningType(at: indexPath),
+            preferredSize: itemSize.estimated,
+            calculatedSize: itemSize.exact,
+            interItemSpacing: interItemSpacing
+        )
+    }
+
+    private func estimatedSize(at indexPath: IndexPath) -> (estimated: CGSize, exact: CGSize?) {
+        guard let delegate else {
+            return (estimated: estimatedItemSize, exact: nil)
+        }
+
+        let itemSize = delegate.sizeForItem(self, at: indexPath)
+
+        switch itemSize {
+        case .auto:
+            return (estimated: estimatedItemSize, exact: nil)
+        case let .estimated(size):
+            return (estimated: size, exact: nil)
+        case let .exact(size):
+            return (estimated: size, exact: size)
+        }
+    }
+
+    private func itemSize(with preferredAttributes: ChatLayoutAttributes) -> CGSize {
+        let itemSize: CGSize
+        if let delegate,
+           case let .exact(size) = delegate.sizeForItem(self, at: preferredAttributes.indexPath) {
+            itemSize = size
+        } else {
+            itemSize = preferredAttributes.size
+        }
+        return itemSize
+    }
+
+    private func interItemSpacing(at indexPath: IndexPath) -> CGFloat {
+        let interItemSpacing: CGFloat
+        if let delegate,
+           let customInterItemSpacing = delegate.interItemSpacing(self, after: indexPath) {
+            interItemSpacing = customInterItemSpacing
+        } else {
+            interItemSpacing = settings.interItemSpacing
+        }
+        return interItemSpacing
+    }
+
+    private func alignment(at indexPath: IndexPath) -> ChatItemAlignment {
+        guard let delegate else {
+            return .fullWidth
+        }
+        return delegate.alignmentForItem(self, at: indexPath)
+    }
+
+    private func pinningType(at indexPath: IndexPath) -> ChatItemPinningType? {
+        guard let delegate else {
+            return nil
+        }
+
+        return delegate.pinningTypeForItem(self, at: indexPath)
+    }
+
+    private var estimatedItemSize: CGSize {
+        guard let estimatedItemSize = settings.estimatedItemSize else {
+            guard collectionView != nil else {
+                return .zero
+            }
+            return CGSize(width: layoutFrame.width, height: 40)
+        }
+
+        return estimatedItemSize
+    }
+}
+
+extension CollectionViewChatLayout: ChatLayoutRepresentation {
+    func numberOfItems(in section: Int) -> Int {
+        guard let collectionView else {
+            return .zero
+        }
+        return collectionView.numberOfItems(inSection: section)
+    }
+
+//    func shouldPresentHeader(at sectionIndex: Int) -> Bool {
+//        delegate?.shouldPresentHeader(self, at: sectionIndex) ?? false
+//    }
+//
+//    func shouldPresentFooter(at sectionIndex: Int) -> Bool {
+//        delegate?.shouldPresentFooter(self, at: sectionIndex) ?? false
+//    }
+
+    func interSectionSpacing(at sectionIndex: Int) -> CGFloat {
+        let interItemSpacing: CGFloat
+        if let delegate,
+           let customInterItemSpacing = delegate.interSectionSpacing(self, after: sectionIndex) {
+            interItemSpacing = customInterItemSpacing
+        } else {
+            interItemSpacing = settings.interSectionSpacing
+        }
+        return interItemSpacing
+    }
+}
+
+extension CollectionViewChatLayout {
+    private var maxPossibleContentOffset: CGPoint {
+        guard let collectionView else {
+            return .zero
+        }
+        let maxContentOffset = max(0 - collectionView.adjustedContentInset.top, controller.contentHeight(at: state) - collectionView.frame.height + collectionView.adjustedContentInset.bottom)
+        return CGPoint(x: 0, y: maxContentOffset)
+    }
+
+    private var isUserInitiatedScrolling: Bool {
+        guard let collectionView else {
+            return false
+        }
+        return collectionView.isDragging || collectionView.isDecelerating
+    }
+}

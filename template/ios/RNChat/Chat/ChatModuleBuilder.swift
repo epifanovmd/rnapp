@@ -8,15 +8,14 @@
 import UIKit
 
 final class ChatModuleBuilder {
-    static func build(userId: Int, delegate: ChatControllerDelegate? = nil) -> (viewController: ChatViewController, controller: ChatController) {
-        let controller = DefaultChatController(userId: userId)
-        let dataSource = DefaultChatCollectionDataSource()
-        let viewController = ChatViewController(dataSource: dataSource)
-
-        controller.delegate = viewController
-        viewController.delegate = delegate
-
-        return (viewController: viewController, controller: controller)
-    }
+  static func build() -> (viewController: ChatViewController, controller: ChatController) {
+    let controller = DefaultChatController()
+    let dataSource = DefaultChatCollectionDataSource()
+    let viewController = ChatViewController(dataSource: dataSource)
+    
+    controller.delegate = viewController
+    
+    return (viewController: viewController, controller: controller)
+  }
 }
 

@@ -13,6 +13,7 @@
 RCT_EXPORT_VIEW_PROPERTY(userId, NSInteger)
 RCT_EXPORT_VIEW_PROPERTY(directionalLockEnabled, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(keyboardDismissMode, NSString)
+RCT_EXPORT_VIEW_PROPERTY(keyboardScrollOffset, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(scrollsToTop, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(showsVerticalScrollIndicator, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(scrollEnabled, BOOL)

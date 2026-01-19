@@ -29,6 +29,7 @@ export interface ChatViewProps {
   // Конфигурация скролла
   directionalLockEnabled?: boolean;
   keyboardDismissMode?: "none" | "on-drag" | "interactive";
+  keyboardScrollOffset?: number;
   scrollsToTop?: boolean;
   showsVerticalScrollIndicator?: boolean;
   scrollEnabled?: boolean;

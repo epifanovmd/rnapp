@@ -1,12 +1,19 @@
+import { Container } from "@components";
+import { InputToolbar } from "@components/chat";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Button,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
+import {
+  KeyboardAvoidingView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 
 import { ChatViewNative } from "./ChatViewNative";
 import { ChatRef, RawMessage } from "./types";
@@ -45,18 +52,22 @@ export const ChatViewTest = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      // keyboardVerticalOffset={-(insets?.bottom ?? 0)}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       {/* Секция настроек (Props) */}
-      <View style={styles.settingsBar}>
-        <View style={styles.settingItem}>
-          <Text>Scroll</Text>
-          <Switch value={scrollEnabled} onValueChange={setScrollEnabled} />
-        </View>
-        <View style={styles.settingItem}>
-          <Text>Indicator</Text>
-          <Switch value={showIndicator} onValueChange={setShowIndicator} />
-        </View>
-      </View>
+      {/* <View style={styles.settingsBar}>*/}
+      {/*  <View style={styles.settingItem}>*/}
+      {/*    <Text>Scroll</Text>*/}
+      {/*    <Switch value={scrollEnabled} onValueChange={setScrollEnabled} />*/}
+      {/*  </View>*/}
+      {/*  <View style={styles.settingItem}>*/}
+      {/*    <Text>Indicator</Text>*/}
+      {/*    <Switch value={showIndicator} onValueChange={setShowIndicator} />*/}
+      {/*  </View>*/}
+      {/* </View>*/}
 
       {/* Нативный чат */}
       <View style={styles.chatContainer}>
@@ -66,6 +77,7 @@ export const ChatViewTest = () => {
           scrollEnabled={scrollEnabled}
           showsVerticalScrollIndicator={showIndicator}
           keyboardDismissMode="interactive"
+          keyboardScrollOffset={72}
           // Тест начальной прокрутки (раскомментируйте один для теста)
           initialScrollIndex={44}
           // initialScrollOffset={500}
@@ -78,42 +90,45 @@ export const ChatViewTest = () => {
           onScroll={e => console.log("Scroll Y:", e.contentOffset.y)}
           onScrollBeginDrag={() => console.log("Started Dragging")}
           onMomentumScrollEnd={() => console.log("Stopped Momentum")}
+          onScrollAnimationEnd={() => console.log("Animation End")}
+          onScrollEndDrag={() => console.log("End Dragging")}
         />
+        <InputToolbar insets={{ bottom: 24 }} />
       </View>
 
       {/* Панель управления методами (Methods) */}
-      <View style={styles.controls}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.buttonGroup}>
-            <Button title="Send" onPress={handleAddMessage} color="#4CAF50" />
-            <Button
-              title="To Bottom"
-              onPress={() => chatRef.current?.scrollToBottom(true)}
-            />
-            <Button
-              title="To Index 13"
-              onPress={() => chatRef.current?.scrollToIndex(33, true)}
-            />
-            <Button
-              title="To Offset 200"
-              onPress={() => chatRef.current?.scrollToOffset(200, true)}
-            />
-            <Button
-              title="To Today"
-              onPress={() => chatRef.current?.scrollToDate(Date.now(), true)}
-            />
-            <Button
-              title="Typing: On"
-              onPress={() => chatRef.current?.setTyping(true)}
-            />
-            <Button
-              title="Typing: Off"
-              onPress={() => chatRef.current?.setTyping(false)}
-            />
-          </View>
-        </ScrollView>
-      </View>
-    </View>
+      {/* <View style={styles.controls}>*/}
+      {/*  <ScrollView horizontal showsHorizontalScrollIndicator={false}>*/}
+      {/*    <View style={styles.buttonGroup}>*/}
+      {/*      <Button title="Send" onPress={handleAddMessage} color="#4CAF50" />*/}
+      {/*      <Button*/}
+      {/*        title="To Bottom"*/}
+      {/*        onPress={() => chatRef.current?.scrollToBottom(true)}*/}
+      {/*      />*/}
+      {/*      <Button*/}
+      {/*        title="To Index 13"*/}
+      {/*        onPress={() => chatRef.current?.scrollToIndex(33, true)}*/}
+      {/*      />*/}
+      {/*      <Button*/}
+      {/*        title="To Offset 200"*/}
+      {/*        onPress={() => chatRef.current?.scrollToOffset(200, true)}*/}
+      {/*      />*/}
+      {/*      <Button*/}
+      {/*        title="To Today"*/}
+      {/*        onPress={() => chatRef.current?.scrollToDate(Date.now(), true)}*/}
+      {/*      />*/}
+      {/*      <Button*/}
+      {/*        title="Typing: On"*/}
+      {/*        onPress={() => chatRef.current?.setTyping(true)}*/}
+      {/*      />*/}
+      {/*      <Button*/}
+      {/*        title="Typing: Off"*/}
+      {/*        onPress={() => chatRef.current?.setTyping(false)}*/}
+      {/*      />*/}
+      {/*    </View>*/}
+      {/*  </ScrollView>*/}
+      {/* </View>*/}
+    </KeyboardAvoidingView>
   );
 };
 

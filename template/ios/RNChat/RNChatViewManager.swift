@@ -10,12 +10,12 @@ import React
 
 @objc(ChatViewManager)
 class ChatViewManager: RCTViewManager {
-    
-    override func view() -> UIView! {
-        return RNChatContainer()
-    }
-    
-    override static func requiresMainQueueSetup() -> Bool {
-        return true
-    }
+  
+  override func view() -> UIView! {
+    return RNChatContainer()
+  }
+  
+  override static func requiresMainQueueSetup() -> Bool {
+    return true
+  }
 }
