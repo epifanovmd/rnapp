@@ -1,42 +1,32 @@
-import { Container } from "@components";
-import { InputToolbar } from "@components/chat";
+import { Container, Row, TextInput, Touchable } from "@components";
+import { BlurView } from "@react-native-community/blur";
+import { AirplayIcon, SendIcon } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Button,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
-import {
-  KeyboardAvoidingView,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { Platform, StyleSheet } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChatViewNative } from "./ChatViewNative";
 import { ChatRef, RawMessage } from "./types";
 
 export const ChatViewTest = () => {
   const chatRef = useRef<ChatRef>(null);
-  const [scrollEnabled, setScrollEnabled] = useState(true);
-  const [showIndicator, setShowIndicator] = useState(true);
+  const [inputHeight, setInputHeight] = useState(0);
+  const [inputValue, setInputValue] = useState("");
 
   // Генерируем начальные сообщения
   useEffect(() => {
     const initialMsgs = new Array(100).fill(null).map((_, i) => ({
       id: generateUUID(),
-      date: Date.now() - (30 - i) * 100000,
+      date: Date.now() - (30 - i),
       userId: i % 2 === 0 ? 0 : 3, // 0 - я, 3 - собеседник
       status: "read" as const,
       data: { text: `Initial message ${i}: ${generateRandomText(5)}` },
     }));
 
-    // Даем нативу время инициализироваться перед отправкой данных
     setTimeout(() => {
       chatRef.current?.appendMessages(initialMsgs);
-    }, 500);
+    }, 0);
   }, []);
 
   const handleAddMessage = () => {
@@ -45,90 +35,124 @@ export const ChatViewTest = () => {
       date: Date.now(),
       userId: 0,
       status: "sent",
-      data: { text: generateRandomText(10) },
+      data: { text: inputValue },
     };
+
+    setInputValue("");
 
     chatRef.current?.appendMessages([newMsg]);
   };
 
+  const { bottom, top } = useSafeAreaInsets();
+
   return (
-    <KeyboardAvoidingView
-      // keyboardVerticalOffset={-(insets?.bottom ?? 0)}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
-    >
-      {/* Секция настроек (Props) */}
-      {/* <View style={styles.settingsBar}>*/}
-      {/*  <View style={styles.settingItem}>*/}
-      {/*    <Text>Scroll</Text>*/}
-      {/*    <Switch value={scrollEnabled} onValueChange={setScrollEnabled} />*/}
-      {/*  </View>*/}
-      {/*  <View style={styles.settingItem}>*/}
-      {/*    <Text>Indicator</Text>*/}
-      {/*    <Switch value={showIndicator} onValueChange={setShowIndicator} />*/}
-      {/*  </View>*/}
-      {/* </View>*/}
+    <Container edges={["top"]} style={[styles.container]}>
+      <BlurView
+        blurType={"light"}
+        blurAmount={1}
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: top,
+            zIndex: 999,
+          },
+        ]}
+      />
+      <ChatViewNative
+        ref={chatRef}
+        userId={0}
+        keyboardDismissMode="interactive"
+        keyboardScrollOffset={-bottom + 8}
+        initialScrollIndex={44}
+        onLoadPreviousMessages={() =>
+          console.log("Native requested more messages")
+        }
+        onDelete={id => chatRef.current?.deleteMessage(id)}
+        onVisibleMessages={ids => console.log("Visible IDs:", ids)}
+        onScroll={e => console.log("Scroll Y:", e.contentOffset.y)}
+        onScrollBeginDrag={() => console.log("Started Dragging")}
+        onMomentumScrollEnd={() => console.log("Stopped Momentum")}
+        onScrollAnimationEnd={() => console.log("Animation End")}
+        onScrollEndDrag={() => console.log("End Dragging")}
+        style={StyleSheet.absoluteFill}
+        insets={{ bottom: bottom + inputHeight + 16, top }}
+      />
 
-      {/* Нативный чат */}
-      <View style={styles.chatContainer}>
-        <ChatViewNative
-          ref={chatRef}
-          userId={0}
-          scrollEnabled={scrollEnabled}
-          showsVerticalScrollIndicator={showIndicator}
-          keyboardDismissMode="interactive"
-          keyboardScrollOffset={72}
-          // Тест начальной прокрутки (раскомментируйте один для теста)
-          initialScrollIndex={44}
-          // initialScrollOffset={500}
-
-          onLoadPreviousMessages={() =>
-            console.log("Native requested more messages")
-          }
-          onDelete={id => chatRef.current?.deleteMessage(id)}
-          onVisibleMessages={ids => console.log("Visible IDs:", ids)}
-          onScroll={e => console.log("Scroll Y:", e.contentOffset.y)}
-          onScrollBeginDrag={() => console.log("Started Dragging")}
-          onMomentumScrollEnd={() => console.log("Stopped Momentum")}
-          onScrollAnimationEnd={() => console.log("Animation End")}
-          onScrollEndDrag={() => console.log("End Dragging")}
-        />
-        <InputToolbar insets={{ bottom: 24 }} />
-      </View>
-
-      {/* Панель управления методами (Methods) */}
-      {/* <View style={styles.controls}>*/}
-      {/*  <ScrollView horizontal showsHorizontalScrollIndicator={false}>*/}
-      {/*    <View style={styles.buttonGroup}>*/}
-      {/*      <Button title="Send" onPress={handleAddMessage} color="#4CAF50" />*/}
-      {/*      <Button*/}
-      {/*        title="To Bottom"*/}
-      {/*        onPress={() => chatRef.current?.scrollToBottom(true)}*/}
-      {/*      />*/}
-      {/*      <Button*/}
-      {/*        title="To Index 13"*/}
-      {/*        onPress={() => chatRef.current?.scrollToIndex(33, true)}*/}
-      {/*      />*/}
-      {/*      <Button*/}
-      {/*        title="To Offset 200"*/}
-      {/*        onPress={() => chatRef.current?.scrollToOffset(200, true)}*/}
-      {/*      />*/}
-      {/*      <Button*/}
-      {/*        title="To Today"*/}
-      {/*        onPress={() => chatRef.current?.scrollToDate(Date.now(), true)}*/}
-      {/*      />*/}
-      {/*      <Button*/}
-      {/*        title="Typing: On"*/}
-      {/*        onPress={() => chatRef.current?.setTyping(true)}*/}
-      {/*      />*/}
-      {/*      <Button*/}
-      {/*        title="Typing: Off"*/}
-      {/*        onPress={() => chatRef.current?.setTyping(false)}*/}
-      {/*      />*/}
-      {/*    </View>*/}
-      {/*  </ScrollView>*/}
-      {/* </View>*/}
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView
+        keyboardVerticalOffset={8}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{
+          marginTop: "auto",
+          borderRadius: 16,
+          overflow: "hidden",
+          marginBottom: bottom,
+        }}
+      >
+        <Row
+          alignItems={"stretch"}
+          onLayout={({ nativeEvent: { layout } }) => {
+            setInputHeight(layout.height);
+          }}
+          ph={16}
+          height={44}
+          gap={8}
+        >
+          <Touchable
+            radius={16}
+            width={44}
+            centerContent={true}
+            overflow={"hidden"}
+            onPress={() => {}}
+          >
+            <BlurView
+              blurType={"dark"}
+              blurAmount={1}
+              style={StyleSheet.absoluteFill}
+            />
+            <AirplayIcon color={"#fff"} size={18} />
+          </Touchable>
+          <Row flex={1} radius={16} overflow={"hidden"}>
+            <BlurView
+              blurType={"dark"}
+              blurAmount={1}
+              style={StyleSheet.absoluteFill}
+            />
+            <TextInput
+              style={{ flex: 1, padding: 16 }}
+              value={inputValue}
+              onChangeText={setInputValue}
+              placeholder={"Введите сообщение"}
+              numberOfLines={6}
+              multiline={true}
+            />
+          </Row>
+          <Touchable
+            radius={16}
+            width={44}
+            centerContent={true}
+            overflow={"hidden"}
+            onPress={handleAddMessage}
+            disabled={!inputValue}
+          >
+            <BlurView
+              blurType={"dark"}
+              blurAmount={1}
+              style={StyleSheet.absoluteFill}
+              pointerEvents={"none"}
+            />
+            <SendIcon
+              color={"#fff"}
+              size={18}
+              disabled={true}
+              pointerEvents={"none"}
+            />
+          </Touchable>
+        </Row>
+      </KeyboardAvoidingView>
+    </Container>
   );
 };
 
@@ -136,9 +160,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    paddingTop: 44,
   },
   settingsBar: {
+    zIndex: 1000,
     flexDirection: "row",
     padding: 10,
     backgroundColor: "#fff",
@@ -153,6 +177,7 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
+    backgroundColor: "black",
   },
   controls: {
     paddingVertical: 10,

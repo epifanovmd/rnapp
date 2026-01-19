@@ -78,7 +78,7 @@ final class ChatViewController: UIViewController {
     button.setImage(UIImage(systemName: "chevron.down.circle.fill", withConfiguration: config), for: .normal)
     button.tintColor = .systemBlue
     button.backgroundColor = .systemBackground
-    button.layer.cornerRadius = 20
+    button.layer.cornerRadius = 16
     button.layer.shadowColor = UIColor.black.cgColor
     button.layer.shadowOpacity = 0.2
     button.layer.shadowOffset = CGSize(width: 0, height: 2)
@@ -115,7 +115,7 @@ final class ChatViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    view.backgroundColor = .systemBackground
+    //    view.backgroundColor = .systemBackground
     
     chatLayout.settings.interItemSpacing = 8
     chatLayout.settings.interSectionSpacing = 8
@@ -155,6 +155,28 @@ final class ChatViewController: UIViewController {
     
     setupScrollDownButton()
     KeyboardListener.shared.add(delegate: self)
+    
+    setupKeyboardDismissOnTap()
+  }
+  
+  private func setupKeyboardDismissOnTap() {
+    let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+    tapGesture.cancelsTouchesInView = false // Важно! Позволяет другим жестам работать
+    tapGesture.delegate = self
+    collectionView.addGestureRecognizer(tapGesture)
+  }
+  
+  @objc private func dismissKeyboard() {
+    //    UIApplication.shared.windows.first?.endEditing(true)
+    //    UIApplication.shared.keyWindow?.endEditing(true)
+    let activeWindow = UIApplication.shared.connectedScenes
+      .filter { $0.activationState == .foregroundActive }
+      .compactMap { $0 as? UIWindowScene }
+      .first?.windows
+      .first { $0.isKeyWindow }
+    
+    activeWindow?.endEditing(true)
+    
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -193,14 +215,29 @@ final class ChatViewController: UIViewController {
     super.viewWillTransition(to: size, with: coordinator)
   }
   
+  private var scrollDownButtonBottomConstraint: NSLayoutConstraint?
+  
   private func setupScrollDownButton() {
     view.addSubview(scrollDownButton)
+    
+    // Привязываем кнопку к низу основной вью
+    let bottomConstraint = scrollDownButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16)
+    scrollDownButtonBottomConstraint = bottomConstraint
+    
     NSLayoutConstraint.activate([
       scrollDownButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-      scrollDownButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-      scrollDownButton.widthAnchor.constraint(equalToConstant: 40),
-      scrollDownButton.heightAnchor.constraint(equalToConstant: 40)
+      bottomConstraint,
+      scrollDownButton.widthAnchor.constraint(equalToConstant: 44),
+      scrollDownButton.heightAnchor.constraint(equalToConstant: 44)
     ])
+    
+    // Устанавливаем начальное положение с учетом текущих инсетов
+    updateScrollDownButtonOffset()
+  }
+  
+  private func updateScrollDownButtonOffset() {
+    let totalBottomInset = collectionView.adjustedContentInset.bottom
+    scrollDownButtonBottomConstraint?.constant = -16 - chatLayout.settings.additionalInsets.bottom - totalBottomInset
   }
   
   @objc private func scrollDownTapped() {
@@ -216,7 +253,6 @@ final class ChatViewController: UIViewController {
   }
   
   func setKeyboardScrollOffset(_ offset: CGFloat = 0) {
-    print("set offset \(offset)")
     keyboardScrollOffset = offset
   }
   
@@ -230,6 +266,12 @@ final class ChatViewController: UIViewController {
   
   func setScrollEnabled(_ enabled: Bool) {
     collectionView.isScrollEnabled = enabled
+  }
+  
+  func setAdditionalInsets(_ insets: UIEdgeInsets) {
+    chatLayout.settings.additionalInsets = insets
+    collectionView.collectionViewLayout.invalidateLayout()
+    updateScrollDownButtonOffset()
   }
 }
 
@@ -457,20 +499,40 @@ extension ChatViewController: UIScrollViewDelegate {
   }
   
   func scrollToBottom(animated: Bool = true, completion: (() -> Void)? = nil) {
-    let maxOffset = (chatLayout.collectionViewContentSize.height - collectionView.frame.height + collectionView.adjustedContentInset.bottom)
-    
-    // Проверяем, не находимся ли мы уже внизу (микро-оптимизация)
-    let isAtBottom = (collectionView.contentOffset.y >= maxOffset - 1.0)
-    
-    guard !isAtBottom else {
+    guard isViewLoaded else {
+      initialScrollOffset = 0
       completion?()
       return
     }
     
+    // Вместо вычисления Y по contentSize, используем snapshot последней ячейки.
+    // Это гарантирует, что ChatLayout дотянет скролл до конца, даже если размеры ячеек изменятся.
+    let lastSectionIndex = dataSource.sections.count - 1
+    guard lastSectionIndex >= 0 else {
+      completion?()
+      return
+    }
+    
+    let lastItemIndex = dataSource.sections[lastSectionIndex].cells.count - 1
+    guard lastItemIndex >= 0 else {
+      completion?()
+      return
+    }
+    
+    let indexPath = IndexPath(item: lastItemIndex, section: lastSectionIndex)
+    
     currentInterfaceActions.options.insert(.scrollingToBottom)
     
-    // Вызываем универсальный метод с offset = 0
-    scrollTo(offset: 0, animated: animated) { [weak self] in
+    if !animated {
+      let snapshot = ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .bottom, offset: 0)
+      chatLayout.restoreContentOffset(with: snapshot)
+      currentInterfaceActions.options.remove(.scrollingToBottom)
+      completion?()
+      return
+    }
+    
+    // Для плавного скролла используем существующий scrollTo, но с привязкой к ячейке
+    scrollTo(messageId: nil, index: nil, date: nil, offset: 0, animated: animated) { [weak self] in
       self?.currentInterfaceActions.options.remove(.scrollingToBottom)
       completion?()
     }
@@ -781,81 +843,50 @@ extension ChatViewController: KeyboardListenerDelegate {
       return
     }
     
-    // Если пользователь активно скроллит - не вмешиваемся
-    guard !isUserInitiatedScrolling else {
-      return
-    }
-    
     currentInterfaceActions.options.insert(.changingKeyboardFrame)
     
     let keyboardHeight = info.frameEnd.height
     let isKeyboardVisible = keyboardHeight > 0
     
+    let newBottomInset: CGFloat
     if isKeyboardVisible {
-      // Клавиатура показывается - ВСЕГДА поднимаем контент
       guard let keyboardFrame = collectionView.window?.convert(info.frameEnd, to: view),
             keyboardFrame.minY > 0 else {
         currentInterfaceActions.options.remove(.changingKeyboardFrame)
         return
       }
       
-      // Вычисляем высоту клавиатуры над safe area
+      // Вычисляем inset клавиатуры
       let keyboardTop = keyboardFrame.minY
-      let visibleAreaBottom = collectionView.frame.maxY - collectionView.safeAreaInsets.bottom
-      let keyboardOverlap = visibleAreaBottom - keyboardTop
-      
-      if keyboardOverlap > 0 {
-        // НОВОЕ: Добавляем текущий keyboardScrollOffset к смещению
-        let neededOffset = keyboardOverlap + keyboardScrollOffset
-        
-        var targetOffset = collectionView.contentOffset
-        targetOffset.y = collectionView.contentOffset.y + neededOffset
-        
-        // Ограничиваем максимальное значение
-        let maxOffset = chatLayout.collectionViewContentSize.height -
-        collectionView.bounds.height +
-        collectionView.contentInset.bottom
-        targetOffset.y = min(targetOffset.y, maxOffset)
-        
-        // Не даём уйти выше нуля (с учетом contentInset)
-        targetOffset.y = max(targetOffset.y, -collectionView.contentInset.top)
-        
-        
-        // Анимируем изменение позиции скролла
-        UIView.animate(withDuration: info.animationDuration, animations: {
-          self.collectionView.contentOffset = targetOffset
-        }, completion: { _ in
-          self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
-        })
-      } else {
-        currentInterfaceActions.options.remove(.changingKeyboardFrame)
-      }
+      let visibleAreaBottom = collectionView.frame.maxY
+      let keyboardOverlap = max(0, visibleAreaBottom - keyboardTop - collectionView.safeAreaInsets.bottom)
+      newBottomInset = keyboardOverlap
     } else {
-      // Клавиатура скрывается - ВСЕГДА возвращаем контент обратно
-      let neededOffset = info.frameEnd.origin.y - info.frameBegin.origin.y
+      newBottomInset = 0
+    }
+    
+    // Только если inset изменился
+    if abs(collectionView.contentInset.bottom - newBottomInset) > 0.1 {
+      let positionSnapshot = chatLayout.getContentOffsetSnapshot(from: .bottom)
       
-      var targetOffset = collectionView.contentOffset
-      // НОВОЕ: Учитываем накопленное смещение при возврате
-      targetOffset.y = collectionView.contentOffset.y + neededOffset - keyboardScrollOffset
-      
-      // Ограничиваем максимальное значение
-      let maxOffset = chatLayout.collectionViewContentSize.height -
-      collectionView.bounds.height +
-      collectionView.contentInset.bottom
-      targetOffset.y = min(targetOffset.y, maxOffset)
-      
-      // Не даём уйти выше нуля (с учетом contentInset)
-      targetOffset.y = max(targetOffset.y, -collectionView.contentInset.top)
-      
-      if targetOffset != collectionView.contentOffset {
-        UIView.animate(withDuration: info.animationDuration, animations: {
-          self.collectionView.contentOffset = targetOffset
-        }, completion: { _ in
-          self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
-        })
-      } else {
-        currentInterfaceActions.options.remove(.changingKeyboardFrame)
-      }
+      currentInterfaceActions.options.insert(.changingContentInsets)
+      UIView.animate(withDuration: info.animationDuration, animations: {
+        self.collectionView.contentInset.bottom = newBottomInset > 0 ? newBottomInset + self.keyboardScrollOffset : 0
+        self.collectionView.verticalScrollIndicatorInsets.bottom = newBottomInset
+        
+        self.updateScrollDownButtonOffset()
+        self.view.layoutIfNeeded()
+        
+        // Автоматически поднимем контент если нужно
+        if let snapshot = positionSnapshot, !self.isUserInitiatedScrolling {
+          self.chatLayout.restoreContentOffset(with: snapshot)
+        }
+      }, completion: { _ in
+        self.currentInterfaceActions.options.remove(.changingContentInsets)
+        self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
+      })
+    } else {
+      currentInterfaceActions.options.remove(.changingKeyboardFrame)
     }
   }
   
@@ -864,5 +895,15 @@ extension ChatViewController: KeyboardListenerDelegate {
       return
     }
     currentInterfaceActions.options.remove(.changingKeyboardFrame)
+  }
+}
+
+extension ChatViewController: UIGestureRecognizerDelegate {
+  func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+    return !isUserInitiatedScrolling
+  }
+  
+  func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+    return true
   }
 }

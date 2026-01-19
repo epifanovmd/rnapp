@@ -17,6 +17,7 @@ RCT_EXPORT_VIEW_PROPERTY(keyboardScrollOffset, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(scrollsToTop, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(showsVerticalScrollIndicator, BOOL)
 RCT_EXPORT_VIEW_PROPERTY(scrollEnabled, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(insets, NSDictionary)
 
 RCT_EXPORT_VIEW_PROPERTY(initialScrollId, NSString)
 RCT_EXPORT_VIEW_PROPERTY(initialScrollIndex, NSNumber)

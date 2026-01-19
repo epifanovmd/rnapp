@@ -29,6 +29,16 @@ class RNChatContainer: UIView {
     didSet { chatViewController.setKeyboardScrollOffset(CGFloat(keyboardScrollOffset.doubleValue)) }
   }
   
+  @objc var insets: NSDictionary? {
+    didSet {
+      let top = (insets?["top"] as? CGFloat) ?? 0
+      let left = (insets?["left"] as? CGFloat) ?? 0
+      let bottom = (insets?["bottom"] as? CGFloat) ?? 0
+      let right = (insets?["right"] as? CGFloat) ?? 0
+      chatViewController.setAdditionalInsets(UIEdgeInsets(top: top, left: left, bottom: bottom, right: right))
+    }
+  }
+  
   @objc var scrollsToTop: Bool = true {
     didSet { chatViewController.setScrollsToTop(scrollsToTop) }
   }

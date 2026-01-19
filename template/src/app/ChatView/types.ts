@@ -1,3 +1,6 @@
+import { StyleProp, ViewStyle } from "react-native";
+import { EdgeInsets } from "react-native-safe-area-context";
+
 export interface RawMessage {
   id: string;
   date: number; // timestamp
@@ -18,6 +21,13 @@ export interface ScrollEvent {
   contentSize: { width: number; height: number };
 }
 
+export interface ChatEdgeInsets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 export interface ChatViewProps {
   userId: number;
 
@@ -33,6 +43,7 @@ export interface ChatViewProps {
   scrollsToTop?: boolean;
   showsVerticalScrollIndicator?: boolean;
   scrollEnabled?: boolean;
+  insets?: ChatEdgeInsets;
 
   // События данных
   onVisibleMessages?: (messageIds: string[]) => void;
@@ -46,7 +57,7 @@ export interface ChatViewProps {
   onMomentumScrollEnd?: () => void;
   onScrollAnimationEnd?: () => void;
 
-  style?: any;
+  style?: StyleProp<ViewStyle>;
 }
 
 export interface ChatRef {
