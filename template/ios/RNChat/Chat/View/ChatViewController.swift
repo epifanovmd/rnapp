@@ -115,7 +115,6 @@ final class ChatViewController: UIViewController {
   
   override func viewDidLoad() {
     super.viewDidLoad()
-    //    view.backgroundColor = .systemBackground
     
     chatLayout.settings.interItemSpacing = 8
     chatLayout.settings.interSectionSpacing = 8
@@ -167,8 +166,6 @@ final class ChatViewController: UIViewController {
   }
   
   @objc private func dismissKeyboard() {
-    //    UIApplication.shared.windows.first?.endEditing(true)
-    //    UIApplication.shared.keyWindow?.endEditing(true)
     let activeWindow = UIApplication.shared.connectedScenes
       .filter { $0.activationState == .foregroundActive }
       .compactMap { $0 as? UIWindowScene }
@@ -370,7 +367,7 @@ extension ChatViewController: UIScrollViewDelegate {
   
   private func updateScrollDownButtonVisibility(_ scrollView: UIScrollView) {
     let offsetFromBottom = scrollView.contentSize.height - (scrollView.contentOffset.y + scrollView.frame.height - scrollView.adjustedContentInset.bottom)
-
+    
     let shouldShow = offsetFromBottom > 100
     
     if (shouldShow && scrollDownButton.alpha == 0) || (!shouldShow && scrollDownButton.alpha == 1) {
@@ -401,10 +398,8 @@ extension ChatViewController: UIScrollViewDelegate {
   }
   
   func scrollTo(messageId: UUID? = nil, index: Int? = nil, date: Date? = nil, offset: CGFloat? = nil, animated: Bool = true, completion: (() -> Void)? = nil) {
+    // 1. ОСТАНОВКА ЛЮБОГО ДВИЖЕНИЯ
     animator?.reset()
-    animator = nil
-    
-    // Прерываем системный скролл, если он идет
     collectionView.setContentOffset(collectionView.contentOffset, animated: false)
     
     guard isViewLoaded else {
@@ -415,125 +410,89 @@ extension ChatViewController: UIScrollViewDelegate {
       return
     }
     
-    let startOffset = collectionView.contentOffset
-    var targetOffset: CGPoint?
+    // 2. ВЫЧИСЛЕНИЕ ЦЕЛИ (SNAPSHOT)
+    let snapshot: ChatLayoutPositionSnapshot?
+    let isBottomTarget = (offset != nil && offset! <= 0.1) || (messageId == nil && index == nil && date == nil && offset == nil)
     
-    // 1. Определяем целевой IndexPath или сразу Offset
-    if let offset = offset {
-      let height = chatLayout.collectionViewContentSize.height
-      let viewportHeight = collectionView.frame.height
-      let bottomInset = collectionView.adjustedContentInset.bottom
-      let topInset = collectionView.adjustedContentInset.top
-      let maxAllowed = max(-topInset, height - viewportHeight + bottomInset)
-      
-      let calculatedY = height - viewportHeight + bottomInset - offset
-      targetOffset = CGPoint(x: 0, y: min(maxAllowed, max(-topInset, calculatedY)))
+    if isBottomTarget {
+      let lastSectionIndex = dataSource.sections.count - 1
+      guard lastSectionIndex >= 0, let lastItemIndex = dataSource.sections[lastSectionIndex].cells.indices.last else {
+        completion?()
+        return
+      }
+      snapshot = ChatLayoutPositionSnapshot(indexPath: IndexPath(item: lastItemIndex, section: lastSectionIndex), edge: .bottom, offset: 0)
+      currentInterfaceActions.options.insert(.scrollingToBottom)
     } else {
       var targetIndexPath: IndexPath?
-      
       if let messageId = messageId {
         targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
           if case let .message(msg, _) = cell { return msg.id == messageId }
           return false
         }
-      } else if let index = index {
-        targetIndexPath = getIndexPath(fromMessageIndex: index, in: dataSource.sections)
-      } else if let date = date {
+      } else if let idx = index {
+        targetIndexPath = getIndexPath(fromMessageIndex: idx, in: dataSource.sections)
+      } else if let d = date {
         targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
-          if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: date) }
+          if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: d) }
           return false
         }
       }
-      
-      if let indexPath = targetIndexPath {
-        // ТРЮК: Вычисляем финальную позицию через мгновенный переход
-        let snapshot = ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
-        UIView.performWithoutAnimation {
-          self.chatLayout.restoreContentOffset(with: snapshot)
-          targetOffset = self.collectionView.contentOffset
-          // Возвращаем вью в исходное состояние для начала анимации
-          self.collectionView.contentOffset = startOffset
-        }
-      }
+      snapshot = targetIndexPath.map { ChatLayoutPositionSnapshot(indexPath: $0, edge: .top, offset: 0) }
     }
     
-    // 2. Выполняем анимацию, если цель найдена
-    guard let finalPoint = targetOffset else {
+    guard let finalSnapshot = snapshot else {
       completion?()
       return
     }
     
+    // 3. АНИМАЦИЯ ЧЕРЕЗ MANUAL ANIMATOR
     if !animated {
-      collectionView.setContentOffset(finalPoint, animated: false)
-      completion?()
-      return
-    }
-    
-    let delta = finalPoint.y - startOffset.y
-    if abs(delta) < 0.1 {
-      completion?()
-      return
-    }
-    
-    // Используем ManualAnimator для длинных дистанций или сложного лейаута
-    if abs(delta) > chatLayout.visibleBounds.height {
-      animator = ManualAnimator()
-      animator?.animate(duration: 0.4, curve: .parametric) { [weak self] percentage in
-        guard let self = self else { return }
-        self.collectionView.contentOffset.y = startOffset.y + (delta * percentage)
-        if percentage == 1.0 {
-          self.animator = nil
-          completion?()
-        }
-      }
-    } else {
-      // Для коротких дистанций стандартная анимация ощущается нативнее
-      UIView.animate(withDuration: 0.3, delay: 0, options: [.curveEaseInOut, .allowUserInteraction], animations: {
-        self.collectionView.contentOffset = finalPoint
-      }, completion: { _ in
+      UIView.performWithoutAnimation {
+        self.chatLayout.restoreContentOffset(with: finalSnapshot)
+        self.currentInterfaceActions.options.remove(.scrollingToBottom)
         completion?()
-      })
+      }
+      return
+    }
+    
+    let startOffset = collectionView.contentOffset
+    var targetOffset: CGPoint = .zero
+    
+    // ТРЮК: Узнаем целевой офсет через мгновенный переход и возвращаемся назад
+    UIView.performWithoutAnimation {
+      self.chatLayout.restoreContentOffset(with: finalSnapshot)
+      targetOffset = self.collectionView.contentOffset
+      self.collectionView.contentOffset = startOffset
+    }
+    
+    let delta = targetOffset.y - startOffset.y
+    if abs(delta) < 0.5 {
+      self.currentInterfaceActions.options.remove(.scrollingToBottom)
+      completion?()
+      return
+    }
+    
+    animator = ManualAnimator()
+    animator?.animate(duration: 0.3, curve: .easeInOut) { [weak self] percentage in
+      guard let self = self else { return }
+      
+      // На каждом шаге ManualAnimator меняет офсет,
+      // а restoreContentOffset гарантирует точность приземления
+      self.collectionView.contentOffset.y = startOffset.y + (delta * percentage)
+      
+      if percentage >= 1.0 {
+        UIView.performWithoutAnimation {
+          self.chatLayout.restoreContentOffset(with: finalSnapshot)
+        }
+        self.animator = nil
+        self.currentInterfaceActions.options.remove(.scrollingToBottom)
+        completion?()
+      }
     }
   }
   
   func scrollToBottom(animated: Bool = true, completion: (() -> Void)? = nil) {
-    guard isViewLoaded else {
-      initialScrollOffset = 0
-      completion?()
-      return
-    }
-    
-    // Вместо вычисления Y по contentSize, используем snapshot последней ячейки.
-    // Это гарантирует, что ChatLayout дотянет скролл до конца, даже если размеры ячеек изменятся.
-    let lastSectionIndex = dataSource.sections.count - 1
-    guard lastSectionIndex >= 0 else {
-      completion?()
-      return
-    }
-    
-    let lastItemIndex = dataSource.sections[lastSectionIndex].cells.count - 1
-    guard lastItemIndex >= 0 else {
-      completion?()
-      return
-    }
-    
-    let indexPath = IndexPath(item: lastItemIndex, section: lastSectionIndex)
-    
-    currentInterfaceActions.options.insert(.scrollingToBottom)
-    
-    if !animated {
-      let snapshot = ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .bottom, offset: 0)
-      chatLayout.restoreContentOffset(with: snapshot)
-      currentInterfaceActions.options.remove(.scrollingToBottom)
-      completion?()
-      return
-    }
-    
-    // Для плавного скролла используем существующий scrollTo, но с привязкой к ячейке
-    scrollTo(messageId: nil, index: nil, date: nil, offset: 0, animated: animated) { [weak self] in
-      self?.currentInterfaceActions.options.remove(.scrollingToBottom)
-      completion?()
-    }
+    scrollTo(animated: animated, completion: completion)
   }
   
   private func handleVisibilityTracking(currentTime: TimeInterval) {
