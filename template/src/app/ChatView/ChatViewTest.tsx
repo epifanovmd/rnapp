@@ -41,6 +41,7 @@ export const ChatViewTest = () => {
     setInputValue("");
 
     chatRef.current?.appendMessages([newMsg]);
+    chatRef.current?.scrollToBottom(true);
   };
 
   const { bottom, top } = useSafeAreaInsets();

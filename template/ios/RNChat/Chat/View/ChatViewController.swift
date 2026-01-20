@@ -79,7 +79,7 @@ final class ChatViewController: UIViewController {
     button.tintColor = .systemBlue
     button.backgroundColor = .systemBackground
     button.layer.cornerRadius = 16
-    button.layer.shadowColor = UIColor.black.cgColor
+    button.layer.shadowColor = UIColor.white.cgColor
     button.layer.shadowOpacity = 0.2
     button.layer.shadowOffset = CGSize(width: 0, height: 2)
     button.layer.shadowRadius = 4
@@ -237,7 +237,7 @@ final class ChatViewController: UIViewController {
   
   private func updateScrollDownButtonOffset() {
     let totalBottomInset = collectionView.adjustedContentInset.bottom
-    scrollDownButtonBottomConstraint?.constant = -16 - chatLayout.settings.additionalInsets.bottom - totalBottomInset
+    scrollDownButtonBottomConstraint?.constant = -chatLayout.settings.additionalInsets.bottom - totalBottomInset
   }
   
   @objc private func scrollDownTapped() {
@@ -369,11 +369,9 @@ extension ChatViewController: UIScrollViewDelegate {
   }
   
   private func updateScrollDownButtonVisibility(_ scrollView: UIScrollView) {
-    // Вычисляем расстояние от низа
     let offsetFromBottom = scrollView.contentSize.height - (scrollView.contentOffset.y + scrollView.frame.height - scrollView.adjustedContentInset.bottom)
-    
-    // Если до низа больше 300 пикселей — показываем кнопку
-    let shouldShow = offsetFromBottom > 300
+
+    let shouldShow = offsetFromBottom > 100
     
     if (shouldShow && scrollDownButton.alpha == 0) || (!shouldShow && scrollDownButton.alpha == 1) {
       UIView.animate(withDuration: 0.2) {
