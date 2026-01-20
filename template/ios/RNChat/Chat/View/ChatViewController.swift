@@ -655,27 +655,101 @@ extension ChatViewController: UICollectionViewDelegate {
           !currentControllerActions.options.contains(.updatingCollection) else {
       return nil
     }
+    
     let item = dataSource.sections[indexPath.section].cells[indexPath.item]
+    
     switch item {
     case let .message(message, bubbleType: _):
       switch message.data {
       case let .text(body):
-        let copyAction = UIAction(title: "Copy", image: UIImage(systemName: "doc.on.doc")) { _ in
+        // 1. Действие копирования
+        let copyAction = UIAction(
+          title: "Скопировать",
+          image: UIImage(systemName: "doc.on.doc")
+        ) { _ in
           UIPasteboard.general.string = body
         }
         
-        let deleteAction = UIAction(title: "Удалить", image: UIImage(systemName: "trash"), attributes: .destructive) { [weak self] _ in
-          self?.delegate?.onDeleteMessage(messageId: message.id)
+        // 2. Создаем подменю для удаления
+        let deleteForMeAction = UIAction(
+          title: "Удалить у меня",
+          image: UIImage(systemName: "person"),
+          attributes: .destructive
+        ) { [weak self] _ in
+          //                  self?.delegate?.onDeleteMessageForMe(messageId: message.id)
+          self?.currentInterfaceActions.options.remove(.showingPreview)
         }
         
-        let menu = UIMenu(title: "", children: [copyAction, deleteAction])
-        // Custom NSCopying identifier leads to the crash. No other requirements for the identifier to avoid the crash are provided.
+        let deleteForEveryoneAction = UIAction(
+          title: "Удалить у всех",
+          image: UIImage(systemName: "person.3"),
+          attributes: .destructive
+        ) { [weak self] _ in
+          //                  self?.delegate?.onDeleteMessageForEveryone(messageId: message.id)
+          self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+        
+        // Создаем подменю с иконкой
+        let deleteSubmenu = UIMenu(
+          title: "Удалить",
+          image: UIImage(systemName: "trash"),
+          options: .destructive,
+          children: [deleteForMeAction, deleteForEveryoneAction]
+        )
+        
+        // 3. Дополнительные действия (если нужны)
+        let replyAction = UIAction(
+          title: "Ответить",
+          image: UIImage(systemName: "arrowshape.turn.up.left")
+        ) { [weak self] _ in
+          //                  self?.delegate?.onReplyToMessage(messageId: message.id)
+          self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+        
+        let forwardAction = UIAction(
+          title: "Переслать",
+          image: UIImage(systemName: "arrowshape.turn.up.right")
+        ) { [weak self] _ in
+          //                  self?.delegate?.onForwardMessage(messageId: message.id)
+          self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+        
+        let favoriteAction = UIAction(
+          title: "В избранное",
+          image: UIImage(systemName: "star")
+        ) { [weak self] _ in
+          //                  self?.delegate?.onFavoriteMessage(messageId: message.id)
+          self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+        
+        // 4. Создаем основное меню
+        let menuChildren: [UIMenuElement]
+        
+        // Можно сделать разные варианты меню в зависимости от типа сообщения
+        menuChildren = [
+          copyAction,
+          replyAction,
+          forwardAction,
+          favoriteAction,
+          deleteSubmenu // Подменю с двумя вариантами удаления
+        ]
+        
+        let menu = UIMenu(title: "", children: menuChildren)
+        
+        // 5. Создаем конфигурацию контекстного меню
         let identifier: NSString = "\(indexPath.section)|\(indexPath.item)" as NSString
         currentInterfaceActions.options.insert(.showingPreview)
-        return UIContextMenuConfiguration(identifier: identifier, previewProvider: nil, actionProvider: { _ in menu })
+        
+        return UIContextMenuConfiguration(
+          identifier: identifier,
+          previewProvider: nil,
+          actionProvider: { _ in menu }
+        )
+        
       default:
         return nil
       }
+      
     default:
       return nil
     }
