@@ -29,7 +29,6 @@ export enum StackScreenName {
   RecoveryPassword = "RecoveryPassword",
   Gallery = "Gallery",
   Components = "Components",
-  Lottie = "Lottie",
   ChatScreen = "ChatScreen",
   Carousel = "Carousel",
   PdfView = "PdfView",
@@ -44,7 +43,6 @@ interface StackScreenParams {
   Components?: {
     initialRouteName: keyof typeof ComponentsScreenName;
   };
-  Lottie: undefined;
   ChatScreen: { dialogId: string };
   Carousel: undefined;
   PdfView: IPdfViewProps;

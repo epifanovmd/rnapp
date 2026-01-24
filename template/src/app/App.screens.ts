@@ -13,14 +13,12 @@ import {
   WebView,
 } from "../screens";
 import { Gallery } from "../screens/stack/Gallery";
-import { Lottie } from "../screens/stack/Lottie";
 
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens, options: { headerShown: false } },
 
   Gallery: { screen: Gallery },
   Components: { screen: Components, options: { headerShown: false } },
-  Lottie: { screen: Lottie },
   ChatScreen: {
     screen: ChatScreen,
     options: { headerShown: false, title: "Чат" },
