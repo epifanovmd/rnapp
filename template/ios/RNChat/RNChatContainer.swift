@@ -79,6 +79,9 @@ class RNChatContainer: UIView {
   // События для передачи в JS
   @objc var onVisibleMessages: RCTDirectEventBlock?
   @objc var onLoadPreviousMessages: RCTDirectEventBlock?
+  @objc var onForwardMessage: RCTDirectEventBlock?
+  @objc var onFavoriteMessage: RCTDirectEventBlock?
+  @objc var onReplyToMessage: RCTDirectEventBlock?
   @objc var onDeleteMessage: RCTDirectEventBlock?
   
   @objc var onScroll: RCTDirectEventBlock?
@@ -123,6 +126,18 @@ extension RNChatContainer: ChatControllerDelegate {
   func onLoadPreviousMessages(completion: @escaping () -> Void) {
     onLoadPreviousMessages?([:])
     completion()
+  }
+  
+  func onForwardMessage(messageId: UUID) {
+    onForwardMessage?(["messageId": messageId.uuidString])
+  }
+  
+  func onFavoriteMessage(messageId: UUID) {
+    onFavoriteMessage?(["messageId": messageId.uuidString])
+  }
+  
+  func onReplyToMessage(messageId: UUID) {
+    onReplyToMessage?(["messageId": messageId.uuidString])
   }
   
   func onDeleteMessage(messageId: UUID) {

@@ -23,6 +23,8 @@ typealias TypingIndicatorCollectionCell = ContainerCollectionViewCell<MessageCon
 
 final class DefaultChatCollectionDataSource: NSObject, ChatCollectionDataSource {
     var onReloadMessage: ((UUID) -> Void)?
+    
+    var isAvatarsVisible: Bool = false
 
     var sections: [Section] = [] {
         didSet {
@@ -139,7 +141,8 @@ final class DefaultChatCollectionDataSource: NSObject, ChatCollectionDataSource 
         cell.customView.customView.customView.font = .preferredFont(forTextStyle: .caption2)
         cell.customView.customView.flexibleEdges = [.top]
 
-        cell.contentView.layoutMargins = UIEdgeInsets(top: 2, left: 40, bottom: 2, right: 40)
+        let leftMargin: CGFloat = isAvatarsVisible ? 40 : 10
+        cell.contentView.layoutMargins = UIEdgeInsets(top: 2, left: leftMargin, bottom: 2, right: 40)
         return cell
     }
 
@@ -167,13 +170,14 @@ final class DefaultChatCollectionDataSource: NSObject, ChatCollectionDataSource 
         cellView.containerView.trailingView?.alpha = alignment.isIncoming ? 0 : 1
         cellView.containerView.trailingView?.setup(with: status)
         if let avatarView = cellView.containerView.leadingView {
-            let avatarViewController = AvatarViewController(user: user, bubble: bubble)
-            avatarView.setup(with: avatarViewController)
-            avatarViewController.view = avatarView
-            if let avatarDelegate = cellView.customView.customView as? AvatarViewDelegate {
-                avatarView.delegate = avatarDelegate
-            } else {
-                avatarView.delegate = nil
+            avatarView.isHidden = !isAvatarsVisible
+            
+            if isAvatarsVisible {
+                avatarView.alpha = alignment.isIncoming ? 1 : 0
+                let avatarViewController = AvatarViewController(user: user, bubble: bubble)
+                avatarView.setup(with: avatarViewController)
+                avatarViewController.view = avatarView
+                avatarView.delegate = cellView.customView.customView as? AvatarViewDelegate
             }
         }
     }

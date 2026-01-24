@@ -908,14 +908,6 @@ extension CollectionViewChatLayout: ChatLayoutRepresentation {
         return collectionView.numberOfItems(inSection: section)
     }
 
-//    func shouldPresentHeader(at sectionIndex: Int) -> Bool {
-//        delegate?.shouldPresentHeader(self, at: sectionIndex) ?? false
-//    }
-//
-//    func shouldPresentFooter(at sectionIndex: Int) -> Bool {
-//        delegate?.shouldPresentFooter(self, at: sectionIndex) ?? false
-//    }
-
     func interSectionSpacing(at sectionIndex: Int) -> CGFloat {
         let interItemSpacing: CGFloat
         if let delegate,

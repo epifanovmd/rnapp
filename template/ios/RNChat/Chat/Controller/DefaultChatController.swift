@@ -20,6 +20,12 @@ final class DefaultChatController: ChatController {
   private let dispatchQueue = DispatchQueue(label: "DefaultChatController", qos: .userInteractive)
   
   var userId: Int? = nil
+    
+    var isAvatarsVisible: Bool = false {
+      didSet {
+        repopulateMessages()
+      }
+    }
   
   var messages: [RawMessage] = []
   
