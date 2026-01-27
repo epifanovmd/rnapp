@@ -12,12 +12,10 @@ import {
   TabScreens,
   WebView,
 } from "../screens";
-import { Gallery } from "../screens/stack/Gallery";
 
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens, options: { headerShown: false } },
 
-  Gallery: { screen: Gallery },
   Components: { screen: Components, options: { headerShown: false } },
   ChatScreen: {
     screen: ChatScreen,

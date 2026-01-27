@@ -62,7 +62,6 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode gAppVersionCode
         versionName gAppVersionName
-        setProperty("archivesBaseName", "${applicationId}-v${versionName}(${versionCode})")
         multiDexEnabled true
         resValue "string", "build_config_package", gApplicationPackage
         resValue "string", "app_version_code", "" + gAppVersionCode
@@ -124,6 +123,15 @@ android {
             signingConfig signingConfigs.release
 
             versionName gAppVersionName + "-production"
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def versionName = variant.versionName
+            def versionCode = variant.versionCode
+            def applicationId = variant.applicationId
+            outputFileName = "${applicationId}-v${versionName}(${versionCode}).apk"
         }
     }
 }

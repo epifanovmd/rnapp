@@ -30,12 +30,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       in: window,
       launchOptions: launchOptions
     )
-    
+
     FirebaseApp.configure()
 
     return true
   }
-  
+
   // Deep link handling - will work with React import only
   func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
       return RCTLinkingManager.application(app, open: url, options: options)
@@ -54,12 +54,12 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     self.bundleURL()
   }
-  
+
   override func customize(_ rootView: RCTRootView) {
     super.customize(rootView)
-    RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
+//     RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
   }
-  
+
 
   override func bundleURL() -> URL? {
 #if DEBUG

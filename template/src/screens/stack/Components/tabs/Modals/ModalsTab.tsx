@@ -8,25 +8,16 @@ import {
   ScrollView,
   Text,
   Touchable,
-  useBottomSheetAttach,
   useBottomSheetRef,
 } from "@components";
 import { Icon } from "@components/ui/icon";
 import { TabProps, useTransition } from "@core";
-import React, { FC, memo, useCallback } from "react";
+import React, { FC, memo } from "react";
 
 import { CustomFilter } from "./CustomFilter";
 
 export const ModalsTab: FC<TabProps> = memo(({ route }) => {
-  const { open } = useBottomSheetAttach();
   const { navbarHeight } = useTransition();
-  const onAttach = useCallback(() => {
-    open({
-      onChange: value => {
-        console.log("value", value);
-      },
-    });
-  }, [open]);
 
   const filterRef = useBottomSheetRef();
   const modalRefScroll = useBottomSheetRef();
@@ -36,7 +27,6 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
 
   return (
     <Col ph={16} gap={8} pt={navbarHeight}>
-      <Button onPress={onAttach}>{"Attach"}</Button>
       <Button
         title={"Open filter"}
         onPress={() => filterRef.current?.present()}

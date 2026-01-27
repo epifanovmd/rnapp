@@ -27,7 +27,6 @@ export enum StackScreenName {
   SignIn = "SignIn",
   SignUp = "SignUp",
   RecoveryPassword = "RecoveryPassword",
-  Gallery = "Gallery",
   Components = "Components",
   ChatScreen = "ChatScreen",
   Carousel = "Carousel",
@@ -39,7 +38,6 @@ interface StackScreenParams {
   SignIn: { code?: string };
   SignUp: undefined;
   RecoveryPassword: undefined;
-  Gallery: undefined;
   Components?: {
     initialRouteName: keyof typeof ComponentsScreenName;
   };

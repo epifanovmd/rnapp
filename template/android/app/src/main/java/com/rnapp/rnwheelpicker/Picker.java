@@ -2,10 +2,9 @@ package com.rnapp.rnwheelpicker;
 
 import com.rnapp.rnwheelpicker.WheelPicker;
 import com.facebook.react.bridge.ReactContext;
-import com.facebook.react.uimanager.UIManagerModule;
+import com.facebook.react.uimanager.UIManagerHelper;
 import com.facebook.react.uimanager.events.EventDispatcher;
 import com.rnapp.rnwheelpicker.events.ItemSelectedEvent;
-import com.facebook.react.uimanager.events.RCTEventEmitter;
 import android.util.Log;
 
 import java.util.List;
@@ -42,16 +41,18 @@ public class Picker extends WheelPicker {
 
     if (reactContext.hasActiveReactInstance()) {
       try {
-        reactContext
-          .getJSModule(RCTEventEmitter.class)
-          .receiveEvent(
-            getId(),
-            ItemSelectedEvent.EVENT_NAME,
-            ItemSelectedEvent.createEventData(value, index, column)
-          );
+        // ИСПОЛЬЗУЕМ НОВЫЙ API для React Native 0.70+
+        EventDispatcher eventDispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, getId());
+        if (eventDispatcher != null) {
+          ItemSelectedEvent event = new ItemSelectedEvent(getId(), value, index, column);
+          eventDispatcher.dispatchEvent(event);
+        }
       } catch (Exception e) {
+        // Fallback для старых версий React Native (< 0.70)
         try {
-          UIManagerModule uiManager = reactContext.getNativeModule(UIManagerModule.class);
+          // Старый способ получения EventDispatcher
+          com.facebook.react.uimanager.UIManagerModule uiManager =
+              reactContext.getNativeModule(com.facebook.react.uimanager.UIManagerModule.class);
           if (uiManager != null) {
             EventDispatcher eventDispatcher = uiManager.getEventDispatcher();
             if (eventDispatcher != null) {

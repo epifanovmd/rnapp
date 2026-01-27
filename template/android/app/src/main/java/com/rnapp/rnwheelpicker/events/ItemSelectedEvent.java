@@ -1,5 +1,6 @@
 package com.rnapp.rnwheelpicker.events;
 
+import androidx.annotation.Nullable;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.Event;
@@ -43,12 +44,14 @@ public class ItemSelectedEvent extends Event<ItemSelectedEvent> {
     return eventData;
   }
 
-  @Override
-  public void dispatch(RCTEventEmitter rctEventEmitter) {
-    rctEventEmitter.receiveEvent(getViewTag(), getEventName(), serializeEventData());
+  // УБИРАЕМ @Override и используем правильную сигнатуру
+  public void dispatch(com.facebook.react.uimanager.events.EventDispatcher eventDispatcher) {
+    eventDispatcher.dispatchEvent(this);
   }
 
-  private WritableMap serializeEventData() {
+  @Nullable
+  @Override
+  protected WritableMap getEventData() {
     return createEventData(mValue, mIndex, mColumn);
   }
 

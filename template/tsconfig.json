@@ -3,11 +3,7 @@
   "compilerOptions": {
     "experimentalDecorators": true,
     "esModuleInterop": true,
-    "lib": [
-      "ESNext",
-      "ES6",
-      "dom"
-    ],
+    "lib": ["ESNext", "ES6", "dom"],
     "allowImportingTsExtensions": false,
     "paths": {
       "@api": ["./src/api"],
@@ -27,7 +23,5 @@
     }
   },
   "include": ["./src/**/*"],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["**/node_modules", "**/Pods"]
 }
