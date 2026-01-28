@@ -44,6 +44,7 @@ export interface ChatViewProps {
   showsVerticalScrollIndicator?: boolean;
   scrollEnabled?: boolean;
   insets?: ChatEdgeInsets;
+  datePinning?: "top" | "bottom" | "none";
 
   // События данных
   onVisibleMessages?: (messageIds: string[]) => void;

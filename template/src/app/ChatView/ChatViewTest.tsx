@@ -13,21 +13,55 @@ export const ChatViewTest = () => {
   const chatRef = useRef<ChatRef>(null);
   const [inputHeight, setInputHeight] = useState(0);
   const [inputValue, setInputValue] = useState("");
+  const [loadedPages, setLoadedPages] = useState(0);
+  const oldestTimestampRef = useRef<number>(Date.now());
 
   // Генерируем начальные сообщения
   useEffect(() => {
-    const initialMsgs = new Array(100).fill(null).map((_, i) => ({
-      id: generateUUID(),
-      date: Date.now() - (30 - i),
-      userId: i % 2 === 0 ? 0 : 3, // 0 - я, 3 - собеседник
-      status: "read" as const,
-      data: { text: `Initial message ${i}: ${generateRandomText(5)}` },
-    }));
+    const now = Date.now();
+    const initialMsgs = new Array(120).fill(null).map((_, i) => {
+      const daysBack = Math.floor((120 - i) / 12);
+      const timestamp =
+        now - daysBack * 24 * 60 * 60 * 1000 - (120 - i) * 60 * 1000;
+
+      return {
+        id: generateUUID(),
+        date: timestamp,
+        userId: i % 2 === 0 ? 0 : 3, // 0 - я, 3 - собеседник
+        status: "read" as const,
+        data: { text: `Initial message ${i}: ${generateRandomText(5)}` },
+      };
+    });
 
     setTimeout(() => {
       chatRef.current?.appendMessages(initialMsgs);
+      oldestTimestampRef.current = initialMsgs[0].date;
     }, 0);
   }, []);
+
+  const loadPreviousMessages = () => {
+    const pageSize = 20;
+    const base = oldestTimestampRef.current - 60 * 1000;
+    const batch = new Array(pageSize).fill(null).map((_, i) => {
+      const timestamp = base - i * 60 * 1000;
+
+      return {
+        id: generateUUID(),
+        date: timestamp,
+        userId: (loadedPages + i) % 2 === 0 ? 3 : 0,
+        status: "read" as const,
+        data: {
+          text: `Older message ${
+            loadedPages * pageSize + i
+          }: ${generateRandomText(6)}`,
+        },
+      };
+    });
+
+    oldestTimestampRef.current = batch[batch.length - 1].date;
+    setLoadedPages(prev => prev + 1);
+    chatRef.current?.appendMessages(batch);
+  };
 
   const handleAddMessage = () => {
     const newMsg: RawMessage = {
@@ -68,9 +102,8 @@ export const ChatViewTest = () => {
         keyboardDismissMode="interactive"
         keyboardScrollOffset={-bottom + 8}
         initialScrollIndex={44}
-        onLoadPreviousMessages={() =>
-          console.log("Native requested more messages")
-        }
+        datePinning={"top"}
+        onLoadPreviousMessages={loadPreviousMessages}
         onDelete={id => chatRef.current?.deleteMessage(id)}
         onVisibleMessages={ids => console.log("Visible IDs:", ids)}
         onScroll={e => console.log("Scroll Y:", e.contentOffset.y)}
