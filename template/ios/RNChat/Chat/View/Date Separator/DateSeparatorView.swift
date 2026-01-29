@@ -68,4 +68,11 @@ final class DateSeparatorView: UIView, StaticViewFactory {
             labelView.bottomAnchor.constraint(equalTo: layoutMarginsGuide.bottomAnchor, constant: -5)
         ])
     }
+    
+    func apply(configuration: ChatConfiguration) {
+        borderView.backgroundColor = configuration.colors.dateSeparatorBackground
+        borderView.layer.borderColor = configuration.colors.dateSeparatorBorder.cgColor
+        labelView.textColor = configuration.colors.dateSeparatorText
+        labelView.font = configuration.fonts.dateSeparator
+    }
 }

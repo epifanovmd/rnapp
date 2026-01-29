@@ -21,10 +21,12 @@ final class TextMessageController {
 
     let text: String
     let type: MessageType
+    let configuration: ChatConfiguration
 
-    init(text: String, type: MessageType) {
+    init(text: String, type: MessageType, configuration: ChatConfiguration) {
         self.text = text
         self.type = type
+        self.configuration = configuration
 
     }
 }

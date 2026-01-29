@@ -16,19 +16,16 @@ import UIKit
 struct RawMessage: Hashable {
     enum Data: Hashable {
         case text(String)
-
-        case url(URL)
-
         case image(ImageMessageSource)
+        case custom(CustomMessage)
+        case system(String)
     }
 
     var id: UUID
-
     var date: Date
-
     var data: Data
-
-    var userId: Int
-
+    var user: ChatUser
+    var direction: MessageType?
     var status: MessageStatus = .sent
+    var replyToId: UUID? = nil
 }

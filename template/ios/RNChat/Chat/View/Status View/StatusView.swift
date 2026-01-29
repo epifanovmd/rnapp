@@ -49,17 +49,17 @@ final class StatusView: UIView, StaticViewFactory {
         imageView.contentMode = .center
     }
 
-    func setup(with status: MessageStatus) {
+    func setup(with status: MessageStatus, configuration: ChatConfiguration) {
         switch status {
         case .sent:
-            imageView.image = UIImage(named: "sent_status")
-            imageView.tintColor = .lightGray
+            imageView.image = configuration.statusIcons.sent
+            imageView.tintColor = configuration.colors.statusSent
         case .received:
-            imageView.image = UIImage(named: "sent_status")
-            imageView.tintColor = .systemBlue
+            imageView.image = configuration.statusIcons.received
+            imageView.tintColor = configuration.colors.statusReceived
         case .read:
-            imageView.image = UIImage(named: "read_status")
-            imageView.tintColor = .systemBlue
+            imageView.image = configuration.statusIcons.read
+            imageView.tintColor = configuration.colors.statusRead
         }
     }
 }

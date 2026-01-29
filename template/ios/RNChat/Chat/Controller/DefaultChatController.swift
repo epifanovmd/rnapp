@@ -15,19 +15,30 @@ import Foundation
 final class DefaultChatController: ChatController {
   weak var delegate: ChatViewControllerDelegate?
   
-  private var typingState: TypingState = .idle
-  
   private let dispatchQueue = DispatchQueue(label: "DefaultChatController", qos: .userInteractive)
   
   var userId: Int? = nil
-    
-    var isAvatarsVisible: Bool = false {
-      didSet {
-        repopulateMessages()
-      }
+  
+  var configuration: ChatConfiguration {
+    didSet {
+      repopulateMessages()
     }
+  }
   
   var messages: [RawMessage] = []
+  
+  init(configuration: ChatConfiguration) {
+    self.configuration = configuration
+  }
+  
+  func setMessages(_ rawMessages: [RawMessage]) {
+    setMessages(rawMessages, true)
+  }
+  
+  func setMessages(_ rawMessages: [RawMessage], _ animated: Bool) {
+    self.messages = deduplicatePreservingOrder(rawMessages)
+    repopulateMessages(requiresIsolatedProcess: false, animated: animated)
+  }
   
   func appendMessages(_ rawMessages: [RawMessage]) {
     appendMessages(rawMessages, true)
@@ -35,21 +46,20 @@ final class DefaultChatController: ChatController {
   
   func appendMessages(_ rawMessages: [RawMessage], _ animated: Bool = true) {
     var currentMessages = messages
-    currentMessages.append(contentsOf: rawMessages)
-    // Убираем дубликаты по ID и сортируем по дате
-    let uniqueMessages = Array(Dictionary(grouping: currentMessages, by: { $0.id }).values.compactMap { $0.last })
-    self.messages = uniqueMessages.sorted(by: { $0.date.timeIntervalSince1970 < $1.date.timeIntervalSince1970 })
+    for message in rawMessages {
+      if let index = currentMessages.firstIndex(where: { $0.id == message.id }) {
+        currentMessages[index] = message
+      } else {
+        currentMessages.append(message)
+      }
+    }
+    self.messages = currentMessages
     repopulateMessages(requiresIsolatedProcess: false, animated: animated)
   }
   
   func deleteMessage(with id: UUID) {
     messages.removeAll(where: { $0.id == id })
     repopulateMessages(requiresIsolatedProcess: true)
-  }
-  
-  func typingStateChanged(to state: TypingState) {
-    self.typingState = state
-    repopulateMessages()
   }
   
   func markMessagesAsRead(ids: [UUID]) {
@@ -65,76 +75,128 @@ final class DefaultChatController: ChatController {
   }
   
   private func propagateLatestMessages(completion: @escaping ([Section]) -> Void) {
-    var lastMessageStorage: Message?
     dispatchQueue.async { [weak self] in
       guard let self else { return }
-      
-      let messagesSplitByDay = messages
-        .map { Message(
-          id: $0.id,
-          date: $0.date,
-          data: self.convert($0.data),
-          owner: User(id: $0.userId),
-          type: $0.userId == self.userId ? .outgoing : .incoming,
-          status: $0.status
-        ) }
-        .reduce(into: [[Message]]()) { result, message in
+
+      enum ChatEntry {
+        case message(Message)
+        case system(SystemMessage)
+
+        var date: Date {
+          switch self {
+          case let .message(message):
+            message.date
+          case let .system(message):
+            message.date
+          }
+        }
+      }
+
+      let rawById = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
+
+      func replyPreview(for rawMessage: RawMessage) -> ReplyPreview? {
+        guard configuration.behavior.showsReplyPreview,
+              let replyId = rawMessage.replyToId,
+              let referenced = rawById[replyId] else {
+          return nil
+        }
+        let text = configuration.behavior.replyPreviewTextProvider(referenced.data, referenced.user)
+        let resolvedType = referenced.direction ?? (referenced.user.id == self.userId ? .outgoing : .incoming)
+        return ReplyPreview(id: replyId, senderName: referenced.user.displayName, text: text, data: referenced.data, type: resolvedType)
+      }
+
+      let entriesSplitByDay = messages
+        .map { rawMessage -> ChatEntry in
+          switch rawMessage.data {
+          case let .system(text):
+            return .system(SystemMessage(id: rawMessage.id, date: rawMessage.date, text: text))
+          default:
+            let resolvedType = rawMessage.direction ?? (rawMessage.user.id == self.userId ? .outgoing : .incoming)
+            return .message(
+              Message(
+                id: rawMessage.id,
+                date: rawMessage.date,
+                data: self.convert(rawMessage.data),
+                owner: rawMessage.user,
+                type: resolvedType,
+                status: rawMessage.status,
+                showsHeader: false,
+                replyPreview: replyPreview(for: rawMessage)
+              )
+            )
+          }
+        }
+        .reduce(into: [[ChatEntry]]()) { result, entry in
           guard var section = result.last,
-                let prevMessage = section.last else {
-            let section = [message]
-            result.append(section)
+                let prevEntry = section.last else {
+            result.append([entry])
             return
           }
-          if Calendar.current.isDate(prevMessage.date, equalTo: message.date, toGranularity: .day) {
-            section.append(message)
+          if Calendar.current.isDate(prevEntry.date, equalTo: entry.date, toGranularity: .day) {
+            section.append(entry)
             result[result.count - 1] = section
           } else {
-            let section = [message]
-            result.append(section)
+            result.append([entry])
           }
         }
-      
-      let cells = messagesSplitByDay.enumerated().map { index, messages -> [Cell] in
-        var cells: [Cell] = Array(messages.enumerated().map { index, message -> [Cell] in
-          let bubble: Cell.BubbleType
-          if index < messages.count - 1 {
-            let nextMessage = messages[index + 1]
-            bubble = nextMessage.owner == message.owner ? .normal : .tailed
-          } else {
-            bubble = .tailed
-          }
-          guard message.type != .outgoing else {
-            lastMessageStorage = message
-            return [.message(message, bubbleType: bubble)]
-          }
-          
-          let titleCell = Cell.messageGroup(MessageGroup(id: message.id, title: "\(message.owner.name)", type: message.type))
-          
-          if let lastMessage = lastMessageStorage {
-            if lastMessage.owner != message.owner {
-              lastMessageStorage = message
-              return [titleCell, .message(message, bubbleType: bubble)]
+
+      let entriesWithHeaders = entriesSplitByDay.map { sectionEntries -> [ChatEntry] in
+        var previousOwner: ChatUser?
+        return sectionEntries.map { entry in
+          switch entry {
+          case var .message(message):
+            if message.type == .outgoing {
+              message.showsHeader = false
             } else {
-              lastMessageStorage = message
-              return [.message(message, bubbleType: bubble)]
+              message.showsHeader = previousOwner != message.owner
             }
-          } else {
-            lastMessageStorage = message
-            return [titleCell, .message(message, bubbleType: bubble)]
+            previousOwner = message.owner
+            return .message(message)
+          case .system:
+            previousOwner = nil
+            return entry
           }
-        }.joined())
-        
-        if let firstMessage = messages.first {
-          let dateCell = Cell.date(DateGroup(id: firstMessage.id, date: firstMessage.date))
+        }
+      }
+
+      let cells = entriesWithHeaders.enumerated().map { index, entries -> [Cell] in
+        var cells: [Cell] = []
+        cells.reserveCapacity(entries.count + 1)
+
+        for i in entries.indices {
+          let entry = entries[i]
+          switch entry {
+          case let .system(message):
+            cells.append(.system(message))
+          case let .message(message):
+            let bubble: Cell.BubbleType
+            if i < entries.count - 1 {
+              if case let .message(nextMessage) = entries[i + 1], nextMessage.owner == message.owner {
+                bubble = .normal
+              } else {
+                bubble = .tailed
+              }
+            } else {
+              bubble = .tailed
+            }
+            cells.append(.message(message, bubbleType: bubble))
+          }
+        }
+
+        if let firstEntry = entries.first, self.configuration.behavior.showsDateSeparators {
+          let title = self.configuration.dateFormatting.dateSeparatorTextProvider(firstEntry.date)
+          let dateId: UUID
+          switch firstEntry {
+          case let .message(message):
+            dateId = message.id
+          case let .system(message):
+            dateId = message.id
+          }
+          let dateCell = Cell.date(DateGroup(id: dateId, date: firstEntry.date, title: title))
           cells.insert(dateCell, at: 0)
         }
-        
-        if self.typingState == .typing,
-           index == messagesSplitByDay.count - 1 {
-          cells.append(.typingIndicator)
-        }
-        
-        return cells // Section(id: sectionTitle.hashValue, title: sectionTitle, cells: cells)
+
+        return cells
       }.joined()
       
       DispatchQueue.main.async { [weak self] in
@@ -148,25 +210,17 @@ final class DefaultChatController: ChatController {
   
   private func convert(_ data: Message.Data) -> RawMessage.Data {
     switch data {
-    case let .url(url, isLocallyStored: _):
-        .url(url)
     case let .image(source, isLocallyStored: _):
         .image(source)
     case let .text(text):
         .text(text)
+    case let .custom(custom):
+        .custom(custom)
     }
   }
   
   private func convert(_ data: RawMessage.Data) -> Message.Data {
     switch data {
-    case let .url(url):
-      let isLocallyStored: Bool
-      if #available(iOS 13, *) {
-        isLocallyStored = metadataCache.isEntityCached(for: url)
-      } else {
-        isLocallyStored = true
-      }
-      return .url(url, isLocallyStored: isLocallyStored)
     case let .image(source):
       func isPresentLocally(_ source: ImageMessageSource) -> Bool {
         switch source {
@@ -179,6 +233,10 @@ final class DefaultChatController: ChatController {
       return .image(source, isLocallyStored: isPresentLocally(source))
     case let .text(text):
       return .text(text)
+    case let .custom(custom):
+      return .custom(custom)
+    case let .system(text):
+      return .custom(CustomMessage(kind: "system", payload: text))
     }
   }
   
@@ -223,5 +281,19 @@ final class DefaultChatController: ChatController {
       return false
     }
   }
-}
 
+  private func deduplicatePreservingOrder(_ rawMessages: [RawMessage]) -> [RawMessage] {
+    var result: [RawMessage] = []
+    result.reserveCapacity(rawMessages.count)
+    var indexById: [UUID: Int] = [:]
+    for message in rawMessages {
+      if let index = indexById[message.id] {
+        result[index] = message
+      } else {
+        indexById[message.id] = result.count
+        result.append(message)
+      }
+    }
+    return result
+  }
+}

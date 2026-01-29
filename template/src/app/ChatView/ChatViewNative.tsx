@@ -20,29 +20,25 @@ export const ChatViewNative = forwardRef<ChatRef, ChatViewProps>(
       const node = findNodeHandle(nativeRef.current);
 
       if (!node) return;
-
       if (ChatModule && ChatModule[commandName]) {
         ChatModule[commandName](node, ...args);
       }
     };
 
     useImperativeHandle(ref, () => ({
+      setMessages: messages => dispatchCommand("setMessages", [messages]),
       appendMessages: messages => dispatchCommand("appendMessages", [messages]),
       deleteMessage: id => dispatchCommand("deleteMessage", [id]),
-      markAsRead: ids => dispatchCommand("markMessagesAsRead", [ids]),
-      setTyping: isTyping => dispatchCommand("setTyping", [isTyping]),
-
+      markMessagesAsRead: ids => dispatchCommand("markMessagesAsRead", [ids]),
+      markMessagesAsReceived: ids =>
+        dispatchCommand("markMessagesAsReceived", [ids]),
       scrollToBottom: animated => dispatchCommand("scrollToBottom", [animated]),
-
       scrollToMessage: (messageId, animated) =>
         dispatchCommand("scrollToMessage", [messageId, animated]),
-
       scrollToIndex: (index, animated) =>
         dispatchCommand("scrollToIndex", [index, animated]),
-
       scrollToOffset: (offset, animated) =>
         dispatchCommand("scrollToOffset", [offset, animated]),
-
       scrollToDate: (timestamp, animated) =>
         dispatchCommand("scrollToDate", [timestamp, animated]),
     }));
@@ -52,7 +48,6 @@ export const ChatViewNative = forwardRef<ChatRef, ChatViewProps>(
         ref={nativeRef}
         {...props}
         style={[{ flex: 1 }, props.style]}
-        // Мапим события жизненного цикла сообщений
         onVisibleMessages={(
           e: NativeSyntheticEvent<{ messageIds: string[] }>,
         ) => {
@@ -61,10 +56,18 @@ export const ChatViewNative = forwardRef<ChatRef, ChatViewProps>(
         onLoadPreviousMessages={() => {
           props.onLoadPreviousMessages?.();
         }}
+        onForwardMessage={(e: NativeSyntheticEvent<{ messageId: string }>) => {
+          props.onForwardMessage?.(e.nativeEvent.messageId);
+        }}
+        onFavoriteMessage={(e: NativeSyntheticEvent<{ messageId: string }>) => {
+          props.onFavoriteMessage?.(e.nativeEvent.messageId);
+        }}
+        onReplyToMessage={(e: NativeSyntheticEvent<{ messageId: string }>) => {
+          props.onReplyToMessage?.(e.nativeEvent.messageId);
+        }}
         onDeleteMessage={(e: NativeSyntheticEvent<{ messageId: string }>) => {
           props.onDelete?.(e.nativeEvent.messageId);
         }}
-        // Мапим события скролла
         onScroll={(e: NativeSyntheticEvent<ScrollEvent>) => {
           props.onScroll?.(e.nativeEvent);
         }}

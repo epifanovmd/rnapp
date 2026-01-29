@@ -286,7 +286,7 @@ final class StateController<Layout: ChatLayoutRepresentation> {
                 return (
                     indexPath: itemPath.indexPath,
                     frame: frame,
-                    pinningType: layout.sections[itemPath.section].items[itemPath.item].pinningType
+                    pinningType: self.item(for: itemPath, at: state)?.pinningType
                 )
             }
         }
@@ -572,13 +572,15 @@ final class StateController<Layout: ChatLayoutRepresentation> {
 
     func itemIdentifier(for itemPath: ItemPath, at state: ModelState) -> UUID? {
         let layout = layout(at: state)
-        guard itemPath.section < layout.sections.count else {
+        guard itemPath.section >= 0,
+              itemPath.section < layout.sections.count else {
             // This occurs when getting layout attributes for initial / final animations
             return nil
         }
         let sectionModel = layout.sections[itemPath.section]
 
-        guard itemPath.item < layout.sections[itemPath.section].items.count else {
+        guard itemPath.item >= 0,
+              itemPath.item < layout.sections[itemPath.section].items.count else {
             // This occurs when getting layout attributes for initial / final animations
             return nil
         }
@@ -597,7 +599,9 @@ final class StateController<Layout: ChatLayoutRepresentation> {
     func item(for itemPath: ItemPath, at state: ModelState) -> ItemModel? {
         let layout = layout(at: state)
 
-        guard itemPath.section < layout.sections.count,
+        guard itemPath.section >= 0,
+              itemPath.section < layout.sections.count,
+              itemPath.item >= 0,
               itemPath.item < layout.sections[itemPath.section].items.count else {
             // This occurs when getting layout attributes for initial / final animations
             return nil

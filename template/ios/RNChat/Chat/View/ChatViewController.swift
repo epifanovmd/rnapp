@@ -17,31 +17,31 @@ import UIKit
 
 final class ChatViewController: UIViewController {
     var delegate: ChatControllerDelegate?
-    
+
     var initialScrollId: UUID?      // Только для сообщений
     var initialScrollDate: Date?    // Для перехода к конкретному времени
     var initialScrollIndex: Int?    // По порядковому номеру
     var initialScrollOffset: CGFloat? // Абсолютное смещение от низа
     private var isInitialScrollDone = false
-    
+
     var scrollThreshold: CGFloat = 1.0 // В единицах высоты экрана
     var onScrollUpdateInterval: TimeInterval = 0.1 // Как часто уведомлять о скролле (сек)
     var scrollVelocityThreshold: CGFloat = 2000 // Скорость, выше которой чтение не засчитывается
-    
+
     private var keyboardScrollOffset: CGFloat = 0
-    
-    var viewabilityConfig = Constants.ViewabilityConfig()
-    
+
+    var viewabilityConfig: ChatConfiguration.ViewabilityConfig
+
     private var lastReportedOffset: CGPoint = .zero
     private var userHasInteracted: Bool = false
     private var lastScrollNotifyTime: TimeInterval = 0
     private var viewTimeTracker: [UUID: TimeInterval] = [:]
     private var lastVisibilityCheckTime: TimeInterval = CACurrentMediaTime()
-    
+
     private enum ReactionTypes {
         case delayedUpdate
     }
-    
+
     private enum InterfaceActions {
         case changingKeyboardFrame
         case changingContentInsets
@@ -53,25 +53,27 @@ final class ChatViewController: UIViewController {
         case showingAccessory
         case updatingCollectionInIsolation
     }
-    
+
     private enum ControllerActions {
         case loadingInitialMessages
         case loadingPreviousMessages
         case updatingCollection
     }
-    
+
     override var canBecomeFirstResponder: Bool {
         true
     }
-    
+
     private var currentInterfaceActions: SetActor<Set<InterfaceActions>, ReactionTypes> = SetActor()
     private var currentControllerActions: SetActor<Set<ControllerActions>, ReactionTypes> = SetActor()
-    
+
     private var collectionView: UICollectionView!
     private var chatLayout = CollectionViewChatLayout()
     private let dataSource: ChatCollectionDataSource
+    private var configuration: ChatConfiguration
     private var animator: ManualAnimator?
-    
+    private var contextMenuBlurView: UIVisualEffectView?
+
     private lazy var scrollDownButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .medium)
@@ -88,47 +90,50 @@ final class ChatViewController: UIViewController {
         button.addTarget(self, action: #selector(scrollDownTapped), for: .touchUpInside)
         return button
     }()
-    
+
     private var translationX: CGFloat = 0
     private var currentOffset: CGFloat = 0
-    
+
     init(
-        dataSource: ChatCollectionDataSource
+        dataSource: ChatCollectionDataSource,
+        configuration: ChatConfiguration
     ) {
         self.dataSource = dataSource
+        self.configuration = configuration
+        self.viewabilityConfig = configuration.viewability
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
-    
+
     @available(*, unavailable, message: "Use init(messageController:) instead")
     override convenience init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
         fatalError()
     }
-    
+
     @available(*, unavailable, message: "Use init(messageController:) instead")
     required init?(coder: NSCoder) {
         fatalError()
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        chatLayout.settings.interItemSpacing = 8
-        chatLayout.settings.interSectionSpacing = 8
-        chatLayout.settings.additionalInsets = UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5)
-        
+
+        chatLayout.settings.interItemSpacing = configuration.layout.interItemSpacing
+        chatLayout.settings.interSectionSpacing = configuration.layout.interSectionSpacing
+        chatLayout.settings.additionalInsets = configuration.layout.contentInsets
+
         chatLayout.keepContentOffsetAtBottomOnBatchUpdates = true
         chatLayout.processOnlyVisibleItemsOnAnimatedBatchUpdates = false
         chatLayout.keepContentAtBottomOfVisibleArea = true
-        
+
         collectionView = UICollectionView(frame: view.frame, collectionViewLayout: chatLayout)
         collectionView.alpha = 0
-        
+
         view.addSubview(collectionView)
-        
+
         collectionView.alwaysBounceVertical = true
         collectionView.dataSource = dataSource
         chatLayout.delegate = dataSource
@@ -139,7 +144,7 @@ final class ChatViewController: UIViewController {
         collectionView.automaticallyAdjustsScrollIndicatorInsets = true
         //        collectionView.selfSizingInvalidation = .enabled
         //        chatLayout.supportSelfSizingInvalidation = true
-        
+
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.frame = view.bounds
         NSLayoutConstraint.activate([
@@ -148,48 +153,60 @@ final class ChatViewController: UIViewController {
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 0),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: 0)
         ])
-        collectionView.backgroundColor = .clear
+        collectionView.backgroundColor = configuration.colors.background
         collectionView.showsHorizontalScrollIndicator = false
         dataSource.prepare(with: collectionView)
-        
+
+        if let defaultDataSource = dataSource as? DefaultChatCollectionDataSource {
+            defaultDataSource.onReplyTap = { [weak self] id in
+                self?.scrollTo(messageId: id, animated: true)
+            }
+        }
+
         setupScrollDownButton()
         KeyboardListener.shared.add(delegate: self)
-        
+
         setupKeyboardDismissOnTap()
     }
-    
+
     private func setupKeyboardDismissOnTap() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tapGesture.cancelsTouchesInView = false // Важно! Позволяет другим жестам работать
         tapGesture.delegate = self
         collectionView.addGestureRecognizer(tapGesture)
     }
-    
+
     @objc private func dismissKeyboard() {
         let activeWindow = UIApplication.shared.connectedScenes
             .filter { $0.activationState == .foregroundActive }
             .compactMap { $0 as? UIWindowScene }
             .first?.windows
             .first { $0.isKeyWindow }
-        
+
         activeWindow?.endEditing(true)
-        
+
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         collectionView.collectionViewLayout.invalidateLayout()
+        if !isInitialScrollDone, !dataSource.sections.isEmpty {
+            applyInitialScroll(in: dataSource.sections)
+        }
+        if collectionView.alpha == 0, !dataSource.sections.isEmpty {
+            collectionView.alpha = 1
+        }
     }
-    
+
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         guard isViewLoaded else {
             return
         }
-        
+
         currentInterfaceActions.options.insert(.changingFrameSize)
         let positionSnapshot = chatLayout.getContentOffsetSnapshot(from: .bottom)
         collectionView.collectionViewLayout.invalidateLayout()
@@ -211,63 +228,95 @@ final class ChatViewController: UIViewController {
         })
         super.viewWillTransition(to: size, with: coordinator)
     }
-    
+
     private var scrollDownButtonBottomConstraint: NSLayoutConstraint?
-    
+
     private func setupScrollDownButton() {
         view.addSubview(scrollDownButton)
-        
+
         // Привязываем кнопку к низу основной вью
         let bottomConstraint = scrollDownButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16)
         scrollDownButtonBottomConstraint = bottomConstraint
-        
+
         NSLayoutConstraint.activate([
             scrollDownButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             bottomConstraint,
             scrollDownButton.widthAnchor.constraint(equalToConstant: 44),
             scrollDownButton.heightAnchor.constraint(equalToConstant: 44)
         ])
-        
+
         // Устанавливаем начальное положение с учетом текущих инсетов
         updateScrollDownButtonOffset()
     }
-    
+
     private func updateScrollDownButtonOffset() {
         let totalBottomInset = collectionView.adjustedContentInset.bottom
         scrollDownButtonBottomConstraint?.constant = -chatLayout.settings.additionalInsets.bottom - totalBottomInset
     }
-    
+
     @objc private func scrollDownTapped() {
         scrollToBottom()
     }
-    
+
     func setDirectionalLockEnabled(_ enabled: Bool) {
         collectionView.isDirectionalLockEnabled = enabled
     }
-    
+
     func setKeyboardDismissMode(_ mode: UIScrollView.KeyboardDismissMode = .interactive) {
         collectionView.keyboardDismissMode = mode
     }
-    
+
     func setKeyboardScrollOffset(_ offset: CGFloat = 0) {
         keyboardScrollOffset = offset
     }
-    
+
     func setScrollsToTop(_ enabled: Bool) {
         collectionView.scrollsToTop = enabled
     }
-    
+
     func setShowsVerticalScrollIndicator(_ visible: Bool) {
         collectionView.showsVerticalScrollIndicator = visible
     }
-    
+
     func setScrollEnabled(_ enabled: Bool) {
         collectionView.isScrollEnabled = enabled
     }
-    
+
     func setAdditionalInsets(_ insets: UIEdgeInsets) {
         chatLayout.settings.additionalInsets = insets
         collectionView.collectionViewLayout.invalidateLayout()
+        updateScrollDownButtonOffset()
+    }
+
+    func apply(configuration: ChatConfiguration, animated: Bool = true) {
+        self.configuration = configuration
+        viewabilityConfig = configuration.viewability
+        chatLayout.settings.interItemSpacing = configuration.layout.interItemSpacing
+        chatLayout.settings.interSectionSpacing = configuration.layout.interSectionSpacing
+        chatLayout.settings.additionalInsets = configuration.layout.contentInsets
+        collectionView.backgroundColor = configuration.colors.background
+        if let defaultDataSource = dataSource as? DefaultChatCollectionDataSource {
+            defaultDataSource.configuration = configuration
+        }
+        let visibleIndexPaths = collectionView.indexPathsForVisibleItems
+        let updateBlock = {
+            if !visibleIndexPaths.isEmpty {
+                self.collectionView.performBatchUpdates({
+                    self.collectionView.reloadItems(at: visibleIndexPaths)
+                })
+            }
+            self.collectionView.collectionViewLayout.invalidateLayout()
+        }
+        if animated {
+            UIView.transition(
+                with: collectionView,
+                duration: 0.2,
+                options: [.transitionCrossDissolve, .allowUserInteraction],
+                animations: updateBlock
+            )
+        } else {
+            UIView.performWithoutAnimation(updateBlock)
+        }
         updateScrollDownButtonOffset()
     }
 }
@@ -287,7 +336,7 @@ extension ChatViewController: UIScrollViewDelegate {
         currentInterfaceActions.options.insert(.scrollingToTop)
         return true
     }
-    
+
     func scrollViewDidScrollToTop(_ scrollView: UIScrollView) {
         guard !currentControllerActions.options.contains(.loadingInitialMessages),
               !currentControllerActions.options.contains(.loadingPreviousMessages) else {
@@ -296,22 +345,21 @@ extension ChatViewController: UIScrollViewDelegate {
         currentInterfaceActions.options.remove(.scrollingToTop)
         loadPreviousMessages()
     }
-    
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         updateScrollDownButtonVisibility(scrollView)
-        
         guard isUserInitiatedScrolling || scrollView.isZooming else {
             return
         }
-        
+
         let currentTime = CACurrentMediaTime()
-        
+
         handleVisibilityTracking(currentTime: currentTime)
-        
+
         let offsetFromBottom = scrollView.contentSize.height - (scrollView.contentOffset.y + scrollView.frame.height - scrollView.adjustedContentInset.bottom)
         let currentInvertedOffset = CGPoint(x: scrollView.contentOffset.x, y: max(0, offsetFromBottom))
-        
-        
+
+
         if currentTime - lastScrollNotifyTime >= onScrollUpdateInterval {
             if currentInvertedOffset != lastReportedOffset {
                 delegate?.onScrollMessages(offset: currentInvertedOffset, contentSize: scrollView.contentSize)
@@ -319,7 +367,7 @@ extension ChatViewController: UIScrollViewDelegate {
                 lastScrollNotifyTime = currentTime
             }
         }
-        
+
         if currentControllerActions.options.contains(.updatingCollection), collectionView.isDragging {
             // Interrupting current update animation if user starts to scroll while batchUpdate is performed. It helps to
             // avoid presenting blank area if user scrolls out of the animation rendering area.
@@ -331,45 +379,45 @@ extension ChatViewController: UIScrollViewDelegate {
                 })
             }
         }
-        
+
         guard !currentControllerActions.options.contains(.loadingInitialMessages),
               !currentControllerActions.options.contains(.loadingPreviousMessages),
               !currentInterfaceActions.options.contains(.scrollingToTop),
               !currentInterfaceActions.options.contains(.scrollingToBottom) else {
             return
         }
-        
+
         let thresholdHeight = scrollView.bounds.height * scrollThreshold
         if !currentControllerActions.options.contains(.loadingPreviousMessages),
            scrollView.contentOffset.y <= -scrollView.adjustedContentInset.top + thresholdHeight {
             loadPreviousMessages()
         }
     }
-    
+
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         userHasInteracted = true
         delegate?.onScrollMessagesBeginDrag()
     }
-    
+
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willowDecelerate decelerate: Bool) {
         if !decelerate {
             delegate?.onScrollMessagesEndDrag()
         }
     }
-    
+
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         delegate?.onMomentumScrollMessagesEnd()
     }
-    
+
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
         delegate?.onScrollMessagesAnimationEnd()
     }
-    
+
     private func updateScrollDownButtonVisibility(_ scrollView: UIScrollView) {
         let offsetFromBottom = scrollView.contentSize.height - (scrollView.contentOffset.y + scrollView.frame.height - scrollView.adjustedContentInset.bottom)
-        
+
         let shouldShow = offsetFromBottom > 100
-        
+
         if (shouldShow && scrollDownButton.alpha == 0) || (!shouldShow && scrollDownButton.alpha == 1) {
             UIView.animate(withDuration: 0.2) {
                 self.scrollDownButton.alpha = shouldShow ? 1 : 0
@@ -377,14 +425,15 @@ extension ChatViewController: UIScrollViewDelegate {
             }
         }
     }
-    
+
+
     private func loadPreviousMessages() {
         guard !currentControllerActions.options.contains(.loadingPreviousMessages) else {
             return
         }
-        
+
         currentControllerActions.options.insert(.loadingPreviousMessages)
-        
+
         delegate?.onLoadPreviousMessages { [weak self] in
             // TODO: Убрать костыль в виде задержки и перейти на completion замыкание
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -392,16 +441,16 @@ extension ChatViewController: UIScrollViewDelegate {
             }
         }
     }
-    
+
     fileprivate var isUserInitiatedScrolling: Bool {
         collectionView.isDragging || collectionView.isDecelerating
     }
-    
+
     func scrollTo(messageId: UUID? = nil, index: Int? = nil, date: Date? = nil, offset: CGFloat? = nil, animated: Bool = true, completion: (() -> Void)? = nil) {
         // 1. ОСТАНОВКА ЛЮБОГО ДВИЖЕНИЯ
         animator?.reset()
         collectionView.setContentOffset(collectionView.contentOffset, animated: false)
-        
+
         guard isViewLoaded else {
             initialScrollId = messageId
             initialScrollIndex = index
@@ -409,11 +458,12 @@ extension ChatViewController: UIScrollViewDelegate {
             completion?()
             return
         }
-        
+
         // 2. ВЫЧИСЛЕНИЕ ЦЕЛИ (SNAPSHOT)
         let snapshot: ChatLayoutPositionSnapshot?
         let isBottomTarget = (offset != nil && offset! <= 0.1) || (messageId == nil && index == nil && date == nil && offset == nil)
-        
+
+        var highlightIndexPath: IndexPath?
         if isBottomTarget {
             let lastSectionIndex = dataSource.sections.count - 1
             guard lastSectionIndex >= 0, let lastItemIndex = dataSource.sections[lastSectionIndex].cells.indices.last else {
@@ -427,6 +477,7 @@ extension ChatViewController: UIScrollViewDelegate {
             if let messageId = messageId {
                 targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
                     if case let .message(msg, _) = cell { return msg.id == messageId }
+                    if case let .system(system) = cell { return system.id == messageId }
                     return false
                 }
             } else if let idx = index {
@@ -437,106 +488,123 @@ extension ChatViewController: UIScrollViewDelegate {
                     return false
                 }
             }
-            snapshot = targetIndexPath.map { ChatLayoutPositionSnapshot(indexPath: $0, edge: .top, offset: 0) }
+            if messageId != nil || index != nil {
+                highlightIndexPath = targetIndexPath
+            }
+            snapshot = targetIndexPath.map { indexPath in
+                if configuration.behavior.scrollToCenterOnIdIndex, (messageId != nil || index != nil) {
+                    return centeredSnapshot(for: indexPath) ?? ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
+                }
+                return ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
+            }
         }
-        
+
         guard let finalSnapshot = snapshot else {
             completion?()
             return
         }
-        
+
         // 3. АНИМАЦИЯ ЧЕРЕЗ MANUAL ANIMATOR
         if !animated {
             UIView.performWithoutAnimation {
                 self.chatLayout.restoreContentOffset(with: finalSnapshot)
                 self.currentInterfaceActions.options.remove(.scrollingToBottom)
+                self.collectionView.layoutIfNeeded()
+                self.highlightMessageIfNeeded(at: highlightIndexPath)
                 completion?()
             }
             return
         }
-        
+
         let startOffset = collectionView.contentOffset
         var targetOffset: CGPoint = .zero
-        
+
         // ТРЮК: Узнаем целевой офсет через мгновенный переход и возвращаемся назад
         UIView.performWithoutAnimation {
             self.chatLayout.restoreContentOffset(with: finalSnapshot)
             targetOffset = self.collectionView.contentOffset
             self.collectionView.contentOffset = startOffset
         }
-        
+
         let delta = targetOffset.y - startOffset.y
-        if abs(delta) < 0.5 {
+        if abs(delta) < 0.1 {
             self.currentInterfaceActions.options.remove(.scrollingToBottom)
+            self.collectionView.layoutIfNeeded()
+            self.highlightMessageIfNeeded(at: highlightIndexPath)
             completion?()
             return
         }
-        
+
+        let distance = abs(delta)
+        let duration = max(0.15, min(0.35, TimeInterval(distance / 1200)))
+
         animator = ManualAnimator()
-        animator?.animate(duration: 0.3, curve: .easeInOut) { [weak self] percentage in
+        animator?.animate(duration: duration, curve: .easeInOut) { [weak self] percentage in
             guard let self = self else { return }
-            
+
             // На каждом шаге ManualAnimator меняет офсет,
             // а restoreContentOffset гарантирует точность приземления
             self.collectionView.contentOffset.y = startOffset.y + (delta * percentage)
-            
+
             if percentage >= 1.0 {
                 UIView.performWithoutAnimation {
                     self.chatLayout.restoreContentOffset(with: finalSnapshot)
                 }
                 self.animator = nil
                 self.currentInterfaceActions.options.remove(.scrollingToBottom)
+                self.collectionView.layoutIfNeeded()
+                self.highlightMessageIfNeeded(at: highlightIndexPath)
                 completion?()
             }
         }
     }
-    
+
     func scrollToBottom(animated: Bool = true, completion: (() -> Void)? = nil) {
         scrollTo(animated: animated, completion: completion)
     }
-    
+
     private func handleVisibilityTracking(currentTime: TimeInterval) {
         // Если waitForInteraction включен и взаимодействия еще не было — выходим
         if viewabilityConfig.waitForInteraction && !userHasInteracted {
             return
         }
-        
+
         let deltaTime = currentTime - lastVisibilityCheckTime
         lastVisibilityCheckTime = currentTime
-        
+
         let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
         let visibleArea = visibleRect.width * visibleRect.height
-        
+
         var reportableIds: [UUID] = []
-        
+
         for indexPath in collectionView.indexPathsForVisibleItems {
             guard let cell = dataSource.sections[indexPath.section].cells[indexPath.item] as? Cell,
                   case let .message(message, _) = cell,
                   message.type == .incoming,
                   message.status != .read else { continue }
-            
+
             if let attributes = collectionView.layoutAttributesForItem(at: indexPath) {
                 let itemFrame = attributes.frame
                 let intersection = itemFrame.intersection(visibleRect)
-                
+
                 if intersection.isNull {
                     viewTimeTracker.removeValue(forKey: message.id)
                     continue
                 }
-                
+
                 // 1. Расчет процента видимости самого элемента (Item Visible Percent)
                 let itemVisiblePercent = (intersection.width * intersection.height) / (itemFrame.width * itemFrame.height) * 100
-                
+
                 // 2. Расчет покрытия видимой области экрана (View Area Coverage)
                 let viewAreaCoveragePercent = (intersection.width * intersection.height) / visibleArea * 100
-                
+
                 let isItemVisibleEnough = itemVisiblePercent >= viewabilityConfig.itemVisiblePercentThreshold
                 let isAreaCoveredEnough = viewAreaCoveragePercent >= viewabilityConfig.viewAreaCoveragePercentThreshold
-                
+
                 if isItemVisibleEnough && isAreaCoveredEnough {
                     let totalTime = (viewTimeTracker[message.id] ?? 0) + deltaTime
                     viewTimeTracker[message.id] = totalTime
-                    
+
                     if totalTime >= viewabilityConfig.minimumViewTime {
                         reportableIds.append(message.id)
                     }
@@ -545,7 +613,7 @@ extension ChatViewController: UIScrollViewDelegate {
                 }
             }
         }
-        
+
         if !reportableIds.isEmpty {
             delegate?.onVisibleMessages(reportableIds)
             // Помечаем как обработанные, чтобы не слать повторно в этом цикле жизни видимости
@@ -554,10 +622,13 @@ extension ChatViewController: UIScrollViewDelegate {
             }
         }
     }
-    
+
     private func applyInitialScroll(in sections: [Section]) {
         if isInitialScrollDone || sections.isEmpty { return }
-        
+        guard collectionView.window != nil else {
+            return
+        }
+
         // Используем универсальный метод scrollTo для исключения дублирования логики
         if let scrollOffset = initialScrollOffset {
             scrollTo(offset: scrollOffset, animated: false)
@@ -573,7 +644,59 @@ extension ChatViewController: UIScrollViewDelegate {
             isInitialScrollDone = true
         }
     }
-    
+
+    private func centeredSnapshot(for indexPath: IndexPath) -> ChatLayoutPositionSnapshot? {
+        collectionView.layoutIfNeeded()
+        guard let attributes = collectionView.layoutAttributesForItem(at: indexPath) else {
+            return nil
+        }
+        let frame = attributes.frame
+        let desiredOffset = frame.midY - (collectionView.bounds.height / 2)
+        let adjusted = collectionView.adjustedContentInset
+        let extra = chatLayout.settings.additionalInsets
+        let offset = frame.minY - desiredOffset - adjusted.top - extra.top
+        return ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: offset)
+    }
+
+    private func highlightMessageIfNeeded(at indexPath: IndexPath?) {
+        guard configuration.behavior.showsScrollHighlight,
+              let indexPath else {
+            return
+        }
+        guard let cell = collectionView.cellForItem(at: indexPath),
+              let highlightTarget = highlightTargetView(from: cell) else {
+            return
+        }
+        let highlightView = UIView(frame: highlightTarget.bounds)
+        highlightView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        highlightView.isUserInteractionEnabled = false
+        highlightView.backgroundColor = configuration.colors.scrollHighlight
+        highlightView.layer.cornerRadius = highlightTarget.layer.cornerRadius
+        highlightView.clipsToBounds = true
+        highlightView.alpha = 0
+        highlightTarget.addSubview(highlightView)
+
+        UIView.animate(withDuration: 0.15, animations: {
+            highlightView.alpha = 1
+        }) { _ in
+            UIView.animate(withDuration: self.configuration.behavior.scrollHighlightDuration, delay: 0.1, options: [.curveEaseOut], animations: {
+                highlightView.alpha = 0
+            }, completion: { _ in
+                highlightView.removeFromSuperview()
+            })
+        }
+    }
+
+    private func highlightTargetView(from cell: UICollectionViewCell) -> UIView? {
+        if let bubbleView = bubbleView(from: cell) {
+            return bubbleView
+        }
+        if let cell = cell as? SystemMessageCollectionCell {
+            return cell.customView.highlightTargetView
+        }
+        return cell.contentView
+    }
+
     private func getIndexPath(fromMessageIndex targetIndex: Int, in sections: [Section]) -> IndexPath? {
         var currentMsgCount = 0
         for (sIndex, section) in sections.enumerated() {
@@ -588,7 +711,7 @@ extension ChatViewController: UIScrollViewDelegate {
         }
         return nil
     }
-    
+
     private func findIndexPath(in sections: [Section], predicate: (Cell) -> Bool) -> IndexPath? {
         for (sIndex, section) in sections.enumerated() {
             if let iIndex = section.cells.firstIndex(where: predicate) {
@@ -608,162 +731,257 @@ extension ChatViewController: UICollectionViewDelegate {
         guard components.count == 2,
               let sectionIndex = Int(components[0]),
               let itemIndex = Int(components[1]),
-              let cell = collectionView.cellForItem(at: IndexPath(item: itemIndex, section: sectionIndex)) as? TextMessageCollectionCell else {
+              let cell = collectionView.cellForItem(at: IndexPath(item: itemIndex, section: sectionIndex)) else {
             return nil
         }
-        
+
         let item = dataSource.sections[0].cells[itemIndex]
         switch item {
         case let .message(message, bubbleType: _):
-            switch message.data {
-            case .text:
-                let parameters = UIPreviewParameters()
-                // `UITargetedPreview` doesnt support image mask (Why?) like the one I use to mask the message bubble in the example app.
-                // So I replaced default `ImageMaskedView` with `BezierMaskedView` that can uses `UIBezierPath` to mask the message view
-                // instead. So we are reusing that path here.
-                //
-                // NB: This way of creating the preview is not valid for long texts as `UITextView` within message view uses `CATiledLayer`
-                // to render its content, so it may not render itself fully when it is partly outside the collection view. You will have to
-                // recreate a brand new view that will behave as a preview. It is outside of the scope of the example app.
-                parameters.visiblePath = cell.customView.customView.customView.maskingPath
-                var center = cell.customView.customView.customView.center
-                center.x += (message.type.isIncoming ? cell.customView.customView.customView.offset : -cell.customView.customView.customView.offset) / 2
-                
+            let parameters = UIPreviewParameters()
+            parameters.backgroundColor = .clear
+            // `UITargetedPreview` doesnt support image mask (Why?) like the one I use to mask the message bubble in the example app.
+            // So I replaced default `ImageMaskedView` with `BezierMaskedView` that can uses `UIBezierPath` to mask the message view
+            // instead. So we are reusing that path here.
+            //
+            // NB: This way of creating the preview is not valid for long texts as `UITextView` within message view uses `CATiledLayer`
+            // to render its content, so it may not render itself fully when it is partly outside the collection view. You will have to
+            // recreate a brand new view that will behave as a preview. It is outside of the scope of the example app.
+            guard let bubbleView = bubbleView(from: cell) else {
+                let fallbackView = cell.contentView
+                let fallbackSnapshot = fallbackView.snapshotView(afterScreenUpdates: false) ?? fallbackView
+                let fallbackCenter = CGPoint(x: fallbackView.bounds.midX, y: fallbackView.bounds.midY)
                 return UITargetedPreview(
-                    view: cell.customView.customView.customView,
+                    view: fallbackSnapshot,
                     parameters: parameters,
-                    target: UIPreviewTarget(container: cell.customView.customView, center: center)
+                    target: UIPreviewTarget(container: fallbackView, center: fallbackCenter)
                 )
-            default:
-                return nil
             }
+            parameters.visiblePath = bubbleView.maskingPath
+            let originalTint = bubbleView.tintAdjustmentMode
+            bubbleView.tintAdjustmentMode = .normal
+            let snapshot = bubbleView.snapshotView(afterScreenUpdates: false)
+            bubbleView.tintAdjustmentMode = originalTint
+            let previewView = snapshot ?? bubbleView
+            let pathBounds = bubbleView.maskingPath.bounds
+            let localCenter = CGPoint(x: pathBounds.midX, y: pathBounds.midY)
+            let targetContainer = bubbleView.superview ?? bubbleView
+            let targetCenter = bubbleView.convert(localCenter, to: targetContainer)
+            return UITargetedPreview(
+                view: previewView,
+                parameters: parameters,
+                target: UIPreviewTarget(container: targetContainer, center: targetCenter)
+            )
         default:
             return nil
         }
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
         preview(for: configuration)
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration) -> UITargetedPreview? {
         preview(for: configuration)
     }
-    
+
+    func collectionView(_ collectionView: UICollectionView, willDisplayContextMenu configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
+        showContextMenuBlur(using: animator)
+    }
+
     func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
-        guard !currentInterfaceActions.options.contains(.showingPreview),
-              !currentControllerActions.options.contains(.updatingCollection) else {
+        guard !currentInterfaceActions.options.contains(.showingPreview) else {
             return nil
         }
-        
+
         let item = dataSource.sections[indexPath.section].cells[indexPath.item]
-        
+
         switch item {
         case let .message(message, bubbleType: _):
-            switch message.data {
-            case let .text(body):
-                // 1. Действие копирования
-                let copyAction = UIAction(
-                    title: "Скопировать",
-                    image: UIImage(systemName: "doc.on.doc")
-                ) { _ in
-                    UIPasteboard.general.string = body
-                }
+            let menu = makeContextMenu(for: message)
+            let identifier: NSString = "\(indexPath.section)|\(indexPath.item)" as NSString
+            currentInterfaceActions.options.insert(.showingPreview)
+            return UIContextMenuConfiguration(
+                identifier: identifier,
+                previewProvider: nil,
+                actionProvider: { _ in menu }
+            )
+        case let .system(message):
+            let menu = makeSystemContextMenu(for: message)
+            let identifier: NSString = "\(indexPath.section)|\(indexPath.item)" as NSString
+            currentInterfaceActions.options.insert(.showingPreview)
+            return UIContextMenuConfiguration(
+                identifier: identifier,
+                previewProvider: nil,
+                actionProvider: { _ in menu }
+            )
 
-                let replyAction = UIAction(
-                    title: "Ответить",
-                    image: UIImage(systemName: "arrowshape.turn.up.left")
-                ) { [weak self] _ in
-                    self?.delegate?.onReplyToMessage(messageId: message.id)
-                    self?.currentInterfaceActions.options.remove(.showingPreview)
-                }
-                
-                let forwardAction = UIAction(
-                    title: "Переслать",
-                    image: UIImage(systemName: "arrowshape.turn.up.right")
-                ) { [weak self] _ in
-                    self?.delegate?.onForwardMessage(messageId: message.id)
-                    self?.currentInterfaceActions.options.remove(.showingPreview)
-                }
-                
-                let favoriteAction = UIAction(
-                    title: "В избранное",
-                    image: UIImage(systemName: "star")
-                ) { [weak self] _ in
-                    self?.delegate?.onFavoriteMessage(messageId: message.id)
-                    self?.currentInterfaceActions.options.remove(.showingPreview)
-                }
-                
-                let deleteAction = UIAction(
-                    title: "Удалить",
-                    image: UIImage(systemName: "trash"),
-                    attributes: .destructive
-                ) { [weak self] _ in
-                    self?.delegate?.onDeleteMessage(messageId: message.id)
-                    self?.currentInterfaceActions.options.remove(.showingPreview)
-                }
-
-                let menuChildren: [UIMenuElement]
-
-                menuChildren = [
-                    copyAction,
-                    replyAction,
-                    forwardAction,
-                    favoriteAction,
-                    deleteAction
-                ]
-                
-                let menu = UIMenu(title: "", children: menuChildren)
-                
-                // 5. Создаем конфигурацию контекстного меню
-                let identifier: NSString = "\(indexPath.section)|\(indexPath.item)" as NSString
-                currentInterfaceActions.options.insert(.showingPreview)
-                
-                return UIContextMenuConfiguration(
-                    identifier: identifier,
-                    previewProvider: nil,
-                    actionProvider: { _ in menu }
-                )
-                
-            default:
-                return nil
-            }
-            
         default:
             return nil
         }
     }
-    
+
     func collectionView(_ collectionView: UICollectionView, willEndContextMenuInteraction configuration: UIContextMenuConfiguration, animator: UIContextMenuInteractionAnimating?) {
+        hideContextMenuBlur(using: animator)
         animator?.addCompletion {
             self.currentInterfaceActions.options.remove(.showingPreview)
         }
     }
+
+    private func showContextMenuBlur(using animator: UIContextMenuInteractionAnimating?) {
+        guard contextMenuBlurView == nil else {
+            return
+        }
+        let blurView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
+        blurView.isUserInteractionEnabled = false
+        blurView.alpha = 0
+        blurView.frame = view.bounds
+        blurView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(blurView)
+        contextMenuBlurView = blurView
+
+        let animations = {
+            blurView.alpha = 1
+        }
+        if let animator {
+            animator.addAnimations(animations)
+        } else {
+            UIView.animate(withDuration: 0.2, animations: animations)
+        }
+    }
+
+    private func hideContextMenuBlur(using animator: UIContextMenuInteractionAnimating?) {
+        guard let blurView = contextMenuBlurView else {
+            return
+        }
+        let animations = {
+            blurView.alpha = 0
+        }
+        let completion = {
+            blurView.removeFromSuperview()
+            self.contextMenuBlurView = nil
+        }
+        if let animator {
+            animator.addAnimations(animations)
+            animator.addCompletion {
+                completion()
+            }
+        } else {
+            UIView.animate(withDuration: 0.2, animations: animations) { _ in
+                completion()
+            }
+        }
+    }
+
+    private func makeContextMenu(for message: Message) -> UIMenu {
+        var menuChildren: [UIMenuElement] = []
+        if let copyAction = makeCopyAction(for: message) {
+            menuChildren.append(copyAction)
+        }
+
+        let replyAction = UIAction(
+            title: "Ответить",
+            image: UIImage(systemName: "arrowshape.turn.up.left")
+        ) { [weak self] _ in
+            self?.delegate?.onReplyToMessage(messageId: message.id)
+            self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+
+        let forwardAction = UIAction(
+            title: "Переслать",
+            image: UIImage(systemName: "arrowshape.turn.up.right")
+        ) { [weak self] _ in
+            self?.delegate?.onForwardMessage(messageId: message.id)
+            self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+
+        let favoriteAction = UIAction(
+            title: "В избранное",
+            image: UIImage(systemName: "star")
+        ) { [weak self] _ in
+            self?.delegate?.onFavoriteMessage(messageId: message.id)
+            self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+
+        let deleteAction = UIAction(
+            title: "Удалить",
+            image: UIImage(systemName: "trash"),
+            attributes: .destructive
+        ) { [weak self] _ in
+            self?.delegate?.onDeleteMessage(messageId: message.id)
+            self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+
+        menuChildren.append(contentsOf: [replyAction, forwardAction, favoriteAction, deleteAction])
+        return UIMenu(title: "", children: menuChildren)
+    }
+
+    private func makeCopyAction(for message: Message) -> UIAction? {
+        switch message.data {
+        case let .text(body):
+            return UIAction(title: "Скопировать", image: UIImage(systemName: "doc.on.doc")) { _ in
+                UIPasteboard.general.string = body
+            }
+        default:
+            return nil
+        }
+    }
+
+    private func makeSystemContextMenu(for message: SystemMessage) -> UIMenu {
+        let copyAction = UIAction(title: "Скопировать", image: UIImage(systemName: "doc.on.doc")) { _ in
+            UIPasteboard.general.string = message.text
+        }
+        let replyAction = UIAction(
+            title: "Ответить",
+            image: UIImage(systemName: "arrowshape.turn.up.left")
+        ) { [weak self] _ in
+            self?.delegate?.onReplyToMessage(messageId: message.id)
+            self?.currentInterfaceActions.options.remove(.showingPreview)
+        }
+        return UIMenu(title: "", children: [copyAction, replyAction])
+    }
+
+    private func bubbleView(from cell: UICollectionViewCell) -> (UIView & BezierMaskedViewProviding)? {
+        if let cell = cell as? TextMessageCollectionCell {
+            return cell.customView.customView.customView
+        }
+        if let cell = cell as? ImageCollectionCell {
+            return cell.customView.customView.customView
+        }
+        if let cell = cell as? CustomMessageCollectionCell {
+            return cell.customView.customView.customView
+        }
+        return nil
+    }
+
 }
+
+private protocol BezierMaskedViewProviding {
+    var maskingPath: UIBezierPath { get }
+    var offset: CGFloat { get }
+}
+
+extension BezierMaskedView: BezierMaskedViewProviding {}
 
 extension ChatViewController: ChatViewControllerDelegate {
     func update(with sections: [Section], requiresIsolatedProcess: Bool) {
         update(with: sections, requiresIsolatedProcess: requiresIsolatedProcess, animated: true)
     }
-    
+
     func update(with sections: [Section], requiresIsolatedProcess: Bool, animated: Bool) {
-        if let defaultDataSource = dataSource as? DefaultChatCollectionDataSource,
-           let chatController = delegate as? DefaultChatController {
-            defaultDataSource.isAvatarsVisible = chatController.isAvatarsVisible
-        }
         // if `chatLayout.keepContentAtBottomOfVisibleArea` is enabled and content size is actually smaller than the visible size - it is better to process each batch update
         // in isolation. Example: If you insert a cell animatingly and then reload some cell - the reload animation will appear on top of the insertion animation.
         // Basically everytime you see any animation glitches - process batch updates in isolation.
         let requiresIsolatedProcess = chatLayout.keepContentAtBottomOfVisibleArea == true && chatLayout.collectionViewContentSize.height < chatLayout.visibleBounds.height ? true : requiresIsolatedProcess
         processUpdates(with: sections, animated: animated, requiresIsolatedProcess: requiresIsolatedProcess)
     }
-    
+
     private func processUpdates(with sections: [Section], animated: Bool = true, requiresIsolatedProcess: Bool, completion: (() -> Void)? = nil) {
         guard isViewLoaded else {
             dataSource.sections = sections
             return
         }
-        
+
         guard currentInterfaceActions.options.isEmpty else {
             let reaction = SetActor<Set<InterfaceActions>, ReactionTypes>.Reaction(
                 type: .delayedUpdate,
@@ -779,12 +997,12 @@ extension ChatViewController: ChatViewControllerDelegate {
             currentInterfaceActions.add(reaction: reaction)
             return
         }
-        
+
         func process() {
             // If there is a big amount of changes, it is better to move that calculation out of the main thread.
             // Here is on the main thread for the simplicity.
             let changeSet = StagedChangeset(source: dataSource.sections, target: sections).flattenIfPossible()
-            
+
             guard !changeSet.isEmpty else {
                 if !isInitialScrollDone && !sections.isEmpty {
                     applyInitialScroll(in: sections)
@@ -792,7 +1010,7 @@ extension ChatViewController: ChatViewControllerDelegate {
                 completion?()
                 return
             }
-            
+
             if requiresIsolatedProcess {
                 chatLayout.processOnlyVisibleItemsOnAnimatedBatchUpdates = true
                 currentInterfaceActions.options.insert(.updatingCollectionInIsolation)
@@ -822,14 +1040,13 @@ extension ChatViewController: ChatViewControllerDelegate {
                         if requiresIsolatedProcess {
                             self.currentInterfaceActions.options.remove(.updatingCollectionInIsolation)
                         }
-                        
                         if !self.isInitialScrollDone {
                             self.applyInitialScroll(in: sections)
                             UIView.animate(withDuration: 0.2) {
                                 self.collectionView.alpha = 1
                             }
                         }
-                        
+
                         completion?()
                         self.currentControllerActions.options.remove(.updatingCollection)
                     }
@@ -839,7 +1056,7 @@ extension ChatViewController: ChatViewControllerDelegate {
                 }
             )
         }
-        
+
         if animated {
             process()
         } else {
@@ -856,12 +1073,12 @@ extension ChatViewController: KeyboardListenerDelegate {
               collectionView.contentInsetAdjustmentBehavior != .never else {
             return
         }
-        
+
         currentInterfaceActions.options.insert(.changingKeyboardFrame)
-        
+
         let keyboardHeight = info.frameEnd.height
         let isKeyboardVisible = keyboardHeight > 0
-        
+
         let newBottomInset: CGFloat
         if isKeyboardVisible {
             guard let keyboardFrame = collectionView.window?.convert(info.frameEnd, to: view),
@@ -869,7 +1086,7 @@ extension ChatViewController: KeyboardListenerDelegate {
                 currentInterfaceActions.options.remove(.changingKeyboardFrame)
                 return
             }
-            
+
             // Вычисляем inset клавиатуры
             let keyboardTop = keyboardFrame.minY
             let visibleAreaBottom = collectionView.frame.maxY
@@ -878,37 +1095,47 @@ extension ChatViewController: KeyboardListenerDelegate {
         } else {
             newBottomInset = 0
         }
-        
-        // Только если inset изменился
-        if abs(collectionView.contentInset.bottom - newBottomInset) > 0.1 {
-            let positionSnapshot = chatLayout.getContentOffsetSnapshot(from: .bottom)
-            
-            currentInterfaceActions.options.insert(.changingContentInsets)
-            UIView.animate(withDuration: info.animationDuration, animations: {
-                self.collectionView.contentInset.bottom = newBottomInset > 0 ? newBottomInset + self.keyboardScrollOffset : 0
-                self.collectionView.verticalScrollIndicatorInsets.bottom = newBottomInset
-                
-                self.updateScrollDownButtonOffset()
-                self.view.layoutIfNeeded()
-                
-                // Автоматически поднимем контент если нужно
-                if let snapshot = positionSnapshot, !self.isUserInitiatedScrolling {
-                    self.chatLayout.restoreContentOffset(with: snapshot)
-                }
-            }, completion: { _ in
-                self.currentInterfaceActions.options.remove(.changingContentInsets)
-                self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
-            })
-        } else {
-            currentInterfaceActions.options.remove(.changingKeyboardFrame)
-        }
+
+        updateKeyboardInsets(to: newBottomInset, duration: info.animationDuration)
     }
-    
+
     func keyboardDidChangeFrame(info: KeyboardInfo) {
         guard currentInterfaceActions.options.contains(.changingKeyboardFrame) else {
             return
         }
         currentInterfaceActions.options.remove(.changingKeyboardFrame)
+    }
+
+    func keyboardWillHide(info: KeyboardInfo) {
+        guard collectionView.contentInsetAdjustmentBehavior != .never else {
+            return
+        }
+        updateKeyboardInsets(to: 0, duration: info.animationDuration)
+    }
+
+    private func updateKeyboardInsets(to newBottomInset: CGFloat, duration: TimeInterval) {
+        // Только если inset изменился
+        guard abs(collectionView.contentInset.bottom - newBottomInset) > 0.1 else {
+            currentInterfaceActions.options.remove(.changingKeyboardFrame)
+            return
+        }
+
+        let positionSnapshot = chatLayout.getContentOffsetSnapshot(from: .bottom)
+        currentInterfaceActions.options.insert(.changingContentInsets)
+        UIView.animate(withDuration: duration, animations: {
+            self.collectionView.contentInset.bottom = newBottomInset > 0 ? newBottomInset + self.keyboardScrollOffset : 0
+            self.collectionView.verticalScrollIndicatorInsets.bottom = newBottomInset
+
+            self.updateScrollDownButtonOffset()
+            self.view.layoutIfNeeded()
+
+            if let snapshot = positionSnapshot, !self.isUserInitiatedScrolling {
+                self.chatLayout.restoreContentOffset(with: snapshot)
+            }
+        }, completion: { _ in
+            self.currentInterfaceActions.options.remove(.changingContentInsets)
+            self.currentInterfaceActions.options.remove(.changingKeyboardFrame)
+        })
     }
 }
 
@@ -916,7 +1143,7 @@ extension ChatViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         return !isUserInitiatedScrolling
     }
-    
+
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         return true
     }

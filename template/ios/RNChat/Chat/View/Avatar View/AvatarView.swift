@@ -24,6 +24,7 @@ final class AvatarView: UIView, StaticViewFactory {
     private lazy var circleImageView = RoundedCornersContainerView<UIImageView>(frame: bounds)
 
     private var controller: AvatarViewController?
+    private var sizeConstraint: NSLayoutConstraint?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -47,6 +48,11 @@ final class AvatarView: UIView, StaticViewFactory {
     func setup(with controller: AvatarViewController) {
         self.controller = controller
     }
+    
+    func apply(configuration: ChatConfiguration) {
+        sizeConstraint?.constant = configuration.layout.avatarSize
+        setNeedsLayout()
+    }
 
     private func setupSubviews() {
         translatesAutoresizingMaskIntoConstraints = false
@@ -65,6 +71,7 @@ final class AvatarView: UIView, StaticViewFactory {
         let constraint = circleImageView.widthAnchor.constraint(equalToConstant: 30)
         constraint.priority = UILayoutPriority(rawValue: 999)
         constraint.isActive = true
+        sizeConstraint = constraint
         circleImageView.heightAnchor.constraint(equalTo: circleImageView.widthAnchor, multiplier: 1).isActive = true
 
         circleImageView.customView.contentMode = .scaleAspectFill

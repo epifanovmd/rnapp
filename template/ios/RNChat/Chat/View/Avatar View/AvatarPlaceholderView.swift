@@ -14,6 +14,8 @@ import Foundation
 import UIKit
 
 final class AvatarPlaceholderView: UIView, StaticViewFactory {
+    private var sizeConstraint: NSLayoutConstraint?
+    
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupSubviews()
@@ -31,6 +33,14 @@ final class AvatarPlaceholderView: UIView, StaticViewFactory {
         let constraint = widthAnchor.constraint(equalToConstant: 30)
         constraint.priority = UILayoutPriority(rawValue: 999)
         constraint.isActive = true
+        sizeConstraint = constraint
         heightAnchor.constraint(equalTo: widthAnchor, multiplier: 1).isActive = true
+    }
+    
+    func apply(configuration: ChatConfiguration) {
+        let isVisible = configuration.behavior.showsAvatars
+        sizeConstraint?.constant = isVisible ? configuration.layout.avatarSize : 0
+        isHidden = !isVisible
+        setNeedsLayout()
     }
 }

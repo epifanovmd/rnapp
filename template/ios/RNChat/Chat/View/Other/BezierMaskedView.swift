@@ -28,6 +28,12 @@ final class BezierMaskedView<CustomView: UIView>: UIView {
         }
     }
 
+    var bubbleCornerRadius: CGFloat = 17 {
+        didSet {
+            updateChannelStyle()
+        }
+    }
+
     // Here we are trying to mimic the offsets in the bubbles represented by UIImage in `ImageMaskedView`
     var offset: CGFloat {
         switch bubbleType {
@@ -54,9 +60,13 @@ final class BezierMaskedView<CustomView: UIView>: UIView {
         case .normal:
             switch messageType {
             case .incoming:
-                bezierPath = generateIncomingNormalBezierPath(offset: offset, size: size)
+                let rect = CGRect(x: offset, y: 0, width: size.width - offset, height: size.height)
+                bezierPath = UIBezierPath(roundedRect: rect, cornerRadius: bubbleCornerRadius)
             case .outgoing:
-                bezierPath = generateOutgoingNormalBezierPath(offset: offset, size: size)
+                let rect = CGRect(x: offset, y: 0, width: size.width - offset, height: size.height)
+                bezierPath = UIBezierPath(roundedRect: rect, cornerRadius: bubbleCornerRadius)
+                bezierPath.apply(CGAffineTransform(scaleX: -1, y: 1))
+                bezierPath.apply(CGAffineTransform(translationX: size.width, y: 0))
             }
         }
         return bezierPath
@@ -132,18 +142,6 @@ private func generateIncomingTailedBezierPath(offset: CGFloat, size: CGSize) -> 
 
 private func generateOutgoingTailedBezierPath(offset: CGFloat, size: CGSize) -> UIBezierPath {
     let bezierPath = generateIncomingTailedBezierPath(offset: offset, size: size)
-    bezierPath.apply(CGAffineTransform(scaleX: -1, y: 1))
-    bezierPath.apply(CGAffineTransform(translationX: size.width, y: 0))
-    return bezierPath
-}
-
-private func generateIncomingNormalBezierPath(offset: CGFloat, size: CGSize) -> UIBezierPath {
-    let bezierPath = UIBezierPath(roundedRect: CGRect(x: offset, y: 0, width: size.width - offset, height: size.height), cornerRadius: 17)
-    return bezierPath
-}
-
-private func generateOutgoingNormalBezierPath(offset: CGFloat, size: CGSize) -> UIBezierPath {
-    let bezierPath = generateIncomingNormalBezierPath(offset: offset, size: size)
     bezierPath.apply(CGAffineTransform(scaleX: -1, y: 1))
     bezierPath.apply(CGAffineTransform(translationX: size.width, y: 0))
     return bezierPath

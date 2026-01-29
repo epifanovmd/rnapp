@@ -22,21 +22,17 @@ enum Cell: Hashable {
 
     case message(Message, bubbleType: BubbleType)
 
-    case typingIndicator
-
-    case messageGroup(MessageGroup)
-
     case date(DateGroup)
+
+    case system(SystemMessage)
 
     var alignment: ChatItemAlignment {
         switch self {
         case let .message(message, _):
             message.type == .incoming ? .leading : .trailing
-        case .typingIndicator:
-            .leading
-        case let .messageGroup(group):
-            group.type == .incoming ? .leading : .trailing
         case .date:
+            .center
+        case .system:
             .center
         }
     }
@@ -47,12 +43,10 @@ extension Cell: Differentiable {
         switch self {
         case let .message(message, _):
             message.differenceIdentifier
-        case .typingIndicator:
-            hashValue
-        case let .messageGroup(group):
-            group.differenceIdentifier
         case let .date(group):
             group.differenceIdentifier
+        case let .system(message):
+            message.id.hashValue
         }
     }
 

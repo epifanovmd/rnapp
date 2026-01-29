@@ -42,13 +42,12 @@ struct DateGroup: Hashable {
 
     var date: Date
 
-    var value: String {
-        ChatDateFormatter.shared.string(from: date)
-    }
+    var title: String
 
-    init(id: UUID, date: Date) {
+    init(id: UUID, date: Date, title: String) {
         self.id = id
         self.date = date
+        self.title = title
     }
 }
 
@@ -62,37 +61,26 @@ extension DateGroup: Differentiable {
     }
 }
 
-struct MessageGroup: Hashable {
+struct ReplyPreview: Hashable {
     var id: UUID
-
-    var title: String
-
+    var senderName: String
+    var text: String
+    var data: RawMessage.Data
     var type: MessageType
-
-    init(id: UUID, title: String, type: MessageType) {
-        self.id = id
-        self.title = title
-        self.type = type
-    }
 }
 
-extension MessageGroup: Differentiable {
-    var differenceIdentifier: Int {
-        hashValue
-    }
-
-    func isContentEqual(to source: MessageGroup) -> Bool {
-        self == source
-    }
+struct SystemMessage: Hashable {
+    var id: UUID
+    var date: Date
+    var text: String
 }
 
 struct Message: Hashable {
     enum Data: Hashable {
         case text(String)
-
-        case url(URL, isLocallyStored: Bool)
-
         case image(ImageMessageSource, isLocallyStored: Bool)
+
+        case custom(CustomMessage)
     }
 
     var id: UUID
@@ -101,11 +89,15 @@ struct Message: Hashable {
 
     var data: Data
 
-    var owner: User
+    var owner: ChatUser
 
     var type: MessageType
 
     var status: MessageStatus = .sent
+
+    var showsHeader: Bool = false
+
+    var replyPreview: ReplyPreview? = nil
 }
 
 extension Message: Differentiable {

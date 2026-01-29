@@ -36,10 +36,13 @@ final class ImageController {
     private let messageId: UUID
 
     private let source: ImageMessageSource
+    
+    let configuration: ChatConfiguration
 
-    init(source: ImageMessageSource, messageId: UUID) {
+    init(source: ImageMessageSource, messageId: UUID, configuration: ChatConfiguration) {
         self.source = source
         self.messageId = messageId
+        self.configuration = configuration
         loadImage()
     }
 

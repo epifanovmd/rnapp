@@ -56,12 +56,14 @@ final class TextMessageView: UIView, ContainerCollectionViewCellDelegate {
         }
         textView.text = controller.text
         UIView.performWithoutAnimation {
-            textView.textColor = controller.type.isIncoming ? UIColor.label : .systemBackground
+            textView.textColor = controller.type.isIncoming ? controller.configuration.colors.incomingText : controller.configuration.colors.outgoingText
             textView.linkTextAttributes = [
-                .foregroundColor: controller.type.isIncoming ? UIColor.systemBlue : .systemGray6,
+                .foregroundColor: controller.type.isIncoming ? controller.configuration.colors.incomingLink : controller.configuration.colors.outgoingLink,
                 .underlineStyle: 1
             ]
+            textView.font = controller.configuration.fonts.message
         }
+        setupSize()
     }
 
     private func setupSubviews() {
@@ -97,8 +99,11 @@ final class TextMessageView: UIView, ContainerCollectionViewCellDelegate {
     }
 
     private func setupSize() {
+        guard let controller else {
+            return
+        }
         UIView.performWithoutAnimation {
-            self.textViewWidthConstraint?.constant = viewPortWidth * Constants.maxWidth
+            self.textViewWidthConstraint?.constant = viewPortWidth * controller.configuration.layout.maxMessageWidthRatio
             setNeedsLayout()
         }
     }

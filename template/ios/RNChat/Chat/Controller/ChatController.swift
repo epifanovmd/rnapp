@@ -14,12 +14,13 @@ import Foundation
 
 protocol ChatController: AnyObject {
     var userId: Int? { get set }
-    var isAvatarsVisible: Bool { get set }
+    var configuration: ChatConfiguration { get set }
     // Вызывается из React Native
+    func setMessages(_ rawMessages: [RawMessage])
+    func setMessages(_ rawMessages: [RawMessage], _ animated: Bool)
     func appendMessages(_ rawMessages: [RawMessage])
     func appendMessages(_ rawMessages: [RawMessage], _ animated: Bool)
     func deleteMessage(with id: UUID)
-    func typingStateChanged(to state: TypingState)
     func markMessagesAsRead(ids: [UUID])
     func markMessagesAsReceived(ids: [UUID])
     

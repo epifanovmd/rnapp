@@ -1,95 +1,99 @@
-////
-////  ChatViewManager+Methods.swift
-////  rnapp
-////
-////  Created by Andrei on 18.01.2026.
-////
+ //
+ // ChatViewManager+Methods.swift
+ // chat-ios
+ //
+ // Created by Andrei on 17.01.2026.
+ //
 
-extension ChatViewManager {
-  @objc func appendMessages(_ node: NSNumber, messages: [[String: Any]]) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
-        return
-      }
+ import Foundation
+ import React
 
-      let rawMessages = messages.compactMap { dict -> RawMessage? in
-        guard let idString = dict["id"] as? String,
-              let id = UUID(uuidString: idString),
-              let userId = dict["userId"] as? Int else { return nil }
+ extension ChatViewManager {
+     @objc func setMessages(_ node: NSNumber, messages: NSArray) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             let parsed = (messages as? [Any])?.compactMap { RNChatParsing.rawMessage(from: $0) } ?? []
+             view.hostViewController.setMessages(parsed, animated: false)
+         }
+     }
 
-        // Извлекаем текст из вложенного объекта data или напрямую
-        let dataDict = dict["data"] as? [String: Any]
-        let text = (dataDict?["text"] as? String) ?? (dict["text"] as? String) ?? ""
+     @objc func appendMessages(_ node: NSNumber, messages: NSArray) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             let parsed = (messages as? [Any])?.compactMap { RNChatParsing.rawMessage(from: $0) } ?? []
+             view.hostViewController.appendMessages(parsed, animated: true)
+         }
+     }
 
-        // Обработка даты (из timestamp в Date)
-        let date: Date
-        if let timestamp = dict["date"] as? Double {
-          date = Date(timeIntervalSince1970: timestamp / 1000.0)
-        } else {
-          date = Date()
-        }
+     @objc func deleteMessage(_ node: NSNumber, messageId: String) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             guard let id = UUID(uuidString: messageId) else { return }
+             view.hostViewController.deleteMessage(id: id)
+         }
+     }
 
-        return RawMessage(id: id, date: date, data: .text(text), userId: userId)
-      }
+     @objc func markMessagesAsRead(_ node: NSNumber, messageIds: [String]) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             let ids = messageIds.compactMap { UUID(uuidString: $0) }
+             view.hostViewController.markMessagesAsRead(ids)
+         }
+     }
 
-      view.chatController.appendMessages(rawMessages)
-    }
+     @objc func markMessagesAsReceived(_ node: NSNumber, messageIds: [String]) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             let ids = messageIds.compactMap { UUID(uuidString: $0) }
+             view.hostViewController.markMessagesAsReceived(ids)
+         }
+     }
 
-  }
 
-  @objc func deleteMessage(_ node: NSNumber, messageId: String) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
-        return
-      }
-      guard let id = UUID(uuidString: messageId) else { return }
-      view.chatController.deleteMessage(with: id)
-    }
-  }
+     @objc func scrollToBottom(_ node: NSNumber, animated: Bool) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
+             view.hostViewController.chatViewController.scrollToBottom(animated: animated)
+         }
+     }
 
-  @objc func setTyping(_ node: NSNumber, isTyping: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
-        return
-      }
-      view.chatController.typingStateChanged(to: isTyping ? .typing : .idle)
-    }
-  }
+     @objc func scrollToMessage(_ node: NSNumber, messageId: String, animated: Bool) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer,
+                   let id = UUID(uuidString: messageId) else { return }
+             view.hostViewController.chatViewController.scrollTo(messageId: id, animated: animated)
+         }
+     }
 
-  @objc func scrollToBottom(_ node: NSNumber, animated: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
-      view.chatViewController.scrollToBottom(animated: animated)
-    }
-  }
+     @objc func scrollToIndex(_ node: NSNumber, index: NSNumber, animated: Bool) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
+             view.hostViewController.chatViewController.scrollTo(index: index.intValue, animated: animated)
+         }
+     }
 
-  @objc func scrollToMessage(_ node: NSNumber, messageId: String, animated: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer,
-            let id = UUID(uuidString: messageId) else { return }
-      view.chatViewController.scrollTo(messageId: id, animated: animated)
-    }
-  }
+     @objc func scrollToOffset(_ node: NSNumber, offset: NSNumber, animated: Bool) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
+             view.hostViewController.chatViewController.scrollTo(offset: CGFloat(offset.doubleValue), animated: animated)
+         }
+     }
 
-  @objc func scrollToIndex(_ node: NSNumber, index: NSNumber, animated: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
-      view.chatViewController.scrollTo(index: index.intValue, animated: animated)
-    }
-  }
-
-  @objc func scrollToOffset(_ node: NSNumber, offset: NSNumber, animated: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
-      view.chatViewController.scrollTo(offset: CGFloat(offset.doubleValue), animated: animated)
-    }
-  }
-
-  @objc func scrollToDate(_ node: NSNumber, timestamp: NSNumber, animated: Bool) {
-    DispatchQueue.main.async {
-      guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
-      let date = Date(timeIntervalSince1970: timestamp.doubleValue / 1000.0)
-      view.chatViewController.scrollTo(date: date, animated: animated)
-    }
-  }
-}
+     @objc func scrollToDate(_ node: NSNumber, timestamp: NSNumber, animated: Bool) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
+             let date = Date(timeIntervalSince1970: timestamp.doubleValue / 1000.0)
+             view.hostViewController.chatViewController.scrollTo(date: date, animated: animated)
+         }
+     }
+ }

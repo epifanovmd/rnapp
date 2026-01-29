@@ -309,7 +309,22 @@ open class CollectionViewChatLayout: UICollectionViewLayout {
     /// Invalidates layout of the `UICollectionView` and trying to keep the offset of the item provided in `ChatLayoutPositionSnapshot`
     /// - Parameter snapshot: `ChatLayoutPositionSnapshot`
     open func restoreContentOffset(with snapshot: ChatLayoutPositionSnapshot) {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.restoreContentOffset(with: snapshot)
+            }
+            return
+        }
         guard let collectionView else {
+            return
+        }
+        guard collectionView.superview != nil else {
+            return
+        }
+        guard collectionView.window != nil else {
+            return
+        }
+        guard collectionView.bounds.isEmpty == false else {
             return
         }
 

@@ -79,7 +79,7 @@ final class ImageView: UIView, ContainerCollectionViewCellDelegate {
             if !loadingIndicator.isAnimating {
                 loadingIndicator.startAnimating()
             }
-            backgroundColor = .systemGray5
+            backgroundColor = controller.configuration.colors.mediaPlaceholderBackground
             setupSize()
         case let .image(image):
             loadingIndicator.isHidden = true
@@ -141,7 +141,7 @@ final class ImageView: UIView, ContainerCollectionViewCellDelegate {
             case let .image(image):
                 imageWidthConstraint?.isActive = true
                 imageHeightConstraint?.isActive = true
-                let maxWidth = min(viewPortWidth * Constants.maxWidth, image.size.width)
+                let maxWidth = min(viewPortWidth * controller.configuration.layout.maxMessageWidthRatio, image.size.width)
                 imageWidthConstraint?.constant = maxWidth
                 imageHeightConstraint?.constant = image.size.height * maxWidth / image.size.width
                 setNeedsLayout()
