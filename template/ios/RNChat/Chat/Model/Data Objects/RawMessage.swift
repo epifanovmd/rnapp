@@ -29,3 +29,12 @@ struct RawMessage: Hashable {
     var status: MessageStatus = .sent
     var replyToId: UUID? = nil
 }
+
+extension RawMessage.Data {
+    var isSystem: Bool {
+        if case .system = self {
+            return true
+        }
+        return false
+    }
+}

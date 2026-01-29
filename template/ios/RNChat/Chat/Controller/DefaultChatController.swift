@@ -14,36 +14,36 @@ import Foundation
 
 final class DefaultChatController: ChatController {
   weak var delegate: ChatViewControllerDelegate?
-  
+
   private let dispatchQueue = DispatchQueue(label: "DefaultChatController", qos: .userInteractive)
-  
+
   var userId: Int? = nil
-  
+
   var configuration: ChatConfiguration {
     didSet {
       repopulateMessages()
     }
   }
-  
+
   var messages: [RawMessage] = []
-  
+
   init(configuration: ChatConfiguration) {
     self.configuration = configuration
   }
-  
+
   func setMessages(_ rawMessages: [RawMessage]) {
     setMessages(rawMessages, true)
   }
-  
+
   func setMessages(_ rawMessages: [RawMessage], _ animated: Bool) {
     self.messages = deduplicatePreservingOrder(rawMessages)
     repopulateMessages(requiresIsolatedProcess: false, animated: animated)
   }
-  
+
   func appendMessages(_ rawMessages: [RawMessage]) {
     appendMessages(rawMessages, true)
   }
-  
+
   func appendMessages(_ rawMessages: [RawMessage], _ animated: Bool = true) {
     var currentMessages = messages
     for message in rawMessages {
@@ -56,24 +56,24 @@ final class DefaultChatController: ChatController {
     self.messages = currentMessages
     repopulateMessages(requiresIsolatedProcess: false, animated: animated)
   }
-  
+
   func deleteMessage(with id: UUID) {
     messages.removeAll(where: { $0.id == id })
     repopulateMessages(requiresIsolatedProcess: true)
   }
-  
+
   func markMessagesAsRead(ids: [UUID]) {
     updateMessagesStatus(ids: ids, newStatus: .read)
   }
-  
+
   func markMessagesAsReceived(ids: [UUID]) {
     updateMessagesStatus(ids: ids, newStatus: .received)
   }
-  
+
   func reloadMessage(with id: UUID) {
     repopulateMessages()
   }
-  
+
   private func propagateLatestMessages(completion: @escaping ([Section]) -> Void) {
     dispatchQueue.async { [weak self] in
       guard let self else { return }
@@ -97,7 +97,8 @@ final class DefaultChatController: ChatController {
       func replyPreview(for rawMessage: RawMessage) -> ReplyPreview? {
         guard configuration.behavior.showsReplyPreview,
               let replyId = rawMessage.replyToId,
-              let referenced = rawById[replyId] else {
+              let referenced = rawById[replyId],
+              referenced.data.isSystem == false else {
           return nil
         }
         let text = configuration.behavior.replyPreviewTextProvider(referenced.data, referenced.user)
@@ -198,7 +199,7 @@ final class DefaultChatController: ChatController {
 
         return cells
       }.joined()
-      
+
       DispatchQueue.main.async { [weak self] in
         guard self != nil else {
           return
@@ -207,7 +208,7 @@ final class DefaultChatController: ChatController {
       }
     }
   }
-  
+
   private func convert(_ data: Message.Data) -> RawMessage.Data {
     switch data {
     case let .image(source, isLocallyStored: _):
@@ -218,7 +219,7 @@ final class DefaultChatController: ChatController {
         .custom(custom)
     }
   }
-  
+
   private func convert(_ data: RawMessage.Data) -> Message.Data {
     switch data {
     case let .image(source):
@@ -239,21 +240,21 @@ final class DefaultChatController: ChatController {
       return .custom(CustomMessage(kind: "system", payload: text))
     }
   }
-  
+
   private func repopulateMessages(requiresIsolatedProcess: Bool = false, animated: Bool = true) {
     propagateLatestMessages { sections in
       self.delegate?.update(with: sections, requiresIsolatedProcess: requiresIsolatedProcess, animated: animated)
     }
   }
-  
+
   private func updateMessagesStatus(ids: [UUID], newStatus: MessageStatus) {
     guard !ids.isEmpty else { return }
     let idSet = Set(ids)
-    
+
     dispatchQueue.async { [weak self] in
       guard let self else { return }
       var hasChanges = false
-      
+
       self.messages = self.messages.map { message in
         // Обновляем статус только если ID в списке и новый статус "старше" текущего
         if idSet.contains(message.id), self.shouldUpdateStatus(from: message.status, to: newStatus) {
@@ -264,7 +265,7 @@ final class DefaultChatController: ChatController {
         }
         return message
       }
-      
+
       if hasChanges {
         DispatchQueue.main.async {
           self.repopulateMessages()
@@ -272,7 +273,7 @@ final class DefaultChatController: ChatController {
       }
     }
   }
-  
+
   private func shouldUpdateStatus(from old: MessageStatus, to new: MessageStatus) -> Bool {
     switch (old, new) {
     case (.sent, .received), (.sent, .read), (.received, .read):

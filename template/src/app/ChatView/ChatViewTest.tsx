@@ -32,6 +32,7 @@ export const ChatViewTest = () => {
       showsMessageTime: true,
       showsReplyPreview: true,
       showsBubbleTail: false,
+      nameDisplayMode: "none",
       showsScrollHighlight: true,
       scrollHighlightDuration: 0.8,
       scrollToCenterOnIdIndex: true,
@@ -89,8 +90,6 @@ export const ChatViewTest = () => {
         };
       } else if (i % 7 === 0) {
         data = { type: "image", image: "https://picsum.photos/300/200" };
-      } else if (i % 5 === 0) {
-        data = { type: "custom", kind: "badge", payload: "Новый тип" };
       } else {
         data = {
           type: "text",
@@ -107,7 +106,13 @@ export const ChatViewTest = () => {
       };
 
       if (!isSystem && i % 8 === 3 && initialMsgs.length > 0) {
-        message.replyToId = initialMsgs[Math.max(0, initialMsgs.length - 2)].id;
+        const target = [...initialMsgs]
+          .reverse()
+          .find(item => item.data.type !== "system");
+
+        if (target) {
+          message.replyToId = target.id;
+        }
       }
 
       initialMsgs.push(message);
@@ -138,19 +143,22 @@ export const ChatViewTest = () => {
               : undefined,
         },
         status: "read" as const,
-        data:
-          i % 6 === 0
-            ? { type: "custom", kind: "reaction", payload: "🔥" }
-            : {
-                type: "text",
-                text: `Older message ${
-                  loadedPages * pageSize + i
-                }: ${generateRandomText(6)}`,
-              },
+        data: {
+          type: "text",
+          text: `Older message ${
+            loadedPages * pageSize + i
+          }: ${generateRandomText(6)}`,
+        },
       };
 
       if (i % 7 === 0 && messagesRef.current.length > 0) {
-        message.replyToId = messagesRef.current[0]?.id;
+        const target = messagesRef.current.find(
+          item => item.data.type !== "system",
+        );
+
+        if (target) {
+          message.replyToId = target.id;
+        }
       }
 
       return message;

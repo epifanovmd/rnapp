@@ -22,11 +22,9 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
     private let replyContentStack = UIStackView()
     private let replySenderLabel = UILabel()
     private let replyContentContainer = UIView()
-    private let replySystemContainer = UIView()
     private let replyContentView = ReplyPreviewContentView()
     private var replyContentLeadingConstraint: NSLayoutConstraint?
     private var replyContentConstraints: [NSLayoutConstraint] = []
-    private var replySystemContentConstraints: [NSLayoutConstraint] = []
     private var replyContainerConstraints: [NSLayoutConstraint] = []
     private let footerContainer = UIView()
     private let footerStack = UIStackView()
@@ -113,60 +111,48 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
     }
 
     func applyReply(preview: ReplyPreview?, configuration: ChatConfiguration, isIncoming: Bool) {
-        guard configuration.behavior.showsReplyPreview, let preview else {
+        guard configuration.behavior.showsReplyPreview,
+              let preview,
+              preview.data.isSystem == false else {
             replyContainer.isHidden = true
             replyWrapper.isHidden = true
-            replySystemContainer.isHidden = true
             replyId = nil
             return
         }
         replyId = preview.id
         replyWrapper.isHidden = false
-        let isSystemReply: Bool
-        if case .system = preview.data {
-            isSystemReply = true
-        } else {
-            isSystemReply = false
-        }
-        replyContainer.isHidden = isSystemReply
-        replySystemContainer.isHidden = !isSystemReply
-        if isSystemReply {
-            NSLayoutConstraint.deactivate(replyContainerConstraints)
-        } else {
-            NSLayoutConstraint.activate(replyContainerConstraints)
-        }
+        replyContainer.isHidden = false
+        NSLayoutConstraint.activate(replyContainerConstraints)
         let insets = configuration.layout.replyPreviewInsets
-        if case .system = preview.data {
-            replyContainer.backgroundColor = .clear
-        } else {
-            replyContainer.backgroundColor = configuration.colors.replyPreviewBackground
-        }
+        replyContainer.backgroundColor = configuration.colors.replyPreviewBackground
         replyContainer.layer.borderWidth = 0
         replyContainer.layer.cornerRadius = 8
         replyContainer.clipsToBounds = true
         replyContainer.layoutMargins = UIEdgeInsets(top: insets.top, left: 0, bottom: insets.bottom, right: insets.right)
         replyContentLeadingConstraint?.constant = insets.left
 
+        let shouldShowReplySender: Bool
+        switch configuration.behavior.nameDisplayMode {
+        case .none:
+            shouldShowReplySender = false
+        case .always, .first:
+            shouldShowReplySender = true
+        }
+        replySenderLabel.isHidden = !shouldShowReplySender
         replySenderLabel.text = preview.senderName
         replySenderLabel.font = configuration.fonts.replyPreviewSender
         replySenderLabel.textColor = configuration.colors.replyPreviewSenderText
 
         replyIndicator.backgroundColor = configuration.colors.replyPreviewBorder
         replyIndicator.alpha = 0.7
-        replyIndicator.isHidden = isSystemReply
 
-        if isSystemReply {
+        switch layoutStyle {
+        case .overlay:
+            replyWrapper.layoutMargins = configuration.layout.bubbleContentInsets
+        case .stacked:
             replyWrapper.layoutMargins = .zero
-            activateReplySystemConstraints()
-        } else {
-            switch layoutStyle {
-            case .overlay:
-                replyWrapper.layoutMargins = configuration.layout.bubbleContentInsets
-            case .stacked:
-                replyWrapper.layoutMargins = .zero
-            }
-            activateReplyContainerConstraints()
         }
+        activateReplyContainerConstraints()
         replyContentView.apply(preview: preview, configuration: configuration, isIncoming: isIncoming)
     }
 
@@ -201,7 +187,6 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
         replyWrapper.insetsLayoutMarginsFromSafeArea = false
         replyWrapper.isHidden = true
         replyWrapper.addSubview(replyContainer)
-        replyWrapper.addSubview(replySystemContainer)
 
         replyContainer.translatesAutoresizingMaskIntoConstraints = false
         replyContainer.insetsLayoutMarginsFromSafeArea = false
@@ -252,15 +237,6 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
             replyContentView.trailingAnchor.constraint(equalTo: replyContentContainer.trailingAnchor)
         ]
         NSLayoutConstraint.activate(replyContentConstraints)
-
-        replySystemContainer.translatesAutoresizingMaskIntoConstraints = false
-        replySystemContainer.isHidden = true
-        NSLayoutConstraint.activate([
-            replySystemContainer.topAnchor.constraint(equalTo: replyWrapper.layoutMarginsGuide.topAnchor),
-            replySystemContainer.bottomAnchor.constraint(equalTo: replyWrapper.layoutMarginsGuide.bottomAnchor),
-            replySystemContainer.leadingAnchor.constraint(equalTo: replyWrapper.layoutMarginsGuide.leadingAnchor),
-            replySystemContainer.trailingAnchor.constraint(equalTo: replyWrapper.layoutMarginsGuide.trailingAnchor)
-        ])
 
         let replyTap = UITapGestureRecognizer(target: self, action: #selector(handleReplyTap))
         replyTap.cancelsTouchesInView = false
@@ -453,27 +429,9 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
                 replyContentView.trailingAnchor.constraint(equalTo: replyContentContainer.trailingAnchor)
             ]
         }
-        NSLayoutConstraint.deactivate(replySystemContentConstraints)
         NSLayoutConstraint.activate(replyContentConstraints)
     }
 
-    private func activateReplySystemConstraints() {
-        if replyContentView.superview !== replySystemContainer {
-            replyContentView.removeFromSuperview()
-            replySystemContainer.addSubview(replyContentView)
-            replyContentView.translatesAutoresizingMaskIntoConstraints = false
-        }
-        if replySystemContentConstraints.isEmpty {
-            replySystemContentConstraints = [
-                replyContentView.topAnchor.constraint(equalTo: replySystemContainer.topAnchor),
-                replyContentView.bottomAnchor.constraint(equalTo: replySystemContainer.bottomAnchor),
-                replyContentView.leadingAnchor.constraint(equalTo: replySystemContainer.leadingAnchor),
-                replyContentView.trailingAnchor.constraint(equalTo: replySystemContainer.trailingAnchor)
-            ]
-        }
-        NSLayoutConstraint.deactivate(replyContentConstraints)
-        NSLayoutConstraint.activate(replySystemContentConstraints)
-    }
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         otherGestureRecognizer is UIPanGestureRecognizer
     }

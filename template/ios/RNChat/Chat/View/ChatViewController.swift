@@ -737,16 +737,11 @@ extension ChatViewController: UICollectionViewDelegate {
 
         let item = dataSource.sections[0].cells[itemIndex]
         switch item {
-        case let .message(message, bubbleType: _):
+        case .system:
+            return nil
+        case .message:
             let parameters = UIPreviewParameters()
             parameters.backgroundColor = .clear
-            // `UITargetedPreview` doesnt support image mask (Why?) like the one I use to mask the message bubble in the example app.
-            // So I replaced default `ImageMaskedView` with `BezierMaskedView` that can uses `UIBezierPath` to mask the message view
-            // instead. So we are reusing that path here.
-            //
-            // NB: This way of creating the preview is not valid for long texts as `UITextView` within message view uses `CATiledLayer`
-            // to render its content, so it may not render itself fully when it is partly outside the collection view. You will have to
-            // recreate a brand new view that will behave as a preview. It is outside of the scope of the example app.
             guard let bubbleView = bubbleView(from: cell) else {
                 let fallbackView = cell.contentView
                 let fallbackSnapshot = fallbackView.snapshotView(afterScreenUpdates: false) ?? fallbackView
@@ -806,16 +801,8 @@ extension ChatViewController: UICollectionViewDelegate {
                 previewProvider: nil,
                 actionProvider: { _ in menu }
             )
-        case let .system(message):
-            let menu = makeSystemContextMenu(for: message)
-            let identifier: NSString = "\(indexPath.section)|\(indexPath.item)" as NSString
-            currentInterfaceActions.options.insert(.showingPreview)
-            return UIContextMenuConfiguration(
-                identifier: identifier,
-                previewProvider: nil,
-                actionProvider: { _ in menu }
-            )
-
+        case .system:
+            return nil
         default:
             return nil
         }
@@ -925,20 +912,6 @@ extension ChatViewController: UICollectionViewDelegate {
         default:
             return nil
         }
-    }
-
-    private func makeSystemContextMenu(for message: SystemMessage) -> UIMenu {
-        let copyAction = UIAction(title: "Скопировать", image: UIImage(systemName: "doc.on.doc")) { _ in
-            UIPasteboard.general.string = message.text
-        }
-        let replyAction = UIAction(
-            title: "Ответить",
-            image: UIImage(systemName: "arrowshape.turn.up.left")
-        ) { [weak self] _ in
-            self?.delegate?.onReplyToMessage(messageId: message.id)
-            self?.currentInterfaceActions.options.remove(.showingPreview)
-        }
-        return UIMenu(title: "", children: [copyAction, replyAction])
     }
 
     private func bubbleView(from cell: UICollectionViewCell) -> (UIView & BezierMaskedViewProviding)? {
