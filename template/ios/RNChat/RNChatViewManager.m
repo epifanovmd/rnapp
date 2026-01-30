@@ -35,6 +35,7 @@
 
  RCT_EXTERN_METHOD(setMessages:(nonnull NSNumber *)node messages:(NSArray *)messages)
  RCT_EXTERN_METHOD(appendMessages:(nonnull NSNumber *)node messages:(NSArray *)messages)
+ RCT_EXTERN_METHOD(prependMessages:(nonnull NSNumber *)node messages:(NSArray *)messages)
  RCT_EXTERN_METHOD(deleteMessage:(nonnull NSNumber *)node messageId:(NSString *)messageId)
  RCT_EXTERN_METHOD(markMessagesAsRead:(nonnull NSNumber *)node messageIds:(NSArray<NSString *> *)messageIds)
  RCT_EXTERN_METHOD(markMessagesAsReceived:(nonnull NSNumber *)node messageIds:(NSArray<NSString *> *)messageIds)

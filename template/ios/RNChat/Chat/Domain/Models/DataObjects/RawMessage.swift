@@ -17,7 +17,6 @@ struct RawMessage: Hashable {
     enum Data: Hashable {
         case text(String)
         case image(ImageMessageSource)
-        case custom(CustomMessage)
         case system(String)
     }
 

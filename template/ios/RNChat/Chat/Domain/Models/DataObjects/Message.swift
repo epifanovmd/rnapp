@@ -79,8 +79,6 @@ struct Message: Hashable {
     enum Data: Hashable {
         case text(String)
         case image(ImageMessageSource, isLocallyStored: Bool)
-
-        case custom(CustomMessage)
     }
 
     var id: UUID

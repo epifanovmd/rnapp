@@ -29,6 +29,16 @@
          }
      }
 
+     @objc func prependMessages(_ node: NSNumber, messages: NSArray) {
+         DispatchQueue.main.async {
+             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {
+                 return
+             }
+             let parsed = (messages as? [Any])?.compactMap { RNChatParsing.rawMessage(from: $0) } ?? []
+             view.hostViewController.prependMessages(parsed, animated: false)
+         }
+     }
+
      @objc func deleteMessage(_ node: NSNumber, messageId: String) {
          DispatchQueue.main.async {
              guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else {

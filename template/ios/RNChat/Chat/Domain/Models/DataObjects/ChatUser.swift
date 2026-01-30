@@ -6,16 +6,13 @@
 //
 
 import Foundation
-import UIKit
 
 struct ChatUser: Hashable {
     var id: Int
     var displayName: String
-    var avatar: ImageMessageSource?
 
-    init(id: Int, displayName: String, avatar: ImageMessageSource? = nil) {
+    init(id: Int, displayName: String) {
         self.id = id
         self.displayName = displayName
-        self.avatar = avatar
     }
 }

@@ -15,9 +15,7 @@ struct ChatConfiguration {
         var bubbleCornerRadius: CGFloat
         var interItemSpacing: CGFloat
         var interSectionSpacing: CGFloat
-        var contentInsets: UIEdgeInsets
         var bubbleContentInsets: UIEdgeInsets
-        var avatarSize: CGFloat
         var dateSeparatorInsets: UIEdgeInsets
         var mediaOverlayInsets: UIEdgeInsets
         var systemMessageInsets: UIEdgeInsets
@@ -35,7 +33,6 @@ struct ChatConfiguration {
         var dateSeparatorText: UIColor
         var dateSeparatorBorder: UIColor
         var dateSeparatorBackground: UIColor
-        var groupTitleText: UIColor
         var messageSenderText: UIColor
         var messageTimeText: UIColor
         var mediaOverlayBackground: UIColor
@@ -61,8 +58,6 @@ struct ChatConfiguration {
         var messageStatus: UIFont
         var messageTime: UIFont
         var systemMessage: UIFont
-        var replyPreview: UIFont
-        var replyPreviewSender: UIFont
     }
 
     struct DateFormatting {
@@ -82,20 +77,16 @@ struct ChatConfiguration {
             case first
             case none
         }
-
-        var showsAvatars: Bool
-        var showsDateSeparators: Bool
+      
         var showsBubbleTail: Bool
         var nameDisplayMode: NameDisplayMode
         var showsStatus: Bool
         var unsupportedMessageText: String
         var showsMessageTime: Bool
-        var customMessageTextProvider: (CustomMessage) -> String
         var showsReplyPreview: Bool
         var replyPreviewTextProvider: (RawMessage.Data, ChatUser) -> String
         var showsScrollHighlight: Bool
         var scrollHighlightDuration: TimeInterval
-        var scrollToCenterOnIdIndex: Bool
     }
 
     struct ViewabilityConfig {
@@ -121,9 +112,7 @@ struct ChatConfiguration {
             bubbleCornerRadius: 17,
             interItemSpacing: 8,
             interSectionSpacing: 50,
-            contentInsets: UIEdgeInsets(top: 8, left: 5, bottom: 8, right: 5),
             bubbleContentInsets: UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16),
-            avatarSize: 30,
             dateSeparatorInsets: UIEdgeInsets(top: 2, left: 0, bottom: 2, right: 0),
             mediaOverlayInsets: UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16),
             systemMessageInsets: UIEdgeInsets(top: 4, left: 24, bottom: 4, right: 24),
@@ -140,7 +129,6 @@ struct ChatConfiguration {
             dateSeparatorText: .gray,
             dateSeparatorBorder: .gray,
             dateSeparatorBackground: .white,
-            groupTitleText: .gray,
             messageSenderText: .secondaryLabel,
             messageTimeText: .secondaryLabel,
             mediaOverlayBackground: UIColor.black.withAlphaComponent(0.35),
@@ -164,9 +152,7 @@ struct ChatConfiguration {
             messageSender: .preferredFont(forTextStyle: .caption2),
             messageStatus: .preferredFont(forTextStyle: .caption2),
             messageTime: .preferredFont(forTextStyle: .caption2),
-            systemMessage: .preferredFont(forTextStyle: .caption1),
-            replyPreview: .preferredFont(forTextStyle: .caption2),
-            replyPreviewSender: .preferredFont(forTextStyle: .caption1)
+            systemMessage: .preferredFont(forTextStyle: .caption1)
         ),
         dateFormatting: DateFormatting(
             dateSeparatorTextProvider: { date in
@@ -182,38 +168,24 @@ struct ChatConfiguration {
             read: UIImage(named: "read_status")
         ),
         behavior: Behavior(
-            showsAvatars: false,
-            showsDateSeparators: true,
             showsBubbleTail: true,
             nameDisplayMode: .first,
             showsStatus: true,
             unsupportedMessageText: "Unsupported message",
             showsMessageTime: true,
-            customMessageTextProvider: { custom in
-                if let payload = custom.payload {
-                    return "\(custom.kind): \(payload)"
-                }
-                return custom.kind
-            },
             showsReplyPreview: true,
-            replyPreviewTextProvider: { data, user in
+            replyPreviewTextProvider: { data, _ in
                 switch data {
                 case let .text(text):
                     return text
                 case .image:
                     return "Image"
-                case let .custom(custom):
-                    if let payload = custom.payload {
-                        return "\(custom.kind): \(payload)"
-                    }
-                    return custom.kind
                 case let .system(text):
                     return text
                 }
             },
             showsScrollHighlight: true,
-            scrollHighlightDuration: 0.8,
-            scrollToCenterOnIdIndex: true
+            scrollHighlightDuration: 0.8
         ),
         viewability: ViewabilityConfig(
             minimumViewTime: 0.5,

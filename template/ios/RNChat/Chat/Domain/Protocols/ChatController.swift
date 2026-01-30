@@ -20,6 +20,8 @@ protocol ChatController: AnyObject {
     func setMessages(_ rawMessages: [RawMessage], _ animated: Bool)
     func appendMessages(_ rawMessages: [RawMessage])
     func appendMessages(_ rawMessages: [RawMessage], _ animated: Bool)
+    func prependMessages(_ rawMessages: [RawMessage])
+    func prependMessages(_ rawMessages: [RawMessage], _ animated: Bool)
     func deleteMessage(with id: UUID)
     func markMessagesAsRead(ids: [UUID])
     func markMessagesAsReceived(ids: [UUID])

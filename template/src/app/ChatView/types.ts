@@ -8,14 +8,11 @@ export interface ChatUser {
   id: number;
   // имя пользователя для отображения
   displayName: string;
-  // аватар: строковый uri или объект { uri }
-  avatar?: string | { uri: string };
 }
 
 export type MessageData =
   | { type: "text"; text: string }
   | { type: "image"; image: string | { uri: string } }
-  | { type: "custom"; kind: string; payload?: string | number | boolean }
   | { type: "system"; text: string };
 
 export interface RawMessage {
@@ -66,8 +63,6 @@ export interface ChatLayoutConfig {
   contentInsets?: ChatEdgeInsets;
   // внутренние отступы внутри пузыря
   bubbleContentInsets?: ChatEdgeInsets;
-  // размер аватара
-  avatarSize?: number;
   // отступы у разделителя даты
   dateSeparatorInsets?: ChatEdgeInsets;
   // отступы оверлея у медиа сообщений
@@ -99,8 +94,6 @@ export interface ChatColorsConfig {
   dateSeparatorBorder?: string | number;
   // фон даты
   dateSeparatorBackground?: string | number;
-  // цвет заголовка группы
-  groupTitleText?: string | number;
   // цвет имени пользователя
   messageSenderText?: string | number;
   // цвет времени
@@ -152,17 +145,9 @@ export interface ChatFontsConfig {
   messageTime?: FontSpec;
   // шрифт системных сообщений
   systemMessage?: FontSpec;
-  // шрифт превью ответа
-  replyPreview?: FontSpec;
-  // шрифт автора превью ответа
-  replyPreviewSender?: FontSpec;
 }
 
 export interface ChatBehaviorConfig {
-  // показывать аватары
-  showsAvatars?: boolean;
-  // показывать разделители дат
-  showsDateSeparators?: boolean;
   // показывать хвостик у пузырей
   showsBubbleTail?: boolean;
   // логика показа имени: always | first | none
@@ -179,8 +164,6 @@ export interface ChatBehaviorConfig {
   showsScrollHighlight?: boolean;
   // длительность подсветки (сек)
   scrollHighlightDuration?: number;
-  // скролл к сообщению по id/index в центр
-  scrollToCenterOnIdIndex?: boolean;
 }
 
 export interface ChatViewabilityConfig {
@@ -283,6 +266,8 @@ export interface ChatRef {
   setMessages: (messages: RawMessage[]) => void;
   // добавить сообщения
   appendMessages: (messages: RawMessage[]) => void;
+  // добавить старые сообщения в начало
+  prependMessages: (messages: RawMessage[]) => void;
   // удалить сообщение
   deleteMessage: (messageId: string) => void;
   // отметить прочитанными

@@ -123,7 +123,6 @@ final class ChatViewController: UIViewController {
 
         chatLayout.settings.interItemSpacing = configuration.layout.interItemSpacing
         chatLayout.settings.interSectionSpacing = configuration.layout.interSectionSpacing
-        chatLayout.settings.additionalInsets = configuration.layout.contentInsets
 
         chatLayout.keepContentOffsetAtBottomOnBatchUpdates = true
         chatLayout.processOnlyVisibleItemsOnAnimatedBatchUpdates = false
@@ -293,7 +292,6 @@ final class ChatViewController: UIViewController {
         viewabilityConfig = configuration.viewability
         chatLayout.settings.interItemSpacing = configuration.layout.interItemSpacing
         chatLayout.settings.interSectionSpacing = configuration.layout.interSectionSpacing
-        chatLayout.settings.additionalInsets = configuration.layout.contentInsets
         collectionView.backgroundColor = configuration.colors.background
         if let defaultDataSource = dataSource as? DefaultChatCollectionDataSource {
             defaultDataSource.configuration = configuration
@@ -461,10 +459,25 @@ extension ChatViewController: UIScrollViewDelegate {
 
         // 2. ВЫЧИСЛЕНИЕ ЦЕЛИ (SNAPSHOT)
         let snapshot: ChatLayoutPositionSnapshot?
-        let isBottomTarget = (offset != nil && offset! <= 0.1) || (messageId == nil && index == nil && date == nil && offset == nil)
+        let hasExplicitTarget = messageId != nil || index != nil || date != nil
+        let isOnlyOffsetTarget = !hasExplicitTarget && offset != nil
+        let isBottomTarget = !hasExplicitTarget && (offset == nil || (offset ?? 0) <= 0.1)
 
         var highlightIndexPath: IndexPath?
-        if isBottomTarget {
+        if isOnlyOffsetTarget {
+            let lastSectionIndex = dataSource.sections.count - 1
+            guard lastSectionIndex >= 0, let lastItemIndex = dataSource.sections[lastSectionIndex].cells.indices.last else {
+                completion?()
+                return
+            }
+            let clampedOffset = max(0, offset ?? 0)
+            snapshot = ChatLayoutPositionSnapshot(
+                indexPath: IndexPath(item: lastItemIndex, section: lastSectionIndex),
+                edge: .bottom,
+                offset: clampedOffset
+            )
+            currentInterfaceActions.options.insert(.scrollingToBottom)
+        } else if isBottomTarget {
             let lastSectionIndex = dataSource.sections.count - 1
             guard lastSectionIndex >= 0, let lastItemIndex = dataSource.sections[lastSectionIndex].cells.indices.last else {
                 completion?()
@@ -481,7 +494,7 @@ extension ChatViewController: UIScrollViewDelegate {
                     return false
                 }
             } else if let idx = index {
-                targetIndexPath = getIndexPath(fromMessageIndex: idx, in: dataSource.sections)
+                targetIndexPath = getIndexPath(fromBottomMessageIndex: idx, in: dataSource.sections)
             } else if let d = date {
                 targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
                     if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: d) }
@@ -492,10 +505,7 @@ extension ChatViewController: UIScrollViewDelegate {
                 highlightIndexPath = targetIndexPath
             }
             snapshot = targetIndexPath.map { indexPath in
-                if configuration.behavior.scrollToCenterOnIdIndex, (messageId != nil || index != nil) {
-                    return centeredSnapshot(for: indexPath) ?? ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
-                }
-                return ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
+                return centeredSnapshot(for: indexPath) ?? ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: 0)
             }
         }
 
@@ -658,6 +668,7 @@ extension ChatViewController: UIScrollViewDelegate {
         return ChatLayoutPositionSnapshot(indexPath: indexPath, edge: .top, offset: offset)
     }
 
+
     private func highlightMessageIfNeeded(at indexPath: IndexPath?) {
         guard configuration.behavior.showsScrollHighlight,
               let indexPath else {
@@ -710,6 +721,28 @@ extension ChatViewController: UIScrollViewDelegate {
             }
         }
         return nil
+    }
+
+    private func getIndexPath(fromBottomMessageIndex targetIndex: Int, in sections: [Section]) -> IndexPath? {
+        let total = totalMessageCount(in: sections)
+        guard total > 0 else {
+            return nil
+        }
+        let clamped = min(max(targetIndex, 0), total - 1)
+        let indexFromTop = total - 1 - clamped
+        return getIndexPath(fromMessageIndex: indexFromTop, in: sections)
+    }
+
+    private func totalMessageCount(in sections: [Section]) -> Int {
+        var count = 0
+        for section in sections {
+            for cell in section.cells {
+                if case .message = cell {
+                    count += 1
+                }
+            }
+        }
+        return count
     }
 
     private func findIndexPath(in sections: [Section], predicate: (Cell) -> Bool) -> IndexPath? {
@@ -919,9 +952,6 @@ extension ChatViewController: UICollectionViewDelegate {
             return cell.customView.customView.customView
         }
         if let cell = cell as? ImageCollectionCell {
-            return cell.customView.customView.customView
-        }
-        if let cell = cell as? CustomMessageCollectionCell {
             return cell.customView.customView.customView
         }
         return nil

@@ -20,10 +20,6 @@ final class MainContainerView<LeadingAccessory: StaticViewFactory, CustomView: U
         }
     }
 
-    var avatarView: LeadingAccessory.View? {
-        containerView.leadingView
-    }
-
     var customView: BezierMaskedView<CustomView> {
         containerView.customView
     }
@@ -61,22 +57,10 @@ final class MainContainerView<LeadingAccessory: StaticViewFactory, CustomView: U
     }
 
     func apply(configuration: ChatConfiguration, alignment: ChatItemAlignment) {
-        if let avatarView {
-            let showsAvatars = configuration.behavior.showsAvatars
-            avatarView.isHidden = !showsAvatars
-            avatarView.alpha = alignment.isIncoming ? 1 : 0
-        }
         updateOffsets()
     }
 
     private func updateOffsets() {
-        if let avatarView {
-            if avatarView.isHidden {
-                avatarView.transform = .identity
-            } else {
-                avatarView.transform = CGAffineTransform(translationX: -((avatarView.bounds.width) * swipeCompletionRate), y: 0)
-            }
-        }
         switch containerView.customView.messageType {
         case .incoming:
             customView.transform = .identity

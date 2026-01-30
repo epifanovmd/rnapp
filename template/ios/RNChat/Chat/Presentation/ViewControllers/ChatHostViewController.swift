@@ -26,8 +26,8 @@ final class ChatHostViewController: UIViewController {
     
     var configuration: ChatConfiguration {
         didSet {
-            chatController.configuration = configuration
-            chatViewController.apply(configuration: configuration)
+          chatController.configuration = configuration
+          chatViewController.apply(configuration: configuration)
             view.backgroundColor = configuration.colors.background
         }
     }
@@ -56,6 +56,10 @@ final class ChatHostViewController: UIViewController {
     
     func appendMessages(_ messages: [RawMessage], animated: Bool = true) {
         chatController.appendMessages(messages, animated)
+    }
+
+    func prependMessages(_ messages: [RawMessage], animated: Bool = true) {
+        chatController.prependMessages(messages, animated)
     }
     
     func deleteMessage(id: UUID) {

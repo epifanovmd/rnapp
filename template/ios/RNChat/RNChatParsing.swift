@@ -115,8 +115,7 @@
              return nil
          }
          let displayName = (userDict["displayName"] as? String) ?? ""
-         let avatar = imageSource(from: userDict["avatar"])
-         let user = ChatUser(id: userId, displayName: displayName, avatar: avatar)
+         let user = ChatUser(id: userId, displayName: displayName)
 
          let status = messageStatus(from: dict["status"])
          let direction = messageDirection(from: dict["direction"])
@@ -138,13 +137,6 @@
                      } else {
                          return nil
                      }
-                 case "custom":
-                     if let kind = dataDict["kind"] as? String {
-                         let payload = dataDict["payload"] as? AnyHashable
-                         data = .custom(CustomMessage(kind: kind, payload: payload))
-                     } else {
-                         return nil
-                     }
                  case "system":
                      if let text = dataDict["text"] as? String {
                          data = .system(text)
@@ -158,13 +150,6 @@
                  data = .text(text)
              } else if let imageValue = dataDict["image"], let source = imageSource(from: imageValue) {
                  data = .image(source)
-             } else if let customDict = dataDict["custom"] as? [String: Any],
-                       let kind = customDict["kind"] as? String {
-                 let payload = customDict["payload"] as? AnyHashable
-                 data = .custom(CustomMessage(kind: kind, payload: payload))
-             } else if let kind = dataDict["kind"] as? String {
-                 let payload = dataDict["payload"] as? AnyHashable
-                 data = .custom(CustomMessage(kind: kind, payload: payload))
              } else {
                  return nil
              }

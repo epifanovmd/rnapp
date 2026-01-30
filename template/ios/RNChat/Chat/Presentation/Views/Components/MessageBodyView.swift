@@ -140,7 +140,7 @@ final class MessageBodyView<ContentView: UIView>: UIView, UIGestureRecognizerDel
         }
         replySenderLabel.isHidden = !shouldShowReplySender
         replySenderLabel.text = preview.senderName
-        replySenderLabel.font = configuration.fonts.replyPreviewSender
+        replySenderLabel.font = configuration.fonts.messageSender
         replySenderLabel.textColor = configuration.colors.replyPreviewSenderText
 
         replyIndicator.backgroundColor = configuration.colors.replyPreviewBorder
@@ -495,12 +495,6 @@ private final class ReplyPreviewContentView: UIView {
             view.setup(with: controller)
             controller.view = view
             imageController = controller
-            view.translatesAutoresizingMaskIntoConstraints = false
-            return view
-        case let .custom(custom):
-            let view = CustomMessageView()
-            let text = configuration.behavior.customMessageTextProvider(custom)
-            view.apply(text: text, configuration: configuration, isIncoming: preview.type.isIncoming)
             view.translatesAutoresizingMaskIntoConstraints = false
             return view
         case let .system(text):

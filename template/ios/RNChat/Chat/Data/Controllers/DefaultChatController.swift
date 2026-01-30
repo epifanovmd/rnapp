@@ -14,36 +14,32 @@ import Foundation
 
 final class DefaultChatController: ChatController {
   weak var delegate: ChatViewControllerDelegate?
-
+  
   private let dispatchQueue = DispatchQueue(label: "DefaultChatController", qos: .userInteractive)
-
+  
   var userId: Int? = nil
-
-  var configuration: ChatConfiguration {
-    didSet {
-      repopulateMessages()
-    }
-  }
-
+  
+  var configuration: ChatConfiguration
+  
   var messages: [RawMessage] = []
-
+  
   init(configuration: ChatConfiguration) {
     self.configuration = configuration
   }
-
+  
   func setMessages(_ rawMessages: [RawMessage]) {
     setMessages(rawMessages, true)
   }
-
+  
   func setMessages(_ rawMessages: [RawMessage], _ animated: Bool) {
     self.messages = deduplicatePreservingOrder(rawMessages)
     repopulateMessages(requiresIsolatedProcess: false, animated: animated)
   }
-
+  
   func appendMessages(_ rawMessages: [RawMessage]) {
     appendMessages(rawMessages, true)
   }
-
+  
   func appendMessages(_ rawMessages: [RawMessage], _ animated: Bool = true) {
     var currentMessages = messages
     for message in rawMessages {
@@ -57,23 +53,52 @@ final class DefaultChatController: ChatController {
     repopulateMessages(requiresIsolatedProcess: false, animated: animated)
   }
 
+  func prependMessages(_ rawMessages: [RawMessage]) {
+    prependMessages(rawMessages, true)
+  }
+
+  func prependMessages(_ rawMessages: [RawMessage], _ animated: Bool = true) {
+    guard !rawMessages.isEmpty else {
+      return
+    }
+    var currentMessages = messages
+    var indexById: [UUID: Int] = [:]
+    indexById.reserveCapacity(currentMessages.count)
+    for (index, message) in currentMessages.enumerated() {
+      indexById[message.id] = index
+    }
+
+    var prepend: [RawMessage] = []
+    prepend.reserveCapacity(rawMessages.count)
+    for message in rawMessages {
+      if let index = indexById[message.id] {
+        currentMessages[index] = message
+      } else {
+        prepend.append(message)
+      }
+    }
+
+    self.messages = prepend + currentMessages
+    repopulateMessages(requiresIsolatedProcess: true, animated: animated)
+  }
+  
   func deleteMessage(with id: UUID) {
     messages.removeAll(where: { $0.id == id })
     repopulateMessages(requiresIsolatedProcess: true)
   }
-
+  
   func markMessagesAsRead(ids: [UUID]) {
     updateMessagesStatus(ids: ids, newStatus: .read)
   }
-
+  
   func markMessagesAsReceived(ids: [UUID]) {
     updateMessagesStatus(ids: ids, newStatus: .received)
   }
-
+  
   func reloadMessage(with id: UUID) {
     repopulateMessages()
   }
-
+  
   private func propagateLatestMessages(completion: @escaping ([Section]) -> Void) {
     dispatchQueue.async { [weak self] in
       guard let self else { return }
@@ -184,7 +209,7 @@ final class DefaultChatController: ChatController {
           }
         }
 
-        if let firstEntry = entries.first, self.configuration.behavior.showsDateSeparators {
+        if let firstEntry = entries.first {
           let title = self.configuration.dateFormatting.dateSeparatorTextProvider(firstEntry.date)
           let dateId: UUID
           switch firstEntry {
@@ -199,7 +224,7 @@ final class DefaultChatController: ChatController {
 
         return cells
       }.joined()
-
+      
       DispatchQueue.main.async { [weak self] in
         guard self != nil else {
           return
@@ -208,18 +233,16 @@ final class DefaultChatController: ChatController {
       }
     }
   }
-
+  
   private func convert(_ data: Message.Data) -> RawMessage.Data {
     switch data {
     case let .image(source, isLocallyStored: _):
         .image(source)
     case let .text(text):
         .text(text)
-    case let .custom(custom):
-        .custom(custom)
     }
   }
-
+  
   private func convert(_ data: RawMessage.Data) -> Message.Data {
     switch data {
     case let .image(source):
@@ -234,27 +257,25 @@ final class DefaultChatController: ChatController {
       return .image(source, isLocallyStored: isPresentLocally(source))
     case let .text(text):
       return .text(text)
-    case let .custom(custom):
-      return .custom(custom)
     case let .system(text):
-      return .custom(CustomMessage(kind: "system", payload: text))
+      return .text(text)
     }
   }
-
+  
   private func repopulateMessages(requiresIsolatedProcess: Bool = false, animated: Bool = true) {
     propagateLatestMessages { sections in
       self.delegate?.update(with: sections, requiresIsolatedProcess: requiresIsolatedProcess, animated: animated)
     }
   }
-
+  
   private func updateMessagesStatus(ids: [UUID], newStatus: MessageStatus) {
     guard !ids.isEmpty else { return }
     let idSet = Set(ids)
-
+    
     dispatchQueue.async { [weak self] in
       guard let self else { return }
       var hasChanges = false
-
+      
       self.messages = self.messages.map { message in
         // Обновляем статус только если ID в списке и новый статус "старше" текущего
         if idSet.contains(message.id), self.shouldUpdateStatus(from: message.status, to: newStatus) {
@@ -265,7 +286,7 @@ final class DefaultChatController: ChatController {
         }
         return message
       }
-
+      
       if hasChanges {
         DispatchQueue.main.async {
           self.repopulateMessages()
@@ -273,7 +294,7 @@ final class DefaultChatController: ChatController {
       }
     }
   }
-
+  
   private func shouldUpdateStatus(from old: MessageStatus, to new: MessageStatus) -> Bool {
     switch (old, new) {
     case (.sent, .received), (.sent, .read), (.received, .read):

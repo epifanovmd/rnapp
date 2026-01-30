@@ -16,26 +16,22 @@ export const ChatViewTest = () => {
   const [loadedPages, setLoadedPages] = useState(0);
   const oldestTimestampRef = useRef<number>(Date.now());
   const messagesRef = useRef<RawMessage[]>([]);
-  const [config] = useState<ChatConfiguration>({
+  const [config, setConfig] = useState<ChatConfiguration>({
     layout: {
       maxMessageWidthRatio: 0.72,
       interItemSpacing: 4,
       interSectionSpacing: 18,
       bubbleContentInsets: { top: 6, left: 10, bottom: 6, right: 10 },
       tailSize: 6,
-      avatarSize: 28,
     },
     behavior: {
-      showsAvatars: false,
-      showsDateSeparators: true,
       showsStatus: true,
       showsMessageTime: true,
       showsReplyPreview: true,
       showsBubbleTail: false,
-      nameDisplayMode: "none",
+      nameDisplayMode: "always",
       showsScrollHighlight: true,
       scrollHighlightDuration: 0.8,
-      scrollToCenterOnIdIndex: true,
     },
     colors: {
       background: "#e6ebf2",
@@ -56,7 +52,7 @@ export const ChatViewTest = () => {
     dateFormatting: {
       dateSeparatorFormat: "d MMMM, EEEE",
       messageTimeFormat: "HH:mm",
-      locale: "ru_RU",
+      // locale: "ru_RU",
     },
   });
 
@@ -77,8 +73,6 @@ export const ChatViewTest = () => {
         : {
             id: i % 2 === 0 ? 0 : 3,
             displayName: i % 2 === 0 ? "Я" : "Alex",
-            avatar:
-              i % 2 === 0 ? undefined : "https://i.pravatar.cc/100?img=12",
           };
 
       let data: any;
@@ -137,10 +131,6 @@ export const ChatViewTest = () => {
         user: {
           id: (loadedPages + i) % 2 === 0 ? 3 : 0,
           displayName: (loadedPages + i) % 2 === 0 ? "Alex" : "Я",
-          avatar:
-            (loadedPages + i) % 2 === 0
-              ? "https://i.pravatar.cc/100?img=12"
-              : undefined,
         },
         status: "read" as const,
         data: {
@@ -167,7 +157,7 @@ export const ChatViewTest = () => {
     oldestTimestampRef.current = batch[batch.length - 1].date;
     setLoadedPages(prev => prev + 1);
     messagesRef.current = [...batch, ...messagesRef.current];
-    chatRef.current?.appendMessages(batch);
+    chatRef.current?.prependMessages(batch);
   };
 
   const handleAddMessage = () => {
@@ -211,18 +201,14 @@ export const ChatViewTest = () => {
         ref={chatRef}
         userId={0}
         configuration={config}
+        // configuration={{}}
         keyboardDismissMode="interactive"
         keyboardScrollOffset={-bottom + 8}
-        initialScrollIndex={4}
-        initialScrollOffset={120}
+        initialScrollIndex={11}
+        // initialScrollOffset={320}
         onLoadPreviousMessages={loadPreviousMessages}
         onDelete={id => chatRef.current?.deleteMessage(id)}
         onVisibleMessages={ids => console.log("Visible IDs:", ids)}
-        onScroll={e => console.log("Scroll Y:", e.contentOffset.y)}
-        onScrollBeginDrag={() => console.log("Started Dragging")}
-        onMomentumScrollEnd={() => console.log("Stopped Momentum")}
-        onScrollAnimationEnd={() => console.log("Animation End")}
-        onScrollEndDrag={() => console.log("End Dragging")}
         style={[StyleSheet.absoluteFill, { backgroundColor: "#e6ebf2" }]}
         insets={{ bottom: bottom + inputHeight + 16, top }}
       />

@@ -28,6 +28,8 @@ export const ChatViewNative = forwardRef<ChatRef, ChatViewProps>(
     useImperativeHandle(ref, () => ({
       setMessages: messages => dispatchCommand("setMessages", [messages]),
       appendMessages: messages => dispatchCommand("appendMessages", [messages]),
+      prependMessages: messages =>
+        dispatchCommand("prependMessages", [messages]),
       deleteMessage: id => dispatchCommand("deleteMessage", [id]),
       markMessagesAsRead: ids => dispatchCommand("markMessagesAsRead", [ids]),
       markMessagesAsReceived: ids =>
