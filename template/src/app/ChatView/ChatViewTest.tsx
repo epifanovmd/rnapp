@@ -95,7 +95,7 @@ export const ChatViewTest = () => {
         id: generateUUID(),
         date: timestamp,
         user,
-        status: "read" as const,
+        status: "read",
         data,
       };
 
@@ -125,7 +125,7 @@ export const ChatViewTest = () => {
     const batch = new Array(pageSize).fill(null).map((_, i) => {
       const timestamp = base - i * 60 * 1000;
 
-      const message: any = {
+      const message: RawMessage = {
         id: generateUUID(),
         date: timestamp,
         user: {
@@ -168,7 +168,7 @@ export const ChatViewTest = () => {
         id: 0,
         displayName: "Я",
       },
-      status: "sent",
+      status: "received",
       data: { type: "text", text: inputValue },
     };
 
@@ -205,7 +205,6 @@ export const ChatViewTest = () => {
         keyboardDismissMode="interactive"
         keyboardScrollOffset={-bottom + 8}
         initialScrollIndex={11}
-        // initialScrollOffset={320}
         onLoadPreviousMessages={loadPreviousMessages}
         onDelete={id => chatRef.current?.deleteMessage(id)}
         onVisibleMessages={ids => console.log("Visible IDs:", ids)}

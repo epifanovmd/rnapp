@@ -215,8 +215,6 @@ export interface ChatViewProps {
   initialScrollIndex?: number;
   // смещение от низа (px)
   initialScrollOffset?: number;
-  // стартовый скролл по дате (timestamp в мс)
-  initialScrollDate?: number;
 
   // блокировать направление скролла
   directionalLockEnabled?: boolean;
@@ -283,6 +281,4 @@ export interface ChatRef {
   scrollToIndex: (index: number, animated: boolean) => void;
   // скролл к офсету от низа
   scrollToOffset: (offset: number, animated: boolean) => void;
-  // скролл к дате
-  scrollToDate: (timestamp: number, animated: boolean) => void;
 }

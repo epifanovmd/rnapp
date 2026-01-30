@@ -19,7 +19,6 @@ final class ChatViewController: UIViewController {
     var delegate: ChatControllerDelegate?
 
     var initialScrollId: UUID?      // Только для сообщений
-    var initialScrollDate: Date?    // Для перехода к конкретному времени
     var initialScrollIndex: Int?    // По порядковому номеру
     var initialScrollOffset: CGFloat? // Абсолютное смещение от низа
     private var isInitialScrollDone = false
@@ -444,7 +443,7 @@ extension ChatViewController: UIScrollViewDelegate {
         collectionView.isDragging || collectionView.isDecelerating
     }
 
-    func scrollTo(messageId: UUID? = nil, index: Int? = nil, date: Date? = nil, offset: CGFloat? = nil, animated: Bool = true, completion: (() -> Void)? = nil) {
+    func scrollTo(messageId: UUID? = nil, index: Int? = nil, offset: CGFloat? = nil, animated: Bool = true, completion: (() -> Void)? = nil) {
         // 1. ОСТАНОВКА ЛЮБОГО ДВИЖЕНИЯ
         animator?.reset()
         collectionView.setContentOffset(collectionView.contentOffset, animated: false)
@@ -459,7 +458,7 @@ extension ChatViewController: UIScrollViewDelegate {
 
         // 2. ВЫЧИСЛЕНИЕ ЦЕЛИ (SNAPSHOT)
         let snapshot: ChatLayoutPositionSnapshot?
-        let hasExplicitTarget = messageId != nil || index != nil || date != nil
+        let hasExplicitTarget = messageId != nil || index != nil
         let isOnlyOffsetTarget = !hasExplicitTarget && offset != nil
         let isBottomTarget = !hasExplicitTarget && (offset == nil || (offset ?? 0) <= 0.1)
 
@@ -471,10 +470,11 @@ extension ChatViewController: UIScrollViewDelegate {
                 return
             }
             let clampedOffset = max(0, offset ?? 0)
+
             snapshot = ChatLayoutPositionSnapshot(
                 indexPath: IndexPath(item: lastItemIndex, section: lastSectionIndex),
                 edge: .bottom,
-                offset: clampedOffset
+                offset: -clampedOffset
             )
             currentInterfaceActions.options.insert(.scrollingToBottom)
         } else if isBottomTarget {
@@ -495,12 +495,8 @@ extension ChatViewController: UIScrollViewDelegate {
                 }
             } else if let idx = index {
                 targetIndexPath = getIndexPath(fromBottomMessageIndex: idx, in: dataSource.sections)
-            } else if let d = date {
-                targetIndexPath = findIndexPath(in: dataSource.sections) { cell in
-                    if case let .date(grp) = cell { return Calendar.current.isDate(grp.date, inSameDayAs: d) }
-                    return false
-                }
             }
+
             if messageId != nil || index != nil {
                 highlightIndexPath = targetIndexPath
             }
@@ -519,7 +515,7 @@ extension ChatViewController: UIScrollViewDelegate {
             UIView.performWithoutAnimation {
                 self.chatLayout.restoreContentOffset(with: finalSnapshot)
                 self.currentInterfaceActions.options.remove(.scrollingToBottom)
-                self.collectionView.layoutIfNeeded()
+//                self.collectionView.layoutIfNeeded()
                 self.highlightMessageIfNeeded(at: highlightIndexPath)
                 completion?()
             }
@@ -539,7 +535,7 @@ extension ChatViewController: UIScrollViewDelegate {
         let delta = targetOffset.y - startOffset.y
         if abs(delta) < 0.1 {
             self.currentInterfaceActions.options.remove(.scrollingToBottom)
-            self.collectionView.layoutIfNeeded()
+//            self.collectionView.layoutIfNeeded()
             self.highlightMessageIfNeeded(at: highlightIndexPath)
             completion?()
             return
@@ -562,7 +558,7 @@ extension ChatViewController: UIScrollViewDelegate {
                 }
                 self.animator = nil
                 self.currentInterfaceActions.options.remove(.scrollingToBottom)
-                self.collectionView.layoutIfNeeded()
+//                self.collectionView.layoutIfNeeded()
                 self.highlightMessageIfNeeded(at: highlightIndexPath)
                 completion?()
             }
@@ -645,9 +641,6 @@ extension ChatViewController: UIScrollViewDelegate {
             isInitialScrollDone = true
         } else if let scrollId = initialScrollId {
             scrollTo(messageId: scrollId, animated: false)
-            isInitialScrollDone = true
-        } else if let scrollDate = initialScrollDate {
-            scrollTo(date: scrollDate, animated: false)
             isInitialScrollDone = true
         } else if let scrollIndex = initialScrollIndex {
             scrollTo(index: scrollIndex, animated: false)

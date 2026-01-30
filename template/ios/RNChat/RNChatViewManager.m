@@ -18,7 +18,6 @@
  RCT_EXPORT_VIEW_PROPERTY(initialScrollId, NSString)
  RCT_EXPORT_VIEW_PROPERTY(initialScrollIndex, NSNumber)
  RCT_EXPORT_VIEW_PROPERTY(initialScrollOffset, NSNumber)
- RCT_EXPORT_VIEW_PROPERTY(initialScrollDate, NSNumber)
 
  RCT_EXPORT_VIEW_PROPERTY(onVisibleMessages, RCTDirectEventBlock)
  RCT_EXPORT_VIEW_PROPERTY(onLoadPreviousMessages, RCTDirectEventBlock)
@@ -44,6 +43,5 @@
  RCT_EXTERN_METHOD(scrollToMessage:(nonnull NSNumber *)node messageId:(NSString *)messageId animated:(BOOL)animated)
  RCT_EXTERN_METHOD(scrollToIndex:(nonnull NSNumber *)node index:(nonnull NSNumber *)index animated:(BOOL)animated)
  RCT_EXTERN_METHOD(scrollToOffset:(nonnull NSNumber *)node offset:(nonnull NSNumber *)offset animated:(BOOL)animated)
- RCT_EXTERN_METHOD(scrollToDate:(nonnull NSNumber *)node timestamp:(nonnull NSNumber *)timestamp animated:(BOOL)animated)
 
  @end

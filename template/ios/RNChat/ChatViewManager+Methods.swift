@@ -98,12 +98,4 @@
              view.hostViewController.chatViewController.scrollTo(offset: CGFloat(offset.doubleValue), animated: animated)
          }
      }
-
-     @objc func scrollToDate(_ node: NSNumber, timestamp: NSNumber, animated: Bool) {
-         DispatchQueue.main.async {
-             guard let view = self.bridge.uiManager.view(forReactTag: node) as? RNChatContainer else { return }
-             let date = Date(timeIntervalSince1970: timestamp.doubleValue / 1000.0)
-             view.hostViewController.chatViewController.scrollTo(date: date, animated: animated)
-         }
-     }
  }

@@ -18,7 +18,10 @@ final class RNChatContainer: UIView {
   
   @objc var configuration: NSDictionary? {
     didSet {
-      guard let configuration else { return }
+      guard let configuration else {
+        hostViewController.configuration = ChatConfiguration.default
+        return
+      }
       let parsed = parseConfiguration(configuration, base: hostViewController.configuration)
       hostViewController.configuration = parsed
     }
@@ -94,14 +97,6 @@ final class RNChatContainer: UIView {
   
   @objc var initialScrollOffset: NSNumber? {
     didSet { hostViewController.chatViewController.initialScrollOffset = initialScrollOffset.map { CGFloat($0.doubleValue) } }
-  }
-  
-  @objc var initialScrollDate: NSNumber? {
-    didSet {
-      if let timestamp = initialScrollDate?.doubleValue {
-        hostViewController.chatViewController.initialScrollDate = Date(timeIntervalSince1970: timestamp / 1000.0)
-      }
-    }
   }
   
   // Events
