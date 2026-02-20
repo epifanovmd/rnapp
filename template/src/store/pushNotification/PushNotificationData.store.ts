@@ -1,7 +1,7 @@
 import { IApiService } from "@api";
 import { FcmTokenDto } from "@api/api-gen/data-contracts";
 import { DataHolder, isString } from "@force-dev/utils";
-import PushNotificationIOS from "@react-native-community/push-notification-ios";
+// import PushNotificationIOS from "@react-native-community/push-notification-ios";
 import { INavigationService, log, NavigationService } from "@service";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { Linking, Platform } from "react-native";

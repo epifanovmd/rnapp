@@ -228,7 +228,7 @@ export const ChatViewTest = () => {
           onLayout={({ nativeEvent: { layout } }) => {
             setInputHeight(layout.height);
           }}
-          ph={16}
+          ph={8}
           height={44}
           gap={8}
         >
@@ -239,7 +239,7 @@ export const ChatViewTest = () => {
             overflow={"hidden"}
           >
             <BlurView
-              blurType={"light"}
+              blurType={"dark"}
               blurAmount={8}
               style={StyleSheet.absoluteFill}
             />
@@ -247,7 +247,7 @@ export const ChatViewTest = () => {
           </Touchable>
           <Row flex={1} radius={18} overflow={"hidden"}>
             <BlurView
-              blurType={"light"}
+              blurType={"dark"}
               blurAmount={8}
               style={StyleSheet.absoluteFill}
             />
@@ -269,7 +269,7 @@ export const ChatViewTest = () => {
             disabled={!inputValue}
           >
             <BlurView
-              blurType={"light"}
+              blurType={"dark"}
               blurAmount={8}
               style={StyleSheet.absoluteFill}
               pointerEvents={"none"}

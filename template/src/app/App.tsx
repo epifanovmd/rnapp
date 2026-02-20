@@ -1,8 +1,4 @@
-import {
-  BottomSheetAttachProvider,
-  Dialog,
-  HoldItemProvider,
-} from "@components";
+import { Dialog, HoldItemProvider } from "@components";
 import {
   initLocalization,
   ThemeProvider,
@@ -28,6 +24,7 @@ import {
 
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
+import { TestRNGridView } from "./TestRNGridView";
 
 configure({ enforceActions: "observed" });
 
@@ -61,14 +58,12 @@ export const App: FC = observer(() => {
         <SafeAreaProvider>
           <_HoldItemProvider>
             <BottomSheetModalProvider>
-              <BottomSheetAttachProvider>
-                <AppNotifications>
-                  <Dialog.Host />
-                  <KeyboardProvider>
-                    <AppNavigator ref={navigationRef} />
-                  </KeyboardProvider>
-                </AppNotifications>
-              </BottomSheetAttachProvider>
+              <AppNotifications>
+                <Dialog.Host />
+                <KeyboardProvider>
+                  <AppNavigator ref={navigationRef} />
+                </KeyboardProvider>
+              </AppNotifications>
             </BottomSheetModalProvider>
           </_HoldItemProvider>
         </SafeAreaProvider>

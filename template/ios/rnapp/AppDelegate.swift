@@ -4,6 +4,7 @@ import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import RNBootSplash
 import Firebase
+import RNCPushNotificationIOS
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -48,6 +49,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         restorationHandler: restorationHandler
       )
   }
+  
+  func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    RNCPushNotificationIOS.didRegisterForRemoteNotifications(withDeviceToken: deviceToken)
+  }
+  
+  // Required for the registration error event.
+  func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    RNCPushNotificationIOS.didFailToRegisterForRemoteNotificationsWithError(error)
+  }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
@@ -57,7 +67,7 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
   override func customize(_ rootView: RCTRootView) {
     super.customize(rootView)
-//     RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
+     RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
   }
 
 

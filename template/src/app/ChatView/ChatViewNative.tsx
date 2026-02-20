@@ -41,8 +41,6 @@ export const ChatViewNative = forwardRef<ChatRef, ChatViewProps>(
         dispatchCommand("scrollToIndex", [index, animated]),
       scrollToOffset: (offset, animated) =>
         dispatchCommand("scrollToOffset", [offset, animated]),
-      scrollToDate: (timestamp, animated) =>
-        dispatchCommand("scrollToDate", [timestamp, animated]),
     }));
 
     return (
