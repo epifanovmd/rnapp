@@ -202,7 +202,7 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
             >
               {value?.content}
             </Animated.ScrollView>
-            {value?.menu && (
+            {!!value?.menu && (
               <HoldMenu
                 items={value.menu}
                 transformContent={transformContent}

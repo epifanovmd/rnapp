@@ -16,7 +16,7 @@ export const Separator = memo(() => {
     };
   }, [theme]);
 
-  return <Animated.View style={[styles.separator, { ...separatorStyles }]} />;
+  return <Animated.View style={[styles.separator, separatorStyles]} />;
 });
 
 const styles = StyleSheet.create({

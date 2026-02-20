@@ -37,7 +37,6 @@ export const initLocalization = ({
   i18next
     .use(initReactI18next)
     .init({
-      compatibilityJSON: "v3",
       fallbackLng: initLang,
       lng: defaultLocale,
       debug: false,

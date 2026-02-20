@@ -45,12 +45,6 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
 
           <Button
             mt={8}
-            title={"Gallery"}
-            onPress={() => navigation.navigate("Gallery")}
-          />
-
-          <Button
-            mt={8}
             title={"Components"}
             onPress={() =>
               navigation.navigate("Components", {

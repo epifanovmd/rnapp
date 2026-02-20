@@ -33,15 +33,13 @@ export class MessagesDataStore implements IMessagesDataStore {
 
   initialize(dialogId: string) {
     this._holder.initialize({
-      onFetchData: args => {
-        return this._apiService
+      onFetchData: args =>
+        this._apiService
           .getMessages({ dialogId, ...args })
           .then(res => {
             const data = res.data?.data ?? [];
 
-            console.log("data", data.length);
-
-            this._holder.updateData(data.reverse());
+            this._holder.updateData(data);
 
             return data;
           })
@@ -51,17 +49,16 @@ export class MessagesDataStore implements IMessagesDataStore {
             }
 
             return [];
-          });
-      },
+          }),
       keyExtractor: item => item.id,
-      pageSize: 60,
+      pageSize: 20,
     });
 
     const disposers = new Set<InitializeDispose>();
 
     disposers.add(
       this._socketService.on("message", args => {
-        this._holder.updateData([...this.data, args], { replace: true });
+        this._holder.updateData([args, ...this.data], { replace: true });
       }),
     );
 
@@ -124,7 +121,6 @@ export class MessagesDataStore implements IMessagesDataStore {
 
     this._holder.updateData(
       [
-        ...this.data,
         {
           text: message.text,
           userId: user.id,
@@ -142,6 +138,7 @@ export class MessagesDataStore implements IMessagesDataStore {
 
           reply: replyMessage,
         },
+        ...this.data,
       ],
       { replace: true },
     );

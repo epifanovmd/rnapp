@@ -30,7 +30,7 @@
   "dependencies": {
     "@force-dev/react": "^1.1.28",
     "@force-dev/utils": "^1.4.6",
-    "@gorhom/bottom-sheet": "5.1.8",
+    "@gorhom/bottom-sheet": "^5.2.8",
     "@gorhom/portal": "^1.0.14",
     "@hookform/resolvers": "^3.9.0",
     "@notifee/react-native": "^9.1.8",
@@ -44,7 +44,7 @@
     "@react-navigation/material-top-tabs": "^7.4.13",
     "@react-navigation/native": "^7.1.28",
     "@react-navigation/stack": "^7.6.16",
-    "@shopify/flash-list": "^2.2.0",
+    "@shopify/flash-list": "^1.8.3",
     "axios": "^1.13.4",
     "dayjs": "^1.11.19",
     "i18next": "^25.8.0",

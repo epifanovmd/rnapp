@@ -1,4 +1,4 @@
-import { FlashListProps, FlashListRef } from "@shopify/flash-list";
+import { FlashList, FlashListProps } from "@shopify/flash-list";
 import React, {
   createRef,
   FC,
@@ -81,6 +81,7 @@ export interface ChatProps {
   maxInputLength?: number;
   alwaysShowSend?: boolean;
   maxInputHeight?: number;
+  infiniteScroll?: boolean;
 
   // props
   imageProps?: ImageProps;
@@ -179,6 +180,7 @@ export const Chat: FC<ChatProps> = memo(
     maxInputLength,
     alwaysShowSend,
     maxInputHeight = 166,
+    infiniteScroll,
 
     imageProps,
     listViewProps,
@@ -232,7 +234,7 @@ export const Chat: FC<ChatProps> = memo(
     renderResetReplyIcon,
     renderReplyContainer,
   }) => {
-    const flashListRef = useRef<FlashListRef<IMessage>>(null);
+    const flashListRef = useRef<FlashList<IMessage>>(null);
     const isMountedRef = useRef(false);
     const [replyMessage, setReplyMessage] = useState<IMessage | undefined>(
       undefined,
@@ -461,10 +463,11 @@ export const Chat: FC<ChatProps> = memo(
 
     const _listViewProps = useMemo(
       () => ({
+        inverted: inverted,
         keyboardShouldPersistTaps: keyboardShouldPersistTaps,
         ...listViewProps,
       }),
-      [keyboardShouldPersistTaps, listViewProps],
+      [inverted, keyboardShouldPersistTaps, listViewProps],
     );
 
     const handleReply = useCallback(
@@ -495,6 +498,7 @@ export const Chat: FC<ChatProps> = memo(
               loadEarlier={loadEarlier}
               scrollToBottom={scrollToBottom}
               scrollToBottomOffset={scrollToBottomOffset}
+              infiniteScroll={infiniteScroll}
               isLoadingEarlier={isLoadingEarlier}
               listViewProps={_listViewProps}
               scrollToBottomStyle={scrollToBottomStyle}

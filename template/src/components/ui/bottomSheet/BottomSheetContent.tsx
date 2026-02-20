@@ -1,4 +1,5 @@
 import {
+  BottomSheetView,
   createBottomSheetScrollableComponent,
   SCROLLABLE_TYPE,
   useBottomSheetInternal,
@@ -42,8 +43,7 @@ const _BottomSheetContent = forwardRef<
   const [contentH, setContentH] = useState(0);
 
   const { bottom: paddingBottom } = useSafeAreaInsets();
-  const { enableDynamicSizing, animatedContentHeight } =
-    useBottomSheetInternal();
+  const { enableDynamicSizing, animatedLayoutState } = useBottomSheetInternal();
 
   const onLayoutView = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     viewRef.current = nativeEvent.layout.height;
@@ -51,21 +51,31 @@ const _BottomSheetContent = forwardRef<
 
   useEffect(() => {
     if (enableDynamicSizing) {
-      animatedContentHeight.set(viewRef.current);
+      // animatedSheetHeight.set(viewRef.current);
+      animatedLayoutState.modify(state => {
+        "worklet";
+        state.contentHeight = viewRef.current;
+
+        return state;
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (enableDynamicSizing && footerH && headerH) {
-      animatedContentHeight.set(
-        contentH +
+      animatedLayoutState.modify(state => {
+        "worklet";
+        state.contentHeight =
+          contentH +
           (header ? headerH : 0) +
           (footer ? footerH : 0) +
           paddingBottom +
           (header ? BottomSheetStyles.content.gap : 0) +
-          (footer ? BottomSheetStyles.content.gap : 0),
-      );
+          (footer ? BottomSheetStyles.content.gap : 0);
+
+        return state;
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [header, footer, contentH]);
