@@ -9,6 +9,8 @@ import {
 
 import { ITransitionContext, TTransitionDirection } from "../Transition.types";
 
+const duration = 250;
+
 export const useTransitionContext = (): ITransitionContext => {
   const [navbarHeight, setNavbarHeight] = useState(0);
   const [tabBarHeight, setTabBarHeight] = useState(0);
@@ -25,123 +27,128 @@ export const useTransitionContext = (): ITransitionContext => {
 
   const showTabBar = () => {
     "worklet";
-    tabBarOffset.value = withTiming(0, { duration: 150 });
+    tabBarOffset.value = withTiming(0, { duration });
   };
 
   const hideTabBar = () => {
     "worklet";
-    tabBarOffset.value = withTiming(tabBarHeight, { duration: 150 });
+    tabBarOffset.value = withTiming(tabBarHeight, { duration });
   };
 
   const showNavbar = () => {
     "worklet";
-    navbarOffset.value = withTiming(0, { duration: 150 });
+    navbarOffset.value = withTiming(0, { duration });
   };
 
   const hideNavbar = () => {
     "worklet";
-    navbarOffset.value = withTiming(navbarHeight, { duration: 150 });
+    navbarOffset.value = withTiming(navbarHeight, { duration });
   };
 
-  const onScroll = useAnimatedScrollHandler({
-    onBeginDrag: () => {
-      isDrag.value = true;
-      isBouncing.value = false;
-      prevDirection.value = null;
-      direction.value = null;
-    },
-    onEndDrag: () => {
-      isDrag.value = false;
+  const onScroll = useAnimatedScrollHandler(
+    {
+      onBeginDrag: () => {
+        isDrag.value = true;
+        isBouncing.value = false;
+        prevDirection.value = null;
+        direction.value = null;
+      },
+      onEndDrag: () => {
+        isDrag.value = false;
 
-      // const offset = navbarOffset.value;
-      // const isDownScroll = direction.value === "down";
-      // const isUpScroll = direction.value === "up";
-      //
-      // if (isDownScroll && offset !== navbarHeight) {
-      //   hideNavbar();
-      // } else if (isUpScroll && offset !== 0) {
-      //   showNavbar();
-      // }
+        // const offset = navbarOffset.value;
+        // const isDownScroll = direction.value === "down";
+        // const isUpScroll = direction.value === "up";
+        //
+        // if (isDownScroll && offset !== navbarHeight) {
+        //   hideNavbar();
+        // } else if (isUpScroll && offset !== 0) {
+        //   showNavbar();
+        // }
 
-      prevDirection.value = direction.value;
-      prevScrollX.value = 0;
-      prevScrollY.value = 0;
-    },
-    onScroll: ({ contentOffset: { x, y } }) => {
-      transitionX.value = x;
-      transitionY.value = y;
+        prevDirection.value = direction.value;
+        prevScrollX.value = 0;
+        prevScrollY.value = 0;
+      },
+      onScroll: ({ contentOffset: { x, y } }) => {
+        transitionX.value = x;
+        transitionY.value = y;
 
-      if (prevScrollY.value === 0) {
+        if (prevScrollY.value === 0) {
+          prevScrollY.value = y;
+        }
+        // Определяем направление скролла
+        if (prevScrollY.value !== y) {
+          direction.value = y > prevScrollY.value ? "down" : "up";
+        } else if (prevScrollX.value !== x) {
+          direction.value = x > prevScrollX.value ? "right" : "left";
+        }
+
+        if (
+          !isDrag.value &&
+          direction.value !== null &&
+          prevDirection.value !== null &&
+          prevDirection.value !== direction.value
+        ) {
+          isBouncing.value = true;
+        }
+
+        if (isBouncing.value) {
+          if (prevDirection.value === "down") {
+            hideNavbar();
+          } else if (prevDirection.value === "up") {
+            showNavbar();
+          }
+        } else if (navbarHeight) {
+          if (y > 0) {
+            const delta = clamp(y - prevScrollY.value, -3, 3);
+            const offset = navbarOffset.value;
+
+            // Показываем или скрываем navbar
+            if (delta > 0) {
+              navbarOffset.value = Math.min(offset + delta, navbarHeight);
+            } else {
+              navbarOffset.value = Math.max(offset + delta, 0);
+            }
+          } else {
+            showNavbar();
+          }
+        } else if (__DEV__) {
+          console.warn("Navbar height is not defined");
+        }
+
+        if (isBouncing.value) {
+          if (prevDirection.value === "down") {
+            hideTabBar();
+          } else if (prevDirection.value === "up") {
+            showTabBar();
+          }
+        } else if (tabBarHeight) {
+          if (y > 0) {
+            const delta = clamp(y - prevScrollY.value, -3, 3);
+            const offset = tabBarOffset.value;
+
+            // Показываем или скрываем navbar
+            if (delta > 0) {
+              hideTabBar();
+              // tabBarOffset.value = Math.min(offset + delta, tabBarHeight);
+            } else {
+              showTabBar();
+              // tabBarOffset.value = Math.max(offset + delta, 0);
+            }
+          } else {
+            showTabBar();
+          }
+        } else if (__DEV__) {
+          console.warn("TabBar height is not defined");
+        }
+
+        prevScrollX.value = x;
         prevScrollY.value = y;
-      }
-      // Определяем направление скролла
-      if (prevScrollY.value !== y) {
-        direction.value = y > prevScrollY.value ? "down" : "up";
-      } else if (prevScrollX.value !== x) {
-        direction.value = x > prevScrollX.value ? "right" : "left";
-      }
-
-      if (
-        !isDrag.value &&
-        direction.value !== null &&
-        prevDirection.value !== null &&
-        prevDirection.value !== direction.value
-      ) {
-        isBouncing.value = true;
-      }
-
-      if (isBouncing.value) {
-        if (prevDirection.value === "down") {
-          hideNavbar();
-        } else if (prevDirection.value === "up") {
-          showNavbar();
-        }
-      } else if (navbarHeight) {
-        if (y > 0) {
-          const delta = clamp(y - prevScrollY.value, -3, 3);
-          const offset = navbarOffset.value;
-
-          // Показываем или скрываем navbar
-          if (delta > 0) {
-            navbarOffset.value = Math.min(offset + delta, navbarHeight);
-          } else {
-            navbarOffset.value = Math.max(offset + delta, 0);
-          }
-        } else {
-          showNavbar();
-        }
-      } else if (__DEV__) {
-        console.warn("Navbar height is not defined");
-      }
-
-      if (isBouncing.value) {
-        if (prevDirection.value === "down") {
-          hideTabBar();
-        } else if (prevDirection.value === "up") {
-          showTabBar();
-        }
-      } else if (tabBarHeight) {
-        if (y > 0) {
-          const delta = clamp(y - prevScrollY.value, -3, 3);
-          const offset = tabBarOffset.value;
-
-          // Показываем или скрываем navbar
-          if (delta > 0) {
-            tabBarOffset.value = Math.min(offset + delta, tabBarHeight);
-          } else {
-            tabBarOffset.value = Math.max(offset + delta, 0);
-          }
-        } else {
-          showTabBar();
-        }
-      } else if (__DEV__) {
-        console.warn("TabBar height is not defined");
-      }
-
-      prevScrollX.value = x;
-      prevScrollY.value = y;
+      },
     },
-  });
+    [navbarHeight, tabBarHeight],
+  );
 
   const onLayoutNavBar = useCallback(({ nativeEvent }: LayoutChangeEvent) => {
     setNavbarHeight(nativeEvent.layout.height);

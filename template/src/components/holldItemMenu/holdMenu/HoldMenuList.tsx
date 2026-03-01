@@ -6,13 +6,13 @@ import {
   ViewStyle,
 } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useHoldItemContext } from "../hooks";
 import {
@@ -90,9 +90,9 @@ export const HoldMenuList = memo<IHoldMenuListProps>(({ items }) => {
   useAnimatedReaction(
     () => state.value,
     () => {
-      runOnJS(updateItems)(items);
+      scheduleOnRN(updateItems, items);
     },
-    [state.value],
+    [items],
   );
 
   const style: ViewStyle = {

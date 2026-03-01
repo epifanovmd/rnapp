@@ -28,13 +28,13 @@ import { FlatListProps } from "react-native/Libraries/Lists/FlatList";
 import { NativeSyntheticEvent } from "react-native/Libraries/Types/CoreEventTypes";
 import { trigger } from "react-native-haptic-feedback";
 import Animated, {
-  runOnJS,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { AnimatedRefreshing } from "../animatedRefreshing";
 
@@ -196,7 +196,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
               if (enabledPan) {
                 isScrolled.value = event.contentOffset.y > 1;
               } else if (isScrollable) {
-                runOnJS(onMove)(-1 * event.contentOffset.y);
+                scheduleOnRN(onMove, -1 * event.contentOffset.y);
               }
             },
             onBeginDrag: () => {
@@ -204,7 +204,7 @@ const _RefreshingContainer = Animated.createAnimatedComponent(
             },
             onEndDrag: () => {
               isDarggable.value = false;
-              runOnJS(onPanRelease)();
+              scheduleOnRN(onPanRelease);
             },
           },
           [enabledPan, isScrollable],

@@ -20,12 +20,12 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
   interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { DIALOG_HOST_NAME, DialogHost } from "./DialogHost";
 
@@ -151,7 +151,7 @@ const _Dialog: React.FC<PropsWithChildren<CenterModalProps>> = memo(
 
     const openModal = (): void => {
       "worklet";
-      runOnJS(setIsRenderDialog)(true);
+      scheduleOnRN(setIsRenderDialog, true);
       translateX.value = 0;
       translateY.value = 0;
       modalVisible.value = withTiming(1, {
@@ -167,9 +167,9 @@ const _Dialog: React.FC<PropsWithChildren<CenterModalProps>> = memo(
           duration,
         },
         () => {
-          runOnJS(setIsRenderDialog)(false);
+          scheduleOnRN(setIsRenderDialog, false);
           if (callback) {
-            runOnJS(callback)();
+            scheduleOnRN(callback);
           }
         },
       );

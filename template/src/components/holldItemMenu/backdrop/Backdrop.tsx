@@ -4,12 +4,12 @@ import React, { memo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
   useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useHoldItemContext } from "../hooks";
 import { CONTEXT_MENU_STATE } from "../utils";
@@ -19,16 +19,14 @@ const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 export const Backdrop = memo<BlurViewProps>(props => {
   const { state, duration } = useHoldItemContext();
   const animatedOpacity = useSharedValue(0);
-  const [visible, setVisible] = useState(
-    state.value === CONTEXT_MENU_STATE.ACTIVE,
-  );
+  const [visible, setVisible] = useState(false);
 
   useAnimatedReaction(
     () => state.value,
     () => {
       const isActive = state.value === CONTEXT_MENU_STATE.ACTIVE;
 
-      runOnJS(setVisible)(isActive);
+      scheduleOnRN(setVisible, isActive);
       animatedOpacity.value = withTiming(isActive ? 1 : 0, {
         duration,
       });
@@ -57,7 +55,7 @@ export const Backdrop = memo<BlurViewProps>(props => {
         {...props}
         style={[styles.container, style, props.style]}
       >
-        <Animated.View style={StyleSheet.absoluteFillObject} />
+        <Animated.View style={StyleSheet.absoluteFill} />
       </AnimatedBlurView>
     </GestureDetector>
   );
@@ -65,7 +63,7 @@ export const Backdrop = memo<BlurViewProps>(props => {
 
 export const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 0,
   },
 });

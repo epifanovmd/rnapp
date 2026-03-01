@@ -12,13 +12,13 @@ import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 import Animated, {
   measure,
   MeasuredDimensions,
-  runOnJS,
   useAnimatedRef,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { HoldMenuItemProp } from "./holdMenu";
 import { useHoldItemContext } from "./hooks";
@@ -110,7 +110,7 @@ const _HoldItem = <T extends any>({
     })
     .onStart(() => {
       if (measured.value) {
-        runOnJS(onActivate)(measured.value);
+        scheduleOnRN(onActivate, measured.value);
         itemScale.value = 1;
         isActive.value = true;
       }

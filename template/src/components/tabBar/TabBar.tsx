@@ -12,8 +12,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-
 export const TabBar = memo<BottomTabBarProps>(
   ({
     state: { routes, index },
@@ -93,20 +91,19 @@ export const TabBar = memo<BottomTabBarProps>(
     });
 
     return (
-      <Animated.View
-        style={[SS.container, { bottom, flexDirection: "row" }, as]}
-        onLayout={onLayout}
-      >
+      <Animated.View style={[SS.container, { bottom }, as]} onLayout={onLayout}>
         <BlurView
-          style={StyleSheet.absoluteFillObject}
+          style={StyleSheet.absoluteFill}
           blurType={"dark"}
           blurAmount={1}
         />
-        <AnimatedBlurView
-          style={[SS.active, activeIndicatorStyle]}
-          blurType={isLight ? "dark" : "light"}
-          blurAmount={1}
-        />
+        <Animated.View style={[SS.active, activeIndicatorStyle]}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType={isLight ? "dark" : "light"}
+            blurAmount={1}
+          />
+        </Animated.View>
         {routes.map((route, ind) => {
           const icon = descriptors[route.key]?.options.tabBarIcon?.({
             focused: ind === index,
@@ -142,11 +139,12 @@ export const TabBar = memo<BottomTabBarProps>(
 const SS = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 32,
-    right: 32,
-    borderRadius: 32,
+    left: 16,
+    right: 16,
+    borderRadius: 16,
     overflow: "hidden",
     flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 8,
@@ -161,8 +159,9 @@ const SS = StyleSheet.create({
     minHeight: 36,
   },
   active: {
-    borderRadius: 20,
+    borderRadius: 12,
     position: "absolute",
+    overflow: "hidden",
     left: 8,
     top: 8,
     bottom: 8,

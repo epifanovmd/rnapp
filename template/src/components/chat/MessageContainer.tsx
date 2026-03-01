@@ -9,7 +9,6 @@ import React, {
   forwardRef,
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -25,11 +24,11 @@ import {
   ViewStyle,
 } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedScrollHandler,
   useSharedValue,
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useChatTheme } from "./ChatThemeProvider";
 import { LoadEarlier, LoadEarlierProps } from "./LoadEarlier";
@@ -428,13 +427,17 @@ export const MessageContainer = memo(
             contentOffsetY > contentHeight / 1.6
           ) {
             loadedEarlier.value = true;
-            runOnJS(onLoadMore)();
+            scheduleOnRN(onLoadMore);
           }
 
           if (inverted) {
-            runOnJS(setShowScrollBottom)(contentOffsetY > scrollToBottomOffset);
+            scheduleOnRN(
+              setShowScrollBottom,
+              contentOffsetY > scrollToBottomOffset,
+            );
           } else {
-            runOnJS(setShowScrollBottom)(
+            scheduleOnRN(
+              setShowScrollBottom,
               contentOffsetY < scrollToBottomOffset &&
                 contentHeight > scrollToBottomOffset,
             );

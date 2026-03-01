@@ -1,5 +1,6 @@
 import {
   Col,
+  Container,
   Content,
   Navbar,
   RefreshingContainer,
@@ -24,7 +25,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   return (
-    <TransitionProvider context={context}>
+    <Col flex={1}>
       <ImageBar height={300} safeArea uri={"https://picsum.photos/275/300"}>
         <Navbar transparent title={name}>
           <Navbar.Title color={"white"} />
@@ -69,6 +70,6 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           )}
         />
       </Content>
-    </TransitionProvider>
+    </Col>
   );
 });

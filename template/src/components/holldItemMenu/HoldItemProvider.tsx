@@ -16,7 +16,6 @@ import {
   ViewStyle,
 } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedProps,
   useAnimatedReaction,
   useAnimatedStyle,
@@ -26,6 +25,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { EdgeInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { Backdrop } from "./backdrop";
 import { HoldItemContext, IHoldItemContext } from "./HoldItemContext";
@@ -120,10 +120,10 @@ export const HoldItemProvider: FC<PropsWithChildren<HoldItemProviderProps>> =
         () => state.value,
         stateValue => {
           if (stateValue === CONTEXT_MENU_STATE.ACTIVE) {
-            onOpen && runOnJS(onOpen)();
+            onOpen && scheduleOnRN(onOpen);
           }
           if (stateValue === CONTEXT_MENU_STATE.END) {
-            runOnJS(handleClose)();
+            scheduleOnRN(handleClose);
           }
         },
       );

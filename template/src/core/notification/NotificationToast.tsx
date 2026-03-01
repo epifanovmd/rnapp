@@ -18,11 +18,11 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useTheme } from "../theme";
 
@@ -129,8 +129,8 @@ export const NotificationToast = memo(
           -20,
           { duration: animationDuration },
           () => {
-            runOnJS(onDestroy)();
-            runOnJS(resolve)();
+            scheduleOnRN(onDestroy);
+            scheduleOnRN(resolve);
           },
         );
       });
@@ -148,7 +148,7 @@ export const NotificationToast = memo(
     const panGesture = Gesture.Pan()
       .enabled(swipeEnabled)
       .onBegin(() => {
-        runOnJS(clearTimer)();
+        scheduleOnRN(clearTimer);
       })
       .onUpdate(event => {
         if (event.translationY < 0) {
@@ -165,13 +165,13 @@ export const NotificationToast = memo(
             -height,
             { duration: animationDuration },
             () => {
-              runOnJS(onDestroy)();
+              scheduleOnRN(onDestroy);
             },
           );
         } else {
           translateY.value = withTiming(0);
 
-          runOnJS(startTimer)(handleClose, duration);
+          scheduleOnRN(startTimer, handleClose, duration);
         }
       });
 
