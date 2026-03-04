@@ -1,6 +1,7 @@
 // ChatView.tsx
-// React Native TypeScript wrapper for RNChatView native component
-// Supports both Old and New Architecture
+// Public-facing React Native wrapper for the RNChatView iOS native component.
+// Types are re-exported from the codegen spec so there is a single source of truth.
+// Supports both Old Architecture (requireNativeComponent) and New Architecture (Fabric).
 
 import React, {
   forwardRef,
@@ -19,65 +20,20 @@ import {
   type ViewStyle,
 } from "react-native";
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface ImageItem {
-  url: string;
-  width?: number;
-  height?: number;
-  thumbnailUrl?: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  text?: string;
-  images?: ImageItem[];
-  /** Unix timestamp in milliseconds */
-  timestamp: number;
-  senderName?: string;
-  avatarUrl?: string;
-  isMine?: boolean;
-  status?: "sending" | "sent" | "delivered" | "read";
-  replyTo?: { id: string; text?: string; senderName?: string };
-}
-
-export interface ChatAction {
-  id: string;
-  title: string;
-  /** SF Symbol name, e.g. "trash", "heart.fill" */
-  systemImage?: string;
-  isDestructive?: boolean;
-}
-
-// ─── Event payload types ──────────────────────────────────────────────────────
-
-export interface ScrollEvent {
-  x: number;
-  y: number;
-}
-export interface ReachTopEvent {
-  distanceFromTop: number;
-}
-export interface MessagesVisibleEvent {
-  messageIds: string[];
-}
-export interface MessagePressEvent {
-  messageId: string;
-  message: ChatMessage;
-}
-export interface ActionPressEvent {
-  actionId: string;
-  messageId: string;
-  message: ChatMessage;
-}
-export interface SendMessageEvent {
-  text: string;
-  replyToId?: string;
-}
-export interface AttachmentPressEvent {}
-export interface ReplyMessagePressEvent {
-  messageId: string;
-}
+// ─── Re-export native types as public API ─────────────────────────────────────
+// Consumers import everything from "ChatView" — no need to touch NativeChatViewSpec.
+import type {
+  NativeActionPressEventData,
+  NativeAttachmentPressEventData,
+  NativeChatAction,
+  NativeChatMessage,
+  NativeMessagePressEventData,
+  NativeMessagesVisibleEventData,
+  NativeReachTopEventData,
+  NativeReplyMessagePressEventData,
+  NativeScrollEventData,
+  NativeSendMessageEventData,
+} from "../../../NativeChatViewSpec";
 
 // ─── Scroll position ──────────────────────────────────────────────────────────
 
@@ -86,17 +42,15 @@ export type ChatScrollPosition = "top" | "center" | "bottom";
 // ─── Imperative handle ────────────────────────────────────────────────────────
 
 export interface ChatViewHandle {
-  /**
-   * Programmatically scroll to the last message.
-   */
+  /** Programmatically scroll to the last message. */
   scrollToBottom(): void;
 
   /**
    * Scroll to a specific message by id.
-   * @param messageId   The target message `id`.
-   * @param options.position   "top" | "center" | "bottom"  (default: "center")
-   * @param options.animated   Whether to animate.           (default: true)
-   * @param options.highlight  Whether to flash the cell.    (default: true)
+   * @param messageId             Target message id.
+   * @param options.position      "top" | "center" | "bottom"  (default: "center")
+   * @param options.animated      Animate the scroll.           (default: true)
+   * @param options.highlight     Flash the cell after scroll.  (default: true)
    */
   scrollToMessage(
     messageId: string,
@@ -111,56 +65,84 @@ export interface ChatViewHandle {
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface ChatViewProps {
-  messages: ChatMessage[];
-  actions?: ChatAction[];
-  replyMessage?: ChatMessage | null;
+  messages: NativeChatMessage[];
+  actions?: NativeChatAction[];
+
+  /** Message displayed in the reply-preview bar above the input. */
+  replyMessage?: NativeChatMessage | null;
 
   /**
-   * If provided the chat will initially position itself at this message
-   * (with a highlight flash) instead of scrolling to the bottom.
-   * Consumed once natively; changing it afterwards has no effect.
+   * When provided the chat scrolls to this message ID on first render (with highlight)
+   * instead of scrolling to the bottom. Consumed once natively; ignored on re-renders.
    */
-  initialScrollToMessageId?: string;
+  initialScrollId?: string;
 
-  /**
-   * Distance from the bottom (pts) at which the scroll-to-bottom FAB appears.
-   * @default 150
-   */
+  /** Distance from bottom (pts) at which the scroll-to-bottom FAB appears. @default 150 */
   scrollToBottomThreshold?: number;
 
-  /**
-   * Distance from top (pts) that triggers `onReachTop`.
-   * @default 200
-   */
+  /** Distance from top (pts) that triggers `onReachTop`. @default 200 */
   topThreshold?: number;
 
   isLoading?: boolean;
 
   style?: ViewStyle;
 
-  onScroll?: (event: ScrollEvent) => void;
-  onReachTop?: (event: ReachTopEvent) => void;
-  onMessagesVisible?: (event: MessagesVisibleEvent) => void;
-  onMessagePress?: (event: MessagePressEvent) => void;
-  onActionPress?: (event: ActionPressEvent) => void;
-  onSendMessage?: (event: SendMessageEvent) => void;
-  onAttachmentPress?: (event: AttachmentPressEvent) => void;
-  onReplyMessagePress?: (event: ReplyMessagePressEvent) => void;
+  onScroll?: (event: NativeScrollEventData) => void;
+  onReachTop?: (event: NativeReachTopEventData) => void;
+  onMessagesVisible?: (event: NativeMessagesVisibleEventData) => void;
+  onMessagePress?: (event: NativeMessagePressEventData) => void;
+  onActionPress?: (event: NativeActionPressEventData) => void;
+  onSendMessage?: (event: NativeSendMessageEventData) => void;
+  onAttachmentPress?: (event: NativeAttachmentPressEventData) => void;
+  onReplyMessagePress?: (event: NativeReplyMessagePressEventData) => void;
 }
 
-// ─── Native component (lazy, architecture-agnostic) ───────────────────────────
+// ─── Native component (architecture-agnostic lazy init) ───────────────────────
 
 const COMPONENT_NAME = "RNChatView";
 
+// Try New Architecture first (codegen spec), fall back to Old Architecture.
 const NativeChatView = (() => {
   try {
-    // New Architecture: Codegen-generated spec
     return require("./NativeChatViewSpec").default;
   } catch {
-    // Old Architecture fallback
     return requireNativeComponent(COMPONENT_NAME);
   }
 })();
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Dispatch a command via the New Architecture Commands API or Old Architecture UIManager. */
+function dispatchCommand(
+  nativeRef: React.RefObject<React.ElementRef<typeof NativeChatView>>,
+  commandName: string,
+  args: unknown[],
+): void {
+  if (Platform.OS !== "ios") return;
+
+  try {
+    const { Commands } = require("./NativeChatViewSpec");
+
+    if (Commands?.[commandName] && nativeRef.current) {
+      // New Architecture: Commands.scrollToBottom(ref, ...args)
+      Commands[commandName](nativeRef.current, ...args);
+
+      return;
+    }
+  } catch {
+    // fall through to Old Architecture
+  }
+
+  const node = findNodeHandle(nativeRef.current);
+
+  if (node) {
+    UIManager.dispatchViewManagerCommand(
+      node,
+      UIManager.getViewManagerConfig(COMPONENT_NAME).Commands[commandName],
+      args,
+    );
+  }
+}
 
 // ─── ChatView ─────────────────────────────────────────────────────────────────
 
@@ -169,7 +151,7 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
     messages,
     actions = [],
     replyMessage,
-    initialScrollToMessageId,
+    initialScrollId,
     scrollToBottomThreshold = 150,
     topThreshold = 200,
     isLoading = false,
@@ -188,112 +170,75 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
 
   // ─── Imperative API ──────────────────────────────────────────────────────────
 
-  useImperativeHandle(ref, () => ({
-    scrollToBottom() {
-      if (Platform.OS !== "ios") return;
-      try {
-        const { Commands } = require("./NativeChatViewSpec");
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToBottom() {
+        dispatchCommand(nativeRef, "scrollToBottom", []);
+      },
+      scrollToMessage(messageId, options = {}) {
+        const {
+          position = "center",
+          animated = true,
+          highlight = true,
+        } = options;
 
-        if (Commands && nativeRef.current) {
-          Commands.scrollToBottom(nativeRef.current);
-
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-      const node = findNodeHandle(nativeRef.current);
-
-      if (node) {
-        UIManager.dispatchViewManagerCommand(
-          node,
-          UIManager.getViewManagerConfig(COMPONENT_NAME).Commands
-            .scrollToBottom,
-          [],
-        );
-      }
-    },
-
-    scrollToMessage(messageId, options = {}) {
-      if (Platform.OS !== "ios") return;
-      const {
-        position = "center",
-        animated = true,
-        highlight = true,
-      } = options;
-
-      try {
-        const { Commands } = require("./NativeChatViewSpec");
-
-        if (Commands && nativeRef.current) {
-          Commands.scrollToMessage(
-            nativeRef.current,
-            messageId,
-            position,
-            animated,
-            highlight,
-          );
-
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-      const node = findNodeHandle(nativeRef.current);
-
-      if (node) {
-        UIManager.dispatchViewManagerCommand(
-          node,
-          UIManager.getViewManagerConfig(COMPONENT_NAME).Commands
-            .scrollToMessage,
-          [messageId, position, animated, highlight],
-        );
-      }
-    },
-  }));
+        dispatchCommand(nativeRef, "scrollToMessage", [
+          messageId,
+          position,
+          animated,
+          highlight,
+        ]);
+      },
+    }),
+    [],
+  );
 
   // ─── Event bridges ───────────────────────────────────────────────────────────
+  // Unwrap nativeEvent so callers never have to deal with NativeSyntheticEvent.
 
   const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<ScrollEvent>) => onScroll?.(e.nativeEvent),
+    (e: NativeSyntheticEvent<NativeScrollEventData>) =>
+      onScroll?.(e.nativeEvent),
     [onScroll],
   );
   const handleReachTop = useCallback(
-    (e: NativeSyntheticEvent<ReachTopEvent>) => onReachTop?.(e.nativeEvent),
+    (e: NativeSyntheticEvent<NativeReachTopEventData>) =>
+      onReachTop?.(e.nativeEvent),
     [onReachTop],
   );
   const handleMessagesVisible = useCallback(
-    (e: NativeSyntheticEvent<MessagesVisibleEvent>) =>
+    (e: NativeSyntheticEvent<NativeMessagesVisibleEventData>) =>
       onMessagesVisible?.(e.nativeEvent),
     [onMessagesVisible],
   );
   const handleMessagePress = useCallback(
-    (e: NativeSyntheticEvent<MessagePressEvent>) =>
+    (e: NativeSyntheticEvent<NativeMessagePressEventData>) =>
       onMessagePress?.(e.nativeEvent),
     [onMessagePress],
   );
   const handleActionPress = useCallback(
-    (e: NativeSyntheticEvent<ActionPressEvent>) =>
+    (e: NativeSyntheticEvent<NativeActionPressEventData>) =>
       onActionPress?.(e.nativeEvent),
     [onActionPress],
   );
   const handleSendMessage = useCallback(
-    (e: NativeSyntheticEvent<SendMessageEvent>) =>
+    (e: NativeSyntheticEvent<NativeSendMessageEventData>) =>
       onSendMessage?.(e.nativeEvent),
     [onSendMessage],
   );
   const handleAttachmentPress = useCallback(
-    (e: NativeSyntheticEvent<AttachmentPressEvent>) =>
+    (e: NativeSyntheticEvent<NativeAttachmentPressEventData>) =>
       onAttachmentPress?.(e.nativeEvent),
     [onAttachmentPress],
   );
   const handleReplyMessagePress = useCallback(
-    (e: NativeSyntheticEvent<ReplyMessagePressEvent>) =>
+    (e: NativeSyntheticEvent<NativeReplyMessagePressEventData>) =>
       onReplyMessagePress?.(e.nativeEvent),
     [onReplyMessagePress],
   );
 
-  // ─── Non-iOS fallback ────────────────────────────────────────────────────────
+  // ─── Non-iOS fallback ─────────────────────────────────────────────────────────
 
   if (Platform.OS !== "ios") {
     return <View style={[styles.unsupported, style]} />;
@@ -308,7 +253,7 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
       messages={messages}
       actions={actions}
       replyMessage={replyMessage ?? null}
-      initialScrollToMessageId={initialScrollToMessageId}
+      initialScrollId={initialScrollId}
       scrollToBottomThreshold={scrollToBottomThreshold}
       topThreshold={topThreshold}
       isLoading={isLoading}

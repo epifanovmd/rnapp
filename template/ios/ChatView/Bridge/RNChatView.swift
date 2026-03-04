@@ -41,10 +41,9 @@ import React
 
     /// When set, the chat will scroll to this message on initial load instead
     /// of scrolling to the bottom. Only consumed once.
-    @objc var initialScrollToMessageId: NSString? {
+    @objc var initialScrollId: NSString? {
         didSet {
-            // Store it; will be applied after first messages update.
-            pendingInitialScrollMessageId = initialScrollToMessageId as String?
+            pendingInitialScrollMessageId = initialScrollId as String?
         }
     }
 

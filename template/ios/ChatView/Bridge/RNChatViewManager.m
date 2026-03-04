@@ -12,7 +12,7 @@ RCT_EXPORT_VIEW_PROPERTY(actions, NSArray)
 RCT_EXPORT_VIEW_PROPERTY(topThreshold, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(isLoading, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(replyMessage, NSDictionary)
-RCT_EXPORT_VIEW_PROPERTY(initialScrollToMessageId, NSString)
+RCT_EXPORT_VIEW_PROPERTY(initialScrollId, NSString)
 RCT_EXPORT_VIEW_PROPERTY(scrollToBottomThreshold, NSNumber)
 
 // Events

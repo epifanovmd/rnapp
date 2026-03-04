@@ -50,6 +50,10 @@ final class ChatViewController: UIViewController {
     private var dataSource: UICollectionViewDiffableDataSource<String, String>!
     private var inputBar: InputBarView!
 
+    // MARK: Cell size cache
+    // Deterministic, invalidation-aware cache. See MessageSizeCache.swift.
+    private let sizeCache = MessageSizeCache()
+
     // MARK: Empty state
 
     private let emptyStateContainer: UIView = {
@@ -241,14 +245,23 @@ final class ChatViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+
         // Keep input bar above safe area when keyboard is hidden.
-        // Once keyboard is shown, keyboardWillChangeFrame takes over.
         if keyboardHeight == 0 {
             let safeBottom = view.safeAreaInsets.bottom
             let desired = -safeBottom
             if inputBarBottomConstraint.constant != desired {
                 inputBarBottomConstraint.constant = desired
             }
+        }
+
+        // Invalidate size cache on width change (rotation, split-screen).
+        // sizeCache.size() auto-detects width changes internally, but we also
+        // need to invalidate the FlowLayout so it re-queries sizeForItemAt.
+        let currentWidth = collectionView.bounds.width
+        if currentWidth > 0 && currentWidth != sizeCache.layoutWidth {
+            sizeCache.invalidateAll()
+            collectionView.collectionViewLayout.invalidateLayout()
         }
     }
 
@@ -391,27 +404,18 @@ final class ChatViewController: UIViewController {
     }
 
     // MARK: - Layout
+    // UICollectionViewFlowLayout with sizeForItemAt gives the layout engine a deterministic,
+    // pre-computed size before any cell is dequeued. This is the standard approach used by
+    // Telegram, WhatsApp and iMessage clones to eliminate scroll-jump artifacts.
 
-    private func makeLayout() -> UICollectionViewLayout {
-        UICollectionViewCompositionalLayout { [weak self] _, _ in self?.makeSectionLayout() }
-    }
-
-    private func makeSectionLayout() -> NSCollectionLayoutSection {
-        let size  = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .estimated(60))
-        let item  = NSCollectionLayoutItem(layoutSize: size)
-        let group = NSCollectionLayoutGroup.vertical(layoutSize: size, subitems: [item])
-        let section = NSCollectionLayoutSection(group: group)
-        section.interGroupSpacing = 2
-
-        let headerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1), heightDimension: .absolute(36))
-        let header = NSCollectionLayoutBoundarySupplementaryItem(
-            layoutSize: headerSize,
-            elementKind: UICollectionView.elementKindSectionHeader,
-            alignment: .top
-        )
-        header.pinToVisibleBounds = true
-        section.boundarySupplementaryItems = [header]
-        return section
+    private func makeLayout() -> UICollectionViewFlowLayout {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .vertical
+        layout.minimumLineSpacing = 2
+        layout.minimumInteritemSpacing = 0
+        // Section header (date pill) is sticky
+        layout.sectionHeadersPinToVisibleBounds = true
+        return layout
     }
 
     // MARK: - Data Source
@@ -438,12 +442,24 @@ final class ChatViewController: UIViewController {
             withReuseIdentifier: MessageCell.reuseID, for: ip
         ) as? MessageCell
         cell?.messageResolver = { [weak self] id in self?.message(forID: id) }
-        cell?.configure(with: msg, maxBubbleWidth: collectionView.bounds.width * 0.80)
+        cell?.configure(with: msg, collectionViewWidth: collectionView.bounds.width)
         cell?.onReplyTap = { [weak self] replyId in
             guard let self else { return }
             self.delegate?.chatViewController(self, didTapReply: replyId)
         }
         return cell
+    }
+
+    // MARK: - Size Cache helpers
+
+    private func invalidateSizeCache(for ids: some Collection<String>) {
+        sizeCache.invalidate(ids: ids)
+        collectionView.collectionViewLayout.invalidateLayout()
+    }
+
+    private func invalidateEntireSizeCache() {
+        sizeCache.invalidateAll()
+        collectionView.collectionViewLayout.invalidateLayout()
     }
 
     // MARK: - Empty / Loading
@@ -498,14 +514,14 @@ final class ChatViewController: UIViewController {
 
         } else if newCount < oldCount {
             // ── Deletion ─────────────────────────────────────────────────────────
-            // Find which IDs were removed so we can reconfigure reply cells.
             let oldIDs = Set(sections.flatMap { $0.messages.map { $0.id } })
             sections = newSections
             let newIDs = Set(sections.flatMap { $0.messages.map { $0.id } })
             let removedIDs = oldIDs.subtracting(newIDs)
 
+            sizeCache.invalidate(ids: removedIDs)
+
             var snap = buildSnapshot()
-            // Reconfigure any message that referenced a deleted message as reply.
             if !removedIDs.isEmpty {
                 let replyingIDs = sections
                     .flatMap { $0.messages }
@@ -515,6 +531,7 @@ final class ChatViewController: UIViewController {
                     }
                     .map { $0.id }
                 if !replyingIDs.isEmpty {
+                    sizeCache.invalidate(ids: replyingIDs)
                     snap.reconfigureItems(replyingIDs)
                 }
             }
@@ -522,8 +539,6 @@ final class ChatViewController: UIViewController {
 
         } else if newCount > oldCount {
             // ── Append ───────────────────────────────────────────────────────────
-            // IMPORTANT: set sections BEFORE buildSnapshot() so snapshot contains
-            // new IDs, but dataSource still holds old snapshot → correct diff → animation.
             sections = newSections
             let snap = buildSnapshot()
             dataSource.apply(snap, animatingDifferences: true) { [weak self] in
@@ -531,8 +546,17 @@ final class ChatViewController: UIViewController {
             }
 
         } else {
-            // ── In-place update (status, edit) ────────────────────────────────────
+            // ── In-place update (status change, message edit) ─────────────────────
+            let oldMessages = Dictionary(
+                uniqueKeysWithValues: sections.flatMap { $0.messages }.map { ($0.id, $0) }
+            )
             sections = newSections
+            let changedIDs = sections.flatMap { $0.messages }.filter { msg in
+                guard let old = oldMessages[msg.id] else { return true }
+                return old.status != msg.status || old.text != msg.text
+            }.map { $0.id }
+            sizeCache.invalidate(ids: changedIDs)
+
             var snap = dataSource.snapshot()
             snap.reconfigureItems(snap.itemIdentifiers)
             dataSource.apply(snap, animatingDifferences: false)
@@ -723,5 +747,45 @@ extension ChatViewController: InputBarDelegate {
     }
     func inputBarDidTapAttachment(_ inputBar: InputBarView) {
         delegate?.chatViewControllerDidTapAttachment(self)
+    }
+}
+
+// MARK: - UICollectionViewDelegateFlowLayout
+//
+// sizeForItemAt is called by FlowLayout before any cell is dequeued.
+// It returns a pre-computed, cached size — so every dequeue produces a cell
+// whose frame exactly matches the reserved space. No second layout pass,
+// no preferredLayoutAttributesFitting, no jumps.
+
+extension ChatViewController: UICollectionViewDelegateFlowLayout {
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        sizeForItemAt indexPath: IndexPath
+    ) -> CGSize {
+        guard
+            let id  = dataSource.itemIdentifier(for: indexPath),
+            let msg = message(forID: id)
+        else {
+            return CGSize(width: collectionView.bounds.width, height: 44)
+        }
+        return sizeCache.size(for: msg, collectionViewWidth: collectionView.bounds.width)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        referenceSizeForHeaderInSection section: Int
+    ) -> CGSize {
+        CGSize(width: collectionView.bounds.width, height: 36)
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        layout collectionViewLayout: UICollectionViewLayout,
+        insetForSectionAt section: Int
+    ) -> UIEdgeInsets {
+        .zero
     }
 }
