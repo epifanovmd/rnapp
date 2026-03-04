@@ -3,7 +3,6 @@ import { CardStyleInterpolators } from "@react-navigation/stack";
 
 import {
   CarouselScreen,
-  ChatScreen,
   Components,
   PdfView,
   RecoveryPassword,
@@ -12,6 +11,7 @@ import {
   TabScreens,
   WebView,
 } from "../screens";
+import ChatScreen from "./ChatView/ChatScreen";
 
 export const PRIVATE_SCREENS: StackScreens = {
   MAIN: { screen: TabScreens, options: { headerShown: false } },

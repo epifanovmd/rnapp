@@ -125,5 +125,10 @@
       "prettier --parser typescript --write src/**/*.{ts,tsx}",
       "git add"
     ]
+  },
+  "codegenConfig": {
+    "name": "RNChatViewSpec",
+    "type": "components",
+    "jsSrcsDir": "src"
   }
 }
