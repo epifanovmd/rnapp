@@ -583,13 +583,31 @@ final class ChatViewController: UIViewController {
     func scrollToMessage(id: String, position: ChatScrollPosition = .center,
                          animated: Bool = true, highlight: Bool = true) {
         guard let ip = indexPath(forMessageID: id) else { return }
-        collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
-        guard highlight else { return }
+        
+        // Проверяем, видимо ли сообщение
+        if collectionView.indexPathsForVisibleItems.contains(ip) {
+            // Уже видимо - подсвечиваем сразу
+            if highlight {
+                // Небольшая задержка для гарантии, что ячейка отрисована
+                DispatchQueue.main.async { [weak self] in
+                    self?.highlightMessage(id: id)
+                }
+            }
+            collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
+          
+            return
+        }
 
+        collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
+        
+        guard highlight else { return }
+        
         if animated {
             pendingHighlightId = id
         } else {
-            DispatchQueue.main.async { [weak self] in self?.highlightMessage(id: id) }
+            DispatchQueue.main.async { [weak self] in
+                self?.highlightMessage(id: id)
+            }
         }
     }
 

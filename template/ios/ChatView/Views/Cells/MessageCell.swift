@@ -67,11 +67,6 @@ final class MessageCell: UICollectionViewCell {
     }
 
     // MARK: - Highlight
-    //
-    // Паттерн Telegram/WhatsApp:
-    //   Flash-in  0.15 с  — мгновенный визуальный якорь
-    //   Hold      0.25 с  — глаз фиксирует куда попал
-    //   Fade-out  1.10 с  — плавное исчезновение, не режет глаз
 
     func highlight(color: UIColor = UIColor.systemYellow.withAlphaComponent(0.55)) {
         let original = bubbleView.backgroundColor ?? .clear
@@ -80,16 +75,10 @@ final class MessageCell: UICollectionViewCell {
         UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseIn) {
             self.bubbleView.backgroundColor = color
         } completion: { _ in
-            UIView.animate(withDuration: 1, delay: 0, options: .curveLinear) {
-                self.bubbleView.backgroundColor = color  // hold
-            } completion: { _ in
-                UIView.animate(withDuration: 0.25, delay: 0,
-                               options: [.curveEaseOut, .allowUserInteraction]) {
-                    self.bubbleView.backgroundColor = original
-                } completion: { [weak self] _ in
-                    self?.bubbleView.backgroundColor = original
-                }
-            }
+          UIView.animate(withDuration: 0.25, delay: 0.5,
+                        options: [.curveEaseOut, .allowUserInteraction]) {
+              self.bubbleView.backgroundColor = original
+          }
         }
     }
 
