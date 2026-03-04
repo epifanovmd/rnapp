@@ -6,18 +6,18 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet } from "react-native";
 
-import ChatView, {
-  type ActionPressEvent,
-  type AttachmentPressEvent,
+import {
   type ChatAction,
+  type ChatActionPressEventData,
+  type ChatAttachmentPressEventData,
   type ChatMessage,
-  type ChatViewHandle,
-  type MessagePressEvent,
-  type MessagesVisibleEvent,
-  type ReachTopEvent,
-  type ReplyMessagePressEvent,
-  type ReplyReference,
-  type SendMessageEvent,
+  type ChatMessagePressEventData,
+  type ChatMessagesVisibleEventData,
+  type ChatReachTopEventData,
+  type ChatReplyMessagePressEventData,
+  type ChatReplyRef,
+  type ChatSendMessageEventData,
+  ChatView,
 } from "./ChatView";
 
 // ─── Вспомогательные функции ──────────────────────────────────────────────────
@@ -122,7 +122,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
       id: "7",
       text: "Wait, you went to Portugal without me?! 😤",
       senderName: "Bob",
-    } satisfies ReplyReference,
+    } satisfies ChatReplyRef,
     timestamp: ago(day(10) - min(8)),
     status: "read",
   },
@@ -158,7 +158,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
       id: "11",
       senderName: "Alice",
       hasImages: true,
-    } satisfies ReplyReference,
+    } satisfies ChatReplyRef,
     timestamp: ago(day(5) - min(2)),
     status: "read",
   },
@@ -336,7 +336,7 @@ const CHAT_ACTIONS: ChatAction[] = [
 // ─── ChatScreen ───────────────────────────────────────────────────────────────
 
 const ChatScreen: React.FC = () => {
-  const chatRef = useRef<ChatViewHandle>(null);
+  const chatRef = useRef<ChatView>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState(false);
@@ -381,10 +381,10 @@ const ChatScreen: React.FC = () => {
   // ─── Отправка ─────────────────────────────────────────────────────────────
 
   const handleSendMessage = useCallback(
-    ({ text, replyToId }: SendMessageEvent) => {
+    ({ text, replyToId }: ChatSendMessageEventData) => {
       // Fix #10: читаем из ref — актуальный список без stale closure.
       // callback не пересоздаётся при каждом новом сообщении.
-      const replyTo: ReplyReference | undefined = replyToId
+      const replyTo: ChatReplyRef | undefined = replyToId
         ? (() => {
             const src = messagesRef.current.find(m => m.id === replyToId);
 
@@ -395,7 +395,7 @@ const ChatScreen: React.FC = () => {
               text: src.text,
               senderName: src.senderName ?? (src.isMine ? "You" : undefined),
               hasImages: (src.images?.length ?? 0) > 0,
-            } satisfies ReplyReference;
+            } satisfies ChatReplyRef;
           })()
         : undefined;
 
@@ -437,7 +437,7 @@ const ChatScreen: React.FC = () => {
   // ─── Подгрузка истории ────────────────────────────────────────────────────
 
   const handleReachTop = useCallback(
-    ({ distanceFromTop: _ }: ReachTopEvent) => {
+    ({ distanceFromTop: _ }: ChatReachTopEventData) => {
       if (isLoading) return;
 
       setIsLoading(true);
@@ -460,7 +460,7 @@ const ChatScreen: React.FC = () => {
   // ─── Нажатие на цитату → прокрутка к оригиналу ───────────────────────────
 
   const handleReplyMessagePress = useCallback(
-    ({ messageId }: ReplyMessagePressEvent) => {
+    ({ messageId }: ChatReplyMessagePressEventData) => {
       chatRef.current?.scrollToMessage(messageId, {
         position: "center",
         animated: true,
@@ -473,7 +473,7 @@ const ChatScreen: React.FC = () => {
   // ─── Контекстное меню ─────────────────────────────────────────────────────
 
   const handleActionPress = useCallback(
-    ({ actionId, messageId }: ActionPressEvent) => {
+    ({ actionId, messageId }: ChatActionPressEventData) => {
       const message = messagesRef.current.find(m => m.id === messageId);
 
       if (!message) return;
@@ -509,14 +509,17 @@ const ChatScreen: React.FC = () => {
 
   // ─── Нажатие на вложение ──────────────────────────────────────────────────
 
-  const handleAttachmentPress = useCallback((_event: AttachmentPressEvent) => {
-    Alert.alert("Attachments", "Attachment picker would open here");
-  }, []);
+  const handleAttachmentPress = useCallback(
+    (_event: ChatAttachmentPressEventData) => {
+      Alert.alert("Attachments", "Attachment picker would open here");
+    },
+    [],
+  );
 
   // ─── Видимость входящих сообщений (квитанции о прочтении) ────────────────
 
   const handleMessagesVisible = useCallback(
-    ({ messageIds }: MessagesVisibleEvent) => {
+    ({ messageIds }: ChatMessagesVisibleEventData) => {
       // TODO: отправить read-receipt на сервер для messageIds
       console.log("[ChatScreen] visible incoming:", messageIds);
     },
@@ -525,18 +528,23 @@ const ChatScreen: React.FC = () => {
 
   // ─── Нажатие на сообщение ─────────────────────────────────────────────────
 
-  const handleMessagePress = useCallback(({ messageId }: MessagePressEvent) => {
-    const message = messagesRef.current.find(m => m.id === messageId);
+  const handleMessagePress = useCallback(
+    ({ messageId }: ChatMessagePressEventData) => {
+      const message = messagesRef.current.find(m => m.id === messageId);
 
-    if (!message) return;
+      if (!message) return;
 
-    if (message.images?.length) {
-      Alert.alert(
-        "Image Message",
-        `${message.images.length} image(s) from ${message.senderName ?? "you"}`,
-      );
-    }
-  }, []);
+      if (message.images?.length) {
+        Alert.alert(
+          "Image Message",
+          `${message.images.length} image(s) from ${
+            message.senderName ?? "you"
+          }`,
+        );
+      }
+    },
+    [],
+  );
 
   // ─── Render ───────────────────────────────────────────────────────────────
 

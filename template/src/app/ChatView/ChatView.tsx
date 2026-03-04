@@ -11,62 +11,74 @@ import React, {
 } from "react";
 import {
   findNodeHandle,
+  type HostComponent,
   type NativeSyntheticEvent,
   Platform,
   requireNativeComponent,
   StyleSheet,
   UIManager,
   View,
+  ViewProps,
   type ViewStyle,
 } from "react-native";
 
-export type {
-  NativeActionPressEventData as ActionPressEvent,
-  NativeAttachmentPressEventData as AttachmentPressEvent,
+import {
   NativeChatAction as ChatAction,
-  NativeChatMessage as ChatMessage,
-  NativeChatImageItem as ImageItem,
-  NativeMessagePressEventData as MessagePressEvent,
-  NativeMessagesVisibleEventData as MessagesVisibleEvent,
-  NativeReachTopEventData as ReachTopEvent,
-  NativeReplyMessagePressEventData as ReplyMessagePressEvent,
-  NativeChatReplyRef as ReplyReference,
-  NativeScrollEventData as ScrollEvent,
-  NativeSendMessageEventData as SendMessageEvent,
+  NativeChatActionPressEventData as ChatActionPressEventData,
+  NativeChatAttachmentPressEventData as ChatAttachmentPressEventData,
+  NativeChatImageItem as ChatImageItem,
+  NativeChatMessage,
+  NativeChatMessagePressEventData as ChatMessagePressEventData,
+  NativeChatMessagesVisibleEventData as ChatMessagesVisibleEventData,
+  NativeChatReachTopEventData as ChatReachTopEventData,
+  NativeChatReplyMessagePressEventData as ChatReplyMessagePressEventData,
+  NativeChatReplyRef as ChatReplyRef,
+  NativeChatScrollEventData as ChatScrollEventData,
+  NativeChatSendMessageEventData as ChatSendMessageEventData,
+  NativeChatViewCommands,
+  NativeChatViewProps,
 } from "../../NativeChatViewSpec";
 
 // ─── Re-export native types as public API ─────────────────────────────────────
-// Consumers import everything from "ChatView" — no need to touch NativeChatViewSpec.
-import type {
-  NativeActionPressEventData,
-  NativeAttachmentPressEventData,
-  NativeChatAction,
-  NativeChatMessage,
-  NativeMessagePressEventData,
-  NativeMessagesVisibleEventData,
-  NativeReachTopEventData,
-  NativeReplyMessagePressEventData,
-  NativeScrollEventData,
-  NativeSendMessageEventData,
-} from "../../NativeChatViewSpec";
+export type {
+  ChatAction,
+  ChatActionPressEventData,
+  ChatAttachmentPressEventData,
+  ChatImageItem,
+  ChatMessage,
+  ChatMessagePressEventData,
+  ChatMessagesVisibleEventData,
+  ChatReachTopEventData,
+  ChatReplyMessagePressEventData,
+  ChatReplyRef,
+  ChatScrollEventData,
+  ChatScrollPosition,
+  ChatSendMessageEventData,
+  ChatViewCommands,
+};
 
-// ─── Scroll position ──────────────────────────────────────────────────────────
+type ChatMessageStatus = "sending" | "sent" | "delivered" | "read";
 
-export type ChatScrollPosition = "top" | "center" | "bottom";
+interface ChatMessage extends NativeChatMessage {
+  status?: ChatMessageStatus;
+}
+
+type ChatScrollPosition = "top" | "center" | "bottom";
+
+interface ChatViewCommands extends NativeChatViewCommands {
+  scrollToMessage(
+    viewRef: React.ComponentRef<HostComponent<NativeChatViewProps>>,
+    messageId: string,
+    position: ChatScrollPosition,
+    animated: boolean,
+    highlight: boolean,
+  ): void;
+}
 
 // ─── Imperative handle ────────────────────────────────────────────────────────
 
-export interface ChatViewHandle {
-  /** Programmatically scroll to the last message. */
+export interface ChatView {
   scrollToBottom(): void;
-
-  /**
-   * Scroll to a specific message by id.
-   * @param messageId             Target message id.
-   * @param options.position      "top" | "center" | "bottom"  (default: "center")
-   * @param options.animated      Animate the scroll.           (default: true)
-   * @param options.highlight     Flash the cell after scroll.  (default: true)
-   */
   scrollToMessage(
     messageId: string,
     options?: {
@@ -79,37 +91,24 @@ export interface ChatViewHandle {
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
-export interface ChatViewProps {
+export interface ChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
-  actions?: NativeChatAction[];
-
-  /** Message displayed in the reply-preview bar above the input. */
+  actions?: ChatAction[];
   replyMessage?: NativeChatMessage | null;
-
-  /**
-   * When provided the chat scrolls to this message ID on first render (with highlight)
-   * instead of scrolling to the bottom. Consumed once natively; ignored on re-renders.
-   */
   initialScrollId?: string;
-
-  /** Distance from bottom (pts) at which the scroll-to-bottom FAB appears. @default 150 */
   scrollToBottomThreshold?: number;
-
-  /** Distance from top (pts) that triggers `onReachTop`. @default 200 */
   topThreshold?: number;
-
   isLoading?: boolean;
-
   style?: ViewStyle;
 
-  onScroll?: (event: NativeScrollEventData) => void;
-  onReachTop?: (event: NativeReachTopEventData) => void;
-  onMessagesVisible?: (event: NativeMessagesVisibleEventData) => void;
-  onMessagePress?: (event: NativeMessagePressEventData) => void;
-  onActionPress?: (event: NativeActionPressEventData) => void;
-  onSendMessage?: (event: NativeSendMessageEventData) => void;
-  onAttachmentPress?: (event: NativeAttachmentPressEventData) => void;
-  onReplyMessagePress?: (event: NativeReplyMessagePressEventData) => void;
+  onScroll?: (event: ChatScrollEventData) => void;
+  onReachTop?: (event: ChatReachTopEventData) => void;
+  onMessagesVisible?: (event: ChatMessagesVisibleEventData) => void;
+  onMessagePress?: (event: ChatMessagePressEventData) => void;
+  onActionPress?: (event: ChatActionPressEventData) => void;
+  onSendMessage?: (event: ChatSendMessageEventData) => void;
+  onAttachmentPress?: (event: ChatAttachmentPressEventData) => void;
+  onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
 }
 
 // ─── Native component (architecture-agnostic lazy init) ───────────────────────
@@ -119,9 +118,12 @@ const COMPONENT_NAME = "RNChatView";
 // Try New Architecture first (codegen spec), fall back to Old Architecture.
 const NativeChatView = (() => {
   try {
-    return require("../../NativeChatViewSpec").default;
+    // Пытаемся получить компонент из codegen (New Architecture)
+    const Spec = require("../../NativeChatViewSpec").default;
+
+    return Spec as HostComponent<NativeChatViewProps>;
   } catch {
-    return requireNativeComponent(COMPONENT_NAME);
+    return requireNativeComponent<NativeChatViewProps>(COMPONENT_NAME);
   }
 })();
 
@@ -129,8 +131,8 @@ const NativeChatView = (() => {
 
 /** Dispatch a command via the New Architecture Commands API or Old Architecture UIManager. */
 function dispatchCommand(
-  nativeRef: React.RefObject<React.ElementRef<typeof NativeChatView>>,
-  commandName: string,
+  nativeRef: React.RefObject<React.ComponentRef<typeof NativeChatView> | null>,
+  commandName: keyof ChatViewCommands,
   args: unknown[],
 ): void {
   if (Platform.OS !== "ios") return;
@@ -139,16 +141,14 @@ function dispatchCommand(
     const { Commands } = require("../../NativeChatViewSpec");
 
     if (Commands?.[commandName] && nativeRef.current) {
-      // New Architecture: Commands.scrollToBottom(ref, ...args)
       Commands[commandName](nativeRef.current, ...args);
 
       return;
     }
   } catch {
-    // fall through to Old Architecture
+    //
   }
 
-  // @ts-ignore
   const node = findNodeHandle(nativeRef.current);
 
   if (node) {
@@ -162,7 +162,7 @@ function dispatchCommand(
 
 // ─── ChatView ─────────────────────────────────────────────────────────────────
 
-const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
+export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
   const {
     messages,
     actions = [],
@@ -182,7 +182,7 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
     onReplyMessagePress,
   } = props;
 
-  const nativeRef = useRef<React.ElementRef<typeof NativeChatView>>(null);
+  const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
 
   // ─── Imperative API ──────────────────────────────────────────────────────────
 
@@ -214,42 +214,41 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
   // Unwrap nativeEvent so callers never have to deal with NativeSyntheticEvent.
 
   const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEventData>) =>
-      onScroll?.(e.nativeEvent),
+    (e: NativeSyntheticEvent<ChatScrollEventData>) => onScroll?.(e.nativeEvent),
     [onScroll],
   );
   const handleReachTop = useCallback(
-    (e: NativeSyntheticEvent<NativeReachTopEventData>) =>
+    (e: NativeSyntheticEvent<ChatReachTopEventData>) =>
       onReachTop?.(e.nativeEvent),
     [onReachTop],
   );
   const handleMessagesVisible = useCallback(
-    (e: NativeSyntheticEvent<NativeMessagesVisibleEventData>) =>
+    (e: NativeSyntheticEvent<ChatMessagesVisibleEventData>) =>
       onMessagesVisible?.(e.nativeEvent),
     [onMessagesVisible],
   );
   const handleMessagePress = useCallback(
-    (e: NativeSyntheticEvent<NativeMessagePressEventData>) =>
+    (e: NativeSyntheticEvent<ChatMessagePressEventData>) =>
       onMessagePress?.(e.nativeEvent),
     [onMessagePress],
   );
   const handleActionPress = useCallback(
-    (e: NativeSyntheticEvent<NativeActionPressEventData>) =>
+    (e: NativeSyntheticEvent<ChatActionPressEventData>) =>
       onActionPress?.(e.nativeEvent),
     [onActionPress],
   );
   const handleSendMessage = useCallback(
-    (e: NativeSyntheticEvent<NativeSendMessageEventData>) =>
+    (e: NativeSyntheticEvent<ChatSendMessageEventData>) =>
       onSendMessage?.(e.nativeEvent),
     [onSendMessage],
   );
   const handleAttachmentPress = useCallback(
-    (e: NativeSyntheticEvent<NativeAttachmentPressEventData>) =>
+    (e: NativeSyntheticEvent<ChatAttachmentPressEventData>) =>
       onAttachmentPress?.(e.nativeEvent),
     [onAttachmentPress],
   );
   const handleReplyMessagePress = useCallback(
-    (e: NativeSyntheticEvent<NativeReplyMessagePressEventData>) =>
+    (e: NativeSyntheticEvent<ChatReplyMessagePressEventData>) =>
       onReplyMessagePress?.(e.nativeEvent),
     [onReplyMessagePress],
   );
@@ -286,8 +285,6 @@ const ChatView = forwardRef<ChatViewHandle, ChatViewProps>((props, ref) => {
 });
 
 ChatView.displayName = "ChatView";
-
-export default ChatView;
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
