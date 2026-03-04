@@ -1,208 +1,224 @@
 // MARK: - ChatModels.swift
-// Core data models for ChatView component
 
 import Foundation
 import UIKit
 
-// MARK: - Message Status
+// MARK: - MessageStatus
 
 enum MessageStatus: String {
-    case sending = "sending"
-    case sent = "sent"
+    case sending   = "sending"
+    case sent      = "sent"
     case delivered = "delivered"
-    case read = "read"
+    case read      = "read"
 }
 
-// MARK: - Message Types
+// MARK: - MessageContent
+//
+// Sealed hierarchy типов контента. Каждый case самодостаточен.
+//
+// Добавление нового типа сообщения:
+//   1. Добавить case + вложенный Payload struct
+//   2. Добавить MessageContentView реализацию в MessageContentViews.swift
+//   3. Добавить case в MessageContentViewFactory.make(for:)
+//   4. Добавить case в MessageSizeCalculator.contentHeight(for:bubbleWidth:)
+//   Всё остальное — Cell, BubbleView, Cache, DataSource — не трогать.
 
-enum MessageContentType: String {
-    case text = "text"
-    case image = "image"
-    case mixed = "mixed"
+enum MessageContent {
+    case text(TextPayload)
+    case images(ImagesPayload)
+    case mixed(TextPayload, ImagesPayload)
+
+    struct TextPayload {
+        let body: String
+    }
+
+    struct ImagesPayload {
+        let items: [ImageItem]
+
+        struct ImageItem {
+            let url:          String
+            let width:        CGFloat?
+            let height:       CGFloat?
+            let thumbnailUrl: String?
+        }
+    }
+
+    // MARK: Computed shortcuts
+
+    var text: String? {
+        switch self {
+        case .text(let p):     return p.body
+        case .mixed(let p, _): return p.body
+        case .images:          return nil
+        }
+    }
+
+    var images: [ImagesPayload.ImageItem]? {
+        switch self {
+        case .images(let p):   return p.items
+        case .mixed(_, let p): return p.items
+        case .text:            return nil
+        }
+    }
+
+    var hasText:   Bool { text   != nil }
+    var hasImages: Bool { images != nil }
 }
 
-// MARK: - Message Content Protocol
+// MARK: - ReplyPreviewData
+//
+// Хранит только replyToId. Актуальный контент цитаты резолвится в рантайме
+// через messageIndex в ChatViewController. Это значит:
+//   • Удаление оригинала автоматически скрывает превью (без патча модели)
+//   • Размер ячейки зависит от того, существует ли ID в текущем списке
+//   • JS передаёт полный словарь replyTo, но мы берём только id
 
-protocol MessageContent {
-    var type: MessageContentType { get }
+struct ReplyPreviewData {
+    let replyToId: String
 }
 
-struct TextContent: MessageContent {
-    let type: MessageContentType = .text
-    let text: String
-}
+// MARK: - ResolvedReply
+//
+// Результат резолвинга цитаты — передаётся прямо в MessageBubbleView.
 
-struct ImageContent: MessageContent {
-    let type: MessageContentType = .image
-    let url: String
-    let width: CGFloat?
-    let height: CGFloat?
-    let thumbnailUrl: String?
-}
+enum ResolvedReply {
+    case found(Snapshot)
+    case deleted           // оригинал удалён → пузырь без превью
 
-// MARK: - Reply Message (lightweight reference)
-
-struct ReplyReference {
-    let id: String
-    let text: String?
-    let senderName: String?
-    let hasImages: Bool
-}
-
-// MARK: - Chat Message
-
-struct ChatMessage: Identifiable {
-    let id: String
-    let text: String?
-    let images: [ImageContent]?
-    let timestamp: Date
-    let senderName: String?
-    let isMine: Bool
-    let groupDate: String // YYYY-MM-DD for grouping
-    let status: MessageStatus
-    let replyTo: ReplyReference?
-
-    // Computed
-    var hasText: Bool { !(text?.isEmpty ?? true) }
-    var hasImages: Bool { !(images?.isEmpty ?? true) }
-
-    var contentTypes: [MessageContentType] {
-        var types: [MessageContentType] = []
-        if hasText { types.append(.text) }
-        if hasImages { types.append(.image) }
-        return types
+    struct Snapshot {
+        let id:         String
+        let text:       String?
+        let senderName: String?
+        let hasImages:  Bool
     }
 }
 
-// MARK: - Context Menu Action
+// MARK: - ChatMessage
+
+struct ChatMessage: Identifiable {
+    let id:         String
+    let content:    MessageContent
+    let timestamp:  Date
+    let senderName: String?
+    let isMine:     Bool
+    let groupDate:  String         // "yyyy-MM-dd" для группировки по дням
+    let status:     MessageStatus
+    let reply:      ReplyPreviewData?  // nil = нет цитаты
+
+    // Удобные алиасы
+    var text:       String?                          { content.text }
+    var images:     [MessageContent.ImagesPayload.ImageItem]? { content.images }
+    var hasText:    Bool                             { content.hasText }
+    var hasImages:  Bool                             { content.hasImages }
+    var replyToId:  String?                          { reply?.replyToId }
+}
+
+// MARK: - MessageAction
 
 struct MessageAction {
-    let id: String
-    let title: String
-    let systemImage: String?
+    let id:            String
+    let title:         String
+    let systemImage:   String?
     let isDestructive: Bool
 }
 
-// MARK: - Section Model
+// MARK: - MessageSection
 
 struct MessageSection {
-    let dateString: String      // Human-readable: "Today", "Yesterday", "Jan 15"
-    let dateKey: String         // YYYY-MM-DD for sorting
-    var messages: [ChatMessage]
+    let dateString: String   // "Сегодня", "Вчера", "15 янв."
+    let dateKey:    String   // "yyyy-MM-dd"
+    var messages:   [ChatMessage]
 }
 
-// MARK: - Collection View Item Types
+// MARK: - Parsing from JS bridge
 
-enum ChatItemType {
-    case message(ChatMessage)
-    case dateSeparator(String) // dateKey
-}
-
-// MARK: - Parsing from JS Props
+private let groupDateFormatter: DateFormatter = {
+    let f = DateFormatter()
+    f.dateFormat = "yyyy-MM-dd"
+    return f
+}()
 
 extension ChatMessage {
     static func from(dict: [String: Any]) -> ChatMessage? {
-        guard let id = dict["id"] as? String,
-              let timestampMs = dict["timestamp"] as? Double else {
-            return nil
+        guard
+            let id          = dict["id"] as? String,
+            let timestampMs = dict["timestamp"] as? Double
+        else { return nil }
+
+        let timestamp  = Date(timeIntervalSince1970: timestampMs / 1000)
+        let groupDate  = groupDateFormatter.string(from: timestamp)
+        let status     = MessageStatus(rawValue: dict["status"] as? String ?? "") ?? .sent
+        let isMine     = dict["isMine"] as? Bool ?? false
+        let senderName = dict["senderName"] as? String
+
+        let textBody = dict["text"] as? String
+        let imageItems = (dict["images"] as? [[String: Any]])?.compactMap {
+            d -> MessageContent.ImagesPayload.ImageItem? in
+            guard let url = d["url"] as? String else { return nil }
+            return .init(url: url,
+                         width:        d["width"]        as? CGFloat,
+                         height:       d["height"]       as? CGFloat,
+                         thumbnailUrl: d["thumbnailUrl"] as? String)
+        }.nilIfEmpty
+
+        let content: MessageContent
+        switch (textBody, imageItems) {
+        case let (t?, imgs?): content = .mixed(.init(body: t), .init(items: imgs))
+        case let (t?, nil):   content = .text(.init(body: t))
+        case let (nil, imgs?):content = .images(.init(items: imgs))
+        default: return nil
         }
 
-        let timestamp = Date(timeIntervalSince1970: timestampMs / 1000)
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let groupDate = dateFormatter.string(from: timestamp)
-
-        let images: [ImageContent]? = (dict["images"] as? [[String: Any]])?.compactMap { imgDict in
-            guard let url = imgDict["url"] as? String else { return nil }
-            return ImageContent(
-                url: url,
-                width: imgDict["width"] as? CGFloat,
-                height: imgDict["height"] as? CGFloat,
-                thumbnailUrl: imgDict["thumbnailUrl"] as? String
-            )
+        var reply: ReplyPreviewData?
+        if let rd = dict["replyTo"] as? [String: Any], let rid = rd["id"] as? String {
+            reply = ReplyPreviewData(replyToId: rid)
         }
 
-        let statusRaw = dict["status"] as? String ?? "sent"
-        let status = MessageStatus(rawValue: statusRaw) ?? .sent
-
-        var replyTo: ReplyReference? = nil
-        if let replyDict = dict["replyTo"] as? [String: Any],
-           let replyId = replyDict["id"] as? String {
-            replyTo = ReplyReference(
-                id: replyId,
-                text: replyDict["text"] as? String,
-                senderName: replyDict["senderName"] as? String,
-                hasImages: (replyDict["hasImages"] as? Bool) ?? false
-            )
-        }
-
-        return ChatMessage(
-            id: id,
-            text: dict["text"] as? String,
-            images: images?.isEmpty == false ? images : nil,
-            timestamp: timestamp,
-            senderName: dict["senderName"] as? String,
-            isMine: dict["isMine"] as? Bool ?? false,
-            groupDate: groupDate,
-            status: status,
-            replyTo: replyTo
-        )
+        return ChatMessage(id: id, content: content, timestamp: timestamp,
+                           senderName: senderName, isMine: isMine,
+                           groupDate: groupDate, status: status, reply: reply)
     }
 }
 
 extension MessageAction {
     static func from(dict: [String: Any]) -> MessageAction? {
-        guard let id = dict["id"] as? String,
-              let title = dict["title"] as? String else {
-            return nil
-        }
-        return MessageAction(
-            id: id,
-            title: title,
-            systemImage: dict["systemImage"] as? String,
-            isDestructive: dict["isDestructive"] as? Bool ?? false
-        )
+        guard let id = dict["id"] as? String, let title = dict["title"] as? String
+        else { return nil }
+        return MessageAction(id: id, title: title,
+                             systemImage:   dict["systemImage"]   as? String,
+                             isDestructive: dict["isDestructive"] as? Bool ?? false)
     }
 }
 
-// MARK: - Date Formatting Helpers
+private extension Array {
+    var nilIfEmpty: Self? { isEmpty ? nil : self }
+}
+
+// MARK: - DateHelper
 
 struct DateHelper {
     static let shared = DateHelper()
 
     private let timeFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return f
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
     }()
-
     private let sectionFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateStyle = .medium
-        f.timeStyle = .none
-        return f
+        let f = DateFormatter(); f.dateStyle = .medium; f.timeStyle = .none; return f
+    }()
+    private let groupParser: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
 
-    func timeString(from date: Date) -> String {
-        timeFormatter.string(from: date)
-    }
+    func timeString(from date: Date) -> String { timeFormatter.string(from: date) }
 
     func sectionTitle(from dateKey: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard let date = formatter.date(from: dateKey) else { return dateKey }
-
-        let calendar = Calendar.current
-        if calendar.isDateInToday(date) { return "Today" }
-        if calendar.isDateInYesterday(date) { return "Yesterday" }
-
-        let components = calendar.dateComponents([.day], from: date, to: Date())
-        if let days = components.day, days < 7 {
-            let weekFormatter = DateFormatter()
-            weekFormatter.dateFormat = "EEEE"
-            return weekFormatter.string(from: date)
+        guard let date = groupParser.date(from: dateKey) else { return dateKey }
+        let cal = Calendar.current
+        if cal.isDateInToday(date)     { return "Сегодня" }
+        if cal.isDateInYesterday(date) { return "Вчера" }
+        if let d = cal.dateComponents([.day], from: date, to: Date()).day, d < 7 {
+            let wf = DateFormatter(); wf.dateFormat = "EEEE"; return wf.string(from: date)
         }
-
         return sectionFormatter.string(from: date)
     }
 }

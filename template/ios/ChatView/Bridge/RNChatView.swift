@@ -116,9 +116,21 @@ import React
 
         chatVC.updateMessages(parsed)
 
-        // Perform initial scroll exactly once, after the first batch of messages.
+        // Выполняем начальный скролл ровно один раз — после первого батча сообщений.
         if !initialScrollDone && !parsed.isEmpty {
             initialScrollDone = true
+
+            // Включаем защиту: prepend-компенсация offset не будет работать
+            // пока мы не завершим начальный скролл. Это решает кейс когда JS
+            // одновременно грузит начальные сообщения и историю — без защиты
+            // prepend сдвигал бы offset до того как мы успевали прокрутить.
+            // pendingScrollMessageId позволяет prepend-ветке восстановить позицию
+            // на целевом сообщении если контент вырос сверху до момента подсветки.
+            if let targetId = pendingInitialScrollMessageId {
+                chatVC.isInitialScrollProtected = true
+                chatVC.pendingScrollMessageId   = targetId
+            }
+
             performInitialScroll(messages: parsed, in: chatVC)
         }
     }
@@ -140,8 +152,13 @@ import React
                     animated: false,
                     highlight: true
                 )
+                // Снимаем защиту и цель после скролла — теперь prepend-компенсация
+                // работает в штатном режиме.
+                chatVC.isInitialScrollProtected = false
+                chatVC.pendingScrollMessageId   = nil
             } else {
                 chatVC.scrollToBottom(animated: false)
+                // Защита не включалась (нет targetId), ничего снимать не нужно.
             }
         }
     }
@@ -258,13 +275,6 @@ extension RNChatView: ChatViewControllerDelegate {
                 if let t = img.thumbnailUrl { d["thumbnailUrl"] = t }
                 return d
             }
-        }
-        if let reply = message.replyTo {
-            dict["replyTo"] = [
-                "id": reply.id,
-                "text": reply.text as Any,
-                "senderName": reply.senderName as Any,
-            ]
         }
         return dict
     }

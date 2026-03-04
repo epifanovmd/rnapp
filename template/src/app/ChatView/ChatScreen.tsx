@@ -1,31 +1,40 @@
 // ChatScreen.tsx
-// Full example usage of ChatView component
+// Пример экрана чата — полноценное использование ChatView.
+// Все типы берутся из ChatView (который реэкспортирует их из NativeChatViewSpec),
+// поэтому здесь нет ни одного inline-типа для данных чата.
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 
 import ChatView, {
+  type ActionPressEvent,
+  type AttachmentPressEvent,
   type ChatAction,
   type ChatMessage,
   type ChatViewHandle,
+  type MessagePressEvent,
+  type MessagesVisibleEvent,
+  type ReachTopEvent,
+  type ReplyMessagePressEvent,
   type ReplyReference,
+  type SendMessageEvent,
 } from "./ChatView";
 
-// ---- Helpers ----
+// ─── Вспомогательные функции ──────────────────────────────────────────────────
 
-let idCounter = 1000;
+let _idCounter = 1000;
 // eslint-disable-next-line no-plusplus
-const uid = () => String(++idCounter);
+const uid = () => String(++_idCounter);
 
 const ago = (ms: number) => Date.now() - ms;
 const min = (n: number) => n * 60_000;
 const hr = (n: number) => n * 3_600_000;
 const day = (n: number) => n * 86_400_000;
 
-// ---- Rich mock message set (oldest → newest) ----
+// ─── Начальный набор сообщений (от старых к новым) ────────────────────────────
 
 const INITIAL_MESSAGES: ChatMessage[] = [
-  // 14 days ago
+  // 14 дней назад
   {
     id: "1",
     isMine: false,
@@ -81,7 +90,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(14) - min(9)),
     status: "read",
   },
-  // 10 days ago
+  // 10 дней назад
   {
     id: "6",
     isMine: true,
@@ -113,7 +122,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
       id: "7",
       text: "Wait, you went to Portugal without me?! 😤",
       senderName: "Bob",
-    },
+    } satisfies ReplyReference,
     timestamp: ago(day(10) - min(8)),
     status: "read",
   },
@@ -125,7 +134,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(10) - min(10)),
     status: "read",
   },
-  // 5 days ago
+  // 5 дней назад
   {
     id: "11",
     isMine: false,
@@ -145,11 +154,15 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     id: "12",
     isMine: true,
     text: "Wow, that sunset is incredible 🌅",
-    replyTo: { id: "11", senderName: "Alice", hasImages: true },
+    replyTo: {
+      id: "11",
+      senderName: "Alice",
+      hasImages: true,
+    } satisfies ReplyReference,
     timestamp: ago(day(5) - min(2)),
     status: "read",
   },
-  // Yesterday
+  // Вчера
   {
     id: "13",
     isMine: false,
@@ -188,7 +201,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(1) + hr(1) - min(2)),
     status: "read",
   },
-  // Today
+  // Сегодня
   {
     id: "18",
     isMine: false,
@@ -256,8 +269,12 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   },
 ];
 
+// ─── Генератор старых сообщений для подгрузки истории ────────────────────────
+// uid() вызывается в runtime, а не при объявлении модуля — без side-effects.
+
 const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   const base = beforeTimestamp - day(7);
+  const photoId = uid(); // один вызов, используется в URL
 
   return [
     {
@@ -297,7 +314,7 @@ const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
       text: "Here's a photo from that day",
       images: [
         {
-          url: `https://picsum.photos/seed/old${uid()}/600/400`,
+          url: `https://picsum.photos/seed/old${photoId}/600/400`,
           width: 600,
           height: 400,
         },
@@ -308,7 +325,7 @@ const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   ];
 };
 
-// ---- Context Menu Actions ----
+// ─── Действия контекстного меню ───────────────────────────────────────────────
 
 const CHAT_ACTIONS: ChatAction[] = [
   { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
@@ -317,18 +334,31 @@ const CHAT_ACTIONS: ChatAction[] = [
   { id: "delete", title: "Delete", systemImage: "trash", isDestructive: true },
 ];
 
-// ---- Chat Screen ----
+// ─── ChatScreen ───────────────────────────────────────────────────────────────
 
 const ChatScreen: React.FC = () => {
   const chatRef = useRef<ChatViewHandle>(null);
+
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState(false);
   const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
-  // ---- Send ----
+
+  // Храним активные таймеры статуса, чтобы отменить их при unmount
+  const statusTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      statusTimers.current?.forEach(clearTimeout);
+    };
+  }, []);
+
+  // ─── Отправка ─────────────────────────────────────────────────────────────
 
   const handleSendMessage = useCallback(
-    ({ text, replyToId }: { text: string; replyToId?: string }) => {
-      const replyRef: ReplyReference | undefined = replyToId
+    ({ text, replyToId }: SendMessageEvent) => {
+      // Собираем ReplyReference из живого списка сообщений
+      const replyTo: ReplyReference | undefined = replyToId
         ? (() => {
             const src = messages.find(m => m.id === replyToId);
 
@@ -349,55 +379,68 @@ const ChatScreen: React.FC = () => {
         timestamp: Date.now(),
         isMine: true,
         status: "sending",
-        replyTo: replyRef,
+        replyTo,
       };
 
       setMessages(prev => [...prev, newMsg]);
       setReplyMessage(null);
 
-      setTimeout(
-        () =>
-          setMessages(prev =>
-            prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
-          ),
-        800,
-      );
-      setTimeout(
-        () =>
-          setMessages(prev =>
-            prev.map(m =>
-              m.id === newMsg.id ? { ...m, status: "delivered" } : m,
-            ),
-          ),
-        2000,
-      );
+      // Симуляция подтверждений доставки; таймеры отменяются при unmount
+      const t1 = setTimeout(() => {
+        setMessages(prev =>
+          prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
+        );
+      }, 800);
 
-      setTimeout(() => chatRef.current?.scrollToBottom(), 50);
+      const t2 = setTimeout(() => {
+        setMessages(prev =>
+          prev.map(m =>
+            m.id === newMsg.id ? { ...m, status: "delivered" } : m,
+          ),
+        );
+      }, 2500);
+
+      const t3 = setTimeout(() => {
+        chatRef.current?.scrollToBottom();
+      }, 50);
+
+      statusTimers.current.push(t1, t2, t3);
     },
     [messages],
   );
 
-  // ---- Load older (called at most once per batch by native throttle) ----
+  // ─── Подгрузка истории ────────────────────────────────────────────────────
+  // Симулируем реалистичную задержку сети (800 мс).
 
-  const handleReachTop = useCallback(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setMessages(prev => {
-        const oldest = prev.reduce(
-          (mn, m) => (m.timestamp < mn ? m.timestamp : mn),
-          prev[0]?.timestamp ?? Date.now(),
-        );
+  const handleReachTop = useCallback(
+    ({ distanceFromTop }: ReachTopEvent) => {
+      // Дополнительный guard: нативный side уже throttle-ит вызов,
+      // но двойная защита не помешает
+      if (isLoading) return;
 
-        return [...makeOlderBatch(oldest), ...prev];
-      });
-      setIsLoading(false);
-    }, 0);
-  }, []);
+      setIsLoading(true);
 
-  // ---- Reply ----
+      const t = setTimeout(() => {
+        setMessages(prev => {
+          const oldest = prev.reduce(
+            (mn, m) => (m.timestamp < mn ? m.timestamp : mn),
+            prev[0]?.timestamp ?? Date.now(),
+          );
+
+          return [...makeOlderBatch(oldest), ...prev];
+        });
+        setIsLoading(false);
+      }, 0);
+
+      statusTimers.current.push(t);
+    },
+    [isLoading],
+  );
+
+  // ─── Нажатие на цитату → прокрутка к оригиналу ───────────────────────────
 
   const handleReplyMessagePress = useCallback(
-    ({ messageId }: { messageId: string }) => {
+    ({ messageId }: ReplyMessagePressEvent) => {
       chatRef.current?.scrollToMessage(messageId, {
         position: "center",
         animated: true,
@@ -407,28 +450,23 @@ const ChatScreen: React.FC = () => {
     [],
   );
 
-  // ---- Action menu ----
+  // ─── Контекстное меню ─────────────────────────────────────────────────────
 
   const handleActionPress = useCallback(
-    ({
-      actionId,
-      messageId,
-      message,
-    }: {
-      actionId: string;
-      messageId: string;
-      message: ChatMessage;
-    }) => {
+    ({ actionId, messageId, message }: ActionPressEvent) => {
       switch (actionId) {
         case "reply":
           setReplyMessage(message);
           break;
+
         case "copy":
           Alert.alert("Copied!", message.text ?? "No text");
           break;
+
         case "forward":
-          Alert.alert("Forward", `Forwarding: ${messageId}`);
+          Alert.alert("Forward", `Forwarding message ${messageId}`);
           break;
+
         case "delete":
           Alert.alert("Delete", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
@@ -436,7 +474,7 @@ const ChatScreen: React.FC = () => {
               text: "Delete",
               style: "destructive",
               onPress: () =>
-                setMessages(p => p.filter(m => m.id !== messageId)),
+                setMessages(prev => prev.filter(m => m.id !== messageId)),
             },
           ]);
           break;
@@ -445,27 +483,35 @@ const ChatScreen: React.FC = () => {
     [],
   );
 
-  const handleAttachmentPress = useCallback(() => {
+  // ─── Нажатие на вложение ──────────────────────────────────────────────────
+
+  const handleAttachmentPress = useCallback((_event: AttachmentPressEvent) => {
     Alert.alert("Attachments", "Attachment picker would open here");
   }, []);
 
+  // ─── Видимость входящих сообщений (квитанции о прочтении) ────────────────
+  // Нативная сторона фильтрует isMine=true — сюда приходят только чужие сообщения.
+
   const handleMessagesVisible = useCallback(
-    ({ messageIds }: { messageIds: string[] }) => {
-      console.log("Visible:", messageIds);
+    ({ messageIds }: MessagesVisibleEvent) => {
+      // TODO: отправить read-receipt на сервер для messageIds
+      console.log("[ChatScreen] visible incoming:", messageIds);
     },
     [],
   );
 
-  const handleMessagePress = useCallback(
-    ({ message }: { messageId: string; message: ChatMessage }) => {
-      if (message.images?.length)
-        Alert.alert("Image Message", `${message.images.length} image(s)`);
-    },
-    [],
-  );
+  // ─── Нажатие на сообщение ─────────────────────────────────────────────────
 
-  // ---- Render ----
-  // Plain background View — native chat fills 100%, no SafeAreaView / header / banners
+  const handleMessagePress = useCallback(({ message }: MessagePressEvent) => {
+    if (message.images?.length) {
+      Alert.alert(
+        "Image Message",
+        `${message.images.length} image(s) from ${message.senderName ?? "you"}`,
+      );
+    }
+  }, []);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <ChatView
@@ -474,28 +520,23 @@ const ChatScreen: React.FC = () => {
       messages={messages}
       actions={CHAT_ACTIONS}
       topThreshold={200}
-      // initialScrollToMessageId={"13"}
+      scrollToBottomThreshold={150}
+      initialScrollId={"6"}
       isLoading={isLoading}
       replyMessage={replyMessage}
+      onSendMessage={handleSendMessage}
       onReachTop={handleReachTop}
+      onReplyMessagePress={handleReplyMessagePress}
+      onActionPress={handleActionPress}
+      onAttachmentPress={handleAttachmentPress}
       onMessagesVisible={handleMessagesVisible}
       onMessagePress={handleMessagePress}
-      onActionPress={handleActionPress}
-      onSendMessage={handleSendMessage}
-      onAttachmentPress={handleAttachmentPress}
-      onReplyMessagePress={handleReplyMessagePress}
     />
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#342b2b",
-  },
-  chat: {
-    flex: 1,
-  },
+  chat: { flex: 1 },
 });
 
 export default ChatScreen;
