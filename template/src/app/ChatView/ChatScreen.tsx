@@ -473,7 +473,11 @@ const ChatScreen: React.FC = () => {
   // ─── Контекстное меню ─────────────────────────────────────────────────────
 
   const handleActionPress = useCallback(
-    ({ actionId, messageId, message }: ActionPressEvent) => {
+    ({ actionId, messageId }: ActionPressEvent) => {
+      const message = messagesRef.current.find(m => m.id === messageId);
+
+      if (!message) return;
+
       switch (actionId) {
         case "reply":
           setReplyMessage(message);
@@ -521,7 +525,11 @@ const ChatScreen: React.FC = () => {
 
   // ─── Нажатие на сообщение ─────────────────────────────────────────────────
 
-  const handleMessagePress = useCallback(({ message }: MessagePressEvent) => {
+  const handleMessagePress = useCallback(({ messageId }: MessagePressEvent) => {
+    const message = messagesRef.current.find(m => m.id === messageId);
+
+    if (!message) return;
+
     if (message.images?.length) {
       Alert.alert(
         "Image Message",

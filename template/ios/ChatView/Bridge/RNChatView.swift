@@ -237,13 +237,12 @@ extension RNChatView: ChatViewControllerDelegate {
     }
 
     func chatViewController(_ controller: ChatViewController, didTapMessage message: ChatMessage) {
-        onMessagePress?(["messageId": message.id, "message": messagePayload(from: message)])
+        onMessagePress?(["messageId": message.id])
     }
 
     func chatViewController(_ controller: ChatViewController, didSelectAction action: MessageAction,
                             for message: ChatMessage) {
-        onActionPress?(["actionId": action.id, "messageId": message.id,
-                        "message": messagePayload(from: message)])
+        onActionPress?(["actionId": action.id, "messageId": message.id])
     }
 
     func chatViewController(_ controller: ChatViewController, didSendMessage text: String,
@@ -259,28 +258,5 @@ extension RNChatView: ChatViewControllerDelegate {
 
     func chatViewController(_ controller: ChatViewController, didTapReply replyId: String) {
         onReplyMessagePress?(["messageId": replyId])
-    }
-
-    // MARK: - Payload
-
-    private func messagePayload(from message: ChatMessage) -> [String: Any] {
-        var dict: [String: Any] = [
-            "id": message.id,
-            "timestamp": message.timestamp.timeIntervalSince1970 * 1000,
-            "isMine": message.isMine,
-            "status": message.status.rawValue,
-        ]
-        if let text = message.text { dict["text"] = text }
-        if let name = message.senderName { dict["senderName"] = name }
-        if let images = message.images {
-            dict["images"] = images.map { img -> [String: Any] in
-                var d: [String: Any] = ["url": img.url]
-                if let w = img.width  { d["width"]  = w }
-                if let h = img.height { d["height"] = h }
-                if let t = img.thumbnailUrl { d["thumbnailUrl"] = t }
-                return d
-            }
-        }
-        return dict
     }
 }

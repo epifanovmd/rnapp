@@ -69,7 +69,10 @@ export type NativeActionPressEventData = {
 
 // FIX: Это нормально - только примитивы
 export type NativeSendMessageEventData = { text: string; replyToId?: string };
-export type NativeAttachmentPressEventData = Record<string, never>;
+
+// FIX: Создаем явный тип для пустого события вместо Record<string, never>
+export type NativeAttachmentPressEventData = {};
+
 export type NativeReplyMessagePressEventData = { messageId: string };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
