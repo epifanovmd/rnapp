@@ -794,9 +794,65 @@ extension ChatViewController: UICollectionViewDelegate {
         guard !actions.isEmpty,
               let id  = dataSource.itemIdentifier(for: ip),
               let msg = messageIndex[id] else { return nil }
-        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
-            self?.makeContextMenu(for: msg) ?? UIMenu()
-        }
+
+        // identifier несёт IndexPath — используется в willPerformPreviewAction
+        // для плавного возврата фокуса на исходную ячейку.
+        let identifier = NSString(string: id)
+
+        return UIContextMenuConfiguration(
+            identifier: identifier,
+            previewProvider: { [weak self] in
+                guard let self,
+                      let ip   = indexPath(forMessageID: msg.id),
+                      let cell = cv.cellForItem(at: ip) as? MessageCell
+                else { return nil }
+
+                return cell.makeBubblePreviewController()
+            },
+            actionProvider: { [weak self] _ in
+                self?.makeContextMenu(for: msg)
+            }
+        )
+    }
+
+    /// Плавный dismiss превью: пузырь "летит" обратно в исходную ячейку.
+    func collectionView(
+        _ cv: UICollectionView,
+        willPerformPreviewActionForMenuWith config: UIContextMenuConfiguration,
+        animator: UIContextMenuInteractionCommitAnimating
+    ) {
+        // Нет tap-action для превью в чате — просто закрываем без лишней логики.
+        animator.preferredCommitStyle = .dismiss
+    }
+
+    /// Настраивает highlight-анимацию ячейки при открытии меню.
+    func collectionView(
+        _ cv: UICollectionView,
+        previewForHighlightingContextMenuWithConfiguration config: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        targetedPreview(for: config, in: cv)
+    }
+
+    /// Настраивает анимацию возврата превью при закрытии меню.
+    func collectionView(
+        _ cv: UICollectionView,
+        previewForDismissingContextMenuWithConfiguration config: UIContextMenuConfiguration
+    ) -> UITargetedPreview? {
+        targetedPreview(for: config, in: cv)
+    }
+
+    /// Создаёт UITargetedPreview точно по форме пузыря (без фона всей ячейки).
+    private func targetedPreview(
+        for config: UIContextMenuConfiguration,
+        in cv: UICollectionView
+    ) -> UITargetedPreview? {
+        guard
+            let id   = config.identifier as? String,
+            let ip   = indexPath(forMessageID: id),
+            let cell = cv.cellForItem(at: ip) as? MessageCell
+        else { return nil }
+
+        return cell.makeTargetedPreview()
     }
 
     func collectionView(

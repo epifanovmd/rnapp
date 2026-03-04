@@ -19,9 +19,14 @@ final class MessageCell: UICollectionViewCell {
     private var trailingConstraint:    NSLayoutConstraint!
     private var bubbleWidthConstraint: NSLayoutConstraint!
 
+    // MARK: - Stored message (нужен для makeBubblePreviewController)
+
+    private var currentMessage:      ChatMessage?
+    private var currentResolvedReply: ResolvedReply?
+    private var currentTheme:        ChatTheme = .light
+
     // MARK: - Callbacks
 
-    /// Срабатывает при нажатии на блок цитаты внутри пузыря.
     var onReplyTap: ((String) -> Void)?
 
     // MARK: - Init
@@ -43,37 +48,34 @@ final class MessageCell: UICollectionViewCell {
         bottom.priority = .init(999)
 
         let m = ChatLayoutConstants.cellSideMargin
-        leadingConstraint  = bubbleView.leadingAnchor.constraint(
-            equalTo: contentView.leadingAnchor, constant: m)
-        trailingConstraint = bubbleView.trailingAnchor.constraint(
-            equalTo: contentView.trailingAnchor, constant: -m)
+        leadingConstraint  = bubbleView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: m)
+        trailingConstraint = bubbleView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -m)
 
         bubbleWidthConstraint = bubbleView.widthAnchor.constraint(equalToConstant: 200)
         bubbleWidthConstraint.isActive = true
 
         NSLayoutConstraint.activate([top, bottom])
-        // leading/trailing активируются в configure
     }
 
     // MARK: - Configure
 
-    /// Заполняет ячейку данными, применяет тему и позиционирует пузырь.
     func configure(
         with message: ChatMessage,
         resolvedReply: ResolvedReply?,
         collectionViewWidth: CGFloat,
         theme: ChatTheme
     ) {
-        let maxBubble = floor(collectionViewWidth * ChatLayoutConstants.bubbleMaxWidthRatio)
-        let hasReply  = resolvedReply.map {
-            if case .found = $0 { return true }; return false
-        } ?? false
-        let exactBubbleW = MessageSizeCalculator.bubbleWidth(
-            for: message, hasReply: hasReply, maxWidth: maxBubble)
+        currentMessage       = message
+        currentResolvedReply = resolvedReply
+        currentTheme         = theme
 
-        bubbleWidthConstraint.constant  = exactBubbleW
-        leadingConstraint.isActive      = !message.isMine
-        trailingConstraint.isActive     = message.isMine
+        let maxBubble = floor(collectionViewWidth * ChatLayoutConstants.bubbleMaxWidthRatio)
+        let hasReply  = resolvedReply.map { if case .found = $0 { return true }; return false } ?? false
+        let exactBubbleW = MessageSizeCalculator.bubbleWidth(for: message, hasReply: hasReply, maxWidth: maxBubble)
+
+        bubbleWidthConstraint.constant = exactBubbleW
+        leadingConstraint.isActive     = !message.isMine
+        trailingConstraint.isActive    = message.isMine
 
         bubbleView.configure(with: message, resolvedReply: resolvedReply, theme: theme)
         bubbleView.applyLayout(bubbleWidth: exactBubbleW)
@@ -84,8 +86,49 @@ final class MessageCell: UICollectionViewCell {
         }
     }
 
+    // MARK: - Context menu: preview controller
+
+    /// Строит UIViewController для previewProvider без отдельного класса.
+    func makeBubblePreviewController() -> UIViewController? {
+        guard let message = currentMessage else { return nil }
+
+        let bubbleWidth = bubbleView.bounds.width
+        let bubbleHeight = bubbleView.bounds.height
+
+        let previewBubble = MessageBubbleView()
+        previewBubble.configure(with: message, resolvedReply: currentResolvedReply, theme: currentTheme)
+        previewBubble.applyLayout(bubbleWidth: bubbleWidth)
+        previewBubble.translatesAutoresizingMaskIntoConstraints = false
+
+        let vc = UIViewController()
+        vc.view.backgroundColor = .clear
+        vc.view.layer.cornerRadius = ChatLayoutConstants.bubbleCornerRadius
+        vc.preferredContentSize = CGSize(width: bubbleWidth, height: bubbleHeight)
+        vc.view.addSubview(previewBubble)
+
+        NSLayoutConstraint.activate([
+            previewBubble.topAnchor.constraint(equalTo: vc.view.topAnchor),
+            previewBubble.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
+            previewBubble.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
+            previewBubble.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
+        ])
+
+        return vc
+    }
+
+    // MARK: - Context menu: targeted preview
+
+    /// Возвращает UITargetedPreview точно по контуру пузыря.
+    func makeTargetedPreview() -> UITargetedPreview {
+        let params = UIPreviewParameters()
+  
+        params.visiblePath = UIBezierPath(roundedRect: bubbleView.bounds, cornerRadius: ChatLayoutConstants.bubbleCornerRadius)
+        params.backgroundColor = bubbleView.backgroundColor ?? .clear
+      
+        return UITargetedPreview(view: bubbleView, parameters: params)
+    }
+
     // MARK: - Highlight
-    // Продакшн-паттерн Telegram/WhatsApp: быстрое окрашивание → выдержка → возврат.
 
     func highlight(color: UIColor = UIColor.systemYellow.withAlphaComponent(0.55)) {
         let original = bubbleView.backgroundColor ?? .clear
@@ -105,7 +148,9 @@ final class MessageCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         bubbleView.layer.removeAllAnimations()
-        onReplyTap = nil
+        onReplyTap           = nil
+        currentMessage       = nil
+        currentResolvedReply = nil
         leadingConstraint.isActive  = false
         trailingConstraint.isActive = false
     }

@@ -524,7 +524,7 @@ const ChatScreen: React.FC = () => {
       replyMessage={replyMessage}
       theme={theme}
       onSendMessage={handleSendMessage}
-      onReachTop={handleReachTop}
+      // onReachTop={handleReachTop}
       onReplyMessagePress={handleReplyMessagePress}
       onActionPress={handleActionPress}
       onAttachmentPress={handleAttachmentPress}
