@@ -3,6 +3,7 @@
 // Управляет коллекцией сообщений, FAB-кнопкой, пустым состоянием и клавиатурой.
 // Бизнес-логика вынесена в делегат; контроллер отвечает только за UI.
 
+import Foundation
 import UIKit
 
 // MARK: - ChatViewControllerDelegate
@@ -145,8 +146,9 @@ final class ChatViewController: UIViewController {
         setupInputBar()
         setupFAB()
         setupDataSource()
-        setupKeyboardObservers()
         applyTheme()
+
+        KeyboardListener.shared.add(delegate: self)
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
@@ -405,49 +407,6 @@ final class ChatViewController: UIViewController {
         return max(0, cv.contentSize.height - cv.contentOffset.y - cv.bounds.height)
     }
 
-    // MARK: - Keyboard
-
-    private func setupKeyboardObservers() {
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(keyboardWillChangeFrame(_:)),
-            name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
-    }
-
-    @objc private func keyboardWillChangeFrame(_ note: Notification) {
-        guard
-            let endFrame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect,
-            let duration = note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double,
-            let curveRaw = note.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt,
-            let window   = view.window
-        else { return }
-
-        let kbInView = view.convert(endFrame, from: window.screen.coordinateSpace)
-        let newKbH   = max(0, view.bounds.height - kbInView.origin.y)
-        guard newKbH != keyboardHeight else { return }
-        keyboardHeight = newKbH
-
-        let safe       = view.safeAreaInsets.bottom
-        let newConst   = newKbH > 0 ? -newKbH : -safe
-        let distBottom = collectionView.contentSize.height
-            - collectionView.contentOffset.y - collectionView.bounds.height
-
-        let updates = {
-            self.inputBarBottomConstraint.constant = newConst
-            self.view.layoutIfNeeded()
-            let off = self.collectionView.contentSize.height
-                    - self.collectionView.bounds.height - distBottom
-            if off > -self.collectionView.contentInset.top {
-                self.collectionView.contentOffset = CGPoint(x: 0, y: off)
-            }
-        }
-
-        if duration > 0 {
-            UIView.animate(withDuration: duration, delay: 0,
-                options: UIView.AnimationOptions(rawValue: curveRaw << 16).union(.allowUserInteraction),
-                animations: updates)
-        } else { updates() }
-    }
-
     // MARK: - Reply resolution
 
     /// Резолвит цитату сообщения из локального messageIndex.
@@ -461,6 +420,39 @@ final class ChatViewController: UIViewController {
         guard let id = message.reply?.replyToId else { return false }
         return messageIndex[id] != nil
     }
+}
+
+extension ChatViewController: KeyboardListenerDelegate {
+  func keyboardWillChangeFrame(info: KeyboardInfo) {
+    guard
+        let window   = view.window
+    else { return }
+
+
+    let kbInView = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
+    let newKbH   = max(0, view.bounds.height - kbInView.origin.y)
+    guard newKbH != keyboardHeight else { return }
+    keyboardHeight = newKbH
+
+    let safe       = view.safeAreaInsets.bottom
+    let newConst   = newKbH > 0 ? -newKbH : -safe
+    let distBottom = collectionView.contentSize.height
+        - collectionView.contentOffset.y - collectionView.bounds.height
+
+    let updates = {
+        self.inputBarBottomConstraint.constant = newConst
+        self.view.layoutIfNeeded()
+        let off = self.collectionView.contentSize.height
+                - self.collectionView.bounds.height - distBottom
+        if off > -self.collectionView.contentInset.top {
+            self.collectionView.contentOffset = CGPoint(x: 0, y: off)
+        }
+    }
+
+    if info.animationDuration > 0 {
+        UIView.animate(withDuration: info.animationDuration, animations: updates)
+    } else { updates() }
+  }
 }
 
 // MARK: - Public API
