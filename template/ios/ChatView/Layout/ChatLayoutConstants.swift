@@ -5,7 +5,7 @@
 
 import UIKit
 
-enum ChatLayoutConstants {
+enum ChatLayoutConstants {      
 
     // MARK: - Ячейка
 
@@ -56,18 +56,4 @@ enum ChatLayoutConstants {
 
     /// Вертикальный зазор между ячейками (minLineSpacing FlowLayout).
     static let lineSpacing: CGFloat         = 2
-
-    // MARK: - InputBar
-    // Fix #7: Ранее в InputBarView использовалась магическая константа 16
-    // (= inputBarVerticalPadding * 2) для расчёта суммарной высоты.
-    // Теперь это явная константа — изменение layout не сломает расчёт.
-
-    /// Верхний/нижний отступ textView внутри containerView InputBar.
-    static let inputBarVerticalPadding: CGFloat = 8
-    /// Высота панели ответа в InputBar.
-    static let inputBarReplyPanelHeight: CGFloat = 56
-    /// Минимальная высота textView в InputBar.
-    static let inputBarTextViewMinHeight: CGFloat = 36
-    /// Максимальная высота textView в InputBar.
-    static let inputBarTextViewMaxHeight: CGFloat = 120
 }

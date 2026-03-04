@@ -65,6 +65,25 @@ enum MessageContent {
     var hasImages: Bool { images != nil }
 }
 
+// MARK: - MessageContent: Equatable
+// Fix #12: Equatable позволяет DiffableDataSource точно определять изменения
+// без полного пересчёта snapshot.
+
+extension MessageContent: Equatable {
+    static func == (lhs: MessageContent, rhs: MessageContent) -> Bool {
+        switch (lhs, rhs) {
+        case (.text(let l), .text(let r)):
+            return l.body == r.body
+        case (.images(let l), .images(let r)):
+            return l.items.map(\.url) == r.items.map(\.url)
+        case (.mixed(let lt, let li), .mixed(let rt, let ri)):
+            return lt.body == rt.body && li.items.map(\.url) == ri.items.map(\.url)
+        default:
+            return false
+        }
+    }
+}
+
 // MARK: - ReplyPreviewData
 //
 // Хранит только replyToId. Актуальный контент цитаты резолвится в рантайме
@@ -111,6 +130,18 @@ struct ChatMessage: Identifiable {
     var hasText:    Bool                             { content.hasText }
     var hasImages:  Bool                             { content.hasImages }
     var replyToId:  String?                          { reply?.replyToId }
+}
+
+// MARK: - ChatMessage: Equatable
+// Fix #12: Используется в updateMessages для точного вычисления changedIDs
+// и позволяет избежать лишних reconfigureItems.
+
+extension ChatMessage: Equatable {
+    static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
+        lhs.id      == rhs.id      &&
+        lhs.status  == rhs.status  &&
+        lhs.content == rhs.content
+    }
 }
 
 // MARK: - MessageAction
@@ -208,6 +239,12 @@ struct DateHelper {
     private let groupParser: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
+    // Fix #9: weekdayFormatter создавался при каждом вызове sectionTitle.
+    // DateFormatter — один из самых дорогих объектов в Foundation,
+    // создание на main thread во время layout вызывает фризы.
+    private let weekdayFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "EEEE"; return f
+    }()
 
     func timeString(from date: Date) -> String { timeFormatter.string(from: date) }
 
@@ -217,7 +254,7 @@ struct DateHelper {
         if cal.isDateInToday(date)     { return "Сегодня" }
         if cal.isDateInYesterday(date) { return "Вчера" }
         if let d = cal.dateComponents([.day], from: date, to: Date()).day, d < 7 {
-            let wf = DateFormatter(); wf.dateFormat = "EEEE"; return wf.string(from: date)
+            return weekdayFormatter.string(from: date)
         }
         return sectionFormatter.string(from: date)
     }

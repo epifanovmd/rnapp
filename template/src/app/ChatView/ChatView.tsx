@@ -20,6 +20,21 @@ import {
   type ViewStyle,
 } from "react-native";
 
+export type {
+  NativeActionPressEventData as ActionPressEvent,
+  NativeAttachmentPressEventData as AttachmentPressEvent,
+  NativeChatAction as ChatAction,
+  NativeChatMessage as ChatMessage,
+  NativeChatImageItem as ImageItem,
+  NativeMessagePressEventData as MessagePressEvent,
+  NativeMessagesVisibleEventData as MessagesVisibleEvent,
+  NativeReachTopEventData as ReachTopEvent,
+  NativeReplyMessagePressEventData as ReplyMessagePressEvent,
+  NativeChatReplyRef as ReplyReference,
+  NativeScrollEventData as ScrollEvent,
+  NativeSendMessageEventData as SendMessageEvent,
+} from "../../../NativeChatViewSpec";
+
 // ─── Re-export native types as public API ─────────────────────────────────────
 // Consumers import everything from "ChatView" — no need to touch NativeChatViewSpec.
 import type {
@@ -133,6 +148,7 @@ function dispatchCommand(
     // fall through to Old Architecture
   }
 
+  // @ts-ignore
   const node = findNodeHandle(nativeRef.current);
 
   if (node) {

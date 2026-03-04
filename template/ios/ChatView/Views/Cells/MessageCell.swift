@@ -8,9 +8,12 @@ final class MessageCell: UICollectionViewCell {
 
     private let bubbleView = MessageBubbleView()
 
-    private var leadingConstraint:     NSLayoutConstraint?
-    private var trailingConstraint:    NSLayoutConstraint?
-    private var bubbleWidthConstraint: NSLayoutConstraint?
+    // Fix #3: Вместо создания нового NSLayoutConstraint при каждом configure
+    // переиспользуем одни и те же объекты, меняя только .constant и .isActive.
+    // Это устраняет аллокацию + layout invalidation при каждом reuse.
+    private var leadingConstraint:     NSLayoutConstraint!
+    private var trailingConstraint:    NSLayoutConstraint!
+    private var bubbleWidthConstraint: NSLayoutConstraint!
 
     var onReplyTap: ((String) -> Void)?
 
@@ -32,7 +35,13 @@ final class MessageCell: UICollectionViewCell {
         trailingConstraint = bubbleView.trailingAnchor.constraint(
             equalTo: contentView.trailingAnchor, constant: -m)
 
+        // Fix #3: bubbleWidthConstraint создаётся один раз с placeholder-значением.
+        // В configure меняется только .constant — без dealloc/alloc.
+        bubbleWidthConstraint = bubbleView.widthAnchor.constraint(equalToConstant: 200)
+        bubbleWidthConstraint.isActive = true
+
         NSLayoutConstraint.activate([top, bottom])
+        // leadingConstraint и trailingConstraint активируются в configure
     }
     required init?(coder: NSCoder) { fatalError() }
 
@@ -47,13 +56,12 @@ final class MessageCell: UICollectionViewCell {
         let exactBubbleW = MessageSizeCalculator.bubbleWidth(for: message, hasReply: hasReply,
                                                              maxWidth: maxBubble)
 
-        leadingConstraint?.isActive     = false
-        trailingConstraint?.isActive    = false
-        bubbleWidthConstraint?.isActive = false
+        // Fix #3: меняем только constant — без создания нового constraint
+        bubbleWidthConstraint.constant = exactBubbleW
 
-        bubbleWidthConstraint = bubbleView.widthAnchor.constraint(equalToConstant: exactBubbleW)
-        bubbleWidthConstraint?.isActive = true
-        (message.isMine ? trailingConstraint : leadingConstraint)?.isActive = true
+        // Управляем стороной выравнивания: деактивируем обе, активируем нужную
+        leadingConstraint.isActive  = !message.isMine
+        trailingConstraint.isActive = message.isMine
 
         bubbleView.configure(with: message, resolvedReply: resolvedReply)
         bubbleView.applyLayout(bubbleWidth: exactBubbleW)
@@ -100,5 +108,8 @@ final class MessageCell: UICollectionViewCell {
         super.prepareForReuse()
         bubbleView.layer.removeAllAnimations()
         onReplyTap = nil
+        // Сбрасываем оба side-constraints — configure установит нужный
+        leadingConstraint.isActive  = false
+        trailingConstraint.isActive = false
     }
 }

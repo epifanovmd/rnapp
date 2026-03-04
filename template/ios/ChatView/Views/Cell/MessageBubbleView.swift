@@ -1,7 +1,8 @@
 // MARK: - MessageBubbleView.swift
-// Компоновка пузыря: цитата (опционально) → контент → footer.
-// Конкретный рендерер контента создаётся через фабрику и заменяется
-// только при смене типа — при переиспользовании ячейки нет лишних alloc.
+//
+// Компоновка пузыря: [цитата] → [контент] → [footer].
+// contentView создаётся через фабрику и заменяется только при смене типа —
+// при переиспользовании ячейки нет лишних alloc.
 
 import UIKit
 
@@ -26,16 +27,24 @@ final class MessageBubbleView: UIView {
     }()
     private let footerStack: UIStackView = {
         let sv = UIStackView()
-        sv.axis = .horizontal; sv.spacing = ChatLayoutConstants.footerInternalSpacing
-        sv.alignment = .center; sv.translatesAutoresizingMaskIntoConstraints = false
+        sv.axis      = .horizontal
+        sv.spacing   = ChatLayoutConstants.footerInternalSpacing
+        sv.alignment = .center
+        sv.translatesAutoresizingMaskIntoConstraints = false
         return sv
     }()
     private let mainStack: UIStackView = {
         let sv = UIStackView()
-        sv.axis = .vertical; sv.spacing = ChatLayoutConstants.stackSpacing
+        sv.axis    = .vertical
+        sv.spacing = ChatLayoutConstants.stackSpacing
         sv.translatesAutoresizingMaskIntoConstraints = false
         return sv
     }()
+
+    // MARK: - Bubble color (нужен ячейке для highlight → restore)
+
+    /// Актуальный цвет фона пузыря. Читается из MessageCell.highlight().
+    var bubbleColor: UIColor? { backgroundColor }
 
     // MARK: - Init
 
@@ -44,37 +53,28 @@ final class MessageBubbleView: UIView {
         layer.cornerRadius = ChatLayoutConstants.bubbleCornerRadius
         clipsToBounds = true
 
-        statusView.widthAnchor.constraint(
-            equalToConstant: ChatLayoutConstants.statusIconWidth).isActive = true
+        statusView.widthAnchor.constraint(equalToConstant: ChatLayoutConstants.statusIconWidth).isActive  = true
         statusView.heightAnchor.constraint(equalToConstant: 12).isActive = true
 
         footerStack.addArrangedSubview(timeLabel)
         footerStack.addArrangedSubview(statusView)
 
         replyPreview.translatesAutoresizingMaskIntoConstraints = false
-        // Fix #15: replyPreview всегда находится на индексе 0.
-        // contentView вставляется на индекс 1 через insertArrangedSubview(at:),
-        // чтобы порядок не зависел от момента первого configure и будущих элементов.
         mainStack.addArrangedSubview(replyPreview)
-        // contentView добавляется динамически в configure(with:resolvedReply:)
 
         addSubview(mainStack)
         addSubview(footerStack)
 
         let C = ChatLayoutConstants.self
+        let hp = C.bubbleHorizontalPad / 2
         NSLayoutConstraint.activate([
             mainStack.topAnchor.constraint(equalTo: topAnchor, constant: C.bubbleTopPad),
-            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor,
-                constant: C.bubbleHorizontalPad / 2),
-            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor,
-                constant: -C.bubbleHorizontalPad / 2),
+            mainStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: hp),
+            mainStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -hp),
 
-            footerStack.trailingAnchor.constraint(equalTo: trailingAnchor,
-                constant: -C.footerTrailingPad),
-            footerStack.bottomAnchor.constraint(equalTo: bottomAnchor,
-                constant: -C.bubbleBottomPad),
-            footerStack.topAnchor.constraint(equalTo: mainStack.bottomAnchor,
-                constant: C.footerTopSpacing),
+            footerStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -C.footerTrailingPad),
+            footerStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -C.bubbleBottomPad),
+            footerStack.topAnchor.constraint(equalTo: mainStack.bottomAnchor, constant: C.footerTopSpacing),
         ])
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -87,10 +87,9 @@ final class MessageBubbleView: UIView {
         backgroundColor = isMine
             ? UIColor(red: 0.24, green: 0.62, blue: 0.98, alpha: 1)
             : UIColor(white: 0.94, alpha: 1)
-        timeLabel.textColor = isMine
-            ? UIColor.white.withAlphaComponent(0.75) : .secondaryLabel
+        timeLabel.textColor = isMine ? UIColor.white.withAlphaComponent(0.75) : .secondaryLabel
 
-        // Цитата — только если оригинал существует
+        // Цитата
         switch resolvedReply {
         case .found(let snap):
             replyPreview.isHidden = false
@@ -104,10 +103,7 @@ final class MessageBubbleView: UIView {
             contentView?.removeFromSuperview()
             let cv = MessageContentViewFactory.make(for: message.content)
             (cv as UIView).translatesAutoresizingMaskIntoConstraints = false
-            // Fix #15: явно вставляем на позицию 1 (после replyPreview на 0).
-            // addArrangedSubview добавлял бы в конец — при наличии будущих
-            // элементов стека порядок мог бы нарушиться.
-            mainStack.insertArrangedSubview(cv as UIView, at: 1)
+            mainStack.addArrangedSubview(cv as UIView)
             contentView = cv
         }
         contentView?.configure(content: message.content, isMine: isMine)
@@ -118,5 +114,10 @@ final class MessageBubbleView: UIView {
 
     func applyLayout(bubbleWidth: CGFloat) {
         contentView?.applyLayout(bubbleWidth: bubbleWidth)
+    }
+
+    /// Проксирует cancelAsync() к contentView (загрузка изображений).
+    func cancelAsync() {
+        contentView?.cancelAsync()
     }
 }

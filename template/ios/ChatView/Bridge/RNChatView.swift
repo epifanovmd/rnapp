@@ -31,26 +31,35 @@ import React
         didSet { chatViewController?.topThreshold = CGFloat(topThreshold.doubleValue) }
     }
 
-    @objc var isLoading: NSNumber = 0 {
-        didSet { chatViewController?.isLoading = isLoading.boolValue }
+    // Fix #13: Используем Bool вместо NSNumber для совместимости с New Architecture codegen.
+    // При Old Architecture React Native передаёт NSNumber(bool:), при New — BOOL напрямую.
+    // Явный Bool устраняет потенциальный крэш при миграции на Fabric.
+    @objc var isLoading: Bool = false {
+        didSet {
+            chatViewController?.isLoading = isLoading
+            // Fix #5: Сбрасываем waitingForNewMessages когда загрузка завершена.
+            // Без этого, если JS не вернул новые сообщения (ошибка / конец истории),
+            // флаг оставался true навсегда и пользователь не мог подгрузить историю.
+            if !isLoading {
+                chatViewController?.resetLoadingState()
+            }
+        }
     }
 
     @objc var replyMessage: NSDictionary? {
         didSet { updateReplyMessage() }
     }
 
-    /// When set, the chat will scroll to this message on initial load instead
-    /// of scrolling to the bottom. Only consumed once.
     @objc var initialScrollId: NSString? {
         didSet {
             pendingInitialScrollMessageId = initialScrollId as String?
         }
     }
 
-    /// Distance from bottom (pts) at which the scroll-to-bottom FAB becomes visible.
     @objc var scrollToBottomThreshold: NSNumber = 150 {
         didSet {
-            chatViewController?.scrollToBottomThreshold = CGFloat(scrollToBottomThreshold.doubleValue)
+            chatViewController?.scrollToBottomThreshold =
+                CGFloat(scrollToBottomThreshold.doubleValue)
         }
     }
 
@@ -59,9 +68,7 @@ import React
     private weak var chatViewController: ChatViewController?
     private var hostController: UIViewController?
 
-    /// Message ID to scroll to on first data load. Cleared after first use.
     private var pendingInitialScrollMessageId: String?
-    /// Whether the initial scroll has already been performed.
     private var initialScrollDone = false
 
     // MARK: - Init
@@ -79,6 +86,12 @@ import React
     }
 
     // MARK: - Setup
+    //
+    // Fix #6: findParentViewController вынесен из init — в момент init
+    // responder chain в React Native ещё не установлен, и поиск ViewController
+    // может вернуть nil или неверный объект.
+    // Теперь ChatViewController добавляется как child только в didMoveToWindow,
+    // когда иерархия view гарантированно стабилизирована.
 
     private func setupChatView() {
         let vc = ChatViewController()
@@ -89,17 +102,14 @@ import React
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         vc.view.backgroundColor = .clear
         addSubview(vc.view)
-
-        if let parentVC = findParentViewController() {
-            parentVC.addChild(vc)
-            vc.didMove(toParent: parentVC)
-            hostController = parentVC
-        }
+        // Добавление как child откладывается до didMoveToWindow
     }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        guard let vc = chatViewController, vc.parent == nil else { return }
+        guard window != nil, let vc = chatViewController else { return }
+        // Добавляем как child только один раз
+        guard vc.parent == nil else { return }
         if let parentVC = findParentViewController() {
             parentVC.addChild(vc)
             vc.didMove(toParent: parentVC)
@@ -116,16 +126,9 @@ import React
 
         chatVC.updateMessages(parsed)
 
-        // Выполняем начальный скролл ровно один раз — после первого батча сообщений.
         if !initialScrollDone && !parsed.isEmpty {
             initialScrollDone = true
 
-            // Включаем защиту: prepend-компенсация offset не будет работать
-            // пока мы не завершим начальный скролл. Это решает кейс когда JS
-            // одновременно грузит начальные сообщения и историю — без защиты
-            // prepend сдвигал бы offset до того как мы успевали прокрутить.
-            // pendingScrollMessageId позволяет prepend-ветке восстановить позицию
-            // на целевом сообщении если контент вырос сверху до момента подсветки.
             if let targetId = pendingInitialScrollMessageId {
                 chatVC.isInitialScrollProtected = true
                 chatVC.pendingScrollMessageId   = targetId
@@ -136,10 +139,8 @@ import React
     }
 
     private func performInitialScroll(messages: [ChatMessage], in chatVC: ChatViewController) {
-        // Force layout pass so contentSize is correct before scrolling.
         chatVC.view.layoutIfNeeded()
 
-        // One tick to let the diffable data source finish cell sizing.
         DispatchQueue.main.async { [weak self, weak chatVC] in
             guard let self, let chatVC else { return }
             chatVC.view.layoutIfNeeded()
@@ -152,13 +153,10 @@ import React
                     animated: false,
                     highlight: true
                 )
-                // Снимаем защиту и цель после скролла — теперь prepend-компенсация
-                // работает в штатном режиме.
                 chatVC.isInitialScrollProtected = false
                 chatVC.pendingScrollMessageId   = nil
             } else {
                 chatVC.scrollToBottom(animated: false)
-                // Защита не включалась (нет targetId), ничего снимать не нужно.
             }
         }
     }
@@ -182,6 +180,8 @@ import React
 
     // MARK: - Helpers
 
+    // Fix #6: вызывается только из didMoveToWindow, когда window != nil
+    // и responder chain гарантированно установлен.
     private func findParentViewController() -> UIViewController? {
         var responder: UIResponder? = self
         while let r = responder {
@@ -226,11 +226,13 @@ extension RNChatView: ChatViewControllerDelegate {
         onScroll?(["x": offset.x, "y": offset.y])
     }
 
-    func chatViewController(_ controller: ChatViewController, didReachTopThreshold threshold: CGFloat) {
+    func chatViewController(_ controller: ChatViewController,
+                            didReachTopThreshold threshold: CGFloat) {
         onReachTop?(["distanceFromTop": threshold])
     }
 
-    func chatViewController(_ controller: ChatViewController, messagesDidAppear messageIDs: [String]) {
+    func chatViewController(_ controller: ChatViewController,
+                            messagesDidAppear messageIDs: [String]) {
         onMessagesVisible?(["messageIds": messageIDs])
     }
 
@@ -238,11 +240,14 @@ extension RNChatView: ChatViewControllerDelegate {
         onMessagePress?(["messageId": message.id, "message": messagePayload(from: message)])
     }
 
-    func chatViewController(_ controller: ChatViewController, didSelectAction action: MessageAction, for message: ChatMessage) {
-        onActionPress?(["actionId": action.id, "messageId": message.id, "message": messagePayload(from: message)])
+    func chatViewController(_ controller: ChatViewController, didSelectAction action: MessageAction,
+                            for message: ChatMessage) {
+        onActionPress?(["actionId": action.id, "messageId": message.id,
+                        "message": messagePayload(from: message)])
     }
 
-    func chatViewController(_ controller: ChatViewController, didSendMessage text: String, replyToId: String?) {
+    func chatViewController(_ controller: ChatViewController, didSendMessage text: String,
+                            replyToId: String?) {
         var payload: [String: Any] = ["text": text]
         if let rid = replyToId { payload["replyToId"] = rid }
         onSendMessage?(payload)

@@ -270,11 +270,10 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 ];
 
 // ─── Генератор старых сообщений для подгрузки истории ────────────────────────
-// uid() вызывается в runtime, а не при объявлении модуля — без side-effects.
 
 const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   const base = beforeTimestamp - day(7);
-  const photoId = uid(); // один вызов, используется в URL
+  const photoId = uid();
 
   return [
     {
@@ -343,13 +342,39 @@ const ChatScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
 
-  // Храним активные таймеры статуса, чтобы отменить их при unmount
-  const statusTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Fix #10: messagesRef держит актуальный список без пересоздания callback.
+  // handleSendMessage имеет пустые deps — нет stale closure при быстрой отправке.
+  const messagesRef = useRef<ChatMessage[]>(messages);
 
   useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Fix #11: Вместо накапливающегося массива используем Set — удаляем таймер
+  // сразу после его исполнения, массив не растёт со временем.
+  const activeTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+
+  const scheduleTimer = useCallback(
+    (fn: () => void, delay: number): ReturnType<typeof setTimeout> => {
+      const id = setTimeout(() => {
+        activeTimers.current.delete(id); // Fix #11: удаляем после исполнения
+        fn();
+      }, delay);
+
+      activeTimers.current.add(id);
+
+      return id;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const timers = activeTimers.current;
+
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      statusTimers.current?.forEach(clearTimeout);
+      // Отменяем все оставшиеся таймеры при unmount
+      timers.forEach(clearTimeout);
+      timers.clear();
     };
   }, []);
 
@@ -357,10 +382,11 @@ const ChatScreen: React.FC = () => {
 
   const handleSendMessage = useCallback(
     ({ text, replyToId }: SendMessageEvent) => {
-      // Собираем ReplyReference из живого списка сообщений
+      // Fix #10: читаем из ref — актуальный список без stale closure.
+      // callback не пересоздаётся при каждом новом сообщении.
       const replyTo: ReplyReference | undefined = replyToId
         ? (() => {
-            const src = messages.find(m => m.id === replyToId);
+            const src = messagesRef.current.find(m => m.id === replyToId);
 
             if (!src) return undefined;
 
@@ -385,14 +411,14 @@ const ChatScreen: React.FC = () => {
       setMessages(prev => [...prev, newMsg]);
       setReplyMessage(null);
 
-      // Симуляция подтверждений доставки; таймеры отменяются при unmount
-      const t1 = setTimeout(() => {
+      // Fix #11: используем scheduleTimer — таймер удаляется из Set после исполнения
+      scheduleTimer(() => {
         setMessages(prev =>
           prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
         );
       }, 800);
 
-      const t2 = setTimeout(() => {
+      scheduleTimer(() => {
         setMessages(prev =>
           prev.map(m =>
             m.id === newMsg.id ? { ...m, status: "delivered" } : m,
@@ -400,27 +426,23 @@ const ChatScreen: React.FC = () => {
         );
       }, 2500);
 
-      const t3 = setTimeout(() => {
+      scheduleTimer(() => {
         chatRef.current?.scrollToBottom();
       }, 50);
-
-      statusTimers.current.push(t1, t2, t3);
     },
-    [messages],
+    // Fix #10: пустые deps — messages читается из ref, не из closure
+    [scheduleTimer],
   );
 
   // ─── Подгрузка истории ────────────────────────────────────────────────────
-  // Симулируем реалистичную задержку сети (800 мс).
 
   const handleReachTop = useCallback(
-    ({ distanceFromTop }: ReachTopEvent) => {
-      // Дополнительный guard: нативный side уже throttle-ит вызов,
-      // но двойная защита не помешает
+    ({ distanceFromTop: _ }: ReachTopEvent) => {
       if (isLoading) return;
 
       setIsLoading(true);
 
-      const t = setTimeout(() => {
+      scheduleTimer(() => {
         setMessages(prev => {
           const oldest = prev.reduce(
             (mn, m) => (m.timestamp < mn ? m.timestamp : mn),
@@ -430,11 +452,9 @@ const ChatScreen: React.FC = () => {
           return [...makeOlderBatch(oldest), ...prev];
         });
         setIsLoading(false);
-      }, 0);
-
-      statusTimers.current.push(t);
+      }, 300);
     },
-    [isLoading],
+    [isLoading, scheduleTimer],
   );
 
   // ─── Нажатие на цитату → прокрутка к оригиналу ───────────────────────────
@@ -490,7 +510,6 @@ const ChatScreen: React.FC = () => {
   }, []);
 
   // ─── Видимость входящих сообщений (квитанции о прочтении) ────────────────
-  // Нативная сторона фильтрует isMine=true — сюда приходят только чужие сообщения.
 
   const handleMessagesVisible = useCallback(
     ({ messageIds }: MessagesVisibleEvent) => {
@@ -521,7 +540,7 @@ const ChatScreen: React.FC = () => {
       actions={CHAT_ACTIONS}
       topThreshold={200}
       scrollToBottomThreshold={150}
-      initialScrollId={"6"}
+      // initialScrollId={"6"}
       isLoading={isLoading}
       replyMessage={replyMessage}
       onSendMessage={handleSendMessage}

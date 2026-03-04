@@ -127,12 +127,8 @@ final class InputBarView: UIView {
     }()
 
     private var textViewHeightConstraint: NSLayoutConstraint!
-
-    // Fix #7: используем константы из ChatLayoutConstants вместо магических чисел.
-    private let vPad    = ChatLayoutConstants.inputBarVerticalPadding      // 8
-    private let maxH    = ChatLayoutConstants.inputBarTextViewMaxHeight     // 120
-    private let minH    = ChatLayoutConstants.inputBarTextViewMinHeight     // 36
-    private let replyH  = ChatLayoutConstants.inputBarReplyPanelHeight      // 56
+    private let maxHeight: CGFloat = 120
+    private let minHeight: CGFloat = 36
 
     /// Extends the containerView background color down into the safe area zone,
     /// so there's no transparent gap between the input bar and the screen edge.
@@ -206,8 +202,9 @@ final class InputBarView: UIView {
         containerView.addSubview(sendButton)
         textView.addSubview(placeholderLabel)
 
-        textViewHeightConstraint = textView.heightAnchor.constraint(equalToConstant: minH)
+        textViewHeightConstraint = textView.heightAnchor.constraint(equalToConstant: minHeight)
 
+        // Backdrop fills the gap between containerView bottom and screen edge (safe area zone).
         insertSubview(bottomBackdropView, belowSubview: containerView)
 
         NSLayoutConstraint.activate([
@@ -216,6 +213,7 @@ final class InputBarView: UIView {
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
+            // Backdrop: same horizontal, starts at containerView bottom, tall enough to cover any safe area.
             bottomBackdropView.topAnchor.constraint(equalTo: containerView.bottomAnchor),
             bottomBackdropView.leadingAnchor.constraint(equalTo: leadingAnchor),
             bottomBackdropView.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -231,10 +229,10 @@ final class InputBarView: UIView {
             attachButton.widthAnchor.constraint(equalToConstant: 36),
             attachButton.heightAnchor.constraint(equalToConstant: 36),
 
-            textView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: vPad),
+            textView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             textView.leadingAnchor.constraint(equalTo: attachButton.trailingAnchor, constant: 4),
             textView.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor, constant: -8),
-            textView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -vPad),
+            textView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
             textViewHeightConstraint,
 
             sendButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
@@ -248,6 +246,7 @@ final class InputBarView: UIView {
         ])
     }
 
+    // Keep backdrop color in sync with containerView (supports dark mode changes).
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         bottomBackdropView.backgroundColor = containerView.backgroundColor
@@ -298,7 +297,7 @@ final class InputBarView: UIView {
     private func updateReplyPreview() {
         if let msg = replyToMessage {
             replyPanel.isHidden = false
-            replyPanelHeightConstraint.constant = replyH
+            replyPanelHeightConstraint.constant = 56
             replySenderLabel.text = msg.senderName ?? (msg.isMine ? "You" : "Message")
             if let t = msg.text, !t.isEmpty {
                 replyTextLabel.text = t
@@ -312,10 +311,7 @@ final class InputBarView: UIView {
             replyPanelHeightConstraint.constant = 0
         }
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
-        // Fix #7: используем именованные константы вместо магического числа 16.
-        // inputBarVerticalPadding * 2 = top + bottom отступы textView в containerView.
-        let replyPanelH: CGFloat = replyToMessage != nil ? replyH : 0
-        let total = textViewHeightConstraint.constant + vPad * 2 + replyPanelH
+        let total = textViewHeightConstraint.constant + 16 + (replyToMessage != nil ? 56 : 0)
         delegate?.inputBar(self, didChangeHeight: total)
     }
 
@@ -334,16 +330,14 @@ final class InputBarView: UIView {
     }
 
     private func updateHeight() {
-        let size = textView.sizeThatFits(CGSize(width: textView.bounds.width,
-                                               height: .greatestFiniteMagnitude))
-        let newHeight = min(max(size.height, minH), maxH)
+        let size = textView.sizeThatFits(CGSize(width: textView.bounds.width, height: .greatestFiniteMagnitude))
+        let newHeight = min(max(size.height, minHeight), maxHeight)
         guard textViewHeightConstraint.constant != newHeight else { return }
         textViewHeightConstraint.constant = newHeight
-        textView.isScrollEnabled = newHeight >= maxH
+        textView.isScrollEnabled = newHeight >= maxHeight
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
-        // Fix #7: именованные константы
-        let replyPanelH: CGFloat = replyToMessage != nil ? replyH : 0
-        delegate?.inputBar(self, didChangeHeight: newHeight + vPad * 2 + replyPanelH)
+        let replyH: CGFloat = replyToMessage != nil ? 56 : 0
+        delegate?.inputBar(self, didChangeHeight: newHeight + 16 + replyH)
     }
 
     func clearText() {
@@ -364,8 +358,7 @@ extension InputBarView: UITextViewDelegate {
         updateHeight()
     }
 
-    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange,
-                  replacementText text: String) -> Bool {
+    func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
         if text == "\n" {
             let trimmed = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { sendTapped(); return false }
