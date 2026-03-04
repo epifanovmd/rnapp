@@ -129,6 +129,6 @@
   "codegenConfig": {
     "name": "RNChatViewSpec",
     "type": "components",
-    "jsSrcsDir": "src"
+    "jsSrcsDir": "."
   }
 }

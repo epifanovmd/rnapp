@@ -33,7 +33,7 @@ export type {
   NativeChatReplyRef as ReplyReference,
   NativeScrollEventData as ScrollEvent,
   NativeSendMessageEventData as SendMessageEvent,
-} from "../../../NativeChatViewSpec";
+} from "../../NativeChatViewSpec";
 
 // ─── Re-export native types as public API ─────────────────────────────────────
 // Consumers import everything from "ChatView" — no need to touch NativeChatViewSpec.
@@ -48,7 +48,7 @@ import type {
   NativeReplyMessagePressEventData,
   NativeScrollEventData,
   NativeSendMessageEventData,
-} from "../../../NativeChatViewSpec";
+} from "../../NativeChatViewSpec";
 
 // ─── Scroll position ──────────────────────────────────────────────────────────
 
@@ -119,7 +119,7 @@ const COMPONENT_NAME = "RNChatView";
 // Try New Architecture first (codegen spec), fall back to Old Architecture.
 const NativeChatView = (() => {
   try {
-    return require("./NativeChatViewSpec").default;
+    return require("../../NativeChatViewSpec").default;
   } catch {
     return requireNativeComponent(COMPONENT_NAME);
   }
@@ -136,7 +136,7 @@ function dispatchCommand(
   if (Platform.OS !== "ios") return;
 
   try {
-    const { Commands } = require("./NativeChatViewSpec");
+    const { Commands } = require("../../NativeChatViewSpec");
 
     if (Commands?.[commandName] && nativeRef.current) {
       // New Architecture: Commands.scrollToBottom(ref, ...args)

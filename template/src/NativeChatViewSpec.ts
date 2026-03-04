@@ -49,19 +49,25 @@ export type NativeChatAction = {
 };
 
 // ─── Event payloads ───────────────────────────────────────────────────────────
+// FIX: Все поля в событиях должны быть примитивами (string, number, boolean)
+// или массивами/объектами этих примитивов
 
 export type NativeScrollEventData = { x: Double; y: Double };
 export type NativeReachTopEventData = { distanceFromTop: Double };
 export type NativeMessagesVisibleEventData = { messageIds: string[] };
+
+// FIX: Упрощаем - передаем только ID вместо всего объекта
 export type NativeMessagePressEventData = {
   messageId: string;
-  message: NativeChatMessage;
 };
+
+// FIX: Упрощаем - передаем только ID вместо всего объекта
 export type NativeActionPressEventData = {
   actionId: string;
   messageId: string;
-  message: NativeChatMessage;
 };
+
+// FIX: Это нормально - только примитивы
 export type NativeSendMessageEventData = { text: string; replyToId?: string };
 export type NativeAttachmentPressEventData = Record<string, never>;
 export type NativeReplyMessagePressEventData = { messageId: string };
