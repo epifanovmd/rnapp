@@ -124,6 +124,17 @@ final class ChatViewController: UIViewController {
     private let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
     private var pendingHighlightId: String?
 
+    // MARK: Private — messagesDidAppear debounce
+    // Накапливаем id входящих сообщений и отправляем пачкой после паузы в скролле.
+    // Это исключает спам делегата при быстром пролистывании непрочитанных сообщений.
+
+    /// id, ещё не переданные делегату (накапливаются в течение debounce-окна).
+    private var pendingVisibleIDs: Set<String> = []
+    /// Отложенная задача отправки пачки; отменяется при каждом новом id.
+    private var visibilityDebounceTask: DispatchWorkItem?
+    /// Окно ожидания перед отправкой пачки.
+    private let visibilityDebounceInterval: TimeInterval = 0.3
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -734,6 +745,29 @@ private extension ChatViewController {
         return nil
     }
 
+    // MARK: Debounce flush
+
+    /// Добавляет id в pending-пачку и перезапускает debounce-таймер.
+    /// Когда скролл останавливается, накопленная пачка уходит делегату одним вызовом.
+    private func scheduleVisibilityFlush(id: String) {
+        pendingVisibleIDs.insert(id)
+
+        // Отменяем предыдущую задачу — "сдвигаем" дедлайн при каждом новом id.
+        visibilityDebounceTask?.cancel()
+
+        let task = DispatchWorkItem { [weak self] in
+            guard let self, !pendingVisibleIDs.isEmpty else { return }
+            let batch = Array(pendingVisibleIDs)
+            pendingVisibleIDs.removeAll()
+            delegate?.chatViewController(self, messagesDidAppear: batch)
+        }
+        visibilityDebounceTask = task
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + visibilityDebounceInterval,
+            execute: task
+        )
+    }
+
     // MARK: Context menu
 
     func makeContextMenu(for message: ChatMessage) -> UIMenu {
@@ -781,9 +815,10 @@ extension ChatViewController: UICollectionViewDelegate {
         guard let id  = dataSource.itemIdentifier(for: ip),
               let msg = messageIndex[id],
               !msg.isMine else { return }
-        if visibleMessageIDs.insert(id).inserted {
-            delegate?.chatViewController(self, messagesDidAppear: [id])
-        }
+        // Новый id — добавляем в глобальный seen-сет и в текущую pending-пачку.
+        // Seen-сет предотвращает повторную отправку при повторном появлении ячейки.
+        guard visibleMessageIDs.insert(id).inserted else { return }
+        scheduleVisibilityFlush(id: id)
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
