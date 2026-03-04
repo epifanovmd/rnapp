@@ -9,10 +9,8 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatViewController(_ vc: ChatViewController, didReachTopThreshold threshold: CGFloat)
     func chatViewController(_ vc: ChatViewController, messagesDidAppear messageIDs: [String])
     func chatViewController(_ vc: ChatViewController, didTapMessage message: ChatMessage)
-    func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction,
-                            for message: ChatMessage)
-    func chatViewController(_ vc: ChatViewController, didSendMessage text: String,
-                            replyToId: String?)
+    func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction, for message: ChatMessage)
+    func chatViewController(_ vc: ChatViewController, didSendMessage text: String, replyToId: String?)
     func chatViewController(_ vc: ChatViewController, didTapReply replyId: String)
     func chatViewControllerDidTapAttachment(_ vc: ChatViewController)
 }
@@ -99,13 +97,7 @@ final class ChatViewController: UIViewController {
     private var isProgrammaticScroll           = false
     private var visibleMessageIDs: Set<String> = []
     private var replyMessage: ChatMessage? { didSet { inputBar?.setReplyMessage(replyMessage) } }
-
-    // Fix #8: Хэш последнего buildSections — позволяет пропустить перестройку
-    // секций если данные не изменились (например, только статус одного сообщения).
     private var lastSectionsInputHash: Int = 0
-
-    // Fix #14: Троттлинг onScroll — 30 fps достаточно для JS-стороны.
-    // FAB и topThreshold обновляются без троттлинга (они нативные).
     private var lastScrollEventTime: CFTimeInterval = 0
     private let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
 
@@ -399,8 +391,6 @@ final class ChatViewController: UIViewController {
             sections     = newSections
             messageIndex = newIndex
 
-            // Fix #4: прогреваем кэш для новых сообщений в фоне перед apply,
-            // чтобы sizeForItemAt не вычислял boundingRect на main thread.
             warmCache(for: messages, width: collectionView.bounds.width)
 
             CATransaction.begin()
@@ -447,18 +437,13 @@ final class ChatViewController: UIViewController {
             // ── Добавление ────────────────────────────────────────────────────
             sections     = newSections
             messageIndex = newIndex
-            // Fix #4: прогреваем кэш для новых сообщений
+
             warmCache(for: messages, width: collectionView.bounds.width)
             dataSource.apply(buildSnapshot(), animatingDifferences: true) { [weak self] in
                 self?.scrollToBottomIfNearBottom()
             }
 
         } else {
-            // ── Обновление на месте (статус, текст) ───────────────────────────
-            //
-            // Fix #2: вместо reconfigureItems(snap.itemIdentifiers) — пересчёт ВСЕХ ячеек —
-            // вычисляем только реально изменившиеся ID через Equatable (ChatMessage: Equatable).
-            // При смене статуса одного сообщения перерисовывается только оно.
             let changedIDs = messages.compactMap { msg -> String? in
                 guard let old = messageIndex[msg.id] else { return msg.id }
                 return old == msg ? nil : msg.id
@@ -480,19 +465,11 @@ final class ChatViewController: UIViewController {
         lastKnownMessageCount = newCount
     }
 
-    // Fix #5: публичный метод сброса флага ожидания.
-    // Вызывается из RNChatView когда isLoading становится false —
-    // гарантирует что после ошибки сети пользователь может повторно
-    // скролльнуть к верху и инициировать новую загрузку истории.
     func resetLoadingState() {
         waitingForNewMessages = false
     }
 
     // MARK: - Cache warmup
-    //
-    // Fix #4: NSString.boundingRect дорого вызывать на main thread в sizeForItemAt.
-    // Прогреваем кэш для незакэшированных сообщений в фоновом потоке.
-    // MessageSizeCache thread-safe (readers-writer lock).
 
     private func warmCache(for messages: [ChatMessage], width: CGFloat) {
         guard width > 0 else { return }
@@ -525,9 +502,6 @@ final class ChatViewController: UIViewController {
         scrollToBottom(animated: true)
     }
 
-    // Fix #8: buildSections пересоздавала весь словарь при каждом updateMessages,
-    // включая простые обновления статуса. Теперь вычисляем хэш входных данных
-    // и пропускаем перестройку если ничего не изменилось.
     private func buildSections(from messages: [ChatMessage]) -> [MessageSection] {
         // Хэш: id + status + groupDate — факторы влияющие на секционирование
         let newHash = messages.reduce(into: 0) { h, m in
@@ -689,9 +663,6 @@ extension ChatViewController: UICollectionViewDelegate {
 
         guard !isProgrammaticScroll else { return }
 
-        // Fix #14: Троттлинг onScroll — JS bridge дорогой.
-        // FAB и topThreshold обновляем на каждый кадр (они нативные),
-        // делегат вызываем не чаще 30 fps.
         let now = CACurrentMediaTime()
         if now - lastScrollEventTime >= scrollThrottleInterval {
             lastScrollEventTime = now

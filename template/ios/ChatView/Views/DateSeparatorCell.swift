@@ -45,5 +45,3 @@ final class DateSeparatorView1: UICollectionReusableView {
         label.text = dateString
     }
 }
-
-

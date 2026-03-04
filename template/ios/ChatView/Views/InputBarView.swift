@@ -248,11 +248,6 @@ final class InputBarView: UIView {
         ])
     }
 
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        bottomBackdropView.backgroundColor = containerView.backgroundColor
-    }
-
     override func layoutSubviews() {
         super.layoutSubviews()
         bottomBackdropView.backgroundColor = containerView.backgroundColor
@@ -299,21 +294,20 @@ final class InputBarView: UIView {
         if let msg = replyToMessage {
             replyPanel.isHidden = false
             replyPanelHeightConstraint.constant = replyH
-            replySenderLabel.text = msg.senderName ?? (msg.isMine ? "You" : "Message")
+            replySenderLabel.text = msg.senderName ?? (msg.isMine ? "Вы" : "Сообщение")
             if let t = msg.text, !t.isEmpty {
                 replyTextLabel.text = t
             } else if msg.hasImages {
-                replyTextLabel.text = "🖼 Photo"
+                replyTextLabel.text = "🖼 Фото"
             } else {
-                replyTextLabel.text = "Message"
+                replyTextLabel.text = "Сообщение"
             }
         } else {
             replyPanel.isHidden = true
             replyPanelHeightConstraint.constant = 0
         }
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
-        // Fix #7: используем именованные константы вместо магического числа 16.
-        // inputBarVerticalPadding * 2 = top + bottom отступы textView в containerView.
+
         let replyPanelH: CGFloat = replyToMessage != nil ? replyH : 0
         let total = textViewHeightConstraint.constant + vPad * 2 + replyPanelH
         delegate?.inputBar(self, didChangeHeight: total)
@@ -341,7 +335,7 @@ final class InputBarView: UIView {
         textViewHeightConstraint.constant = newHeight
         textView.isScrollEnabled = newHeight >= maxH
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
-        // Fix #7: именованные константы
+
         let replyPanelH: CGFloat = replyToMessage != nil ? replyH : 0
         delegate?.inputBar(self, didChangeHeight: newHeight + vPad * 2 + replyPanelH)
     }

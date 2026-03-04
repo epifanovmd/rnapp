@@ -31,15 +31,10 @@ import React
         didSet { chatViewController?.topThreshold = CGFloat(topThreshold.doubleValue) }
     }
 
-    // Fix #13: Используем Bool вместо NSNumber для совместимости с New Architecture codegen.
-    // При Old Architecture React Native передаёт NSNumber(bool:), при New — BOOL напрямую.
-    // Явный Bool устраняет потенциальный крэш при миграции на Fabric.
     @objc var isLoading: Bool = false {
         didSet {
             chatViewController?.isLoading = isLoading
-            // Fix #5: Сбрасываем waitingForNewMessages когда загрузка завершена.
-            // Без этого, если JS не вернул новые сообщения (ошибка / конец истории),
-            // флаг оставался true навсегда и пользователь не мог подгрузить историю.
+
             if !isLoading {
                 chatViewController?.resetLoadingState()
             }
@@ -86,12 +81,6 @@ import React
     }
 
     // MARK: - Setup
-    //
-    // Fix #6: findParentViewController вынесен из init — в момент init
-    // responder chain в React Native ещё не установлен, и поиск ViewController
-    // может вернуть nil или неверный объект.
-    // Теперь ChatViewController добавляется как child только в didMoveToWindow,
-    // когда иерархия view гарантированно стабилизирована.
 
     private func setupChatView() {
         let vc = ChatViewController()
@@ -180,8 +169,6 @@ import React
 
     // MARK: - Helpers
 
-    // Fix #6: вызывается только из didMoveToWindow, когда window != nil
-    // и responder chain гарантированно установлен.
     private func findParentViewController() -> UIViewController? {
         var responder: UIResponder? = self
         while let r = responder {

@@ -85,24 +85,16 @@ extension MessageContent: Equatable {
 }
 
 // MARK: - ReplyPreviewData
-//
-// Хранит только replyToId. Актуальный контент цитаты резолвится в рантайме
-// через messageIndex в ChatViewController. Это значит:
-//   • Удаление оригинала автоматически скрывает превью (без патча модели)
-//   • Размер ячейки зависит от того, существует ли ID в текущем списке
-//   • JS передаёт полный словарь replyTo, но мы берём только id
 
 struct ReplyPreviewData {
     let replyToId: String
 }
 
 // MARK: - ResolvedReply
-//
-// Результат резолвинга цитаты — передаётся прямо в MessageBubbleView.
 
 enum ResolvedReply {
     case found(Snapshot)
-    case deleted           // оригинал удалён → пузырь без превью
+    case deleted
 
     struct Snapshot {
         let id:         String
@@ -120,9 +112,9 @@ struct ChatMessage: Identifiable {
     let timestamp:  Date
     let senderName: String?
     let isMine:     Bool
-    let groupDate:  String         // "yyyy-MM-dd" для группировки по дням
+    let groupDate:  String
     let status:     MessageStatus
-    let reply:      ReplyPreviewData?  // nil = нет цитаты
+    let reply:      ReplyPreviewData?
 
     // Удобные алиасы
     var text:       String?                          { content.text }
@@ -133,8 +125,6 @@ struct ChatMessage: Identifiable {
 }
 
 // MARK: - ChatMessage: Equatable
-// Fix #12: Используется в updateMessages для точного вычисления changedIDs
-// и позволяет избежать лишних reconfigureItems.
 
 extension ChatMessage: Equatable {
     static func == (lhs: ChatMessage, rhs: ChatMessage) -> Bool {
@@ -156,8 +146,8 @@ struct MessageAction {
 // MARK: - MessageSection
 
 struct MessageSection {
-    let dateString: String   // "Сегодня", "Вчера", "15 янв."
-    let dateKey:    String   // "yyyy-MM-dd"
+    let dateString: String
+    let dateKey:    String
     var messages:   [ChatMessage]
 }
 
@@ -239,9 +229,6 @@ struct DateHelper {
     private let groupParser: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
-    // Fix #9: weekdayFormatter создавался при каждом вызове sectionTitle.
-    // DateFormatter — один из самых дорогих объектов в Foundation,
-    // создание на main thread во время layout вызывает фризы.
     private let weekdayFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "EEEE"; return f
     }()

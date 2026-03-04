@@ -58,9 +58,6 @@ enum ChatLayoutConstants {
     static let lineSpacing: CGFloat         = 2
 
     // MARK: - InputBar
-    // Fix #7: Ранее в InputBarView использовалась магическая константа 16
-    // (= inputBarVerticalPadding * 2) для расчёта суммарной высоты.
-    // Теперь это явная константа — изменение layout не сломает расчёт.
 
     /// Верхний/нижний отступ textView внутри containerView InputBar.
     static let inputBarVerticalPadding: CGFloat = 8

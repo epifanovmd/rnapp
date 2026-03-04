@@ -52,11 +52,8 @@ final class MessageBubbleView: UIView {
         footerStack.addArrangedSubview(statusView)
 
         replyPreview.translatesAutoresizingMaskIntoConstraints = false
-        // Fix #15: replyPreview всегда находится на индексе 0.
-        // contentView вставляется на индекс 1 через insertArrangedSubview(at:),
-        // чтобы порядок не зависел от момента первого configure и будущих элементов.
+
         mainStack.addArrangedSubview(replyPreview)
-        // contentView добавляется динамически в configure(with:resolvedReply:)
 
         addSubview(mainStack)
         addSubview(footerStack)
@@ -104,9 +101,7 @@ final class MessageBubbleView: UIView {
             contentView?.removeFromSuperview()
             let cv = MessageContentViewFactory.make(for: message.content)
             (cv as UIView).translatesAutoresizingMaskIntoConstraints = false
-            // Fix #15: явно вставляем на позицию 1 (после replyPreview на 0).
-            // addArrangedSubview добавлял бы в конец — при наличии будущих
-            // элементов стека порядок мог бы нарушиться.
+
             mainStack.insertArrangedSubview(cv as UIView, at: 1)
             contentView = cv
         }

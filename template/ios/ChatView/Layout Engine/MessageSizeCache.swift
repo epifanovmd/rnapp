@@ -1,13 +1,4 @@
 // MARK: - MessageSizeCache.swift
-// Dictionary-кэш размеров ячеек.
-// Ключ: (messageId, hasReply) — наличие/отсутствие живой цитаты меняет высоту.
-// Когда оригинал цитаты удаляется, hasReply становится false → кэш-мисс → пересчёт.
-//
-// Fix #4: Thread-safety.
-//   • Кэш может прогреваться из фонового потока (ChatViewController.warmCache).
-//   • Все операции чтения/записи защищены concurrent DispatchQueue с barrier-записью
-//     (readers-writer lock): множественные читатели работают параллельно,
-//     запись эксклюзивна.
 
 import UIKit
 

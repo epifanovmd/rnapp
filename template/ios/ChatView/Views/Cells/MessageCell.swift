@@ -8,9 +8,6 @@ final class MessageCell: UICollectionViewCell {
 
     private let bubbleView = MessageBubbleView()
 
-    // Fix #3: Вместо создания нового NSLayoutConstraint при каждом configure
-    // переиспользуем одни и те же объекты, меняя только .constant и .isActive.
-    // Это устраняет аллокацию + layout invalidation при каждом reuse.
     private var leadingConstraint:     NSLayoutConstraint!
     private var trailingConstraint:    NSLayoutConstraint!
     private var bubbleWidthConstraint: NSLayoutConstraint!
@@ -35,8 +32,6 @@ final class MessageCell: UICollectionViewCell {
         trailingConstraint = bubbleView.trailingAnchor.constraint(
             equalTo: contentView.trailingAnchor, constant: -m)
 
-        // Fix #3: bubbleWidthConstraint создаётся один раз с placeholder-значением.
-        // В configure меняется только .constant — без dealloc/alloc.
         bubbleWidthConstraint = bubbleView.widthAnchor.constraint(equalToConstant: 200)
         bubbleWidthConstraint.isActive = true
 
@@ -56,7 +51,6 @@ final class MessageCell: UICollectionViewCell {
         let exactBubbleW = MessageSizeCalculator.bubbleWidth(for: message, hasReply: hasReply,
                                                              maxWidth: maxBubble)
 
-        // Fix #3: меняем только constant — без создания нового constraint
         bubbleWidthConstraint.constant = exactBubbleW
 
         // Управляем стороной выравнивания: деактивируем обе, активируем нужную
@@ -78,21 +72,18 @@ final class MessageCell: UICollectionViewCell {
     //   Flash-in  0.15 с  — мгновенный визуальный якорь
     //   Hold      0.25 с  — глаз фиксирует куда попал
     //   Fade-out  1.10 с  — плавное исчезновение, не режет глаз
-    //
-    // Вызывается только когда ячейка физически видима
-    // (из processPendingHighlight в ChatViewController).
 
     func highlight(color: UIColor = UIColor.systemYellow.withAlphaComponent(0.55)) {
         let original = bubbleView.backgroundColor ?? .clear
         bubbleView.layer.removeAllAnimations()
 
-        UIView.animate(withDuration: 0.15, delay: 0, options: .curveEaseIn) {
+        UIView.animate(withDuration: 0.25, delay: 0, options: .curveEaseIn) {
             self.bubbleView.backgroundColor = color
         } completion: { _ in
-            UIView.animate(withDuration: 0.25, delay: 0, options: .curveLinear) {
+            UIView.animate(withDuration: 1, delay: 0, options: .curveLinear) {
                 self.bubbleView.backgroundColor = color  // hold
             } completion: { _ in
-                UIView.animate(withDuration: 1.10, delay: 0,
+                UIView.animate(withDuration: 0.25, delay: 0,
                                options: [.curveEaseOut, .allowUserInteraction]) {
                     self.bubbleView.backgroundColor = original
                 } completion: { [weak self] _ in

@@ -1,14 +1,5 @@
 // MARK: - BubbleImageGridView.swift
 // 1–4 изображения внутри пузыря.
-//
-// Fix #1: Race condition при загрузке изображений.
-//   • Каждый UIImageView получает accessibilityIdentifier = URL-строка.
-//     Колбэк URLSession проверяет его перед записью — если ячейка уже
-//     переиспользована под другой URL, запись молча отбрасывается.
-//   • NSCache<NSString, UIImage> живёт на уровне класса (static) —
-//     все экземпляры грида делят один кэш, повторная загрузка одного
-//     URL происходит ровно один раз за жизнь приложения.
-//   • При cancel() задачи колбэк не вызывается — нет ни утечки, ни записи.
 
 import UIKit
 
@@ -118,12 +109,6 @@ final class BubbleImageGridView: UIView {
     }
 
     // MARK: - Image loading
-    //
-    // Fix #1 (race condition):
-    //   1. Кэш-попадание → ставим сразу, задачу не создаём.
-    //   2. Помечаем iv.accessibilityIdentifier = urlString до запуска задачи.
-    //   3. В колбэке сверяем identifier — если ячейка переиспользована,
-    //      запись молча отбрасывается.
 
     @discardableResult
     private func loadImage(into iv: UIImageView, from urlString: String) -> URLSessionDataTask? {
