@@ -1,6 +1,6 @@
 // NativeChatViewSpec.ts
-// Codegen spec for React Native New Architecture (Fabric/TurboModule)
-// This file is the single source of truth for the native component contract.
+// Codegen spec for React Native New Architecture (Fabric/TurboModule).
+// Единственная точка истины для контракта нативного компонента.
 
 import React from "react";
 import type { HostComponent, ViewProps } from "react-native";
@@ -12,7 +12,7 @@ import type {
 import codegenNativeCommands from "react-native/Libraries/Utilities/codegenNativeCommands";
 import codegenNativeComponent from "react-native/Libraries/Utilities/codegenNativeComponent";
 
-// ─── Shared domain types ──────────────────────────────────────────────────────
+// ─── Domain types ─────────────────────────────────────────────────────────────
 
 export type NativeChatImageItem = {
   url: string;
@@ -31,6 +31,7 @@ export type NativeChatReplyRef = {
 export type NativeChatMessage = {
   id: string;
   text?: string;
+  /** Одно изображение (упрощено от массива) */
   images?: NativeChatImageItem[];
   /** Unix timestamp in milliseconds */
   timestamp: Double;
@@ -49,12 +50,11 @@ export type NativeChatAction = {
 };
 
 // ─── Event payloads ───────────────────────────────────────────────────────────
+
 export type NativeChatScrollEventData = { x: Double; y: Double };
 export type NativeChatReachTopEventData = { distanceFromTop: Double };
 export type NativeChatMessagesVisibleEventData = { messageIds: string[] };
-export type NativeChatMessagePressEventData = {
-  messageId: string;
-};
+export type NativeChatMessagePressEventData = { messageId: string };
 export type NativeChatActionPressEventData = {
   actionId: string;
   messageId: string;
@@ -76,6 +76,8 @@ export interface NativeChatViewProps extends ViewProps {
   replyMessage?: NativeChatMessage | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: WithDefault<Double, 150>;
+  /** Тема оформления: "light" (по умолчанию) или "dark" */
+  theme?: WithDefault<string, "light">;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;
@@ -87,7 +89,7 @@ export interface NativeChatViewProps extends ViewProps {
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
 }
 
-// ─── Imperative commands ──────────────────────────────────────────────────────
+// ─── Commands ─────────────────────────────────────────────────────────────────
 
 export interface NativeChatViewCommands {
   scrollToBottom(

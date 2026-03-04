@@ -1,14 +1,17 @@
 // MARK: - DateSeparatorCell.swift
-// Sticky date header for chat sections
+// Sticky-заголовок секции с датой.
+// Применяет тему через configure(with:theme:).
 
 import UIKit
 
-final class DateSeparatorView1: UICollectionReusableView {
+final class DateSeparatorView: UICollectionReusableView {
+
     static let reuseID = "DateSeparatorView"
+
+    // MARK: - Subviews
 
     private let pillView: UIView = {
         let v = UIView()
-        v.backgroundColor = UIColor.systemGray6.withAlphaComponent(0.85)
         v.layer.cornerRadius = 10
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
@@ -17,11 +20,12 @@ final class DateSeparatorView1: UICollectionReusableView {
     private let label: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 12, weight: .medium)
-        l.textColor = .secondaryLabel
         l.textAlignment = .center
         l.translatesAutoresizingMaskIntoConstraints = false
         return l
     }()
+
+    // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -31,17 +35,20 @@ final class DateSeparatorView1: UICollectionReusableView {
         NSLayoutConstraint.activate([
             pillView.centerXAnchor.constraint(equalTo: centerXAnchor),
             pillView.centerYAnchor.constraint(equalTo: centerYAnchor),
-
             label.topAnchor.constraint(equalTo: pillView.topAnchor, constant: 5),
             label.bottomAnchor.constraint(equalTo: pillView.bottomAnchor, constant: -5),
             label.leadingAnchor.constraint(equalTo: pillView.leadingAnchor, constant: 10),
             label.trailingAnchor.constraint(equalTo: pillView.trailingAnchor, constant: -10),
         ])
     }
-
     required init?(coder: NSCoder) { fatalError() }
 
-    func configure(with dateString: String) {
-        label.text = dateString
+    // MARK: - Configure
+
+    /// Заполняет текст и применяет цвета из темы.
+    func configure(with dateString: String, theme: ChatTheme) {
+        label.text                 = dateString
+        label.textColor            = theme.dateSeparatorText
+        pillView.backgroundColor   = theme.dateSeparatorBackground
     }
 }

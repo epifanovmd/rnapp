@@ -1,5 +1,7 @@
 // MARK: - RNChatView.swift
-// React Native New Architecture - Fabric component view
+// React Native New Architecture — Fabric component view.
+// Получает пропсы из JS, транслирует в ChatViewController.
+// Тема переключается через проп `theme` ("light" | "dark").
 
 import UIKit
 import React
@@ -34,21 +36,17 @@ import React
     @objc var isLoading: Bool = false {
         didSet {
             chatViewController?.isLoading = isLoading
-
-            if !isLoading {
-                chatViewController?.resetLoadingState()
-            }
+            if !isLoading { chatViewController?.resetLoadingState() }
         }
     }
 
+    /// Сериализованные данные цитируемого сообщения из JS (устанавливает панель reply).
     @objc var replyMessage: NSDictionary? {
         didSet { updateReplyMessage() }
     }
 
     @objc var initialScrollId: NSString? {
-        didSet {
-            pendingInitialScrollMessageId = initialScrollId as String?
-        }
+        didSet { pendingInitialScrollMessageId = initialScrollId as String? }
     }
 
     @objc var scrollToBottomThreshold: NSNumber = 150 {
@@ -58,11 +56,15 @@ import React
         }
     }
 
+    /// Тема оформления: "light" или "dark". По умолчанию — light.
+    @objc var theme: NSString = "light" {
+        didSet { applyTheme() }
+    }
+
     // MARK: - Internal
 
     private weak var chatViewController: ChatViewController?
     private var hostController: UIViewController?
-
     private var pendingInitialScrollMessageId: String?
     private var initialScrollDone = false
 
@@ -89,15 +91,13 @@ import React
 
         vc.view.frame = bounds
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        vc.view.backgroundColor = .clear
+        vc.view.backgroundColor  = .clear
         addSubview(vc.view)
-        // Добавление как child откладывается до didMoveToWindow
     }
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
         guard window != nil, let vc = chatViewController else { return }
-        // Добавляем как child только один раз
         guard vc.parent == nil else { return }
         if let parentVC = findParentViewController() {
             parentVC.addChild(vc)
@@ -106,7 +106,15 @@ import React
         }
     }
 
-    // MARK: - Updates
+    // MARK: - Theme
+
+    /// Преобразует строковый проп в ChatTheme и передаёт контроллеру.
+    private func applyTheme() {
+        let resolved: ChatTheme = (theme as String).lowercased() == "dark" ? .dark : .light
+        chatViewController?.theme = resolved
+    }
+
+    // MARK: - Prop updates
 
     private func updateMessages() {
         guard let chatVC = chatViewController else { return }
@@ -117,31 +125,24 @@ import React
 
         if !initialScrollDone && !parsed.isEmpty {
             initialScrollDone = true
-
             if let targetId = pendingInitialScrollMessageId {
                 chatVC.isInitialScrollProtected = true
                 chatVC.pendingScrollMessageId   = targetId
             }
-
             performInitialScroll(messages: parsed, in: chatVC)
         }
     }
 
     private func performInitialScroll(messages: [ChatMessage], in chatVC: ChatViewController) {
         chatVC.view.layoutIfNeeded()
-
         DispatchQueue.main.async { [weak self, weak chatVC] in
             guard let self, let chatVC else { return }
             chatVC.view.layoutIfNeeded()
 
             if let targetId = self.pendingInitialScrollMessageId {
                 self.pendingInitialScrollMessageId = nil
-                chatVC.scrollToMessage(
-                    id: targetId,
-                    position: .center,
-                    animated: false,
-                    highlight: true
-                )
+                chatVC.scrollToMessage(id: targetId, position: .center,
+                                       animated: false, highlight: true)
                 chatVC.isInitialScrollProtected = false
                 chatVC.pendingScrollMessageId   = nil
             } else {
@@ -157,13 +158,14 @@ import React
         chatVC.actions = parsed
     }
 
+    /// Парсит replyMessage из JS и передаёт ReplyInfo в контроллер.
     private func updateReplyMessage() {
         guard let chatVC = chatViewController else { return }
         if let dict = replyMessage as? [String: Any], !dict.isEmpty,
-           let msg = ChatMessage.from(dict: dict) {
-            chatVC.setReplyMessage(msg)
+           let info = ReplyInfo.from(dict: dict) {
+            chatVC.setReplyInfo(info)
         } else {
-            chatVC.setReplyMessage(nil)
+            chatVC.setReplyInfo(nil)
         }
     }
 
@@ -197,11 +199,8 @@ import React
         default:       position = .center
         }
         chatViewController?.scrollToMessage(
-            id: messageID,
-            position: position,
-            animated: animated,
-            highlight: highlight
-        )
+            id: messageID, position: position,
+            animated: animated, highlight: highlight)
     }
 }
 

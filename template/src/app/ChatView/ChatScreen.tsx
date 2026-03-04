@@ -1,10 +1,9 @@
 // ChatScreen.tsx
-// Пример экрана чата — полноценное использование ChatView.
-// Все типы берутся из ChatView (который реэкспортирует их из NativeChatViewSpec),
-// поэтому здесь нет ни одного inline-типа для данных чата.
+// Пример экрана чата — демонстрирует полное использование ChatView.
+// Все типы импортируются из ChatView (который реэкспортирует их из NativeChatViewSpec).
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, StyleSheet, useColorScheme } from "react-native";
 
 import {
   type ChatAction,
@@ -20,18 +19,17 @@ import {
   ChatView,
 } from "./ChatView";
 
-// ─── Вспомогательные функции ──────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 let _idCounter = 1000;
 // eslint-disable-next-line no-plusplus
 const uid = () => String(++_idCounter);
-
 const ago = (ms: number) => Date.now() - ms;
 const min = (n: number) => n * 60_000;
 const hr = (n: number) => n * 3_600_000;
 const day = (n: number) => n * 86_400_000;
 
-// ─── Начальный набор сообщений (от старых к новым) ────────────────────────────
+// ─── Initial messages ────────────────────────────────────────────────────────
 
 const INITIAL_MESSAGES: ChatMessage[] = [
   // 14 дней назад
@@ -69,20 +67,10 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     id: "5",
     isMine: false,
     senderName: "Alice",
-    text: "Absolutely amazing. The food, the architecture… check out these shots!",
+    text: "Absolutely amazing. The food, the architecture… check out this shot!",
     images: [
       {
         url: "https://picsum.photos/seed/lisbon1/600/400",
-        width: 600,
-        height: 400,
-      },
-      {
-        url: "https://picsum.photos/seed/lisbon2/600/400",
-        width: 600,
-        height: 400,
-      },
-      {
-        url: "https://picsum.photos/seed/lisbon3/600/400",
         width: 600,
         height: 400,
       },
@@ -229,15 +217,10 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     id: "21",
     isMine: false,
     senderName: "Alice",
-    text: "Sure! Here's the agenda in the meantime",
+    text: "Sure! Here's the agenda",
     images: [
       {
         url: "https://picsum.photos/seed/doc1/600/400",
-        width: 600,
-        height: 400,
-      },
-      {
-        url: "https://picsum.photos/seed/doc2/600/400",
         width: 600,
         height: 400,
       },
@@ -269,7 +252,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
   },
 ];
 
-// ─── Генератор старых сообщений для подгрузки истории ────────────────────────
+// ─── Older messages generator ────────────────────────────────────────────────
 
 const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   const base = beforeTimestamp - day(7);
@@ -324,7 +307,7 @@ const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   ];
 };
 
-// ─── Действия контекстного меню ───────────────────────────────────────────────
+// ─── Context menu actions ─────────────────────────────────────────────────────
 
 const CHAT_ACTIONS: ChatAction[] = [
   { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
@@ -342,48 +325,43 @@ const ChatScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
 
-  // Fix #10: messagesRef держит актуальный список без пересоздания callback.
-  // handleSendMessage имеет пустые deps — нет stale closure при быстрой отправке.
+  // Автоматически следуем системной теме устройства
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === "dark" ? "dark" : "light";
+
+  // messagesRef: актуальный список без stale closure в колбэках
   const messagesRef = useRef<ChatMessage[]>(messages);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Fix #11: Вместо накапливающегося массива используем Set — удаляем таймер
-  // сразу после его исполнения, массив не растёт со временем.
+  // Управление таймерами: Set с auto-cleanup
   const activeTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const scheduleTimer = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(() => {
+      activeTimers.current.delete(id);
+      fn();
+    }, delay);
 
-  const scheduleTimer = useCallback(
-    (fn: () => void, delay: number): ReturnType<typeof setTimeout> => {
-      const id = setTimeout(() => {
-        activeTimers.current.delete(id); // Fix #11: удаляем после исполнения
-        fn();
-      }, delay);
+    activeTimers.current.add(id);
 
-      activeTimers.current.add(id);
-
-      return id;
-    },
-    [],
-  );
+    return id;
+  }, []);
 
   useEffect(() => {
     const timers = activeTimers.current;
 
     return () => {
-      // Отменяем все оставшиеся таймеры при unmount
       timers.forEach(clearTimeout);
       timers.clear();
     };
   }, []);
 
-  // ─── Отправка ─────────────────────────────────────────────────────────────
+  // ─── Send ──────────────────────────────────────────────────────────────────
 
   const handleSendMessage = useCallback(
     ({ text, replyToId }: ChatSendMessageEventData) => {
-      // Fix #10: читаем из ref — актуальный список без stale closure.
-      // callback не пересоздаётся при каждом новом сообщении.
       const replyTo: ChatReplyRef | undefined = replyToId
         ? (() => {
             const src = messagesRef.current.find(m => m.id === replyToId);
@@ -411,13 +389,11 @@ const ChatScreen: React.FC = () => {
       setMessages(prev => [...prev, newMsg]);
       setReplyMessage(null);
 
-      // Fix #11: используем scheduleTimer — таймер удаляется из Set после исполнения
       scheduleTimer(() => {
         setMessages(prev =>
           prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
         );
       }, 800);
-
       scheduleTimer(() => {
         setMessages(prev =>
           prev.map(m =>
@@ -425,23 +401,19 @@ const ChatScreen: React.FC = () => {
           ),
         );
       }, 2500);
-
       scheduleTimer(() => {
         chatRef.current?.scrollToBottom();
       }, 50);
     },
-    // Fix #10: пустые deps — messages читается из ref, не из closure
     [scheduleTimer],
   );
 
-  // ─── Подгрузка истории ────────────────────────────────────────────────────
+  // ─── Load history ──────────────────────────────────────────────────────────
 
   const handleReachTop = useCallback(
     ({ distanceFromTop: _ }: ChatReachTopEventData) => {
       if (isLoading) return;
-
       setIsLoading(true);
-
       scheduleTimer(() => {
         setMessages(prev => {
           const oldest = prev.reduce(
@@ -457,7 +429,7 @@ const ChatScreen: React.FC = () => {
     [isLoading, scheduleTimer],
   );
 
-  // ─── Нажатие на цитату → прокрутка к оригиналу ───────────────────────────
+  // ─── Tap on reply → scroll to original ────────────────────────────────────
 
   const handleReplyMessagePress = useCallback(
     ({ messageId }: ChatReplyMessagePressEventData) => {
@@ -470,7 +442,7 @@ const ChatScreen: React.FC = () => {
     [],
   );
 
-  // ─── Контекстное меню ─────────────────────────────────────────────────────
+  // ─── Context menu ──────────────────────────────────────────────────────────
 
   const handleActionPress = useCallback(
     ({ actionId, messageId }: ChatActionPressEventData) => {
@@ -482,15 +454,12 @@ const ChatScreen: React.FC = () => {
         case "reply":
           setReplyMessage(message);
           break;
-
         case "copy":
           Alert.alert("Copied!", message.text ?? "No text");
           break;
-
         case "forward":
           Alert.alert("Forward", `Forwarding message ${messageId}`);
           break;
-
         case "delete":
           Alert.alert("Delete", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
@@ -507,40 +476,34 @@ const ChatScreen: React.FC = () => {
     [],
   );
 
-  // ─── Нажатие на вложение ──────────────────────────────────────────────────
+  // ─── Attachment ────────────────────────────────────────────────────────────
 
   const handleAttachmentPress = useCallback(
-    (_event: ChatAttachmentPressEventData) => {
+    (_: ChatAttachmentPressEventData) => {
       Alert.alert("Attachments", "Attachment picker would open here");
     },
     [],
   );
 
-  // ─── Видимость входящих сообщений (квитанции о прочтении) ────────────────
+  // ─── Read receipts ─────────────────────────────────────────────────────────
 
   const handleMessagesVisible = useCallback(
     ({ messageIds }: ChatMessagesVisibleEventData) => {
-      // TODO: отправить read-receipt на сервер для messageIds
+      // TODO: отправить read-receipt на сервер
       console.log("[ChatScreen] visible incoming:", messageIds);
     },
     [],
   );
 
-  // ─── Нажатие на сообщение ─────────────────────────────────────────────────
+  // ─── Message tap ───────────────────────────────────────────────────────────
 
   const handleMessagePress = useCallback(
     ({ messageId }: ChatMessagePressEventData) => {
       const message = messagesRef.current.find(m => m.id === messageId);
 
       if (!message) return;
-
       if (message.images?.length) {
-        Alert.alert(
-          "Image Message",
-          `${message.images.length} image(s) from ${
-            message.senderName ?? "you"
-          }`,
-        );
+        Alert.alert("Image", `Photo from ${message.senderName ?? "you"}`);
       }
     },
     [],
@@ -559,6 +522,7 @@ const ChatScreen: React.FC = () => {
       // initialScrollId={"6"}
       isLoading={isLoading}
       replyMessage={replyMessage}
+      theme={theme}
       onSendMessage={handleSendMessage}
       onReachTop={handleReachTop}
       onReplyMessagePress={handleReplyMessagePress}

@@ -1,7 +1,7 @@
 // ChatView.tsx
-// Public-facing React Native wrapper for the RNChatView iOS native component.
-// Types are re-exported from the codegen spec so there is a single source of truth.
-// Supports both Old Architecture (requireNativeComponent) and New Architecture (Fabric).
+// Public-facing React Native wrapper для нативного RNChatView.
+// Типы реэкспортируются из codegen spec — единственная точка истины.
+// Поддерживает Old Architecture (requireNativeComponent) и New Architecture (Fabric).
 
 import React, {
   forwardRef,
@@ -18,7 +18,7 @@ import {
   StyleSheet,
   UIManager,
   View,
-  ViewProps,
+  type ViewProps,
   type ViewStyle,
 } from "react-native";
 
@@ -39,7 +39,8 @@ import {
   NativeChatViewProps,
 } from "../../NativeChatViewSpec";
 
-// ─── Re-export native types as public API ─────────────────────────────────────
+// ─── Re-export public types ───────────────────────────────────────────────────
+
 export type {
   ChatAction,
   ChatActionPressEventData,
@@ -54,6 +55,7 @@ export type {
   ChatScrollEventData,
   ChatScrollPosition,
   ChatSendMessageEventData,
+  ChatTheme,
   ChatViewCommands,
 };
 
@@ -64,6 +66,9 @@ interface ChatMessage extends NativeChatMessage {
 }
 
 type ChatScrollPosition = "top" | "center" | "bottom";
+
+/** Тема оформления чата */
+type ChatTheme = "light" | "dark";
 
 interface ChatViewCommands extends NativeChatViewCommands {
   scrollToMessage(
@@ -99,6 +104,8 @@ export interface ChatViewProps extends ViewProps {
   scrollToBottomThreshold?: number;
   topThreshold?: number;
   isLoading?: boolean;
+  /** Тема оформления: "light" (по умолчанию) или "dark" */
+  theme?: ChatTheme;
   style?: ViewStyle;
 
   onScroll?: (event: ChatScrollEventData) => void;
@@ -111,14 +118,12 @@ export interface ChatViewProps extends ViewProps {
   onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
 }
 
-// ─── Native component (architecture-agnostic lazy init) ───────────────────────
+// ─── Native component ─────────────────────────────────────────────────────────
 
 const COMPONENT_NAME = "RNChatView";
 
-// Try New Architecture first (codegen spec), fall back to Old Architecture.
 const NativeChatView = (() => {
   try {
-    // Пытаемся получить компонент из codegen (New Architecture)
     const Spec = require("../../NativeChatViewSpec").default;
 
     return Spec as HostComponent<NativeChatViewProps>;
@@ -127,16 +132,14 @@ const NativeChatView = (() => {
   }
 })();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Command dispatcher ───────────────────────────────────────────────────────
 
-/** Dispatch a command via the New Architecture Commands API or Old Architecture UIManager. */
 function dispatchCommand(
   nativeRef: React.RefObject<React.ComponentRef<typeof NativeChatView> | null>,
   commandName: keyof ChatViewCommands,
   args: unknown[],
 ): void {
   if (Platform.OS !== "ios") return;
-
   try {
     const { Commands } = require("../../NativeChatViewSpec");
 
@@ -146,7 +149,7 @@ function dispatchCommand(
       return;
     }
   } catch {
-    //
+    /* fall through to UIManager */
   }
 
   const node = findNodeHandle(nativeRef.current);
@@ -171,6 +174,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     scrollToBottomThreshold = 150,
     topThreshold = 200,
     isLoading = false,
+    theme = "light",
     style,
     onScroll,
     onReachTop,
@@ -184,7 +188,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
 
   const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
 
-  // ─── Imperative API ──────────────────────────────────────────────────────────
+  // ─── Imperative API ──────────────────────────────────────────────────────
 
   useImperativeHandle(
     ref,
@@ -210,8 +214,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     [],
   );
 
-  // ─── Event bridges ───────────────────────────────────────────────────────────
-  // Unwrap nativeEvent so callers never have to deal with NativeSyntheticEvent.
+  // ─── Event bridges ───────────────────────────────────────────────────────
 
   const handleScroll = useCallback(
     (e: NativeSyntheticEvent<ChatScrollEventData>) => onScroll?.(e.nativeEvent),
@@ -253,13 +256,13 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     [onReplyMessagePress],
   );
 
-  // ─── Non-iOS fallback ─────────────────────────────────────────────────────────
+  // ─── Non-iOS fallback ────────────────────────────────────────────────────
 
   if (Platform.OS !== "ios") {
     return <View style={[styles.unsupported, style]} />;
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
+  // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
     <NativeChatView
@@ -272,6 +275,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       scrollToBottomThreshold={scrollToBottomThreshold}
       topThreshold={topThreshold}
       isLoading={isLoading}
+      theme={theme}
       onScroll={handleScroll}
       onReachTop={handleReachTop}
       onMessagesVisible={handleMessagesVisible}
