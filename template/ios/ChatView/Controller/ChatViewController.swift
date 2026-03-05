@@ -129,7 +129,8 @@ final class ChatViewController: UIViewController {
     private var lastContentOffsetY: CGFloat    = 0
     private var isProgrammaticScroll           = false
     private var visibleMessageIDs: Set<String> = []
-    private var replyInfo: ReplyInfo? { didSet { inputBar?.setReplyInfo(replyInfo, theme: theme) } }
+    // replyInfo удалён — состояние режима ответа хранится только в InputBarView.mode.
+    // Контроллер не дублирует это состояние.
     private var lastSectionsInputHash: Int = 0
     private var lastScrollEventTime: CFTimeInterval = 0
     private let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
@@ -419,11 +420,15 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Reply resolution
 
-    /// Резолвит цитату сообщения из локального messageIndex.
+    /// Резолвит цитату сообщения в актуальные данные для рендера.
+    /// Строит ReplyDisplayInfo из ЖИВОГО сообщения в messageIndex —
+    /// поэтому если оригинал отредактировали, цитата покажет новый текст.
     private func resolve(_ message: ChatMessage) -> ResolvedReply? {
         guard let reply = message.reply else { return nil }
-        guard messageIndex[reply.replyToId] != nil else { return .deleted }
-        return .found(reply)
+        if let original = messageIndex[reply.replyToId] {
+            return .found(ReplyDisplayInfo(from: original))
+        }
+        return .deleted
     }
 
     private func replyExists(for message: ChatMessage) -> Bool {
@@ -497,19 +502,21 @@ extension ChatViewController {
 
     // MARK: Reply / Edit
 
-    func setReplyInfo(_ info: ReplyInfo?) {
-        replyInfo = info
+    /// Переводит InputBar в режим ответа.
+    /// Данные сообщения уже актуальны — caller (RNChatView) достал их из messageIndex.
+    func beginReply(info: ReplyInfo) {
+        inputBar?.beginReply(info: info, theme: theme)
     }
 
-    /// Активирует режим редактирования в InputBar.
-    func setEditMessage(id: String, text: String) {
-        inputBar?.setEditMessage(id: id, text: text, theme: theme)
+    /// Переводит InputBar в режим редактирования.
+    func beginEdit(messageId: String, text: String) {
+        inputBar?.beginEdit(messageId: messageId, text: text, theme: theme)
     }
 
-    /// Сбрасывает режим редактирования/ответа без уведомления делегата.
-    /// Вызывается когда JS явно обнуляет editMessage проп.
+    /// Сбрасывает режим InputBar без уведомления делегата.
+    /// Вызывается когда JS передаёт inputAction = { type: "none" }.
     func clearInputMode() {
-        inputBar?.resetMode()
+        inputBar?.cancelMode()
     }
 
     // MARK: Scroll API
@@ -639,9 +646,21 @@ private extension ChatViewController {
         messageIndex = newIndex
 
         guard !changedIDs.isEmpty else { return }
-        sizeCache.invalidate(ids: changedIDs)
+
+        // Если изменился оригинал на который есть цитаты — перерисовываем
+        // и «читателей», чтобы их цитата отразила новый текст оригинала.
+        let changedSet = Set(changedIDs)
+        let quoteReaderIDs = sections.flatMap(\.messages).compactMap { msg -> String? in
+            guard let rid = msg.reply?.replyToId,
+                  changedSet.contains(rid),
+                  !changedSet.contains(msg.id) else { return nil }
+            return msg.id
+        }
+
+        let allToReconfigure = changedIDs + quoteReaderIDs
+        sizeCache.invalidate(ids: allToReconfigure)
         var snap = dataSource.snapshot()
-        snap.reconfigureItems(changedIDs)
+        snap.reconfigureItems(allToReconfigure)
         dataSource.apply(snap, animatingDifferences: false)
     }
 
@@ -967,7 +986,7 @@ extension ChatViewController: InputBarDelegate {
     }
 
     func inputBarDidCancelReply(_ bar: InputBarView) {
-        replyInfo = nil
+        // Состояние режима уже сброшено внутри InputBarView — только уведомляем JS.
         delegate?.chatViewController(self, didCancelReply: self)
     }
 
@@ -976,7 +995,10 @@ extension ChatViewController: InputBarDelegate {
     }
 
     func inputBar(_ bar: InputBarView, didChangeHeight height: CGFloat) {
-        UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
+        // UIViewPropertyAnimator синхронизирует анимацию с системными spring-параметрами
+        UIViewPropertyAnimator(duration: 0.25, dampingRatio: 0.85) {
+            self.view.layoutIfNeeded()
+        }.startAnimation()
     }
 
     func inputBarDidTapAttachment(_ bar: InputBarView) {

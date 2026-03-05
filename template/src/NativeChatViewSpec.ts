@@ -50,11 +50,10 @@ export type NativeChatAction = {
   isDestructive?: boolean;
 };
 
-export type NativeChatEditRef = {
-  /** ID редактируемого сообщения — вернётся в onEditMessage */
-  id: string;
-  /** Текущий текст сообщения — предзаполняется в поле ввода */
-  text: string;
+export type NativeChatInputAction = {
+  /** "reply" | "edit" | "none" */
+  type: string;
+  messageId?: string;
 };
 
 // ─── Event payloads ───────────────────────────────────────────────────────────
@@ -75,8 +74,10 @@ export type NativeChatEditMessageEventData = {
   text: string;
   messageId: string;
 };
-export type NativeChatCancelReplyEventData = {};
-export type NativeChatCancelEditEventData = {};
+export type NativeChatCancelInputActionEventData = {
+  type: string;
+};
+
 export type NativeChatAttachmentPressEventData = {};
 export type NativeChatReplyMessagePressEventData = { messageId: string };
 
@@ -87,11 +88,9 @@ export interface NativeChatViewProps extends ViewProps {
   actions?: NativeChatAction[];
   topThreshold?: WithDefault<Double, 200>;
   isLoading?: WithDefault<boolean, false>;
-  replyMessage?: NativeChatMessage | null;
-  editMessage?: NativeChatEditRef | null;
+  inputAction?: NativeChatInputAction | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: WithDefault<Double, 150>;
-  /** Тема оформления: "light" (по умолчанию) или "dark" */
   theme?: WithDefault<string, "light">;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
@@ -101,8 +100,7 @@ export interface NativeChatViewProps extends ViewProps {
   onActionPress?: DirectEventHandler<NativeChatActionPressEventData>;
   onSendMessage?: DirectEventHandler<NativeChatSendMessageEventData>;
   onEditMessage?: DirectEventHandler<NativeChatEditMessageEventData>;
-  onCancelReply?: DirectEventHandler<NativeChatCancelReplyEventData>;
-  onCancelEdit?: DirectEventHandler<NativeChatCancelEditEventData>;
+  onCancelInputAction?: DirectEventHandler<NativeChatCancelInputActionEventData>;
   onAttachmentPress?: DirectEventHandler<NativeChatAttachmentPressEventData>;
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
 }

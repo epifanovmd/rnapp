@@ -130,9 +130,10 @@ final class MessageBubbleView: UIView {
         theme: ChatTheme
     ) {
         switch resolvedReply {
-        case .found(let info):
+        case .found(let displayInfo):
             replyPreview.isHidden = false
-            replyPreview.configure(with: info, isMine: isMine, theme: theme)
+            // Используем актуальные данные из messageIndex — не снапшот
+            replyPreview.configure(with: displayInfo, isMine: isMine, theme: theme)
         case .deleted, nil:
             replyPreview.isHidden = true
         }

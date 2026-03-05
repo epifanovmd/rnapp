@@ -1,6 +1,5 @@
 // ChatScreen.tsx
-// Пример экрана чата — демонстрирует полное использование ChatView.
-// Все типы импортируются из ChatView (который реэкспортирует их из NativeChatViewSpec).
+// Пример экрана чата — демонстрирует использование ChatView.
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, useColorScheme } from "react-native";
@@ -9,10 +8,9 @@ import {
   type ChatAction,
   type ChatActionPressEventData,
   type ChatAttachmentPressEventData,
-  type ChatCancelEditEventData,
-  type ChatCancelReplyEventData,
+  type ChatCancelInputActionEventData,
   type ChatEditMessageEventData,
-  type ChatEditRef,
+  type ChatInputAction,
   type ChatMessage,
   type ChatMessagePressEventData,
   type ChatMessagesVisibleEventData,
@@ -36,7 +34,6 @@ const day = (n: number) => n * 86_400_000;
 // ─── Initial messages ────────────────────────────────────────────────────────
 
 const INITIAL_MESSAGES: ChatMessage[] = [
-  // 14 дней назад
   {
     id: "1",
     isMine: false,
@@ -82,7 +79,6 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(14) - min(9)),
     status: "read",
   },
-  // 10 дней назад
   {
     id: "6",
     isMine: true,
@@ -126,7 +122,6 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(10) - min(10)),
     status: "read",
   },
-  // 5 дней назад
   {
     id: "11",
     isMine: false,
@@ -154,7 +149,6 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(5) - min(2)),
     status: "read",
   },
-  // Вчера
   {
     id: "13",
     isMine: false,
@@ -193,7 +187,6 @@ const INITIAL_MESSAGES: ChatMessage[] = [
     timestamp: ago(day(1) + hr(1) - min(2)),
     status: "read",
   },
-  // Сегодня
   {
     id: "18",
     isMine: false,
@@ -260,7 +253,7 @@ const INITIAL_MESSAGES: ChatMessage[] = [
 
 const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
   const base = beforeTimestamp - day(7);
-  const photoId = uid();
+  const seed = uid();
 
   return [
     {
@@ -300,7 +293,7 @@ const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
       text: "Here's a photo from that day",
       images: [
         {
-          url: `https://picsum.photos/seed/old${photoId}/600/400`,
+          url: `https://picsum.photos/seed/old${seed}/600/400`,
           width: 600,
           height: 400,
         },
@@ -325,24 +318,19 @@ const CHAT_ACTIONS: ChatAction[] = [
 
 const ChatScreen: React.FC = () => {
   const chatRef = useRef<ChatView>(null);
-
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState(false);
-  const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
-  const [editMessage, setEditMessage] = useState<ChatEditRef | null>(null);
+  const [inputAction, setInputAction] = useState<ChatInputAction | null>(null);
 
-  // Автоматически следуем системной теме устройства
   const colorScheme = useColorScheme();
   const theme = colorScheme === "dark" ? "dark" : "light";
 
-  // messagesRef: актуальный список без stale closure в колбэках
   const messagesRef = useRef<ChatMessage[]>(messages);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Управление таймерами: Set с auto-cleanup
   const activeTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const scheduleTimer = useCallback((fn: () => void, delay: number) => {
     const id = setTimeout(() => {
@@ -393,23 +381,25 @@ const ChatScreen: React.FC = () => {
       };
 
       setMessages(prev => [...prev, newMsg]);
-      setReplyMessage(null);
+      setInputAction(null);
 
-      scheduleTimer(() => {
-        setMessages(prev =>
-          prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
-        );
-      }, 800);
-      scheduleTimer(() => {
-        setMessages(prev =>
-          prev.map(m =>
-            m.id === newMsg.id ? { ...m, status: "delivered" } : m,
+      scheduleTimer(
+        () =>
+          setMessages(prev =>
+            prev.map(m => (m.id === newMsg.id ? { ...m, status: "sent" } : m)),
           ),
-        );
-      }, 2500);
-      scheduleTimer(() => {
-        chatRef.current?.scrollToBottom();
-      }, 50);
+        800,
+      );
+      scheduleTimer(
+        () =>
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === newMsg.id ? { ...m, status: "delivered" } : m,
+            ),
+          ),
+        2500,
+      );
+      scheduleTimer(() => chatRef.current?.scrollToBottom(), 50);
     },
     [scheduleTimer],
   );
@@ -423,20 +413,19 @@ const ChatScreen: React.FC = () => {
           m.id === messageId ? { ...m, text, isEdited: true } : m,
         ),
       );
-      setEditMessage(null);
+      setInputAction(null);
     },
     [],
   );
 
-  // ─── Cancel reply / edit ───────────────────────────────────────────────────
+  // ─── Cancel InputBar ──────────────────────────────────────────────────────
 
-  const handleCancelReply = useCallback((_: ChatCancelReplyEventData) => {
-    setReplyMessage(null);
-  }, []);
-
-  const handleCancelEdit = useCallback((_: ChatCancelEditEventData) => {
-    setEditMessage(null);
-  }, []);
+  const handleCancelInputAction = useCallback(
+    (_: ChatCancelInputActionEventData) => {
+      setInputAction(null);
+    },
+    [],
+  );
 
   // ─── Load history ──────────────────────────────────────────────────────────
 
@@ -459,7 +448,7 @@ const ChatScreen: React.FC = () => {
     [isLoading, scheduleTimer],
   );
 
-  // ─── Tap on reply → scroll to original ────────────────────────────────────
+  // ─── Tap reply bubble → scroll to original ────────────────────────────────
 
   const handleReplyMessagePress = useCallback(
     ({ messageId }: ChatReplyMessagePressEventData) => {
@@ -482,26 +471,28 @@ const ChatScreen: React.FC = () => {
 
       switch (actionId) {
         case "reply":
-          setReplyMessage(message);
+          // Одно обновление состояния — нет race condition
+          setInputAction({ type: "reply", messageId });
           break;
 
         case "edit":
-          // Редактировать можно только свои сообщения с текстом
           if (!message.isMine || !message.text) {
-            Alert.alert("Edit", "Only your text messages can be edited.");
+            Alert.alert("Edit", "Only your own text messages can be edited.");
 
             return;
           }
-          setReplyMessage(null);
-          setEditMessage({ id: message.id, text: message.text });
+          // Одно обновление состояния — нет race condition
+          setInputAction({ type: "edit", messageId });
           break;
 
         case "copy":
           Alert.alert("Copied!", message.text ?? "No text");
           break;
+
         case "forward":
           Alert.alert("Forward", `Forwarding message ${messageId}`);
           break;
+
         case "delete":
           Alert.alert("Delete", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
@@ -543,8 +534,7 @@ const ChatScreen: React.FC = () => {
     ({ messageId }: ChatMessagePressEventData) => {
       const message = messagesRef.current.find(m => m.id === messageId);
 
-      if (!message) return;
-      if (message.images?.length) {
+      if (message?.images?.length) {
         Alert.alert("Image", `Photo from ${message.senderName ?? "you"}`);
       }
     },
@@ -563,13 +553,11 @@ const ChatScreen: React.FC = () => {
       scrollToBottomThreshold={150}
       // initialScrollId={"6"}
       isLoading={isLoading}
-      replyMessage={replyMessage}
-      editMessage={editMessage}
+      inputAction={inputAction}
       theme={theme}
       onSendMessage={handleSendMessage}
       onEditMessage={handleEditMessage}
-      onCancelReply={handleCancelReply}
-      onCancelEdit={handleCancelEdit}
+      onCancelInputAction={handleCancelInputAction}
       // onReachTop={handleReachTop}
       onReplyMessagePress={handleReplyMessagePress}
       onActionPress={handleActionPress}

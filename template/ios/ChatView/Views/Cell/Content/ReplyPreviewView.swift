@@ -1,8 +1,10 @@
 // MARK: - ReplyPreviewView.swift
 // Блок цитаты внутри пузыря сообщения.
-// Отображает имя автора оригинала и превью текста/фото.
-// Используется в MessageBubbleView (входящие и исходящие).
-// Также переиспользуется в InputBarView для панели ответа.
+// Принимает ReplyDisplayInfo — данные ВСЕГДА актуальны (берутся из messageIndex),
+// поэтому редактирование оригинала мгновенно отражается в цитате.
+//
+// Также переиспользуется в InputBarView для панели ответа
+// (там конфигурируется через ReplyInfo напрямую через отдельный метод).
 
 import UIKit
 
@@ -68,37 +70,45 @@ final class ReplyPreviewView: UIView {
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    // MARK: - Configure
+    // MARK: - Configure (пузырь — актуальные данные из messageIndex)
 
-    /// Заполняет view данными из ReplyInfo и применяет цвета темы.
-    /// `isMine` определяет набор цветов (внутри исходящего или входящего пузыря).
-    func configure(with reply: ReplyInfo, isMine: Bool, theme: ChatTheme) {
-        senderLabel.text  = reply.senderName ?? "Message"
-        contentLabel.text = previewText(from: reply)
+    /// Конфигурация из ReplyDisplayInfo — используется в MessageBubbleView.
+    /// Данные всегда актуальны: строятся из живого ChatMessage.
+    func configure(with info: ReplyDisplayInfo, isMine: Bool, theme: ChatTheme) {
+        senderLabel.text  = info.senderName ?? "Message"
+        contentLabel.text = previewText(text: info.text, hasImage: info.hasImage)
+        applyColors(isMine: isMine, theme: theme)
+    }
+
+    /// Конфигурация из ReplyInfo — используется в InputBarView (панель ответа).
+    /// Здесь данные берутся из снапшота, но это допустимо:
+    /// InputBar всегда обновляется при вызове beginReply с актуальным ReplyInfo,
+    /// который контроллер строит из свежего messageIndex.
+    func configureFromSnapshot(_ info: ReplyInfo, isMine: Bool, theme: ChatTheme) {
+        senderLabel.text  = info.senderName ?? "Message"
+        contentLabel.text = previewText(text: info.text, hasImage: info.hasImage)
         applyColors(isMine: isMine, theme: theme)
     }
 
     // MARK: - Private helpers
 
-    /// Строит строку превью: текст, «📷 Photo», или «Message» как fallback.
-    private func previewText(from reply: ReplyInfo) -> String {
-        if let t = reply.text, !t.isEmpty { return t }
-        if reply.hasImage { return "📷 Photo" }
+    private func previewText(text: String?, hasImage: Bool) -> String {
+        if let t = text, !t.isEmpty { return t }
+        if hasImage { return "📷 Photo" }
         return "Message"
     }
 
-    /// Применяет цвета в зависимости от типа пузыря и темы.
     private func applyColors(isMine: Bool, theme: ChatTheme) {
         if isMine {
-            backgroundColor       = theme.outgoingReplyBackground
+            backgroundColor           = theme.outgoingReplyBackground
             accentBar.backgroundColor = theme.outgoingReplyAccent
-            senderLabel.textColor  = theme.outgoingReplySender
-            contentLabel.textColor = theme.outgoingReplyText
+            senderLabel.textColor     = theme.outgoingReplySender
+            contentLabel.textColor    = theme.outgoingReplyText
         } else {
-            backgroundColor       = theme.incomingReplyBackground
+            backgroundColor           = theme.incomingReplyBackground
             accentBar.backgroundColor = theme.incomingReplyAccent
-            senderLabel.textColor  = theme.incomingReplySender
-            contentLabel.textColor = theme.incomingReplyText
+            senderLabel.textColor     = theme.incomingReplySender
+            contentLabel.textColor    = theme.incomingReplyText
         }
     }
 

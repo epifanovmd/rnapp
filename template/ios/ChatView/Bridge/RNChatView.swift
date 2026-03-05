@@ -1,25 +1,65 @@
 // MARK: - RNChatView.swift
-// React Native New Architecture — Fabric component view.
-// Получает пропсы из JS, транслирует в ChatViewController.
-// Тема переключается через проп `theme` ("light" | "dark").
+// React Native bridge view — прослойка между JS и ChatViewController.
+//
+// Ключевое архитектурное решение: единый проп `inputAction` вместо
+// двух отдельных `replyMessage` + `editMessage`.
+//
+// Почему это важно:
+//   • Два пропа → два didSet → два вызова в одном runloop-цикле → race condition.
+//   • Один проп → один didSet → один вызов → race condition физически невозможен.
+//
+// JS передаёт только { type, messageId }. Нативная сторона сама достаёт
+// актуальные данные сообщения из messageIndex ChatViewController'а.
+// Это гарантирует что InputBar всегда показывает свежий текст —
+// даже если оригинал редактировали после нажатия Reply.
 
 import UIKit
 import React
+
+// MARK: - ChatInputAction
+
+/// Доменная модель действия InputBar на нативной стороне.
+/// Парсится из NSDictionary один раз в didSet.
+enum ChatInputAction {
+    case reply(messageId: String)
+    case edit(messageId: String)
+    case none
+
+    // MARK: Parsing
+
+    init(dict: [String: Any]?) {
+        guard
+            let dict,
+            let type = dict["type"] as? String,
+            let messageId = dict["messageId"] as? String,
+            !messageId.isEmpty
+        else {
+            self = .none
+            return
+        }
+        switch type {
+        case "reply": self = .reply(messageId: messageId)
+        case "edit":  self = .edit(messageId: messageId)
+        default:      self = .none
+        }
+    }
+}
+
+// MARK: - RNChatView
 
 @objc final class RNChatView: UIView {
 
     // MARK: - Events
 
-    @objc var onScroll: RCTDirectEventBlock?
-    @objc var onReachTop: RCTDirectEventBlock?
-    @objc var onMessagesVisible: RCTDirectEventBlock?
-    @objc var onMessagePress: RCTDirectEventBlock?
-    @objc var onActionPress: RCTDirectEventBlock?
-    @objc var onSendMessage: RCTDirectEventBlock?
-    @objc var onEditMessage: RCTDirectEventBlock?
-    @objc var onCancelReply: RCTDirectEventBlock?
-    @objc var onCancelEdit: RCTDirectEventBlock?
-    @objc var onAttachmentPress: RCTDirectEventBlock?
+    @objc var onScroll:            RCTDirectEventBlock?
+    @objc var onReachTop:          RCTDirectEventBlock?
+    @objc var onMessagesVisible:   RCTDirectEventBlock?
+    @objc var onMessagePress:      RCTDirectEventBlock?
+    @objc var onActionPress:       RCTDirectEventBlock?
+    @objc var onSendMessage:       RCTDirectEventBlock?
+    @objc var onEditMessage:       RCTDirectEventBlock?
+    @objc var onCancelInputAction: RCTDirectEventBlock?
+    @objc var onAttachmentPress:   RCTDirectEventBlock?
     @objc var onReplyMessagePress: RCTDirectEventBlock?
 
     // MARK: - Props
@@ -33,70 +73,63 @@ import React
     }
 
     @objc var topThreshold: NSNumber = 200 {
-        didSet { chatViewController?.topThreshold = CGFloat(topThreshold.doubleValue) }
+        didSet { chatVC?.topThreshold = CGFloat(topThreshold.doubleValue) }
     }
 
     @objc var isLoading: Bool = false {
         didSet {
-            chatViewController?.isLoading = isLoading
-            if !isLoading { chatViewController?.resetLoadingState() }
+            chatVC?.isLoading = isLoading
+            if !isLoading { chatVC?.resetLoadingState() }
         }
     }
 
-    /// Сериализованные данные цитируемого сообщения из JS.
-    @objc var replyMessage: NSDictionary? {
-        didSet { updateReplyMessage() }
-    }
-
-    /// Сериализованные данные редактируемого сообщения из JS.
-    @objc var editMessage: NSDictionary? {
-        didSet { updateEditMessage() }
+    /// Единый проп управления режимом InputBar.
+    ///
+    /// Ожидаемый формат:
+    ///   { "type": "reply" | "edit" | "none", "messageId": String }
+    ///
+    /// Один didSet → один вызов applyInputAction → нет race condition.
+    @objc var inputAction: NSDictionary? {
+        didSet { applyInputAction() }
     }
 
     @objc var initialScrollId: NSString? {
-        didSet { pendingInitialScrollMessageId = initialScrollId as String? }
+        didSet { pendingInitialScrollId = initialScrollId as String? }
     }
 
     @objc var scrollToBottomThreshold: NSNumber = 150 {
-        didSet {
-            chatViewController?.scrollToBottomThreshold =
-                CGFloat(scrollToBottomThreshold.doubleValue)
-        }
+        didSet { chatVC?.scrollToBottomThreshold = CGFloat(scrollToBottomThreshold.doubleValue) }
     }
 
-    /// Тема оформления: "light" или "dark". По умолчанию — light.
     @objc var theme: NSString = "light" {
         didSet { applyTheme() }
     }
 
-    // MARK: - Internal
+    // MARK: - Private state
 
-    private weak var chatViewController: ChatViewController?
-    private var hostController: UIViewController?
-    private var pendingInitialScrollMessageId: String?
+    private weak var chatVC: ChatViewController?
+    private var pendingInitialScrollId: String?
     private var initialScrollDone = false
 
     // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .clear
-        setupChatView()
+        setup()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        backgroundColor = .clear
-        setupChatView()
+        setup()
     }
 
     // MARK: - Setup
 
-    private func setupChatView() {
+    private func setup() {
+        backgroundColor = .clear
         let vc = ChatViewController()
         vc.delegate = self
-        chatViewController = vc
-
+        chatVC = vc
         vc.view.frame = bounds
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         vc.view.backgroundColor  = .clear
@@ -105,89 +138,89 @@ import React
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        guard window != nil, let vc = chatViewController else { return }
-        guard vc.parent == nil else { return }
-        if let parentVC = findParentViewController() {
-            parentVC.addChild(vc)
-            vc.didMove(toParent: parentVC)
-            hostController = parentVC
-        }
+        guard window != nil,
+              let vc = chatVC,
+              vc.parent == nil,
+              let parentVC = findParentViewController()
+        else { return }
+        parentVC.addChild(vc)
+        vc.didMove(toParent: parentVC)
     }
 
-    // MARK: - Theme
+    // MARK: - Prop handlers
 
-    /// Преобразует строковый проп в ChatTheme и передаёт контроллеру.
     private func applyTheme() {
-        let resolved: ChatTheme = (theme as String).lowercased() == "dark" ? .dark : .light
-        chatViewController?.theme = resolved
+        chatVC?.theme = (theme as String).lowercased() == "dark" ? .dark : .light
     }
-
-    // MARK: - Prop updates
 
     private func updateMessages() {
-        guard let chatVC = chatViewController else { return }
+        guard let vc = chatVC else { return }
+
         let parsed: [ChatMessage] = (messages as? [[String: Any]] ?? [])
             .compactMap { ChatMessage.from(dict: $0) }
 
-        chatVC.updateMessages(parsed)
+        vc.updateMessages(parsed)
 
-        if !initialScrollDone && !parsed.isEmpty {
-            initialScrollDone = true
-            if let targetId = pendingInitialScrollMessageId {
-                chatVC.isInitialScrollProtected = true
-                chatVC.pendingScrollMessageId   = targetId
-            }
-            performInitialScroll(messages: parsed, in: chatVC)
+        guard !initialScrollDone, !parsed.isEmpty else { return }
+        initialScrollDone = true
+        if let targetId = pendingInitialScrollId {
+            vc.isInitialScrollProtected = true
+            vc.pendingScrollMessageId   = targetId
         }
+        performInitialScroll(in: vc)
     }
 
-    private func performInitialScroll(messages: [ChatMessage], in chatVC: ChatViewController) {
-        chatVC.view.layoutIfNeeded()
-        DispatchQueue.main.async { [weak self, weak chatVC] in
-            guard let self, let chatVC else { return }
-            chatVC.view.layoutIfNeeded()
-
-            if let targetId = self.pendingInitialScrollMessageId {
-                self.pendingInitialScrollMessageId = nil
-                chatVC.scrollToMessage(id: targetId, position: .center,
-                                       animated: false, highlight: true)
-                chatVC.isInitialScrollProtected = false
-                chatVC.pendingScrollMessageId   = nil
+    private func performInitialScroll(in vc: ChatViewController) {
+        vc.view.layoutIfNeeded()
+        DispatchQueue.main.async { [weak self, weak vc] in
+            guard let self, let vc else { return }
+            vc.view.layoutIfNeeded()
+            if let id = self.pendingInitialScrollId {
+                self.pendingInitialScrollId = nil
+                vc.scrollToMessage(id: id, position: .center, animated: false, highlight: true)
+                vc.isInitialScrollProtected = false
+                vc.pendingScrollMessageId   = nil
             } else {
-                chatVC.scrollToBottom(animated: false)
+                vc.scrollToBottom(animated: false)
             }
         }
     }
 
     private func updateActions() {
-        guard let chatVC = chatViewController else { return }
-        let parsed: [MessageAction] = (actions as? [[String: Any]] ?? [])
-            .compactMap { MessageAction.from(dict: $0) }
-        chatVC.actions = parsed
+        guard let vc = chatVC else { return }
+        vc.actions = (actions as? [[String: Any]] ?? []).compactMap { MessageAction.from(dict: $0) }
     }
 
-    /// Парсит replyMessage из JS и передаёт ReplyInfo в контроллер.
-    private func updateReplyMessage() {
-        guard let chatVC = chatViewController else { return }
-        if let dict = replyMessage as? [String: Any], !dict.isEmpty,
-           let info = ReplyInfo.from(dict: dict) {
-            chatVC.setReplyInfo(info)
-        } else {
-            chatVC.setReplyInfo(nil)
-        }
-    }
+    /// Единственная точка применения режима InputBar.
+    ///
+    /// Вызывается только из `didSet inputAction` — всегда на main thread,
+    /// всегда одним вызовом, никакой асинхронности.
+    ///
+    /// Данные сообщения берём из живого messageIndex — InputBar всегда
+    /// показывает актуальный текст, даже если оригинал редактировали.
+    private func applyInputAction() {
+        guard let vc = chatVC else { return }
 
-    /// Парсит editMessage из JS и переводит InputBar в режим редактирования.
-    /// Ожидаемые поля: "id" (String), "text" (String).
-    private func updateEditMessage() {
-        guard let chatVC = chatViewController else { return }
-        if let dict = editMessage as? [String: Any],
-           let id   = dict["id"]   as? String, !id.isEmpty,
-           let text = dict["text"] as? String {
-            chatVC.setEditMessage(id: id, text: text)
-        } else {
-            // JS обнулил editMessage — сбрасываем режим без события делегата
-            chatVC.clearInputMode()
+        switch ChatInputAction(dict: inputAction as? [String: Any]) {
+
+        case .reply(let messageId):
+            guard let message = vc.message(forID: messageId) else { return }
+            vc.beginReply(info: ReplyInfo(
+                replyToId:  message.id,
+                senderName: message.senderName,
+                text:       message.text,
+                hasImage:   message.hasImage
+            ))
+
+        case .edit(let messageId):
+            guard
+                let message = vc.message(forID: messageId),
+                let text    = message.text
+            else { return }
+            vc.beginEdit(messageId: messageId, text: text)
+
+        case .none:
+            vc.clearInputMode()
         }
     }
 
@@ -202,27 +235,25 @@ import React
         return nil
     }
 
-    // MARK: - Public API (commands from JS)
+    // MARK: - JS Commands
 
     @objc func scrollToBottom() {
-        chatViewController?.scrollToBottom(animated: true)
+        chatVC?.scrollToBottom(animated: true)
     }
 
     @objc func scrollToMessage(
-        id messageID: String,
-        position positionString: String?,
+        id messageId: String,
+        position positionStr: String?,
         animated: Bool,
         highlight: Bool
     ) {
         let position: ChatScrollPosition
-        switch positionString?.lowercased() {
+        switch positionStr?.lowercased() {
         case "top":    position = .top
         case "bottom": position = .bottom
         default:       position = .center
         }
-        chatViewController?.scrollToMessage(
-            id: messageID, position: position,
-            animated: animated, highlight: highlight)
+        chatVC?.scrollToMessage(id: messageId, position: position, animated: animated, highlight: highlight)
     }
 }
 
@@ -230,59 +261,52 @@ import React
 
 extension RNChatView: ChatViewControllerDelegate {
 
-    func chatViewController(_ controller: ChatViewController, didScrollToOffset offset: CGPoint) {
+    func chatViewController(_ vc: ChatViewController, didScrollToOffset offset: CGPoint) {
         onScroll?(["x": offset.x, "y": offset.y])
     }
 
-    func chatViewController(_ controller: ChatViewController,
-                            didReachTopThreshold threshold: CGFloat) {
+    func chatViewController(_ vc: ChatViewController, didReachTopThreshold threshold: CGFloat) {
         onReachTop?(["distanceFromTop": threshold])
     }
 
-    func chatViewController(_ controller: ChatViewController,
-                            messagesDidAppear messageIDs: [String]) {
+    func chatViewController(_ vc: ChatViewController, messagesDidAppear messageIDs: [String]) {
         onMessagesVisible?(["messageIds": messageIDs])
     }
 
-    func chatViewController(_ controller: ChatViewController, didTapMessage message: ChatMessage) {
+    func chatViewController(_ vc: ChatViewController, didTapMessage message: ChatMessage) {
         onMessagePress?(["messageId": message.id])
     }
 
-    func chatViewController(_ controller: ChatViewController, didSelectAction action: MessageAction,
+    func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction,
                             for message: ChatMessage) {
         onActionPress?(["actionId": action.id, "messageId": message.id])
     }
 
-    func chatViewController(_ controller: ChatViewController, didSendMessage text: String,
+    func chatViewController(_ vc: ChatViewController, didSendMessage text: String,
                             replyToId: String?) {
         var payload: [String: Any] = ["text": text]
         if let rid = replyToId { payload["replyToId"] = rid }
         onSendMessage?(payload)
     }
 
-    /// Пользователь отправил отредактированный текст.
-    func chatViewController(_ controller: ChatViewController, didEditMessage text: String,
+    func chatViewController(_ vc: ChatViewController, didEditMessage text: String,
                             messageId: String) {
         onEditMessage?(["text": text, "messageId": messageId])
     }
 
-    /// Пользователь нажал ✕ в панели ответа.
-    func chatViewController(_ controller: ChatViewController,
-                            didCancelReply vc2: ChatViewController) {
-        onCancelReply?([:])
+    func chatViewController(_ vc: ChatViewController, didCancelReply _: ChatViewController) {
+        onCancelInputAction?(["type": "reply"])
     }
 
-    /// Пользователь нажал ✕ в панели редактирования.
-    func chatViewController(_ controller: ChatViewController,
-                            didCancelEdit vc2: ChatViewController) {
-        onCancelEdit?([:])
+    func chatViewController(_ vc: ChatViewController, didCancelEdit _: ChatViewController) {
+        onCancelInputAction?(["type": "edit"])
     }
 
-    func chatViewControllerDidTapAttachment(_ controller: ChatViewController) {
+    func chatViewControllerDidTapAttachment(_ vc: ChatViewController) {
         onAttachmentPress?([:])
     }
 
-    func chatViewController(_ controller: ChatViewController, didTapReply replyId: String) {
+    func chatViewController(_ vc: ChatViewController, didTapReply replyId: String) {
         onReplyMessagePress?(["messageId": replyId])
     }
 }

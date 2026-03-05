@@ -26,11 +26,10 @@ import {
   NativeChatAction as ChatAction,
   NativeChatActionPressEventData as ChatActionPressEventData,
   NativeChatAttachmentPressEventData as ChatAttachmentPressEventData,
-  NativeChatCancelEditEventData as ChatCancelEditEventData,
-  NativeChatCancelReplyEventData as ChatCancelReplyEventData,
+  NativeChatCancelInputActionEventData as ChatCancelInputActionEventData,
   NativeChatEditMessageEventData as ChatEditMessageEventData,
-  NativeChatEditRef as ChatEditRef,
   NativeChatImageItem as ChatImageItem,
+  NativeChatInputAction,
   NativeChatMessage,
   NativeChatMessagePressEventData as ChatMessagePressEventData,
   NativeChatMessagesVisibleEventData as ChatMessagesVisibleEventData,
@@ -43,17 +42,39 @@ import {
   NativeChatViewProps,
 } from "../../NativeChatViewSpec";
 
-// ─── Re-export public types ───────────────────────────────────────────────────
+// ─── Public types ─────────────────────────────────────────────────────────────
+
+type ChatMessageStatus = "sending" | "sent" | "delivered" | "read";
+interface ChatMessage extends NativeChatMessage {
+  status?: ChatMessageStatus;
+}
+type ChatScrollPosition = "top" | "center" | "bottom";
+type ChatTheme = "light" | "dark";
+type ChatInputActionType = "reply" | "edit" | "none";
+type ChatInputAction = {
+  type: ChatInputActionType;
+  messageId?: string;
+};
+
+interface ChatViewCommands extends NativeChatViewCommands {
+  scrollToMessage(
+    viewRef: React.ComponentRef<HostComponent<NativeChatViewProps>>,
+    messageId: string,
+    position: ChatScrollPosition,
+    animated: boolean,
+    highlight: boolean,
+  ): void;
+}
 
 export type {
   ChatAction,
   ChatActionPressEventData,
   ChatAttachmentPressEventData,
-  ChatCancelEditEventData,
-  ChatCancelReplyEventData,
+  ChatCancelInputActionEventData,
   ChatEditMessageEventData,
-  ChatEditRef,
   ChatImageItem,
+  ChatInputAction,
+  ChatInputActionType,
   ChatMessage,
   ChatMessagePressEventData,
   ChatMessagesVisibleEventData,
@@ -66,27 +87,6 @@ export type {
   ChatTheme,
   ChatViewCommands,
 };
-
-type ChatMessageStatus = "sending" | "sent" | "delivered" | "read";
-
-interface ChatMessage extends NativeChatMessage {
-  status?: ChatMessageStatus;
-}
-
-type ChatScrollPosition = "top" | "center" | "bottom";
-
-/** Тема оформления чата */
-type ChatTheme = "light" | "dark";
-
-interface ChatViewCommands extends NativeChatViewCommands {
-  scrollToMessage(
-    viewRef: React.ComponentRef<HostComponent<NativeChatViewProps>>,
-    messageId: string,
-    position: ChatScrollPosition,
-    animated: boolean,
-    highlight: boolean,
-  ): void;
-}
 
 // ─── Imperative handle ────────────────────────────────────────────────────────
 
@@ -107,13 +107,11 @@ export interface ChatView {
 export interface ChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
   actions?: ChatAction[];
-  replyMessage?: NativeChatMessage | null;
-  editMessage?: ChatEditRef | null;
+  inputAction?: ChatInputAction | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: number;
   topThreshold?: number;
   isLoading?: boolean;
-  /** Тема оформления: "light" (по умолчанию) или "dark" */
   theme?: ChatTheme;
   style?: ViewStyle;
 
@@ -124,8 +122,7 @@ export interface ChatViewProps extends ViewProps {
   onActionPress?: (event: ChatActionPressEventData) => void;
   onSendMessage?: (event: ChatSendMessageEventData) => void;
   onEditMessage?: (event: ChatEditMessageEventData) => void;
-  onCancelReply?: (event: ChatCancelReplyEventData) => void;
-  onCancelEdit?: (event: ChatCancelEditEventData) => void;
+  onCancelInputAction?: (event: ChatCancelInputActionEventData) => void;
   onAttachmentPress?: (event: ChatAttachmentPressEventData) => void;
   onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
 }
@@ -161,7 +158,7 @@ function dispatchCommand(
       return;
     }
   } catch {
-    /* fall through to UIManager */
+    /* fall through */
   }
 
   const node = findNodeHandle(nativeRef.current);
@@ -181,8 +178,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
   const {
     messages,
     actions = [],
-    replyMessage,
-    editMessage,
+    inputAction,
     initialScrollId,
     scrollToBottomThreshold = 150,
     topThreshold = 200,
@@ -196,8 +192,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onActionPress,
     onSendMessage,
     onEditMessage,
-    onCancelReply,
-    onCancelEdit,
+    onCancelInputAction,
     onAttachmentPress,
     onReplyMessagePress,
   } = props;
@@ -266,15 +261,10 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onEditMessage?.(e.nativeEvent),
     [onEditMessage],
   );
-  const handleCancelReply = useCallback(
-    (e: NativeSyntheticEvent<ChatCancelReplyEventData>) =>
-      onCancelReply?.(e.nativeEvent),
-    [onCancelReply],
-  );
-  const handleCancelEdit = useCallback(
-    (e: NativeSyntheticEvent<ChatCancelEditEventData>) =>
-      onCancelEdit?.(e.nativeEvent),
-    [onCancelEdit],
+  const handleCancelInputAction = useCallback(
+    (e: NativeSyntheticEvent<ChatCancelInputActionEventData>) =>
+      onCancelInputAction?.(e.nativeEvent),
+    [onCancelInputAction],
   );
   const handleAttachmentPress = useCallback(
     (e: NativeSyntheticEvent<ChatAttachmentPressEventData>) =>
@@ -287,13 +277,14 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     [onReplyMessagePress],
   );
 
-  // ─── Non-iOS fallback ────────────────────────────────────────────────────
-
   if (Platform.OS !== "ios") {
     return <View style={[styles.unsupported, style]} />;
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────
+  // null → { type: "none" } чтобы нативная сторона всегда получала словарь
+  const nativeInputAction: NativeChatInputAction = inputAction ?? {
+    type: "none",
+  };
 
   return (
     <NativeChatView
@@ -301,8 +292,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       style={[styles.fill, style]}
       messages={messages}
       actions={actions}
-      replyMessage={replyMessage ?? null}
-      editMessage={editMessage ?? null}
+      inputAction={nativeInputAction}
       initialScrollId={initialScrollId}
       scrollToBottomThreshold={scrollToBottomThreshold}
       topThreshold={topThreshold}
@@ -315,8 +305,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onActionPress={handleActionPress}
       onSendMessage={handleSendMessage}
       onEditMessage={handleEditMessage}
-      onCancelReply={handleCancelReply}
-      onCancelEdit={handleCancelEdit}
+      onCancelInputAction={handleCancelInputAction}
       onAttachmentPress={handleAttachmentPress}
       onReplyMessagePress={handleReplyMessagePress}
     />
