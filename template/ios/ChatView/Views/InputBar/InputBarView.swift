@@ -1,21 +1,46 @@
 // MARK: - InputBarView.swift
 // Нативная панель ввода: поле текста, кнопки вложения и отправки,
-// панель цитаты (reply preview).
+// панель цитаты (reply preview) и панель редактирования.
 //
 // Reply-панель заполняется из ReplyInfo — единственная точка истины,
 // без дублирования полей senderName/text внутри InputBarView.
+//
+// Edit-режим: верхняя панель показывает «Editing message» вместо цитаты,
+// при отправке вызывается didEditText вместо didSendText.
 
 import UIKit
+
+// MARK: - InputBarMode
+
+/// Текущий режим ввода панели.
+enum InputBarMode {
+    case normal
+    case reply(ReplyInfo)
+    case edit(messageId: String, originalText: String)
+}
 
 // MARK: - InputBarDelegate
 
 protocol InputBarDelegate: AnyObject {
-    /// Пользователь нажал «Отправить».
+    /// Пользователь нажал «Отправить» в обычном режиме или режиме ответа.
     func inputBar(_ inputBar: InputBarView, didSendText text: String, replyToId: String?)
+    /// Пользователь нажал «Отправить» в режиме редактирования.
+    func inputBar(_ inputBar: InputBarView, didEditText text: String, messageId: String)
+    /// Пользователь закрыл панель ответа крестиком.
+    func inputBarDidCancelReply(_ inputBar: InputBarView)
+    /// Пользователь закрыл панель редактирования крестиком.
+    func inputBarDidCancelEdit(_ inputBar: InputBarView)
     /// Изменилась высота панели (для анимации пересчёта layout).
     func inputBar(_ inputBar: InputBarView, didChangeHeight height: CGFloat)
     /// Пользователь нажал кнопку вложения.
     func inputBarDidTapAttachment(_ inputBar: InputBarView)
+}
+
+// Дефолтные реализации необязательных методов
+extension InputBarDelegate {
+    func inputBar(_ inputBar: InputBarView, didEditText text: String, messageId: String) {}
+    func inputBarDidCancelReply(_ inputBar: InputBarView) {}
+    func inputBarDidCancelEdit(_ inputBar: InputBarView) {}
 }
 
 // MARK: - InputBarView
@@ -26,31 +51,61 @@ final class InputBarView: UIView {
 
     // MARK: - State
 
-    /// Текущая цитата. Все UI-обновления панели цитаты — через didSet.
-    private var replyInfo: ReplyInfo? {
-        didSet { updateReplyPanel() }
+    private(set) var mode: InputBarMode = .normal {
+        didSet { updateTopPanel() }
     }
 
-    // MARK: - Reply panel
+    // MARK: - Top panel (reply / edit)
 
-    private let replyPanel: UIView = {
+    private let topPanel: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
         v.isHidden = true
         return v
     }()
 
-    private let replyPanelSeparator: UIView = {
+    private let topPanelSeparator: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }()
 
-    /// ReplyPreviewView переиспользуется из MessageContentViews —
-    /// единый компонент отображения цитаты в приложении.
+    /// Используется для отображения цитаты (reply-режим).
     private let replyPreviewInPanel = ReplyPreviewView()
 
-    private let replyCloseButton: UIButton = {
+    /// Показывается в edit-режиме вместо ReplyPreviewView.
+    private let editPreviewView: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.isHidden = true
+        return v
+    }()
+
+    private let editIconView: UIImageView = {
+        let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+        let iv = UIImageView(image: UIImage(systemName: "pencil", withConfiguration: cfg))
+        iv.contentMode = .scaleAspectFit
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let editTitleLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 13, weight: .semibold)
+        l.text = NSLocalizedString("chat.inputbar.editing", value: "Editing message", comment: "")
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let editOriginalLabel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 12)
+        l.numberOfLines = 1
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let topPanelCloseButton: UIButton = {
         let btn = UIButton(type: .system)
         let cfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
         btn.setImage(UIImage(systemName: "xmark.circle.fill", withConfiguration: cfg), for: .normal)
@@ -58,7 +113,7 @@ final class InputBarView: UIView {
         return btn
     }()
 
-    private var replyPanelHeightConstraint: NSLayoutConstraint!
+    private var topPanelHeightConstraint: NSLayoutConstraint!
 
     // MARK: - Input row
 
@@ -133,37 +188,59 @@ final class InputBarView: UIView {
 
     /// Применяет тему ко всем subviews панели ввода.
     func applyTheme(_ theme: ChatTheme) {
-        containerView.backgroundColor   = theme.inputBarBackground
+        containerView.backgroundColor      = theme.inputBarBackground
         bottomBackdropView.backgroundColor = theme.inputBarBackground
-        separatorView.backgroundColor   = theme.inputBarSeparator
-        replyPanel.backgroundColor      = theme.replyPanelBackground
-        replyPanelSeparator.backgroundColor = theme.inputBarSeparator
-        textView.backgroundColor        = theme.inputBarTextViewBg
-        textView.textColor              = theme.inputBarText
-        placeholderLabel.textColor      = theme.inputBarPlaceholder
-        attachButton.tintColor          = theme.inputBarTint
-        sendButton.tintColor            = theme.inputBarTint
-        replyCloseButton.tintColor      = theme.replyPanelClose
-
-        // ReplyPreviewView перерисуется при следующем setReplyInfo
+        separatorView.backgroundColor      = theme.inputBarSeparator
+        topPanel.backgroundColor           = theme.replyPanelBackground
+        topPanelSeparator.backgroundColor  = theme.inputBarSeparator
+        textView.backgroundColor           = theme.inputBarTextViewBg
+        textView.textColor                 = theme.inputBarText
+        placeholderLabel.textColor         = theme.inputBarPlaceholder
+        attachButton.tintColor             = theme.inputBarTint
+        sendButton.tintColor               = theme.inputBarTint
+        topPanelCloseButton.tintColor      = theme.replyPanelClose
+        editIconView.tintColor             = theme.replyPanelAccent
+        editTitleLabel.textColor           = theme.replyPanelSender
+        editOriginalLabel.textColor        = theme.replyPanelText
     }
 
     // MARK: - Public API
 
-    /// Устанавливает цитируемое сообщение. nil — скрывает панель.
+    /// Устанавливает режим ответа. nil — сбрасывает в .normal.
     func setReplyInfo(_ info: ReplyInfo?, theme: ChatTheme) {
-        replyInfo = info
-        // Принудительно обновить цвета, т.к. тема может меняться независимо
         if let info {
             replyPreviewInPanel.configure(with: info, isMine: false, theme: theme)
+            mode = .reply(info)
+        } else {
+            mode = .normal
         }
         if info != nil { textView.becomeFirstResponder() }
     }
 
-    /// Очищает поле ввода и сбрасывает цитату.
+    /// Активирует режим редактирования с предзаполнением текста.
+    func setEditMessage(id: String, text: String, theme: ChatTheme) {
+        applyTheme(theme) // обновим цвета на случай смены темы
+        mode = .edit(messageId: id, originalText: text)
+        textView.text = text
+        updatePlaceholder()
+        updateSendButton()
+        updateHeight()
+        textView.becomeFirstResponder()
+        // Перемещаем курсор в конец
+        let end = textView.endOfDocument
+        textView.selectedTextRange = textView.textRange(from: end, to: end)
+    }
+
+    /// Сбрасывает в нормальный режим без уведомления делегата.
+    /// Используется из ChatViewController когда JS сам отменяет edit/reply.
+    func resetMode() {
+        mode = .normal
+    }
+
+    /// Очищает поле ввода и сбрасывает режим.
     func clearText() {
         textView.text = ""
-        replyInfo = nil
+        mode = .normal
         updatePlaceholder()
         updateSendButton()
         updateHeight()
@@ -174,35 +251,67 @@ final class InputBarView: UIView {
     private func setupLayout() {
         backgroundColor = .clear
 
-        // ── Reply panel ──────────────────────────────────────────────────────
-        addSubview(replyPanel)
-        replyPanel.addSubview(replyPanelSeparator)
+        // ── Top panel (reply / edit) ─────────────────────────────────────────
+        addSubview(topPanel)
+        topPanel.addSubview(topPanelSeparator)
+
         replyPreviewInPanel.translatesAutoresizingMaskIntoConstraints = false
-        replyPanel.addSubview(replyPreviewInPanel)
-        replyPanel.addSubview(replyCloseButton)
+        topPanel.addSubview(replyPreviewInPanel)
 
-        replyPanelHeightConstraint = replyPanel.heightAnchor.constraint(equalToConstant: 0)
+        // Edit preview subviews
+        topPanel.addSubview(editPreviewView)
+        editPreviewView.addSubview(editIconView)
+        editPreviewView.addSubview(editTitleLabel)
+        editPreviewView.addSubview(editOriginalLabel)
+
+        topPanel.addSubview(topPanelCloseButton)
+
+        topPanelHeightConstraint = topPanel.heightAnchor.constraint(equalToConstant: 0)
         NSLayoutConstraint.activate([
-            replyPanel.topAnchor.constraint(equalTo: topAnchor),
-            replyPanel.leadingAnchor.constraint(equalTo: leadingAnchor),
-            replyPanel.trailingAnchor.constraint(equalTo: trailingAnchor),
-            replyPanelHeightConstraint,
+            topPanel.topAnchor.constraint(equalTo: topAnchor),
+            topPanel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            topPanel.trailingAnchor.constraint(equalTo: trailingAnchor),
+            topPanelHeightConstraint,
 
-            replyPanelSeparator.topAnchor.constraint(equalTo: replyPanel.topAnchor),
-            replyPanelSeparator.leadingAnchor.constraint(equalTo: replyPanel.leadingAnchor),
-            replyPanelSeparator.trailingAnchor.constraint(equalTo: replyPanel.trailingAnchor),
-            replyPanelSeparator.heightAnchor.constraint(equalToConstant: 0.5),
+            topPanelSeparator.topAnchor.constraint(equalTo: topPanel.topAnchor),
+            topPanelSeparator.leadingAnchor.constraint(equalTo: topPanel.leadingAnchor),
+            topPanelSeparator.trailingAnchor.constraint(equalTo: topPanel.trailingAnchor),
+            topPanelSeparator.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // ReplyPreviewView занимает всё пространство, кроме кнопки закрытия
-            replyPreviewInPanel.leadingAnchor.constraint(equalTo: replyPanel.leadingAnchor, constant: 8),
-            replyPreviewInPanel.trailingAnchor.constraint(equalTo: replyCloseButton.leadingAnchor, constant: -4),
-            replyPreviewInPanel.topAnchor.constraint(equalTo: replyPanel.topAnchor, constant: 6),
-            replyPreviewInPanel.bottomAnchor.constraint(equalTo: replyPanel.bottomAnchor, constant: -6),
+            // ReplyPreviewView
+            replyPreviewInPanel.leadingAnchor.constraint(equalTo: topPanel.leadingAnchor, constant: 8),
+            replyPreviewInPanel.trailingAnchor.constraint(equalTo: topPanelCloseButton.leadingAnchor, constant: -4),
+            replyPreviewInPanel.topAnchor.constraint(equalTo: topPanel.topAnchor, constant: 6),
+            replyPreviewInPanel.bottomAnchor.constraint(equalTo: topPanel.bottomAnchor, constant: -6),
 
-            replyCloseButton.trailingAnchor.constraint(equalTo: replyPanel.trailingAnchor, constant: -12),
-            replyCloseButton.centerYAnchor.constraint(equalTo: replyPanel.centerYAnchor),
-            replyCloseButton.widthAnchor.constraint(equalToConstant: 24),
-            replyCloseButton.heightAnchor.constraint(equalToConstant: 24),
+            // Edit preview container
+            editPreviewView.leadingAnchor.constraint(equalTo: topPanel.leadingAnchor, constant: 14),
+            editPreviewView.trailingAnchor.constraint(equalTo: topPanelCloseButton.leadingAnchor, constant: -4),
+            editPreviewView.topAnchor.constraint(equalTo: topPanel.topAnchor, constant: 6),
+            editPreviewView.bottomAnchor.constraint(equalTo: topPanel.bottomAnchor, constant: -6),
+
+            // Edit icon
+            editIconView.leadingAnchor.constraint(equalTo: editPreviewView.leadingAnchor),
+            editIconView.topAnchor.constraint(equalTo: editPreviewView.topAnchor, constant: 2),
+            editIconView.widthAnchor.constraint(equalToConstant: 16),
+            editIconView.heightAnchor.constraint(equalToConstant: 16),
+
+            // Edit title label
+            editTitleLabel.leadingAnchor.constraint(equalTo: editIconView.trailingAnchor, constant: 6),
+            editTitleLabel.trailingAnchor.constraint(equalTo: editPreviewView.trailingAnchor),
+            editTitleLabel.topAnchor.constraint(equalTo: editPreviewView.topAnchor, constant: 2),
+
+            // Edit original text label
+            editOriginalLabel.leadingAnchor.constraint(equalTo: editTitleLabel.leadingAnchor),
+            editOriginalLabel.trailingAnchor.constraint(equalTo: editPreviewView.trailingAnchor),
+            editOriginalLabel.topAnchor.constraint(equalTo: editTitleLabel.bottomAnchor, constant: 2),
+            editOriginalLabel.bottomAnchor.constraint(lessThanOrEqualTo: editPreviewView.bottomAnchor, constant: -2),
+
+            // Close button
+            topPanelCloseButton.trailingAnchor.constraint(equalTo: topPanel.trailingAnchor, constant: -12),
+            topPanelCloseButton.centerYAnchor.constraint(equalTo: topPanel.centerYAnchor),
+            topPanelCloseButton.widthAnchor.constraint(equalToConstant: 24),
+            topPanelCloseButton.heightAnchor.constraint(equalToConstant: 24),
         ])
 
         // ── Input container ──────────────────────────────────────────────────
@@ -220,7 +329,7 @@ final class InputBarView: UIView {
 
         let C = ChatLayoutConstants.self
         NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: replyPanel.bottomAnchor),
+            containerView.topAnchor.constraint(equalTo: topPanel.bottomAnchor),
             containerView.leadingAnchor.constraint(equalTo: leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: trailingAnchor),
             containerView.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -259,7 +368,6 @@ final class InputBarView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        // Синхронизируем backdrop с фактическим цветом контейнера
         bottomBackdropView.backgroundColor = containerView.backgroundColor
     }
 
@@ -268,38 +376,73 @@ final class InputBarView: UIView {
     private func setupActions() {
         sendButton.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
         attachButton.addTarget(self, action: #selector(attachTapped), for: .touchUpInside)
-        replyCloseButton.addTarget(self, action: #selector(clearReply), for: .touchUpInside)
+        topPanelCloseButton.addTarget(self, action: #selector(closeTopPanel), for: .touchUpInside)
     }
 
     @objc private func sendTapped() {
         let text = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        let replyId = replyInfo?.replyToId
-        delegate?.inputBar(self, didSendText: text, replyToId: replyId)
-        textView.text = ""
-        replyInfo = nil
-        updatePlaceholder()
-        updateSendButton()
-        updateHeight()
+
+        switch mode {
+        case .normal:
+            delegate?.inputBar(self, didSendText: text, replyToId: nil)
+        case .reply(let info):
+            delegate?.inputBar(self, didSendText: text, replyToId: info.replyToId)
+        case .edit(let messageId, _):
+            delegate?.inputBar(self, didEditText: text, messageId: messageId)
+        }
+
+        clearText()
     }
 
     @objc private func attachTapped() {
         delegate?.inputBarDidTapAttachment(self)
     }
 
-    @objc private func clearReply() {
-        replyInfo = nil
+    /// Закрытие верхней панели — разные события для reply и edit.
+    @objc private func closeTopPanel() {
+        let previousMode = mode
+        mode = .normal
+        textView.text = ""
+        updatePlaceholder()
+        updateSendButton()
+        updateHeight()
+
+        switch previousMode {
+        case .reply:
+            delegate?.inputBarDidCancelReply(self)
+        case .edit:
+            delegate?.inputBarDidCancelEdit(self)
+        case .normal:
+            break
+        }
     }
 
-    // MARK: - Reply panel update
+    // MARK: - Top panel update
 
-    /// Синхронизирует видимость и высоту панели цитаты с текущим replyInfo.
-    private func updateReplyPanel() {
-        let hasReply = replyInfo != nil
-        replyPanel.isHidden               = !hasReply
-        replyPanelHeightConstraint.constant = hasReply
-            ? ChatLayoutConstants.inputBarReplyPanelHeight
-            : 0
+    /// Синхронизирует видимость и содержимое верхней панели с текущим mode.
+    private func updateTopPanel() {
+        switch mode {
+        case .normal:
+            topPanel.isHidden                  = true
+            topPanelHeightConstraint.constant  = 0
+            replyPreviewInPanel.isHidden       = true
+            editPreviewView.isHidden           = true
+
+        case .reply:
+            topPanel.isHidden                  = false
+            topPanelHeightConstraint.constant  = ChatLayoutConstants.inputBarReplyPanelHeight
+            replyPreviewInPanel.isHidden       = false
+            editPreviewView.isHidden           = true
+
+        case .edit(_, let originalText):
+            topPanel.isHidden                  = false
+            topPanelHeightConstraint.constant  = ChatLayoutConstants.inputBarReplyPanelHeight
+            replyPreviewInPanel.isHidden       = true
+            editPreviewView.isHidden           = false
+            editOriginalLabel.text             = originalText
+        }
+
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
         notifyHeightChange()
     }
@@ -333,10 +476,10 @@ final class InputBarView: UIView {
     }
 
     private func notifyHeightChange() {
-        let replyH  = replyInfo != nil ? ChatLayoutConstants.inputBarReplyPanelHeight : 0
-        let totalH  = textViewHeightConstraint.constant
-                    + ChatLayoutConstants.inputBarVerticalPadding * 2
-                    + replyH
+        let topPanelH = topPanelHeightConstraint.constant
+        let totalH    = textViewHeightConstraint.constant
+                      + ChatLayoutConstants.inputBarVerticalPadding * 2
+                      + topPanelH
         delegate?.inputBar(self, didChangeHeight: totalH)
     }
 }
@@ -356,7 +499,6 @@ extension InputBarView: UITextViewDelegate {
         shouldChangeTextIn range: NSRange,
         replacementText text: String
     ) -> Bool {
-        // Нажатие Return без Shift → отправка (как в Telegram)
         if text == "\n" {
             let trimmed = textView.text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { sendTapped(); return false }

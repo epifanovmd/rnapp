@@ -26,6 +26,10 @@ import {
   NativeChatAction as ChatAction,
   NativeChatActionPressEventData as ChatActionPressEventData,
   NativeChatAttachmentPressEventData as ChatAttachmentPressEventData,
+  NativeChatCancelEditEventData as ChatCancelEditEventData,
+  NativeChatCancelReplyEventData as ChatCancelReplyEventData,
+  NativeChatEditMessageEventData as ChatEditMessageEventData,
+  NativeChatEditRef as ChatEditRef,
   NativeChatImageItem as ChatImageItem,
   NativeChatMessage,
   NativeChatMessagePressEventData as ChatMessagePressEventData,
@@ -45,6 +49,10 @@ export type {
   ChatAction,
   ChatActionPressEventData,
   ChatAttachmentPressEventData,
+  ChatCancelEditEventData,
+  ChatCancelReplyEventData,
+  ChatEditMessageEventData,
+  ChatEditRef,
   ChatImageItem,
   ChatMessage,
   ChatMessagePressEventData,
@@ -100,6 +108,7 @@ export interface ChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
   actions?: ChatAction[];
   replyMessage?: NativeChatMessage | null;
+  editMessage?: ChatEditRef | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: number;
   topThreshold?: number;
@@ -114,6 +123,9 @@ export interface ChatViewProps extends ViewProps {
   onMessagePress?: (event: ChatMessagePressEventData) => void;
   onActionPress?: (event: ChatActionPressEventData) => void;
   onSendMessage?: (event: ChatSendMessageEventData) => void;
+  onEditMessage?: (event: ChatEditMessageEventData) => void;
+  onCancelReply?: (event: ChatCancelReplyEventData) => void;
+  onCancelEdit?: (event: ChatCancelEditEventData) => void;
   onAttachmentPress?: (event: ChatAttachmentPressEventData) => void;
   onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
 }
@@ -170,6 +182,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     messages,
     actions = [],
     replyMessage,
+    editMessage,
     initialScrollId,
     scrollToBottomThreshold = 150,
     topThreshold = 200,
@@ -182,6 +195,9 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onMessagePress,
     onActionPress,
     onSendMessage,
+    onEditMessage,
+    onCancelReply,
+    onCancelEdit,
     onAttachmentPress,
     onReplyMessagePress,
   } = props;
@@ -245,6 +261,21 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onSendMessage?.(e.nativeEvent),
     [onSendMessage],
   );
+  const handleEditMessage = useCallback(
+    (e: NativeSyntheticEvent<ChatEditMessageEventData>) =>
+      onEditMessage?.(e.nativeEvent),
+    [onEditMessage],
+  );
+  const handleCancelReply = useCallback(
+    (e: NativeSyntheticEvent<ChatCancelReplyEventData>) =>
+      onCancelReply?.(e.nativeEvent),
+    [onCancelReply],
+  );
+  const handleCancelEdit = useCallback(
+    (e: NativeSyntheticEvent<ChatCancelEditEventData>) =>
+      onCancelEdit?.(e.nativeEvent),
+    [onCancelEdit],
+  );
   const handleAttachmentPress = useCallback(
     (e: NativeSyntheticEvent<ChatAttachmentPressEventData>) =>
       onAttachmentPress?.(e.nativeEvent),
@@ -271,6 +302,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       messages={messages}
       actions={actions}
       replyMessage={replyMessage ?? null}
+      editMessage={editMessage ?? null}
       initialScrollId={initialScrollId}
       scrollToBottomThreshold={scrollToBottomThreshold}
       topThreshold={topThreshold}
@@ -282,6 +314,9 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onMessagePress={handleMessagePress}
       onActionPress={handleActionPress}
       onSendMessage={handleSendMessage}
+      onEditMessage={handleEditMessage}
+      onCancelReply={handleCancelReply}
+      onCancelEdit={handleCancelEdit}
       onAttachmentPress={handleAttachmentPress}
       onReplyMessagePress={handleReplyMessagePress}
     />

@@ -13,6 +13,18 @@ final class MessageBubbleView: UIView {
 
     private var contentView: (any MessageContentView)?
 
+    private let editedLabel: UILabel = {
+        let l = UILabel()
+        l.font = ChatLayoutConstants.footerFont
+        l.text = NSLocalizedString(
+            "chat.bubble.edited",
+            value: "edited",
+            comment: "Short label shown in message footer when a message has been edited"
+        )
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
     private let timeLabel: UILabel = {
         let l = UILabel()
         l.font = ChatLayoutConstants.footerFont
@@ -57,9 +69,12 @@ final class MessageBubbleView: UIView {
         layer.cornerRadius = ChatLayoutConstants.bubbleCornerRadius
         clipsToBounds = true
 
-        statusView.widthAnchor.constraint(equalToConstant: ChatLayoutConstants.statusIconWidth).isActive = true
+        statusView.widthAnchor.constraint(
+            equalToConstant: ChatLayoutConstants.statusIconWidth).isActive = true
         statusView.heightAnchor.constraint(equalToConstant: 12).isActive = true
 
+        // Порядок в footerStack: edited → time → status
+        footerStack.addArrangedSubview(editedLabel)
         footerStack.addArrangedSubview(timeLabel)
         footerStack.addArrangedSubview(statusView)
 
@@ -94,9 +109,7 @@ final class MessageBubbleView: UIView {
         applyBubbleColors(isMine: isMine, theme: theme)
         configureReply(resolvedReply: resolvedReply, isMine: isMine, theme: theme)
         configureContent(message: message, isMine: isMine, theme: theme)
-        timeLabel.text      = DateHelper.shared.timeString(from: message.timestamp)
-        timeLabel.textColor = isMine ? theme.outgoingTimeColor : theme.incomingTimeColor
-        statusView.configure(status: message.status, isMine: isMine, theme: theme)
+        configureFooter(message: message, isMine: isMine, theme: theme)
     }
 
     /// Применяет финальную ширину пузыря к контенту (изображения).
@@ -135,5 +148,15 @@ final class MessageBubbleView: UIView {
             contentView = cv
         }
         contentView?.configure(content: message.content, isMine: isMine, theme: theme)
+    }
+
+    private func configureFooter(message: ChatMessage, isMine: Bool, theme: ChatTheme) {
+        timeLabel.text      = DateHelper.shared.timeString(from: message.timestamp)
+        timeLabel.textColor = isMine ? theme.outgoingTimeColor : theme.incomingTimeColor
+
+        statusView.configure(status: message.status, isMine: isMine, theme: theme)
+
+        editedLabel.isHidden  = !message.isEdited
+        editedLabel.textColor = isMine ? theme.outgoingEditedColor : theme.incomingEditedColor
     }
 }

@@ -40,6 +40,7 @@ export type NativeChatMessage = {
   /** "sending" | "sent" | "delivered" | "read" */
   status?: string;
   replyTo?: NativeChatReplyRef;
+  isEdited?: boolean;
 };
 
 export type NativeChatAction = {
@@ -47,6 +48,13 @@ export type NativeChatAction = {
   title: string;
   systemImage?: string;
   isDestructive?: boolean;
+};
+
+export type NativeChatEditRef = {
+  /** ID редактируемого сообщения — вернётся в onEditMessage */
+  id: string;
+  /** Текущий текст сообщения — предзаполняется в поле ввода */
+  text: string;
 };
 
 // ─── Event payloads ───────────────────────────────────────────────────────────
@@ -63,6 +71,12 @@ export type NativeChatSendMessageEventData = {
   text: string;
   replyToId?: string;
 };
+export type NativeChatEditMessageEventData = {
+  text: string;
+  messageId: string;
+};
+export type NativeChatCancelReplyEventData = {};
+export type NativeChatCancelEditEventData = {};
 export type NativeChatAttachmentPressEventData = {};
 export type NativeChatReplyMessagePressEventData = { messageId: string };
 
@@ -74,6 +88,7 @@ export interface NativeChatViewProps extends ViewProps {
   topThreshold?: WithDefault<Double, 200>;
   isLoading?: WithDefault<boolean, false>;
   replyMessage?: NativeChatMessage | null;
+  editMessage?: NativeChatEditRef | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: WithDefault<Double, 150>;
   /** Тема оформления: "light" (по умолчанию) или "dark" */
@@ -85,6 +100,9 @@ export interface NativeChatViewProps extends ViewProps {
   onMessagePress?: DirectEventHandler<NativeChatMessagePressEventData>;
   onActionPress?: DirectEventHandler<NativeChatActionPressEventData>;
   onSendMessage?: DirectEventHandler<NativeChatSendMessageEventData>;
+  onEditMessage?: DirectEventHandler<NativeChatEditMessageEventData>;
+  onCancelReply?: DirectEventHandler<NativeChatCancelReplyEventData>;
+  onCancelEdit?: DirectEventHandler<NativeChatCancelEditEventData>;
   onAttachmentPress?: DirectEventHandler<NativeChatAttachmentPressEventData>;
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
 }

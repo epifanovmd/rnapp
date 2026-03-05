@@ -9,6 +9,10 @@ import {
   type ChatAction,
   type ChatActionPressEventData,
   type ChatAttachmentPressEventData,
+  type ChatCancelEditEventData,
+  type ChatCancelReplyEventData,
+  type ChatEditMessageEventData,
+  type ChatEditRef,
   type ChatMessage,
   type ChatMessagePressEventData,
   type ChatMessagesVisibleEventData,
@@ -311,6 +315,7 @@ const makeOlderBatch = (beforeTimestamp: number): ChatMessage[] => {
 
 const CHAT_ACTIONS: ChatAction[] = [
   { id: "reply", title: "Reply", systemImage: "arrowshape.turn.up.left" },
+  { id: "edit", title: "Edit", systemImage: "pencil" },
   { id: "copy", title: "Copy", systemImage: "doc.on.doc" },
   { id: "forward", title: "Forward", systemImage: "arrowshape.turn.up.right" },
   { id: "delete", title: "Delete", systemImage: "trash", isDestructive: true },
@@ -324,6 +329,7 @@ const ChatScreen: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>(INITIAL_MESSAGES);
   const [isLoading, setIsLoading] = useState(false);
   const [replyMessage, setReplyMessage] = useState<ChatMessage | null>(null);
+  const [editMessage, setEditMessage] = useState<ChatEditRef | null>(null);
 
   // Автоматически следуем системной теме устройства
   const colorScheme = useColorScheme();
@@ -408,6 +414,30 @@ const ChatScreen: React.FC = () => {
     [scheduleTimer],
   );
 
+  // ─── Edit confirm ──────────────────────────────────────────────────────────
+
+  const handleEditMessage = useCallback(
+    ({ text, messageId }: ChatEditMessageEventData) => {
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === messageId ? { ...m, text, isEdited: true } : m,
+        ),
+      );
+      setEditMessage(null);
+    },
+    [],
+  );
+
+  // ─── Cancel reply / edit ───────────────────────────────────────────────────
+
+  const handleCancelReply = useCallback((_: ChatCancelReplyEventData) => {
+    setReplyMessage(null);
+  }, []);
+
+  const handleCancelEdit = useCallback((_: ChatCancelEditEventData) => {
+    setEditMessage(null);
+  }, []);
+
   // ─── Load history ──────────────────────────────────────────────────────────
 
   const handleReachTop = useCallback(
@@ -454,6 +484,18 @@ const ChatScreen: React.FC = () => {
         case "reply":
           setReplyMessage(message);
           break;
+
+        case "edit":
+          // Редактировать можно только свои сообщения с текстом
+          if (!message.isMine || !message.text) {
+            Alert.alert("Edit", "Only your text messages can be edited.");
+
+            return;
+          }
+          setReplyMessage(null);
+          setEditMessage({ id: message.id, text: message.text });
+          break;
+
         case "copy":
           Alert.alert("Copied!", message.text ?? "No text");
           break;
@@ -522,8 +564,12 @@ const ChatScreen: React.FC = () => {
       // initialScrollId={"6"}
       isLoading={isLoading}
       replyMessage={replyMessage}
+      editMessage={editMessage}
       theme={theme}
       onSendMessage={handleSendMessage}
+      onEditMessage={handleEditMessage}
+      onCancelReply={handleCancelReply}
+      onCancelEdit={handleCancelEdit}
       // onReachTop={handleReachTop}
       onReplyMessagePress={handleReplyMessagePress}
       onActionPress={handleActionPress}

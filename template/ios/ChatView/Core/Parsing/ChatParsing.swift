@@ -29,8 +29,9 @@ extension ChatMessage {
         let timestamp  = Date(timeIntervalSince1970: timestampMs / 1_000)
         let groupDate  = groupDateFormatter.string(from: timestamp)
         let status     = MessageStatus(rawValue: dict["status"] as? String ?? "") ?? .sent
-        let isMine     = dict["isMine"] as? Bool ?? false
+        let isMine     = dict["isMine"]    as? Bool ?? false
         let senderName = dict["senderName"] as? String
+        let isEdited   = dict["isEdited"]  as? Bool ?? false
 
         // Парсинг контента — text и/или image (первое изображение из массива)
         let textBody  = (dict["text"] as? String).flatMap { $0.isEmpty ? nil : $0 }
@@ -52,9 +53,15 @@ extension ChatMessage {
         }
 
         return ChatMessage(
-            id: id, content: content, timestamp: timestamp,
-            senderName: senderName, isMine: isMine,
-            groupDate: groupDate, status: status, reply: reply
+            id:         id,
+            content:    content,
+            timestamp:  timestamp,
+            senderName: senderName,
+            isMine:     isMine,
+            groupDate:  groupDate,
+            status:     status,
+            reply:      reply,
+            isEdited:   isEdited
         )
     }
 }

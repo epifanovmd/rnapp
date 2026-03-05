@@ -16,6 +16,9 @@ import React
     @objc var onMessagePress: RCTDirectEventBlock?
     @objc var onActionPress: RCTDirectEventBlock?
     @objc var onSendMessage: RCTDirectEventBlock?
+    @objc var onEditMessage: RCTDirectEventBlock?
+    @objc var onCancelReply: RCTDirectEventBlock?
+    @objc var onCancelEdit: RCTDirectEventBlock?
     @objc var onAttachmentPress: RCTDirectEventBlock?
     @objc var onReplyMessagePress: RCTDirectEventBlock?
 
@@ -40,9 +43,14 @@ import React
         }
     }
 
-    /// Сериализованные данные цитируемого сообщения из JS (устанавливает панель reply).
+    /// Сериализованные данные цитируемого сообщения из JS.
     @objc var replyMessage: NSDictionary? {
         didSet { updateReplyMessage() }
+    }
+
+    /// Сериализованные данные редактируемого сообщения из JS.
+    @objc var editMessage: NSDictionary? {
+        didSet { updateEditMessage() }
     }
 
     @objc var initialScrollId: NSString? {
@@ -169,6 +177,20 @@ import React
         }
     }
 
+    /// Парсит editMessage из JS и переводит InputBar в режим редактирования.
+    /// Ожидаемые поля: "id" (String), "text" (String).
+    private func updateEditMessage() {
+        guard let chatVC = chatViewController else { return }
+        if let dict = editMessage as? [String: Any],
+           let id   = dict["id"]   as? String, !id.isEmpty,
+           let text = dict["text"] as? String {
+            chatVC.setEditMessage(id: id, text: text)
+        } else {
+            // JS обнулил editMessage — сбрасываем режим без события делегата
+            chatVC.clearInputMode()
+        }
+    }
+
     // MARK: - Helpers
 
     private func findParentViewController() -> UIViewController? {
@@ -236,6 +258,24 @@ extension RNChatView: ChatViewControllerDelegate {
         var payload: [String: Any] = ["text": text]
         if let rid = replyToId { payload["replyToId"] = rid }
         onSendMessage?(payload)
+    }
+
+    /// Пользователь отправил отредактированный текст.
+    func chatViewController(_ controller: ChatViewController, didEditMessage text: String,
+                            messageId: String) {
+        onEditMessage?(["text": text, "messageId": messageId])
+    }
+
+    /// Пользователь нажал ✕ в панели ответа.
+    func chatViewController(_ controller: ChatViewController,
+                            didCancelReply vc2: ChatViewController) {
+        onCancelReply?([:])
+    }
+
+    /// Пользователь нажал ✕ в панели редактирования.
+    func chatViewController(_ controller: ChatViewController,
+                            didCancelEdit vc2: ChatViewController) {
+        onCancelEdit?([:])
     }
 
     func chatViewControllerDidTapAttachment(_ controller: ChatViewController) {

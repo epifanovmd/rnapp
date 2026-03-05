@@ -95,11 +95,31 @@ enum MessageSizeCalculator {
         let timeText = DateHelper.shared.timeString(from: message.timestamp)
         let timeW = ceil((timeText as NSString).size(
             withAttributes: [.font: ChatLayoutConstants.footerFont]).width)
+
         let statusW: CGFloat = message.isMine
             ? ChatLayoutConstants.footerInternalSpacing + ChatLayoutConstants.statusIconWidth
             : 0
-        return timeW + statusW + ChatLayoutConstants.footerTrailingPad * 2
+
+        let editedW: CGFloat = message.isEdited
+            ? MessageSizeCalculator.editedLabelWidth
+                + ChatLayoutConstants.footerInternalSpacing
+            : 0
+
+        return timeW + statusW + editedW + ChatLayoutConstants.footerTrailingPad * 2
     }
+
+    // MARK: - Edited label width (cached)
+
+    /// Ширина строки «edited» при шрифте footer — вычисляется один раз.
+    private static let editedLabelWidth: CGFloat = {
+        let text = NSLocalizedString(
+            "chat.bubble.edited",
+            value: "edited",
+            comment: "Short label shown in message footer when a message has been edited"
+        )
+        return ceil((text as NSString).size(
+            withAttributes: [.font: ChatLayoutConstants.footerFont]).width)
+    }()
 
     // MARK: - Helpers
 

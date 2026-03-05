@@ -15,8 +15,18 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatViewController(_ vc: ChatViewController, didTapMessage message: ChatMessage)
     func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction, for message: ChatMessage)
     func chatViewController(_ vc: ChatViewController, didSendMessage text: String, replyToId: String?)
+    func chatViewController(_ vc: ChatViewController, didEditMessage text: String, messageId: String)
+    func chatViewController(_ vc: ChatViewController, didCancelReply vc2: ChatViewController)
+    func chatViewController(_ vc: ChatViewController, didCancelEdit vc2: ChatViewController)
     func chatViewController(_ vc: ChatViewController, didTapReply replyId: String)
     func chatViewControllerDidTapAttachment(_ vc: ChatViewController)
+}
+
+// Дефолтные реализации необязательных методов делегата
+extension ChatViewControllerDelegate {
+    func chatViewController(_ vc: ChatViewController, didEditMessage text: String, messageId: String) {}
+    func chatViewController(_ vc: ChatViewController, didCancelReply vc2: ChatViewController) {}
+    func chatViewController(_ vc: ChatViewController, didCancelEdit vc2: ChatViewController) {}
 }
 
 // MARK: - ChatScrollPosition
@@ -422,37 +432,36 @@ final class ChatViewController: UIViewController {
     }
 }
 
+// MARK: - KeyboardListenerDelegate
+
 extension ChatViewController: KeyboardListenerDelegate {
-  func keyboardWillChangeFrame(info: KeyboardInfo) {
-    guard
-        let window   = view.window
-    else { return }
+    func keyboardWillChangeFrame(info: KeyboardInfo) {
+        guard let window = view.window else { return }
 
+        let kbInView = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
+        let newKbH   = max(0, view.bounds.height - kbInView.origin.y)
+        guard newKbH != keyboardHeight else { return }
+        keyboardHeight = newKbH
 
-    let kbInView = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
-    let newKbH   = max(0, view.bounds.height - kbInView.origin.y)
-    guard newKbH != keyboardHeight else { return }
-    keyboardHeight = newKbH
+        let safe       = view.safeAreaInsets.bottom
+        let newConst   = newKbH > 0 ? -newKbH : -safe
+        let distBottom = collectionView.contentSize.height
+            - collectionView.contentOffset.y - collectionView.bounds.height
 
-    let safe       = view.safeAreaInsets.bottom
-    let newConst   = newKbH > 0 ? -newKbH : -safe
-    let distBottom = collectionView.contentSize.height
-        - collectionView.contentOffset.y - collectionView.bounds.height
-
-    let updates = {
-        self.inputBarBottomConstraint.constant = newConst
-        self.view.layoutIfNeeded()
-        let off = self.collectionView.contentSize.height
-                - self.collectionView.bounds.height - distBottom
-        if off > -self.collectionView.contentInset.top {
-            self.collectionView.contentOffset = CGPoint(x: 0, y: off)
+        let updates = {
+            self.inputBarBottomConstraint.constant = newConst
+            self.view.layoutIfNeeded()
+            let off = self.collectionView.contentSize.height
+                    - self.collectionView.bounds.height - distBottom
+            if off > -self.collectionView.contentInset.top {
+                self.collectionView.contentOffset = CGPoint(x: 0, y: off)
+            }
         }
-    }
 
-    if info.animationDuration > 0 {
-        UIView.animate(withDuration: info.animationDuration, animations: updates)
-    } else { updates() }
-  }
+        if info.animationDuration > 0 {
+            UIView.animate(withDuration: info.animationDuration, animations: updates)
+        } else { updates() }
+    }
 }
 
 // MARK: - Public API
@@ -486,10 +495,21 @@ extension ChatViewController {
 
     func resetLoadingState() { waitingForNewMessages = false }
 
-    // MARK: Reply
+    // MARK: Reply / Edit
 
     func setReplyInfo(_ info: ReplyInfo?) {
         replyInfo = info
+    }
+
+    /// Активирует режим редактирования в InputBar.
+    func setEditMessage(id: String, text: String) {
+        inputBar?.setEditMessage(id: id, text: text, theme: theme)
+    }
+
+    /// Сбрасывает режим редактирования/ответа без уведомления делегата.
+    /// Вызывается когда JS явно обнуляет editMessage проп.
+    func clearInputMode() {
+        inputBar?.resetMode()
     }
 
     // MARK: Scroll API
@@ -940,6 +960,19 @@ extension ChatViewController: InputBarDelegate {
 
     func inputBar(_ bar: InputBarView, didSendText text: String, replyToId: String?) {
         delegate?.chatViewController(self, didSendMessage: text, replyToId: replyToId)
+    }
+
+    func inputBar(_ bar: InputBarView, didEditText text: String, messageId: String) {
+        delegate?.chatViewController(self, didEditMessage: text, messageId: messageId)
+    }
+
+    func inputBarDidCancelReply(_ bar: InputBarView) {
+        replyInfo = nil
+        delegate?.chatViewController(self, didCancelReply: self)
+    }
+
+    func inputBarDidCancelEdit(_ bar: InputBarView) {
+        delegate?.chatViewController(self, didCancelEdit: self)
     }
 
     func inputBar(_ bar: InputBarView, didChangeHeight height: CGFloat) {

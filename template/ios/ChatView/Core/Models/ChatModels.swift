@@ -54,7 +54,7 @@ enum MessageContent {
     /// Изображение сообщения (nil для чисто-текстовых).
     var image: ImagePayload? {
         switch self {
-        case .image(let p):   return p
+        case .image(let p):    return p
         case .mixed(_, let p): return p
         case .text:            return nil
         }
@@ -67,8 +67,8 @@ enum MessageContent {
 extension MessageContent: Equatable {
     static func == (lhs: MessageContent, rhs: MessageContent) -> Bool {
         switch (lhs, rhs) {
-        case (.text(let l),        .text(let r)):        return l == r
-        case (.image(let l),       .image(let r)):       return l == r
+        case (.text(let l),           .text(let r)):        return l == r
+        case (.image(let l),          .image(let r)):       return l == r
         case (.mixed(let lt, let li), .mixed(let rt, let ri)):
             return lt == rt && li == ri
         default: return false
@@ -94,17 +94,18 @@ struct ChatMessage: Identifiable, Equatable {
     let timestamp:  Date
     let senderName: String?
     let isMine:     Bool
-    let groupDate:  String      // "yyyy-MM-dd" — ключ секции
+    let groupDate:  String
     let status:     MessageStatus
-    let reply:      ReplyInfo?  // nil если сообщение не является ответом
+    let reply:      ReplyInfo?
+    let isEdited:   Bool
 
     // MARK: Convenience shortcuts
 
-    var text:      String?          { content.text }
+    var text:      String?                      { content.text }
     var image:     MessageContent.ImagePayload? { content.image }
-    var hasText:   Bool             { content.hasText }
-    var hasImage:  Bool             { content.hasImage }
-    var replyToId: String?          { reply?.replyToId }
+    var hasText:   Bool                         { content.hasText }
+    var hasImage:  Bool                         { content.hasImage }
+    var replyToId: String?                      { reply?.replyToId }
 }
 
 // MARK: - MessageAction

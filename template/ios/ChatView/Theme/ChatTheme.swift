@@ -16,12 +16,14 @@ struct ChatTheme {
     let outgoingTimeColor:        UIColor
     let outgoingStatusColor:      UIColor
     let outgoingStatusReadColor:  UIColor
+    let outgoingEditedColor:      UIColor
 
     // MARK: Bubble — входящие
 
     let incomingBubbleColor:      UIColor
     let incomingTextColor:        UIColor
     let incomingTimeColor:        UIColor
+    let incomingEditedColor:      UIColor
 
     // MARK: Reply inside bubble
 
@@ -42,7 +44,7 @@ struct ChatTheme {
     let inputBarTextViewBg:       UIColor
     let inputBarPlaceholder:      UIColor
     let inputBarText:             UIColor
-    let inputBarTint:             UIColor          // кнопки attach / send
+    let inputBarTint:             UIColor
 
     let replyPanelBackground:     UIColor
     let replyPanelAccent:         UIColor
@@ -80,10 +82,12 @@ extension ChatTheme {
         outgoingTimeColor:        UIColor.white.withAlphaComponent(0.75),
         outgoingStatusColor:      UIColor.white.withAlphaComponent(0.7),
         outgoingStatusReadColor:  .white,
+        outgoingEditedColor:      UIColor.white.withAlphaComponent(0.60),
 
         incomingBubbleColor:      UIColor(white: 0.94, alpha: 1),
         incomingTextColor:        .label,
         incomingTimeColor:        .secondaryLabel,
+        incomingEditedColor:      .secondaryLabel,
 
         outgoingReplyBackground:  UIColor.white.withAlphaComponent(0.20),
         outgoingReplyAccent:      UIColor.white.withAlphaComponent(0.70),
@@ -126,10 +130,12 @@ extension ChatTheme {
         outgoingTimeColor:        UIColor.white.withAlphaComponent(0.65),
         outgoingStatusColor:      UIColor.white.withAlphaComponent(0.6),
         outgoingStatusReadColor:  UIColor.white.withAlphaComponent(0.9),
+        outgoingEditedColor:      UIColor.white.withAlphaComponent(0.50),
 
         incomingBubbleColor:      UIColor(white: 0.18, alpha: 1),
         incomingTextColor:        UIColor(white: 0.93, alpha: 1),
         incomingTimeColor:        UIColor(white: 0.55, alpha: 1),
+        incomingEditedColor:      UIColor(white: 0.55, alpha: 1),
 
         outgoingReplyBackground:  UIColor.white.withAlphaComponent(0.15),
         outgoingReplyAccent:      UIColor.white.withAlphaComponent(0.60),
