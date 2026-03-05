@@ -20,10 +20,8 @@ extension ChatViewController: InputBarDelegate {
         delegate?.chatViewController(self, didCancelEdit: self)
     }
 
+    /// Анимирует изменение высоты inputBar и синхронизирует contentInset коллекции.
     func inputBar(_ bar: InputBarView, didChangeHeight height: CGFloat) {
-        // Высота изменилась (мультистрок, reply/edit panel).
-        // layoutIfNeeded внутри аниматора → viewDidLayoutSubviews →
-        // updateCollectionBottomInset синхронизирует contentInset и offset.
         UIViewPropertyAnimator(duration: 0.25, dampingRatio: 0.85) { [weak self] in
             self?.view.layoutIfNeeded()
         }.startAnimation()

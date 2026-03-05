@@ -1,35 +1,8 @@
-// MARK: - ChatViewController.swift
-//
-// Главный контроллер чата: объявление класса, свойства, lifecycle и setup UI.
-//
-// ─── Архитектура клавиатуры ───────────────────────────────────────────────────
-//
-//  iOS 15+: view.keyboardLayoutGuide.topAnchor — системный layout guide,
-//  синхронизированный с клавиатурой покадрово через CADisplayLink. Корректно
-//  отрабатывает интерактивный dismiss (keyboardDismissMode = .interactive),
-//  floating keyboard на iPad, split-screen и Stage Manager.
-//
-//  iOS 13–14: KeyboardListener + UIView.animate с системной кривой.
-//
-//  Схема layout:
-//
-//    ┌─────────────────────────────┐  ← view.top
-//    │      collectionView         │  ← занимает весь view
-//    │  contentInset.bottom =      │
-//    │  inputBarZone + padding     │
-//    ├─────────────────────────────┤  ← inputBar.top = keyboardLayoutGuide.top
-//    │         InputBarView        │
-//    ├─────────────────────────────┤
-//    │    клавиатура / safe area   │
-//    └─────────────────────────────┘  ← view.bottom
-//
-// ──────────────────────────────────────────────────────────────────────────────
-
 import UIKit
 
 final class ChatViewController: UIViewController {
 
-    // MARK: - Public config
+    // MARK: - Публичные свойства
 
     weak var delegate: ChatViewControllerDelegate?
     var actions: [MessageAction] = []
@@ -38,16 +11,15 @@ final class ChatViewController: UIViewController {
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
     var theme: ChatTheme = .light { didSet { applyTheme() } }
 
-    /// Дополнительный верхний отступ коллекции (например, высота навбара), задаётся из RN.
+    /// Дополнительный верхний отступ коллекции, задаётся из RN.
     var collectionExtraInsetTop: CGFloat = 0 {
         didSet {
             guard isViewLoaded else { return }
-            collectionView.contentInset.top = ChatLayoutConstants.collectionTopPadding
-                + collectionExtraInsetTop
+            collectionView.contentInset.top = ChatLayoutConstants.collectionTopPadding + collectionExtraInsetTop
         }
     }
 
-    /// Дополнительный нижний отступ коллекции (например, высота таббара), задаётся из RN.
+    /// Дополнительный нижний отступ коллекции, задаётся из RN.
     var collectionExtraInsetBottom: CGFloat = 0 {
         didSet {
             guard isViewLoaded else { return }
@@ -55,16 +27,14 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    // MARK: - Initial scroll (управляется из RNChatView)
+    // MARK: - Начальный скролл (управляется из RNChatView)
 
     var isInitialScrollProtected = false
     var pendingScrollMessageId: String?
 
-    // MARK: - Internal — data
+    // MARK: - Internal — данные
 
-    /// Секции сообщений, сгруппированные по дате.
     var sections: [MessageSection] = []
-    /// O(1) lookup по messageId — обновляется синхронно с sections.
     var messageIndex: [String: ChatMessage] = [:]
 
     // MARK: - Internal — UI
@@ -74,7 +44,7 @@ final class ChatViewController: UIViewController {
     var inputBar: InputBarView!
     let sizeCache = MessageSizeCache()
 
-    // MARK: - Private — empty state
+    // MARK: - Private — пустое состояние
 
     private let emptyStateContainer = UIView()
 
@@ -93,17 +63,17 @@ final class ChatViewController: UIViewController {
         return spinner
     }()
 
-    // MARK: - Private — FAB (scroll-to-bottom button)
+    // MARK: - Private — FAB
 
     let fabButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor      = .clear
-        button.alpha                = 0
+        button.backgroundColor       = .clear
+        button.alpha                 = 0
         button.isUserInteractionEnabled = false
-        button.layer.shadowColor    = UIColor.black.cgColor
-        button.layer.shadowOpacity  = 0.18
-        button.layer.shadowRadius   = 8
-        button.layer.shadowOffset   = CGSize(width: 0, height: 2)
+        button.layer.shadowColor     = UIColor.black.cgColor
+        button.layer.shadowOpacity   = 0.18
+        button.layer.shadowRadius    = 8
+        button.layer.shadowOffset    = CGSize(width: 0, height: 2)
         return button
     }()
 
@@ -118,12 +88,11 @@ final class ChatViewController: UIViewController {
 
     var fabVisible = false
 
-    // MARK: - Private — constraints & keyboard
+    // MARK: - Private — констрейнты
 
-    /// inputBar.bottom → keyboardLayoutGuide.top (iOS 15+) или safeArea.bottom (iOS 13–14).
     var inputBarKeyboardConstraint: NSLayoutConstraint?
 
-    // MARK: - Private — scroll state
+    // MARK: - Private — состояние скролла
 
     var waitingForNewMessages    = false
     var lastKnownMessageCount    = 0
@@ -132,18 +101,14 @@ final class ChatViewController: UIViewController {
     var visibleMessageIDs: Set<String> = []
     var lastSectionsInputHash: Int = 0
     var pendingHighlightId: String?
-
-    /// Throttle: не чаще 30 раз/сек отправляем onScroll в JS.
     var lastScrollEventTime: CFTimeInterval = 0
     let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
 
-    /// true пока пользователь держит палец — UIKit сам управляет offset
-    /// при интерактивном dismiss клавиатуры, мы не вмешиваемся.
+    /// true пока палец на экране — UIKit сам управляет offset при интерактивном dismiss клавиатуры.
     var isUserDragging = false
 
-    // MARK: - Private — visibility debounce
+    // MARK: - Private — дебаунс видимости
 
-    /// Накапливаем id входящих сообщений и отправляем пачкой после паузы скролла.
     var pendingVisibleIDs: Set<String> = []
     var visibilityDebounceTask: DispatchWorkItem?
     let visibilityDebounceInterval: TimeInterval = 0.3
@@ -164,10 +129,10 @@ final class ChatViewController: UIViewController {
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         updateCollectionBottomInset()
-        invalidateSizeCacheIfNeeded()
+        invalidateSizeCacheIfWidthChanged()
     }
 
-    // MARK: - Theme
+    // MARK: - Тема
 
     private func applyTheme() {
         guard isViewLoaded else { return }
@@ -200,14 +165,10 @@ final class ChatViewController: UIViewController {
 
     private func setupCollectionView() {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeFlowLayout())
-        collectionView.backgroundColor  = .clear
-        collectionView.keyboardDismissMode = .interactive
-        collectionView.contentInset     = UIEdgeInsets(
-            top: ChatLayoutConstants.collectionTopPadding,
-            left: 0, bottom: 0, right: 0
-        )
-        // .never: управляем contentInset.bottom сами в updateCollectionBottomInset().
-        // Дефолтный .automatic двойной учёт safe area даёт лишний зазор.
+        collectionView.backgroundColor             = .clear
+        collectionView.keyboardDismissMode         = .interactive
+        collectionView.contentInset                = UIEdgeInsets(top: ChatLayoutConstants.collectionTopPadding, left: 0, bottom: 0, right: 0)
+        // .never: управляем contentInset.bottom сами, иначе UIKit двойной учёт safe area даёт лишний зазор.
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.register(MessageCell.self, forCellWithReuseIdentifier: MessageCell.reuseID)
@@ -290,11 +251,10 @@ final class ChatViewController: UIViewController {
         fabArrow.isUserInteractionEnabled = false
         fabButton.translatesAutoresizingMaskIntoConstraints = false
         fabButton.addSubview(fabArrow)
-        view.addSubview(fabButton)
-
         fabButton.layer.cornerRadius  = size / 2
         fabButton.layer.masksToBounds = false
         fabButton.addTarget(self, action: #selector(fabTapped), for: .touchUpInside)
+        view.addSubview(fabButton)
 
         NSLayoutConstraint.activate([
             fabButton.widthAnchor.constraint(equalToConstant: size),
@@ -310,18 +270,19 @@ final class ChatViewController: UIViewController {
         rebuildFABBlur()
     }
 
-    // MARK: - Helpers
+    // MARK: - Вспомогательные методы
 
     @objc private func dismissKeyboard() { view.endEditing(true) }
 
-    private func invalidateSizeCacheIfNeeded() {
+    /// Инвалидирует кэш размеров и layout при изменении ширины коллекции (поворот, сплит-экран).
+    private func invalidateSizeCacheIfWidthChanged() {
         let w = collectionView.bounds.width
         guard w > 0, w != sizeCache.layoutWidth else { return }
         sizeCache.invalidateAll()
         collectionView.collectionViewLayout.invalidateLayout()
     }
 
-    // MARK: - Empty / Loading state
+    // MARK: - Пустое состояние / загрузка
 
     func updateLoadingState() {
         let isEmpty = sections.isEmpty || sections.allSatisfy { $0.messages.isEmpty }
@@ -337,7 +298,7 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    // MARK: - Reply / Edit public API
+    // MARK: - Публичный API режимов ввода
 
     func beginReply(info: ReplyInfo) {
         inputBar.beginReply(info: info, theme: theme)
@@ -351,7 +312,7 @@ final class ChatViewController: UIViewController {
         inputBar.cancelMode()
     }
 
-    // MARK: - Message lookup
+    // MARK: - Поиск сообщения по id
 
     func message(forID id: String) -> ChatMessage? { messageIndex[id] }
 }

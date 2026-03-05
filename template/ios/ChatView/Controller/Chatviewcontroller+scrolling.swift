@@ -1,51 +1,39 @@
 import UIKit
 
-// MARK: - Keyboard & collection inset
+// MARK: - Нижний inset коллекции
 
 extension ChatViewController {
 
-    // MARK: Content inset
-    //
-    // collectionView занимает весь экран (bottom = view.bottom).
-    // Нижний contentInset = пространство от низа view до верха inputBar.
-    // viewDidLayoutSubviews вызывается в каждом кадре анимации keyboardLayoutGuide,
-    // поэтому inset обновляется покадрово — контент поднимается вместе с клавиатурой.
-
+    /// Синхронизирует contentInset.bottom с текущей позицией inputBar.
+    /// Вызывается в viewDidLayoutSubviews — т.е. в каждом кадре анимации клавиатуры.
     func updateCollectionBottomInset() {
         guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
-        // contentInset.bottom: вся зона под inputBar + визуальный padding + доп. отступ из RN.
-        let newBottom = view.bounds.height
-            - inputBar.frame.minY
+        let inputBarZone = view.bounds.height - inputBar.frame.minY
+
+        // contentInset резервирует место под inputBar + визуальный отступ над ним.
+        let newBottom = inputBarZone
             + ChatLayoutConstants.collectionBottomPadding
             + collectionExtraInsetBottom
 
-        // scrollIndicatorInsets.bottom: расстояние от низа view до верха inputBar,
-        // минус внутренний вертикальный padding containerView.
-        // Без этой поправки полоска заканчивается на inputBarVerticalPadding выше контента.
-        let newIndicatorBottom = view.bounds.height
-            - inputBar.frame.minY
-            - ChatLayoutConstants.collectionBottomPadding
+        // Индикатор скролла заканчивается у верха inputBar, без визуального padding.
+        let newIndicatorBottom = inputBarZone - ChatLayoutConstants.collectionBottomPadding
 
         let oldBottom = collectionView.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
 
         let cv = collectionView!
 
-        // Во время интерактивного dismiss UIKit сам управляет contentOffset.
-        // Мы только синхронизируем inset, не трогая offset.
+        // Во время интерактивного dismiss UIKit сам ведёт offset — только обновляем inset.
         if isUserDragging {
-            cv.contentInset.bottom         = newBottom
+            cv.contentInset.bottom          = newBottom
             cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
             return
         }
 
         // Сохраняем расстояние от текущей позиции до конца контента.
-        // Восстановив его после смены inset, получаем плавный подъём контента.
-        let distanceFromEnd = cv.contentSize.height
-            - cv.contentOffset.y
-            - cv.bounds.height
-            + oldBottom
+        // После смены inset восстанавливаем его — контент поднимается вместе с клавиатурой.
+        let distanceFromEnd = cv.contentSize.height - cv.contentOffset.y - cv.bounds.height + oldBottom
 
         cv.contentInset.bottom          = newBottom
         cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
@@ -55,7 +43,7 @@ extension ChatViewController {
     }
 }
 
-// MARK: - KeyboardListenerDelegate (iOS 13–14 fallback)
+// MARK: - KeyboardListenerDelegate (iOS 13–14)
 
 extension ChatViewController: KeyboardListenerDelegate {
 
@@ -85,17 +73,19 @@ extension ChatViewController: KeyboardListenerDelegate {
     }
 }
 
-// MARK: - FAB (scroll-to-bottom button)
+// MARK: - FAB
 
 extension ChatViewController {
 
     @objc func fabTapped() { scrollToBottom(animated: true) }
 
+    /// Показывает или скрывает FAB в зависимости от дистанции до дна.
     func updateFABVisibility(animated: Bool) {
         let show = distanceFromBottom() > scrollToBottomThreshold
         guard show != fabVisible else { return }
         fabVisible = show
         fabButton.isUserInteractionEnabled = show
+
         let alpha: CGFloat = show ? 1 : 0
         let scale: CGFloat = show ? 1 : 0.7
 
@@ -120,7 +110,7 @@ extension ChatViewController {
     }
 }
 
-// MARK: - Public scroll API
+// MARK: - Публичный scroll API
 
 extension ChatViewController {
 
@@ -143,21 +133,23 @@ extension ChatViewController {
         guard let ip = indexPath(forMessageID: id) else { return }
 
         if collectionView.indexPathsForVisibleItems.contains(ip) {
+            collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
             if highlight {
                 DispatchQueue.main.async { [weak self] in self?.highlightMessage(id: id) }
             }
-            collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
             return
         }
 
         collectionView.scrollToItem(at: ip, at: position.collectionViewPosition, animated: animated)
-        guard highlight else { return }
-
-        if animated {
-            pendingHighlightId = id
-        } else {
-            DispatchQueue.main.async { [weak self] in self?.highlightMessage(id: id) }
+        if highlight {
+            if animated { pendingHighlightId = id }
+            else { DispatchQueue.main.async { [weak self] in self?.highlightMessage(id: id) } }
         }
+    }
+
+    func scrollToBottomIfNearBottom() {
+        guard distanceFromBottom() < scrollToBottomThreshold + 50 else { return }
+        scrollToBottom(animated: true)
     }
 
     // MARK: Highlight
@@ -178,10 +170,5 @@ extension ChatViewController {
             guard let self, let ip = self.indexPath(forMessageID: id) else { return }
             (self.collectionView.cellForItem(at: ip) as? MessageCell)?.highlight()
         }
-    }
-
-    func scrollToBottomIfNearBottom() {
-        guard distanceFromBottom() < scrollToBottomThreshold + 50 else { return }
-        scrollToBottom(animated: true)
     }
 }

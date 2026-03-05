@@ -1,11 +1,10 @@
 import UIKit
 
-// MARK: - Public messages API
+// MARK: - Публичный API обновления сообщений
 
 extension ChatViewController {
 
-    /// Главная точка входа для обновления сообщений.
-    /// Определяет тип изменения и применяет оптимальную стратегию.
+    /// Определяет тип изменения данных и применяет соответствующую стратегию обновления.
     func updateMessages(_ messages: [ChatMessage]) {
         let newCount    = messages.count
         let oldCount    = lastKnownMessageCount
@@ -31,12 +30,12 @@ extension ChatViewController {
     func resetLoadingState() { waitingForNewMessages = false }
 }
 
-// MARK: - Update strategies
+// MARK: - Стратегии обновления
 
 private extension ChatViewController {
 
-    /// Добавление истории сверху: snapshot применяется без анимации,
-    /// contentOffset сдвигается на высоту добавленного контента — без видимого прыжка.
+    /// Добавление истории сверху: применяет snapshot без анимации и компенсирует offset
+    /// на высоту добавленного контента, чтобы текущая позиция скролла не прыгала.
     func applyPrepend(
         newSections: [MessageSection],
         newIndex: [String: ChatMessage],
@@ -57,13 +56,9 @@ private extension ChatViewController {
         if !isInitialScrollProtected {
             let delta = collectionView.contentSize.height - oldHeight
             isProgrammaticScroll = true
-            collectionView.contentOffset = CGPoint(
-                x: 0,
-                y: max(-collectionView.contentInset.top, oldOffset + delta)
-            )
+            collectionView.contentOffset = CGPoint(x: 0, y: max(-collectionView.contentInset.top, oldOffset + delta))
             isProgrammaticScroll = false
-        } else if let targetId = pendingScrollMessageId,
-                  let ip = indexPath(forMessageID: targetId) {
+        } else if let targetId = pendingScrollMessageId, let ip = indexPath(forMessageID: targetId) {
             isProgrammaticScroll = true
             collectionView.scrollToItem(at: ip, at: .centeredVertically, animated: false)
             isProgrammaticScroll = false
@@ -72,17 +67,14 @@ private extension ChatViewController {
         CATransaction.commit()
     }
 
-    /// Удаление сообщений с анимацией. Инвалидирует кэш затронутых ячеек.
-    func applyDeletion(
-        newSections: [MessageSection],
-        newIndex: [String: ChatMessage]
-    ) {
+    /// Удаление сообщений с анимацией. Инвалидирует кэш удалённых ячеек
+    /// и ячеек, цитирующих удалённые сообщения.
+    func applyDeletion(newSections: [MessageSection], newIndex: [String: ChatMessage]) {
         let removedIDs = Set(messageIndex.keys).subtracting(newIndex.keys)
         sections     = newSections
         messageIndex = newIndex
 
-        // Ячейки, цитирующие удалённые сообщения, тоже нужно перерисовать
-        let affectedQuoteIDs: [String] = sections.flatMap(\.messages).compactMap { msg in
+        let affectedQuoteIDs = sections.flatMap(\.messages).compactMap { msg -> String? in
             guard let replyId = msg.reply?.replyToId, removedIDs.contains(replyId) else { return nil }
             return msg.id
         }
@@ -94,7 +86,7 @@ private extension ChatViewController {
         dataSource.apply(snap, animatingDifferences: true)
     }
 
-    /// Добавление новых сообщений снизу с автоскроллом если пользователь у дна.
+    /// Добавление новых сообщений снизу. Автоматически скроллит к концу если пользователь у дна.
     func applyAppend(
         newSections: [MessageSection],
         newIndex: [String: ChatMessage],
@@ -108,8 +100,8 @@ private extension ChatViewController {
         }
     }
 
-    /// Обновление существующих сообщений (статус, текст, редактирование).
-    /// Также обновляет ячейки, чьи цитаты указывают на изменённые сообщения.
+    /// Обновление существующих сообщений. Также перерисовывает ячейки,
+    /// чьи цитаты указывают на изменённые сообщения.
     func applyUpdate(
         newSections: [MessageSection],
         newIndex: [String: ChatMessage],
@@ -123,7 +115,7 @@ private extension ChatViewController {
         messageIndex = newIndex
         guard !changedIDs.isEmpty else { return }
 
-        let changedSet = Set(changedIDs)
+        let changedSet     = Set(changedIDs)
         let quoteReaderIDs = sections.flatMap(\.messages).compactMap { msg -> String? in
             guard let replyId = msg.reply?.replyToId,
                   changedSet.contains(replyId),
@@ -131,10 +123,10 @@ private extension ChatViewController {
             return msg.id
         }
 
-        let allToReconfigure = changedIDs + quoteReaderIDs
-        sizeCache.invalidate(ids: allToReconfigure)
+        let allIDs = changedIDs + quoteReaderIDs
+        sizeCache.invalidate(ids: allIDs)
         var snap = dataSource.snapshot()
-        snap.reconfigureItems(allToReconfigure)
+        snap.reconfigureItems(allIDs)
         dataSource.apply(snap, animatingDifferences: false)
     }
 }

@@ -16,6 +16,7 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatViewControllerDidTapAttachment(_ vc: ChatViewController)
 }
 
+/// Необязательные методы делегата с пустой реализацией по умолчанию.
 extension ChatViewControllerDelegate {
     func chatViewController(_ vc: ChatViewController, didEditMessage text: String, messageId: String) {}
     func chatViewController(_ vc: ChatViewController, didCancelReply vc2: ChatViewController) {}
@@ -24,6 +25,7 @@ extension ChatViewControllerDelegate {
 
 // MARK: - ChatScrollPosition
 
+/// Позиция прокрутки при переходе к конкретному сообщению.
 enum ChatScrollPosition {
     case top, center, bottom
 

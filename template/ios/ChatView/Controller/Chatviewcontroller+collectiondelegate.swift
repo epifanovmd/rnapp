@@ -5,8 +5,7 @@ import UIKit
 extension ChatViewController: UICollectionViewDelegate {
 
     func collectionView(_ cv: UICollectionView, didSelectItemAt ip: IndexPath) {
-        guard let id  = dataSource.itemIdentifier(for: ip),
-              let msg = messageIndex[id] else { return }
+        guard let id = dataSource.itemIdentifier(for: ip), let msg = messageIndex[id] else { return }
         delegate?.chatViewController(self, didTapMessage: msg)
     }
 
@@ -24,13 +23,10 @@ extension ChatViewController: UICollectionViewDelegate {
             previewProvider: { [weak self] in
                 guard let self,
                       let ip   = indexPath(forMessageID: msg.id),
-                      let cell = cv.cellForItem(at: ip) as? MessageCell
-                else { return nil }
+                      let cell = cv.cellForItem(at: ip) as? MessageCell else { return nil }
                 return cell.makeBubblePreviewController()
             },
-            actionProvider: { [weak self] _ in
-                self?.makeContextMenu(for: msg)
-            }
+            actionProvider: { [weak self] _ in self?.makeContextMenu(for: msg) }
         )
     }
 
@@ -68,7 +64,7 @@ extension ChatViewController: UICollectionViewDelegate {
         scheduleVisibilityFlush(id: id)
     }
 
-    // MARK: Scroll events
+    // MARK: Scroll
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         isUserDragging = true
@@ -122,11 +118,7 @@ extension ChatViewController: UICollectionViewDelegateFlowLayout {
               let msg = messageIndex[id] else {
             return CGSize(width: cv.bounds.width, height: 44)
         }
-        return sizeCache.size(
-            for: msg,
-            hasReply: replyExists(for: msg),
-            collectionViewWidth: cv.bounds.width
-        )
+        return sizeCache.size(for: msg, hasReply: replyExists(for: msg), collectionViewWidth: cv.bounds.width)
     }
 
     func collectionView(
@@ -161,27 +153,23 @@ private extension ChatViewController {
         })
     }
 
-    func targetedPreview(
-        for config: UIContextMenuConfiguration,
-        in cv: UICollectionView
-    ) -> UITargetedPreview? {
+    func targetedPreview(for config: UIContextMenuConfiguration, in cv: UICollectionView) -> UITargetedPreview? {
         guard let id   = config.identifier as? String,
               let ip   = indexPath(forMessageID: id),
-              let cell = cv.cellForItem(at: ip) as? MessageCell
-        else { return nil }
+              let cell = cv.cellForItem(at: ip) as? MessageCell else { return nil }
         return cell.makeTargetedPreview()
     }
 }
 
-// MARK: - Flow layout factory
+// MARK: - Flow layout
 
 extension ChatViewController {
 
     func makeFlowLayout() -> UICollectionViewFlowLayout {
         let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection               = .vertical
-        layout.minimumLineSpacing            = ChatLayoutConstants.lineSpacing
-        layout.minimumInteritemSpacing       = 0
+        layout.scrollDirection                  = .vertical
+        layout.minimumLineSpacing               = ChatLayoutConstants.lineSpacing
+        layout.minimumInteritemSpacing          = 0
         layout.sectionHeadersPinToVisibleBounds = true
         return layout
     }
