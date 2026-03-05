@@ -1,7 +1,39 @@
 // MARK: - ChatViewController.swift
 // Главный контроллер чата.
 // Управляет коллекцией сообщений, FAB-кнопкой, пустым состоянием и клавиатурой.
-// Бизнес-логика вынесена в делегат; контроллер отвечает только за UI.
+//
+// ─── Архитектура клавиатуры ───────────────────────────────────────────────────
+//
+//  Используем view.keyboardLayoutGuide (iOS 15+) — системный layout guide,
+//  который движется покадрово вместе с клавиатурой, в том числе при
+//  интерактивном dismiss через свайп вниз (keyboardDismissMode = .interactive).
+//
+//  Это тот же механизм, что используют Telegram, Instagram, WhatsApp.
+//
+//  Схема layout:
+//
+//    ┌─────────────────────────────┐  ← view.top
+//    │                             │
+//    │      collectionView         │  ← растянут на весь view
+//    │  (contentInset.bottom =     │
+//    │   inputBar.height)          │
+//    │                             │
+//    ├─────────────────────────────┤  ← inputBar.top  (= keyboardLayoutGuide.top)
+//    │         InputBarView        │
+//    ├─────────────────────────────┤  ← keyboardLayoutGuide.top при скрытой KB
+//    │  (клавиатура / safe area)   │
+//    └─────────────────────────────┘  ← view.bottom
+//
+//  collectionView занимает весь экран и рисует контент под inputBar.
+//  Нижний contentInset равен высоте inputBar — последнее сообщение
+//  всегда видно над баром.
+//
+//  Когда клавиатура поднимается — keyboardLayoutGuide.top поднимается
+//  автоматически, inputBar следует за ним, а collectionView получает
+//  увеличенный contentInset через наблюдение за изменением frame inputBar.
+//
+//  Никаких ручных UIView.animate по уведомлениям клавиатуры — всё нативно.
+// ──────────────────────────────────────────────────────────────────────────────
 
 import Foundation
 import UIKit
@@ -117,34 +149,31 @@ final class ChatViewController: UIViewController {
 
     // MARK: Private — constraints
 
-    private var inputBarBottomConstraint:       NSLayoutConstraint!
-    private var collectionViewBottomConstraint: NSLayoutConstraint!
-    private var emptyStateBottomConstraint:     NSLayoutConstraint!
+    /// Constraint inputBar.bottom → keyboardLayoutGuide.top (iOS 15+)
+    /// или safeAreaLayoutGuide.bottom + ручной сдвиг (iOS 13–14).
+    private var inputBarKeyboardConstraint: NSLayoutConstraint?
 
     // MARK: Private — state
 
-    private var keyboardHeight:     CGFloat    = 0
     private var waitingForNewMessages          = false
     private var lastKnownMessageCount          = 0
     private var lastContentOffsetY: CGFloat    = 0
     private var isProgrammaticScroll           = false
     private var visibleMessageIDs: Set<String> = []
-    // replyInfo удалён — состояние режима ответа хранится только в InputBarView.mode.
-    // Контроллер не дублирует это состояние.
     private var lastSectionsInputHash: Int = 0
     private var lastScrollEventTime: CFTimeInterval = 0
     private let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
     private var pendingHighlightId: String?
 
-    // MARK: Private — messagesDidAppear debounce
-    // Накапливаем id входящих сообщений и отправляем пачкой после паузы в скролле.
-    // Это исключает спам делегата при быстром пролистывании непрочитанных сообщений.
+    /// true пока пользователь держит палец на экране и тянет коллекцию вниз
+    /// чтобы интерактивно скрыть клавиатуру. В этом состоянии мы не трогаем
+    /// contentOffset — UIKit сам синхронизирует скролл и движение клавиатуры.
+    private var isUserDragging = false
 
-    /// id, ещё не переданные делегату (накапливаются в течение debounce-окна).
+    // MARK: Private — messagesDidAppear debounce
+
     private var pendingVisibleIDs: Set<String> = []
-    /// Отложенная задача отправки пачки; отменяется при каждом новом id.
     private var visibilityDebounceTask: DispatchWorkItem?
-    /// Окно ожидания перед отправкой пачки.
     private let visibilityDebounceInterval: TimeInterval = 0.3
 
     // MARK: - Lifecycle
@@ -158,22 +187,18 @@ final class ChatViewController: UIViewController {
         setupFAB()
         setupDataSource()
         applyTheme()
-
-        KeyboardListener.shared.add(delegate: self)
     }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    deinit { }
 
     // MARK: - Theme application
 
-    /// Применяет текущую тему ко всем компонентам.
     private func applyTheme() {
         guard isViewLoaded else { return }
         collectionView.backgroundColor = theme.collectionViewBackground
         emptyStateLabel.textColor      = theme.emptyStateText
         fabArrow.tintColor             = theme.fabArrowColor
 
-        // Пересоздаём blur-эффект с нужным стилем
         let newBlur = UIVisualEffectView(effect: UIBlurEffect(style: theme.fabBlurStyle))
         newBlur.translatesAutoresizingMaskIntoConstraints = false
         newBlur.isUserInteractionEnabled = false
@@ -201,8 +226,19 @@ final class ChatViewController: UIViewController {
     private func setupCollectionView() {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeFlowLayout())
         collectionView.backgroundColor     = .clear
+        // .interactive — свайп вниз по чату скрывает клавиатуру,
+        // inputBar следует покадрово через keyboardLayoutGuide.
         collectionView.keyboardDismissMode = .interactive
-        collectionView.contentInset        = UIEdgeInsets(top: 8, left: 0, bottom: 8, right: 0)
+        // top: 8px отступ от шапки.
+        // bottom: выставляется динамически в updateCollectionBottomInset()
+        //         как (view.height - inputBar.minY) — ровно то пространство,
+        //         которое занято inputBar + клавиатура.
+        collectionView.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 0, right: 0)
+        // .never — мы сами полностью управляем contentInset.bottom через
+        // updateCollectionBottomInset(). Дефолтный .automatic заставляет UIKit
+        // дополнительно добавлять safeAreaInsets.bottom — это даёт двойной учёт
+        // safe area, отсюда лишний зазор между коллекцией и inputBar.
+        collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.register(MessageCell.self,
             forCellWithReuseIdentifier: MessageCell.reuseID)
@@ -212,13 +248,13 @@ final class ChatViewController: UIViewController {
         collectionView.delegate = self
         view.addSubview(collectionView)
 
-        collectionViewBottomConstraint = collectionView.bottomAnchor
-            .constraint(equalTo: view.bottomAnchor)
+        // collectionView занимает весь view. Нижний contentInset создаёт
+        // "виртуальный" отступ под inputBar — последнее сообщение всегда видно.
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.topAnchor),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            collectionViewBottomConstraint,
+            collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
@@ -236,13 +272,11 @@ final class ChatViewController: UIViewController {
         emptyStateContainer.addSubview(emptyStateLabel)
         emptyStateContainer.addSubview(centerSpinner)
 
-        emptyStateBottomConstraint = emptyStateContainer.bottomAnchor
-            .constraint(equalTo: view.bottomAnchor)
         NSLayoutConstraint.activate([
             emptyStateContainer.topAnchor.constraint(equalTo: view.topAnchor),
             emptyStateContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             emptyStateContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            emptyStateBottomConstraint,
+            emptyStateContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             emptyStateLabel.centerXAnchor.constraint(equalTo: emptyStateContainer.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: emptyStateContainer.centerYAnchor),
             emptyStateLabel.leadingAnchor.constraint(equalTo: emptyStateContainer.leadingAnchor, constant: 32),
@@ -260,23 +294,91 @@ final class ChatViewController: UIViewController {
         inputBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(inputBar)
 
-        inputBarBottomConstraint = inputBar.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         NSLayoutConstraint.activate([
             inputBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             inputBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             inputBar.heightAnchor.constraint(greaterThanOrEqualToConstant: 52),
-            inputBarBottomConstraint,
         ])
 
-        collectionViewBottomConstraint.isActive = false
-        collectionViewBottomConstraint = collectionView.bottomAnchor
-            .constraint(equalTo: inputBar.topAnchor)
-        collectionViewBottomConstraint.isActive = true
+        // ── iOS 15+: keyboardLayoutGuide ──────────────────────────────────────
+        // Системный layout guide синхронизирован с клавиатурой на уровне CADisplayLink.
+        // Работает для:
+        //   • Появления / скрытия клавиатуры
+        //   • Интерактивного dismiss свайпом (keyboardDismissMode = .interactive)
+        //   • Смены высоты клавиатуры (emoji, QuickType bar, etc.)
+        //   • Floating keyboard на iPad
+        //   • Split-screen / Stage Manager
+        if #available(iOS 15.0, *) {
+            // followsUndockedKeyboard = true позволяет inputBar следовать
+            // за floating-клавиатурой на iPad. На iPhone не влияет.
+            view.keyboardLayoutGuide.followsUndockedKeyboard = true
 
-        emptyStateBottomConstraint.isActive = false
-        emptyStateBottomConstraint = emptyStateContainer.bottomAnchor
-            .constraint(equalTo: inputBar.topAnchor)
-        emptyStateBottomConstraint.isActive = true
+            let constraint = inputBar.bottomAnchor.constraint(
+                equalTo: view.keyboardLayoutGuide.topAnchor
+            )
+            constraint.isActive = true
+            inputBarKeyboardConstraint = constraint
+        } else {
+            // ── Fallback iOS 13–14 ────────────────────────────────────────────
+            // На старых iOS keyboardLayoutGuide недоступен.
+            // Крепим к safeAreaLayoutGuide.bottom и слушаем уведомления
+            // клавиатуры через KeyboardListener.
+            let constraint = inputBar.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor
+            )
+            constraint.isActive = true
+            inputBarKeyboardConstraint = constraint
+            KeyboardListener.shared.add(delegate: self)
+        }
+    }
+
+    // MARK: - CollectionView inset management
+
+    /// Вычисляет и применяет правильный contentInset.bottom для коллекции.
+    ///
+    /// Принцип: collectionView занимает весь экран (bottomAnchor = view.bottomAnchor).
+    /// Нижний contentInset = расстояние от низа view до верха inputBar.
+    /// Это гарантирует что последнее сообщение всегда видно над inputBar.
+    ///
+    /// viewDidLayoutSubviews вызывается в каждом кадре анимации keyboardLayoutGuide,
+    /// поэтому inset обновляется покадрово вместе с движением клавиатуры.
+    private func updateCollectionBottomInset() {
+        guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
+
+        let newBottom = view.bounds.height - inputBar.frame.minY
+        let oldBottom = collectionView.contentInset.bottom
+        guard abs(oldBottom - newBottom) > 0.5 else { return }
+
+        let cv = collectionView!
+
+        // Во время интерактивного dismiss пользователь тянет коллекцию пальцем.
+        // UIKit сам двигает contentOffset синхронно с клавиатурой через
+        // keyboardDismissMode = .interactive. Мы не вмешиваемся — иначе
+        // два источника движения offset создадут дёрганье.
+        if isUserDragging {
+            cv.contentInset.bottom = newBottom
+            cv.scrollIndicatorInsets.bottom = newBottom
+            return
+        }
+
+        // Сохраняем расстояние от текущего contentOffset до конца контента.
+        // После смены inset восстанавливаем его — так сообщения
+        // "поднимаются" вместе с клавиатурой без прыжков.
+        let distanceFromEnd = cv.contentSize.height
+            - cv.contentOffset.y
+            - cv.bounds.height
+            + oldBottom
+
+        cv.contentInset.bottom = newBottom
+        cv.scrollIndicatorInsets.bottom = newBottom
+
+        let newOffsetY = cv.contentSize.height
+            - cv.bounds.height
+            + newBottom
+            - distanceFromEnd
+
+        let minOffsetY = -cv.contentInset.top
+        cv.contentOffset = CGPoint(x: 0, y: max(minOffsetY, newOffsetY))
     }
 
     // MARK: - Setup — FAB
@@ -298,6 +400,7 @@ final class ChatViewController: UIViewController {
             fabButton.widthAnchor.constraint(equalToConstant: size),
             fabButton.heightAnchor.constraint(equalToConstant: size),
             fabButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            // FAB всегда над inputBar, независимо от положения клавиатуры
             fabButton.bottomAnchor.constraint(equalTo: inputBar.topAnchor, constant: -12),
             fabBlurView.topAnchor.constraint(equalTo: fabButton.topAnchor),
             fabBlurView.bottomAnchor.constraint(equalTo: fabButton.bottomAnchor),
@@ -342,7 +445,6 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Cell factory
 
-    /// Вытаскивает ячейку из пула и заполняет данными сообщения.
     private func cell(for ip: IndexPath, id: String, in cv: UICollectionView) -> UICollectionViewCell? {
         guard let msg = messageIndex[id] else { return nil }
         let cell = cv.dequeueReusableCell(
@@ -364,12 +466,12 @@ final class ChatViewController: UIViewController {
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        if keyboardHeight == 0 {
-            let safe = view.safeAreaInsets.bottom
-            if inputBarBottomConstraint.constant != -safe {
-                inputBarBottomConstraint.constant = -safe
-            }
-        }
+
+        // Обновляем нижний inset коллекции в каждом кадре layout-прохода.
+        // keyboardLayoutGuide двигает inputBar покадрово → inputBar.frame.minY меняется
+        // → здесь мы пересчитываем contentInset.bottom = view.height - inputBar.minY.
+        updateCollectionBottomInset()
+
         let w = collectionView.bounds.width
         if w > 0, w != sizeCache.layoutWidth {
             sizeCache.invalidateAll()
@@ -392,7 +494,6 @@ final class ChatViewController: UIViewController {
 
     @objc private func fabTapped() { scrollToBottom(animated: true) }
 
-    /// Показывает/скрывает FAB с spring-анимацией.
     private func updateFABVisibility(animated: Bool) {
         let show = distanceFromBottom() > scrollToBottomThreshold
         guard show != fabVisible else { return }
@@ -415,14 +516,15 @@ final class ChatViewController: UIViewController {
 
     private func distanceFromBottom() -> CGFloat {
         let cv = collectionView!
-        return max(0, cv.contentSize.height - cv.contentOffset.y - cv.bounds.height)
+        // Расстояние от текущей позиции скролла до конца контента
+        return max(0, cv.contentSize.height
+            - cv.contentOffset.y
+            - cv.bounds.height
+            + cv.contentInset.bottom)
     }
 
     // MARK: - Reply resolution
 
-    /// Резолвит цитату сообщения в актуальные данные для рендера.
-    /// Строит ReplyDisplayInfo из ЖИВОГО сообщения в messageIndex —
-    /// поэтому если оригинал отредактировали, цитата покажет новый текст.
     private func resolve(_ message: ChatMessage) -> ResolvedReply? {
         guard let reply = message.reply else { return nil }
         if let original = messageIndex[reply.replyToId] {
@@ -437,35 +539,41 @@ final class ChatViewController: UIViewController {
     }
 }
 
-// MARK: - KeyboardListenerDelegate
+// MARK: - KeyboardListenerDelegate (iOS 13–14 fallback only)
 
 extension ChatViewController: KeyboardListenerDelegate {
+
+    /// Вызывается только на iOS 13–14.
+    /// На iOS 15+ keyboardLayoutGuide двигает inputBar покадрово автоматически,
+    /// а updateCollectionBottomInset() в viewDidLayoutSubviews подхватывает это.
     func keyboardWillChangeFrame(info: KeyboardInfo) {
+        guard #unavailable(iOS 15) else { return }
         guard let window = view.window else { return }
 
-        let kbInView = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
-        let newKbH   = max(0, view.bounds.height - kbInView.origin.y)
-        guard newKbH != keyboardHeight else { return }
-        keyboardHeight = newKbH
+        let kbInView   = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
+        let kbHeight   = max(0, view.bounds.height - kbInView.origin.y)
+        let safeBottom = view.safeAreaInsets.bottom
+        // Сдвигаем inputBar вверх на высоту клавиатуры над safe area
+        let newConst   = -(max(kbHeight, safeBottom) - safeBottom)
 
-        let safe       = view.safeAreaInsets.bottom
-        let newConst   = newKbH > 0 ? -newKbH : -safe
-        let distBottom = collectionView.contentSize.height
-            - collectionView.contentOffset.y - collectionView.bounds.height
+        guard (inputBarKeyboardConstraint?.constant ?? 0) != newConst else { return }
+        inputBarKeyboardConstraint?.constant = newConst
 
-        let updates = {
-            self.inputBarBottomConstraint.constant = newConst
-            self.view.layoutIfNeeded()
-            let off = self.collectionView.contentSize.height
-                    - self.collectionView.bounds.height - distBottom
-            if off > -self.collectionView.contentInset.top {
-                self.collectionView.contentOffset = CGPoint(x: 0, y: off)
-            }
-        }
+        let curve = UIView.AnimationOptions(rawValue: UInt(info.animationCurve.rawValue) << 16)
 
         if info.animationDuration > 0 {
-            UIView.animate(withDuration: info.animationDuration, animations: updates)
-        } else { updates() }
+            UIView.animate(
+                withDuration: info.animationDuration,
+                delay: 0,
+                options: [curve, .beginFromCurrentState]
+            ) {
+                // layoutIfNeeded → viewDidLayoutSubviews → updateCollectionBottomInset
+                // inset и offset обновятся синхронно внутри этого анимационного блока
+                self.view.layoutIfNeeded()
+            }
+        } else {
+            view.layoutIfNeeded()
+        }
     }
 }
 
@@ -475,7 +583,6 @@ extension ChatViewController {
 
     // MARK: Messages update
 
-    /// Полный апдейт списка сообщений с определением типа изменения (prepend / delete / append / update).
     func updateMessages(_ messages: [ChatMessage]) {
         let newCount    = messages.count
         let oldCount    = lastKnownMessageCount
@@ -502,19 +609,14 @@ extension ChatViewController {
 
     // MARK: Reply / Edit
 
-    /// Переводит InputBar в режим ответа.
-    /// Данные сообщения уже актуальны — caller (RNChatView) достал их из messageIndex.
     func beginReply(info: ReplyInfo) {
         inputBar?.beginReply(info: info, theme: theme)
     }
 
-    /// Переводит InputBar в режим редактирования.
     func beginEdit(messageId: String, text: String) {
         inputBar?.beginEdit(messageId: messageId, text: text, theme: theme)
     }
 
-    /// Сбрасывает режим InputBar без уведомления делегата.
-    /// Вызывается когда JS передаёт inputAction = { type: "none" }.
     func clearInputMode() {
         inputBar?.cancelMode()
     }
@@ -538,7 +640,6 @@ extension ChatViewController {
         guard let ip = indexPath(forMessageID: id) else { return }
 
         if collectionView.indexPathsForVisibleItems.contains(ip) {
-            // Сообщение уже видно — только подсветить
             if highlight {
                 DispatchQueue.main.async { [weak self] in self?.highlightMessage(id: id) }
             }
@@ -557,262 +658,6 @@ extension ChatViewController {
     }
 
     func message(forID id: String) -> ChatMessage? { messageIndex[id] }
-}
-
-// MARK: - Message update helpers
-
-private extension ChatViewController {
-
-    /// Добавление истории сверху (prepend) без прыжка scroll.
-    func applyPrepend(
-        newSections: [MessageSection],
-        newIndex: [String: ChatMessage],
-        messages: [ChatMessage]
-    ) {
-        sections     = newSections
-        messageIndex = newIndex
-        warmCache(for: messages, width: collectionView.bounds.width)
-
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        let oldH = collectionView.contentSize.height
-        let oldY = collectionView.contentOffset.y
-        dataSource.apply(buildSnapshot(), animatingDifferences: false)
-        collectionView.layoutIfNeeded()
-
-        if !isInitialScrollProtected {
-            let delta = collectionView.contentSize.height - oldH
-            isProgrammaticScroll = true
-            collectionView.contentOffset = CGPoint(
-                x: 0, y: max(-collectionView.contentInset.top, oldY + delta))
-            isProgrammaticScroll = false
-        } else if let targetId = pendingScrollMessageId {
-            isProgrammaticScroll = true
-            if let ip = indexPath(forMessageID: targetId) {
-                collectionView.scrollToItem(at: ip, at: .centeredVertically, animated: false)
-            }
-            isProgrammaticScroll = false
-        }
-        CATransaction.commit()
-    }
-
-    /// Удаление сообщений с анимацией.
-    func applyDeletion(
-        newSections: [MessageSection],
-        newIndex: [String: ChatMessage]
-    ) {
-        let removedIDs = Set(messageIndex.keys).subtracting(newIndex.keys)
-        sections     = newSections
-        messageIndex = newIndex
-
-        // Инвалидируем кэш для удалённых и их ответов
-        let replyingIDs: [String] = sections.flatMap(\.messages).compactMap { msg in
-            guard let rid = msg.reply?.replyToId, removedIDs.contains(rid) else { return nil }
-            return msg.id
-        }
-        sizeCache.invalidate(ids: removedIDs)
-        sizeCache.invalidate(ids: replyingIDs)
-
-        var snap = buildSnapshot()
-        if !replyingIDs.isEmpty { snap.reloadItems(replyingIDs) }
-        dataSource.apply(snap, animatingDifferences: true)
-    }
-
-    /// Добавление новых сообщений снизу.
-    func applyAppend(
-        newSections: [MessageSection],
-        newIndex: [String: ChatMessage],
-        messages: [ChatMessage]
-    ) {
-        sections     = newSections
-        messageIndex = newIndex
-        warmCache(for: messages, width: collectionView.bounds.width)
-        dataSource.apply(buildSnapshot(), animatingDifferences: true) { [weak self] in
-            self?.scrollToBottomIfNearBottom()
-        }
-    }
-
-    /// Обновление существующих сообщений (статус, текст).
-    func applyUpdate(
-        newSections: [MessageSection],
-        newIndex: [String: ChatMessage],
-        messages: [ChatMessage]
-    ) {
-        let changedIDs = messages.compactMap { msg -> String? in
-            guard let old = messageIndex[msg.id] else { return msg.id }
-            return old == msg ? nil : msg.id
-        }
-        sections     = newSections
-        messageIndex = newIndex
-
-        guard !changedIDs.isEmpty else { return }
-
-        // Если изменился оригинал на который есть цитаты — перерисовываем
-        // и «читателей», чтобы их цитата отразила новый текст оригинала.
-        let changedSet = Set(changedIDs)
-        let quoteReaderIDs = sections.flatMap(\.messages).compactMap { msg -> String? in
-            guard let rid = msg.reply?.replyToId,
-                  changedSet.contains(rid),
-                  !changedSet.contains(msg.id) else { return nil }
-            return msg.id
-        }
-
-        let allToReconfigure = changedIDs + quoteReaderIDs
-        sizeCache.invalidate(ids: allToReconfigure)
-        var snap = dataSource.snapshot()
-        snap.reconfigureItems(allToReconfigure)
-        dataSource.apply(snap, animatingDifferences: false)
-    }
-
-    // MARK: Cache warmup
-
-    /// Прогревает кэш размеров в фоновом потоке для списка сообщений.
-    func warmCache(for messages: [ChatMessage], width: CGFloat) {
-        guard width > 0 else { return }
-        let uncached = messages.filter { !sizeCache.contains($0.id) }
-        guard !uncached.isEmpty else { return }
-
-        let hasReplyMap: [String: Bool] = Dictionary(
-            uniqueKeysWithValues: uncached.map { ($0.id, replyExists(for: $0)) }
-        )
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.sizeCache.prefill(
-                messages: uncached,
-                hasReplyMap: hasReplyMap,
-                collectionViewWidth: width
-            )
-        }
-    }
-
-    // MARK: Sections building
-
-    /// Группирует сообщения по дате в секции. Использует хэш для пропуска лишних пересчётов.
-    func buildSections(from messages: [ChatMessage]) -> [MessageSection] {
-        let newHash = messages.reduce(into: 0) { h, m in
-            h ^= m.id.hashValue &+ m.status.hashValue &+ m.groupDate.hashValue
-        }
-        if newHash == lastSectionsInputHash && !sections.isEmpty { return sections }
-        lastSectionsInputHash = newHash
-
-        var map:   [String: MessageSection] = [:]
-        var order: [String] = []
-        for msg in messages.sorted(by: { $0.timestamp < $1.timestamp }) {
-            if map[msg.groupDate] == nil {
-                map[msg.groupDate] = MessageSection(dateKey: msg.groupDate, messages: [])
-                order.append(msg.groupDate)
-            }
-            map[msg.groupDate]?.messages.append(msg)
-        }
-        return order.compactMap { map[$0] }
-    }
-
-    func buildSnapshot() -> NSDiffableDataSourceSnapshot<String, String> {
-        var snap = NSDiffableDataSourceSnapshot<String, String>()
-        for s in sections {
-            snap.appendSections([s.dateKey])
-            snap.appendItems(s.messages.map(\.id), toSection: s.dateKey)
-        }
-        return snap
-    }
-
-    /// Возвращает true, если новые секции содержат сообщения старше самого раннего в текущем списке.
-    func isPrepend(newSections: [MessageSection]) -> Bool {
-        guard let oldest = sections.first?.messages.first?.timestamp else { return false }
-        let all   = newSections.flatMap { $0.messages.map(\.timestamp) }
-        let added = all.count - lastKnownMessageCount
-        guard added > 0 else { return false }
-        return all.prefix(added).allSatisfy { $0 < oldest }
-    }
-
-    func scrollToBottomIfNearBottom() {
-        guard distanceFromBottom() < scrollToBottomThreshold + 50 else { return }
-        scrollToBottom(animated: true)
-    }
-
-    // MARK: Empty / Loading state
-
-    func updateLoadingState() {
-        let empty = sections.isEmpty || sections.allSatisfy { $0.messages.isEmpty }
-        emptyStateContainer.isHidden = !empty
-        if empty {
-            if isLoading {
-                emptyStateLabel.isHidden = true; centerSpinner.startAnimating()
-            } else {
-                centerSpinner.stopAnimating(); emptyStateLabel.isHidden = false
-            }
-        } else {
-            centerSpinner.stopAnimating()
-        }
-    }
-
-    // MARK: Highlight
-
-    /// Обрабатывает отложенную подсветку после завершения scroll-анимации.
-    func processPendingHighlight() {
-        guard let id = pendingHighlightId else { return }
-        pendingHighlightId = nil
-        highlightMessage(id: id)
-    }
-
-    func highlightMessage(id: String) {
-        guard let ip = indexPath(forMessageID: id) else { return }
-        if let cell = collectionView.cellForItem(at: ip) as? MessageCell {
-            cell.highlight(); return
-        }
-        DispatchQueue.main.async { [weak self] in
-            guard let self, let ip = self.indexPath(forMessageID: id) else { return }
-            (self.collectionView.cellForItem(at: ip) as? MessageCell)?.highlight()
-        }
-    }
-
-    // MARK: Index helpers
-
-    func indexPath(forMessageID id: String) -> IndexPath? {
-        for (si, section) in sections.enumerated() {
-            if let ii = section.messages.firstIndex(where: { $0.id == id }) {
-                return IndexPath(item: ii, section: si)
-            }
-        }
-        return nil
-    }
-
-    // MARK: Debounce flush
-
-    /// Добавляет id в pending-пачку и перезапускает debounce-таймер.
-    /// Когда скролл останавливается, накопленная пачка уходит делегату одним вызовом.
-    private func scheduleVisibilityFlush(id: String) {
-        pendingVisibleIDs.insert(id)
-
-        // Отменяем предыдущую задачу — "сдвигаем" дедлайн при каждом новом id.
-        visibilityDebounceTask?.cancel()
-
-        let task = DispatchWorkItem { [weak self] in
-            guard let self, !pendingVisibleIDs.isEmpty else { return }
-            let batch = Array(pendingVisibleIDs)
-            pendingVisibleIDs.removeAll()
-            delegate?.chatViewController(self, messagesDidAppear: batch)
-        }
-        visibilityDebounceTask = task
-        DispatchQueue.main.asyncAfter(
-            deadline: .now() + visibilityDebounceInterval,
-            execute: task
-        )
-    }
-
-    // MARK: Context menu
-
-    func makeContextMenu(for message: ChatMessage) -> UIMenu {
-        UIMenu(title: "", children: actions.map { a in
-            UIAction(
-                title: a.title,
-                image: a.systemImage.flatMap { UIImage(systemName: $0) },
-                attributes: a.isDestructive ? .destructive : []
-            ) { [weak self] _ in
-                guard let self else { return }
-                delegate?.chatViewController(self, didSelectAction: a, for: message)
-            }
-        })
-    }
 }
 
 // MARK: - UICollectionViewDelegate
@@ -834,8 +679,6 @@ extension ChatViewController: UICollectionViewDelegate {
               let id  = dataSource.itemIdentifier(for: ip),
               let msg = messageIndex[id] else { return nil }
 
-        // identifier несёт IndexPath — используется в willPerformPreviewAction
-        // для плавного возврата фокуса на исходную ячейку.
         let identifier = NSString(string: id)
 
         return UIContextMenuConfiguration(
@@ -854,17 +697,14 @@ extension ChatViewController: UICollectionViewDelegate {
         )
     }
 
-    /// Плавный dismiss превью: пузырь "летит" обратно в исходную ячейку.
     func collectionView(
         _ cv: UICollectionView,
         willPerformPreviewActionForMenuWith config: UIContextMenuConfiguration,
         animator: UIContextMenuInteractionCommitAnimating
     ) {
-        // Нет tap-action для превью в чате — просто закрываем без лишней логики.
         animator.preferredCommitStyle = .dismiss
     }
 
-    /// Настраивает highlight-анимацию ячейки при открытии меню.
     func collectionView(
         _ cv: UICollectionView,
         previewForHighlightingContextMenuWithConfiguration config: UIContextMenuConfiguration
@@ -872,7 +712,6 @@ extension ChatViewController: UICollectionViewDelegate {
         targetedPreview(for: config, in: cv)
     }
 
-    /// Настраивает анимацию возврата превью при закрытии меню.
     func collectionView(
         _ cv: UICollectionView,
         previewForDismissingContextMenuWithConfiguration config: UIContextMenuConfiguration
@@ -880,7 +719,6 @@ extension ChatViewController: UICollectionViewDelegate {
         targetedPreview(for: config, in: cv)
     }
 
-    /// Создаёт UITargetedPreview точно по форме пузыря (без фона всей ячейки).
     private func targetedPreview(
         for config: UIContextMenuConfiguration,
         in cv: UICollectionView
@@ -902,10 +740,21 @@ extension ChatViewController: UICollectionViewDelegate {
         guard let id  = dataSource.itemIdentifier(for: ip),
               let msg = messageIndex[id],
               !msg.isMine else { return }
-        // Новый id — добавляем в глобальный seen-сет и в текущую pending-пачку.
-        // Seen-сет предотвращает повторную отправку при повторном появлении ячейки.
         guard visibleMessageIDs.insert(id).inserted else { return }
         scheduleVisibilityFlush(id: id)
+    }
+
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        isUserDragging = true
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate { isUserDragging = false }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        isUserDragging = false
+        processPendingHighlight()
     }
 
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
@@ -930,10 +779,6 @@ extension ChatViewController: UICollectionViewDelegate {
     }
 
     func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
-        processPendingHighlight()
-    }
-
-    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         processPendingHighlight()
     }
 }
@@ -986,7 +831,6 @@ extension ChatViewController: InputBarDelegate {
     }
 
     func inputBarDidCancelReply(_ bar: InputBarView) {
-        // Состояние режима уже сброшено внутри InputBarView — только уведомляем JS.
         delegate?.chatViewController(self, didCancelReply: self)
     }
 
@@ -995,13 +839,261 @@ extension ChatViewController: InputBarDelegate {
     }
 
     func inputBar(_ bar: InputBarView, didChangeHeight height: CGFloat) {
-        // UIViewPropertyAnimator синхронизирует анимацию с системными spring-параметрами
-        UIViewPropertyAnimator(duration: 0.25, dampingRatio: 0.85) {
-            self.view.layoutIfNeeded()
+        // Высота inputBar изменилась (мультистрок, reply panel, режим редактирования).
+        // layoutIfNeeded внутри аниматора запустит layout pass →
+        // viewDidLayoutSubviews → updateCollectionBottomInset пересчитает
+        // contentInset.bottom и скорректирует contentOffset без прыжка.
+        UIViewPropertyAnimator(duration: 0.25, dampingRatio: 0.85) { [weak self] in
+            self?.view.layoutIfNeeded()
         }.startAnimation()
     }
 
     func inputBarDidTapAttachment(_ bar: InputBarView) {
         delegate?.chatViewControllerDidTapAttachment(self)
+    }
+}
+
+// MARK: - Context menu
+
+extension ChatViewController {
+
+    func makeContextMenu(for message: ChatMessage) -> UIMenu {
+        UIMenu(title: "", children: actions.map { a in
+            UIAction(
+                title: a.title,
+                image: a.systemImage.flatMap { UIImage(systemName: $0) },
+                attributes: a.isDestructive ? .destructive : []
+            ) { [weak self] _ in
+                guard let self else { return }
+                delegate?.chatViewController(self, didSelectAction: a, for: message)
+            }
+        })
+    }
+}
+
+// MARK: - Message update helpers
+
+private extension ChatViewController {
+
+    func applyPrepend(
+        newSections: [MessageSection],
+        newIndex: [String: ChatMessage],
+        messages: [ChatMessage]
+    ) {
+        sections     = newSections
+        messageIndex = newIndex
+        warmCache(for: messages, width: collectionView.bounds.width)
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        let oldH = collectionView.contentSize.height
+        let oldY = collectionView.contentOffset.y
+        dataSource.apply(buildSnapshot(), animatingDifferences: false)
+        collectionView.layoutIfNeeded()
+
+        if !isInitialScrollProtected {
+            let delta = collectionView.contentSize.height - oldH
+            isProgrammaticScroll = true
+            collectionView.contentOffset = CGPoint(
+                x: 0, y: max(-collectionView.contentInset.top, oldY + delta))
+            isProgrammaticScroll = false
+        } else if let targetId = pendingScrollMessageId {
+            isProgrammaticScroll = true
+            if let ip = indexPath(forMessageID: targetId) {
+                collectionView.scrollToItem(at: ip, at: .centeredVertically, animated: false)
+            }
+            isProgrammaticScroll = false
+        }
+        CATransaction.commit()
+    }
+
+    func applyDeletion(
+        newSections: [MessageSection],
+        newIndex: [String: ChatMessage]
+    ) {
+        let removedIDs = Set(messageIndex.keys).subtracting(newIndex.keys)
+        sections     = newSections
+        messageIndex = newIndex
+
+        let replyingIDs: [String] = sections.flatMap(\.messages).compactMap { msg in
+            guard let rid = msg.reply?.replyToId, removedIDs.contains(rid) else { return nil }
+            return msg.id
+        }
+        sizeCache.invalidate(ids: removedIDs)
+        sizeCache.invalidate(ids: replyingIDs)
+
+        var snap = buildSnapshot()
+        if !replyingIDs.isEmpty { snap.reloadItems(replyingIDs) }
+        dataSource.apply(snap, animatingDifferences: true)
+    }
+
+    func applyAppend(
+        newSections: [MessageSection],
+        newIndex: [String: ChatMessage],
+        messages: [ChatMessage]
+    ) {
+        sections     = newSections
+        messageIndex = newIndex
+        warmCache(for: messages, width: collectionView.bounds.width)
+        dataSource.apply(buildSnapshot(), animatingDifferences: true) { [weak self] in
+            self?.scrollToBottomIfNearBottom()
+        }
+    }
+
+    func applyUpdate(
+        newSections: [MessageSection],
+        newIndex: [String: ChatMessage],
+        messages: [ChatMessage]
+    ) {
+        let changedIDs = messages.compactMap { msg -> String? in
+            guard let old = messageIndex[msg.id] else { return msg.id }
+            return old == msg ? nil : msg.id
+        }
+        sections     = newSections
+        messageIndex = newIndex
+
+        guard !changedIDs.isEmpty else { return }
+
+        let changedSet = Set(changedIDs)
+        let quoteReaderIDs = sections.flatMap(\.messages).compactMap { msg -> String? in
+            guard let rid = msg.reply?.replyToId,
+                  changedSet.contains(rid),
+                  !changedSet.contains(msg.id) else { return nil }
+            return msg.id
+        }
+
+        let allToReconfigure = changedIDs + quoteReaderIDs
+        sizeCache.invalidate(ids: allToReconfigure)
+        var snap = dataSource.snapshot()
+        snap.reconfigureItems(allToReconfigure)
+        dataSource.apply(snap, animatingDifferences: false)
+    }
+
+    // MARK: Cache warmup
+
+    func warmCache(for messages: [ChatMessage], width: CGFloat) {
+        guard width > 0 else { return }
+        let uncached = messages.filter { !sizeCache.contains($0.id) }
+        guard !uncached.isEmpty else { return }
+
+        let hasReplyMap: [String: Bool] = Dictionary(
+            uniqueKeysWithValues: uncached.map { ($0.id, replyExists(for: $0)) }
+        )
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.sizeCache.prefill(
+                messages: uncached,
+                hasReplyMap: hasReplyMap,
+                collectionViewWidth: width
+            )
+        }
+    }
+
+    // MARK: Sections building
+
+    func buildSections(from messages: [ChatMessage]) -> [MessageSection] {
+        let newHash = messages.reduce(into: 0) { h, m in
+            h ^= m.id.hashValue &+ m.status.hashValue &+ m.groupDate.hashValue
+        }
+        if newHash == lastSectionsInputHash && !sections.isEmpty { return sections }
+        lastSectionsInputHash = newHash
+
+        var map:   [String: MessageSection] = [:]
+        var order: [String] = []
+        for msg in messages.sorted(by: { $0.timestamp < $1.timestamp }) {
+            if map[msg.groupDate] == nil {
+                map[msg.groupDate] = MessageSection(dateKey: msg.groupDate, messages: [])
+                order.append(msg.groupDate)
+            }
+            map[msg.groupDate]?.messages.append(msg)
+        }
+        return order.compactMap { map[$0] }
+    }
+
+    func buildSnapshot() -> NSDiffableDataSourceSnapshot<String, String> {
+        var snap = NSDiffableDataSourceSnapshot<String, String>()
+        for s in sections {
+            snap.appendSections([s.dateKey])
+            snap.appendItems(s.messages.map(\.id), toSection: s.dateKey)
+        }
+        return snap
+    }
+
+    func isPrepend(newSections: [MessageSection]) -> Bool {
+        guard let oldest = sections.first?.messages.first?.timestamp else { return false }
+        let all   = newSections.flatMap { $0.messages.map(\.timestamp) }
+        let added = all.count - lastKnownMessageCount
+        guard added > 0 else { return false }
+        return all.prefix(added).allSatisfy { $0 < oldest }
+    }
+
+    func scrollToBottomIfNearBottom() {
+        guard distanceFromBottom() < scrollToBottomThreshold + 50 else { return }
+        scrollToBottom(animated: true)
+    }
+
+    // MARK: Empty / Loading state
+
+    func updateLoadingState() {
+        let empty = sections.isEmpty || sections.allSatisfy { $0.messages.isEmpty }
+        emptyStateContainer.isHidden = !empty
+        if empty {
+            if isLoading {
+                emptyStateLabel.isHidden = true; centerSpinner.startAnimating()
+            } else {
+                centerSpinner.stopAnimating(); emptyStateLabel.isHidden = false
+            }
+        } else {
+            centerSpinner.stopAnimating()
+        }
+    }
+
+    // MARK: Highlight
+
+    func processPendingHighlight() {
+        guard let id = pendingHighlightId else { return }
+        pendingHighlightId = nil
+        highlightMessage(id: id)
+    }
+
+    func highlightMessage(id: String) {
+        guard let ip = indexPath(forMessageID: id) else { return }
+        if let cell = collectionView.cellForItem(at: ip) as? MessageCell {
+            cell.highlight(); return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let ip = self.indexPath(forMessageID: id) else { return }
+            (self.collectionView.cellForItem(at: ip) as? MessageCell)?.highlight()
+        }
+    }
+
+    // MARK: Index helpers
+
+    func indexPath(forMessageID id: String) -> IndexPath? {
+        for (si, section) in sections.enumerated() {
+            if let ii = section.messages.firstIndex(where: { $0.id == id }) {
+                return IndexPath(item: ii, section: si)
+            }
+        }
+        return nil
+    }
+
+    // MARK: Debounce flush
+
+    private func scheduleVisibilityFlush(id: String) {
+        pendingVisibleIDs.insert(id)
+
+        visibilityDebounceTask?.cancel()
+
+        let task = DispatchWorkItem { [weak self] in
+            guard let self, !pendingVisibleIDs.isEmpty else { return }
+            let batch = Array(pendingVisibleIDs)
+            pendingVisibleIDs.removeAll()
+            delegate?.chatViewController(self, messagesDidAppear: batch)
+        }
+        visibilityDebounceTask = task
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + visibilityDebounceInterval,
+            execute: task
+        )
     }
 }

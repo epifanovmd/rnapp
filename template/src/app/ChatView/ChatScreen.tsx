@@ -1,6 +1,7 @@
 // ChatScreen.tsx
 // Пример экрана чата — демонстрирует использование ChatView.
 
+import { Container, Navbar } from "@components";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, useColorScheme } from "react-native";
 
@@ -544,27 +545,30 @@ const ChatScreen: React.FC = () => {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <ChatView
-      ref={chatRef}
-      style={styles.chat}
-      messages={messages}
-      actions={CHAT_ACTIONS}
-      topThreshold={200}
-      scrollToBottomThreshold={150}
-      // initialScrollId={"6"}
-      isLoading={isLoading}
-      inputAction={inputAction}
-      theme={theme}
-      onSendMessage={handleSendMessage}
-      onEditMessage={handleEditMessage}
-      onCancelInputAction={handleCancelInputAction}
-      // onReachTop={handleReachTop}
-      onReplyMessagePress={handleReplyMessagePress}
-      onActionPress={handleActionPress}
-      onAttachmentPress={handleAttachmentPress}
-      onMessagesVisible={handleMessagesVisible}
-      onMessagePress={handleMessagePress}
-    />
+    <Container edges={[]}>
+      {/* <Navbar title={"Чат"} />*/}
+      <ChatView
+        ref={chatRef}
+        style={styles.chat}
+        messages={messages}
+        actions={CHAT_ACTIONS}
+        topThreshold={200}
+        scrollToBottomThreshold={150}
+        // initialScrollId={"6"}
+        isLoading={isLoading}
+        inputAction={inputAction}
+        theme={theme}
+        onSendMessage={handleSendMessage}
+        onEditMessage={handleEditMessage}
+        onCancelInputAction={handleCancelInputAction}
+        // onReachTop={handleReachTop}
+        onReplyMessagePress={handleReplyMessagePress}
+        onActionPress={handleActionPress}
+        onAttachmentPress={handleAttachmentPress}
+        onMessagesVisible={handleMessagesVisible}
+        onMessagePress={handleMessagePress}
+      />
+    </Container>
   );
 };
 
