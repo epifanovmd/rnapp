@@ -90,6 +90,25 @@ final class ChatViewController: UIViewController {
     /// Активная тема чата. При смене применяется ко всем subviews.
     var theme: ChatTheme = .light { didSet { applyTheme() } }
 
+    /// Дополнительный отступ сверху коллекции, задаётся из React Native.
+    /// Используется когда над чатом есть нативный навигационный бар.
+    var collectionExtraInsetTop: CGFloat = 0 {
+        didSet {
+            guard isViewLoaded else { return }
+            collectionView.contentInset.top = ChatLayoutConstants.collectionTopPadding
+                + collectionExtraInsetTop
+        }
+    }
+
+    /// Дополнительный отступ снизу коллекции, задаётся из React Native.
+    /// Прибавляется к высоте inputBar + клавиатуры. Например высота таб-бара.
+    var collectionExtraInsetBottom: CGFloat = 0 {
+        didSet {
+            guard isViewLoaded else { return }
+            view.setNeedsLayout()
+        }
+    }
+
     // MARK: Initial scroll protection (управляется из RNChatView)
 
     var isInitialScrollProtected = false
@@ -233,7 +252,10 @@ final class ChatViewController: UIViewController {
         // bottom: выставляется динамически в updateCollectionBottomInset()
         //         как (view.height - inputBar.minY) — ровно то пространство,
         //         которое занято inputBar + клавиатура.
-        collectionView.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 0, right: 0)
+        collectionView.contentInset = UIEdgeInsets(
+            top: ChatLayoutConstants.collectionTopPadding,
+            left: 0, bottom: 0, right: 0
+        )
         // .never — мы сами полностью управляем contentInset.bottom через
         // updateCollectionBottomInset(). Дефолтный .automatic заставляет UIKit
         // дополнительно добавлять safeAreaInsets.bottom — это даёт двойной учёт
@@ -345,40 +367,43 @@ final class ChatViewController: UIViewController {
     private func updateCollectionBottomInset() {
         guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
-        let newBottom = view.bounds.height - inputBar.frame.minY
+        // contentInset.bottom = пространство под inputBar + визуальный padding + доп. отступ из RN.
+        // Это резервирует место чтобы последнее сообщение было видно над inputBar.
+        let newBottom = view.bounds.height
+            - inputBar.frame.minY
+            + ChatLayoutConstants.collectionBottomPadding
+            + collectionExtraInsetBottom
+
+        // scrollIndicatorInsets.bottom = только пространство занятое inputBar + клавиатурой.
+        // Полоска скролла заканчивается у верха inputBar — без padding,
+        // иначе она будет выше последнего сообщения.
+        let newIndicatorBottom = view.bounds.height - inputBar.frame.minY
+
         let oldBottom = collectionView.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
 
         let cv = collectionView!
 
-        // Во время интерактивного dismiss пользователь тянет коллекцию пальцем.
-        // UIKit сам двигает contentOffset синхронно с клавиатурой через
-        // keyboardDismissMode = .interactive. Мы не вмешиваемся — иначе
-        // два источника движения offset создадут дёрганье.
         if isUserDragging {
             cv.contentInset.bottom = newBottom
-            cv.scrollIndicatorInsets.bottom = newBottom
+            cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
             return
         }
 
-        // Сохраняем расстояние от текущего contentOffset до конца контента.
-        // После смены inset восстанавливаем его — так сообщения
-        // "поднимаются" вместе с клавиатурой без прыжков.
         let distanceFromEnd = cv.contentSize.height
             - cv.contentOffset.y
             - cv.bounds.height
             + oldBottom
 
         cv.contentInset.bottom = newBottom
-        cv.scrollIndicatorInsets.bottom = newBottom
+        cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
 
         let newOffsetY = cv.contentSize.height
             - cv.bounds.height
             + newBottom
             - distanceFromEnd
 
-        let minOffsetY = -cv.contentInset.top
-        cv.contentOffset = CGPoint(x: 0, y: max(minOffsetY, newOffsetY))
+        cv.contentOffset = CGPoint(x: 0, y: max(-cv.contentInset.top, newOffsetY))
     }
 
     // MARK: - Setup — FAB

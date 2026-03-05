@@ -59,7 +59,13 @@ enum ChatLayoutConstants {
     // MARK: - Collection spacing
 
     /// Вертикальный зазор между ячейками (minLineSpacing).
-    static let lineSpacing:           CGFloat = 2
+    static let lineSpacing:             CGFloat = 2
+
+    /// Верхний отступ контента коллекции (от шапки до первого сообщения).
+    static let collectionTopPadding:    CGFloat = 8
+
+    /// Дополнительный отступ снизу коллекции над InputBar.
+    static let collectionBottomPadding: CGFloat = 16
 
     // MARK: - InputBar
 

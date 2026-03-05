@@ -546,7 +546,8 @@ const ChatScreen: React.FC = () => {
 
   return (
     <Container edges={[]}>
-      {/* <Navbar title={"Чат"} />*/}
+      {/* <Container edges={["top"]}>*/}
+      {/*  <Navbar title={"Чат"} />*/}
       <ChatView
         ref={chatRef}
         style={styles.chat}
@@ -554,6 +555,7 @@ const ChatScreen: React.FC = () => {
         actions={CHAT_ACTIONS}
         topThreshold={200}
         scrollToBottomThreshold={150}
+        collectionInsetTop={32}
         // initialScrollId={"6"}
         isLoading={isLoading}
         inputAction={inputAction}

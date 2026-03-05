@@ -105,6 +105,14 @@ enum ChatInputAction {
         didSet { applyTheme() }
     }
 
+    @objc var collectionInsetTop: NSNumber = 0 {
+        didSet { chatVC?.collectionExtraInsetTop = CGFloat(collectionInsetTop.doubleValue) }
+    }
+
+    @objc var collectionInsetBottom: NSNumber = 0 {
+        didSet { chatVC?.collectionExtraInsetBottom = CGFloat(collectionInsetBottom.doubleValue) }
+    }
+
     // MARK: - Private state
 
     private weak var chatVC: ChatViewController?

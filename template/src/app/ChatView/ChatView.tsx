@@ -114,6 +114,8 @@ export interface ChatViewProps extends ViewProps {
   isLoading?: boolean;
   theme?: ChatTheme;
   style?: ViewStyle;
+  collectionInsetTop?: number;
+  collectionInsetBottom?: number;
 
   onScroll?: (event: ChatScrollEventData) => void;
   onReachTop?: (event: ChatReachTopEventData) => void;
@@ -185,6 +187,8 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     isLoading = false,
     theme = "light",
     style,
+    collectionInsetTop,
+    collectionInsetBottom,
     onScroll,
     onReachTop,
     onMessagesVisible,
@@ -298,6 +302,8 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       topThreshold={topThreshold}
       isLoading={isLoading}
       theme={theme}
+      collectionInsetTop={collectionInsetTop}
+      collectionInsetBottom={collectionInsetBottom}
       onScroll={handleScroll}
       onReachTop={handleReachTop}
       onMessagesVisible={handleMessagesVisible}

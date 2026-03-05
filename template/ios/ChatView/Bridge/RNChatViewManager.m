@@ -15,6 +15,8 @@ RCT_EXPORT_VIEW_PROPERTY(inputAction, NSDictionary)
 RCT_EXPORT_VIEW_PROPERTY(initialScrollId, NSString)
 RCT_EXPORT_VIEW_PROPERTY(scrollToBottomThreshold, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(theme, NSString)
+RCT_EXPORT_VIEW_PROPERTY(collectionInsetTop, NSNumber)
+RCT_EXPORT_VIEW_PROPERTY(collectionInsetBottom, NSNumber)
 
 // Events
 RCT_EXPORT_VIEW_PROPERTY(onScroll, RCTDirectEventBlock)

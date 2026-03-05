@@ -92,6 +92,8 @@ export interface NativeChatViewProps extends ViewProps {
   initialScrollId?: string;
   scrollToBottomThreshold?: WithDefault<Double, 150>;
   theme?: WithDefault<string, "light">;
+  collectionInsetTop?: WithDefault<Double, 0>;
+  collectionInsetBottom?: WithDefault<Double, 0>;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;
