@@ -9,13 +9,10 @@
 //        resignFirstResponder()          ← UIKit кидает WillHide, observer держит inset
 //        present(menuVC)
 //
-//   2. ContextMenuDelegate callback:
-//        let restore = prepareRestoreCollectionBottomInset()
-//        dismiss(animated: false) { restore() }
-//
-//   3. restore() вызывается ПОСЛЕ dismiss (меню снято):
-//        becomeFirstResponder() → ждём keyboardDidShow → thaw()
-//        или сразу thaw() если клавиатуры не было
+//   2. ContextMenuDelegate callback (меню уже снято с экрана к этому моменту):
+//        restoreCollectionBottomInset()
+//        → если клавиатура была открыта: becomeFirstResponder → ждём keyboardDidShow → thaw()
+//        → если клавиатуры не было:      thaw() сразу
 
 import UIKit
 
@@ -83,40 +80,42 @@ extension ChatViewController {
         }
     }
 
-    // MARK: - Prepare restore
+    // MARK: - Restore
     //
-    // Возвращает замыкание для вызова в completion dismiss(animated:completion:).
-    // becomeFirstResponder вызывается ПОСЛЕ того как ContextMenuViewController снят —
-    // иначе UIKit игнорирует его (.overFullScreen presented VC блокирует фокус).
+    // Вызывается из ContextMenuDelegate-методов ПОСЛЕ того как меню уже снято с экрана
+    // (ContextMenuViewController сам вызывает dismiss внутри close()).
+    // becomeFirstResponder() безопасен — presented VC больше не блокирует фокус.
 
-    func prepareRestoreCollectionBottomInset() -> () -> Void {
+    func restoreCollectionBottomInset() {
         removeKbHideObserver()
-        let wasVisible = keyboardWasVisible
-        keyboardWasVisible = false
-        guard isInsetFrozen else { return {} }
 
-        return { [weak self] in
-            guard let self else { return }
-            if wasVisible {
-                let token = NotificationCenter.default.addObserver(
-                    forName: UIResponder.keyboardDidShowNotification,
-                    object: nil, queue: .main
-                ) { [weak self] _ in
-                    guard let self else { return }
-                    self.removeKbShowObserver()
-                    self.thaw()
-                }
-                objc_setAssociatedObject(self, &kbShowObserverKey, token, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-                self.inputBar.textView.becomeFirstResponder()
-            } else {
+        let wasVisible     = keyboardWasVisible
+        keyboardWasVisible = false
+
+        guard isInsetFrozen else { return }
+
+        if wasVisible {
+            // Клавиатура была открыта — возвращаем фокус и ждём keyboardDidShow для thaw.
+            let token = NotificationCenter.default.addObserver(
+                forName: UIResponder.keyboardDidShowNotification,
+                object: nil, queue: .main
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.removeKbShowObserver()
                 self.thaw()
             }
+            objc_setAssociatedObject(self, &kbShowObserverKey, token, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            inputBar.textView.becomeFirstResponder()
+        } else {
+            // Клавиатуры не было — размораживаем сразу, inset должен вернуться
+            // к нормальному (без клавиатуры) значению через updateCollectionBottomInset.
+            thaw()
         }
     }
 
     // MARK: - Private helpers
 
-    private func thaw() {
+    func thaw() {
         isInsetFrozen     = false
         frozenBottomInset = nil
         updateCollectionBottomInset()

@@ -82,7 +82,6 @@ extension ChatViewController: UICollectionViewDelegateFlowLayout {
 
 extension ChatViewController {
 
-    /// Создаёт UICollectionViewFlowLayout с настройками для вертикального чата.
     func makeFlowLayout() -> UICollectionViewFlowLayout {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection                  = .vertical
@@ -97,9 +96,6 @@ extension ChatViewController {
 
 extension ChatViewController {
 
-    /// Добавляет UILongPressGestureRecognizer на bubbleView ячейки.
-    /// Жест на subview (не на collectionView) автоматически разрешает конфликты через UIKit:
-    /// отменяет tap replyPreview и selection коллекции, не затрагивая pan-жест скролла.
     func attachLongPress(to cell: MessageCell, message: ChatMessage) {
         let gr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         gr.minimumPressDuration = 0.4
@@ -116,7 +112,6 @@ extension ChatViewController {
         showContextMenu(for: message, sourceView: source)
     }
 
-    /// Формирует ContextMenuConfiguration и показывает ContextMenuViewController.
     private func showContextMenu(for message: ChatMessage, sourceView: UIView) {
         let config = ContextMenuConfiguration(
             id:         message.id,
@@ -151,31 +146,25 @@ private extension UILongPressGestureRecognizer {
 
 extension ChatViewController: ContextMenuDelegate {
 
-    /// Закрывает меню, восстанавливает клавиатуру и передаёт выбранный emoji делегату чата.
+    // ContextMenuViewController сам вызывает dismiss внутри close() перед тем как
+    // позвать делегата. К моменту вызова этих методов меню уже снято с экрана.
+    // Поэтому здесь только восстанавливаем inset и передаём событие выше.
+
     func contextMenu(_ menu: ContextMenuViewController, didSelectEmoji emoji: String, forId id: String) {
-        let restore = prepareRestoreCollectionBottomInset()
-        menu.presentingViewController?.dismiss(animated: false) { [weak self] in
-            restore()
-            guard let self, let msg = self.messageIndex[id] else { return }
-            self.delegate?.chatViewController(self, didSelectEmojiReaction: emoji, for: msg)
-        }
+        restoreCollectionBottomInset()
+        guard let msg = messageIndex[id] else { return }
+        delegate?.chatViewController(self, didSelectEmojiReaction: emoji, for: msg)
     }
 
-    /// Закрывает меню, восстанавливает клавиатуру и передаёт выбранное действие делегату чата.
     func contextMenu(_ menu: ContextMenuViewController, didSelectAction action: ContextMenuAction, forId id: String) {
-        let restore = prepareRestoreCollectionBottomInset()
-        menu.presentingViewController?.dismiss(animated: false) { [weak self] in
-            restore()
-            guard let self, let msg = self.messageIndex[id] else { return }
-            let mapped = MessageAction(id: action.id, title: action.title,
-                                       systemImage: action.systemImage, isDestructive: action.isDestructive)
-            self.delegate?.chatViewController(self, didSelectAction: mapped, for: msg)
-        }
+        restoreCollectionBottomInset()
+        guard let msg = messageIndex[id] else { return }
+        let mapped = MessageAction(id: action.id, title: action.title,
+                                   systemImage: action.systemImage, isDestructive: action.isDestructive)
+        delegate?.chatViewController(self, didSelectAction: mapped, for: msg)
     }
 
-    /// Закрывает меню без выбора и восстанавливает клавиатуру.
     func contextMenuDidDismiss(_ menu: ContextMenuViewController, id: String) {
-        let restore = prepareRestoreCollectionBottomInset()
-        menu.presentingViewController?.dismiss(animated: false) { restore() }
+        restoreCollectionBottomInset()
     }
 }
