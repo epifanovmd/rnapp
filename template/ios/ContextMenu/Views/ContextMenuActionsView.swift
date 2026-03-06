@@ -1,5 +1,3 @@
-// MARK: - ContextMenuActionsView.swift
-
 import UIKit
 
 // MARK: - ContextMenuActionsView
@@ -8,21 +6,24 @@ final class ContextMenuActionsView: UIView {
 
     var onActionTap: ((ContextMenuAction) -> Void)?
 
-    private let theme: ContextMenuTheme
+    private let theme:   ContextMenuTheme
     private var actions: [ContextMenuAction] = []
+
+    private static let separatorHeight: CGFloat = 0.5
+    private static let separatorTag    = 999
 
     init(theme: ContextMenuTheme) {
         self.theme = theme
         super.init(frame: .zero)
-        backgroundColor    = theme.menuBackground
-        layer.cornerRadius = theme.menuCornerRadius
-        layer.cornerCurve  = .continuous
+        backgroundColor     = theme.menuBackground
+        layer.cornerRadius  = theme.menuCornerRadius
+        layer.cornerCurve   = .continuous
         layer.masksToBounds = true
     }
+
     required init?(coder: NSCoder) { fatalError() }
 
-    // MARK: - Configure
-
+    /// Наполняет меню строками действий и разделителями.
     func configure(with actions: [ContextMenuAction]) {
         self.actions = actions
         subviews.forEach { $0.removeFromSuperview() }
@@ -35,43 +36,37 @@ final class ContextMenuActionsView: UIView {
             if index < actions.count - 1 {
                 let sep = UIView()
                 sep.backgroundColor = theme.menuSeparatorColor
-                sep.tag = 999
+                sep.tag = Self.separatorTag
                 addSubview(sep)
             }
         }
         setNeedsLayout()
     }
 
+    /// Возвращает высоту под заданный список действий.
+    func preferredHeight(for actions: [ContextMenuAction]) -> CGFloat {
+        CGFloat(actions.count) * theme.actionItemHeight
+            + CGFloat(max(0, actions.count - 1)) * Self.separatorHeight
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         guard !actions.isEmpty else { return }
 
-        let rowH = theme.actionItemHeight
-        let sepH: CGFloat = 0.5
+        let rows = subviews.compactMap { $0 as? ActionRowView }
+        let seps = subviews.filter { $0.tag == Self.separatorTag }
         var y: CGFloat = 0
 
-        var rowIdx = 0
-        var sepIdx = 0
-        let rows = subviews.filter { $0 is ActionRowView }
-        let seps = subviews.filter { $0.tag == 999 }
-
-        for (i, _) in actions.enumerated() {
-            if rowIdx < rows.count {
-                rows[rowIdx].frame = CGRect(x: 0, y: y, width: bounds.width, height: rowH)
-                rowIdx += 1
-                y += rowH
+        for i in actions.indices {
+            if i < rows.count {
+                rows[i].frame = CGRect(x: 0, y: y, width: bounds.width, height: theme.actionItemHeight)
+                y += theme.actionItemHeight
             }
-            if i < actions.count - 1, sepIdx < seps.count {
-                seps[sepIdx].frame = CGRect(x: 0, y: y, width: bounds.width, height: sepH)
-                sepIdx += 1
-                y += sepH
+            if i < actions.count - 1, i < seps.count {
+                seps[i].frame = CGRect(x: 0, y: y, width: bounds.width, height: Self.separatorHeight)
+                y += Self.separatorHeight
             }
         }
-    }
-
-    func preferredHeight(for actions: [ContextMenuAction]) -> CGFloat {
-        CGFloat(actions.count) * theme.actionItemHeight
-        + CGFloat(max(0, actions.count - 1)) * 0.5
     }
 }
 
@@ -81,93 +76,94 @@ private final class ActionRowView: UIView {
 
     var onTap: (() -> Void)?
 
-    private let highlightBg = UIView()
-    private var isHighlighted = false
+    private let highlightView = UIView()
+    private var highlighted   = false
 
     init(action: ContextMenuAction, theme: ContextMenuTheme) {
         super.init(frame: .zero)
+        setupHighlight(theme: theme)
+        setupContent(action: action, theme: theme)
+    }
 
-        highlightBg.backgroundColor = theme.actionHighlightColor
-        highlightBg.alpha = 0
-        highlightBg.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        addSubview(highlightBg)
+    required init?(coder: NSCoder) { fatalError() }
 
-        let titleLabel = UILabel()
-        titleLabel.text      = action.title
-        titleLabel.font      = theme.actionTitleFont
-        titleLabel.textColor = action.isDestructive
-            ? theme.actionDestructiveTitleColor
-            : theme.actionTitleColor
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(titleLabel)
+    // MARK: - Setup
 
-        let pad = theme.actionHorizontalPadding
+    private func setupHighlight(theme: ContextMenuTheme) {
+        highlightView.backgroundColor = theme.actionHighlightColor
+        highlightView.alpha           = 0
+        highlightView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        addSubview(highlightView)
+    }
 
-        if let sysImage = action.systemImage {
-            let config    = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
-            let iconView  = UIImageView(image: UIImage(systemName: sysImage, withConfiguration: config))
-            iconView.tintColor   = action.isDestructive ? theme.actionDestructiveIconColor : theme.actionIconColor
-            iconView.contentMode = .scaleAspectFit
-            iconView.translatesAutoresizingMaskIntoConstraints = false
-            addSubview(iconView)
+    private func setupContent(action: ContextMenuAction, theme: ContextMenuTheme) {
+        let titleColor = action.isDestructive ? theme.actionDestructiveTitleColor : theme.actionTitleColor
+        let iconColor  = action.isDestructive ? theme.actionDestructiveIconColor  : theme.actionIconColor
+        let pad        = theme.actionHorizontalPadding
+
+        let label = UILabel()
+        label.text      = action.title
+        label.font      = theme.actionTitleFont
+        label.textColor = titleColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(label)
+
+        if let imageName = action.systemImage {
+            let config   = UIImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+            let icon     = UIImageView(image: UIImage(systemName: imageName, withConfiguration: config))
+            icon.tintColor   = iconColor
+            icon.contentMode = .scaleAspectFit
+            icon.translatesAutoresizingMaskIntoConstraints = false
+            addSubview(icon)
 
             NSLayoutConstraint.activate([
-                iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-                iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pad),
-                iconView.widthAnchor.constraint(equalToConstant: 20),
-                iconView.heightAnchor.constraint(equalToConstant: 20),
-                titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-                titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 10),
-                titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -pad),
+                icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+                icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pad),
+                icon.widthAnchor.constraint(equalToConstant: 20),
+                icon.heightAnchor.constraint(equalToConstant: 20),
+                label.centerYAnchor.constraint(equalTo: centerYAnchor),
+                label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 10),
+                label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -pad),
             ])
         } else {
             NSLayoutConstraint.activate([
-                titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-                titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pad),
-                titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -pad),
+                label.centerYAnchor.constraint(equalTo: centerYAnchor),
+                label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: pad),
+                label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -pad),
             ])
         }
     }
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        highlightBg.frame = bounds
-    }
 
     // MARK: - Touch handling
-    // Используем UITouch напрямую — точно знаем когда палец ушёл за границы
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
-        setHighlight(true)
+        setHighlighted(true)
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesMoved(touches, with: event)
-        guard let touch = touches.first else { return }
-        let inside = bounds.contains(touch.location(in: self))
-        setHighlight(inside)
+        setHighlighted(touches.first.map { bounds.contains($0.location(in: self)) } ?? false)
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesEnded(touches, with: event)
-        guard let touch = touches.first else { setHighlight(false); return }
-        let inside = bounds.contains(touch.location(in: self))
-        setHighlight(false)
+        let inside = touches.first.map { bounds.contains($0.location(in: self)) } ?? false
+        setHighlighted(false)
         if inside { onTap?() }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesCancelled(touches, with: event)
-        setHighlight(false)
+        setHighlighted(false)
     }
 
-    private func setHighlight(_ on: Bool) {
-        guard isHighlighted != on else { return }
-        isHighlighted = on
+    /// Плавно включает или выключает подсветку строки.
+    private func setHighlighted(_ on: Bool) {
+        guard highlighted != on else { return }
+        highlighted = on
         UIView.animate(withDuration: on ? 0.08 : 0.18) {
-            self.highlightBg.alpha = on ? 1 : 0
+            self.highlightView.alpha = on ? 1 : 0
         }
     }
 }
