@@ -1,6 +1,6 @@
 // NativeChatViewSpec.ts
-// Codegen spec for React Native New Architecture (Fabric/TurboModule).
-// Единственная точка истины для контракта нативного компонента.
+// UPDATED: добавлены emojiReactions проп и onEmojiReactionSelect ивент
+// для кастомного контекстного меню.
 
 import React from "react";
 import type { HostComponent, ViewProps } from "react-native";
@@ -31,13 +31,10 @@ export type NativeChatReplyRef = {
 export type NativeChatMessage = {
   id: string;
   text?: string;
-  /** Одно изображение (упрощено от массива) */
   images?: NativeChatImageItem[];
-  /** Unix timestamp in milliseconds */
   timestamp: Double;
   senderName?: string;
   isMine?: boolean;
-  /** "sending" | "sent" | "delivered" | "read" */
   status?: string;
   replyTo?: NativeChatReplyRef;
   isEdited?: boolean;
@@ -51,7 +48,6 @@ export type NativeChatAction = {
 };
 
 export type NativeChatInputAction = {
-  /** "reply" | "edit" | "none" */
   type: string;
   messageId?: string;
 };
@@ -66,6 +62,10 @@ export type NativeChatActionPressEventData = {
   actionId: string;
   messageId: string;
 };
+export type NativeChatEmojiReactionSelectData = {
+  emoji: string;
+  messageId: string;
+}; // ← NEW
 export type NativeChatSendMessageEventData = {
   text: string;
   replyToId?: string;
@@ -74,10 +74,7 @@ export type NativeChatEditMessageEventData = {
   text: string;
   messageId: string;
 };
-export type NativeChatCancelInputActionEventData = {
-  type: string;
-};
-
+export type NativeChatCancelInputActionEventData = { type: string };
 export type NativeChatAttachmentPressEventData = {};
 export type NativeChatReplyMessagePressEventData = { messageId: string };
 
@@ -86,6 +83,10 @@ export type NativeChatReplyMessagePressEventData = { messageId: string };
 export interface NativeChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
   actions?: NativeChatAction[];
+
+  /** Список эмодзи для панели контекстного меню. Пример: ["❤️", "👍", "😂"] */
+  emojiReactions?: string[]; // ← NEW
+
   topThreshold?: WithDefault<Double, 200>;
   isLoading?: WithDefault<boolean, false>;
   inputAction?: NativeChatInputAction | null;
@@ -100,6 +101,7 @@ export interface NativeChatViewProps extends ViewProps {
   onMessagesVisible?: DirectEventHandler<NativeChatMessagesVisibleEventData>;
   onMessagePress?: DirectEventHandler<NativeChatMessagePressEventData>;
   onActionPress?: DirectEventHandler<NativeChatActionPressEventData>;
+  onEmojiReactionSelect?: DirectEventHandler<NativeChatEmojiReactionSelectData>; // ← NEW
   onSendMessage?: DirectEventHandler<NativeChatSendMessageEventData>;
   onEditMessage?: DirectEventHandler<NativeChatEditMessageEventData>;
   onCancelInputAction?: DirectEventHandler<NativeChatCancelInputActionEventData>;
@@ -116,7 +118,6 @@ export interface NativeChatViewCommands {
   scrollToMessage(
     viewRef: React.ComponentRef<HostComponent<NativeChatViewProps>>,
     messageId: string,
-    /** "top" | "center" | "bottom" */
     position: string,
     animated: boolean,
     highlight: boolean,

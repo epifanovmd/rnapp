@@ -1,0 +1,162 @@
+// ContextMenuView.tsx
+// Публичный React Native wrapper для кастомного контекстного меню.
+// Использует long-press на любом дочернем View для показа меню с
+// emoji-панелью и списком действий.
+//
+// Пример использования:
+//   <ContextMenuView
+//     menuId={message.id}
+//     emojis={["❤️", "👍", "😂", "😮", "😢", "🙏"].map(e => ({ emoji: e }))}
+//     actions={[
+//       { id: "reply",  title: "Reply",  systemImage: "arrowshape.turn.up.left" },
+//       { id: "copy",   title: "Copy",   systemImage: "doc.on.doc" },
+//       { id: "delete", title: "Delete", isDestructive: true },
+//     ]}
+//     menuTheme="light"
+//     onEmojiSelect={({ emoji, menuId }) => handleEmojiReaction(menuId, emoji)}
+//     onActionSelect={({ actionId, menuId }) => handleAction(menuId, actionId)}
+//   >
+//     <MessageBubble message={message} />
+//   </ContextMenuView>
+
+import React from "react";
+import {
+  type HostComponent,
+  type NativeSyntheticEvent,
+  Platform,
+  requireNativeComponent,
+  type ViewProps,
+  type ViewStyle,
+} from "react-native";
+
+import type {
+  NativeContextMenuAction,
+  NativeContextMenuActionSelectData,
+  NativeContextMenuDismissData,
+  NativeContextMenuEmoji,
+  NativeContextMenuEmojiSelectData,
+  NativeContextMenuViewProps,
+  NativeContextMenuWillShowData,
+} from "../../../NativeContextMenuViewSpec";
+
+// ─── Public types ─────────────────────────────────────────────────────────────
+
+export type ContextMenuEmoji = NativeContextMenuEmoji;
+export type ContextMenuAction = NativeContextMenuAction;
+
+export type ContextMenuEmojiSelectEvent = NativeContextMenuEmojiSelectData;
+export type ContextMenuActionSelectEvent = NativeContextMenuActionSelectData;
+export type ContextMenuDismissEvent = NativeContextMenuDismissData;
+export type ContextMenuWillShowEvent = NativeContextMenuWillShowData;
+
+export type ContextMenuTheme = "light" | "dark";
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+export interface ContextMenuViewProps extends ViewProps {
+  /** Уникальный идентификатор — прокидывается в колбэки как menuId */
+  menuId?: string;
+
+  /** Список эмодзи для панели над сообщением */
+  emojis?: ContextMenuEmoji[];
+
+  /** Список действий в нижнем меню */
+  actions?: ContextMenuAction[];
+
+  /** Тема контекстного меню */
+  menuTheme?: ContextMenuTheme;
+
+  /** Минимальное время нажатия для активации (сек, default: 0.35) */
+  minimumPressDuration?: number;
+
+  style?: ViewStyle;
+  children?: React.ReactNode;
+
+  /** Вызывается при выборе эмодзи */
+  onEmojiSelect?: (event: ContextMenuEmojiSelectEvent) => void;
+
+  /** Вызывается при выборе действия */
+  onActionSelect?: (event: ContextMenuActionSelectEvent) => void;
+
+  /** Вызывается при закрытии меню (без выбора) */
+  onDismiss?: (event: ContextMenuDismissEvent) => void;
+
+  /** Вызывается перед показом меню */
+  onWillShow?: (event: ContextMenuWillShowEvent) => void;
+}
+
+// ─── Native component ─────────────────────────────────────────────────────────
+
+const COMPONENT_NAME = "RNContextMenuView";
+
+const NativeContextMenuView = (() => {
+  try {
+    const Spec = require("./NativeContextMenuViewSpec").default;
+
+    return Spec as HostComponent<NativeContextMenuViewProps>;
+  } catch {
+    return requireNativeComponent<NativeContextMenuViewProps>(COMPONENT_NAME);
+  }
+})();
+
+// ─── ContextMenuView ──────────────────────────────────────────────────────────
+
+export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
+  menuId = "",
+  emojis = [],
+  actions = [],
+  menuTheme = "light",
+  minimumPressDuration = 0.35,
+  style,
+  children,
+  onEmojiSelect,
+  onActionSelect,
+  onDismiss,
+  onWillShow,
+  ...rest
+}) => {
+  if (Platform.OS !== "ios") {
+    // Android: просто рендерим детей без меню (заглушка)
+    const { View } = require("react-native");
+
+    return (
+      <View style={style} {...rest}>
+        {children}
+      </View>
+    );
+  }
+
+  const handleEmojiSelect = (
+    e: NativeSyntheticEvent<ContextMenuEmojiSelectEvent>,
+  ) => onEmojiSelect?.(e.nativeEvent);
+
+  const handleActionSelect = (
+    e: NativeSyntheticEvent<ContextMenuActionSelectEvent>,
+  ) => onActionSelect?.(e.nativeEvent);
+
+  const handleDismiss = (e: NativeSyntheticEvent<ContextMenuDismissEvent>) =>
+    onDismiss?.(e.nativeEvent);
+
+  const handleWillShow = (e: NativeSyntheticEvent<ContextMenuWillShowEvent>) =>
+    onWillShow?.(e.nativeEvent);
+
+  return (
+    <NativeContextMenuView
+      style={style}
+      menuId={menuId}
+      emojis={emojis}
+      actions={actions}
+      menuTheme={menuTheme}
+      minimumPressDuration={minimumPressDuration}
+      onEmojiSelect={handleEmojiSelect}
+      onActionSelect={handleActionSelect}
+      onDismiss={handleDismiss}
+      onWillShow={handleWillShow}
+      {...rest}
+    >
+      {children}
+    </NativeContextMenuView>
+  );
+};
+
+export default ContextMenuView;

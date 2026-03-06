@@ -1,31 +1,16 @@
 // MARK: - RNChatView.swift
-// React Native bridge view — прослойка между JS и ChatViewController.
-//
-// Ключевое архитектурное решение: единый проп `inputAction` вместо
-// двух отдельных `replyMessage` + `editMessage`.
-//
-// Почему это важно:
-//   • Два пропа → два didSet → два вызова в одном runloop-цикле → race condition.
-//   • Один проп → один didSet → один вызов → race condition физически невозможен.
-//
-// JS передаёт только { type, messageId }. Нативная сторона сама достаёт
-// актуальные данные сообщения из messageIndex ChatViewController'а.
-// Это гарантирует что InputBar всегда показывает свежий текст —
-// даже если оригинал редактировали после нажатия Reply.
+// UPDATED: добавлен проп emojiReactions и колбэк onEmojiReactionSelect
+// для кастомного контекстного меню.
 
 import UIKit
 import React
 
 // MARK: - ChatInputAction
 
-/// Доменная модель действия InputBar на нативной стороне.
-/// Парсится из NSDictionary один раз в didSet.
 enum ChatInputAction {
     case reply(messageId: String)
     case edit(messageId: String)
     case none
-
-    // MARK: Parsing
 
     init(dict: [String: Any]?) {
         guard
@@ -51,16 +36,17 @@ enum ChatInputAction {
 
     // MARK: - Events
 
-    @objc var onScroll:            RCTDirectEventBlock?
-    @objc var onReachTop:          RCTDirectEventBlock?
-    @objc var onMessagesVisible:   RCTDirectEventBlock?
-    @objc var onMessagePress:      RCTDirectEventBlock?
-    @objc var onActionPress:       RCTDirectEventBlock?
-    @objc var onSendMessage:       RCTDirectEventBlock?
-    @objc var onEditMessage:       RCTDirectEventBlock?
-    @objc var onCancelInputAction: RCTDirectEventBlock?
-    @objc var onAttachmentPress:   RCTDirectEventBlock?
-    @objc var onReplyMessagePress: RCTDirectEventBlock?
+    @objc var onScroll:               RCTDirectEventBlock?
+    @objc var onReachTop:             RCTDirectEventBlock?
+    @objc var onMessagesVisible:      RCTDirectEventBlock?
+    @objc var onMessagePress:         RCTDirectEventBlock?
+    @objc var onActionPress:          RCTDirectEventBlock?
+    @objc var onEmojiReactionSelect:  RCTDirectEventBlock?   // ← NEW
+    @objc var onSendMessage:          RCTDirectEventBlock?
+    @objc var onEditMessage:          RCTDirectEventBlock?
+    @objc var onCancelInputAction:    RCTDirectEventBlock?
+    @objc var onAttachmentPress:      RCTDirectEventBlock?
+    @objc var onReplyMessagePress:    RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -70,6 +56,12 @@ enum ChatInputAction {
 
     @objc var actions: NSArray = [] {
         didSet { updateActions() }
+    }
+
+    /// Список эмодзи для панели контекстного меню.
+    /// Формат: ["❤️", "👍", "😂", "😮", "😢", "🙏"]
+    @objc var emojiReactions: NSArray = [] {
+        didSet { updateEmojiReactions() }
     }
 
     @objc var topThreshold: NSNumber = 200 {
@@ -83,12 +75,6 @@ enum ChatInputAction {
         }
     }
 
-    /// Единый проп управления режимом InputBar.
-    ///
-    /// Ожидаемый формат:
-    ///   { "type": "reply" | "edit" | "none", "messageId": String }
-    ///
-    /// Один didSet → один вызов applyInputAction → нет race condition.
     @objc var inputAction: NSDictionary? {
         didSet { applyInputAction() }
     }
@@ -199,13 +185,11 @@ enum ChatInputAction {
         vc.actions = (actions as? [[String: Any]] ?? []).compactMap { MessageAction.from(dict: $0) }
     }
 
-    /// Единственная точка применения режима InputBar.
-    ///
-    /// Вызывается только из `didSet inputAction` — всегда на main thread,
-    /// всегда одним вызовом, никакой асинхронности.
-    ///
-    /// Данные сообщения берём из живого messageIndex — InputBar всегда
-    /// показывает актуальный текст, даже если оригинал редактировали.
+    private func updateEmojiReactions() {
+        guard let vc = chatVC else { return }
+        vc.emojiReactionsList = (emojiReactions as? [String] ?? [])
+    }
+
     private func applyInputAction() {
         guard let vc = chatVC else { return }
 
@@ -288,6 +272,11 @@ extension RNChatView: ChatViewControllerDelegate {
     func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction,
                             for message: ChatMessage) {
         onActionPress?(["actionId": action.id, "messageId": message.id])
+    }
+
+    func chatViewController(_ vc: ChatViewController, didSelectEmojiReaction emoji: String,
+                            for message: ChatMessage) {
+        onEmojiReactionSelect?(["emoji": emoji, "messageId": message.id])
     }
 
     func chatViewController(_ vc: ChatViewController, didSendMessage text: String,

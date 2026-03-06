@@ -553,6 +553,7 @@ const ChatScreen: React.FC = () => {
         style={styles.chat}
         messages={messages}
         actions={CHAT_ACTIONS}
+        emojiReactions={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
         topThreshold={200}
         scrollToBottomThreshold={150}
         collectionInsetTop={32}

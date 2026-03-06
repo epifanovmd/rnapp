@@ -1,3 +1,7 @@
+// MARK: - Chatviewcontroller_collectiondelegate.swift
+// UPDATED: Нативное UIContextMenu заменено на ContextMenuViewController.
+// При открытии меню — скрывается клавиатура с сохранением отступа коллекции.
+
 import UIKit
 
 // MARK: - UICollectionViewDelegate
@@ -9,48 +13,13 @@ extension ChatViewController: UICollectionViewDelegate {
         delegate?.chatViewController(self, didTapMessage: msg)
     }
 
-    func collectionView(
-        _ cv: UICollectionView,
-        contextMenuConfigurationForItemAt ip: IndexPath,
-        point: CGPoint
-    ) -> UIContextMenuConfiguration? {
-        guard !actions.isEmpty,
-              let id  = dataSource.itemIdentifier(for: ip),
-              let msg = messageIndex[id] else { return nil }
+    // MARK: - Long press → кастомное контекстное меню
 
-        return UIContextMenuConfiguration(
-            identifier: NSString(string: id),
-            previewProvider: { [weak self] in
-                guard let self,
-                      let ip   = indexPath(forMessageID: msg.id),
-                      let cell = cv.cellForItem(at: ip) as? MessageCell else { return nil }
-                return cell.makeBubblePreviewController()
-            },
-            actionProvider: { [weak self] _ in self?.makeContextMenu(for: msg) }
-        )
-    }
+    // Нативные методы UIContextMenu убраны — теперь используем ContextMenuViewController.
+    // Long press добавляется через setupLongPressGesture() в ChatViewController+ContextMenu.
+    // (см. ниже в этом же файле)
 
-    func collectionView(
-        _ cv: UICollectionView,
-        willPerformPreviewActionForMenuWith config: UIContextMenuConfiguration,
-        animator: UIContextMenuInteractionCommitAnimating
-    ) {
-        animator.preferredCommitStyle = .dismiss
-    }
-
-    func collectionView(
-        _ cv: UICollectionView,
-        previewForHighlightingContextMenuWithConfiguration config: UIContextMenuConfiguration
-    ) -> UITargetedPreview? {
-        targetedPreview(for: config, in: cv)
-    }
-
-    func collectionView(
-        _ cv: UICollectionView,
-        previewForDismissingContextMenuWithConfiguration config: UIContextMenuConfiguration
-    ) -> UITargetedPreview? {
-        targetedPreview(for: config, in: cv)
-    }
+    // MARK: - willDisplay / Scroll
 
     func collectionView(
         _ cv: UICollectionView,
@@ -63,8 +32,6 @@ extension ChatViewController: UICollectionViewDelegate {
               visibleMessageIDs.insert(id).inserted else { return }
         scheduleVisibilityFlush(id: id)
     }
-
-    // MARK: Scroll
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         isUserDragging = true
@@ -136,31 +103,6 @@ extension ChatViewController: UICollectionViewDelegateFlowLayout {
     ) -> UIEdgeInsets { .zero }
 }
 
-// MARK: - Context menu
-
-private extension ChatViewController {
-
-    func makeContextMenu(for message: ChatMessage) -> UIMenu {
-        UIMenu(title: "", children: actions.map { action in
-            UIAction(
-                title: action.title,
-                image: action.systemImage.flatMap { UIImage(systemName: $0) },
-                attributes: action.isDestructive ? .destructive : []
-            ) { [weak self] _ in
-                guard let self else { return }
-                delegate?.chatViewController(self, didSelectAction: action, for: message)
-            }
-        })
-    }
-
-    func targetedPreview(for config: UIContextMenuConfiguration, in cv: UICollectionView) -> UITargetedPreview? {
-        guard let id   = config.identifier as? String,
-              let ip   = indexPath(forMessageID: id),
-              let cell = cv.cellForItem(at: ip) as? MessageCell else { return nil }
-        return cell.makeTargetedPreview()
-    }
-}
-
 // MARK: - Flow layout
 
 extension ChatViewController {
@@ -172,5 +114,106 @@ extension ChatViewController {
         layout.minimumInteritemSpacing          = 0
         layout.sectionHeadersPinToVisibleBounds = true
         return layout
+    }
+}
+
+// MARK: - ChatViewController+ContextMenu
+
+extension ChatViewController {
+
+    // MARK: Setup
+
+    /// Вызывать из viewDidLoad после setupCollectionView().
+    func setupLongPressGesture() {
+        let lpgr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        lpgr.minimumPressDuration = 0.35
+        lpgr.cancelsTouchesInView = false
+        collectionView.addGestureRecognizer(lpgr)
+    }
+
+    // MARK: Long press handler
+
+    @objc func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+        guard gr.state == .began else { return }
+
+        let point = gr.location(in: collectionView)
+        guard
+            let ip   = collectionView.indexPathForItem(at: point),
+            let id   = dataSource.itemIdentifier(for: ip),
+            let msg  = messageIndex[id],
+            let cell = collectionView.cellForItem(at: ip) as? MessageCell,
+            !actions.isEmpty
+        else { return }
+
+        // Haptic
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+        // Запоминаем отступ коллекции ПЕРЕД скрытием клавиатуры
+        freezeCollectionBottomInset()
+
+        // Скрываем клавиатуру без анимации (чтобы отступ остался)
+        inputBar.textView.resignFirstResponder()
+
+        // Небольшая задержка — дать resignFirstResponder отработать
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+            guard let self else { return }
+            self.presentCustomContextMenu(for: msg, sourceView: cell.bubbleSnapshotView)
+        }
+    }
+
+    // MARK: Present menu
+
+    private func presentCustomContextMenu(for message: ChatMessage, sourceView: UIView) {
+        let emojis  = contextMenuEmojis
+        let menuActions = actions.map { a in
+            ContextMenuAction(
+                id:            a.id,
+                title:         a.title,
+                systemImage:   a.systemImage,
+                isDestructive: a.isDestructive
+            )
+        }
+
+        let config = ContextMenuConfiguration(
+            id:         message.id,
+            sourceView: sourceView,
+            emojis:     emojis,
+            actions:    menuActions
+        )
+
+        let menuTheme: ContextMenuTheme = theme.isDark ? .dark : .light
+
+        let menuVC = ContextMenuViewController(configuration: config, theme: menuTheme)
+        menuVC.delegate = self
+        menuVC.modalPresentationStyle = .overFullScreen
+        menuVC.modalTransitionStyle   = .crossDissolve
+        present(menuVC, animated: false)
+    }
+}
+
+// MARK: - ContextMenuDelegate
+
+extension ChatViewController: ContextMenuDelegate {
+
+    func contextMenu(_ menu: ContextMenuViewController, didSelectEmoji emoji: String, forId id: String) {
+        restoreCollectionBottomInset()
+        guard let msg = messageIndex[id] else { return }
+        delegate?.chatViewController(self, didSelectEmojiReaction: emoji, for: msg)
+    }
+
+    func contextMenu(_ menu: ContextMenuViewController, didSelectAction action: ContextMenuAction, forId id: String) {
+        restoreCollectionBottomInset()
+        guard let msg = messageIndex[id] else { return }
+        let msgAction = MessageAction(
+            id:            action.id,
+            title:         action.title,
+            systemImage:   action.systemImage,
+            isDestructive: action.isDestructive
+        )
+        delegate?.chatViewController(self, didSelectAction: msgAction, for: msg)
+    }
+
+    func contextMenuDidDismiss(_ menu: ContextMenuViewController, id: String) {
+        restoreCollectionBottomInset()
     }
 }

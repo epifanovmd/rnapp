@@ -69,6 +69,12 @@ struct ChatTheme {
     // MARK: Background
 
     let collectionViewBackground: UIColor
+
+    // MARK: Theme identity
+
+    /// Признак тёмной темы — используется для выбора темы дочерних компонентов
+    /// (например, ContextMenuTheme). Позволяет избежать Equatable на UIColor.
+    let isDark: Bool
 }
 
 // MARK: - Built-in themes
@@ -120,10 +126,9 @@ extension ChatTheme {
 
         emptyStateText:           .secondaryLabel,
 
-        collectionViewBackground: .clear
+        collectionViewBackground: .clear,
+        isDark: false
     )
-
-    /// Тёмная тема.
     static let dark = ChatTheme(
         outgoingBubbleColor:      UIColor(red: 0.14, green: 0.45, blue: 0.80, alpha: 1),
         outgoingTextColor:        .white,
@@ -168,6 +173,7 @@ extension ChatTheme {
 
         emptyStateText:           UIColor(white: 0.50, alpha: 1),
 
-        collectionViewBackground: .clear
+        collectionViewBackground: .clear,
+        isDark: true
     )
 }

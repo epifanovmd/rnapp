@@ -1,7 +1,6 @@
 // ChatView.tsx
-// Public-facing React Native wrapper для нативного RNChatView.
-// Типы реэкспортируются из codegen spec — единственная точка истины.
-// Поддерживает Old Architecture (requireNativeComponent) и New Architecture (Fabric).
+// UPDATED: добавлены emojiReactions проп и onEmojiReactionSelect колбэк
+// для кастомного контекстного меню.
 
 import React, {
   forwardRef,
@@ -28,6 +27,7 @@ import {
   NativeChatAttachmentPressEventData as ChatAttachmentPressEventData,
   NativeChatCancelInputActionEventData as ChatCancelInputActionEventData,
   NativeChatEditMessageEventData as ChatEditMessageEventData,
+  NativeChatEmojiReactionSelectData as ChatEmojiReactionSelectData,
   NativeChatImageItem as ChatImageItem,
   NativeChatInputAction,
   NativeChatMessage,
@@ -72,6 +72,7 @@ export type {
   ChatAttachmentPressEventData,
   ChatCancelInputActionEventData,
   ChatEditMessageEventData,
+  ChatEmojiReactionSelectData,
   ChatImageItem,
   ChatInputAction,
   ChatInputActionType,
@@ -107,6 +108,14 @@ export interface ChatView {
 export interface ChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
   actions?: ChatAction[];
+
+  /**
+   * Список эмодзи для панели контекстного меню.
+   * При долгом нажатии на сообщение отображается emoji-панель с этими эмодзи.
+   * Пример: ["❤️", "👍", "😂", "😮", "😢", "🙏"]
+   */
+  emojiReactions?: string[];
+
   inputAction?: ChatInputAction | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: number;
@@ -122,6 +131,13 @@ export interface ChatViewProps extends ViewProps {
   onMessagesVisible?: (event: ChatMessagesVisibleEventData) => void;
   onMessagePress?: (event: ChatMessagePressEventData) => void;
   onActionPress?: (event: ChatActionPressEventData) => void;
+
+  /**
+   * Вызывается при выборе эмодзи в контекстном меню.
+   * event.emoji — выбранный эмодзи, event.messageId — id сообщения.
+   */
+  onEmojiReactionSelect?: (event: ChatEmojiReactionSelectData) => void;
+
   onSendMessage?: (event: ChatSendMessageEventData) => void;
   onEditMessage?: (event: ChatEditMessageEventData) => void;
   onCancelInputAction?: (event: ChatCancelInputActionEventData) => void;
@@ -162,7 +178,6 @@ function dispatchCommand(
   } catch {
     /* fall through */
   }
-
   const node = findNodeHandle(nativeRef.current);
 
   if (node) {
@@ -180,6 +195,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
   const {
     messages,
     actions = [],
+    emojiReactions = [],
     inputAction,
     initialScrollId,
     scrollToBottomThreshold = 150,
@@ -194,6 +210,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onMessagesVisible,
     onMessagePress,
     onActionPress,
+    onEmojiReactionSelect,
     onSendMessage,
     onEditMessage,
     onCancelInputAction,
@@ -255,6 +272,11 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onActionPress?.(e.nativeEvent),
     [onActionPress],
   );
+  const handleEmojiReactionSelect = useCallback(
+    (e: NativeSyntheticEvent<ChatEmojiReactionSelectData>) =>
+      onEmojiReactionSelect?.(e.nativeEvent),
+    [onEmojiReactionSelect],
+  );
   const handleSendMessage = useCallback(
     (e: NativeSyntheticEvent<ChatSendMessageEventData>) =>
       onSendMessage?.(e.nativeEvent),
@@ -285,7 +307,6 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     return <View style={[styles.unsupported, style]} />;
   }
 
-  // null → { type: "none" } чтобы нативная сторона всегда получала словарь
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
     type: "none",
   };
@@ -296,6 +317,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       style={[styles.fill, style]}
       messages={messages}
       actions={actions}
+      emojiReactions={emojiReactions}
       inputAction={nativeInputAction}
       initialScrollId={initialScrollId}
       scrollToBottomThreshold={scrollToBottomThreshold}
@@ -309,6 +331,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onMessagesVisible={handleMessagesVisible}
       onMessagePress={handleMessagePress}
       onActionPress={handleActionPress}
+      onEmojiReactionSelect={handleEmojiReactionSelect}
       onSendMessage={handleSendMessage}
       onEditMessage={handleEditMessage}
       onCancelInputAction={handleCancelInputAction}

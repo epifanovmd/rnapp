@@ -1,3 +1,7 @@
+// MARK: - ChatViewController.swift
+// UPDATED: убрано нативное UIContextMenu, добавлено кастомное через long press.
+// Новые публичные свойства: emojiReactions (для emoji-панели контекстного меню).
+
 import UIKit
 
 final class ChatViewController: UIViewController {
@@ -10,6 +14,14 @@ final class ChatViewController: UIViewController {
     var isLoading: Bool = false { didSet { updateLoadingState() } }
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
     var theme: ChatTheme = .light { didSet { applyTheme() } }
+
+    /// Список эмодзи для emoji-панели контекстного меню.
+    /// Формат: ["❤️", "👍", "😂", "😮", "😢", "🙏"]
+    var emojiReactionsList: [String] = [] {
+        didSet {
+            contextMenuEmojis = emojiReactionsList.map { ContextMenuEmoji(emoji: $0) }
+        }
+    }
 
     /// Дополнительный верхний отступ коллекции, задаётся из RN.
     var collectionExtraInsetTop: CGFloat = 0 {
@@ -104,7 +116,6 @@ final class ChatViewController: UIViewController {
     var lastScrollEventTime: CFTimeInterval = 0
     let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
 
-    /// true пока палец на экране — UIKit сам управляет offset при интерактивном dismiss клавиатуры.
     var isUserDragging = false
 
     // MARK: - Private — дебаунс видимости
@@ -123,6 +134,7 @@ final class ChatViewController: UIViewController {
         setupInputBar()
         setupFAB()
         setupDataSource()
+        setupLongPressGesture()  // ← кастомное контекстное меню
         applyTheme()
     }
 
@@ -168,7 +180,6 @@ final class ChatViewController: UIViewController {
         collectionView.backgroundColor             = .clear
         collectionView.keyboardDismissMode         = .interactive
         collectionView.contentInset                = UIEdgeInsets(top: ChatLayoutConstants.collectionTopPadding, left: 0, bottom: 0, right: 0)
-        // .never: управляем contentInset.bottom сами, иначе UIKit двойной учёт safe area даёт лишний зазор.
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.register(MessageCell.self, forCellWithReuseIdentifier: MessageCell.reuseID)
@@ -274,7 +285,6 @@ final class ChatViewController: UIViewController {
 
     @objc private func dismissKeyboard() { view.endEditing(true) }
 
-    /// Инвалидирует кэш размеров и layout при изменении ширины коллекции (поворот, сплит-экран).
     private func invalidateSizeCacheIfWidthChanged() {
         let w = collectionView.bounds.width
         guard w > 0, w != sizeCache.layoutWidth else { return }

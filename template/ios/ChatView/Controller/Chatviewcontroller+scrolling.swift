@@ -7,6 +7,8 @@ extension ChatViewController {
     /// Синхронизирует contentInset.bottom с текущей позицией inputBar.
     /// Вызывается в viewDidLayoutSubviews — т.е. в каждом кадре анимации клавиатуры.
     func updateCollectionBottomInset() {
+        // Не трогаем inset пока контекстное меню держит его замороженным
+        guard !isInsetFrozen else { return }
         guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
         let inputBarZone = view.bounds.height - inputBar.frame.minY
