@@ -1,6 +1,4 @@
 // MARK: - ChatViewController.swift
-// UPDATED: убрано нативное UIContextMenu, добавлено кастомное через long press.
-// Новые публичные свойства: emojiReactions (для emoji-панели контекстного меню).
 
 import UIKit
 
@@ -18,9 +16,7 @@ final class ChatViewController: UIViewController {
     /// Список эмодзи для emoji-панели контекстного меню.
     /// Формат: ["❤️", "👍", "😂", "😮", "😢", "🙏"]
     var emojiReactionsList: [String] = [] {
-        didSet {
-            contextMenuEmojis = emojiReactionsList.map { ContextMenuEmoji(emoji: $0) }
-        }
+        didSet { contextMenuEmojis = emojiReactionsList.map { ContextMenuEmoji(emoji: $0) } }
     }
 
     /// Дополнительный верхний отступ коллекции, задаётся из RN.
@@ -56,6 +52,28 @@ final class ChatViewController: UIViewController {
     var inputBar: InputBarView!
     let sizeCache = MessageSizeCache()
 
+    // MARK: - Internal — контекстное меню
+
+    /// Эмодзи для панели контекстного меню, производное от emojiReactionsList.
+    var contextMenuEmojis: [ContextMenuEmoji] = []
+
+    // MARK: - Internal — keyboard freeze (управляется из ChatViewController_KeyboardFreeze)
+
+    /// Замороженное значение contentInset.bottom на момент открытия контекстного меню.
+    var frozenBottomInset: CGFloat?
+
+    /// true пока контекстное меню открыто и inset заморожен.
+    var isInsetFrozen: Bool = false
+
+    /// true если клавиатура была видна в момент открытия контекстного меню.
+    var keyboardWasVisible: Bool = false
+
+    /// Observer нотификации keyboardWillHide, активен пока меню открыто.
+    var kbHideObserver: Any?
+
+    /// Observer нотификации keyboardDidShow, активен пока ждём возврата клавиатуры.
+    var kbShowObserver: Any?
+
     // MARK: - Private — пустое состояние
 
     private let emptyStateContainer = UIView()
@@ -79,13 +97,13 @@ final class ChatViewController: UIViewController {
 
     let fabButton: UIButton = {
         let button = UIButton(type: .custom)
-        button.backgroundColor       = .clear
-        button.alpha                 = 0
+        button.backgroundColor          = .clear
+        button.alpha                    = 0
         button.isUserInteractionEnabled = false
-        button.layer.shadowColor     = UIColor.black.cgColor
-        button.layer.shadowOpacity   = 0.18
-        button.layer.shadowRadius    = 8
-        button.layer.shadowOffset    = CGSize(width: 0, height: 2)
+        button.layer.shadowColor        = UIColor.black.cgColor
+        button.layer.shadowOpacity      = 0.18
+        button.layer.shadowRadius       = 8
+        button.layer.shadowOffset       = CGSize(width: 0, height: 2)
         return button
     }()
 
@@ -176,9 +194,9 @@ final class ChatViewController: UIViewController {
 
     private func setupCollectionView() {
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: makeFlowLayout())
-        collectionView.backgroundColor             = .clear
-        collectionView.keyboardDismissMode         = .interactive
-        collectionView.contentInset                = UIEdgeInsets(top: ChatLayoutConstants.collectionTopPadding, left: 0, bottom: 0, right: 0)
+        collectionView.backgroundColor                = .clear
+        collectionView.keyboardDismissMode            = .interactive
+        collectionView.contentInset                   = UIEdgeInsets(top: ChatLayoutConstants.collectionTopPadding, left: 0, bottom: 0, right: 0)
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.register(MessageCell.self, forCellWithReuseIdentifier: MessageCell.reuseID)

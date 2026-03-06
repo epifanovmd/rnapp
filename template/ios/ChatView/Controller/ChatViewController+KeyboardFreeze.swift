@@ -1,55 +1,15 @@
 // MARK: - ChatViewController+KeyboardFreeze.swift
 //
-// Задача: при открытии контекстного меню клавиатура скрывается,
-// при закрытии — возвращается. Коллекция должна оставаться неподвижной.
-//
-// ПОТОК:
-//   1. handleBubbleLongPress:
-//        freezeCollectionBottomInset()   ← isInsetFrozen = true СИНХРОННО
-//        resignFirstResponder()          ← UIKit кидает WillHide, observer держит inset
-//        present(menuVC)
-//
-//   2. ContextMenuDelegate callback (меню уже снято с экрана к этому моменту):
-//        restoreCollectionBottomInset()
-//        → если клавиатура была открыта: becomeFirstResponder → ждём keyboardDidShow → thaw()
-//        → если клавиатуры не было:      thaw() сразу
+// Логика заморозки/разморозки bottomInset коллекции на время показа контекстного меню.
 
 import UIKit
 
-private var frozenInsetKey:    UInt8 = 0
-private var isFrozenKey:       UInt8 = 1
-private var kbHideObserverKey: UInt8 = 2
-private var kbShowObserverKey: UInt8 = 3
-private var kbWasVisibleKey:   UInt8 = 4
-private var emojiReactionsKey: UInt8 = 5
-
 extension ChatViewController {
 
-    // MARK: - Stored properties
-
-    var frozenBottomInset: CGFloat? {
-        get { objc_getAssociatedObject(self, &frozenInsetKey) as? CGFloat }
-        set { objc_setAssociatedObject(self, &frozenInsetKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-
-    var isInsetFrozen: Bool {
-        get { objc_getAssociatedObject(self, &isFrozenKey) as? Bool ?? false }
-        set { objc_setAssociatedObject(self, &isFrozenKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-
-    var keyboardWasVisible: Bool {
-        get { objc_getAssociatedObject(self, &kbWasVisibleKey) as? Bool ?? false }
-        set { objc_setAssociatedObject(self, &kbWasVisibleKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-
-    var contextMenuEmojis: [ContextMenuEmoji] {
-        get { objc_getAssociatedObject(self, &emojiReactionsKey) as? [ContextMenuEmoji] ?? [] }
-        set { objc_setAssociatedObject(self, &emojiReactionsKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
-    }
-
     // MARK: - Freeze
-    // Вызывать СИНХРОННО и ПЕРВЫМ, до resignFirstResponder.
 
+    /// Фиксирует текущий bottomInset и подписывается на WillHide.
+    /// Вызывать СИНХРОННО до resignFirstResponder.
     func freezeCollectionBottomInset() {
         guard !isInsetFrozen else { return }
 
@@ -57,13 +17,12 @@ extension ChatViewController {
         isInsetFrozen      = true
         frozenBottomInset  = collectionView.contentInset.bottom
 
-        let token = NotificationCenter.default.addObserver(
+        kbHideObserver = NotificationCenter.default.addObserver(
             forName: UIResponder.keyboardWillHideNotification,
             object: nil, queue: .main
         ) { [weak self] note in
             self?.handleKeyboardWillHide(note)
         }
-        objc_setAssociatedObject(self, &kbHideObserverKey, token, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
 
     // MARK: - WillHide intercept
@@ -81,11 +40,9 @@ extension ChatViewController {
     }
 
     // MARK: - Restore
-    //
-    // Вызывается из ContextMenuDelegate-методов ПОСЛЕ того как меню уже снято с экрана
-    // (ContextMenuViewController сам вызывает dismiss внутри close()).
-    // becomeFirstResponder() безопасен — presented VC больше не блокирует фокус.
 
+    /// Восстанавливает нормальное поведение inset после закрытия контекстного меню.
+    /// Вызывать из ContextMenuDelegate-методов — к этому моменту меню уже снято с экрана.
     func restoreCollectionBottomInset() {
         removeKbHideObserver()
 
@@ -95,25 +52,22 @@ extension ChatViewController {
         guard isInsetFrozen else { return }
 
         if wasVisible {
-            // Клавиатура была открыта — возвращаем фокус и ждём keyboardDidShow для thaw.
-            let token = NotificationCenter.default.addObserver(
+            // Клавиатура была открыта — возвращаем фокус и размораживаем после её появления.
+            kbShowObserver = NotificationCenter.default.addObserver(
                 forName: UIResponder.keyboardDidShowNotification,
                 object: nil, queue: .main
             ) { [weak self] _ in
-                guard let self else { return }
-                self.removeKbShowObserver()
-                self.thaw()
+                self?.removeKbShowObserver()
+                self?.thaw()
             }
-            objc_setAssociatedObject(self, &kbShowObserverKey, token, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
             inputBar.textView.becomeFirstResponder()
         } else {
-            // Клавиатуры не было — размораживаем сразу, inset должен вернуться
-            // к нормальному (без клавиатуры) значению через updateCollectionBottomInset.
+            // Клавиатуры не было — размораживаем сразу.
             thaw()
         }
     }
 
-    // MARK: - Private helpers
+    // MARK: - Thaw
 
     func thaw() {
         isInsetFrozen     = false
@@ -121,17 +75,17 @@ extension ChatViewController {
         updateCollectionBottomInset()
     }
 
+    // MARK: - Observer cleanup
+
     private func removeKbHideObserver() {
-        if let token = objc_getAssociatedObject(self, &kbHideObserverKey) {
-            NotificationCenter.default.removeObserver(token)
-            objc_setAssociatedObject(self, &kbHideObserverKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
+        guard let token = kbHideObserver else { return }
+        NotificationCenter.default.removeObserver(token)
+        kbHideObserver = nil
     }
 
     private func removeKbShowObserver() {
-        if let token = objc_getAssociatedObject(self, &kbShowObserverKey) {
-            NotificationCenter.default.removeObserver(token)
-            objc_setAssociatedObject(self, &kbShowObserverKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        }
+        guard let token = kbShowObserver else { return }
+        NotificationCenter.default.removeObserver(token)
+        kbShowObserver = nil
     }
 }
