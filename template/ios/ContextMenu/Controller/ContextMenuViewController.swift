@@ -26,22 +26,20 @@ public final class ContextMenuViewController: UIViewController {
     private var animator:         ContextMenuAnimator?
     private var sourceFrameInWindow: CGRect = .zero
 
-    private let backdrop     = ContextMenuBackdropView()
-    private let scrollView   = UIScrollView.contextMenuStyle()
-    private let canvas       = UIView()
+    private let backdrop   = ContextMenuBackdropView()
+    private let scrollView = UIScrollView.contextMenuStyle()
+    private let canvas     = UIView()
     private var snapshotView: UIView?
 
-    private let emojiPanel:   ContextMenuEmojiPanel
-    private let actionsPanel: ContextMenuActionsView
+    // Панели создаются только если переданы данные
+    private var emojiPanel:   ContextMenuEmojiPanel?
+    private var actionsPanel: ContextMenuActionsView?
 
     // MARK: - Init
 
-    /// Создаёт контроллер контекстного меню. Захватывает frame sourceView до любых layout-проходов.
     public init(configuration: ContextMenuConfiguration, theme: ContextMenuTheme = .light) {
         self.configuration = configuration
         self.theme         = theme
-        emojiPanel         = ContextMenuEmojiPanel(theme: theme)
-        actionsPanel       = ContextMenuActionsView(theme: theme)
         super.init(nibName: nil, bundle: nil)
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle   = .crossDissolve
@@ -90,7 +88,6 @@ public final class ContextMenuViewController: UIViewController {
 
     // MARK: - Public API
 
-    /// Закрывает меню без выбора действия.
     public func dismissMenu() {
         close { [weak self] in
             guard let self else { return }
@@ -98,9 +95,14 @@ public final class ContextMenuViewController: UIViewController {
         }
     }
 
-    /// Создаёт и показывает контекстное меню из указанного контроллера.
-    public static func present(configuration: ContextMenuConfiguration, theme: ContextMenuTheme = .light,
-                                from vc: UIViewController, delegate: ContextMenuDelegate? = nil) {
+    /// Показывает меню. Если нет ни эмодзи, ни действий — не открывает ничего.
+    public static func present(
+        configuration: ContextMenuConfiguration,
+        theme: ContextMenuTheme = .light,
+        from vc: UIViewController,
+        delegate: ContextMenuDelegate? = nil
+    ) {
+        guard !configuration.emojis.isEmpty || !configuration.actions.isEmpty else { return }
         let menu      = ContextMenuViewController(configuration: configuration, theme: theme)
         menu.delegate = delegate
         vc.present(menu, animated: false)
@@ -127,35 +129,50 @@ public final class ContextMenuViewController: UIViewController {
         scrollView.addSubview(canvas)
     }
 
-    /// Строит снапшот, emoji-панель и панель действий, добавляет их в canvas.
+    /// Создаёт только те панели, данные для которых непусты.
     private func buildContent() {
         snapshotView = makeSnapshotView(for: configuration.sourceView)
         if let snap = snapshotView { canvas.addSubview(snap) }
 
-        emojiPanel.configure(with: configuration.emojis)
-        emojiPanel.onEmojiTap = { [weak self] emoji in self?.selectEmoji(emoji) }
-        canvas.addSubview(emojiPanel)
+        if !configuration.emojis.isEmpty {
+            let panel = ContextMenuEmojiPanel(theme: theme)
+            panel.configure(with: configuration.emojis)
+            panel.onEmojiTap = { [weak self] emoji in self?.selectEmoji(emoji) }
+            canvas.addSubview(panel)
+            emojiPanel = panel
+        }
 
-        actionsPanel.configure(with: configuration.actions)
-        actionsPanel.onActionTap = { [weak self] action in self?.selectAction(action) }
-        canvas.addSubview(actionsPanel)
+        if !configuration.actions.isEmpty {
+            let panel = ContextMenuActionsView(theme: theme)
+            panel.configure(with: configuration.actions)
+            panel.onActionTap = { [weak self] action in self?.selectAction(action) }
+            canvas.addSubview(panel)
+            actionsPanel = panel
+        }
     }
 
     // MARK: - Layout
 
-    /// Рассчитывает layout через ContextMenuLayoutEngine, применяет его к canvas и инициализирует аниматор.
     private func applyLayout() {
         let sourceFrame = view.convert(sourceFrameInWindow, from: view.window)
+
+        // .zero для отсутствующих панелей — LayoutEngine их пропускает
+        let emojiSize = emojiPanel.map {
+            $0.preferredSize(for: configuration.emojis)
+        } ?? .zero
+
+        let actionsSize = actionsPanel.map {
+            CGSize(width: theme.menuWidth, height: $0.preferredHeight(for: configuration.actions))
+        } ?? .zero
 
         let computed = ContextMenuLayoutEngine.calculate(
             sourceFrame: sourceFrame,
             snapSize:    configuration.sourceView.bounds.size,
-            emojiSize:   emojiPanel.preferredSize(for: configuration.emojis),
-            actionsSize: CGSize(width: theme.menuWidth,
-                                height: actionsPanel.preferredHeight(for: configuration.actions)),
-            screen:   view.bounds,
-            safeArea: view.safeAreaInsets,
-            theme:    theme
+            emojiSize:   emojiSize,
+            actionsSize: actionsSize,
+            screen:      view.bounds,
+            safeArea:    view.safeAreaInsets,
+            theme:       theme
         )
         layout = computed
 
@@ -192,7 +209,7 @@ public final class ContextMenuViewController: UIViewController {
         }
     }
 
-    // MARK: - Animation
+    // MARK: - Animation + Dismiss
 
     private func close(completion: @escaping () -> Void) {
         guard !isDismissing, let layout, let animator else { return }
@@ -203,7 +220,9 @@ public final class ContextMenuViewController: UIViewController {
         let returnFrame = CGRect(x: srcInView.minX, y: srcInView.minY + offset,
                                  width: srcInView.width, height: srcInView.height)
 
-        animator.animateClose(returnFrame: returnFrame, layout: layout, completion: completion)
+        animator.animateClose(returnFrame: returnFrame, layout: layout) { [weak self] in
+            self?.dismiss(animated: false, completion: completion)
+        }
     }
 
     // MARK: - Theme
@@ -214,14 +233,13 @@ public final class ContextMenuViewController: UIViewController {
 
     // MARK: - Helpers
 
-    /// Создаёт снапшот sourceView c тенью, обёрнутый в wrapper.
     private func makeSnapshotView(for source: UIView) -> UIView? {
         guard let snap = source.snapshotView(afterScreenUpdates: false) else { return nil }
-        snap.frame                = CGRect(origin: .zero, size: source.bounds.size)
+        snap.frame                    = CGRect(origin: .zero, size: source.bounds.size)
         snap.isUserInteractionEnabled = false
-        snap.layer.cornerRadius   = ChatLayoutConstants.bubbleCornerRadius
-        snap.layer.cornerCurve    = .continuous
-        snap.layer.masksToBounds  = true
+        snap.layer.cornerRadius       = ChatLayoutConstants.bubbleCornerRadius
+        snap.layer.cornerCurve        = .continuous
+        snap.layer.masksToBounds      = true
 
         let wrapper = UIView(frame: CGRect(origin: .zero, size: source.bounds.size))
         wrapper.layer.shadowColor   = UIColor.black.cgColor
@@ -237,10 +255,10 @@ public final class ContextMenuViewController: UIViewController {
 
 extension ContextMenuViewController: UIGestureRecognizerDelegate {
 
-    /// Разрешает backdrop-тап только если касание не попало на контентные view.
     public func gestureRecognizer(_ gr: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
         let pt = touch.location(in: canvas)
-        return ![emojiPanel, actionsPanel, snapshotView].compactMap { $0 }.contains { $0.frame.contains(pt) }
+        let panels: [UIView] = [snapshotView, emojiPanel, actionsPanel].compactMap { $0 }
+        return !panels.contains { $0.frame.contains(pt) }
     }
 
     public func gestureRecognizer(_ gr: UIGestureRecognizer,
@@ -249,7 +267,6 @@ extension ContextMenuViewController: UIGestureRecognizerDelegate {
 
 // MARK: - ContextMenuBackdropView
 
-/// Комбинированный blur + color backdrop, инкапсулирует оба слоя.
 private final class ContextMenuBackdropView: UIView {
 
     private let blurView  = UIVisualEffectView()
@@ -266,7 +283,6 @@ private final class ContextMenuBackdropView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    /// Применяет параметры темы к blur и color слоям.
     func configure(with theme: ContextMenuTheme) {
         blurView.effect           = UIBlurEffect(style: theme.backdropBlurStyle)
         colorView.backgroundColor = theme.backdropColor
@@ -284,7 +300,6 @@ private final class ContextMenuBackdropView: UIView {
 // MARK: - UIScrollView factory
 
 private extension UIScrollView {
-    /// Создаёт UIScrollView с настройками для контекстного меню.
     static func contextMenuStyle() -> UIScrollView {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator   = false

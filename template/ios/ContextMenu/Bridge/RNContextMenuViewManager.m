@@ -7,10 +7,10 @@
 @interface RCT_EXTERN_MODULE(RNContextMenuViewManager, RCTViewManager)
 
 // Props
+RCT_EXPORT_VIEW_PROPERTY(menuId,               NSString)
 RCT_EXPORT_VIEW_PROPERTY(emojis,               NSArray)
 RCT_EXPORT_VIEW_PROPERTY(actions,              NSArray)
-RCT_EXPORT_VIEW_PROPERTY(menuId,               NSString)
-RCT_EXPORT_VIEW_PROPERTY(menuTheme,            NSString)
+RCT_EXPORT_VIEW_PROPERTY(theme,                NSString)
 RCT_EXPORT_VIEW_PROPERTY(minimumPressDuration, NSNumber)
 
 // Events

@@ -1,18 +1,19 @@
 // ContextMenuView.tsx
 // Публичный React Native wrapper для кастомного контекстного меню.
-// Использует long-press на любом дочернем View для показа меню с
-// emoji-панелью и списком действий.
+// Формат пропов приведён к стилю ChatView:
+//   - emojis: string[]   (было: { emoji: string }[])
+//   - theme: "light"|"dark"  (было: menuTheme)
 //
 // Пример использования:
 //   <ContextMenuView
 //     menuId={message.id}
-//     emojis={["❤️", "👍", "😂", "😮", "😢", "🙏"].map(e => ({ emoji: e }))}
+//     emojis={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
 //     actions={[
 //       { id: "reply",  title: "Reply",  systemImage: "arrowshape.turn.up.left" },
 //       { id: "copy",   title: "Copy",   systemImage: "doc.on.doc" },
 //       { id: "delete", title: "Delete", isDestructive: true },
 //     ]}
-//     menuTheme="light"
+//     theme="light"
 //     onEmojiSelect={({ emoji, menuId }) => handleEmojiReaction(menuId, emoji)}
 //     onActionSelect={({ actionId, menuId }) => handleAction(menuId, actionId)}
 //   >
@@ -33,7 +34,6 @@ import type {
   NativeContextMenuAction,
   NativeContextMenuActionSelectData,
   NativeContextMenuDismissData,
-  NativeContextMenuEmoji,
   NativeContextMenuEmojiSelectData,
   NativeContextMenuViewProps,
   NativeContextMenuWillShowData,
@@ -41,7 +41,6 @@ import type {
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
-export type ContextMenuEmoji = NativeContextMenuEmoji;
 export type ContextMenuAction = NativeContextMenuAction;
 
 export type ContextMenuEmojiSelectEvent = NativeContextMenuEmojiSelectData;
@@ -56,17 +55,10 @@ export type ContextMenuTheme = "light" | "dark";
 export interface ContextMenuViewProps extends ViewProps {
   /** Уникальный идентификатор — прокидывается в колбэки как menuId */
   menuId?: string;
-
-  /** Список эмодзи для панели над сообщением */
-  emojis?: ContextMenuEmoji[];
-
-  /** Список действий в нижнем меню */
+  /** Список эмодзи. Пример: ["❤️", "👍", "😂"] */
+  emojis?: string[];
   actions?: ContextMenuAction[];
-
-  /** Тема контекстного меню */
-  menuTheme?: ContextMenuTheme;
-
-  /** Минимальное время нажатия для активации (сек, default: 0.35) */
+  theme?: ContextMenuTheme;
   minimumPressDuration?: number;
 
   style?: ViewStyle;
@@ -105,7 +97,7 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
   menuId = "",
   emojis = [],
   actions = [],
-  menuTheme = "light",
+  theme = "light",
   minimumPressDuration = 0.35,
   style,
   children,
@@ -116,7 +108,6 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
   ...rest
 }) => {
   if (Platform.OS !== "ios") {
-    // Android: просто рендерим детей без меню (заглушка)
     const { View } = require("react-native");
 
     return (
@@ -146,7 +137,7 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
       menuId={menuId}
       emojis={emojis}
       actions={actions}
-      menuTheme={menuTheme}
+      theme={theme}
       minimumPressDuration={minimumPressDuration}
       onEmojiSelect={handleEmojiSelect}
       onActionSelect={handleActionSelect}

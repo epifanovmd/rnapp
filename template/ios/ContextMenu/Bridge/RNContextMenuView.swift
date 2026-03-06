@@ -1,7 +1,11 @@
 // MARK: - RNContextMenuView.swift
 // React Native bridge для кастомного контекстного меню.
-// Самостоятельный компонент — не зависит от ChatView.
-// Оборачивает любой дочерний RN View и добавляет к нему long-press контекстное меню.
+// Формат пропов приведён к стилю RNChatView:
+//   - emojis: [String]            (было: [{ "emoji": "❤️" }])
+//   - actions: [{ id, title, … }] (без изменений)
+//   - theme: "light" | "dark"     (было: menuTheme)
+// Исправлен баг: после анимации закрытия VC теперь вызывает dismiss,
+// чтобы не блокировать касания.
 
 import UIKit
 import React
@@ -19,24 +23,24 @@ import React
 
     // MARK: - Props
 
-    /// Список эмодзи: [{ "emoji": "❤️" }, ...]
-    @objc var emojis: NSArray = [] {
-        didSet { rebuildConfiguration() }
-    }
-
-    /// Список действий: [{ "id": "reply", "title": "Reply", "systemImage": "arrowshape.turn.up.left", "isDestructive": false }]
-    @objc var actions: NSArray = [] {
-        didSet { rebuildConfiguration() }
-    }
-
     /// Уникальный идентификатор (прокидывается обратно в колбэки)
     @objc var menuId: NSString = "" {
-        didSet { rebuildConfiguration() }
+        didSet { /* используется напрямую в showMenu */ }
     }
 
-    /// Тема: "light" | "dark"
-    @objc var menuTheme: NSString = "light" {
-        didSet { updateTheme() }
+    /// Список эмодзи: ["❤️", "👍", "😂"]  — как emojiReactions в чате
+    @objc var emojis: NSArray = [] {
+        didSet { rebuildEmojis() }
+    }
+
+    /// Список действий: [{ "id": "reply", "title": "Reply", "systemImage": "…", "isDestructive": false }]
+    @objc var actions: NSArray = [] {
+        didSet { rebuildActions() }
+    }
+
+    /// Тема: "light" | "dark"  — как theme в чате
+    @objc var theme: NSString = "light" {
+        didSet { currentTheme = (theme as String).lowercased() == "dark" ? .dark : .light }
     }
 
     /// Минимальное время нажатия для активации (секунды)
@@ -52,8 +56,8 @@ import React
 
     private lazy var longPressGR: UILongPressGestureRecognizer = {
         let gr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        gr.minimumPressDuration = 0.35
-        gr.cancelsTouchesInView = false
+        gr.minimumPressDuration  = 0.35
+        gr.cancelsTouchesInView  = false
         return gr
     }()
 
@@ -84,16 +88,14 @@ import React
 
         onWillShow?(["menuId": menuId as String])
 
-        // Используем self как sourceView для снапшота
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
         let config = ContextMenuConfiguration(
             id:         menuId as String,
             sourceView: self,
             emojis:     parsedEmojis,
             actions:    parsedActions
         )
-
-        // Haptic feedback
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
         ContextMenuViewController.present(
             configuration: config,
@@ -105,26 +107,22 @@ import React
 
     // MARK: - Prop parsing
 
-    private func rebuildConfiguration() {
-        parsedEmojis = (emojis as? [[String: Any]] ?? []).compactMap { dict in
-            guard let emoji = dict["emoji"] as? String else { return nil }
-            return ContextMenuEmoji(emoji: emoji)
-        }
+    /// Принимает массив строк ["❤️", "👍"]
+    private func rebuildEmojis() {
+        parsedEmojis = (emojis as? [String] ?? []).map { ContextMenuEmoji(emoji: $0) }
+    }
 
+    private func rebuildActions() {
         parsedActions = (actions as? [[String: Any]] ?? []).compactMap { dict in
-            guard let id    = dict["id"] as? String,
+            guard let id    = dict["id"]    as? String,
                   let title = dict["title"] as? String else { return nil }
             return ContextMenuAction(
                 id:            id,
                 title:         title,
-                systemImage:   dict["systemImage"] as? String,
+                systemImage:   dict["systemImage"]   as? String,
                 isDestructive: dict["isDestructive"] as? Bool ?? false
             )
         }
-    }
-
-    private func updateTheme() {
-        currentTheme = (menuTheme as String).lowercased() == "dark" ? .dark : .light
     }
 
     // MARK: - Helpers

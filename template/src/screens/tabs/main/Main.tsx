@@ -56,17 +56,23 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           renderItem={({ index }) => (
             <ContextMenuView
               menuId={`${index}`}
-              emojis={[{ emoji: "❤️" }, { emoji: "👍" }]}
+              emojis={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
               actions={[
                 {
                   id: "reply",
                   title: "Reply",
                   systemImage: "arrowshape.turn.up.left",
                 },
+                { id: "copy", title: "Copy", systemImage: "doc.on.doc" },
                 { id: "delete", title: "Delete", isDestructive: true },
               ]}
-              onEmojiSelect={({ emoji, menuId }) => {}}
-              onActionSelect={({ actionId, menuId }) => {}}
+              theme="dark"
+              onEmojiSelect={({ emoji, menuId }) => {
+                console.log("emoji", emoji);
+              }}
+              onActionSelect={({ actionId, menuId }) => {
+                console.log("actionId", actionId);
+              }}
             >
               <Col
                 bg={colors.onSurface}
