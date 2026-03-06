@@ -51,7 +51,9 @@ public final class ContextMenuViewController: UIViewController {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(configuration:theme:)")
+    }
 
     // MARK: - Lifecycle
 
@@ -156,7 +158,6 @@ public final class ContextMenuViewController: UIViewController {
     private func applyLayout() {
         let sourceFrame = view.convert(sourceFrameInWindow, from: view.window)
 
-        // .zero для отсутствующих панелей — LayoutEngine их пропускает
         let emojiSize = emojiPanel.map {
             $0.preferredSize(for: configuration.emojis)
         } ?? .zero
@@ -215,8 +216,8 @@ public final class ContextMenuViewController: UIViewController {
         guard !isDismissing, let layout, let animator else { return }
         isDismissing = true
 
-        let srcInView = view.convert(sourceFrameInWindow, from: view.window)
-        let offset    = scrollView.contentOffset.y
+        let srcInView   = view.convert(sourceFrameInWindow, from: view.window)
+        let offset      = scrollView.contentOffset.y
         let returnFrame = CGRect(x: srcInView.minX, y: srcInView.minY + offset,
                                  width: srcInView.width, height: srcInView.height)
 
@@ -233,18 +234,21 @@ public final class ContextMenuViewController: UIViewController {
 
     // MARK: - Helpers
 
+    /// Создаёт снапшот sourceView.
+    /// Радиус скругления берётся из configuration.snapshotCornerRadius —
+    /// ContextMenu не знает о деталях рендера чата (нет coupling с ChatLayoutConstants).
     private func makeSnapshotView(for source: UIView) -> UIView? {
         guard let snap = source.snapshotView(afterScreenUpdates: false) else { return nil }
         snap.frame                    = CGRect(origin: .zero, size: source.bounds.size)
         snap.isUserInteractionEnabled = false
-        snap.layer.cornerRadius       = ChatLayoutConstants.bubbleCornerRadius
+        snap.layer.cornerRadius       = configuration.snapshotCornerRadius
         snap.layer.cornerCurve        = .continuous
         snap.layer.masksToBounds      = true
 
         let wrapper = UIView(frame: CGRect(origin: .zero, size: source.bounds.size))
         wrapper.layer.shadowColor   = UIColor.black.cgColor
-        wrapper.layer.shadowOpacity = 0.16
-        wrapper.layer.shadowRadius  = 10
+        wrapper.layer.shadowOpacity = ChatLayoutConstants.bubbleShadowOpacity
+        wrapper.layer.shadowRadius  = ChatLayoutConstants.bubbleShadowRadius
         wrapper.layer.shadowOffset  = CGSize(width: 0, height: 3)
         wrapper.addSubview(snap)
         return wrapper
@@ -262,7 +266,7 @@ extension ContextMenuViewController: UIGestureRecognizerDelegate {
     }
 
     public func gestureRecognizer(_ gr: UIGestureRecognizer,
-                                   shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
+                                  shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 }
 
 // MARK: - ContextMenuBackdropView
@@ -281,7 +285,9 @@ private final class ContextMenuBackdropView: UIView {
         alpha = 0
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     func configure(with theme: ContextMenuTheme) {
         blurView.effect           = UIBlurEffect(style: theme.backdropBlurStyle)

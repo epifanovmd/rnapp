@@ -6,10 +6,8 @@
 //     из списка предпочтений пользователя (Настройки → Основные → Язык и регион).
 //   • Парсинг ключей секций ("yyyy-MM-dd") всегда использует en_US_POSIX —
 //     эти строки технические, не пользовательские.
-//   • "Сегодня" / "Вчера" берутся из Calendar.current через стандартный
-//     DateFormatter с .dateStyle = .full, а затем сравниваются — это
-//     гарантирует правильную локализацию без хаков с RelativeDateTimeFormatter,
-//     который на ряде версий iOS игнорирует locale при .named стиле.
+//   • "Сегодня" / "Вчера" берутся через doesRelativeDateFormatting — это
+//     единственный корректно локализованный способ на всех версиях iOS.
 
 import Foundation
 
@@ -78,35 +76,29 @@ final class DateHelper {
         return f
     }()
 
-    // MARK: - Локализованные строки "Сегодня" / "Вчера"
-    // Формируем через DateFormatter с .full стилем и вырезаем нужную часть —
-    // надёжнее RelativeDateTimeFormatter на всех версиях iOS.
-
-    private lazy var todayString: String     = makeDayLabel(daysAgo: 0)
-    private lazy var yesterdayString: String = makeDayLabel(daysAgo: 1)
-
-    /// Строит локализованный лейбл "сегодня"/"вчера" для нужной локали.
-    private func makeDayLabel(daysAgo: Int) -> String {
-        // Используем стандартный способ: форматируем дату и берём только день
-        let cal  = Calendar.current
-        guard let date = cal.date(byAdding: .day, value: -daysAgo, to: Date()) else { return "" }
-
-        // DateFormatter с .full возвращает строки типа
-        // "среда, 5 марта 2025 г." (ru) / "Wednesday, March 5, 2025" (en)
-        // — надёжный способ получить локализованный день без хаков.
+    /// Кэшированный форматтер с doesRelativeDateFormatting — создаётся один раз.
+    /// Используется для получения строк "Сегодня"/"Вчера" в нужной локали.
+    private lazy var relativeDateFormatter: DateFormatter = {
         let f = DateFormatter()
-        f.locale    = DateHelper.preferredLocale()
-        f.dateStyle = .full
-        f.timeStyle = .none
+        f.locale                    = DateHelper.preferredLocale()
+        f.dateStyle                 = .medium
+        f.timeStyle                 = .none
+        f.doesRelativeDateFormatting = true
+        return f
+    }()
 
-        // Для "сегодня"/"вчера" iOS предоставляет doesRelativeDateFormatting
-        let rel = DateFormatter()
-        rel.locale                   = DateHelper.preferredLocale()
-        rel.dateStyle                = .medium
-        rel.timeStyle                = .none
-        rel.doesRelativeDateFormatting = true
-        return rel.string(from: date)
-    }
+    // MARK: - Локализованные строки "Сегодня" / "Вчера"
+    // Используем doesRelativeDateFormatting — это стандартный системный механизм,
+    // который корректно локализует относительные даты на всех версиях iOS.
+
+    private lazy var todayString: String = {
+        relativeDateFormatter.string(from: Date())
+    }()
+
+    private lazy var yesterdayString: String = {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        return relativeDateFormatter.string(from: yesterday)
+    }()
 
     // MARK: - Public API
 

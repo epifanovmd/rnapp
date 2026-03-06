@@ -41,14 +41,16 @@ extension ChatViewController: UICollectionViewDelegate {
         let dy     = offset.y - lastContentOffsetY
         lastContentOffsetY = offset.y
 
+        let now = CACurrentMediaTime()
+        guard now - lastScrollEventTime >= scrollThrottleInterval else { return }
+        lastScrollEventTime = now
+
+        // FAB обновляется с тем же throttle-интервалом, что и скролл-событие
         updateFABVisibility(animated: true)
+
         guard !isProgrammaticScroll else { return }
 
-        let now = CACurrentMediaTime()
-        if now - lastScrollEventTime >= scrollThrottleInterval {
-            lastScrollEventTime = now
-            delegate?.chatViewController(self, didScrollToOffset: offset)
-        }
+        delegate?.chatViewController(self, didScrollToOffset: offset)
 
         let topDist = offset.y + scrollView.contentInset.top
         if dy < 0, topDist < topThreshold, !waitingForNewMessages {
@@ -70,12 +72,12 @@ extension ChatViewController: UICollectionViewDelegateFlowLayout {
     }
 
     func collectionView(_ cv: UICollectionView, layout: UICollectionViewLayout,
-                         referenceSizeForHeaderInSection section: Int) -> CGSize {
+                        referenceSizeForHeaderInSection section: Int) -> CGSize {
         CGSize(width: cv.bounds.width, height: 36)
     }
 
     func collectionView(_ cv: UICollectionView, layout: UICollectionViewLayout,
-                         insetForSectionAt section: Int) -> UIEdgeInsets { .zero }
+                        insetForSectionAt section: Int) -> UIEdgeInsets { .zero }
 }
 
 // MARK: - Flow Layout Factory
@@ -96,31 +98,19 @@ extension ChatViewController {
 
 extension ChatViewController {
 
-    func attachLongPress(to cell: MessageCell, message: ChatMessage) {
-        let gr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        gr.minimumPressDuration = 0.4
-        gr.cancelsTouchesInView = true
-        gr.message = message
-        cell.bubbleSnapshotView.addGestureRecognizer(gr)
-    }
-
-    @objc private func handleLongPress(_ gr: UILongPressGestureRecognizer) {
-        guard gr.state == .began, let message = gr.message, !actions.isEmpty, let source = gr.view else { return }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        freezeCollectionBottomInset()
-        inputBar.textView.resignFirstResponder()
-        showContextMenu(for: message, sourceView: source)
-    }
-
-    private func showContextMenu(for message: ChatMessage, sourceView: UIView) {
+    /// Показывает контекстное меню для сообщения.
+    /// Long press регистрируется в MessageCell.init() — GR создаётся один раз,
+    /// не накапливается при dequeue ячеек.
+    func showContextMenu(for message: ChatMessage, sourceView: UIView) {
         let config = ContextMenuConfiguration(
-            id:         message.id,
-            sourceView: sourceView,
-            emojis:     contextMenuEmojis,
-            actions:    actions.map {
+            id:                   message.id,
+            sourceView:           sourceView,
+            emojis:               contextMenuEmojis,
+            actions:              actions.map {
                 ContextMenuAction(id: $0.id, title: $0.title,
                                   systemImage: $0.systemImage, isDestructive: $0.isDestructive)
-            }
+            },
+            snapshotCornerRadius: ChatLayoutConstants.bubbleCornerRadius
         )
         ContextMenuViewController.present(
             configuration: config,
@@ -128,17 +118,6 @@ extension ChatViewController {
             from:          self,
             delegate:      self
         )
-    }
-}
-
-// MARK: - UILongPressGestureRecognizer + message
-
-private var messageKey: UInt8 = 0
-
-private extension UILongPressGestureRecognizer {
-    var message: ChatMessage? {
-        get { objc_getAssociatedObject(self, &messageKey) as? ChatMessage }
-        set { objc_setAssociatedObject(self, &messageKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 }
 

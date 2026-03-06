@@ -74,11 +74,10 @@ enum MessageContent {
 extension MessageContent: Equatable {
     static func == (lhs: MessageContent, rhs: MessageContent) -> Bool {
         switch (lhs, rhs) {
-        case (.text(let l),           .text(let r)):        return l == r
-        case (.image(let l),          .image(let r)):       return l == r
-        case (.mixed(let lt, let li), .mixed(let rt, let ri)):
-            return lt == rt && li == ri
-        default: return false
+        case (.text(let l),           .text(let r)):              return l == r
+        case (.image(let l),          .image(let r)):             return l == r
+        case (.mixed(let lt, let li), .mixed(let rt, let ri)):    return lt == rt && li == ri
+        default:                                                   return false
         }
     }
 }
@@ -91,11 +90,11 @@ extension MessageContent: Equatable {
 // При рендере живого сообщения данные берутся из messageIndex (см. ResolvedReply).
 
 struct ReplyInfo: Equatable {
-    let replyToId:       String
+    let replyToId:  String
     /// Данные оригинала в момент создания ответа (fallback для deleted).
-    let senderName:      String?
-    let text:            String?
-    let hasImage:        Bool
+    let senderName: String?
+    let text:       String?
+    let hasImage:   Bool
 }
 
 // MARK: - ChatMessage
@@ -121,6 +120,10 @@ struct ChatMessage: Identifiable, Equatable {
 }
 
 // MARK: - MessageAction
+//
+// Описывает пункт контекстного меню. Намеренно совпадает по структуре с
+// ContextMenuAction — оба типа реализуют MessageActionRepresentable,
+// что устраняет map-конверсии и дублирование при показе контекстного меню.
 
 struct MessageAction {
     let id:            String
@@ -128,6 +131,21 @@ struct MessageAction {
     let systemImage:   String?
     let isDestructive: Bool
 }
+
+// MARK: - MessageActionRepresentable
+//
+// Протокол, которому соответствуют и MessageAction, и ContextMenuAction.
+// Используется в showContextMenu для передачи actions без промежуточного map.
+
+protocol MessageActionRepresentable {
+    var id:            String  { get }
+    var title:         String  { get }
+    var systemImage:   String? { get }
+    var isDestructive: Bool    { get }
+}
+
+extension MessageAction:    MessageActionRepresentable {}
+extension ContextMenuAction: MessageActionRepresentable {}
 
 // MARK: - MessageSection
 
@@ -140,7 +158,7 @@ struct MessageSection {
 //
 // Результат резолвинга ссылки на оригинал сообщения.
 // Используется исключительно на уровне рендера (MessageBubbleView).
-// Резолвинг происходит в ChatViewController.resolve(_:) каждый раз при
+// Резолвинг происходит в ChatViewController.resolveReply(for:) каждый раз при
 // конфигурации ячейки — это гарантирует что цитата всегда отражает
 // актуальное состояние оригинала (после редактирования).
 

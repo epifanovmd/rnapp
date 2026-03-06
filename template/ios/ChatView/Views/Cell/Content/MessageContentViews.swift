@@ -16,6 +16,13 @@ protocol MessageContentView: UIView {
     func configure(content: MessageContent, isMine: Bool, theme: ChatTheme)
     /// Вызывается после установки точной ширины пузыря (из MessageCell).
     func applyLayout(bubbleWidth: CGFloat)
+    /// Сбрасывает состояние перед переиспользованием ячейки.
+    /// Default-реализация — пустая, переопределяется только там где нужно.
+    func prepareForReuse()
+}
+
+extension MessageContentView {
+    func prepareForReuse() {}
 }
 
 // MARK: - Factory
@@ -25,9 +32,9 @@ enum MessageContentViewFactory {
     /// Создаёт подходящий рендерер для данного типа контента.
     static func make(for content: MessageContent) -> any MessageContentView {
         switch content {
-        case .text:   return TextContentView()
-        case .image:  return ImageContentView()
-        case .mixed:  return MixedContentView()
+        case .text:  return TextContentView()
+        case .image: return ImageContentView()
+        case .mixed: return MixedContentView()
         }
     }
 
@@ -35,9 +42,9 @@ enum MessageContentViewFactory {
     /// Используется в MessageBubbleView для решения — пересоздавать view или нет.
     static func matches(_ view: (any MessageContentView)?, content: MessageContent) -> Bool {
         switch content {
-        case .text:   return view is TextContentView
-        case .image:  return view is ImageContentView
-        case .mixed:  return view is MixedContentView
+        case .text:  return view is TextContentView
+        case .image: return view is ImageContentView
+        case .mixed: return view is MixedContentView
         }
     }
 }
@@ -64,7 +71,10 @@ final class TextContentView: UIView, MessageContentView {
             label.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     func configure(content: MessageContent, isMine: Bool, theme: ChatTheme) {
         label.text      = content.text
@@ -82,8 +92,8 @@ final class ImageContentView: UIView, MessageContentView {
     // Shared image cache: один на всё приложение, переживает переиспользование ячеек.
     private static let imageCache: NSCache<NSString, UIImage> = {
         let c = NSCache<NSString, UIImage>()
-        c.countLimit      = 200
-        c.totalCostLimit  = 50 * 1024 * 1024   // 50 МБ
+        c.countLimit     = 200
+        c.totalCostLimit = 50 * 1024 * 1024   // 50 МБ
         return c
     }()
 
@@ -98,8 +108,8 @@ final class ImageContentView: UIView, MessageContentView {
     }()
 
     private var heightConstraint: NSLayoutConstraint?
-    private var currentURL: String?
-    private var loadingTask: URLSessionDataTask?
+    private var currentURL:       String?
+    private var loadingTask:       URLSessionDataTask?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -111,7 +121,10 @@ final class ImageContentView: UIView, MessageContentView {
             imageView.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     func configure(content: MessageContent, isMine: Bool, theme: ChatTheme) {
         guard let payload = content.image else { return }
@@ -123,11 +136,18 @@ final class ImageContentView: UIView, MessageContentView {
     func applyLayout(bubbleWidth: CGFloat) {
         let w = bubbleWidth - ChatLayoutConstants.bubbleHorizontalPad
         let h = MessageSizeCalculator.imageHeight(width: w)
-        if heightConstraint?.constant != h {
-            heightConstraint?.isActive = false
-            heightConstraint = imageView.heightAnchor.constraint(equalToConstant: h)
-            heightConstraint?.isActive = true
-        }
+        guard heightConstraint?.constant != h else { return }
+        heightConstraint?.isActive = false
+        heightConstraint = imageView.heightAnchor.constraint(equalToConstant: h)
+        heightConstraint?.isActive = true
+    }
+
+    /// Отменяет загрузку и сбрасывает изображение при переиспользовании ячейки.
+    func prepareForReuse() {
+        loadingTask?.cancel()
+        loadingTask = nil
+        currentURL  = nil
+        imageView.image = nil
     }
 
     // MARK: - Image loading
@@ -147,10 +167,9 @@ final class ImageContentView: UIView, MessageContentView {
                 let self,
                 let data,
                 let img = UIImage(data: data),
-                self.currentURL == urlString
+                self.currentURL == urlString   // guard против гонки при reuse
             else { return }
-            Self.imageCache.setObject(img, forKey: key,
-                                      cost: data.count)
+            Self.imageCache.setObject(img, forKey: key, cost: data.count)
             DispatchQueue.main.async { self.imageView.image = img }
         }
         loadingTask = task
@@ -186,7 +205,10 @@ final class MixedContentView: UIView, MessageContentView {
             stack.trailingAnchor.constraint(equalTo: trailingAnchor),
         ])
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     func configure(content: MessageContent, isMine: Bool, theme: ChatTheme) {
         imageView.configure(content: content, isMine: isMine, theme: theme)
@@ -196,5 +218,9 @@ final class MixedContentView: UIView, MessageContentView {
     func applyLayout(bubbleWidth: CGFloat) {
         imageView.applyLayout(bubbleWidth: bubbleWidth)
         textView.applyLayout(bubbleWidth: bubbleWidth)
+    }
+
+    func prepareForReuse() {
+        imageView.prepareForReuse()
     }
 }

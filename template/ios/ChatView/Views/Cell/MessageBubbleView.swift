@@ -61,17 +61,21 @@ final class MessageBubbleView: UIView {
         super.init(frame: frame)
         setupLayout()
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     // MARK: - Setup
 
     private func setupLayout() {
         layer.cornerRadius = ChatLayoutConstants.bubbleCornerRadius
-        clipsToBounds = true
+        clipsToBounds      = true
 
         statusView.widthAnchor.constraint(
-            equalToConstant: ChatLayoutConstants.statusIconWidth).isActive = true
-        statusView.heightAnchor.constraint(equalToConstant: 12).isActive = true
+            equalToConstant: ChatLayoutConstants.statusIconWidth).isActive  = true
+        statusView.heightAnchor.constraint(
+            equalToConstant: ChatLayoutConstants.statusIconHeight).isActive = true
 
         // Порядок в footerStack: edited → time → status
         footerStack.addArrangedSubview(editedLabel)
@@ -117,6 +121,11 @@ final class MessageBubbleView: UIView {
         contentView?.applyLayout(bubbleWidth: bubbleWidth)
     }
 
+    /// Сбрасывает состояние contentView перед переиспользованием ячейки.
+    func prepareForReuse() {
+        contentView?.prepareForReuse()
+    }
+
     // MARK: - Private helpers
 
     private func applyBubbleColors(isMine: Bool, theme: ChatTheme) {
@@ -132,7 +141,6 @@ final class MessageBubbleView: UIView {
         switch resolvedReply {
         case .found(let displayInfo):
             replyPreview.isHidden = false
-            // Используем актуальные данные из messageIndex — не снапшот
             replyPreview.configure(with: displayInfo, isMine: isMine, theme: theme)
         case .deleted, nil:
             replyPreview.isHidden = true

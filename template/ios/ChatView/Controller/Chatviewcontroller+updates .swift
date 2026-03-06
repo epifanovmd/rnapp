@@ -5,17 +5,23 @@ import UIKit
 extension ChatViewController {
 
     /// Определяет тип изменения данных и применяет соответствующую стратегию обновления.
+    /// Использует set-based сравнение id для надёжного определения добавлений/удалений.
     func updateMessages(_ messages: [ChatMessage]) {
         let newCount    = messages.count
         let oldCount    = lastKnownMessageCount
         let newSections = buildSections(from: messages)
         let newIndex    = Dictionary(uniqueKeysWithValues: messages.map { ($0.id, $0) })
 
+        let newIDs       = Set(messages.map(\.id))
+        let oldIDs       = Set(messageIndex.keys)
+        let hasAdditions = !newIDs.subtracting(oldIDs).isEmpty
+        let hasDeletions = !oldIDs.subtracting(newIDs).isEmpty
+
         if newCount > oldCount, oldCount > 0, isPrepend(newSections: newSections) {
             applyPrepend(newSections: newSections, newIndex: newIndex, messages: messages)
-        } else if newCount < oldCount {
+        } else if hasDeletions && !hasAdditions {
             applyDeletion(newSections: newSections, newIndex: newIndex)
-        } else if newCount > oldCount {
+        } else if hasAdditions && !hasDeletions {
             applyAppend(newSections: newSections, newIndex: newIndex, messages: messages)
         } else {
             applyUpdate(newSections: newSections, newIndex: newIndex, messages: messages)

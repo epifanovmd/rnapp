@@ -35,20 +35,20 @@ final class MessageSizeCache {
         hasReply: Bool,
         collectionViewWidth: CGFloat
     ) -> CGSize {
-        // Если ширина изменилась — атомарно сбрасываем кэш
-        lock.sync(flags: .barrier) {
+        let key = Key(id: message.id, hasReply: hasReply)
+
+        // Один barrier-блок: проверяем ширину И читаем кэш — 1 lock вместо 2.
+        let cached: CGSize? = lock.sync(flags: .barrier) {
             if collectionViewWidth != _layoutWidth {
                 cache.removeAll()
                 _layoutWidth = collectionViewWidth
             }
+            return cache[key]
         }
 
-        let key = Key(id: message.id, hasReply: hasReply)
+        if let hit = cached { return hit }
 
-        // Быстрое concurrent чтение
-        if let hit = lock.sync(execute: { cache[key] }) { return hit }
-
-        // Cache miss: вычисление вне лока (CPU-bound, не мутирует cache)
+        // Cache miss: вычисление вне лока (CPU-bound, не мутирует cache).
         let size = MessageSizeCalculator.cellSize(
             for: message,
             hasReply: hasReply,
@@ -67,14 +67,19 @@ final class MessageSizeCache {
     ) {
         for msg in messages {
             let hasReply = hasReplyMap[msg.id] ?? false
-            let key = Key(id: msg.id, hasReply: hasReply)
-            guard lock.sync(execute: { cache[key] }) == nil else { continue }
-            let size = MessageSizeCalculator.cellSize(
-                for: msg,
-                hasReply: hasReply,
-                collectionViewWidth: collectionViewWidth
-            )
-            lock.sync(flags: .barrier) { cache[key] = size }
+            let key      = Key(id: msg.id, hasReply: hasReply)
+
+            // Проверяем наличие одним barrier-блоком (одновременная проверка + условная запись).
+            lock.sync(flags: .barrier) {
+                guard cache[key] == nil else { return }
+                // Вычисляем внутри barrier — допустимо, так как это фоновый поток prefill.
+                let size = MessageSizeCalculator.cellSize(
+                    for: msg,
+                    hasReply: hasReply,
+                    collectionViewWidth: collectionViewWidth
+                )
+                cache[key] = size
+            }
         }
     }
 

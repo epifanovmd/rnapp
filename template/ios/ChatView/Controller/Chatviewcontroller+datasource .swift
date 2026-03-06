@@ -39,7 +39,14 @@ extension ChatViewController {
             guard let self else { return }
             delegate?.chatViewController(self, didTapReply: replyId)
         }
-        if let cell { attachLongPress(to: cell, message: msg) }
+        // Long press обрабатывается самой ячейкой — GR создан один раз в MessageCell.init()
+        cell?.onLongPress = { [weak self] message, sourceView in
+            guard let self, !actions.isEmpty else { return }
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            freezeCollectionBottomInset()
+            inputBar.textView.resignFirstResponder()
+            showContextMenu(for: message, sourceView: sourceView)
+        }
         return cell
     }
 }
@@ -48,22 +55,46 @@ extension ChatViewController {
 
 extension ChatViewController {
 
-    /// Группирует сообщения по дате. Пропускает пересчёт если хэш входных данных не изменился.
+    /// Группирует сообщения по дате.
+    /// Пропускает пересчёт если хэш входных данных не изменился.
+    /// Использует Hasher для order-sensitive, collision-resistant хэширования.
+    /// Включает isEdited — чтобы правки сообщений корректно триггерили обновление.
     func buildSections(from messages: [ChatMessage]) -> [MessageSection] {
-        let newHash = messages.reduce(into: 0) { $0 ^= $1.id.hashValue &+ $1.status.hashValue &+ $1.groupDate.hashValue }
+        var hasher = Hasher()
+        messages.forEach {
+            hasher.combine($0.id)
+            hasher.combine($0.status.rawValue)
+            hasher.combine($0.groupDate)
+            hasher.combine($0.isEdited)
+        }
+        let newHash = hasher.finalize()
         guard newHash != lastSectionsInputHash || sections.isEmpty else { return sections }
         lastSectionsInputHash = newHash
 
+        // Оптимизация: проверяем отсортированность перед sort — O(n) vs O(n log n).
+        // JS/RN обычно присылает сообщения уже отсортированными по timestamp.
+        let sorted: [ChatMessage]
+        if messages.isEmpty || zip(messages, messages.dropFirst()).allSatisfy({ $0.0.timestamp <= $0.1.timestamp }) {
+            sorted = messages
+        } else {
+            sorted = messages.sorted { $0.timestamp < $1.timestamp }
+        }
+
         var map:   [String: MessageSection] = [:]
         var order: [String] = []
-        for msg in messages.sorted(by: { $0.timestamp < $1.timestamp }) {
+        for msg in sorted {
             if map[msg.groupDate] == nil {
                 map[msg.groupDate] = MessageSection(dateKey: msg.groupDate, messages: [])
                 order.append(msg.groupDate)
             }
             map[msg.groupDate]?.messages.append(msg)
         }
-        return order.compactMap { map[$0] }
+        let result = order.compactMap { map[$0] }
+
+        // Перестроить O(1)-индекс IndexPath для scrollToMessage/highlightMessage.
+        rebuildIndexPathIndex(from: result)
+
+        return result
     }
 
     func buildSnapshot() -> NSDiffableDataSourceSnapshot<String, String> {
@@ -85,19 +116,48 @@ extension ChatViewController {
     }
 }
 
+// MARK: - IndexPath-индекс (O(1) поиск по id)
+
+extension ChatViewController {
+
+    /// Перестраивает словарь id → IndexPath после каждого пересчёта секций.
+    func rebuildIndexPathIndex(from sections: [MessageSection]) {
+        var index: [String: IndexPath] = [:]
+        index.reserveCapacity(sections.reduce(0) { $0 + $1.messages.count })
+        for (si, section) in sections.enumerated() {
+            for (ii, msg) in section.messages.enumerated() {
+                index[msg.id] = IndexPath(item: ii, section: si)
+            }
+        }
+        indexPathIndex = index
+    }
+
+    /// O(1) поиск IndexPath по id сообщения.
+    func indexPath(forMessageID id: String) -> IndexPath? {
+        indexPathIndex[id]
+    }
+}
+
 // MARK: - Кэш размеров и вспомогательные методы
 
 extension ChatViewController {
 
     /// Прогревает кэш размеров ячеек в фоновом потоке.
+    /// Снапшот messageIndex берётся на main thread, чтобы избежать гонки данных.
     func warmCache(for messages: [ChatMessage], width: CGFloat) {
         guard width > 0 else { return }
         let uncached = messages.filter { !sizeCache.contains($0.id) }
         guard !uncached.isEmpty else { return }
 
-        let hasReplyMap = Dictionary(uniqueKeysWithValues: uncached.map { ($0.id, replyExists(for: $0)) })
+        // Снапшот index на текущий момент — безопасно передаётся в background.
+        let indexSnapshot = messageIndex
+        let hasReplyMap = Dictionary(uniqueKeysWithValues: uncached.map { msg in
+            (msg.id, indexSnapshot[msg.reply?.replyToId ?? ""] != nil)
+        })
+
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.sizeCache.prefill(messages: uncached, hasReplyMap: hasReplyMap, collectionViewWidth: width)
+            guard let self else { return }
+            sizeCache.prefill(messages: uncached, hasReplyMap: hasReplyMap, collectionViewWidth: width)
         }
     }
 
@@ -109,15 +169,6 @@ extension ChatViewController {
     func replyExists(for message: ChatMessage) -> Bool {
         guard let id = message.reply?.replyToId else { return false }
         return messageIndex[id] != nil
-    }
-
-    func indexPath(forMessageID id: String) -> IndexPath? {
-        for (si, section) in sections.enumerated() {
-            if let ii = section.messages.firstIndex(where: { $0.id == id }) {
-                return IndexPath(item: ii, section: si)
-            }
-        }
-        return nil
     }
 }
 

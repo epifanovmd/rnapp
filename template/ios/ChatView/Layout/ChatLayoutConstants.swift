@@ -45,6 +45,7 @@ enum ChatLayoutConstants {
     static let footerTrailingPad:     CGFloat = 8
     static let footerInternalSpacing: CGFloat = 3
     static let statusIconWidth:       CGFloat = 13
+    static let statusIconHeight:      CGFloat = 13
 
     // MARK: - Image aspect ratio
 
@@ -77,4 +78,14 @@ enum ChatLayoutConstants {
     static let inputBarTextViewMinHeight: CGFloat = 36
     /// Максимальная высота textView (после — включается скролл).
     static let inputBarTextViewMaxHeight: CGFloat = 120
+
+    // MARK: - Shadows
+
+    /// Тени пузыря сообщения в снапшоте контекстного меню.
+    static let bubbleShadowOpacity: Float   = 0.16
+    static let bubbleShadowRadius:  CGFloat = 10
+
+    /// Тень кнопки FAB.
+    static let fabShadowOpacity: Float   = 0.18
+    static let fabShadowRadius:  CGFloat = 8
 }

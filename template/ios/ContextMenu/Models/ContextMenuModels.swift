@@ -1,3 +1,5 @@
+// MARK: - ContextMenuModels.swift
+
 import UIKit
 
 // MARK: - ContextMenuAction
@@ -8,7 +10,12 @@ public struct ContextMenuAction {
     public let systemImage:   String?
     public let isDestructive: Bool
 
-    public init(id: String, title: String, systemImage: String? = nil, isDestructive: Bool = false) {
+    public init(
+        id:            String,
+        title:         String,
+        systemImage:   String? = nil,
+        isDestructive: Bool = false
+    ) {
         self.id            = id
         self.title         = title
         self.systemImage   = systemImage
@@ -26,15 +33,25 @@ public struct ContextMenuEmoji {
 // MARK: - ContextMenuConfiguration
 
 public struct ContextMenuConfiguration {
-    public let id:         String
-    public let sourceView: UIView
-    public let emojis:     [ContextMenuEmoji]
-    public let actions:    [ContextMenuAction]
+    public let id:                   String
+    public let sourceView:           UIView
+    public let emojis:               [ContextMenuEmoji]
+    public let actions:              [ContextMenuAction]
+    /// Радиус скругления снапшота исходного view.
+    /// Задаётся снаружи — ContextMenu не знает о ChatLayoutConstants.
+    public let snapshotCornerRadius: CGFloat
 
-    public init(id: String, sourceView: UIView, emojis: [ContextMenuEmoji], actions: [ContextMenuAction]) {
-        self.id         = id
-        self.sourceView = sourceView
-        self.emojis     = emojis
-        self.actions    = actions
+    public init(
+        id:                   String,
+        sourceView:           UIView,
+        emojis:               [ContextMenuEmoji],
+        actions:              [ContextMenuAction],
+        snapshotCornerRadius: CGFloat = 0
+    ) {
+        self.id                   = id
+        self.sourceView           = sourceView
+        self.emojis               = emojis
+        self.actions              = actions
+        self.snapshotCornerRadius = snapshotCornerRadius
     }
 }

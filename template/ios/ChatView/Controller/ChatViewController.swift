@@ -42,14 +42,16 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Internal — данные
 
-    var sections: [MessageSection] = []
-    var messageIndex: [String: ChatMessage] = [:]
+    var sections:        [MessageSection]        = []
+    var messageIndex:    [String: ChatMessage]   = [:]
+    /// O(1)-индекс для поиска IndexPath по id — перестраивается в buildSections.
+    var indexPathIndex:  [String: IndexPath]     = [:]
 
     // MARK: - Internal — UI
 
     private(set) var collectionView: UICollectionView!
-    var dataSource: UICollectionViewDiffableDataSource<String, String>!
-    var inputBar: InputBarView!
+    var dataSource:  UICollectionViewDiffableDataSource<String, String>!
+    var inputBar:    InputBarView!
     let sizeCache = MessageSizeCache()
 
     // MARK: - Internal — контекстное меню
@@ -59,20 +61,11 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Internal — keyboard freeze (управляется из ChatViewController_KeyboardFreeze)
 
-    /// Замороженное значение contentInset.bottom на момент открытия контекстного меню.
     var frozenBottomInset: CGFloat?
-
-    /// true пока контекстное меню открыто и inset заморожен.
-    var isInsetFrozen: Bool = false
-
-    /// true если клавиатура была видна в момент открытия контекстного меню.
+    var isInsetFrozen:     Bool = false
     var keyboardWasVisible: Bool = false
-
-    /// Observer нотификации keyboardWillHide, активен пока меню открыто.
-    var kbHideObserver: Any?
-
-    /// Observer нотификации keyboardDidShow, активен пока ждём возврата клавиатуры.
-    var kbShowObserver: Any?
+    var kbHideObserver:    Any?
+    var kbShowObserver:    Any?
 
     // MARK: - Private — пустое состояние
 
@@ -101,8 +94,8 @@ final class ChatViewController: UIViewController {
         button.alpha                    = 0
         button.isUserInteractionEnabled = false
         button.layer.shadowColor        = UIColor.black.cgColor
-        button.layer.shadowOpacity      = 0.18
-        button.layer.shadowRadius       = 8
+        button.layer.shadowOpacity      = ChatLayoutConstants.fabShadowOpacity
+        button.layer.shadowRadius       = ChatLayoutConstants.fabShadowRadius
         button.layer.shadowOffset       = CGSize(width: 0, height: 2)
         return button
     }()
@@ -124,22 +117,22 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Private — состояние скролла
 
-    var waitingForNewMessages    = false
-    var lastKnownMessageCount    = 0
-    var lastContentOffsetY: CGFloat = 0
-    var isProgrammaticScroll     = false
-    var visibleMessageIDs: Set<String> = []
+    var waitingForNewMessages     = false
+    var lastKnownMessageCount     = 0
+    var lastContentOffsetY:    CGFloat = 0
+    var isProgrammaticScroll      = false
+    var visibleMessageIDs:     Set<String> = []
     var lastSectionsInputHash: Int = 0
-    var pendingHighlightId: String?
-    var lastScrollEventTime: CFTimeInterval = 0
+    var pendingHighlightId:    String?
+    var lastScrollEventTime:   CFTimeInterval = 0
     let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
 
     var isUserDragging = false
 
     // MARK: - Private — дебаунс видимости
 
-    var pendingVisibleIDs: Set<String> = []
-    var visibilityDebounceTask: DispatchWorkItem?
+    var pendingVisibleIDs:        Set<String> = []
+    var visibilityDebounceTask:   DispatchWorkItem?
     let visibilityDebounceInterval: TimeInterval = 0.3
 
     // MARK: - Lifecycle
@@ -170,7 +163,19 @@ final class ChatViewController: UIViewController {
         fabArrow.tintColor             = theme.fabArrowColor
         rebuildFABBlur()
         inputBar.applyTheme(theme)
-        collectionView.reloadData()
+
+        // Пересоздаём только видимые ячейки — без полного reloadData().
+        // Это устраняет мигание при переключении темы.
+        if !sections.isEmpty {
+            var snap = dataSource.snapshot()
+            let visibleIDs = collectionView.indexPathsForVisibleItems.compactMap {
+                dataSource.itemIdentifier(for: $0)
+            }
+            if !visibleIDs.isEmpty {
+                snap.reconfigureItems(visibleIDs)
+                dataSource.apply(snap, animatingDifferences: false)
+            }
+        }
     }
 
     private func rebuildFABBlur() {

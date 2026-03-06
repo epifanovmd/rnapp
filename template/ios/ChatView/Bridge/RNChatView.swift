@@ -1,6 +1,4 @@
 // MARK: - RNChatView.swift
-// UPDATED: добавлен проп emojiReactions и колбэк onEmojiReactionSelect
-// для кастомного контекстного меню.
 
 import UIKit
 import React
@@ -15,9 +13,9 @@ enum ChatInputAction {
     init(dict: [String: Any]?) {
         guard
             let dict,
-            let type = dict["type"] as? String,
+            let type      = dict["type"] as? String,
             let messageId = dict["messageId"] as? String,
-            !messageId.isEmpty
+            !messageId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
             self = .none
             return
@@ -36,17 +34,17 @@ enum ChatInputAction {
 
     // MARK: - Events
 
-    @objc var onScroll:               RCTDirectEventBlock?
-    @objc var onReachTop:             RCTDirectEventBlock?
-    @objc var onMessagesVisible:      RCTDirectEventBlock?
-    @objc var onMessagePress:         RCTDirectEventBlock?
-    @objc var onActionPress:          RCTDirectEventBlock?
-    @objc var onEmojiReactionSelect:  RCTDirectEventBlock?   // ← NEW
-    @objc var onSendMessage:          RCTDirectEventBlock?
-    @objc var onEditMessage:          RCTDirectEventBlock?
-    @objc var onCancelInputAction:    RCTDirectEventBlock?
-    @objc var onAttachmentPress:      RCTDirectEventBlock?
-    @objc var onReplyMessagePress:    RCTDirectEventBlock?
+    @objc var onScroll:              RCTDirectEventBlock?
+    @objc var onReachTop:            RCTDirectEventBlock?
+    @objc var onMessagesVisible:     RCTDirectEventBlock?
+    @objc var onMessagePress:        RCTDirectEventBlock?
+    @objc var onActionPress:         RCTDirectEventBlock?
+    @objc var onEmojiReactionSelect: RCTDirectEventBlock?
+    @objc var onSendMessage:         RCTDirectEventBlock?
+    @objc var onEditMessage:         RCTDirectEventBlock?
+    @objc var onCancelInputAction:   RCTDirectEventBlock?
+    @objc var onAttachmentPress:     RCTDirectEventBlock?
+    @objc var onReplyMessagePress:   RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -103,7 +101,8 @@ enum ChatInputAction {
 
     private weak var chatVC: ChatViewController?
     private var pendingInitialScrollId: String?
-    private var initialScrollDone = false
+    private var initialScrollDone      = false
+    private var isAttachedToHierarchy  = false   // guard от повторного addChild
 
     // MARK: - Init
 
@@ -124,7 +123,7 @@ enum ChatInputAction {
         let vc = ChatViewController()
         vc.delegate = self
         chatVC = vc
-        vc.view.frame = bounds
+        vc.view.frame            = bounds
         vc.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         vc.view.backgroundColor  = .clear
         addSubview(vc.view)
@@ -132,11 +131,15 @@ enum ChatInputAction {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        guard window != nil,
-              let vc = chatVC,
-              vc.parent == nil,
-              let parentVC = findParentViewController()
+        guard
+            window != nil,
+            !isAttachedToHierarchy,
+            let vc = chatVC,
+            vc.parent == nil,
+            let parentVC = findParentViewController()
         else { return }
+
+        isAttachedToHierarchy = true
         parentVC.addChild(vc)
         vc.didMove(toParent: parentVC)
     }
@@ -144,6 +147,7 @@ enum ChatInputAction {
     // MARK: - Prop handlers
 
     private func applyTheme() {
+        // Безопасная конвертация строки в тему через rawValue-инициализатор
         chatVC?.theme = (theme as String).lowercased() == "dark" ? .dark : .light
     }
 
@@ -187,7 +191,7 @@ enum ChatInputAction {
 
     private func updateEmojiReactions() {
         guard let vc = chatVC else { return }
-        vc.emojiReactionsList = (emojiReactions as? [String] ?? [])
+        vc.emojiReactionsList = emojiReactions as? [String] ?? []
     }
 
     private func applyInputAction() {

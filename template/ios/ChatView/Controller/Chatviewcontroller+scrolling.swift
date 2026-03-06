@@ -7,28 +7,23 @@ extension ChatViewController {
     /// Синхронизирует contentInset.bottom с текущей позицией inputBar.
     /// Вызывается в viewDidLayoutSubviews — т.е. в каждом кадре анимации клавиатуры.
     func updateCollectionBottomInset() {
-        // Не трогаем inset пока контекстное меню держит его замороженным
         guard !isInsetFrozen else { return }
+        guard let cv = collectionView else { return }
         guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
         let inputBarZone = view.bounds.height - inputBar.frame.minY
 
         // contentInset резервирует место под inputBar + визуальный отступ над ним.
-        let newBottom = inputBarZone
-            + ChatLayoutConstants.collectionBottomPadding
-            + collectionExtraInsetBottom
-
+        let newBottom         = inputBarZone + ChatLayoutConstants.collectionBottomPadding + collectionExtraInsetBottom
         // Индикатор скролла заканчивается у верха inputBar, без визуального padding.
         let newIndicatorBottom = inputBarZone - ChatLayoutConstants.collectionBottomPadding
 
-        let oldBottom = collectionView.contentInset.bottom
+        let oldBottom = cv.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
-
-        let cv = collectionView!
 
         // Во время интерактивного dismiss UIKit сам ведёт offset — только обновляем inset.
         if isUserDragging {
-            cv.contentInset.bottom          = newBottom
+            cv.contentInset.bottom                  = newBottom
             cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
             return
         }
@@ -37,7 +32,7 @@ extension ChatViewController {
         // После смены inset восстанавливаем его — контент поднимается вместе с клавиатурой.
         let distanceFromEnd = cv.contentSize.height - cv.contentOffset.y - cv.bounds.height + oldBottom
 
-        cv.contentInset.bottom          = newBottom
+        cv.contentInset.bottom                  = newBottom
         cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
 
         let newOffsetY = cv.contentSize.height - cv.bounds.height + newBottom - distanceFromEnd
@@ -107,7 +102,7 @@ extension ChatViewController {
     }
 
     func distanceFromBottom() -> CGFloat {
-        let cv = collectionView!
+        guard let cv = collectionView else { return 0 }
         return max(0, cv.contentSize.height - cv.contentOffset.y - cv.bounds.height + cv.contentInset.bottom)
     }
 }

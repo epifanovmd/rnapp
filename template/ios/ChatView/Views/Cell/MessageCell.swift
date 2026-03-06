@@ -18,21 +18,29 @@ final class MessageCell: UICollectionViewCell {
 
     // MARK: - State
 
+    /// Сообщение, связанное с текущей конфигурацией ячейки.
+    /// Используется GestureRecognizer'ом — хранится здесь, а не в objc associated object.
     private var currentMessage:       ChatMessage?
     private var currentResolvedReply: ResolvedReply?
     private var currentTheme:         ChatTheme = .light
 
     // MARK: - Callbacks
 
-    var onReplyTap: ((String) -> Void)?
+    var onReplyTap:  ((String) -> Void)?
+    /// Вызывается при long-press по пузырю. Передаёт сообщение и sourceView для контекстного меню.
+    var onLongPress: ((ChatMessage, UIView) -> Void)?
 
     // MARK: - Init
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupLayout()
+        setupLongPressRecognizer()
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     // MARK: - Layout
 
@@ -48,10 +56,24 @@ final class MessageCell: UICollectionViewCell {
         leadingConstraint  = bubbleView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: m)
         trailingConstraint = bubbleView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -m)
 
-        bubbleWidthConstraint = bubbleView.widthAnchor.constraint(equalToConstant: 200)
+        bubbleWidthConstraint          = bubbleView.widthAnchor.constraint(equalToConstant: 200)
         bubbleWidthConstraint.isActive = true
 
         NSLayoutConstraint.activate([top, bottom])
+    }
+
+    // MARK: - Long Press (создаётся один раз при инициализации — без накопления при reuse)
+
+    private func setupLongPressRecognizer() {
+        let gr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
+        gr.minimumPressDuration = 0.4
+        gr.cancelsTouchesInView = true
+        bubbleView.addGestureRecognizer(gr)
+    }
+
+    @objc private func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+        guard gr.state == .began, let message = currentMessage else { return }
+        onLongPress?(message, bubbleView)
     }
 
     // MARK: - Configure
@@ -88,16 +110,18 @@ final class MessageCell: UICollectionViewCell {
     /// Пузырь — sourceView для контекстного меню.
     var bubbleSnapshotView: UIView { bubbleView }
 
-    // MARK: - Preview helpers (для совместимости, если понадобятся)
+    // MARK: - Preview helpers
 
     func makeBubblePreviewController() -> UIViewController? {
         guard let message = currentMessage else { return nil }
-        let bubbleWidth  = bubbleView.bounds.width
-        let bubbleHeight = bubbleView.bounds.height
+        let bubbleWidth   = bubbleView.bounds.width
+        let bubbleHeight  = bubbleView.bounds.height
+
         let previewBubble = MessageBubbleView()
         previewBubble.configure(with: message, resolvedReply: currentResolvedReply, theme: currentTheme)
         previewBubble.applyLayout(bubbleWidth: bubbleWidth)
         previewBubble.translatesAutoresizingMaskIntoConstraints = false
+
         let vc = UIViewController()
         vc.view.backgroundColor = .clear
         vc.preferredContentSize = CGSize(width: bubbleWidth, height: bubbleHeight)
@@ -131,9 +155,11 @@ final class MessageCell: UICollectionViewCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         bubbleView.layer.removeAllAnimations()
-        onReplyTap           = nil
+        bubbleView.prepareForReuse()
         currentMessage       = nil
         currentResolvedReply = nil
+        onReplyTap           = nil
+        onLongPress          = nil
         leadingConstraint.isActive  = false
         trailingConstraint.isActive = false
     }

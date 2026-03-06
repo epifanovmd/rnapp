@@ -14,10 +14,10 @@ enum InputBarMode: Equatable {
 
     static func == (lhs: InputBarMode, rhs: InputBarMode) -> Bool {
         switch (lhs, rhs) {
-        case (.normal, .normal): return true
-        case (.reply(let a), .reply(let b)): return a == b
+        case (.normal, .normal):                     return true
+        case (.reply(let a), .reply(let b)):         return a == b
         case (.edit(let id1, _), .edit(let id2, _)): return id1 == id2
-        default: return false
+        default:                                     return false
         }
     }
 }
@@ -39,7 +39,7 @@ protocol InputBarDelegate: AnyObject {
     func inputBarDidTapAttachment(_ bar: InputBarView)
 }
 
-// Необязательные методы
+/// Необязательные методы с пустой реализацией по умолчанию.
 extension InputBarDelegate {
     func inputBar(_ bar: InputBarView, didEditText text: String, messageId: String) {}
     func inputBarDidCancelReply(_ bar: InputBarView) {}
@@ -72,10 +72,8 @@ final class InputBarView: UIView {
         return v
     }()
 
-    // Reply preview
     private let replyPreviewInPanel = ReplyPreviewView()
 
-    // Edit preview
     private let editPreviewView: UIView = {
         let v = UIView()
         v.translatesAutoresizingMaskIntoConstraints = false
@@ -84,7 +82,7 @@ final class InputBarView: UIView {
 
     private let editIconView: UIImageView = {
         let cfg = UIImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-        let iv = UIImageView(image: UIImage(systemName: "pencil", withConfiguration: cfg))
+        let iv  = UIImageView(image: UIImage(systemName: "pencil", withConfiguration: cfg))
         iv.contentMode = .scaleAspectFit
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
@@ -141,9 +139,9 @@ final class InputBarView: UIView {
     let textView: UITextView = {
         let tv = UITextView()
         tv.font = .systemFont(ofSize: 16)
-        tv.layer.cornerRadius       = 18
-        tv.textContainerInset       = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
-        tv.isScrollEnabled          = false
+        tv.layer.cornerRadius   = 18
+        tv.textContainerInset   = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 12)
+        tv.isScrollEnabled      = false
         tv.translatesAutoresizingMaskIntoConstraints = false
         return tv
     }()
@@ -183,7 +181,10 @@ final class InputBarView: UIView {
         setupActions()
         textView.delegate = self
     }
-    required init?(coder: NSCoder) { fatalError() }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
 
     // MARK: - Theme
 
@@ -204,7 +205,6 @@ final class InputBarView: UIView {
         editTitleLabel.textColor           = theme.replyPanelSender
         editOriginalLabel.textColor        = theme.replyPanelText
 
-        // Перерендерить reply preview с новой темой если она показана
         if case .reply(let info) = mode {
             replyPreviewInPanel.configure(with: ReplyDisplayInfo(fromSnapshot: info), isMine: false, theme: theme)
         }
@@ -216,7 +216,6 @@ final class InputBarView: UIView {
     /// Если до этого был edit-режим — очищает поле ввода.
     func beginReply(info: ReplyInfo, theme: ChatTheme) {
         replyPreviewInPanel.configure(with: ReplyDisplayInfo(fromSnapshot: info), isMine: false, theme: theme)
-        // При переходе из edit → reply поле содержит старый текст — сбрасываем.
         if case .edit = mode {
             textView.text = ""
             updatePlaceholderVisibility()
@@ -229,12 +228,10 @@ final class InputBarView: UIView {
     func beginEdit(messageId: String, text: String, theme: ChatTheme) {
         applyTheme(theme)
         editOriginalLabel.text = text
-        // Ставим текст ДО transition — чтобы высота считалась корректно
-        textView.text = text
+        textView.text          = text
         updatePlaceholderVisibility()
         updateSendButtonState()
         transition(to: .edit(messageId: messageId, originalText: text), focusTextView: true)
-        // Курсор в конец
         let end = textView.endOfDocument
         textView.selectedTextRange = textView.textRange(from: end, to: end)
     }
@@ -251,18 +248,16 @@ final class InputBarView: UIView {
     private func setupLayout() {
         backgroundColor = .clear
 
-        // ── Top panel ───────────────────────────────────────────────────────
+        // ── Top panel ─────────────────────────────────────────────────────────
         addSubview(topPanel)
         topPanel.addSubview(topPanelSeparator)
 
         replyPreviewInPanel.translatesAutoresizingMaskIntoConstraints = false
         topPanel.addSubview(replyPreviewInPanel)
-
         topPanel.addSubview(editPreviewView)
         editPreviewView.addSubview(editIconView)
         editPreviewView.addSubview(editTitleLabel)
         editPreviewView.addSubview(editOriginalLabel)
-
         topPanel.addSubview(topPanelCloseButton)
 
         topPanelHeightConstraint = topPanel.heightAnchor.constraint(equalToConstant: 0)
@@ -277,13 +272,11 @@ final class InputBarView: UIView {
             topPanelSeparator.trailingAnchor.constraint(equalTo: topPanel.trailingAnchor),
             topPanelSeparator.heightAnchor.constraint(equalToConstant: 0.5),
 
-            // ReplyPreview
             replyPreviewInPanel.leadingAnchor.constraint(equalTo: topPanel.leadingAnchor, constant: 8),
             replyPreviewInPanel.trailingAnchor.constraint(equalTo: topPanelCloseButton.leadingAnchor, constant: -4),
             replyPreviewInPanel.topAnchor.constraint(equalTo: topPanel.topAnchor, constant: 6),
             replyPreviewInPanel.bottomAnchor.constraint(equalTo: topPanel.bottomAnchor, constant: -6),
 
-            // EditPreview container
             editPreviewView.leadingAnchor.constraint(equalTo: topPanel.leadingAnchor, constant: 14),
             editPreviewView.trailingAnchor.constraint(equalTo: topPanelCloseButton.leadingAnchor, constant: -4),
             editPreviewView.topAnchor.constraint(equalTo: topPanel.topAnchor, constant: 6),
@@ -309,7 +302,7 @@ final class InputBarView: UIView {
             topPanelCloseButton.heightAnchor.constraint(equalToConstant: 24),
         ])
 
-        // ── Input container ─────────────────────────────────────────────────
+        // ── Input container ───────────────────────────────────────────────────
         addSubview(containerView)
         containerView.addSubview(separatorView)
         containerView.addSubview(attachButton)
@@ -399,12 +392,9 @@ final class InputBarView: UIView {
         clearTextAndResetMode()
 
         switch previousMode {
-        case .reply:
-            delegate?.inputBarDidCancelReply(self)
-        case .edit:
-            delegate?.inputBarDidCancelEdit(self)
-        case .normal:
-            break
+        case .reply: delegate?.inputBarDidCancelReply(self)
+        case .edit:  delegate?.inputBarDidCancelEdit(self)
+        case .normal: break
         }
     }
 
@@ -413,7 +403,6 @@ final class InputBarView: UIView {
     /// Центральный метод смены режима. Все остальные методы идут через него.
     private func transition(to newMode: InputBarMode, focusTextView: Bool) {
         guard mode != newMode else {
-            // Режим тот же — только сфокусируемся если нужно
             if focusTextView { textView.becomeFirstResponder() }
             return
         }
@@ -422,10 +411,11 @@ final class InputBarView: UIView {
         if focusTextView { textView.becomeFirstResponder() }
     }
 
-    /// Обновляет constraint и видимость subviews под текущий `mode`.
-    /// Использует UIViewPropertyAnimator — прерываемая анимация, безопасна
-    /// при вызове из середины другой анимации.
+    /// Обновляет constraints и видимость subviews под текущий `mode`.
+    /// Все изменения layout собираются в один проход — один вызов layoutIfNeeded()
+    /// и один notifyHeightChange() без лишних повторов.
     private func applyModeToUI(animated: Bool) {
+        // 1. Обновляем constraints топ-панели
         switch mode {
         case .normal:
             topPanelHeightConstraint.constant = 0
@@ -444,6 +434,10 @@ final class InputBarView: UIView {
             editOriginalLabel.text            = originalText
         }
 
+        // 2. Обновляем constraint textView
+        updateTextViewHeightConstraint()
+
+        // 3. Единый layout-проход + единый notifyHeightChange
         if animated {
             // UIViewPropertyAnimator прерывает любую текущую анимацию этих
             // constraints и стартует с их актуального (in-flight) значения.
@@ -454,7 +448,6 @@ final class InputBarView: UIView {
             layoutIfNeeded()
         }
         notifyHeightChange()
-        updateTextViewHeight(animated: animated)
     }
 
     // MARK: - Internal helpers
@@ -479,7 +472,9 @@ final class InputBarView: UIView {
         }
     }
 
-    private func updateTextViewHeight(animated: Bool) {
+    /// Обновляет только constraint высоты textView — без layout-прохода.
+    /// Вызывается из applyModeToUI перед единым layoutIfNeeded().
+    private func updateTextViewHeightConstraint() {
         guard textView.bounds.width > 0 else { return }
         let size = textView.sizeThatFits(
             CGSize(width: textView.bounds.width, height: .greatestFiniteMagnitude))
@@ -490,15 +485,10 @@ final class InputBarView: UIView {
         guard abs(textViewHeightConstraint.constant - newH) > 0.5 else { return }
         textViewHeightConstraint.constant = newH
         textView.isScrollEnabled = newH >= ChatLayoutConstants.inputBarTextViewMaxHeight
-
-        if animated {
-            UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
-        } else {
-            layoutIfNeeded()
-        }
-        notifyHeightChange()
     }
 
+    /// Уведомляет делегата об изменении высоты.
+    /// Вычисляет высоту из текущих constraint-значений — вызывать ПОСЛЕ layoutIfNeeded().
     private func notifyHeightChange() {
         let totalH = textViewHeightConstraint.constant
             + ChatLayoutConstants.inputBarVerticalPadding * 2
@@ -514,7 +504,10 @@ extension InputBarView: UITextViewDelegate {
     func textViewDidChange(_ textView: UITextView) {
         updatePlaceholderVisibility()
         updateSendButtonState()
-        updateTextViewHeight(animated: true)
+        // Обновляем constraint и делаем layout+notify в одном месте
+        updateTextViewHeightConstraint()
+        UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
+        notifyHeightChange()
     }
 
     func textView(
