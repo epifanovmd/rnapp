@@ -134,7 +134,6 @@ final class ChatViewController: UIViewController {
         setupInputBar()
         setupFAB()
         setupDataSource()
-        setupLongPressGesture()  // ← кастомное контекстное меню
         applyTheme()
     }
 

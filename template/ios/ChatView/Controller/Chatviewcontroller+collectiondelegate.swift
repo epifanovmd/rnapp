@@ -1,6 +1,22 @@
 // MARK: - Chatviewcontroller_collectiondelegate.swift
-// UPDATED: Нативное UIContextMenu заменено на ContextMenuViewController.
-// При открытии меню — скрывается клавиатура с сохранением отступа коллекции.
+//
+// ЖЕСТЫ — правильная архитектура:
+//
+// Проблема кастомного UILongPressGestureRecognizer на collectionView:
+//   • cancelsTouchesInView = true  → блокирует reply tap, но тоже блокирует скролл
+//   • cancelsTouchesInView = false → reply tap срабатывает вместе с long press
+//
+// Решение: добавляем long press на bubbleView каждой ячейки (не на collectionView).
+// Жест живёт рядом с replyPreview.tapGestureRecognizer и мы явно требуем
+// чтобы tap реплая упал (require toFail) перед long press → не нужен.
+// Вместо этого: long press на bubbleView с cancelsTouchesInView = true.
+// Когда он срабатывает — он отменяет тап реплая автоматически (они в одной иерархии).
+// didSelectItemAt не срабатывает т.к. collectionView.allowsSelection обрабатывается
+// через UICollectionView hit-test который идёт через contentView, а не через bubbleView.
+//
+// Фактически: long press на bubbleView + cancelsTouchesInView = true — это
+// канонический способ. Тап ячейки (didSelectItemAt) — через отдельный recognizer
+// на contentView, который требует фейла от long press.
 
 import UIKit
 
@@ -12,12 +28,6 @@ extension ChatViewController: UICollectionViewDelegate {
         guard let id = dataSource.itemIdentifier(for: ip), let msg = messageIndex[id] else { return }
         delegate?.chatViewController(self, didTapMessage: msg)
     }
-
-    // MARK: - Long press → кастомное контекстное меню
-
-    // Нативные методы UIContextMenu убраны — теперь используем ContextMenuViewController.
-    // Long press добавляется через setupLongPressGesture() в ChatViewController+ContextMenu.
-    // (см. ниже в этом же файле)
 
     // MARK: - willDisplay / Scroll
 
@@ -117,73 +127,66 @@ extension ChatViewController {
     }
 }
 
-// MARK: - ChatViewController+ContextMenu
+// MARK: - ContextMenu gesture
 
 extension ChatViewController {
 
-    // MARK: Setup
-
-    /// Вызывать из viewDidLoad после setupCollectionView().
-    func setupLongPressGesture() {
-        let lpgr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
-        lpgr.minimumPressDuration = 0.35
-        lpgr.cancelsTouchesInView = false
-        collectionView.addGestureRecognizer(lpgr)
+    /// Вызывается из datasource при создании ячейки.
+    /// Добавляет UILongPressGestureRecognizer непосредственно на bubbleView ячейки.
+    ///
+    /// Почему на bubbleView, а не на collectionView:
+    ///   1. Жест живёт в той же view-иерархии, что и replyPreview tap —
+    ///      UIKit автоматически разрешает конфликт: long press (0.4с) побеждает tap
+    ///      потому что tap requires failure от long press (стандартное поведение UIKit
+    ///      когда оба recognizer на одном view или parent/child).
+    ///   2. cancelsTouchesInView = true отменяет только тачи в bubbleView и ниже,
+    ///      не трогая скролл collectionView (pan gesture живёт выше по иерархии).
+    ///   3. didSelectItemAt не вызывается: UICollectionView обрабатывает selection
+    ///      через свой internal tap, который тоже требует фейла от long press
+    ///      когда recognizer на subview ячейки.
+    func attachLongPress(to cell: MessageCell,
+                         message: ChatMessage) {
+        let lp = UILongPressGestureRecognizer(target: self, action: #selector(handleBubbleLongPress(_:)))
+        lp.minimumPressDuration = 0.4
+        lp.cancelsTouchesInView = true   // отменяет reply tap при срабатывании
+        // Не нужен delegate и не нужен require(toFail:) — UIKit сам разрешает
+        // конфликт между long press и shorter gestures в той же иерархии.
+        cell.bubbleSnapshotView.addGestureRecognizer(lp)
+        // Сохраняем ссылку на message через associated object recognizer
+        objc_setAssociatedObject(lp, &longPressMessageKey, message, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
     }
 
-    // MARK: Long press handler
-
-    @objc func handleLongPress(_ gr: UILongPressGestureRecognizer) {
+    @objc private func handleBubbleLongPress(_ gr: UILongPressGestureRecognizer) {
         guard gr.state == .began else { return }
 
-        let point = gr.location(in: collectionView)
         guard
-            let ip   = collectionView.indexPathForItem(at: point),
-            let id   = dataSource.itemIdentifier(for: ip),
-            let msg  = messageIndex[id],
-            let cell = collectionView.cellForItem(at: ip) as? MessageCell,
+            let message = objc_getAssociatedObject(gr, &longPressMessageKey) as? ChatMessage,
             !actions.isEmpty
         else { return }
 
-        // Haptic
+        // Haptic — вручную, т.к. мы не используем UIContextMenuInteraction
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
-        // Запоминаем отступ коллекции ПЕРЕД скрытием клавиатуры
+        guard let sourceView = gr.view else { return }
+
         freezeCollectionBottomInset()
-
-        // Скрываем клавиатуру без анимации (чтобы отступ остался)
         inputBar.textView.resignFirstResponder()
-
-        // Небольшая задержка — дать resignFirstResponder отработать
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
-            guard let self else { return }
-            self.presentCustomContextMenu(for: msg, sourceView: cell.bubbleSnapshotView)
-        }
+        presentCustomContextMenu(for: message, sourceView: sourceView)
     }
 
-    // MARK: Present menu
-
     private func presentCustomContextMenu(for message: ChatMessage, sourceView: UIView) {
-        let emojis  = contextMenuEmojis
         let menuActions = actions.map { a in
-            ContextMenuAction(
-                id:            a.id,
-                title:         a.title,
-                systemImage:   a.systemImage,
-                isDestructive: a.isDestructive
-            )
+            ContextMenuAction(id: a.id, title: a.title,
+                              systemImage: a.systemImage, isDestructive: a.isDestructive)
         }
-
         let config = ContextMenuConfiguration(
-            id:         message.id,
-            sourceView: sourceView,
-            emojis:     emojis,
-            actions:    menuActions
+            id: message.id, sourceView: sourceView,
+            emojis: contextMenuEmojis, actions: menuActions
         )
-
-        let menuTheme: ContextMenuTheme = theme.isDark ? .dark : .light
-
-        let menuVC = ContextMenuViewController(configuration: config, theme: menuTheme)
+        let menuVC = ContextMenuViewController(
+            configuration: config,
+            theme: theme.isDark ? .dark : .light
+        )
         menuVC.delegate = self
         menuVC.modalPresentationStyle = .overFullScreen
         menuVC.modalTransitionStyle   = .crossDissolve
@@ -191,29 +194,35 @@ extension ChatViewController {
     }
 }
 
+private var longPressMessageKey: UInt8 = 0
+
 // MARK: - ContextMenuDelegate
 
 extension ChatViewController: ContextMenuDelegate {
 
     func contextMenu(_ menu: ContextMenuViewController, didSelectEmoji emoji: String, forId id: String) {
-        restoreCollectionBottomInset()
-        guard let msg = messageIndex[id] else { return }
-        delegate?.chatViewController(self, didSelectEmojiReaction: emoji, for: msg)
+        let restore = prepareRestoreCollectionBottomInset()
+        menu.presentingViewController?.dismiss(animated: false) { [weak self] in
+            restore()
+            guard let self, let msg = self.messageIndex[id] else { return }
+            self.delegate?.chatViewController(self, didSelectEmojiReaction: emoji, for: msg)
+        }
     }
 
     func contextMenu(_ menu: ContextMenuViewController, didSelectAction action: ContextMenuAction, forId id: String) {
-        restoreCollectionBottomInset()
-        guard let msg = messageIndex[id] else { return }
-        let msgAction = MessageAction(
-            id:            action.id,
-            title:         action.title,
-            systemImage:   action.systemImage,
-            isDestructive: action.isDestructive
-        )
-        delegate?.chatViewController(self, didSelectAction: msgAction, for: msg)
+        let restore = prepareRestoreCollectionBottomInset()
+        menu.presentingViewController?.dismiss(animated: false) { [weak self] in
+            restore()
+            guard let self, let msg = self.messageIndex[id] else { return }
+            let msgAction = MessageAction(id: action.id, title: action.title,
+                                          systemImage: action.systemImage,
+                                          isDestructive: action.isDestructive)
+            self.delegate?.chatViewController(self, didSelectAction: msgAction, for: msg)
+        }
     }
 
     func contextMenuDidDismiss(_ menu: ContextMenuViewController, id: String) {
-        restoreCollectionBottomInset()
+        let restore = prepareRestoreCollectionBottomInset()
+        menu.presentingViewController?.dismiss(animated: false) { restore() }
     }
 }

@@ -19,10 +19,14 @@ public final class ContextMenuViewController: UIViewController {
 
     // MARK: State
 
-    private var isDismissing      = false
-    private var didPerformLayout  = false
+    private var isDismissing     = false
+    private var didPerformLayout = false
     private var sourceFrameInWindow: CGRect = .zero
-    private var targetSnapFrame:     CGRect = .zero  // в coords canvas
+
+    // Целевые фреймы в координатах view (не canvas)
+    private var targetSnapFrame:    CGRect = .zero
+    private var targetEmojiFrame:   CGRect = .zero
+    private var targetActionsFrame: CGRect = .zero
     private var needsScroll = false
 
     // MARK: Views
@@ -30,7 +34,6 @@ public final class ContextMenuViewController: UIViewController {
     private let backdropBlur  = UIVisualEffectView()
     private let backdropColor = UIView()
 
-    // ЕДИНЫЙ scrollView — весь контент (emoji + snap + actions) скролится вместе
     private let scrollView: UIScrollView = {
         let sv = UIScrollView()
         sv.showsVerticalScrollIndicator   = false
@@ -38,7 +41,6 @@ public final class ContextMenuViewController: UIViewController {
         sv.contentInsetAdjustmentBehavior = .never
         sv.backgroundColor                = .clear
         sv.alwaysBounceVertical           = false
-        // НЕ задерживаем тачи — кнопки в панелях реагируют мгновенно
         sv.delaysContentTouches           = false
         sv.canCancelContentTouches        = true
         return sv
@@ -61,7 +63,6 @@ public final class ContextMenuViewController: UIViewController {
         modalPresentationStyle = .overFullScreen
         modalTransitionStyle   = .crossDissolve
 
-        // Захват frame ДО любого layout
         let src = configuration.sourceView
         if let win = src.window {
             sourceFrameInWindow = src.convert(src.bounds, to: win)
@@ -75,7 +76,6 @@ public final class ContextMenuViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .clear
 
-        // 1. Backdrop (самый нижний слой)
         backdropBlur.effect = UIBlurEffect(style: theme.backdropBlurStyle)
         backdropBlur.alpha  = 0
         backdropBlur.frame  = view.bounds
@@ -88,20 +88,16 @@ public final class ContextMenuViewController: UIViewController {
         backdropColor.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(backdropColor)
 
-        // Tap-to-dismiss: cancelsTouchesInView = false → тачи долетают до scrollView/панелей.
-        // UIGestureRecognizerDelegate.shouldReceive фильтрует нажатия на контент.
         let tap = UITapGestureRecognizer(target: self, action: #selector(backdropTapped))
         tap.cancelsTouchesInView = false
         tap.delegate = self
         view.addGestureRecognizer(tap)
 
-        // 2. ScrollView поверх backdrop
         scrollView.frame            = view.bounds
         scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(scrollView)
         scrollView.addSubview(canvas)
 
-        // 3. Контент
         buildSnapshot()
         buildEmojiPanel()
         buildActionsView()
@@ -135,7 +131,6 @@ public final class ContextMenuViewController: UIViewController {
         let src = configuration.sourceView
         guard let snap = src.snapshotView(afterScreenUpdates: false) else { return }
 
-        // Точный размер 1:1 — никаких autoresizingMask, никакого scale
         snap.frame                    = CGRect(origin: .zero, size: src.bounds.size)
         snap.isUserInteractionEnabled = false
         snap.layer.cornerRadius       = ChatLayoutConstants.bubbleCornerRadius
@@ -174,10 +169,9 @@ public final class ContextMenuViewController: UIViewController {
         let hPad    = theme.horizontalPadding
         let vPad    = theme.verticalPadding
 
-        // Source frame в coords нашего view
+        // Source frame в координатах нашего view
         let src = view.convert(sourceFrameInWindow, from: view.window)
 
-        // Размеры элементов
         let snapW = src.width
         let snapH = src.height
 
@@ -195,10 +189,10 @@ public final class ContextMenuViewController: UIViewController {
         let bottomLimit = screenH - safe.bottom - vPad
         let available   = bottomLimit - topLimit
 
-        // Горизонталь: snapshot сохраняет X исходника
+        // Горизонталь snapshot
         let snapX = max(hPad, min(src.minX, screenW - snapW - hPad))
 
-        // Горизонталь emoji: прижаты к правому краю snapshot
+        // Горизонталь emoji: выравниваем по правому краю snapshot, но не выходим за экран
         var emojiX = snapX + snapW - emojiW
         emojiX = max(hPad, min(emojiX, screenW - emojiW - hPad))
 
@@ -206,98 +200,133 @@ public final class ContextMenuViewController: UIViewController {
         var menuX = snapX
         if menuX + menuW > screenW - hPad { menuX = screenW - hPad - menuW }
 
-        // Общая высота всего блока
         let totalH = emojiH + eGap + snapH + mGap + menuH
         needsScroll = totalH > available
 
-        // --- Вертикаль в canvas ---
-        let emojiYc: CGFloat   // Y emoji в canvas
-        let snapYc:  CGFloat   // Y snapshot в canvas
-        let menuYc:  CGFloat   // Y menu в canvas
-        let canvasH: CGFloat
-        let initOffsetY: CGFloat  // начальный contentOffset.y
+        // Вертикальные позиции в canvas
+        let emojiYc, snapYc, menuYc, canvasH: CGFloat
+        let initOffsetY: CGFloat
 
         if !needsScroll {
-            // Блок помещается: держимся близко к исходному Y snapshot
             let ideal    = src.minY - emojiH - eGap
             let blockTop = max(topLimit, min(ideal, bottomLimit - totalH))
-            emojiYc    = blockTop
-            snapYc     = emojiYc + emojiH + eGap
-            menuYc     = snapYc + snapH + mGap
-            canvasH    = screenH
+            emojiYc     = blockTop
+            snapYc      = emojiYc + emojiH + eGap
+            menuYc      = snapYc + snapH + mGap
+            canvasH     = screenH
             initOffsetY = 0
         } else {
-            // Скролл: canvas растягивается, начальный offset — видим низ + menu
-            //  [ topPad ] emoji gap snap gap menu [ bottomPad ]
-            emojiYc    = safe.top + vPad
-            snapYc     = emojiYc + emojiH + eGap
-            menuYc     = snapYc + snapH + mGap
-            canvasH    = menuYc + menuH + safe.bottom + vPad
-            // Начальная позиция: меню и низ snapshot видны
+            emojiYc     = safe.top + vPad
+            snapYc      = emojiYc + emojiH + eGap
+            menuYc      = snapYc + snapH + mGap
+            canvasH     = menuYc + menuH + safe.bottom + vPad
             initOffsetY = max(0, menuYc + menuH + safe.bottom + vPad - screenH)
         }
 
-        // Применяем
+        // Применяем layout canvas
         canvas.frame           = CGRect(x: 0, y: 0, width: screenW, height: canvasH)
         scrollView.contentSize = canvas.frame.size
         scrollView.isScrollEnabled = needsScroll
 
-        // Frames в canvas
-        emojiPanelView.frame  = CGRect(x: emojiX, y: emojiYc, width: emojiW, height: emojiH)
-        actionsMenuView.frame = CGRect(x: menuX,  y: menuYc,  width: menuW,  height: menuH)
-        targetSnapFrame       = CGRect(x: snapX,  y: snapYc,  width: snapW,  height: snapH)
+        // Целевые фреймы (куда всё должно прийти)
+        targetSnapFrame    = CGRect(x: snapX,  y: snapYc,  width: snapW,  height: snapH)
+        targetEmojiFrame   = CGRect(x: emojiX, y: emojiYc, width: emojiW, height: emojiH)
+        targetActionsFrame = CGRect(x: menuX,  y: menuYc,  width: menuW,  height: menuH)
 
-        // Snapshot стартует с позиции sourceView в coords canvas
-        // (canvas совпадает с view coords при offset=0, поэтому считаем через offset)
-        let originY = src.minY + initOffsetY   // чтобы snapshot визуально был на месте source
+        // Snapshot стартует точно на месте sourceView
+        let originY = src.minY + initOffsetY
         snapshotView?.frame = CGRect(x: src.minX, y: originY, width: snapW, height: snapH)
 
-        // Устанавливаем начальный offset
         scrollView.contentOffset = CGPoint(x: 0, y: initOffsetY)
 
-        // Начальное состояние панелей
-        emojiPanelView.alpha      = 0
-        emojiPanelView.transform  = CGAffineTransform(scaleX: 0.5, y: 0.5)
-        actionsMenuView.alpha     = 0
-        actionsMenuView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
-        snapshotView?.alpha       = 1
-        snapshotView?.transform   = .identity
+        // ── Начальные позиции панелей ────────────────────────────────────────
+        // Панели стартуют вплотную к снапшоту в его НАЧАЛЬНОЙ позиции (у sourceView).
+        // Анимируются frame → target вместе со снапшотом.
+        // transform используется только для scale (не для смещения) — это важно:
+        // смешивать frame-анимацию и translate-transform нельзя.
+        //
+        // Начальная позиция снапшота в canvas = (src.minX, originY)
+        // Emoji стартует прямо НАД снапшотом: y = originY - emojiH - eGap
+        // Actions стартует прямо ПОД снапшотом: y = originY + snapH + mGap
+
+        // Позиционирование через bounds + center, НЕ через frame.
+        // Правило: когда transform != .identity, frame — вычисляемое свойство
+        // (bounding box после трансформации), устанавливать его нельзя.
+        // Правильный порядок: сначала задать bounds (размер), потом center (позиция),
+        // потом transform (scale). center всегда в координатах superview и не зависит
+        // от transform — это единственная надёжная точка для позиционирования.
+        //
+        // Стартовый center: панели у снапшота в его начальной позиции (originY).
+        // Emoji — над снапшотом, actions — под.
+
+        let startScale: CGFloat = 0.5
+
+        emojiPanelView.bounds    = CGRect(origin: .zero, size: CGSize(width: emojiW, height: emojiH))
+        emojiPanelView.center    = CGPoint(x: emojiX + emojiW / 2,
+                                           y: originY - eGap - emojiH / 2)
+        emojiPanelView.alpha     = 0
+        emojiPanelView.transform = CGAffineTransform(scaleX: startScale, y: startScale)
+
+        actionsMenuView.bounds   = CGRect(origin: .zero, size: CGSize(width: menuW, height: menuH))
+        actionsMenuView.center   = CGPoint(x: menuX + menuW / 2,
+                                           y: originY + snapH + mGap + menuH / 2)
+        actionsMenuView.alpha    = 0
+        actionsMenuView.transform = CGAffineTransform(scaleX: startScale, y: startScale)
     }
 
     // MARK: Animations
 
     private func animateOpen() {
         guard didPerformLayout else { return }
+
         let dur = theme.openDuration
         let d   = theme.springDamping
         let v   = theme.springVelocity
 
-        UIView.animate(withDuration: dur * 0.5) {
+        // Backdrop
+        UIView.animate(withDuration: dur * 0.55, delay: 0, options: .curveEaseOut) {
             self.backdropBlur.alpha  = 1
             self.backdropColor.alpha = 1
         }
 
-        // Snapshot движется на целевую позицию
-        UIView.animate(withDuration: dur, delay: 0,
+        // Snapshot летит на целевую позицию — это основная анимация
+        UIView.animate(
+            withDuration: dur, delay: 0,
             usingSpringWithDamping: d, initialSpringVelocity: v,
-            options: .allowUserInteraction) {
+            options: .allowUserInteraction
+        ) {
             self.snapshotView?.frame = self.targetSnapFrame
         }
 
-        // Actions
-        UIView.animate(withDuration: dur * 0.9, delay: dur * 0.04,
+        // Панели летят из стартовой позиции (у sourceView) к target.
+        // frame + transform анимируются вместе с тем же spring что у снапшота —
+        // визуально весь блок движется как единое целое.
+
+        // Анимируем center (позиция) + transform (scale) — НЕ frame.
+        // Целевой center вычисляется из targetFrame (уже без transform).
+        let emojiTargetCenter   = CGPoint(x: self.targetEmojiFrame.midX,
+                                          y: self.targetEmojiFrame.midY)
+        let actionsTargetCenter = CGPoint(x: self.targetActionsFrame.midX,
+                                          y: self.targetActionsFrame.midY)
+
+        UIView.animate(
+            withDuration: dur, delay: 0,
             usingSpringWithDamping: d, initialSpringVelocity: v,
-            options: .allowUserInteraction) {
-            self.actionsMenuView.alpha     = 1
+            options: .allowUserInteraction
+        ) {
+            self.actionsMenuView.center    = actionsTargetCenter
             self.actionsMenuView.transform = .identity
+            self.actionsMenuView.alpha     = 1
         }
 
-        // Emoji — pop
-        UIView.animate(withDuration: dur * 0.8, delay: dur * 0.05,
-            usingSpringWithDamping: 0.6, initialSpringVelocity: 1.0,
-            options: .allowUserInteraction) {
-            self.emojiPanelView.alpha     = 1
+        UIView.animate(
+            withDuration: dur, delay: 0,
+            usingSpringWithDamping: d - 0.1, initialSpringVelocity: v,
+            options: .allowUserInteraction
+        ) {
+            self.emojiPanelView.center    = emojiTargetCenter
             self.emojiPanelView.transform = .identity
+            self.emojiPanelView.alpha     = 1
         }
     }
 
@@ -306,27 +335,48 @@ public final class ContextMenuViewController: UIViewController {
         isDismissing = true
         let dur = theme.closeDuration
 
-        // Snapshot возвращается на место sourceView в coords canvas
-        let srcInView    = view.convert(sourceFrameInWindow, from: view.window)
+        let srcInView     = view.convert(sourceFrameInWindow, from: view.window)
         let currentOffset = scrollView.contentOffset.y
-        let returnFrame  = CGRect(
+        let returnFrame   = CGRect(
             x: srcInView.minX,
             y: srcInView.minY + currentOffset,
             width: srcInView.width,
             height: srcInView.height
         )
 
-        UIView.animate(withDuration: dur, delay: 0, options: .curveEaseIn) {
-            self.backdropBlur.alpha    = 0
-            self.backdropColor.alpha   = 0
-            self.emojiPanelView.alpha  = 0
-            self.actionsMenuView.alpha = 0
-            self.emojiPanelView.transform  = CGAffineTransform(scaleX: 0.6, y: 0.6)
-            self.actionsMenuView.transform = CGAffineTransform(scaleX: 0.8, y: 0.8)
-        }
+        // Панели схлопываются обратно к позиции sourceView (зеркально открытию)
+        let snapEndY = srcInView.minY + currentOffset
 
-        UIView.animate(withDuration: dur * 1.1, delay: 0,
-            usingSpringWithDamping: 0.85, initialSpringVelocity: 0.2, options: []) {
+        let closeEmojiFrame   = CGRect(x: self.targetEmojiFrame.minX,
+                                       y: snapEndY - self.targetEmojiFrame.height - theme.emojiPanelSpacing,
+                                       width: self.targetEmojiFrame.width,
+                                       height: self.targetEmojiFrame.height)
+        let closeActionsFrame = CGRect(x: self.targetActionsFrame.minX,
+                                       y: snapEndY + srcInView.height + theme.menuSpacing,
+                                       width: self.targetActionsFrame.width,
+                                       height: self.targetActionsFrame.height)
+
+        // Закрытие: center → позиция у снапшота, transform → scale, alpha → 0
+        let closeScale: CGFloat = 0.5
+        let emojiCloseCenter   = CGPoint(x: closeEmojiFrame.midX,   y: closeEmojiFrame.midY)
+        let actionsCloseCenter = CGPoint(x: closeActionsFrame.midX, y: closeActionsFrame.midY)
+
+        UIView.animate(
+            withDuration: dur, delay: 0,
+            usingSpringWithDamping: 0.9, initialSpringVelocity: 0.2,
+            options: []
+        ) {
+            self.backdropBlur.alpha  = 0
+            self.backdropColor.alpha = 0
+
+            self.emojiPanelView.center    = emojiCloseCenter
+            self.emojiPanelView.transform = CGAffineTransform(scaleX: closeScale, y: closeScale)
+            self.emojiPanelView.alpha     = 0
+
+            self.actionsMenuView.center    = actionsCloseCenter
+            self.actionsMenuView.transform = CGAffineTransform(scaleX: closeScale, y: closeScale)
+            self.actionsMenuView.alpha     = 0
+
             self.snapshotView?.frame = returnFrame
         } completion: { _ in
             completion()
@@ -341,7 +391,6 @@ public final class ContextMenuViewController: UIViewController {
         animateClose { [weak self] in
             guard let self else { return }
             self.delegate?.contextMenu(self, didSelectEmoji: emoji, forId: self.configuration.id)
-            self.presentingViewController?.dismiss(animated: false)
         }
     }
 
@@ -349,7 +398,6 @@ public final class ContextMenuViewController: UIViewController {
         animateClose { [weak self] in
             guard let self else { return }
             self.delegate?.contextMenu(self, didSelectAction: action, forId: self.configuration.id)
-            self.presentingViewController?.dismiss(animated: false)
         }
     }
 
@@ -357,7 +405,6 @@ public final class ContextMenuViewController: UIViewController {
         animateClose { [weak self] in
             guard let self else { return }
             self.delegate?.contextMenuDidDismiss(self, id: self.configuration.id)
-            self.presentingViewController?.dismiss(animated: false)
         }
     }
 
@@ -365,6 +412,8 @@ public final class ContextMenuViewController: UIViewController {
         backdropBlur.effect           = UIBlurEffect(style: theme.backdropBlurStyle)
         backdropColor.backgroundColor = theme.backdropColor
     }
+
+    // MARK: - Factory
 
     public static func present(
         configuration: ContextMenuConfiguration,
@@ -381,20 +430,17 @@ public final class ContextMenuViewController: UIViewController {
 }
 
 // MARK: - UIGestureRecognizerDelegate
-// Тап на backdrop не срабатывает если точка попала на контентные элементы
 
 extension ContextMenuViewController: UIGestureRecognizerDelegate {
 
     public func gestureRecognizer(_ gr: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-        // Все координаты в системе canvas (учитывает scrollView offset)
         let ptCanvas = touch.location(in: canvas)
         if emojiPanelView.frame.contains(ptCanvas)  { return false }
-        if actionsMenuView.frame.contains(ptCanvas) { return false }
+        if actionsMenuView.frame.contains(ptCanvas)  { return false }
         if let snap = snapshotView, snap.frame.contains(ptCanvas) { return false }
         return true
     }
 
-    // Позволяем backdrop-тапу срабатывать одновременно со scrollView
     public func gestureRecognizer(
         _ gr: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer

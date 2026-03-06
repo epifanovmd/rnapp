@@ -39,6 +39,7 @@ extension ChatViewController {
             guard let self else { return }
             delegate?.chatViewController(self, didTapReply: replyId)
         }
+        if let cell { attachLongPress(to: cell, message: msg) }
         return cell
     }
 }

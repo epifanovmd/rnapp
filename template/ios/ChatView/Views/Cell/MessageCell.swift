@@ -1,7 +1,4 @@
 // MARK: - MessageCell.swift
-// Ячейка коллекции для одного сообщения.
-// Управляет выравниванием пузыря (left/right) и точной шириной.
-// Анимация подсветки при скролле к сообщению.
 
 import UIKit
 
@@ -19,11 +16,11 @@ final class MessageCell: UICollectionViewCell {
     private var trailingConstraint:    NSLayoutConstraint!
     private var bubbleWidthConstraint: NSLayoutConstraint!
 
-    // MARK: - Stored message (нужен для makeBubblePreviewController)
+    // MARK: - State
 
-    private var currentMessage:      ChatMessage?
+    private var currentMessage:       ChatMessage?
     private var currentResolvedReply: ResolvedReply?
-    private var currentTheme:        ChatTheme = .light
+    private var currentTheme:         ChatTheme = .light
 
     // MARK: - Callbacks
 
@@ -37,7 +34,7 @@ final class MessageCell: UICollectionViewCell {
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    // MARK: - Setup
+    // MARK: - Layout
 
     private func setupLayout() {
         bubbleView.translatesAutoresizingMaskIntoConstraints = false
@@ -86,46 +83,32 @@ final class MessageCell: UICollectionViewCell {
         }
     }
 
-    // MARK: - Context menu: preview controller
+    // MARK: - Bubble access
 
-    /// Строит UIViewController для previewProvider без отдельного класса.
+    /// Пузырь — sourceView для контекстного меню.
+    var bubbleSnapshotView: UIView { bubbleView }
+
+    // MARK: - Preview helpers (для совместимости, если понадобятся)
+
     func makeBubblePreviewController() -> UIViewController? {
         guard let message = currentMessage else { return nil }
-
-        let bubbleWidth = bubbleView.bounds.width
+        let bubbleWidth  = bubbleView.bounds.width
         let bubbleHeight = bubbleView.bounds.height
-
         let previewBubble = MessageBubbleView()
         previewBubble.configure(with: message, resolvedReply: currentResolvedReply, theme: currentTheme)
         previewBubble.applyLayout(bubbleWidth: bubbleWidth)
         previewBubble.translatesAutoresizingMaskIntoConstraints = false
-
         let vc = UIViewController()
         vc.view.backgroundColor = .clear
-        vc.view.layer.cornerRadius = ChatLayoutConstants.bubbleCornerRadius
         vc.preferredContentSize = CGSize(width: bubbleWidth, height: bubbleHeight)
         vc.view.addSubview(previewBubble)
-
         NSLayoutConstraint.activate([
             previewBubble.topAnchor.constraint(equalTo: vc.view.topAnchor),
             previewBubble.bottomAnchor.constraint(equalTo: vc.view.bottomAnchor),
             previewBubble.leadingAnchor.constraint(equalTo: vc.view.leadingAnchor),
             previewBubble.trailingAnchor.constraint(equalTo: vc.view.trailingAnchor),
         ])
-
         return vc
-    }
-
-    // MARK: - Context menu: targeted preview
-
-    /// Возвращает UITargetedPreview точно по контуру пузыря.
-    func makeTargetedPreview() -> UITargetedPreview {
-        let params = UIPreviewParameters()
-  
-        params.visiblePath = UIBezierPath(roundedRect: bubbleView.bounds, cornerRadius: ChatLayoutConstants.bubbleCornerRadius)
-        params.backgroundColor = bubbleView.backgroundColor ?? .clear
-      
-        return UITargetedPreview(view: bubbleView, parameters: params)
     }
 
     // MARK: - Highlight
