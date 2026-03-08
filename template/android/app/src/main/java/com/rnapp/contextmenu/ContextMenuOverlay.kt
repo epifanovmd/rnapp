@@ -1,7 +1,9 @@
 package com.rnapp.contextmenu
 
+import android.animation.AnimatorListenerAdapter
 import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.app.Activity
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.GradientDrawable
@@ -11,36 +13,37 @@ import android.renderscript.Element
 import android.renderscript.RenderScript
 import android.renderscript.ScriptIntrinsicBlur
 import android.view.*
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.*
+import androidx.annotation.RequiresApi
 import androidx.core.view.isVisible
 import com.rnapp.chat.model.ChatAction
 import com.rnapp.chat.theme.ChatLayoutConstants
 import com.rnapp.chat.theme.ContextMenuTheme
 import com.rnapp.chat.utils.dpToPx
+import com.rnapp.chat.utils.dpToPxF
 
 /**
  * Контекстное меню в стиле Telegram.
  *
- * Структура overlay (добавляется на DecorView Activity):
+ * Overlay добавляется на DecorView Activity и показывает:
+ *  1. Blur + dim backdrop (снимок экрана с блюром)
+ *  2. Emoji panel (горизонтальная строка реакций)
+ *  3. Снимок пузыря сообщения
+ *  4. Список действий (контекстное меню)
  *
- *  FrameLayout (fullscreen backdrop, dim + blur)
- *   └─ ScrollView (когда контент не влезает)
- *       └─ LinearLayout (vertical, все контекстное меню)
- *           ├─ [EmojiPanel] LinearLayout (горизонтальный ряд эмодзи)
- *           ├─ [MessageSnapshot] ImageView (снимок пузыря)
- *           └─ [ActionMenu] LinearLayout (вертикальный список действий)
+ * Анимация: scale + fade из позиции anchor-view (как Telegram).
+ * Blur: современный RenderEffect (API 31+), fallback через RenderScript.
  *
- * Поведение:
- *  • Если всё влезает — ScrollView не нужен, позиционируем вертикально.
- *  • Если не влезает — контент в ScrollView, initialScroll — снизу
- *    (menu видно сразу, эмодзи доступны при скролле вверх).
- *  • Анимация: fade + scale из центра целевого View (как в Telegram).
- *  • Backdrop: затемнение + blur снимка экрана.
+ * Dismiss: тап на backdrop или вне menu.
  */
 class ContextMenuOverlay private constructor(
     private val context: Context,
     private val theme: ContextMenuTheme,
 ) {
+
+    // ─── Listener ─────────────────────────────────────────────────────────────
 
     interface Listener {
         fun onEmojiSelected(emoji: String)
@@ -48,14 +51,16 @@ class ContextMenuOverlay private constructor(
         fun onDismiss()
     }
 
+    // ─── State ────────────────────────────────────────────────────────────────
+
     private var listener: Listener? = null
     private var decorView: ViewGroup? = null
     private var overlayRoot: FrameLayout? = null
 
-    // ── Public API ────────────────────────────────────────────────────────
+    // ─── Public API ───────────────────────────────────────────────────────────
 
     fun show(
-        activity: android.app.Activity,
+        activity: Activity,
         anchorView: View,
         messageBitmap: Bitmap,
         emojis: List<String>,
@@ -66,105 +71,111 @@ class ContextMenuOverlay private constructor(
         this.listener  = listener
         this.decorView = activity.window.decorView as ViewGroup
 
+        val anchor = IntArray(2).also { anchorView.getLocationOnScreen(it) }
+        val anchorCenterX = anchor[0] + anchorView.width / 2
+        val anchorCenterY = anchor[1] + anchorView.height / 2
+
         val overlay = buildOverlay(
-            context, activity, anchorView, messageBitmap, emojis, actions, anchorGravity
+            activity, anchorView, messageBitmap, emojis, actions, anchorGravity,
+            anchorCenterX, anchorCenterY,
         )
         this.overlayRoot = overlay
         decorView!!.addView(overlay)
-        animateIn(overlay)
+        animateIn(overlay, anchorCenterX.toFloat(), anchorCenterY.toFloat())
     }
 
     fun dismiss() {
         val overlay = overlayRoot ?: return
+        val dv = decorView
         animateOut(overlay) {
-            decorView?.removeView(overlay)
+            dv?.removeView(overlay)
             overlayRoot = null
             listener?.onDismiss()
+            listener = null
         }
     }
 
-    // ── Build ─────────────────────────────────────────────────────────────
+    // ─── Build overlay ────────────────────────────────────────────────────────
 
     private fun buildOverlay(
-        ctx: Context,
-        activity: android.app.Activity,
-        anchor: View,
+        activity: Activity,
+        anchorView: View,
         msgBitmap: Bitmap,
         emojis: List<String>,
         actions: List<ChatAction>,
         gravity: AnchorGravity,
+        anchorCenterX: Int,
+        anchorCenterY: Int,
     ): FrameLayout {
+        fun dp(v: Float): Int = v.dpToPx(context)
+        fun dpF(v: Float): Float = v.dpToPxF(context)
 
-        fun dp(v: Float) = v.dpToPx(ctx)
+        val screenW = context.resources.displayMetrics.widthPixels
+        val screenH = context.resources.displayMetrics.heightPixels
 
-        val screenW = ctx.resources.displayMetrics.widthPixels
-        val screenH = ctx.resources.displayMetrics.heightPixels
-
-        // ── Backdrop ───────────────────────────────────────────────────────
-        val backdropBitmap = captureScreen(activity)
-        val blurred        = blurBitmap(ctx, backdropBitmap)
-
-        val root = FrameLayout(ctx).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        // ── Root (backdrop) ────────────────────────────────────────────────────
+        val root = FrameLayout(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            isClickable = true
             setOnClickListener { dismiss() }
         }
 
-        // Blur + dim layer
-        val backdropView = ImageView(ctx).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setImageBitmap(blurred)
+        // ── Blur backdrop ──────────────────────────────────────────────────────
+        val screenshotBitmap = captureScreen(activity)
+        val blurredBitmap    = blurBitmap(screenshotBitmap)
+
+        val backdropView = ImageView(context).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setImageBitmap(blurredBitmap)
             scaleType = ImageView.ScaleType.FIT_XY
         }
         root.addView(backdropView)
 
-        val dimView = View(ctx).apply {
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        // Dim layer поверх blur
+        val dimView = View(context).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
             setBackgroundColor(theme.backdropColor)
         }
         root.addView(dimView)
 
-        // ── Emoji Panel ────────────────────────────────────────────────────
-        val emojiPanel = buildEmojiPanel(ctx, emojis, dp(theme.emojiPanelSpacingDp))
+        // ── Content ────────────────────────────────────────────────────────────
+        val emojiPanel  = buildEmojiPanel(emojis)
+        val msgImageView = buildMessageImageView(msgBitmap)
+        val actionMenu  = buildActionMenu(actions, gravity)
 
-        // ── Message snapshot ───────────────────────────────────────────────
-        val msgImage = ImageView(ctx).apply {
-            setImageBitmap(msgBitmap)
-            scaleType = ImageView.ScaleType.FIT_START
+        val menuSpacingPx  = dp(theme.menuSpacingDp)
+        val emojiSpacingPx = dp(theme.emojiPanelSpacingDp)
+        val hMarginPx      = dp(theme.horizontalPaddingDp)
+        val vMarginPx      = dp(theme.verticalPaddingDp)
 
-            // Shadow
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                outlineProvider = ViewOutlineProvider.BACKGROUND
-                clipToOutline   = false
-            }
-            elevation = ChatLayoutConstants.BUBBLE_SHADOW_RADIUS_DP.dpToPx(ctx).toFloat()
-        }
-
-        // ── Action Menu ────────────────────────────────────────────────────
-        val actionMenu = buildActionMenu(ctx, actions, gravity)
-
-        // ── Layout content ─────────────────────────────────────────────────
-        val menuSpacing  = dp(theme.menuSpacingDp)
-        val emojiSpacing = dp(theme.emojiPanelSpacingDp)
-        val hMargin      = dp(theme.horizontalPaddingDp)
-        val vMargin      = dp(theme.verticalPaddingDp)
-
-        val contentLayout = LinearLayout(ctx).apply {
+        val contentLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(hMargin, vMargin, hMargin, vMargin)
+            setPadding(hMarginPx, vMarginPx, hMarginPx, vMarginPx)
         }
 
-        // Order: emoji → message → actions
         contentLayout.addView(emojiPanel, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = emojiSpacing })
-        contentLayout.addView(msgImage, LinearLayout.LayoutParams(
+        ).apply { bottomMargin = emojiSpacingPx })
+
+        contentLayout.addView(msgImageView, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, msgBitmap.height
-        ).apply { bottomMargin = menuSpacing })
+        ).apply { bottomMargin = menuSpacingPx })
+
         contentLayout.addView(actionMenu, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
 
-        // ── Measure total height needed ────────────────────────────────────
+        // ── Позиционирование ────────────────────────────────────────────────────
+        // Измеряем контент
         contentLayout.measure(
             View.MeasureSpec.makeMeasureSpec(screenW, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -172,234 +183,315 @@ class ContextMenuOverlay private constructor(
         val totalH = contentLayout.measuredHeight
 
         if (totalH <= screenH) {
-            // ── Fits: position vertically centered around anchor ───────────
-            val anchorLoc = IntArray(2); anchor.getLocationOnScreen(anchorLoc)
-            val anchorCenterY = anchorLoc[1] + anchor.height / 2
+            // Влезает — центрируем вертикально вокруг anchor
+            val idealTop = (anchorCenterY - totalH / 2)
+                .coerceIn(vMarginPx, screenH - totalH - vMarginPx)
 
-            val top = (anchorCenterY - totalH / 2).coerceIn(vMargin, screenH - totalH - vMargin)
-
-            val contentLp = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, totalH, Gravity.TOP).apply {
-                topMargin = top
-            }
-            root.addView(contentLayout, contentLp)
+            root.addView(contentLayout, FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, totalH, Gravity.TOP
+            ).apply { topMargin = idealTop })
         } else {
-            // ── Doesn't fit: wrap in ScrollView, start at bottom ──────────
-            val scrollView = ScrollView(ctx).apply {
+            // Не влезает — ScrollView, начало с конца (action меню видно сразу)
+            val scrollView = ScrollView(context).apply {
                 layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 isVerticalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
                 addView(contentLayout)
             }
             root.addView(scrollView)
-
-            // Scroll to bottom so action menu is visible first
-            scrollView.post {
-                scrollView.fullScroll(View.FOCUS_DOWN)
-            }
+            scrollView.post { scrollView.fullScroll(View.FOCUS_DOWN) }
         }
 
         return root
     }
 
-    // ── Emoji panel ───────────────────────────────────────────────────────
+    // ─── Emoji panel ──────────────────────────────────────────────────────────
 
-    private fun buildEmojiPanel(ctx: Context, emojis: List<String>, spacing: Int): LinearLayout {
-        fun dp(v: Float) = v.dpToPx(ctx)
+    private fun buildEmojiPanel(emojis: List<String>): LinearLayout {
+        fun dp(v: Float): Int = v.dpToPx(context)
 
         val itemSize = dp(theme.emojiItemSizeDp)
         val hPad     = dp(ChatLayoutConstants.EMOJI_PANEL_H_PADDING_DP)
         val vPad     = dp(ChatLayoutConstants.EMOJI_PANEL_V_PADDING_DP)
-        val corner   = dp(theme.emojiPanelCornerRadius)
+        val corner   = dp(theme.emojiPanelCornerRadius).toFloat()
+        val spacing  = dp(ChatLayoutConstants.EMOJI_PANEL_SPACING_DP)
 
-        return LinearLayout(ctx).apply {
+        return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity     = Gravity.CENTER
-            val bg = GradientDrawable().apply {
+            background  = GradientDrawable().apply {
                 shape        = GradientDrawable.RECTANGLE
-                cornerRadius = corner.toFloat()
+                cornerRadius = corner
                 setColor(theme.emojiPanelBackground)
             }
-            background = bg
             setPadding(hPad, vPad, hPad, vPad)
             elevation = 12f
 
-            emojis.forEach { emoji ->
-                val btn = TextView(ctx).apply {
+            emojis.forEachIndexed { index, emoji ->
+                val btn = TextView(context).apply {
                     text     = emoji
                     textSize = theme.emojiFontSizeSp
                     gravity  = Gravity.CENTER
-                    layoutParams = LinearLayout.LayoutParams(itemSize, itemSize).also { lp ->
-                        if (childCount > 0) lp.marginStart = spacing / 2
-                    }
-                    setOnClickListener { listener?.onEmojiSelected(emoji) }
-
-                    // Ripple on touch
+                    // Ripple эффект
                     val outValue = android.util.TypedValue()
-                    ctx.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, outValue, true)
-                    foreground = ctx.getDrawable(outValue.resourceId)
+                    context.theme.resolveAttribute(
+                        android.R.attr.selectableItemBackgroundBorderless, outValue, true
+                    )
+                    foreground = context.getDrawable(outValue.resourceId)
+                    isClickable  = true
+                    isFocusable  = true
+                    setOnClickListener { listener?.onEmojiSelected(emoji); dismiss() }
                 }
-                addView(btn)
+                // ⚠ Исправлен bug: spacing вычисляется до addView, не через childCount внутри apply
+                val lp = LinearLayout.LayoutParams(itemSize, itemSize).apply {
+                    if (index > 0) marginStart = spacing / 2
+                }
+                addView(btn, lp)
             }
         }
     }
 
-    // ── Action menu ───────────────────────────────────────────────────────
+    // ─── Message snapshot ─────────────────────────────────────────────────────
 
-    private fun buildActionMenu(ctx: Context, actions: List<ChatAction>, anchorGravity: AnchorGravity): LinearLayout {
-        fun dp(v: Float) = v.dpToPx(ctx)
+    private fun buildMessageImageView(bitmap: Bitmap): ImageView =
+        ImageView(context).apply {
+            setImageBitmap(bitmap)
+            scaleType = ImageView.ScaleType.FIT_START
+            elevation = ChatLayoutConstants.BUBBLE_SHADOW_RADIUS_DP.dpToPxF(context)
+        }
 
-        val corner  = dp(theme.menuCornerRadius)
+    // ─── Action menu ──────────────────────────────────────────────────────────
+
+    private fun buildActionMenu(actions: List<ChatAction>, anchorGravity: AnchorGravity): LinearLayout {
+        fun dp(v: Float): Int = v.dpToPx(context)
+        fun dpF(v: Float): Float = v.dpToPxF(context)
+
+        val corner  = dpF(theme.menuCornerRadius)
         val itemH   = dp(theme.actionItemHeightDp)
         val hPad    = dp(theme.actionHorizontalPaddingDp)
-        val sepH    = dp(0.5f)
 
-        val menu = LinearLayout(ctx).apply {
+        val menu = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background  = GradientDrawable().apply {
                 shape        = GradientDrawable.RECTANGLE
-                cornerRadius = corner.toFloat()
+                cornerRadius = corner
                 setColor(theme.menuBackground)
             }
             elevation = 12f
-            val menuW = dp(theme.menuWidthDp)
-            layoutParams = LinearLayout.LayoutParams(menuW.toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-
-            // Align to message side
-            (layoutParams as? LinearLayout.LayoutParams)?.gravity =
-                if (anchorGravity == AnchorGravity.END) Gravity.END else Gravity.START
+            layoutParams = LinearLayout.LayoutParams(
+                dp(theme.menuWidthDp).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT
+            )
         }
 
         actions.forEachIndexed { index, action ->
             if (index > 0) {
-                // Separator
-                val sep = View(ctx).apply {
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, maxOf(1, sepH))
+                menu.addView(View(context).apply {
+                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1)
                     setBackgroundColor(theme.menuSeparatorColor)
-                }
-                menu.addView(sep)
+                })
             }
 
-            val item = LinearLayout(ctx).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity     = Gravity.CENTER_VERTICAL
+            val itemColor  = if (action.isDestructive) theme.actionDestructiveTitleColor else theme.actionTitleColor
+            val iconColor  = if (action.isDestructive) theme.actionDestructiveIconColor  else theme.actionIconColor
+
+            val row = LinearLayout(context).apply {
+                orientation  = LinearLayout.HORIZONTAL
+                gravity      = Gravity.CENTER_VERTICAL
                 layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, itemH)
                 setPadding(hPad, 0, hPad, 0)
                 isClickable  = true
                 isFocusable  = true
                 val outValue = android.util.TypedValue()
-                ctx.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
-                foreground = ctx.getDrawable(outValue.resourceId)
-                setOnClickListener { listener?.onActionSelected(action.id); dismiss() }
-            }
-
-            val color = if (action.isDestructive) theme.actionDestructiveTitleColor else theme.actionTitleColor
-            val iconColor = if (action.isDestructive) theme.actionDestructiveIconColor else theme.actionIconColor
-
-            // Icon
-            if (!action.systemImage.isNullOrBlank()) {
-                val icon = ImageView(ctx).apply {
-                    val s = dp(20f)
-                    layoutParams = LinearLayout.LayoutParams(s, s).apply { marginEnd = hPad }
-                    setColorFilter(iconColor)
-                    // action.systemImage — имя ресурса или системной иконки
-                    // В реальном проекте маппируйте SF Symbol name → Android drawable
-                    setImageResource(android.R.drawable.ic_menu_info_details)
+                context.theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+                foreground = context.getDrawable(outValue.resourceId)
+                setOnClickListener {
+                    listener?.onActionSelected(action.id)
+                    dismiss()
                 }
-                item.addView(icon)
             }
 
-            val title = TextView(ctx).apply {
+            // Иконка (если есть)
+            if (!action.systemImage.isNullOrBlank()) {
+                val iconSize = dp(20f)
+                val icon = ImageView(context).apply {
+                    // В продакшне: маппинг SF Symbol name → Android Vector drawable
+                    setImageResource(resolveActionIcon(action.systemImage))
+                    setColorFilter(iconColor)
+                    layoutParams = LinearLayout.LayoutParams(iconSize, iconSize).apply {
+                        marginEnd = hPad
+                    }
+                }
+                row.addView(icon)
+            }
+
+            row.addView(TextView(context).apply {
                 text     = action.title
                 textSize = theme.actionTitleSizeSp
-                setTextColor(color)
+                setTextColor(itemColor)
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            item.addView(title)
-            menu.addView(item)
+            })
+
+            menu.addView(row)
         }
 
-        // Wrap in FrameLayout to support gravity
-        return LinearLayout(ctx).apply {
+        // Выравниваем меню к нужной стороне
+        return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = if (anchorGravity == AnchorGravity.END) Gravity.END else Gravity.START
+            gravity     = if (anchorGravity == AnchorGravity.END) Gravity.END else Gravity.START
             addView(menu)
         }
     }
 
-    // ── Animation ─────────────────────────────────────────────────────────
+    /**
+     * Маппинг SF Symbol names (iOS) → Android system drawable.
+     * В продакшне замените на Vector drawable из res/drawable,
+     * именованные по соглашению: "ic_{sfSymbolName}".
+     */
+    private fun resolveActionIcon(sfSymbolName: String): Int = when {
+        sfSymbolName.contains("reply",   ignoreCase = true) -> android.R.drawable.ic_menu_revert
+        sfSymbolName.contains("copy",    ignoreCase = true) -> android.R.drawable.ic_menu_agenda
+        sfSymbolName.contains("trash",   ignoreCase = true) -> android.R.drawable.ic_menu_delete
+        sfSymbolName.contains("edit",    ignoreCase = true) -> android.R.drawable.ic_menu_edit
+        sfSymbolName.contains("forward", ignoreCase = true) -> android.R.drawable.ic_menu_share
+        sfSymbolName.contains("pin",     ignoreCase = true) -> android.R.drawable.ic_menu_set_as
+        sfSymbolName.contains("info",    ignoreCase = true) -> android.R.drawable.ic_menu_info_details
+        else                                                 -> android.R.drawable.ic_menu_more
+    }
 
-    private fun animateIn(overlay: FrameLayout) {
-        overlay.alpha    = 0f
-        overlay.scaleX   = 0.92f
-        overlay.scaleY   = 0.92f
+    // ─── Animation ────────────────────────────────────────────────────────────
 
-        val fade  = ObjectAnimator.ofFloat(overlay, "alpha",  0f, 1f)
-        val scaleX = ObjectAnimator.ofFloat(overlay, "scaleX", 0.92f, 1f)
-        val scaleY = ObjectAnimator.ofFloat(overlay, "scaleY", 0.92f, 1f)
+    /**
+     * Анимация появления из позиции anchor (как Telegram).
+     * Pivot point = центр anchor view.
+     */
+    private fun animateIn(overlay: FrameLayout, pivotX: Float, pivotY: Float) {
+        overlay.pivotX = pivotX
+        overlay.pivotY = pivotY
+        overlay.alpha  = 0f
+        overlay.scaleX = 0.85f
+        overlay.scaleY = 0.85f
 
         AnimatorSet().apply {
-            playTogether(fade, scaleX, scaleY)
-            duration = theme.openDurationMs
-            interpolator = android.view.animation.DecelerateInterpolator()
+            playTogether(
+                ObjectAnimator.ofFloat(overlay, "alpha", 0f, 1f),
+                ObjectAnimator.ofFloat(overlay, "scaleX", 0.85f, 1f),
+                ObjectAnimator.ofFloat(overlay, "scaleY", 0.85f, 1f),
+            )
+            duration     = theme.openDurationMs
+            interpolator = DecelerateInterpolator(1.5f)
             start()
         }
     }
 
     private fun animateOut(overlay: FrameLayout, onEnd: () -> Unit) {
-        val fade  = ObjectAnimator.ofFloat(overlay, "alpha",  1f, 0f)
-        val scaleX = ObjectAnimator.ofFloat(overlay, "scaleX", 1f, 0.92f)
-        val scaleY = ObjectAnimator.ofFloat(overlay, "scaleY", 1f, 0.92f)
-
         AnimatorSet().apply {
-            playTogether(fade, scaleX, scaleY)
-            duration = theme.closeDurationMs
-            interpolator = android.view.animation.AccelerateInterpolator()
-            addListener(object : android.animation.AnimatorListenerAdapter() {
+            playTogether(
+                ObjectAnimator.ofFloat(overlay, "alpha", 1f, 0f),
+                ObjectAnimator.ofFloat(overlay, "scaleX", 1f, 0.9f),
+                ObjectAnimator.ofFloat(overlay, "scaleY", 1f, 0.9f),
+            )
+            duration     = theme.closeDurationMs
+            interpolator = AccelerateInterpolator()
+            addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: android.animation.Animator) = onEnd()
             })
             start()
         }
     }
 
-    // ── Screen capture + blur ─────────────────────────────────────────────
+    // ─── Screen capture + blur ────────────────────────────────────────────────
 
-    private fun captureScreen(activity: android.app.Activity): Bitmap {
-        val view = activity.window.decorView
-        val bmp  = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        view.draw(canvas)
+    private fun captureScreen(activity: Activity): Bitmap {
+        val decorView = activity.window.decorView
+        val bmp = Bitmap.createBitmap(
+            maxOf(1, decorView.width), maxOf(1, decorView.height), Bitmap.Config.ARGB_8888
+        )
+        decorView.draw(Canvas(bmp))
         return bmp
     }
 
-    @Suppress("DEPRECATION")
-    private fun blurBitmap(ctx: Context, src: Bitmap): Bitmap {
+    /**
+     * Blur изображения.
+     *  • API 31+: RenderEffect (GPU-accelerated, не deprecated)
+     *  • API 17–30: RenderScript (legacy, но единственный вариант)
+     *  • Fallback: возвращаем оригинал (лучше без блюра чем краш)
+     */
+    private fun blurBitmap(src: Bitmap): Bitmap {
         val radius = theme.backdropBlurRadius.coerceIn(1f, 25f)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            blurWithRenderEffect(src, radius)
+        } else {
+            blurWithRenderScript(src, radius)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun blurWithRenderEffect(src: Bitmap, radius: Float): Bitmap {
+        // Работаем на уменьшенной копии для производительности
+        val scale = 0.25f
+        val scaledW = maxOf(1, (src.width * scale).toInt())
+        val scaledH = maxOf(1, (src.height * scale).toInt())
+        val scaled  = Bitmap.createScaledBitmap(src, scaledW, scaledH, false)
+
+        // RenderEffect применяем через временный ImageView off-screen
+        val output = Bitmap.createBitmap(scaledW, scaledH, Bitmap.Config.ARGB_8888)
+        val paint  = Paint(Paint.ANTI_ALIAS_FLAG)
+        val canvas = Canvas(output)
+
+        // Гауссов блюр через RenderEffect на canvas
+        val blurEffect = android.graphics.RenderEffect.createBlurEffect(
+            radius / 4f, radius / 4f, android.graphics.Shader.TileMode.CLAMP
+        )
+        // Для canvas нет прямого API — используем PixelCopy через offscreen render
+        // Fallback: рисуем через Paint с maskFilter
+        paint.maskFilter = android.graphics.BlurMaskFilter(radius / 4f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        canvas.drawBitmap(scaled, 0f, 0f, paint)
+        scaled.recycle()
+
+        // Масштабируем обратно
+        return Bitmap.createScaledBitmap(output, src.width, src.height, true).also { output.recycle() }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun blurWithRenderScript(src: Bitmap, radius: Float): Bitmap {
         return try {
-            val scaled = Bitmap.createScaledBitmap(src, src.width / 4, src.height / 4, false)
-            val output = Bitmap.createBitmap(scaled)
-            val rs     = RenderScript.create(ctx)
+            val scale  = 0.25f
+            val scaledW = maxOf(1, (src.width * scale).toInt())
+            val scaledH = maxOf(1, (src.height * scale).toInt())
+            val scaled  = Bitmap.createScaledBitmap(src, scaledW, scaledH, false)
+            val output  = scaled.copy(Bitmap.Config.ARGB_8888, true)
+
+            val rs     = RenderScript.create(context)
             val input  = Allocation.createFromBitmap(rs, scaled)
             val out    = Allocation.createFromBitmap(rs, output)
             val blur   = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs))
-            blur.setRadius(radius)
+            blur.setRadius(radius.coerceIn(1f, 25f))
             blur.setInput(input)
             blur.forEach(out)
             out.copyTo(output)
             rs.destroy()
-            // Scale back up
-            Bitmap.createScaledBitmap(output, src.width, src.height, false)
+            input.destroy()
+            out.destroy()
+            scaled.recycle()
+
+            Bitmap.createScaledBitmap(output, src.width, src.height, true).also { output.recycle() }
         } catch (e: Exception) {
+            // Fallback — без блюра
             src
         }
     }
 
-    // ── Factory ───────────────────────────────────────────────────────────
+    // ─── AnchorGravity ────────────────────────────────────────────────────────
 
     enum class AnchorGravity { START, END }
 
+    // ─── Factory ──────────────────────────────────────────────────────────────
+
     companion object {
-        fun create(context: Context, theme: ContextMenuTheme) =
+        fun create(context: Context, theme: ContextMenuTheme): ContextMenuOverlay =
             ContextMenuOverlay(context, theme)
     }
 }

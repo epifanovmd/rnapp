@@ -1,6 +1,5 @@
 package com.rnapp.chat.module
 
-import android.graphics.Color
 import com.facebook.react.bridge.ReadableArray
 import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.common.MapBuilder
@@ -9,15 +8,29 @@ import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.annotations.ReactProp
 import com.facebook.react.uimanager.events.RCTEventEmitter
 import com.rnapp.chat.ChatView
-import com.rnapp.chat.model.*
+import com.rnapp.chat.model.ChatAction
+import com.rnapp.chat.model.ChatImageItem
+import com.rnapp.chat.model.ChatInputAction
+import com.rnapp.chat.model.ChatMessage
+import com.rnapp.chat.model.ChatReplyRef
+import com.rnapp.chat.model.ChatScrollPosition
+import com.rnapp.chat.model.MessageStatus
 
 /**
  * React Native ViewManager для ChatView.
- * Регистрирует все props и events из NativeChatViewSpec.ts.
+ *
+ * Регистрирует все props и commands из NativeChatViewSpec.ts.
+ * Зеркалит RNChatViewManager.swift / RNChatView.swift по логике бриджа.
  *
  * Регистрация в ReactPackage:
  *   override fun createViewManagers(context: ReactApplicationContext) =
  *       listOf(ChatViewManager(), ContextMenuViewManager())
+ *
+ * Важные детали:
+ *  • initialScrollId сохраняется в pending и применяется только после
+ *    первого setMessages() — как в RNChatView.swift (pendingInitialScrollId).
+ *  • events эмитируются через RCTEventEmitter с WritableMap payload.
+ *  • Все dp/threshold props передаются как Float из JS (density-independent).
  */
 class ChatViewManager : SimpleViewManager<ChatView>() {
 
@@ -25,58 +38,64 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
 
     override fun createViewInstance(ctx: ThemedReactContext): ChatView =
         ChatView(ctx).also { view ->
-            view.onScroll = { x, y ->
-                emit(ctx, view, Events.ON_SCROLL, mapOf("x" to x, "y" to y))
-            }
-            view.onReachTop = { dist ->
-                emit(ctx, view, Events.ON_REACH_TOP, mapOf("distanceFromTop" to dist))
-            }
-            view.onMessagesVisible = { ids ->
-                emit(ctx, view, Events.ON_MESSAGES_VISIBLE, mapOf("messageIds" to ids))
-            }
-            view.onMessagePress = { id ->
-                emit(ctx, view, Events.ON_MESSAGE_PRESS, mapOf("messageId" to id))
-            }
-            view.onActionPress = { actionId, messageId ->
-                emit(ctx, view, Events.ON_ACTION_PRESS, mapOf("actionId" to actionId, "messageId" to messageId))
-            }
-            view.onEmojiReactionSelect = { emoji, messageId ->
-                emit(ctx, view, Events.ON_EMOJI_REACTION_SELECT, mapOf("emoji" to emoji, "messageId" to messageId))
-            }
-            view.onSendMessage = { text, replyToId ->
-                val map = mutableMapOf<String, Any?>("text" to text)
-                replyToId?.let { map["replyToId"] = it }
-                emit(ctx, view, Events.ON_SEND_MESSAGE, map)
-            }
-            view.onEditMessage = { text, messageId ->
-                emit(ctx, view, Events.ON_EDIT_MESSAGE, mapOf("text" to text, "messageId" to messageId))
-            }
-            view.onCancelInputAction = { type ->
-                emit(ctx, view, Events.ON_CANCEL_INPUT_ACTION, mapOf("type" to type))
-            }
-            view.onAttachmentPress = {
-                emit(ctx, view, Events.ON_ATTACHMENT_PRESS, emptyMap<String, Any>())
-            }
-            view.onReplyMessagePress = { id ->
-                emit(ctx, view, Events.ON_REPLY_MESSAGE_PRESS, mapOf("messageId" to id))
-            }
+            wireCallbacks(view, ctx)
         }
 
-    // ── Props ─────────────────────────────────────────────────────────────
+    // ─── Callbacks → Events ───────────────────────────────────────────────────
+
+    private fun wireCallbacks(view: ChatView, ctx: ThemedReactContext) {
+        view.onScroll = { x, y ->
+            emit(ctx, view, Events.ON_SCROLL, mapOf("x" to x, "y" to y))
+        }
+        view.onReachTop = { dist ->
+            emit(ctx, view, Events.ON_REACH_TOP, mapOf("distanceFromTop" to dist))
+        }
+        view.onMessagesVisible = { ids ->
+            emit(ctx, view, Events.ON_MESSAGES_VISIBLE, mapOf("messageIds" to ids))
+        }
+        view.onMessagePress = { id ->
+            emit(ctx, view, Events.ON_MESSAGE_PRESS, mapOf("messageId" to id))
+        }
+        view.onActionPress = { actionId, messageId ->
+            emit(ctx, view, Events.ON_ACTION_PRESS, mapOf("actionId" to actionId, "messageId" to messageId))
+        }
+        view.onEmojiReactionSelect = { emoji, messageId ->
+            emit(ctx, view, Events.ON_EMOJI_REACTION_SELECT, mapOf("emoji" to emoji, "messageId" to messageId))
+        }
+        view.onSendMessage = { text, replyToId ->
+            val payload = mutableMapOf<String, Any?>("text" to text)
+            replyToId?.let { payload["replyToId"] = it }
+            emit(ctx, view, Events.ON_SEND_MESSAGE, payload)
+        }
+        view.onEditMessage = { text, messageId ->
+            emit(ctx, view, Events.ON_EDIT_MESSAGE, mapOf("text" to text, "messageId" to messageId))
+        }
+        view.onCancelInputAction = { type ->
+            emit(ctx, view, Events.ON_CANCEL_INPUT_ACTION, mapOf("type" to type))
+        }
+        view.onAttachmentPress = {
+            emit(ctx, view, Events.ON_ATTACHMENT_PRESS, emptyMap<String, Any?>())
+        }
+        view.onReplyMessagePress = { id ->
+            emit(ctx, view, Events.ON_REPLY_MESSAGE_PRESS, mapOf("messageId" to id))
+        }
+    }
+
+    // ─── Props ────────────────────────────────────────────────────────────────
 
     @ReactProp(name = "messages")
     fun setMessages(view: ChatView, messages: ReadableArray?) {
-        val list = messages?.toArrayList()?.mapNotNull { item ->
-            (item as? Map<*, *>)?.toChatMessage()
-        } ?: emptyList()
+        val list = messages?.toArrayList()
+            ?.mapNotNull { (it as? Map<*, *>)?.toChatMessage() }
+            ?: emptyList()
         view.setMessages(list)
     }
 
     @ReactProp(name = "actions")
     fun setActions(view: ChatView, actions: ReadableArray?) {
-        view.actions = actions?.toArrayList()?.mapNotNull { item ->
-            (item as? Map<*, *>)?.toChatAction()
-        } ?: emptyList()
+        view.actions = actions?.toArrayList()
+            ?.mapNotNull { (it as? Map<*, *>)?.toChatAction() }
+            ?: emptyList()
     }
 
     @ReactProp(name = "emojiReactions")
@@ -96,71 +115,89 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
 
     @ReactProp(name = "scrollToBottomThreshold", defaultFloat = 150f)
     fun setScrollToBottomThreshold(view: ChatView, threshold: Float) {
-        view.scrollToBottomThreshold = threshold.toInt()
+        // threshold из JS в dp → конвертируем в px
+        val px = (threshold * view.resources.displayMetrics.density + 0.5f).toInt()
+        view.scrollToBottomThreshold = px
     }
 
     @ReactProp(name = "topThreshold", defaultFloat = 200f)
     fun setTopThreshold(view: ChatView, threshold: Float) {
-        view.topThreshold = threshold.toInt()
+        val px = (threshold * view.resources.displayMetrics.density + 0.5f).toInt()
+        view.topThreshold = px
     }
 
     @ReactProp(name = "collectionInsetTop", defaultFloat = 0f)
     fun setCollectionInsetTop(view: ChatView, inset: Float) {
-        view.collectionInsetTop = inset.toInt()
+        val px = (inset * view.resources.displayMetrics.density + 0.5f).toInt()
+        view.collectionInsetTop = px
     }
 
     @ReactProp(name = "collectionInsetBottom", defaultFloat = 0f)
     fun setCollectionInsetBottom(view: ChatView, inset: Float) {
-        view.collectionInsetBottom = inset.toInt()
+        val px = (inset * view.resources.displayMetrics.density + 0.5f).toInt()
+        view.collectionInsetBottom = px
     }
 
     @ReactProp(name = "inputAction")
     fun setInputAction(view: ChatView, action: ReadableMap?) {
-        view.setInputAction(
-            action?.let {
-                ChatInputAction(
-                    type      = it.getString("type") ?: "none",
-                    messageId = if (it.hasKey("messageId")) it.getString("messageId") else null,
-                )
-            }
-        )
+        val chatAction = action?.let {
+            val type      = it.getString("type") ?: return@let null
+            val messageId = if (it.hasKey("messageId")) it.getString("messageId") else null
+            if (messageId.isNullOrBlank() && type != "none") return@let null
+            ChatInputAction(type = type, messageId = messageId)
+        }
+        view.setInputAction(chatAction)
     }
 
+    /**
+     * initialScrollId — сохраняем как pending.
+     * ChatView применит его после первого setMessages(), как в iOS.
+     */
     @ReactProp(name = "initialScrollId")
     fun setInitialScrollId(view: ChatView, id: String?) {
-        if (id != null) view.scrollToMessage(id, animated = false, highlight = false)
+        view.setPendingInitialScrollId(id)
     }
 
-    // ── Commands ──────────────────────────────────────────────────────────
+    // ─── Commands ─────────────────────────────────────────────────────────────
 
     override fun getCommandsMap(): Map<String, Int> = mapOf(
-        CMD_SCROLL_TO_BOTTOM  to CMD_SCROLL_TO_BOTTOM_ID,
-        CMD_SCROLL_TO_MESSAGE to CMD_SCROLL_TO_MESSAGE_ID,
+        CMD_SCROLL_TO_BOTTOM   to CMD_SCROLL_TO_BOTTOM_ID,
+        CMD_SCROLL_TO_MESSAGE  to CMD_SCROLL_TO_MESSAGE_ID,
     )
 
     override fun receiveCommand(view: ChatView, commandId: String, args: ReadableArray?) {
         when (commandId) {
-            CMD_SCROLL_TO_BOTTOM  -> view.scrollToBottom(animated = true)
+            CMD_SCROLL_TO_BOTTOM -> view.scrollToBottom(animated = true)
             CMD_SCROLL_TO_MESSAGE -> {
                 val messageId = args?.getString(0) ?: return
-                val position  = args.getString(1) ?: "center"
-                val animated  = args.getBoolean(2)
-                val highlight = args.getBoolean(3)
+                val posStr    = args.getString(1) ?: "center"
+                val animated  = if (args.size() > 2) args.getBoolean(2) else true
+                val highlight = if (args.size() > 3) args.getBoolean(3) else true
+                val position  = when (posStr.lowercase()) {
+                    "top"    -> ChatScrollPosition.TOP
+                    "bottom" -> ChatScrollPosition.BOTTOM
+                    else     -> ChatScrollPosition.CENTER
+                }
                 view.scrollToMessage(messageId, position, animated, highlight)
             }
         }
     }
 
-    // ── Events ────────────────────────────────────────────────────────────
+    // ─── Events ───────────────────────────────────────────────────────────────
 
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> =
         Events.ALL.fold(MapBuilder.builder<String, Any>()) { acc, event ->
             acc.put(event, MapBuilder.of("registrationName", event))
         }.build()
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    private fun emit(ctx: ThemedReactContext, view: ChatView, event: String, data: Map<String, Any?>) {
+    private fun emit(
+        ctx: ThemedReactContext,
+        view: ChatView,
+        event: String,
+        data: Map<String, Any?>,
+    ) {
         ctx.getJSModule(RCTEventEmitter::class.java)
             .receiveEvent(view.id, event, data.toWritableMap())
     }
@@ -169,40 +206,47 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
         val map = com.facebook.react.bridge.Arguments.createMap()
         forEach { (k, v) ->
             when (v) {
-                is String  -> map.putString(k, v)
-                is Boolean -> map.putBoolean(k, v)
-                is Int     -> map.putInt(k, v)
-                is Double  -> map.putDouble(k, v)
-                is Float   -> map.putDouble(k, v.toDouble())
-                is List<*> -> map.putArray(k, com.facebook.react.bridge.Arguments.fromList(v))
-                null       -> map.putNull(k)
-                else       -> map.putString(k, v.toString())
+                is String    -> map.putString(k, v)
+                is Boolean   -> map.putBoolean(k, v)
+                is Int       -> map.putInt(k, v)
+                is Double    -> map.putDouble(k, v)
+                is Float     -> map.putDouble(k, v.toDouble())
+                is List<*>   -> map.putArray(k, com.facebook.react.bridge.Arguments.fromList(v))
+                null         -> map.putNull(k)
+                else         -> map.putString(k, v.toString())
             }
         }
         return map
     }
 
+    // ─── Parsing helpers ──────────────────────────────────────────────────────
+
     private fun Map<*, *>.toChatMessage(): ChatMessage? {
         val id        = get("id") as? String ?: return null
         val timestamp = (get("timestamp") as? Number)?.toDouble() ?: return null
+
         return ChatMessage(
             id         = id,
             text       = get("text") as? String,
-            images     = (get("images") as? List<*>)?.mapNotNull { it as? Map<*, *> }?.map { img ->
-                ChatImageItem(
-                    url          = img["url"] as? String ?: "",
-                    width        = (img["width"] as? Number)?.toDouble(),
-                    height       = (img["height"] as? Number)?.toDouble(),
-                    thumbnailUrl = img["thumbnailUrl"] as? String,
-                )
-            },
+            images     = (get("images") as? List<*>)
+                ?.mapNotNull { it as? Map<*, *> }
+                ?.map { img ->
+                    ChatImageItem(
+                        url          = img["url"] as? String ?: "",
+                        width        = (img["width"] as? Number)?.toDouble(),
+                        height       = (img["height"] as? Number)?.toDouble(),
+                        thumbnailUrl = img["thumbnailUrl"] as? String,
+                    )
+                },
             timestamp  = timestamp,
             senderName = get("senderName") as? String,
             isMine     = get("isMine") as? Boolean ?: false,
-            status     = get("status") as? String,
+            // Используем enum MessageStatus вместо raw String
+            status     = MessageStatus.from(get("status") as? String),
             replyTo    = (get("replyTo") as? Map<*, *>)?.let { r ->
+                val replyId = r["id"] as? String ?: return@let null
                 ChatReplyRef(
-                    id         = r["id"] as? String ?: "",
+                    id         = replyId,
                     text       = r["text"] as? String,
                     senderName = r["senderName"] as? String,
                     hasImages  = r["hasImages"] as? Boolean,
@@ -216,21 +260,24 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
         val id    = get("id") as? String ?: return null
         val title = get("title") as? String ?: return null
         return ChatAction(
-            id             = id,
-            title          = title,
-            systemImage    = get("systemImage") as? String,
-            isDestructive  = get("isDestructive") as? Boolean ?: false,
+            id            = id,
+            title         = title,
+            systemImage   = get("systemImage") as? String,
+            isDestructive = get("isDestructive") as? Boolean ?: false,
         )
     }
+
+    // ─── Constants ────────────────────────────────────────────────────────────
 
     companion object {
         private const val CMD_SCROLL_TO_BOTTOM    = "scrollToBottom"
         private const val CMD_SCROLL_TO_MESSAGE   = "scrollToMessage"
-        private const val CMD_SCROLL_TO_BOTTOM_ID = 1
+        private const val CMD_SCROLL_TO_BOTTOM_ID  = 1
         private const val CMD_SCROLL_TO_MESSAGE_ID = 2
     }
 
-    // ── Event names (зеркало DirectEventHandler из NativeChatViewSpec) ─────
+    // ─── Event names (зеркало NativeChatViewSpec.ts DirectEventHandler) ───────
+
     object Events {
         const val ON_SCROLL                = "onScroll"
         const val ON_REACH_TOP             = "onReachTop"

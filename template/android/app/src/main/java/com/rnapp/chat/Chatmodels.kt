@@ -1,8 +1,19 @@
 package com.rnapp.chat.model
 
-/**
- * Доменные модели чата — полный эквивалент типов из NativeChatViewSpec.ts.
- */
+// ─── MessageStatus ────────────────────────────────────────────────────────────
+
+enum class MessageStatus(val raw: String) {
+    SENDING("sending"),
+    SENT("sent"),
+    DELIVERED("delivered"),
+    READ("read");
+
+    companion object {
+        fun from(raw: String?): MessageStatus = entries.firstOrNull { it.raw == raw } ?: SENT
+    }
+}
+
+// ─── Domain models ────────────────────────────────────────────────────────────
 
 data class ChatImageItem(
     val url: String,
@@ -11,6 +22,12 @@ data class ChatImageItem(
     val thumbnailUrl: String? = null,
 )
 
+/**
+ * Снапшот ссылки на оригинал сообщения (reply).
+ * Хранится внутри ChatMessage. Используется как fallback при deleted-оригинале.
+ * При рендере используйте resolveReply() из messageIndex для получения
+ * актуальных данных оригинала (включая правки).
+ */
 data class ChatReplyRef(
     val id: String,
     val text: String? = null,
@@ -22,13 +39,57 @@ data class ChatMessage(
     val id: String,
     val text: String? = null,
     val images: List<ChatImageItem>? = null,
+    /** Unix timestamp в секундах (Double для совместимости с JS). */
     val timestamp: Double,
     val senderName: String? = null,
     val isMine: Boolean = false,
-    val status: String? = null,   // "sending" | "sent" | "delivered" | "read"
+    val status: MessageStatus = MessageStatus.SENT,
     val replyTo: ChatReplyRef? = null,
     val isEdited: Boolean = false,
-)
+) {
+    val hasText: Boolean get() = !text.isNullOrBlank()
+    val hasImage: Boolean get() = !images.isNullOrEmpty()
+}
+
+/**
+ * Результат резолвинга цитаты по messageIndex в рантайме.
+ * Зеркало ResolvedReply из Swift.
+ *
+ * .Found содержит АКТУАЛЬНЫЕ данные оригинала из messageIndex —
+ * при редактировании оригинала все цитаты обновляются автоматически.
+ * .Deleted — показываем заглушку.
+ */
+sealed class ResolvedReply {
+    data class Found(val info: ReplyDisplayInfo) : ResolvedReply()
+    object Deleted : ResolvedReply()
+}
+
+/**
+ * Данные для рендера блока цитаты.
+ * Строится из живого ChatMessage (messageIndex) или из снапшота (fallback).
+ */
+data class ReplyDisplayInfo(
+    val replyToId: String,
+    val senderName: String?,
+    val text: String?,
+    val hasImage: Boolean,
+) {
+    companion object {
+        fun fromMessage(msg: ChatMessage) = ReplyDisplayInfo(
+            replyToId  = msg.id,
+            senderName = msg.senderName,
+            text       = msg.text,
+            hasImage   = msg.hasImage,
+        )
+
+        fun fromSnapshot(ref: ChatReplyRef) = ReplyDisplayInfo(
+            replyToId  = ref.id,
+            senderName = ref.senderName,
+            text       = ref.text,
+            hasImage   = ref.hasImages == true,
+        )
+    }
+}
 
 data class ChatAction(
     val id: String,
@@ -38,34 +99,22 @@ data class ChatAction(
 )
 
 data class ChatInputAction(
-    val type: String,             // "reply" | "edit" | "none"
+    val type: String,              // "reply" | "edit"
     val messageId: String? = null,
 )
 
-// ── List items (adapter items) ────────────────────────────────────────────────
+// ─── Adapter list items ───────────────────────────────────────────────────────
 
-/** Элемент списка RecyclerView — дискриминированный union. */
+/** Дискриминированный union для элементов RecyclerView. */
 sealed class ChatListItem {
-
-    /** Разделитель даты (sticky header). */
     data class DateHeader(
-        val dateKey: String,   // "yyyy-MM-dd" — ключ секции
-        val label: String,     // Локализованная строка ("Сегодня", "Monday" и т.д.)
+        val dateKey: String,   // "yyyy-MM-dd"
+        val label: String,     // Локализованная строка: "Today", "Monday" и т.д.
     ) : ChatListItem()
 
-    /** Пузырь сообщения. */
     data class Message(val message: ChatMessage) : ChatListItem()
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
+// ─── Scroll position ──────────────────────────────────────────────────────────
 
-data class EmojiReactionSelectEvent(val emoji: String, val messageId: String)
-data class MessagePressEvent(val messageId: String)
-data class ActionPressEvent(val actionId: String, val messageId: String)
-data class SendMessageEvent(val text: String, val replyToId: String? = null)
-data class EditMessageEvent(val text: String, val messageId: String)
-data class CancelInputActionEvent(val type: String)
-data class ReplyMessagePressEvent(val messageId: String)
-data class ReachTopEvent(val distanceFromTop: Double)
-data class ScrollEvent(val x: Double, val y: Double)
-data class MessagesVisibleEvent(val messageIds: List<String>)
+enum class ChatScrollPosition { TOP, CENTER, BOTTOM }

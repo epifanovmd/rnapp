@@ -1,167 +1,82 @@
 package com.rnapp.chat.utils
 
+import android.content.Context
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
- * Форматирование дат для UI чата.
- * Эквивалент DateHelper.swift.
+ * Хелпер для форматирования дат в чате.
+ * Зеркалит DateHelper.swift.
  *
- * Ключевые правила:
- *  • Форматтеры используют Locale.getDefault() — первый язык системы.
- *  • Парсинг ключей секций ("yyyy-MM-dd") всегда en_US_POSIX + UTC.
- *  • "Сегодня" / "Вчера" через RelativeDateTimeFormatter (API 24+) или fallback.
+ * dateKey()      — "yyyy-MM-dd" ключ секции
+ * sectionTitle() — локализованный заголовок секции ("Today", "Yesterday", "Monday", "12 Jan 2024")
+ * timeString()   — время сообщения ("14:32")
  */
 object DateHelper {
 
-    private val posixLocale = Locale("en", "US")
-    private val userLocale   get() = Locale.getDefault()
-
-    // ── Formatters ────────────────────────────────────────────────────────
-
-    private val timeFormatter = SimpleDateFormat("HH:mm", userLocale)
-
-    /** Парсинг технических ключей "yyyy-MM-dd". */
-    private val groupParser = SimpleDateFormat("yyyy-MM-dd", posixLocale).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
+    private val dateKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+        timeZone = TimeZone.getDefault()
     }
 
-    /** Дата без года: "5 мар." / "Mar 5". */
-    private val currentYearFormatter = SimpleDateFormat(
-        dateFormatPatternNoYear(userLocale), userLocale
-    )
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault()).apply {
+        timeZone = TimeZone.getDefault()
+    }
 
-    /** Дата с годом: "5 мар. 2023" / "Mar 5, 2023". */
-    private val withYearFormatter = SimpleDateFormat(
-        dateFormatPatternWithYear(userLocale), userLocale
-    )
+    private val dayOfWeekFormat = SimpleDateFormat("EEEE", Locale.getDefault()).apply {
+        timeZone = TimeZone.getDefault()
+    }
 
-    /** День недели полностью: "Понедельник" / "Monday". */
-    private val weekdayFormatter = SimpleDateFormat("EEEE", userLocale)
-
-    // ── Public API ────────────────────────────────────────────────────────
-
-    /** "HH:mm" — время для footer пузыря. */
-    fun timeString(timestamp: Double): String =
-        timeFormatter.format(Date((timestamp * 1000).toLong()))
+    private val shortDateFormat = SimpleDateFormat("d MMM yyyy", Locale.getDefault()).apply {
+        timeZone = TimeZone.getDefault()
+    }
 
     /**
-     * Локализованный заголовок секции по ключу "yyyy-MM-dd".
-     *
-     * Логика (от частного к общему):
-     *   1. Сегодня / Вчера
-     *   2. Текущая неделя → день недели
-     *   3. Текущий год   → число + месяц без года
-     *   4. Прошлые годы  → полная дата с годом
+     * Ключ секции из Unix timestamp (секунды).
+     * Формат: "yyyy-MM-dd"
      */
-    fun sectionTitle(dateKey: String): String {
-        val date = try {
-            groupParser.parse(dateKey) ?: return dateKey
-        } catch (e: Exception) {
-            return dateKey
-        }
+    fun dateKey(timestampSeconds: Double): String =
+        dateKeyFormat.format(Date((timestampSeconds * 1000).toLong()))
 
-        val cal     = Calendar.getInstance().apply { time = date }
-        val today   = Calendar.getInstance()
-        val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+    /**
+     * Локализованный заголовок секции из dateKey.
+     * Зеркалит sectionTitle() из DateHelper.swift.
+     */
+    fun sectionTitle(context: Context, dateKey: String): String {
+        val date = dateKeyFormat.parse(dateKey) ?: return dateKey
 
-        if (isSameDay(cal, today))     return todayString()
-        if (isSameDay(cal, yesterday)) return yesterdayString()
+        val today     = calendarDay(System.currentTimeMillis())
+        val msgDay    = calendarDay(date.time)
 
-        // Текущая неделя — день недели с заглавной буквы
-        val daysDiff = ((today.timeInMillis - cal.timeInMillis) / 86_400_000L).toInt()
-        if (daysDiff < 7) {
-            val weekday = weekdayFormatter.format(date)
-            return weekday.replaceFirstChar { it.uppercaseChar() }
-        }
+        val diffDays  = today - msgDay
 
-        // Текущий год
-        if (cal.get(Calendar.YEAR) == today.get(Calendar.YEAR)) {
-            return currentYearFormatter.format(date)
-        }
-
-        // Прошлые годы
-        return withYearFormatter.format(date)
-    }
-
-    /** Ключ секции "yyyy-MM-dd" из timestamp (секунды). */
-    fun dateKey(timestamp: Double): String {
-        val cal = Calendar.getInstance().apply {
-            time = Date((timestamp * 1000).toLong())
-        }
-        return "%04d-%02d-%02d".format(
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.DAY_OF_MONTH)
-        )
-    }
-
-    // ── Private ───────────────────────────────────────────────────────────
-
-    private fun isSameDay(a: Calendar, b: Calendar): Boolean =
-        a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
-        a.get(Calendar.DAY_OF_YEAR) == b.get(Calendar.DAY_OF_YEAR)
-
-    private fun todayString(): String {
-        // Android не имеет прямого аналога doesRelativeDateFormatting,
-        // используем строки из ресурсов или fallback на локализованный Today
-        return try {
-            val fmt = android.text.format.DateUtils.getRelativeTimeSpanString(
-                Calendar.getInstance().timeInMillis,
-                Calendar.getInstance().timeInMillis,
-                android.text.format.DateUtils.DAY_IN_MILLIS,
-                android.text.format.DateUtils.FORMAT_SHOW_DATE
-            ).toString()
-            // getRelativeTimeSpanString возвращает "Today" / "Сегодня" и т.д.
-            // Для точности используем более надёжный способ:
-            localizedToday()
-        } catch (e: Exception) {
-            "Today"
+        return when {
+            diffDays == 0L   -> "Today"
+            diffDays == 1L   -> "Yesterday"
+            diffDays < 7L    -> dayOfWeekFormat.format(date)   // "Monday", "Tuesday"…
+            else             -> shortDateFormat.format(date)   // "12 Jan 2024"
         }
     }
 
-    private fun yesterdayString(): String =
-        try { localizedYesterday() } catch (e: Exception) { "Yesterday" }
+    /**
+     * Форматирует время сообщения из Unix timestamp (секунды).
+     * Формат: "HH:mm"
+     */
+    fun timeString(timestampSeconds: Double): String =
+        timeFormat.format(Date((timestampSeconds * 1000).toLong()))
 
-    private fun localizedToday(): String {
-        val sdf = SimpleDateFormat("", userLocale).apply {
-            isLenient = true
-        }
-        // Используем android.text.format.DateUtils для корректной локализации
-        val now = System.currentTimeMillis()
-        return android.text.format.DateUtils.formatDateTime(
-            null, now,
-            android.text.format.DateUtils.FORMAT_SHOW_DATE or
-            android.text.format.DateUtils.FORMAT_NO_YEAR
-        ).let {
-            // fallback — выводим через relative span
-            android.text.format.DateUtils.getRelativeTimeSpanString(
-                now, now,
-                android.text.format.DateUtils.DAY_IN_MILLIS
-            ).toString()
-        }
-    }
+    // ─── Private ──────────────────────────────────────────────────────────────
 
-    private fun localizedYesterday(): String {
-        val yesterday = System.currentTimeMillis() - 86_400_000L
-        return android.text.format.DateUtils.getRelativeTimeSpanString(
-            yesterday, System.currentTimeMillis(),
-            android.text.format.DateUtils.DAY_IN_MILLIS
-        ).toString()
-    }
-
-    private fun dateFormatPatternNoYear(locale: Locale): String {
-        // "d MMM" но в правильном для локали порядке
-        return when (locale.language) {
-            "ja", "zh", "ko" -> "M月d日"
-            else -> "d MMM"
-        }
-    }
-
-    private fun dateFormatPatternWithYear(locale: Locale): String {
-        return when (locale.language) {
-            "ja", "zh", "ko" -> "yyyy年M月d日"
-            else -> "d MMM yyyy"
-        }
+    /** Возвращает число дней с эпохи в локальном часовом поясе. */
+    private fun calendarDay(epochMillis: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = epochMillis
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis / (24 * 60 * 60 * 1000L)
     }
 }

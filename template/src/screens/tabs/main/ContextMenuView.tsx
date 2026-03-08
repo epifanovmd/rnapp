@@ -107,15 +107,15 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
   onWillShow,
   ...rest
 }) => {
-  if (Platform.OS !== "ios") {
-    const { View } = require("react-native");
-
-    return (
-      <View style={style} {...rest}>
-        {children}
-      </View>
-    );
-  }
+  // if (Platform.OS !== "ios") {
+  //   const { View } = require("react-native");
+  //
+  //   return (
+  //     <View style={style} {...rest}>
+  //       {children}
+  //     </View>
+  //   );
+  // }
 
   const handleEmojiSelect = (
     e: NativeSyntheticEvent<ContextMenuEmojiSelectEvent>,
