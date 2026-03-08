@@ -302,10 +302,10 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onReplyMessagePress?.(e.nativeEvent),
     [onReplyMessagePress],
   );
-
-  if (Platform.OS !== "ios") {
-    return <View style={[styles.unsupported, style]} />;
-  }
+  //
+  // if (Platform.OS !== "ios") {
+  //   return <View style={[styles.unsupported, style]} />;
+  // }
 
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
     type: "none",
