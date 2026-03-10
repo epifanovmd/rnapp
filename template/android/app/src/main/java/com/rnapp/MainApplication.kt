@@ -7,8 +7,7 @@ import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.rnapp.rnwheelpicker.RnWheelPickerPackage
-import com.rnapp.chat.module.ChatReactPackage
-import com.rnapp.contextmenu.ContextMenuReactPackage
+import com.rnapp.rnchatview.RNChatViewPackage
 
 class MainApplication : Application(), ReactApplication {
   override val reactHost: ReactHost by lazy {
@@ -17,8 +16,7 @@ class MainApplication : Application(), ReactApplication {
       packageList =
         PackageList(this).packages.apply {
           add(RnWheelPickerPackage())
-          add(ChatReactPackage())
-          add(ContextMenuReactPackage())
+          add(RNChatViewPackage())
         },
     )
   }
