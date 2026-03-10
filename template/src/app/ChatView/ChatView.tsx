@@ -12,7 +12,6 @@ import {
   findNodeHandle,
   type HostComponent,
   type NativeSyntheticEvent,
-  Platform,
   requireNativeComponent,
   StyleSheet,
   UIManager,
@@ -166,7 +165,6 @@ function dispatchCommand(
   commandName: keyof ChatViewCommands,
   args: unknown[],
 ): void {
-  if (Platform.OS !== "ios") return;
   try {
     const { Commands } = require("../../NativeChatViewSpec");
 
@@ -302,10 +300,6 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onReplyMessagePress?.(e.nativeEvent),
     [onReplyMessagePress],
   );
-  //
-  // if (Platform.OS !== "ios") {
-  //   return <View style={[styles.unsupported, style]} />;
-  // }
 
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
     type: "none",

@@ -5,8 +5,10 @@ import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.common.MapBuilder
 import com.facebook.react.uimanager.SimpleViewManager
 import com.facebook.react.uimanager.ThemedReactContext
+import com.facebook.react.uimanager.UIManagerHelper
 import com.facebook.react.uimanager.annotations.ReactProp
-import com.facebook.react.uimanager.events.RCTEventEmitter
+import com.facebook.react.uimanager.events.Event
+import com.facebook.react.uimanager.events.EventDispatcher
 import com.rnapp.chat.ChatView
 import com.rnapp.chat.model.ChatAction
 import com.rnapp.chat.model.ChatImageItem
@@ -19,18 +21,16 @@ import com.rnapp.chat.model.MessageStatus
 /**
  * React Native ViewManager для ChatView.
  *
- * Регистрирует все props и commands из NativeChatViewSpec.ts.
- * Зеркалит RNChatViewManager.swift / RNChatView.swift по логике бриджа.
+ * FIX (crash): Заменён устаревший ctx.getJSModule(RCTEventEmitter) на
+ * UIManagerHelper.getEventDispatcherForReactTag() — обязательно для
+ * React Native New Architecture (Bridgeless / JSI mode).
  *
- * Регистрация в ReactPackage:
- *   override fun createViewManagers(context: ReactApplicationContext) =
- *       listOf(ChatViewManager(), ContextMenuViewManager())
+ * Старый код:
+ *   ctx.getJSModule(RCTEventEmitter::class.java).receiveEvent(view.id, event, map)
+ * бросал IllegalArgumentException в Bridgeless режиме.
  *
- * Важные детали:
- *  • initialScrollId сохраняется в pending и применяется только после
- *    первого setMessages() — как в RNChatView.swift (pendingInitialScrollId).
- *  • events эмитируются через RCTEventEmitter с WritableMap payload.
- *  • Все dp/threshold props передаются как Float из JS (density-independent).
+ * Новый код использует UIManagerHelper.getEventDispatcherForReactTag и
+ * кастомный ChatEvent : Event<*> — стандартный путь для New Architecture.
  */
 class ChatViewManager : SimpleViewManager<ChatView>() {
 
@@ -115,7 +115,6 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
 
     @ReactProp(name = "scrollToBottomThreshold", defaultFloat = 150f)
     fun setScrollToBottomThreshold(view: ChatView, threshold: Float) {
-        // threshold из JS в dp → конвертируем в px
         val px = (threshold * view.resources.displayMetrics.density + 0.5f).toInt()
         view.scrollToBottomThreshold = px
     }
@@ -149,10 +148,6 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
         view.setInputAction(chatAction)
     }
 
-    /**
-     * initialScrollId — сохраняем как pending.
-     * ChatView применит его после первого setMessages(), как в iOS.
-     */
     @ReactProp(name = "initialScrollId")
     fun setInitialScrollId(view: ChatView, id: String?) {
         view.setPendingInitialScrollId(id)
@@ -190,33 +185,68 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
             acc.put(event, MapBuilder.of("registrationName", event))
         }.build()
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // ─── Emit (New Architecture compatible) ───────────────────────────────────
 
+    /**
+     * FIX: Используем UIManagerHelper.getEventDispatcherForReactTag вместо
+     * устаревшего RCTEventEmitter. Это единственный поддерживаемый способ
+     * в React Native New Architecture (Bridgeless/Interop layer отключён).
+     *
+     * Fallback: если dispatcher не найден (старая архитектура без interop),
+     * ловим исключение чтобы не крашиться.
+     */
     private fun emit(
         ctx: ThemedReactContext,
         view: ChatView,
-        event: String,
+        eventName: String,
         data: Map<String, Any?>,
     ) {
-        ctx.getJSModule(RCTEventEmitter::class.java)
-            .receiveEvent(view.id, event, data.toWritableMap())
+        try {
+            val surfaceId  = UIManagerHelper.getSurfaceId(view)
+            val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(ctx, view.id)
+            dispatcher?.dispatchEvent(ChatEvent(surfaceId, view.id, eventName, data))
+        } catch (e: Exception) {
+            // Не крашим приложение — событие просто не будет доставлено
+            android.util.Log.w("ChatViewManager", "Failed to emit $eventName: ${e.message}")
+        }
     }
 
-    private fun Map<String, Any?>.toWritableMap(): com.facebook.react.bridge.WritableMap {
-        val map = com.facebook.react.bridge.Arguments.createMap()
-        forEach { (k, v) ->
-            when (v) {
-                is String    -> map.putString(k, v)
-                is Boolean   -> map.putBoolean(k, v)
-                is Int       -> map.putInt(k, v)
-                is Double    -> map.putDouble(k, v)
-                is Float     -> map.putDouble(k, v.toDouble())
-                is List<*>   -> map.putArray(k, com.facebook.react.bridge.Arguments.fromList(v))
-                null         -> map.putNull(k)
-                else         -> map.putString(k, v.toString())
+    // ─── ChatEvent ────────────────────────────────────────────────────────────
+
+    /**
+     * Кастомный Event для New Architecture.
+     * canCoalesce = false — все события доставляются без слияния.
+     */
+    private class ChatEvent(
+        surfaceId: Int,
+        viewId: Int,
+        private val myEventName: String,
+        private val data: Map<String, Any?>,
+    ) : Event<ChatEvent>(surfaceId, viewId) {
+
+        override fun getEventName() = myEventName
+
+        override fun canCoalesce() = false
+
+        override fun getEventData(): com.facebook.react.bridge.WritableMap =
+            data.toWritableMap()
+
+        private fun Map<String, Any?>.toWritableMap(): com.facebook.react.bridge.WritableMap {
+            val map = com.facebook.react.bridge.Arguments.createMap()
+            forEach { (k, v) ->
+                when (v) {
+                    is String    -> map.putString(k, v)
+                    is Boolean   -> map.putBoolean(k, v)
+                    is Int       -> map.putInt(k, v)
+                    is Double    -> map.putDouble(k, v)
+                    is Float     -> map.putDouble(k, v.toDouble())
+                    is List<*>   -> map.putArray(k, com.facebook.react.bridge.Arguments.fromList(v))
+                    null         -> map.putNull(k)
+                    else         -> map.putString(k, v.toString())
+                }
             }
+            return map
         }
-        return map
     }
 
     // ─── Parsing helpers ──────────────────────────────────────────────────────
@@ -241,7 +271,6 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
             timestamp  = timestamp,
             senderName = get("senderName") as? String,
             isMine     = get("isMine") as? Boolean ?: false,
-            // Используем enum MessageStatus вместо raw String
             status     = MessageStatus.from(get("status") as? String),
             replyTo    = (get("replyTo") as? Map<*, *>)?.let { r ->
                 val replyId = r["id"] as? String ?: return@let null
@@ -275,8 +304,6 @@ class ChatViewManager : SimpleViewManager<ChatView>() {
         private const val CMD_SCROLL_TO_BOTTOM_ID  = 1
         private const val CMD_SCROLL_TO_MESSAGE_ID = 2
     }
-
-    // ─── Event names (зеркало NativeChatViewSpec.ts DirectEventHandler) ───────
 
     object Events {
         const val ON_SCROLL                = "onScroll"

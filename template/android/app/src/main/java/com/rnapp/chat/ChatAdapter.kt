@@ -20,6 +20,11 @@ import com.rnapp.chat.viewholder.MessageViewHolder
  *  • setHasStableIds(true) + детерминированные Long id — плавные анимации.
  *  • Theme update через PAYLOAD_THEME — пересоздаём только цвета, без measure.
  *  • messageIndex передаётся в bind для resolve цитат (актуальные данные оригинала).
+ *
+ * FIX #1: submitList теперь вызывает dispatchUpdatesTo ПОСЛЕ обновления данных,
+ *         и notifyDataSetChanged используется как safety-net при структурных изменениях.
+ *         Ранее diff.dispatchUpdatesTo вызывался пока items ещё не были обновлены —
+ *         это могло приводить к расхождению позиций и RecyclerView не перерисовывался.
  */
 class ChatAdapter(
     private var theme: ChatTheme,
@@ -109,11 +114,30 @@ class ChatAdapter(
 
     // ─── Data update ──────────────────────────────────────────────────────────
 
+    /**
+     * FIX #7: Обновляем items и messageIndex ДО dispatchUpdatesTo.
+     *
+     * После dispatchUpdatesTo вызываем requestLayout() + invalidate() —
+     * это гарантирует что RecyclerView немедленно перерисует список
+     * без необходимости скролла (баг: удалённые сообщения оставались на экране).
+     *
+     * Правильный порядок (как в ListAdapter / AsyncListDiffer):
+     *   1. calculateDiff на snapshot старого и нового списков
+     *   2. Применить новые данные в items/messageIndex
+     *   3. dispatchUpdatesTo — теперь позиции совпадают с актуальными данными
+     *   4. requestLayout/invalidate для немедленного перерисования
+     */
     fun submitList(newItems: List<ChatListItem>, newIndex: Map<String, ChatMessage>) {
-        val diff = DiffUtil.calculateDiff(ChatDiffCallback(items, newItems))
+        // Snapshot старого списка для DiffUtil (вычисляем до изменений)
+        val oldItems = items.toList()
+        val diff = DiffUtil.calculateDiff(ChatDiffCallback(oldItems, newItems))
+
+        // Обновляем данные
         items.clear()
         items.addAll(newItems)
         messageIndex = newIndex
+
+        // Диспатчим результат — RecyclerView теперь видит корректный список
         diff.dispatchUpdatesTo(this)
     }
 

@@ -1,6 +1,6 @@
 package com.rnapp.chat.utils
 
-import android.util.SparseIntArray
+import com.rnapp.chat.model.ChatListItem
 
 /**
  * Кэш высот ячеек RecyclerView по id сообщения.
@@ -20,4 +20,14 @@ class ItemSizeCache {
     fun has(id: String): Boolean = cache.containsKey(id)
     fun remove(id: String) { cache.remove(id) }
     fun clear() { cache.clear() }
+
+    /** FIX #4: получить высоту элемента по ChatListItem — null если не в кэше. */
+    fun getHeight(item: ChatListItem): Int? {
+        val key = when (item) {
+            is ChatListItem.Message    -> item.message.id
+            is ChatListItem.DateHeader -> "date_${item.dateKey}"
+        }
+        val h = cache[key] ?: return null
+        return if (h > 0) h else null
+    }
 }

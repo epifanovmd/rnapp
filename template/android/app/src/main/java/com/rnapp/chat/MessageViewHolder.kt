@@ -204,6 +204,25 @@ class MessageViewHolder private constructor(
         editedLabel.isVisible = message.isEdited
         timeLabel.text = DateHelper.timeString(message.timestamp)
         applyStatusIcon(message.status)
+        // FIX #1: после обновления footer применяем минимальную ширину пузыря
+        bubble.post { applyMinBubbleWidth(message.isEdited) }
+    }
+
+    /**
+     * FIX #1: Гарантируем что пузырь не уже чем footer.
+     * Измеряем footer с WRAP_CONTENT и выставляем minWidth на bubble.
+     * Это предотвращает обрезание "edited · 12:34 ✓" на коротких сообщениях.
+     */
+    private fun applyMinBubbleWidth(isEdited: Boolean) {
+        footer.measure(
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val hPad  = bubble.paddingStart + bubble.paddingEnd
+        val minW  = footer.measuredWidth + hPad
+        if (bubble.minimumWidth != minW) {
+            bubble.minimumWidth = minW
+        }
     }
 
     private fun applyStatusIcon(status: MessageStatus) {

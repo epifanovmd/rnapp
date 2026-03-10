@@ -4,18 +4,20 @@ import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
-import com.rnapp.contextmenu.ContextMenuViewManager
 
 /**
- * React Native Package — регистрирует оба ViewManager.
+ * React Native Package для нативного чата.
+ * Регистрирует только ChatViewManager → "RNChatView".
  *
- * Подключение в MainApplication.kt:
+ * Контекстное меню регистрируется отдельно через ContextMenuReactPackage.
+ * Внутри ChatView контекстное меню используется нативно напрямую
+ * через ContextMenuOverlay (WindowManager), без RN-моста.
  *
- *   override fun getPackages(): List<ReactPackage> =
- *       PackageList(this).packages + listOf(ChatReactPackage())
+ * Подключение в MainApplication:
+ *   add(ChatReactPackage())
  */
 class ChatReactPackage : ReactPackage {
     override fun createNativeModules(ctx: ReactApplicationContext): List<NativeModule> = emptyList()
     override fun createViewManagers(ctx: ReactApplicationContext): List<ViewManager<*, *>> =
-        listOf(ChatViewManager(), ContextMenuViewManager())
+        listOf(ChatViewManager())
 }

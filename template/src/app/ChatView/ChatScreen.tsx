@@ -564,7 +564,7 @@ const ChatScreen: React.FC = () => {
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onCancelInputAction={handleCancelInputAction}
-        // onReachTop={handleReachTop}
+        onReachTop={handleReachTop}
         onReplyMessagePress={handleReplyMessagePress}
         onActionPress={handleActionPress}
         onAttachmentPress={handleAttachmentPress}
