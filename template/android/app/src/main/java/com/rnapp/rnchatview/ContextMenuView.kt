@@ -7,7 +7,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
@@ -16,6 +15,8 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
@@ -27,21 +28,20 @@ import com.rnapp.rnchatview.ChatLayoutConstants as C
 // ─── ContextMenuView ──────────────────────────────────────────────────────────
 //
 // Полный аналог iOS ContextMenuViewController:
-//   • Снапшот исходного view с тенью — анимируется к целевой позиции (spring)
-//   • Панель эмодзи сверху снапшота
-//   • Панель действий снизу снапшота
+//   • Снапшот исходного view — оригинал скрывается, снапшот анимируется в позицию
+//   • Панель эмодзи сверху снапшота (scale+alpha spring вверх)
+//   • Панель действий снизу снапшота (scale+alpha spring вниз)
 //   • Backdrop (затемнение) с fade-in
-//   • Позиционирование: ContextMenuLayoutEngine — идентичная логика iOS
-//   • Анимация открытия: spring (overshoot), закрытия: decay к origin
-//   • Отдельные анимации для панели эмодзи (scale+alpha) и actions (scale+alpha)
-//   • Тач на backdrop — закрывает меню
-//   • Внутренние тачи по панелям — не закрывают
+//   • При закрытии — обратная анимация: панели схлопываются к снапшоту,
+//     снапшот возвращается на место оригинала, оригинал появляется обратно
+//   • ContextMenuLayoutEngine — идентичная iOS логика позиционирования
 
 class ContextMenuView(
     private val ctx: Context,
     private val emojis: List<String>,
     private val actions: List<MessageAction>,
     private val isDark: Boolean,
+    private val isMine: Boolean = false,
     private val onEmojiSelected: (String) -> Unit,
     private val onActionSelected: (MessageAction) -> Unit,
     private val onDismiss: () -> Unit,
@@ -50,16 +50,21 @@ class ContextMenuView(
     private val theme = ContextMenuTheme(isDark)
     private var rootOverlay: FrameLayout? = null
     private var isDismissing = false
+    private var anchorViewRef: View? = null   // держим ссылку чтобы вернуть alpha
 
     // ─── Show ─────────────────────────────────────────────────────────────
 
     fun show(anchor: View, messageId: String) {
         dismiss()
+        isDismissing = false
+        anchorViewRef = anchor
 
         val decorView = anchor.rootView as? ViewGroup ?: return
-        val screenW = ctx.resources.displayMetrics.widthPixels.toFloat()
-        val screenH = ctx.resources.displayMetrics.heightPixels.toFloat()
+        val dm = ctx.resources.displayMetrics
+        val screenW = dm.widthPixels.toFloat()
+        val screenH = dm.heightPixels.toFloat()
 
+        // Позиция anchor в window-координатах
         val anchorLoc = IntArray(2)
         anchor.getLocationInWindow(anchorLoc)
         val anchorRect = RectF(
@@ -69,39 +74,36 @@ class ContextMenuView(
             (anchorLoc[1] + anchor.height).toFloat()
         )
 
+        // Построение панелей
         val snapshotView = makeSnapshotView(anchor)
-        val emojiPanelView   = if (emojis.isNotEmpty())  makeEmojiPanel()   else null
-        val actionsPanelView = if (actions.isNotEmpty()) makeActionsPanel() else null
+        val emojiPanel   = if (emojis.isNotEmpty())  makeEmojiPanel()   else null
+        val actionsPanel = if (actions.isNotEmpty()) makeActionsPanel() else null
 
-        val emojiSize   = if (emojiPanelView != null)   measureEmojiPanel(emojis.size)   else SizeF(0f, 0f)
-        val actionsSize = if (actionsPanelView != null) measureActionsPanel(actions.size) else SizeF(0f, 0f)
+        val emojiSz   = if (emojiPanel != null)   measureEmojiPanel(emojis.size)   else SizePair(0f, 0f)
+        val actionsSz = if (actionsPanel != null) measureActionsPanel(actions.size) else SizePair(0f, 0f)
 
         val layout = ContextMenuLayoutEngine.calculate(
-            anchorRect   = anchorRect,
-            snapW        = anchor.width.toFloat(),
-            snapH        = anchor.height.toFloat(),
-            emojiW       = emojiSize.width,
-            emojiH       = emojiSize.height,
-            actionsW     = actionsSize.width,
-            actionsH     = actionsSize.height,
-            screenW      = screenW,
-            screenH      = screenH,
-            hPad         = ctx.dpToPxF(theme.horizontalPadding),
-            vPad         = ctx.dpToPxF(theme.verticalPadding),
-            emojiGap     = ctx.dpToPxF(theme.emojiPanelSpacing),
-            actionsGap   = ctx.dpToPxF(theme.menuSpacing)
+            anchorRect = anchorRect,
+            snapW      = anchor.width.toFloat(),
+            snapH      = anchor.height.toFloat(),
+            emojiW     = emojiSz.w, emojiH = emojiSz.h,
+            actionsW   = actionsSz.w, actionsH = actionsSz.h,
+            screenW    = screenW, screenH = screenH,
+            hPad       = ctx.dp(theme.horizontalPadding),
+            vPad       = ctx.dp(theme.verticalPadding),
+            emojiGap   = ctx.dp(theme.emojiPanelSpacing),
+            actionsGap = ctx.dp(theme.menuSpacing)
         )
 
-        // Root overlay intercepts background taps
+        // Root overlay — intercepts backdrop taps
         val root = object : FrameLayout(ctx) {
             override fun onTouchEvent(e: MotionEvent): Boolean {
                 if (e.action == MotionEvent.ACTION_UP && !isDismissing) {
-                    val insideSnap    = snapshotView?.containsTouch(e) ?: false
-                    val insideEmoji   = emojiPanelView?.containsTouch(e) ?: false
-                    val insideActions = actionsPanelView?.containsTouch(e) ?: false
-                    if (!insideSnap && !insideEmoji && !insideActions) {
-                        runClose(root = this, layout = layout, snapshot = snapshotView,
-                            emojiPanel = emojiPanelView, actionsPanel = actionsPanelView)
+                    val inSnap    = snapshotView?.hitTest(e) ?: false
+                    val inEmoji   = emojiPanel?.hitTest(e)  ?: false
+                    val inActions = actionsPanel?.hitTest(e) ?: false
+                    if (!inSnap && !inEmoji && !inActions) {
+                        runClose(layout, snapshotView, emojiPanel, actionsPanel)
                     }
                 }
                 return true
@@ -116,30 +118,29 @@ class ContextMenuView(
         }
         root.addView(backdropDim)
 
-        snapshotView?.let   { root.addView(it, FrameLayout.LayoutParams(anchor.width, anchor.height)) }
-        emojiPanelView?.let {
-            val lp = FrameLayout.LayoutParams(emojiSize.width.toInt(), emojiSize.height.toInt())
-            root.addView(it, lp)
-        }
-        actionsPanelView?.let {
-            val lp = FrameLayout.LayoutParams(actionsSize.width.toInt(), actionsSize.height.toInt())
-            root.addView(it, lp)
-        }
+        snapshotView?.let { root.addView(it, FrameLayout.LayoutParams(anchor.width, anchor.height)) }
+        emojiPanel?.let   { root.addView(it, FrameLayout.LayoutParams(emojiSz.w.toInt(), emojiSz.h.toInt())) }
+        actionsPanel?.let { root.addView(it, FrameLayout.LayoutParams(actionsSz.w.toInt(), actionsSz.h.toInt())) }
 
         decorView.addView(root, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
 
-        // Pre-position at origin
-        prepareOpen(layout, snapshotView, emojiPanelView, actionsPanelView)
+        // Скрываем оригинальный anchor (эффект "сообщение переместилось")
+        anchor.alpha = 0f
+
+        // Расставляем по начальным позициям (origin)
+        prepareOpen(layout, snapshotView, emojiPanel, actionsPanel)
 
         root.post {
-            animateOpen(layout, backdropDim, snapshotView, emojiPanelView, actionsPanelView)
+            animateOpen(layout, backdropDim, snapshotView, emojiPanel, actionsPanel)
         }
     }
 
-    // ─── Dismiss (immediate, no animation) ───────────────────────────────
+    // ─── Dismiss (без анимации — для external forced dismiss) ─────────────
 
     fun dismiss() {
         val root = rootOverlay ?: return
+        anchorViewRef?.alpha = 1f
+        anchorViewRef = null
         try { (root.parent as? ViewGroup)?.removeView(root) } catch (_: Exception) {}
         rootOverlay = null
         isDismissing = false
@@ -152,24 +153,23 @@ class ContextMenuView(
         val bmp = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
         source.draw(Canvas(bmp))
 
-        val cornerRadiusPx = ctx.dpToPxF(C.BUBBLE_CORNER_RADIUS_DP)
+        val cornerPx = ctx.dp(C.BUBBLE_CORNER_RADIUS_DP)
         val iv = object : ImageView(ctx) {
             private val clipPath = Path()
-            private val clipRectF = RectF()
+            private val clipRF   = RectF()
             override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
-                super.onSizeChanged(w, h, ow, oh)
-                clipRectF.set(0f, 0f, w.toFloat(), h.toFloat())
+                clipRF.set(0f, 0f, w.toFloat(), h.toFloat())
                 clipPath.reset()
-                clipPath.addRoundRect(clipRectF, cornerRadiusPx, cornerRadiusPx, Path.Direction.CW)
+                clipPath.addRoundRect(clipRF, cornerPx, cornerPx, Path.Direction.CW)
             }
-            override fun onDraw(canvas: Canvas) {
-                canvas.save(); canvas.clipPath(clipPath); super.onDraw(canvas); canvas.restore()
+            override fun onDraw(c: Canvas) {
+                c.save(); c.clipPath(clipPath); super.onDraw(c); c.restore()
             }
         }
         iv.setImageBitmap(bmp)
         iv.scaleType = ImageView.ScaleType.FIT_XY
 
-        val wrapper = FrameLayout(ctx).apply { elevation = ctx.dpToPxF(6f) }
+        val wrapper = FrameLayout(ctx).apply { elevation = ctx.dp(6f) }
         wrapper.addView(iv, FrameLayout.LayoutParams(source.width, source.height))
         return wrapper
     }
@@ -177,37 +177,40 @@ class ContextMenuView(
     // ─── Emoji panel ──────────────────────────────────────────────────────
 
     private fun makeEmojiPanel(): LinearLayout {
-        val padPx = ctx.dpToPx(10f)
+        val padPx = ctx.dpI(10f)
         return LinearLayout(ctx).apply {
-            orientation  = LinearLayout.HORIZONTAL
-            gravity      = Gravity.CENTER_VERTICAL
-            setPadding(padPx, ctx.dpToPx(6f), padPx, ctx.dpToPx(6f))
-            background   = roundedBackground(theme.emojiPanelBackground, theme.emojiPanelCornerRadius.toFloat())
-            elevation    = ctx.dpToPxF(8f)
+            orientation = LinearLayout.HORIZONTAL
+            gravity     = Gravity.CENTER_VERTICAL
+            setPadding(padPx, ctx.dpI(6f), padPx, ctx.dpI(6f))
+            background = roundedBg(theme.emojiPanelBackground, theme.emojiPanelCornerRadius)
+            elevation  = ctx.dp(8f)
             outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
             clipToOutline   = true
-            emojis.forEach { emoji -> addView(makeEmojiButton(emoji)) }
+            emojis.forEach { addView(makeEmojiButton(it)) }
         }
     }
 
     private fun makeEmojiButton(emoji: String): TextView {
-        val sizePx = ctx.dpToPx(theme.emojiItemSize.toFloat())
+        val sz = ctx.dpI(theme.emojiItemSize.toFloat())
         return TextView(ctx).apply {
             text     = emoji
             setTextSize(TypedValue.COMPLEX_UNIT_SP, theme.emojiFontSize)
             gravity  = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
+            layoutParams = LinearLayout.LayoutParams(sz, sz)
             isClickable = true; isFocusable = true
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN ->
                         v.animate().scaleX(0.75f).scaleY(0.75f).setDuration(100).start()
                     MotionEvent.ACTION_UP -> {
-                        v.animate().scaleX(1f).scaleY(1f)
-                            .setDuration(200).setInterpolator(OvershootInterpolator(0.8f)).start()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(200)
+                            .setInterpolator(OvershootInterpolator(0.8f)).start()
                         onEmojiSelected(emoji)
                         val root = rootOverlay
-                        if (root != null) runClose(root, null, null, null, null)
+                        val layout = currentLayout
+                        if (root != null && layout != null) {
+                            runClose(layout, findSnap(root), findEmoji(root), findActions(root))
+                        }
                     }
                     MotionEvent.ACTION_CANCEL ->
                         v.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
@@ -217,11 +220,11 @@ class ContextMenuView(
         }
     }
 
-    private fun measureEmojiPanel(count: Int): SizeF {
-        val itemPx  = ctx.dpToPxF(theme.emojiItemSize.toFloat())
-        val padPx   = ctx.dpToPxF(10f) * 2
-        val vPadPx  = ctx.dpToPxF(12f)
-        return SizeF(count * itemPx + padPx, itemPx + vPadPx)
+    private fun measureEmojiPanel(count: Int): SizePair {
+        val itemPx = ctx.dp(theme.emojiItemSize.toFloat())
+        val hPad   = ctx.dp(10f) * 2
+        val vPad   = ctx.dp(12f)
+        return SizePair(count * itemPx + hPad, itemPx + vPad)
     }
 
     // ─── Actions panel ────────────────────────────────────────────────────
@@ -229,8 +232,8 @@ class ContextMenuView(
     private fun makeActionsPanel(): LinearLayout {
         return LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            background  = roundedBackground(theme.menuBackground, theme.menuCornerRadius.toFloat())
-            elevation   = ctx.dpToPxF(8f)
+            background  = roundedBg(theme.menuBackground, theme.menuCornerRadius)
+            elevation   = ctx.dp(8f)
             outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
             clipToOutline   = true
             for ((idx, action) in actions.withIndex()) {
@@ -241,14 +244,14 @@ class ContextMenuView(
     }
 
     private fun makeActionRow(action: MessageAction): FrameLayout {
-        val hPad  = ctx.dpToPx(theme.actionHorizontalPadding.toFloat())
-        val hPx   = ctx.dpToPx(theme.actionItemHeight.toFloat())
-        val color = if (action.isDestructive) theme.actionDestructiveColor else theme.actionTitleColor
+        val hPad = ctx.dpI(theme.actionHorizontalPadding.toFloat())
+        val hPx  = ctx.dpI(theme.actionItemHeight.toFloat())
+        val titleColor = if (action.isDestructive) theme.actionDestructiveColor else theme.actionTitleColor
 
         val label = TextView(ctx).apply {
             text      = action.title
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTextColor(color)
+            setTextColor(titleColor)
             gravity   = Gravity.CENTER_VERTICAL
             setPadding(hPad, 0, hPad, 0)
         }
@@ -257,8 +260,8 @@ class ContextMenuView(
         }
         return FrameLayout(ctx).apply {
             layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, hPx)
-            isClickable  = true; isFocusable = true
-            addView(label,    FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            isClickable = true; isFocusable = true
+            addView(label,     FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             addView(highlight, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
             setOnTouchListener { _, event ->
                 when (event.action) {
@@ -267,7 +270,10 @@ class ContextMenuView(
                         highlight.animate().alpha(0f).setDuration(180).start()
                         onActionSelected(action)
                         val root = rootOverlay
-                        if (root != null) runClose(root, null, null, null, null)
+                        val layout = currentLayout
+                        if (root != null && layout != null) {
+                            runClose(layout, findSnap(root), findEmoji(root), findActions(root))
+                        }
                     }
                     MotionEvent.ACTION_CANCEL -> highlight.animate().alpha(0f).setDuration(180).start()
                 }
@@ -276,129 +282,191 @@ class ContextMenuView(
         }
     }
 
-    private fun makeSeparator(): View = View(ctx).apply {
+    private fun makeSeparator() = View(ctx).apply {
         layoutParams = LinearLayout.LayoutParams(MATCH_PARENT, 1).apply {
-            marginStart = ctx.dpToPx(16f); marginEnd = ctx.dpToPx(16f)
+            marginStart = ctx.dpI(16f); marginEnd = ctx.dpI(16f)
         }
         setBackgroundColor(theme.separatorColor)
     }
 
-    private fun measureActionsPanel(count: Int): SizeF {
-        val itemH = ctx.dpToPxF(theme.actionItemHeight.toFloat())
-        val sepH  = 1f
-        val total = count * itemH + maxOf(0, count - 1) * sepH
-        return SizeF(ctx.dpToPxF(theme.menuWidth.toFloat()), total)
+    private fun measureActionsPanel(count: Int): SizePair {
+        val itemH = ctx.dp(theme.actionItemHeight.toFloat())
+        val total = count * itemH + maxOf(0, count - 1).toFloat()
+        return SizePair(ctx.dp(theme.menuWidth.toFloat()), total)
     }
 
-    // ─── Pre-open positioning ─────────────────────────────────────────────
+    // ─── Layout cache (needed inside closures) ─────────────────────────────
 
-    private fun prepareOpen(layout: ContextMenuLayout, snapshot: View?, emoji: View?, actions: View?) {
-        snapshot?.placeAt(layout.snapOrigin)
-        emoji?.apply   { placeAt(layout.emojiOrigin);   scaleX = OPEN_SCALE; scaleY = OPEN_SCALE; alpha = 0f }
-        actions?.apply { placeAt(layout.actionsOrigin); scaleX = OPEN_SCALE; scaleY = OPEN_SCALE; alpha = 0f }
+    private var currentLayout: ContextMenuLayout? = null
+
+    // ─── Pre-open: расставляем в origin позиции ────────────────────────────
+
+    private fun prepareOpen(layout: ContextMenuLayout, snap: View?, emoji: View?, actions: View?) {
+        currentLayout = layout
+        snap?.placeAt(layout.snapOrigin)
+        // Emoji появляется из зоны над снапшотом → стартует сжатым оттуда
+        emoji?.apply {
+            placeAt(layout.emojiOrigin)
+            scaleX = OPEN_SCALE; scaleY = OPEN_SCALE
+            pivotX = width / 2f; pivotY = height.toFloat()  // масштабируем от низа (к снапу)
+            alpha  = 0f
+        }
+        // Actions появляется из зоны под снапшотом → стартует сжатым оттуда
+        actions?.apply {
+            placeAt(layout.actionsOrigin)
+            scaleX = OPEN_SCALE; scaleY = OPEN_SCALE
+            pivotX = width / 2f; pivotY = 0f               // масштабируем от верха (к снапу)
+            alpha  = 0f
+        }
     }
 
-    // ─── Open animation ───────────────────────────────────────────────────
+    // ─── Animate open ──────────────────────────────────────────────────────
 
-    private fun animateOpen(layout: ContextMenuLayout, backdrop: View, snapshot: View?, emoji: View?, actions: View?) {
+    private fun animateOpen(layout: ContextMenuLayout, backdrop: View, snap: View?, emoji: View?, actions: View?) {
         val openMs = (theme.openDuration * 1000).toLong()
 
-        backdrop.animate().alpha(1f).setDuration((openMs * 0.55).toLong())
+        // 1. Backdrop fade-in
+        backdrop.animate().alpha(1f)
+            .setDuration((openMs * 0.55).toLong())
             .setInterpolator(DecelerateInterpolator()).start()
 
-        snapshot?.springToRect(layout.snapTarget, openMs, damping = 0.82f)
+        // 2. Снапшот spring к target позиции
+        snap?.let { springToRect(it, layout.snapTarget, openMs, 0.82f) }
 
-        actions?.apply {
-            pivotX = width / 2f; pivotY = 0f
-            springPanelOpen(layout.actionsTarget, openMs, damping = 0.82f)
+        // 3. Actions panel: scale вверх + slide + fade (из-под снапа вниз)
+        actions?.let {
+            it.pivotX = it.width / 2f; it.pivotY = 0f
+            springPanelOpen(it, layout.actionsTarget, openMs, 0.82f)
         }
-        emoji?.apply {
-            pivotX = width / 2f; pivotY = height.toFloat()
-            springPanelOpen(layout.emojiTarget, openMs, damping = 0.72f)
+
+        // 4. Emoji panel: scale вверх + slide + fade (из-над снапа вверх)
+        emoji?.let {
+            it.pivotX = it.width / 2f; it.pivotY = it.height.toFloat()
+            springPanelOpen(it, layout.emojiTarget, openMs, 0.72f)
         }
     }
 
-    // ─── Close animation ──────────────────────────────────────────────────
+    // ─── Animate close (обратная последовательность) ──────────────────────
 
-    private fun runClose(
-        root: FrameLayout,
-        layout: ContextMenuLayout?,
-        snapshot: View?,
-        emojiPanel: View?,
-        actionsPanel: View?,
-    ) {
+    private fun runClose(layout: ContextMenuLayout, snap: View?, emoji: View?, actions: View?) {
         if (isDismissing) return
         isDismissing = true
 
-        val closeMs = (theme.closeDuration * 1000).toLong()
+        val root    = rootOverlay ?: return
         val backdrop = root.getChildAt(0)
+        val closeMs = (theme.closeDuration * 1000).toLong()
 
+        // 1. Backdrop fade-out
         backdrop?.animate()?.alpha(0f)?.setDuration(closeMs)?.start()
 
-        listOfNotNull(snapshot, emojiPanel, actionsPanel).forEach { v ->
-            v.animate().scaleX(CLOSE_SCALE).scaleY(CLOSE_SCALE).alpha(0f)
-                .setDuration(closeMs).setInterpolator(DecelerateInterpolator()).start()
+        // 2. Emoji схлопывается вниз к снапшоту (обратно от emojiTarget к emojiOrigin)
+        emoji?.let {
+            it.pivotX = it.width / 2f; it.pivotY = it.height.toFloat()
+            AnimatorSet().apply {
+                playTogether(
+                    ObjectAnimator.ofFloat(it, View.X, layout.emojiOrigin.left),
+                    ObjectAnimator.ofFloat(it, View.Y, layout.emojiOrigin.top),
+                    ObjectAnimator.ofFloat(it, View.SCALE_X, CLOSE_SCALE),
+                    ObjectAnimator.ofFloat(it, View.SCALE_Y, CLOSE_SCALE),
+                    ObjectAnimator.ofFloat(it, View.ALPHA, 0f),
+                )
+                duration = closeMs; interpolator = DecelerateInterpolator(); start()
+            }
         }
 
+        // 3. Actions схлопывается вверх к снапшоту (обратно от actionsTarget к actionsOrigin)
+        actions?.let {
+            it.pivotX = it.width / 2f; it.pivotY = 0f
+            AnimatorSet().apply {
+                playTogether(
+                    ObjectAnimator.ofFloat(it, View.X, layout.actionsOrigin.left),
+                    ObjectAnimator.ofFloat(it, View.Y, layout.actionsOrigin.top),
+                    ObjectAnimator.ofFloat(it, View.SCALE_X, CLOSE_SCALE),
+                    ObjectAnimator.ofFloat(it, View.SCALE_Y, CLOSE_SCALE),
+                    ObjectAnimator.ofFloat(it, View.ALPHA, 0f),
+                )
+                duration = closeMs; interpolator = DecelerateInterpolator(); start()
+            }
+        }
+
+        // 4. Снапшот возвращается на место оригинала
+        snap?.let { springToRect(it, layout.snapOrigin, closeMs, 0.9f) }
+
+        // 5. По завершении: убираем overlay, восстанавливаем оригинал
         root.postDelayed({
             (root.parent as? ViewGroup)?.removeView(root)
             rootOverlay = null
+            anchorViewRef?.alpha = 1f  // оригинал появляется обратно
+            anchorViewRef = null
             onDismiss()
-        }, closeMs + 50)
+        }, closeMs + 16)
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────
+    // ─── Animation helpers ────────────────────────────────────────────────
 
-    private fun roundedBackground(color: Int, cornerDp: Float): GradientDrawable =
-        GradientDrawable().apply { setColor(color); cornerRadius = ctx.dpToPxF(cornerDp) }
-
-    private fun View.placeAt(rect: RectF) {
-        x = rect.left; y = rect.top
-        val lp = layoutParams ?: return
-        lp.width = rect.width().toInt(); lp.height = rect.height().toInt()
-        layoutParams = lp
-    }
-
-    private fun View.containsTouch(e: MotionEvent) =
-        e.rawX >= x && e.rawX <= x + width && e.rawY >= y && e.rawY <= y + height
-
-    private fun View.springToRect(target: RectF, durationMs: Long, damping: Float) {
+    private fun springToRect(view: View, target: RectF, durationMs: Long, damping: Float) {
         val interp = OvershootInterpolator((1f - damping) * 2f)
-        val xA = ObjectAnimator.ofFloat(this, View.X, target.left)
-        val yA = ObjectAnimator.ofFloat(this, View.Y, target.top)
-        val wA = ValueAnimator.ofInt(width, target.width().toInt()).also {
-            it.addUpdateListener { a -> layoutParams?.width = a.animatedValue as Int; requestLayout() }
+        val xA = ObjectAnimator.ofFloat(view, View.X, target.left)
+        val yA = ObjectAnimator.ofFloat(view, View.Y, target.top)
+        val wA = ValueAnimator.ofInt(view.width, target.width().toInt()).also {
+            it.addUpdateListener { a ->
+                view.layoutParams?.width = a.animatedValue as Int; view.requestLayout()
+            }
         }
-        val hA = ValueAnimator.ofInt(height, target.height().toInt()).also {
-            it.addUpdateListener { a -> layoutParams?.height = a.animatedValue as Int; requestLayout() }
+        val hA = ValueAnimator.ofInt(view.height, target.height().toInt()).also {
+            it.addUpdateListener { a ->
+                view.layoutParams?.height = a.animatedValue as Int; view.requestLayout()
+            }
         }
         AnimatorSet().apply { playTogether(xA, yA, wA, hA); duration = durationMs; interpolator = interp; start() }
     }
 
-    private fun View.springPanelOpen(target: RectF, durationMs: Long, damping: Float) {
+    private fun springPanelOpen(view: View, target: RectF, durationMs: Long, damping: Float) {
         val interp = OvershootInterpolator((1f - damping) * 3f)
         AnimatorSet().apply {
             playTogether(
-                ObjectAnimator.ofFloat(this@springPanelOpen, View.X, target.left),
-                ObjectAnimator.ofFloat(this@springPanelOpen, View.Y, target.top),
-                ObjectAnimator.ofFloat(this@springPanelOpen, View.SCALE_X, 1f),
-                ObjectAnimator.ofFloat(this@springPanelOpen, View.SCALE_Y, 1f),
-                ObjectAnimator.ofFloat(this@springPanelOpen, View.ALPHA, 1f),
+                ObjectAnimator.ofFloat(view, View.X, target.left),
+                ObjectAnimator.ofFloat(view, View.Y, target.top),
+                ObjectAnimator.ofFloat(view, View.SCALE_X, 1f),
+                ObjectAnimator.ofFloat(view, View.SCALE_Y, 1f),
+                ObjectAnimator.ofFloat(view, View.ALPHA, 1f),
             )
             duration = durationMs; interpolator = interp; start()
         }
     }
 
+    // ─── Helpers ──────────────────────────────────────────────────────────
+
+    private fun roundedBg(color: Int, cornerDp: Int): GradientDrawable =
+        GradientDrawable().apply { setColor(color); cornerRadius = ctx.dp(cornerDp.toFloat()) }
+
+    private fun View.placeAt(r: RectF) {
+        x = r.left; y = r.top
+        val lp = layoutParams ?: return
+        lp.width = r.width().toInt(); lp.height = r.height().toInt(); layoutParams = lp
+    }
+
+    private fun View.hitTest(e: MotionEvent) =
+        e.rawX >= x && e.rawX <= x + width && e.rawY >= y && e.rawY <= y + height
+
+    // Tag-based finders — overlay child order: 0=backdrop, 1=snap, 2=emoji, 3=actions
+    private fun findSnap(root: FrameLayout)    = root.getChildAt(1)
+    private fun findEmoji(root: FrameLayout)   = if (root.childCount > 2) root.getChildAt(2) else null
+    private fun findActions(root: FrameLayout) = when (root.childCount) {
+        4 -> root.getChildAt(3)
+        3 -> root.getChildAt(2).takeIf { emojis.isEmpty() }
+        else -> null
+    }
+
     companion object {
         private const val OPEN_SCALE  = 0.5f
         private const val CLOSE_SCALE = 0.5f
-        private val MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT
     }
 }
 
-// ─── ContextMenuLayoutEngine ──────────────────────────────────────────────────
+// ─── Layout data ──────────────────────────────────────────────────────────────
 
-data class SizeF(val width: Float, val height: Float)
+data class SizePair(val w: Float, val h: Float)
 
 data class ContextMenuLayout(
     val snapTarget:    RectF,
@@ -407,11 +475,11 @@ data class ContextMenuLayout(
     val snapOrigin:    RectF,
     val emojiOrigin:   RectF,
     val actionsOrigin: RectF,
-    val needsScroll:   Boolean,
-    val scrollOffset:  Float,
     val hasEmoji:      Boolean,
     val hasActions:    Boolean,
 )
+
+// ─── ContextMenuLayoutEngine ──────────────────────────────────────────────────
 
 object ContextMenuLayoutEngine {
 
@@ -423,48 +491,51 @@ object ContextMenuLayoutEngine {
         screenW: Float, screenH: Float,
         hPad: Float, vPad: Float,
         emojiGap: Float, actionsGap: Float,
+        isMine: Boolean = false,
     ): ContextMenuLayout {
-        val hasEmoji   = emojiH   > 0
+        val hasEmoji   = emojiH > 0
         val hasActions = actionsH > 0
-        val eGap = if (hasEmoji)   emojiGap   else 0f
+        val eGap = if (hasEmoji) emojiGap else 0f
         val mGap = if (hasActions) actionsGap else 0f
 
         val topLimit    = vPad
         val bottomLimit = screenH - vPad
 
-        val snapX  = clamp(anchorRect.left, hPad, screenW - snapW - hPad)
-        val emojiX = if (hasEmoji)   clamp(snapX + snapW - emojiW, hPad, screenW - emojiW - hPad)   else 0f
-        val menuX  = if (hasActions) (if (snapX + actionsW > screenW - hPad) screenW - hPad - actionsW else snapX) else 0f
+        // isMine bubbles are right-aligned → anchor snapshot at right, panels align right
+        // !isMine bubbles are left-aligned  → anchor snapshot at left,  panels align left
+        val snapX = if (isMine)
+            clamp(anchorRect.right - snapW, hPad, screenW - snapW - hPad)
+        else
+            clamp(anchorRect.left,          hPad, screenW - snapW - hPad)
 
-        val totalH      = emojiH + eGap + snapH + mGap + actionsH
-        val needsScroll = totalH > bottomLimit - topLimit
+        val emojiX = if (hasEmoji) {
+            if (isMine) clamp(snapX + snapW - emojiW, hPad, screenW - emojiW - hPad)
+            else        clamp(snapX,                  hPad, screenW - emojiW - hPad)
+        } else 0f
 
-        val emojiY: Float; val snapY: Float; val menuY: Float; val scrollOffset: Float
+        val menuX = if (hasActions) {
+            if (isMine) clamp(snapX + snapW - actionsW, hPad, screenW - actionsW - hPad)
+            else        clamp(snapX,                    hPad, screenW - actionsW - hPad)
+        } else 0f
 
-        if (needsScroll) {
-            emojiY       = topLimit
-            snapY        = emojiY + emojiH + eGap
-            menuY        = snapY  + snapH  + mGap
-            scrollOffset = maxOf(0f, menuY + actionsH + vPad - screenH)
-        } else {
-            val blockTop = clamp(anchorRect.top - emojiH - eGap, topLimit, bottomLimit - totalH)
-            emojiY       = blockTop
-            snapY        = emojiY + emojiH + eGap
-            menuY        = snapY  + snapH  + mGap
-            scrollOffset = 0f
-        }
+        val totalH = emojiH + eGap + snapH + mGap + actionsH
 
-        val originY = anchorRect.top + scrollOffset
+        // Позиция блока: стараемся разместить так чтобы снапшот был там где был anchor
+        val blockTop = clamp(anchorRect.top - emojiH - eGap, topLimit, bottomLimit - totalH)
+        val emojiY   = blockTop
+        val snapY    = emojiY + emojiH + eGap
+        val menuY    = snapY  + snapH  + mGap
+
+        // Origin = там где сейчас anchor (до анимации)
+        val originY = anchorRect.top
 
         return ContextMenuLayout(
-            snapTarget    = RectF(snapX,  snapY,  snapX  + snapW,    snapY  + snapH),
-            emojiTarget   = if (hasEmoji)   RectF(emojiX, emojiY,    emojiX + emojiW,    emojiY + emojiH)    else RectF(),
-            actionsTarget = if (hasActions) RectF(menuX,  menuY,     menuX  + actionsW,  menuY  + actionsH)  else RectF(),
+            snapTarget    = RectF(snapX,  snapY,  snapX  + snapW,   snapY  + snapH),
+            emojiTarget   = if (hasEmoji)   RectF(emojiX, emojiY,   emojiX + emojiW, emojiY + emojiH) else RectF(),
+            actionsTarget = if (hasActions) RectF(menuX,  menuY,    menuX  + actionsW, menuY + actionsH) else RectF(),
             snapOrigin    = RectF(anchorRect.left, originY, anchorRect.left + snapW, originY + snapH),
-            emojiOrigin   = if (hasEmoji)   RectF(emojiX, originY - eGap - emojiH, emojiX + emojiW, originY - eGap)       else RectF(),
-            actionsOrigin = if (hasActions) RectF(menuX,  originY + snapH + mGap,  menuX  + actionsW, originY + snapH + mGap + actionsH) else RectF(),
-            needsScroll   = needsScroll,
-            scrollOffset  = scrollOffset,
+            emojiOrigin   = if (hasEmoji)   RectF(emojiX, originY - eGap - emojiH, emojiX + emojiW, originY - eGap) else RectF(),
+            actionsOrigin = if (hasActions) RectF(menuX,  originY + snapH + mGap, menuX + actionsW, originY + snapH + mGap + actionsH) else RectF(),
             hasEmoji      = hasEmoji,
             hasActions    = hasActions,
         )
@@ -476,29 +547,31 @@ object ContextMenuLayoutEngine {
 // ─── ContextMenuTheme ─────────────────────────────────────────────────────────
 
 class ContextMenuTheme(isDark: Boolean) {
-    val backdropColor: Int             = if (isDark) Color.argb(128, 0, 0, 0) else Color.argb(77, 0, 0, 0)
-    val emojiPanelBackground: Int      = if (isDark) Color.rgb(38, 38, 40) else Color.WHITE
-    val emojiPanelCornerRadius: Int    = 16
-    val emojiFontSize: Float           = 20f
-    val emojiItemSize: Int             = 36
-    val menuBackground: Int            = if (isDark) Color.rgb(38, 38, 40) else Color.WHITE
-    val menuCornerRadius: Int          = 12
-    val separatorColor: Int            = if (isDark) Color.argb(31, 255, 255, 255) else Color.argb(31, 0, 0, 0)
-    val actionTitleColor: Int          = if (isDark) Color.rgb(235, 235, 235) else Color.BLACK
-    val actionDestructiveColor: Int    = Color.rgb(255, 59, 48)
-    val actionHighlightColor: Int      = if (isDark) Color.argb(60, 255, 255, 255) else Color.argb(30, 0, 0, 0)
-    val actionItemHeight: Int          = 48
-    val actionHorizontalPadding: Int   = 14
-    val openDuration: Double           = 0.40
-    val closeDuration: Double          = 0.26
-    val emojiPanelSpacing: Float       = 6f
-    val menuSpacing: Float             = 6f
-    val horizontalPadding: Float       = 12f
-    val verticalPadding: Float         = 10f
-    val menuWidth: Int                 = 220
+    val backdropColor: Int           = if (isDark) Color.argb(128, 0, 0, 0) else Color.argb(77, 0, 0, 0)
+    val emojiPanelBackground: Int    = if (isDark) Color.rgb(38, 38, 40) else Color.WHITE
+    val emojiPanelCornerRadius: Int  = 16
+    val emojiFontSize: Float         = 20f
+    val emojiItemSize: Int           = 36
+    val menuBackground: Int          = if (isDark) Color.rgb(38, 38, 40) else Color.WHITE
+    val menuCornerRadius: Int        = 12
+    val separatorColor: Int          = if (isDark) Color.argb(31, 255, 255, 255) else Color.argb(31, 0, 0, 0)
+    val actionTitleColor: Int        = if (isDark) Color.rgb(235, 235, 235) else Color.BLACK
+    val actionDestructiveColor: Int  = Color.rgb(255, 59, 48)
+    val actionHighlightColor: Int    = if (isDark) Color.argb(60, 255, 255, 255) else Color.argb(30, 0, 0, 0)
+    val actionItemHeight: Int        = 48
+    val actionHorizontalPadding: Int = 14
+    val openDuration: Double         = 0.40
+    val closeDuration: Double        = 0.26
+    val emojiPanelSpacing: Float     = 6f
+    val menuSpacing: Float           = 6f
+    val horizontalPadding: Float     = 12f
+    val verticalPadding: Float       = 10f
+    val menuWidth: Int               = 220
 }
 
-// ─── Context extensions ───────────────────────────────────────────────────────
+// ─── dp helpers ───────────────────────────────────────────────────────────────
 
-private fun Context.dpToPxF(dp: Float): Float =
+private fun Context.dp(dp: Float): Float =
     TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics)
+
+private fun Context.dpI(dp: Float): Int = dp(dp).toInt()

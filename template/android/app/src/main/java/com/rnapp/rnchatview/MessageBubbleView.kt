@@ -43,6 +43,11 @@ class MessageBubbleView(
 
     var onReplyTap: ((replyId: String) -> Unit)? = null
 
+    /** The bubble view used as anchor for context menu snapshot */
+    val bubbleView: View get() = bubble
+    /** Whether this is the current user's message */
+    val isMineMessage: Boolean get() = isMine
+
     // ─── Init ─────────────────────────────────────────────────────────────
 
     init {

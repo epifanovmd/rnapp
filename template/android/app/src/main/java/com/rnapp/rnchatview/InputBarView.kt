@@ -254,16 +254,20 @@ class InputBarView(context: Context) : LinearLayout(context) {
             if (panelVisible && topPanel.visibility != View.VISIBLE) {
                 topPanel.visibility = View.VISIBLE
                 topPanel.alpha      = 0f
+                requestLayout()
                 topPanel.animate().alpha(1f).setDuration(200)
                     .setInterpolator(DecelerateInterpolator()).start()
             } else if (!panelVisible && topPanel.visibility == View.VISIBLE) {
                 topPanel.animate().alpha(0f).setDuration(150)
-                    .withEndAction { topPanel.visibility = View.GONE }
-                    .start()
+                    .withEndAction {
+                        topPanel.visibility = View.GONE
+                        requestLayout()
+                    }.start()
             }
         } else {
             topPanel.visibility = if (panelVisible) View.VISIBLE else View.GONE
             topPanel.alpha = 1f
+            requestLayout()
         }
 
         notifyHeightChanged()
@@ -310,6 +314,6 @@ class InputBarView(context: Context) : LinearLayout(context) {
     }
 
     private fun notifyHeightChanged() {
-        post { delegate?.onHeightChanged(height) }
+        post { post { delegate?.onHeightChanged(height) } }
     }
 }

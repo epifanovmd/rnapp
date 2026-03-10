@@ -47,7 +47,7 @@ class ChatSectionedAdapter(
     // ─── Callbacks ────────────────────────────────────────────────────────
 
     var onMessagePress: ((messageId: String) -> Unit)? = null
-    var onMessageLongPress: ((messageId: String, anchorView: View) -> Unit)? = null
+    var onMessageLongPress: ((messageId: String, anchorView: View, isMine: Boolean) -> Unit)? = null
     var onReplyPress: ((replyId: String) -> Unit)? = null
 
     // ─── Public API ───────────────────────────────────────────────────────
@@ -129,10 +129,11 @@ class ChatSectionedAdapter(
                     onMessagePress?.invoke(msg.id)
                 }
 
-                // Long press → context menu
-                holder.itemView.setOnLongClickListener { v ->
+                // Long press on bubble only (not full row) → context menu
+                val bubbleAnchor = bubbleView.bubbleView
+                bubbleAnchor.setOnLongClickListener { v ->
                     v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    onMessageLongPress?.invoke(msg.id, v)
+                    onMessageLongPress?.invoke(msg.id, v, msg.isMine)
                     true
                 }
             }
@@ -196,7 +197,7 @@ class ChatSectionedAdapter(
         override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean =
             old[oldPos] == new[newPos]
 
-        override fun getChangePayload(oldPos: Int, newPos: Int): Any? = Unit // non-null = no flicker
+        override fun getChangePayload(oldPos: Int, newPos: Int): Any? = null
     }
 }
 

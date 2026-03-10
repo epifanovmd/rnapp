@@ -100,6 +100,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).also {
                 it.gravity = Gravity.BOTTOM
             }
+            // delegate assigned after all class properties are initialized (see post{} below)
         }
 
         // EmptyState
@@ -137,13 +138,14 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
         // Adapter callbacks
         adapter.onMessagePress     = { id -> sendEvent("onMessagePress", Args { putString("messageId", id) }) }
-        adapter.onMessageLongPress = { id, anchor -> showContextMenu(id, anchor) }
+        adapter.onMessageLongPress = { id, anchor, _ -> showContextMenu(id, anchor) }
         adapter.onReplyPress       = { replyId ->
             sendEvent("onReplyMessagePress", Args { putString("messageId", replyId) })
             scrollToMessage(replyId, ChatScrollPosition.CENTER, animated = true, highlight = true)
         }
 
-        // Delegate and scroll listener are assigned after all properties are initialized
+        // Defer delegate + scrollListener assignment until after class init completes
+        // (inputBarDelegate and scrollListener are declared as val after this init block)
         post {
             inputBar.delegate = inputBarDelegate
             recyclerView.addOnScrollListener(scrollListener)
@@ -169,8 +171,12 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private fun updateFabPosition() {
         val inputH = inputBar.height
-        (fabButton.layoutParams as LayoutParams).bottomMargin =
-            inputH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
+        if (inputH == 0) return
+        val lp = fabButton.layoutParams as? LayoutParams ?: return
+        val newMargin = inputH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
+        if (lp.bottomMargin == newMargin) return
+        lp.bottomMargin = newMargin
+        fabButton.layoutParams = lp  // reassign triggers requestLayout
     }
 
     // ─── Public Props API (called from ViewManager) ────────────────────────
@@ -483,7 +489,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                     isUserDragging = false
                     processPendingHighlight()
                 }
-                RecyclerView.SCROLL_STATE_SETTLING -> isUserDragging = false
+                RecyclerView.SCROLL_STATE_SETTLING -> { /* inertial fling — keep isUserDragging=true to prevent padding jitter */ }
             }
         }
 
