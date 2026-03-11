@@ -544,8 +544,6 @@ const ChatScreen: React.FC = () => {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
-  console.log("messages", messages);
-
   return (
     <Container edges={[]}>
       {/* <Container edges={["top"]}>*/}
@@ -559,14 +557,14 @@ const ChatScreen: React.FC = () => {
         topThreshold={200}
         scrollToBottomThreshold={150}
         collectionInsetTop={32}
-        // initialScrollId={"19"}
+        initialScrollId={"19"}
         isLoading={isLoading}
         inputAction={inputAction}
         theme={theme}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onCancelInputAction={handleCancelInputAction}
-        // onReachTop={handleReachTop}
+        onReachTop={handleReachTop}
         onReplyMessagePress={handleReplyMessagePress}
         onActionPress={handleActionPress}
         onAttachmentPress={handleAttachmentPress}

@@ -12,6 +12,7 @@ import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.core.view.animation.PathInterpolatorCompat
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.facebook.react.bridge.Arguments
@@ -313,27 +314,24 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     /**
-     * Скролл к сообщению с подсветкой.
+     * Скролл к сообщению с гарантированным центрированием в видимой области.
      *
-     * animated=true  → smoothScrollToPosition (стандартная анимация)
-     * animated=false → InstantScroller: кастомный LinearSmoothScroller с нулевой
-     *                  скоростью. Единственный надёжный способ прокрутить RecyclerView
-     *                  к произвольной позиции без анимации, гарантированно получив
-     *                  реальный View в onTargetFound() для точного центрирования.
+     * Единый CenteringScroller для обоих режимов:
+     *   animated=true  → стандартная скорость RecyclerView (calculateTimeForScrolling не
+     *                     переопределён), плавная анимация с ease-out интерполятором.
+     *   animated=false → calculateTimeForScrolling возвращает 1мс — визуально мгновенно,
+     *                     onTargetFound всё равно вызывается для точного выравнивания.
+     *
+     * Почему не smoothScrollToPosition (для animated=true):
+     *   Использует SNAP_TO_ANY — просто делает item видимым, без центрирования.
      *
      * Почему не scrollToPositionWithOffset + post/post:
-     *   scrollToPositionWithOffset — pending scroll, выполняется при следующем
-     *   dispatchLayout. Но findViewByPosition возвращает null для позиций за
-     *   пределами текущего viewport — RecyclerView не держит невидимые ViewHolder-ы.
-     *   Поэтому читать координаты через post ненадёжно.
-     *
-     * Почему не OnLayoutChangeListener:
-     *   Срабатывает только при изменении bounds самого RecyclerView.
-     *   При initialScroll bounds уже финальны — listener не вызывается никогда.
+     *   Pending scroll выполняется в следующем dispatchLayout; findViewByPosition
+     *   возвращает null для позиций за пределами viewport — ViewHolder не держится.
      *
      * LinearSmoothScroller.onTargetFound() вызывается RecyclerView именно в тот
-     * момент когда target ViewHolder создан и выложен — это единственный
-     * гарантированный callback с доступом к реальному View.
+     * момент когда target ViewHolder создан и выложен — единственный гарантированный
+     * callback с доступом к реальному View для точного вычисления offset.
      */
     fun scrollToMessage(
         id: String,
@@ -345,36 +343,38 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         if (pos < 0) { Log.w(TAG, "scrollToMessage: id=$id not found"); return }
         Log.d(TAG, "scrollToMessage: id=$id pos=$pos animated=$animated rvHeight=${recyclerView.height}")
 
-        if (animated) {
-            isProgrammaticScroll = true
-            recyclerView.smoothScrollToPosition(pos)
-            isProgrammaticScroll = false
-            if (highlight) pendingHighlightPosition = pos
-            return
-        }
-
         // Захватываем локально до анонимного класса — иначе компилятор видит
         // обращение к членам класса через внешний this и считает их nullable.
         val lm = layoutManager
         val rv = recyclerView
 
-        // InstantScroller — LinearSmoothScroller с нулевой скоростью анимации.
-        // calculateSpeedPerPixel → 0f делает скролл мгновенным (0мс на пиксель).
-        // onTargetFound вызывается RecyclerView когда target item реально выложен —
-        // здесь мы получаем доступ к View и можем точно вычислить нужный offset.
+        // CenteringScroller — LinearSmoothScroller который всегда выравнивает
+        // target-item по нужной позиции (CENTER / TOP / BOTTOM).
+        //
+        // animated=true  → стандартная скорость (calculateSpeedPerPixel не переопределён),
+        //                   RecyclerView сам анимирует скролл с плавным ускорением/торможением.
+        // animated=false → calculateTimeForScrolling возвращает 1мс — визуально мгновенно,
+        //                   при этом onTargetFound всё равно вызывается и мы точно выравниваем.
+        //
+        // Почему не smoothScrollToPosition (для animated=true):
+        //   smoothScrollToPosition использует SnapHelper или умолчальный scroller который
+        //   просто делает item видимым (SNAP_TO_ANY). Центрирование не гарантируется.
+        //
+        // Почему не scrollToPositionWithOffset + post:
+        //   Pending scroll выполняется в следующем dispatchLayout; findViewByPosition
+        //   возвращает null для позиций за пределами viewport — ViewHolder не держится.
         isProgrammaticScroll = true
         val scroller = object : LinearSmoothScroller(context) {
 
-            // Возвращаем 1мс на любое расстояние — визуально мгновенно,
-            // без деления на 0 которое даёт calculateSpeedPerPixel=0f.
-            override fun calculateTimeForScrolling(dx: Int) = 1
+            override fun calculateTimeForScrolling(dx: Int): Int =
+                if (animated) super.calculateTimeForScrolling(dx) else 1
 
             override fun getVerticalSnapPreference() = SNAP_TO_START
 
             override fun onTargetFound(targetView: View, state: RecyclerView.State, action: Action) {
-                val padTop    = rv.paddingTop
+                val padTop   = rv.paddingTop
                 val padBottom = rv.paddingBottom
-                val visibleH  = rv.height - padTop - padBottom
+                val visibleH = rv.height - padTop - padBottom
 
                 val top    = lm.getDecoratedTop(targetView)
                 val height = lm.getDecoratedMeasuredHeight(targetView)
@@ -386,9 +386,10 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                 }
 
                 val dy = top - targetTop
-                Log.d(TAG, "scrollToMessage onTargetFound: pos=$pos top=$top targetTop=$targetTop dy=$dy")
+                Log.d(TAG, "scrollToMessage onTargetFound: pos=$pos top=$top targetTop=$targetTop dy=$dy animated=$animated")
                 if (dy != 0) {
-                    action.update(0, dy, 1, android.view.animation.LinearInterpolator())
+                    val duration = if (animated) calculateTimeForDeceleration(abs(dy)) else 1
+                    action.update(0, dy, duration, androidx.core.view.animation.PathInterpolatorCompat.create(0.25f, 0.1f, 0.25f, 1f))
                 }
             }
 
