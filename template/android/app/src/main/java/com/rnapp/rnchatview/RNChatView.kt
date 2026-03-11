@@ -189,7 +189,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Props API ────────────────────────────────────────────────────────
 
     fun setMessages(newMessages: List<ChatMessage>) {
-        Log.d(TAG, "setMessages: ${newMessages.size} messages | initialScrollDone=$initialScrollDone | pendingInitialScrollId=$pendingInitialScrollId")
 
         // Для первой загрузки без initialScrollId — stackFromEnd=true ДО applyStrategy.
         // Это заставляет LinearLayoutManager разложить items снизу с первого layout pass.
@@ -204,6 +203,16 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         updateFabVisibility(animated = false)
 
         lastKnownCount = newMessages.size
+
+        // После prepend-вставки offset мог вырасти из-за anchor-компенсации.
+        // Проверяем порог после layout — если всё ещё у верха, запускаем следующую подгрузку.
+        // Если isLoading ещё true — не проверяем: setIsLoading(false) сделает это сам.
+        if (strategy is UpdateStrategy.Prepend && !isLoading) {
+            Log.d(TAG, "setMessages [Prepend]: prependedCount=${strategy.prependedCount} totalItems=${newMessages.size} — scheduling checkAndFireReachTopIfNeeded")
+            recyclerView.post { checkAndFireReachTopIfNeeded() }
+        } else if (strategy is UpdateStrategy.Prepend) {
+            Log.d(TAG, "setMessages [Prepend]: prependedCount=${strategy.prependedCount} totalItems=${newMessages.size} — skip check, isLoading=true, setIsLoading(false) will handle it")
+        }
 
         if (!initialScrollDone && newMessages.isNotEmpty()) {
             initialScrollDone = true
@@ -222,9 +231,28 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     fun setIsLoading(loading: Boolean) {
+        Log.d(TAG, "setIsLoading: $loading | waiting=$waitingForNewMessages")
         isLoading = loading
-        if (!loading) waitingForNewMessages = false
+        if (!loading) {
+            waitingForNewMessages = false
+            // После завершения загрузки проверяем — вдруг пользователь уже у самого верха.
+            // Такое случается при быстром скролле: onReachTop сработал, данные загрузились,
+            // но offset уже 0 и dy < 0 больше не генерируется — следующая подгрузка не запустится.
+            // Делаем проверку через post чтобы новые items успели лечь в layout.
+            recyclerView.post { checkAndFireReachTopIfNeeded() }
+        }
         updateLoadingState()
+    }
+
+    private fun checkAndFireReachTopIfNeeded() {
+        val distanceFromTop = recyclerView.computeVerticalScrollOffset()
+        Log.d(TAG, "checkAndFireReachTopIfNeeded: distanceFromTop=$distanceFromTop threshold=$topThreshold isLoading=$isLoading waiting=$waitingForNewMessages")
+        if (isLoading) { Log.d(TAG, "checkAndFireReachTopIfNeeded [SKIP]: isLoading=true"); return }
+        if (waitingForNewMessages) { Log.d(TAG, "checkAndFireReachTopIfNeeded [SKIP]: waitingForNewMessages=true"); return }
+        if (distanceFromTop >= topThreshold) { Log.d(TAG, "checkAndFireReachTopIfNeeded [SKIP]: distanceFromTop=$distanceFromTop >= threshold=$topThreshold"); return }
+        waitingForNewMessages = true
+        Log.d(TAG, "onReachTop [check]: distanceFromTop=$distanceFromTop threshold=$topThreshold isLoading=$isLoading")
+        sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
     }
 
     fun setTopThreshold(value: Int) { topThreshold = context.dpToPx(value.toFloat()) }
@@ -232,7 +260,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     fun setScrollToBottomThreshold(value: Int) { scrollToBottomThreshold = context.dpToPx(value.toFloat()) }
 
     fun setInitialScrollId(id: String?) {
-        Log.d(TAG, "setInitialScrollId: id=$id | initialScrollDone=$initialScrollDone | pendingInitialScroll=$pendingInitialScroll")
         if (id == null) return
 
         if (!initialScrollDone) {
@@ -243,10 +270,8 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             // Отменяем stackFromEnd и переключаемся на скролл к сообщению.
             pendingInitialScrollId = id
             layoutManager.stackFromEnd = false
-            Log.d(TAG, "setInitialScrollId: cancelled stackFromEnd, will scroll to $id in onLayout")
         } else {
             // onLayout уже прошёл — скроллим немедленно
-            Log.d(TAG, "setInitialScrollId: arrived after onLayout, scrolling now")
             recyclerView.post {
                 scrollToMessage(id, ChatScrollPosition.CENTER, animated = false, highlight = true)
             }
@@ -287,7 +312,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     fun scrollToBottom(animated: Boolean = true) {
         val last = adapter.itemCount - 1
         if (last < 0) return
-        Log.d(TAG, "scrollToBottom: last=$last animated=$animated rvHeight=${recyclerView.height}")
         if (animated) {
             isProgrammaticScroll = true
             recyclerView.smoothScrollToPosition(last)
@@ -299,7 +323,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             recyclerView.post {
                 recyclerView.post {
                     val lastView = layoutManager.findViewByPosition(last)
-                    Log.d(TAG, "scrollToBottom post2: lastView=$lastView bottom=${lastView?.bottom} rvH=${recyclerView.height} padBottom=${recyclerView.paddingBottom}")
                     if (lastView != null) {
                         val extra = lastView.bottom - (recyclerView.height - recyclerView.paddingBottom)
                         if (extra > 0) {
@@ -340,8 +363,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         highlight: Boolean = true,
     ) {
         val pos = adapter.positionOfMessage(id)
-        if (pos < 0) { Log.w(TAG, "scrollToMessage: id=$id not found"); return }
-        Log.d(TAG, "scrollToMessage: id=$id pos=$pos animated=$animated rvHeight=${recyclerView.height}")
 
         // Захватываем локально до анонимного класса — иначе компилятор видит
         // обращение к членам класса через внешний this и считает их nullable.
@@ -386,7 +407,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                 }
 
                 val dy = top - targetTop
-                Log.d(TAG, "scrollToMessage onTargetFound: pos=$pos top=$top targetTop=$targetTop dy=$dy animated=$animated")
                 if (dy != 0) {
                     val duration = if (animated) calculateTimeForDeceleration(abs(dy)) else 1
                     action.update(0, dy, duration, androidx.core.view.animation.PathInterpolatorCompat.create(0.25f, 0.1f, 0.25f, 1f))
@@ -398,7 +418,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                 isProgrammaticScroll = false
                 revealAfterInitialScroll()
                 if (highlight) rv.post { adapter.highlightItem(rv, pos) }
-                Log.d(TAG, "scrollToMessage onStop: pos=$pos")
             }
         }
         scroller.targetPosition = pos
@@ -493,12 +512,10 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     private fun applyDelete(s: UpdateStrategy.Delete) {
-        Log.d(TAG, "applyDelete: removing ${s.removedIds}")
         adapter.submitSections(s.sections, s.index, affectedIds = s.removedIds)
     }
 
     private fun applyUpdate(s: UpdateStrategy.Update) {
-        Log.d(TAG, "applyUpdate: changed ${s.changedIds}")
         // Передаём changedIds в адаптер — он сбросит alpha и сделает layout pass
         adapter.submitSections(s.sections, s.index, affectedIds = s.changedIds)
     }
@@ -520,7 +537,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private fun doInitialScroll() {
         val targetId = pendingInitialScrollId
-        Log.d(TAG, "doInitialScroll: targetId=$targetId adapterCount=${adapter.itemCount} rvHeight=${recyclerView.height}")
         if (targetId != null) {
             pendingInitialScrollId = null
             scrollToMessage(targetId, ChatScrollPosition.CENTER, animated = false, highlight = true)
@@ -624,7 +640,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Context menu ─────────────────────────────────────────────────────
 
     private fun showContextMenu(messageId: String, anchor: View) {
-        Log.d(TAG, "showContextMenu: $messageId")
         contextMenu?.dismiss()
         contextMenu = ContextMenuView(
             ctx              = context,
@@ -683,10 +698,19 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private val scrollListener = object : RecyclerView.OnScrollListener() {
 
-        private var lastEventMs = 0L
-        private val throttleMs  = 33L
+        private var lastEventMs   = 0L
+        private val throttleMs    = 33L
+        private var lastLogMs     = 0L
+        private val logThrottleMs = 100L  // логи реже чем события — не спамим
 
         override fun onScrollStateChanged(rv: RecyclerView, newState: Int) {
+            val stateName = when (newState) {
+                RecyclerView.SCROLL_STATE_IDLE     -> "IDLE"
+                RecyclerView.SCROLL_STATE_DRAGGING -> "DRAGGING"
+                RecyclerView.SCROLL_STATE_SETTLING -> "SETTLING"
+                else                               -> "UNKNOWN($newState)"
+            }
+            Log.d(TAG, "scrollState → $stateName | waiting=$waitingForNewMessages isLoading=$isLoading")
             when (newState) {
                 RecyclerView.SCROLL_STATE_DRAGGING -> isUserDragging = true
                 RecyclerView.SCROLL_STATE_IDLE -> {
@@ -701,6 +725,46 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             trackVisibleMessages()
 
             val now = System.currentTimeMillis()
+
+            // Throttled лог каждые 100мс — показывает полное состояние во время скролла
+            if (now - lastLogMs >= logThrottleMs) {
+                lastLogMs = now
+                val offsetY      = rv.computeVerticalScrollOffset()
+                val scrollState  = when (rv.scrollState) {
+                    RecyclerView.SCROLL_STATE_IDLE     -> "IDLE"
+                    RecyclerView.SCROLL_STATE_DRAGGING -> "DRAG"
+                    RecyclerView.SCROLL_STATE_SETTLING -> "FLING"
+                    else -> "?"
+                }
+                Log.d(TAG, "onScrolled: dy=$dy offsetY=$offsetY threshold=$topThreshold " +
+                    "waiting=$waitingForNewMessages isLoading=$isLoading " +
+                    "isProgrammatic=$isProgrammaticScroll state=$scrollState")
+            }
+
+            // ── onReachTop — ВСЕГДА до throttle ──────────────────────────────
+            // Throttle стоит ниже и срезает sendEvent("onScroll"), но НЕ должен
+            // срезать проверку onReachTop. При быстром флинге кадр с
+            // distanceFromTop < threshold может попасть в throttle-окно и быть
+            // пропущен — тогда список достигает верха без триггера подгрузки.
+            if (dy < 0 && !isProgrammaticScroll) {
+                val distanceFromTop = rv.computeVerticalScrollOffset()
+                if (waitingForNewMessages) {
+                    // логируем редко чтобы не спамить
+                    if (now - lastLogMs < logThrottleMs) {
+                        Log.d(TAG, "onReachTop [SKIP]: dy=$dy distanceFromTop=$distanceFromTop — waitingForNewMessages=true")
+                    }
+                } else if (distanceFromTop >= topThreshold) {
+                    if (now - lastLogMs < logThrottleMs) {
+                        Log.d(TAG, "onReachTop [SKIP]: dy=$dy distanceFromTop=$distanceFromTop >= threshold=$topThreshold")
+                    }
+                } else {
+                    waitingForNewMessages = true
+                    Log.d(TAG, "onReachTop [scroll]: distanceFromTop=$distanceFromTop threshold=$topThreshold")
+                    sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
+                }
+            }
+
+            // ── Throttle для onScroll event и visibility tracking ─────────────
             if (now - lastEventMs < throttleMs) return
             lastEventMs = now
 
@@ -711,24 +775,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                 putDouble("x", 0.0)
                 putDouble("y", offsetY.toDouble())
             })
-
-            // dy < 0 — пользователь скроллит к началу списка (к старым сообщениям, вверх).
-            // onReachTop стреляет только:
-            //   • при движении к верху (dy < 0)
-            //   • когда ещё не ждём ответа на предыдущий запрос (!waitingForNewMessages)
-            //   • когда не идёт загрузка (!isLoading) — не дублируем запрос
-            //   • когда до верха списка осталось меньше topThreshold пикселей
-            //
-            // Используем computeVerticalScrollOffset() — надёжный способ узнать расстояние
-            // от верха контента до верха viewport. findViewByPosition(0) возвращает null
-            // когда item 0 за пределами экрана, что давало ложное срабатывание.
-            if (dy < 0 && !waitingForNewMessages && !isLoading) {
-                val distanceFromTop = rv.computeVerticalScrollOffset()
-                if (distanceFromTop < topThreshold) {
-                    waitingForNewMessages = true
-                    sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
-                }
-            }
         }
     }
 
@@ -767,9 +813,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, viewId) ?: return
             val surfaceId  = UIManagerHelper.getSurfaceId(this)
             dispatcher.dispatchEvent(RNChatViewEvent(surfaceId, viewId, name, params))
-        } catch (e: Exception) {
-            Log.e(TAG, "sendEvent $name failed", e)
-        }
+        } catch (_: Exception) { }
     }
 
     private fun args(block: WritableMap.() -> Unit): WritableMap =
