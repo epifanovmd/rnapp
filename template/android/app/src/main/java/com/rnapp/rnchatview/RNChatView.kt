@@ -92,8 +92,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             this.adapter       = this@RNChatView.adapter
             setHasFixedSize(false)
             overScrollMode = OVER_SCROLL_NEVER
-            // itemAnimator = null — убираем стандартные анимации вставки/удаления.
-            // Следствие: после DiffUtil нужен scrollBy(0,0) для принудительного layout pass.
             itemAnimator   = null
             clipToPadding  = false
             layoutParams   = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -512,7 +510,35 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     private fun applyDelete(s: UpdateStrategy.Delete) {
-        adapter.submitSections(s.sections, s.index, affectedIds = s.removedIds)
+        val animDuration = 220L
+        val views = s.removedIds.mapNotNull { id ->
+            val pos = adapter.positionOfMessage(id)
+            recyclerView.findViewHolderForAdapterPosition(pos)?.itemView
+        }
+
+        if (views.isEmpty()) {
+            // Элементы не видны на экране — просто убираем без анимации
+            adapter.submitSections(s.sections, s.index, affectedIds = s.removedIds)
+            return
+        }
+
+        views.forEach { view ->
+            view.animate()
+                .alpha(0f)
+                .translationX(-view.width * 0.15f)
+                .setDuration(animDuration)
+                .setInterpolator(android.view.animation.AccelerateInterpolator(1.5f))
+                .start()
+        }
+
+        recyclerView.postDelayed({
+            views.forEach { view ->
+                view.alpha        = 1f
+                view.translationX = 0f
+            }
+            adapter.submitSections(s.sections, s.index, affectedIds = s.removedIds)
+            recyclerView.scrollBy(0, 0)
+        }, animDuration)
     }
 
     private fun applyUpdate(s: UpdateStrategy.Update) {

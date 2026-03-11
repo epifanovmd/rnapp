@@ -18,7 +18,6 @@ object ChatLayoutConstants {
 
     // Bubble shape
     const val BUBBLE_CORNER_RADIUS_DP     = 16f
-    const val BUBBLE_TAIL_CORNER_RADIUS_DP = 4f   // уменьшенный радиус «хвоста»
 
     // Bubble sizing
     const val BUBBLE_MAX_WIDTH_RATIO      = 0.78f

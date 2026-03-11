@@ -159,9 +159,8 @@ class MessageBubbleView(
 
     private fun applyBubbleShape() {
         val r = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP).toFloat()
-        val t = context.dpToPx(C.BUBBLE_TAIL_CORNER_RADIUS_DP).toFloat()
-        val radii = if (isMine) floatArrayOf(r, r, t, t, r, r, r, r)
-                    else        floatArrayOf(t, t, r, r, r, r, r, r)
+        val radii = if (isMine) floatArrayOf(r, r, r, r, r, r, r, r)
+                    else        floatArrayOf(r,r, r, r, r, r, r, r)
         bubble.background = GradientDrawable().apply { cornerRadii = radii }
     }
 
