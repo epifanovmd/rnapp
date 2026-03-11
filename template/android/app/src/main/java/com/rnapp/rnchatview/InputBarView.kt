@@ -62,6 +62,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
             context.dpToPx(32f)
         ).apply { marginEnd = context.dpToPx(8f) }
         background = GradientDrawable().apply {
+            // Цвет устанавливается в applyTheme() через theme.replyPanelAccent
             setColor(Color.rgb(0, 122, 255))
             cornerRadius = context.dpToPx(2f).toFloat()
         }
@@ -128,7 +129,8 @@ class InputBarView(context: Context) : LinearLayout(context) {
     private val sendButton: FrameLayout = FrameLayout(context).apply {
         val size = context.dpToPx(36f)
         layoutParams = LinearLayout.LayoutParams(size, size).apply { marginStart = context.dpToPx(4f) }
-        background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#C7C7CC")) }
+        // Цвет неактивного состояния — inputBarPlaceholder, обновляется в applyTheme/updateSendButton
+        background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.rgb(199, 199, 204)) }
         isClickable = true; isFocusable = true
         setOnClickListener { handleSend() }
     }
@@ -189,7 +191,11 @@ class InputBarView(context: Context) : LinearLayout(context) {
         if (mode != InputBarMode.Normal) clearAndReset(theme)
     }
 
+    // ─── Theme state ──────────────────────────────────────────────────────
+    private var currentTheme: ChatTheme? = null
+
     fun applyTheme(theme: ChatTheme) {
+        currentTheme = theme
         setBackgroundColor(theme.inputBarBackground)
         separator.setBackgroundColor(theme.inputBarSeparator)
         editText.setTextColor(theme.inputBarText)
@@ -211,6 +217,8 @@ class InputBarView(context: Context) : LinearLayout(context) {
 
         // Reapply mode-specific colors
         applyModeToUI(animate = false, theme = theme)
+        // Обновляем цвет кнопки отправки под новую тему
+        updateSendButton(editText.text?.isNotBlank() == true)
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────
@@ -305,7 +313,11 @@ class InputBarView(context: Context) : LinearLayout(context) {
     }
 
     private fun updateSendButton(hasText: Boolean) {
-        val color = if (hasText) Color.rgb(0, 122, 255) else Color.parseColor("#C7C7CC")
+        val theme = currentTheme
+        val color = if (hasText)
+            theme?.inputBarTint ?: Color.rgb(0, 122, 255)
+        else
+            theme?.inputBarPlaceholder ?: Color.rgb(199, 199, 204)
         (sendButton.background as? GradientDrawable)?.setColor(color)
     }
 

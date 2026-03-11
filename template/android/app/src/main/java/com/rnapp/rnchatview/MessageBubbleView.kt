@@ -39,8 +39,9 @@ class MessageBubbleView(
     private val timeLabel     = TextView(context)
     private val statusView    = StatusIconView(context)
 
-    // Текущий цвет пузыря — нужен для highlight анимации
-    var currentBubbleColor: Int = if (isMine) 0xFF3D9EFA.toInt() else 0xFFF0F0F0.toInt()
+    // Текущий цвет пузыря — нужен для highlight анимации.
+    // Инициализируется значениями из ChatTheme.light() до первого configure().
+    var currentBubbleColor: Int = if (isMine) 0xFF3D9EF9.toInt() else 0xFFF0F0F0.toInt()
         private set
 
     var onReplyTap: ((replyId: String) -> Unit)? = null
@@ -238,19 +239,19 @@ class MessageBubbleView(
             is MessageContent.Image -> {
                 textView.isVisible  = false
                 imageView.isVisible = true
-                loadImage(message.content.imagePayload!!)
+                loadImage(message.content.imagePayload!!, theme)
             }
             is MessageContent.Mixed -> {
                 textView.isVisible  = true
                 imageView.isVisible = true
                 textView.text       = message.content.textBody
                 textView.setTextColor(textColor)
-                loadImage(message.content.imagePayload!!)
+                loadImage(message.content.imagePayload!!, theme)
             }
         }
     }
 
-    private fun loadImage(payload: MessageContent.ImagePayload) {
+    private fun loadImage(payload: MessageContent.ImagePayload, theme: ChatTheme) {
         val w = context.dpToPx(200f)
         if (payload.width != null && payload.width > 0 && payload.height != null && payload.height > 0) {
             val scaledH = (w * (payload.height / payload.width)).toInt()
@@ -259,7 +260,7 @@ class MessageBubbleView(
             }
         }
         imageView.background = GradientDrawable().apply {
-            setColor(Color.parseColor("#E5E5EA"))
+            setColor(if (isMine) theme.outgoingBubbleColor else theme.incomingBubbleColor)
             cornerRadius = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP).toFloat()
         }
         val url = payload.thumbnailUrl?.takeIf { it.isNotBlank() } ?: payload.url

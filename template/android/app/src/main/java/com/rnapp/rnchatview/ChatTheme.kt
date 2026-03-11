@@ -135,24 +135,24 @@ data class ChatTheme(
             outgoingReplyText      = Color.argb(191, 255, 255, 255),
 
             incomingReplyBackground = Color.argb(20, 255, 255, 255),
-            incomingReplyAccent    = Color.rgb(90, 153, 255),
-            incomingReplySender    = Color.rgb(90, 153, 255),
+            incomingReplyAccent    = Color.rgb(89, 153, 255),      // UIColor(red:0.35,green:0.60,blue:1.0)
+            incomingReplySender    = Color.rgb(89, 153, 255),
             incomingReplyText      = Color.rgb(153, 153, 153),
 
-            inputBarBackground     = Color.rgb(30, 30, 30),
+            inputBarBackground     = Color.rgb(31, 31, 31),       // UIColor(white: 0.12) = 0.12*255 = 30.6 ≈ 31
             inputBarSeparator      = Color.argb(26, 255, 255, 255),
             inputBarTextViewBg     = Color.rgb(56, 56, 56),
-            inputBarPlaceholder    = Color.rgb(114, 114, 114),
+            inputBarPlaceholder    = Color.rgb(115, 115, 115),     // UIColor(white: 0.45) = 0.45*255 = 114.75 ≈ 115
             inputBarText           = Color.rgb(237, 237, 237),
-            inputBarTint           = Color.rgb(90, 153, 255),
+            inputBarTint           = Color.rgb(89, 153, 255),      // UIColor(red:0.35,green:0.60,blue:1.0) = 0.35*255=89.25
 
-            replyPanelBackground   = Color.rgb(30, 30, 30),
-            replyPanelAccent       = Color.rgb(90, 153, 255),
-            replyPanelSender       = Color.rgb(90, 153, 255),
+            replyPanelBackground   = Color.rgb(31, 31, 31),        // UIColor(white: 0.12)
+            replyPanelAccent       = Color.rgb(89, 153, 255),
+            replyPanelSender       = Color.rgb(89, 153, 255),
             replyPanelText         = Color.rgb(153, 153, 153),
             replyPanelClose        = Color.rgb(102, 102, 102),
 
-            dateSeparatorBackground = Color.argb(230, 50, 50, 50),
+            dateSeparatorBackground = Color.argb(230, 51, 51, 51), // UIColor(white:0.20,alpha:0.90) = 0.20*255=51
             dateSeparatorText       = Color.rgb(153, 153, 153),
 
             fabBackground          = Color.rgb(44, 44, 46),

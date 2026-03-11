@@ -657,7 +657,8 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Theme ────────────────────────────────────────────────────────────
 
     private fun applyThemeToViews() {
-        setBackgroundColor(if (theme.isDark) Color.BLACK else Color.WHITE)
+        setBackgroundColor(theme.collectionBackground)
+        recyclerView.setBackgroundColor(Color.TRANSPARENT)
         inputBar.applyTheme(theme)
         emptyStateView.applyTheme(theme)
         fabButton.applyTheme(theme)
