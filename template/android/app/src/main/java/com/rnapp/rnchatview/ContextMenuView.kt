@@ -22,6 +22,7 @@ import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import com.rnapp.rnchatview.ChatLayoutConstants as C
 
@@ -49,8 +50,10 @@ class ContextMenuView(
 
     private val theme = ContextMenuTheme(isDark)
     private var rootOverlay: FrameLayout? = null
+    private var scrollView: ScrollView?   = null
     private var isDismissing = false
     private var anchorViewRef: View? = null   // держим ссылку чтобы вернуть alpha
+    private var statusBarOffset: Float = 0f   // смещение статус бара в координатах decorView
 
     // ─── Show ─────────────────────────────────────────────────────────────
 
@@ -60,32 +63,43 @@ class ContextMenuView(
         anchorViewRef = anchor
 
         val decorView = anchor.rootView as? ViewGroup ?: return
-        val dm = ctx.resources.displayMetrics
-        val screenW = dm.widthPixels.toFloat()
-        val screenH = dm.heightPixels.toFloat()
 
-        // Позиция anchor в window-координатах
-        val anchorLoc = IntArray(2)
-        anchor.getLocationInWindow(anchorLoc)
+        // Получаем реальную видимую область — без статус бара и навигейшн бара.
+        // getWindowVisibleDisplayFrame даёт именно видимый прямоугольник приложения.
+        val visibleFrame = android.graphics.Rect()
+        decorView.getWindowVisibleDisplayFrame(visibleFrame)
+        val screenW = visibleFrame.width().toFloat()
+        val screenH = visibleFrame.height().toFloat()
+        // Смещение статус бара: overlay добавляется в decorView (координаты от верха экрана),
+        // но anchorRect и layout рассчитываются в visible-координатах (от visibleFrame.top).
+        // Все Y-координаты при размещении view нужно сдвигать на это значение.
+        statusBarOffset = visibleFrame.top.toFloat()
+        android.util.Log.d("ContextMenu", "visibleFrame: ${screenW}x${screenH} offset=(${visibleFrame.left},${visibleFrame.top})")
+
+        // Позиция anchor в координатах видимой области (visibleFrame)
+        val anchorLoc = IntArray(2).also { anchor.getLocationInWindow(it) }
         val anchorRect = RectF(
-            anchorLoc[0].toFloat(),
-            anchorLoc[1].toFloat(),
-            (anchorLoc[0] + anchor.width).toFloat(),
-            (anchorLoc[1] + anchor.height).toFloat()
+            (anchorLoc[0] - visibleFrame.left).toFloat(),
+            (anchorLoc[1] - visibleFrame.top).toFloat(),
+            (anchorLoc[0] - visibleFrame.left + anchor.width).toFloat(),
+            (anchorLoc[1] - visibleFrame.top  + anchor.height).toFloat(),
         )
 
-        // Построение панелей
-        val snapshotView = makeSnapshotView(anchor)
+        // Построение панелей — снапшот всегда полного размера сообщения, скролл справится
         val emojiPanel   = if (emojis.isNotEmpty())  makeEmojiPanel()   else null
         val actionsPanel = if (actions.isNotEmpty()) makeActionsPanel() else null
 
         val emojiSz   = if (emojiPanel != null)   measureEmojiPanel(emojis.size)   else SizePair(0f, 0f)
         val actionsSz = if (actionsPanel != null) measureActionsPanel(actions.size) else SizePair(0f, 0f)
 
+        val snapshotView = makeSnapshotView(anchor)
+        val snapW = anchor.width.toFloat()
+        val snapH = anchor.height.toFloat()
+
         val layout = ContextMenuLayoutEngine.calculate(
             anchorRect = anchorRect,
-            snapW      = anchor.width.toFloat(),
-            snapH      = anchor.height.toFloat(),
+            snapW      = snapW,
+            snapH      = snapH,
             emojiW     = emojiSz.w, emojiH = emojiSz.h,
             actionsW   = actionsSz.w, actionsH = actionsSz.h,
             screenW    = screenW, screenH = screenH,
@@ -94,45 +108,134 @@ class ContextMenuView(
             emojiGap   = ctx.dp(theme.emojiPanelSpacing),
             actionsGap = ctx.dp(theme.menuSpacing)
         )
+        android.util.Log.d("ContextMenu", "anchorRect=$anchorRect snap=${snapW}x${snapH}")
+        android.util.Log.d("ContextMenu", "emojiSz=$emojiSz actionsSz=$actionsSz")
+        android.util.Log.d("ContextMenu", "layout: needsScroll=${layout.needsScroll} canvasH=${layout.canvasH} scrollOffset=${layout.scrollOffset}")
+        android.util.Log.d("ContextMenu", "snapTarget=${layout.snapTarget} emojiTarget=${layout.emojiTarget} actionsTarget=${layout.actionsTarget}")
 
-        // Root overlay — intercepts backdrop taps
-        val root = object : FrameLayout(ctx) {
-            override fun onTouchEvent(e: MotionEvent): Boolean {
-                if (e.action == MotionEvent.ACTION_UP && !isDismissing) {
-                    val inSnap    = snapshotView?.hitTest(e) ?: false
-                    val inEmoji   = emojiPanel?.hitTest(e)  ?: false
-                    val inActions = actionsPanel?.hitTest(e) ?: false
-                    if (!inSnap && !inEmoji && !inActions) {
-                        runClose(layout, snapshotView, emojiPanel, actionsPanel)
-                    }
-                }
-                return true
-            }
-        }
-        rootOverlay = root
-
+        // Backdrop — полноэкранный, под скролл-вью
         val backdropDim = View(ctx).apply {
             layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
             setBackgroundColor(theme.backdropColor)
             alpha = 0f
         }
-        root.addView(backdropDim)
 
-        snapshotView?.let { root.addView(it, FrameLayout.LayoutParams(anchor.width, anchor.height)) }
-        emojiPanel?.let   { root.addView(it, FrameLayout.LayoutParams(emojiSz.w.toInt(), emojiSz.h.toInt())) }
-        actionsPanel?.let { root.addView(it, FrameLayout.LayoutParams(actionsSz.w.toInt(), actionsSz.h.toInt())) }
-
-        decorView.addView(root, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
-
-        // Скрываем оригинальный anchor (эффект "сообщение переместилось")
-        anchor.alpha = 0f
-
-        // Расставляем по начальным позициям (origin)
-        prepareOpen(layout, snapshotView, emojiPanel, actionsPanel)
-
-        root.post {
-            animateOpen(layout, backdropDim, snapshotView, emojiPanel, actionsPanel)
+        // Canvas — контейнер внутри ScrollView, высота задаётся явно
+        // чтобы ScrollView видел реальный contentSize через WRAP_CONTENT дочернего view
+        val canvas = FrameLayout(ctx).apply {
+            minimumHeight = layout.canvasH.toInt()
         }
+        snapshotView?.let { it.alpha = 0f; canvas.addView(it, FrameLayout.LayoutParams(snapW.toInt(), snapH.toInt())) }
+        emojiPanel?.let   { it.alpha = 0f; canvas.addView(it, FrameLayout.LayoutParams(emojiSz.w.toInt(), emojiSz.h.toInt())) }
+        actionsPanel?.let { it.alpha = 0f; canvas.addView(it, FrameLayout.LayoutParams(actionsSz.w.toInt(), actionsSz.h.toInt())) }
+
+        // ScrollView — на весь экран, скролл только если не влезает
+        val sv = object : ScrollView(ctx) {
+            override fun onTouchEvent(e: MotionEvent): Boolean {
+                return if (layout.needsScroll) super.onTouchEvent(e) else false
+            }
+        }.apply {
+            isVerticalScrollBarEnabled   = false
+            isHorizontalScrollBarEnabled = false
+            isFillViewport               = false
+            overScrollMode               = View.OVER_SCROLL_NEVER
+            setBackgroundColor(Color.TRANSPARENT)
+            // WRAP_CONTENT — ScrollView уважает реальную высоту canvas (canvasH)
+            // При isFillViewport=true ScrollView мог перезаписывать высоту дочернего view
+            addView(canvas, ViewGroup.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+            layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+        }
+        scrollView = sv
+
+        // Root overlay — перехватывает тапы по backdrop, но пропускает к emoji/action панелям
+        val root = object : FrameLayout(ctx) {
+            override fun onInterceptTouchEvent(e: MotionEvent): Boolean {
+                // Пропускаем события к дочерним views (emoji/actions) если тап внутри них
+                val scrollY = sv.scrollY.toFloat()
+                val canvasX = e.x
+                val canvasY = e.y + scrollY
+                val inEmoji   = emojiPanel?.hitTestCanvas(canvasX, canvasY)   ?: false
+                val inActions = actionsPanel?.hitTestCanvas(canvasX, canvasY) ?: false
+                // Если тап в панели — не перехватываем, пусть дочерний view обработает
+                return !(inEmoji || inActions)
+            }
+            override fun onTouchEvent(e: MotionEvent): Boolean {
+                if (e.action == MotionEvent.ACTION_UP && !isDismissing) {
+                    val scrollY = sv.scrollY.toFloat()
+                    val canvasX = e.x
+                    val canvasY = e.y + scrollY
+                    val inSnap    = snapshotView?.hitTestCanvas(canvasX, canvasY) ?: false
+                    val inEmoji   = emojiPanel?.hitTestCanvas(canvasX, canvasY)   ?: false
+                    val inActions = actionsPanel?.hitTestCanvas(canvasX, canvasY) ?: false
+                    if (!inSnap && !inEmoji && !inActions) {
+                        runClose(layout, snapshotView, emojiPanel, actionsPanel)
+                    }
+                }
+                return if (layout.needsScroll) sv.onTouchEvent(e) else true
+            }
+        }
+        rootOverlay = root
+
+        root.addView(backdropDim)
+        root.addView(sv)
+
+        decorView.addView(root, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT).also {
+            it.topMargin = statusBarOffset.toInt()
+        })
+
+        // anchor скрываем в prepareOpen — только когда снапшот уже размещён на его месте
+
+        // Не вызываем prepareOpen здесь — делаем это в onGlobalLayout
+        // когда знаем realScrollOffset и можем правильно рассчитать origin позиции
+
+        sv.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                sv.viewTreeObserver.removeOnGlobalLayoutListener(this)
+
+                val contentBottom = maxOf(
+                    layout.actionsTarget.bottom,
+                    layout.snapTarget.bottom,
+                    layout.emojiTarget.bottom,
+                ) + ctx.dp(theme.verticalPadding)
+                val realCanvasH      = contentBottom.toInt()
+                val realScrollOffset = maxOf(0, realCanvasH - sv.height)
+
+                android.util.Log.d("ContextMenu", "onGlobalLayout: sv=${sv.width}x${sv.height} realCanvasH=$realCanvasH realScrollOffset=$realScrollOffset")
+                android.util.Log.d("ContextMenu", "anchorRect.top=${anchorRect.top} visAnchorTop=${anchorRect.top.coerceIn(0f, sv.height.toFloat())} originY=${anchorRect.top.coerceIn(0f, sv.height.toFloat()) + realScrollOffset}")
+                android.util.Log.d("ContextMenu", "snapOrigin will be: y=${anchorRect.top.coerceIn(0f, sv.height.toFloat()) + realScrollOffset} snapTarget.top=${layout.snapTarget.top}")
+
+                // Видимая на экране позиция anchor = clamp(anchorRect, 0..screenH).
+                // В canvas-координатах = screenY + realScrollOffset.
+                val visAnchorTop    = anchorRect.top.coerceIn(0f, screenH)
+                val originY         = visAnchorTop + realScrollOffset
+                val eGap = if (emojiSz.h > 0f) ctx.dp(theme.emojiPanelSpacing) else 0f
+                val mGap = if (actionsSz.h > 0f) ctx.dp(theme.menuSpacing) else 0f
+
+                val fixedLayout = layout.copy(
+                    snapOrigin    = RectF(layout.snapOrigin.left, originY, layout.snapOrigin.right, originY + snapH),
+                    emojiOrigin   = if (layout.hasEmoji)    RectF(layout.emojiOrigin.left,   originY - eGap - emojiSz.h,  layout.emojiOrigin.right,   originY - eGap)                          else RectF(),
+                    actionsOrigin = if (layout.hasActions) RectF(layout.actionsOrigin.left, originY + snapH + mGap, layout.actionsOrigin.right, originY + snapH + mGap + actionsSz.h) else RectF(),
+                    scrollOffset  = realScrollOffset.toFloat(),
+                )
+                currentLayout = fixedLayout
+
+                fun applyScrollAndAnimate() {
+                    prepareOpen(fixedLayout, snapshotView, emojiPanel, actionsPanel)
+                    if (realScrollOffset > 0) {
+                        sv.scrollTo(0, realScrollOffset)
+                        android.util.Log.d("ContextMenu", "scrollY after scrollTo=${sv.scrollY}")
+                    }
+                    animateOpen(fixedLayout, backdropDim, snapshotView, emojiPanel, actionsPanel)
+                }
+
+                if (canvas.minimumHeight != realCanvasH) {
+                    canvas.minimumHeight = realCanvasH
+                    sv.post { applyScrollAndAnimate() }
+                } else {
+                    applyScrollAndAnimate()
+                }
+            }
+        })
     }
 
     // ─── Dismiss (без анимации — для external forced dismiss) ─────────────
@@ -143,6 +246,7 @@ class ContextMenuView(
         anchorViewRef = null
         try { (root.parent as? ViewGroup)?.removeView(root) } catch (_: Exception) {}
         rootOverlay = null
+        scrollView  = null
         isDismissing = false
     }
 
@@ -162,8 +266,8 @@ class ContextMenuView(
                 clipPath.reset()
                 clipPath.addRoundRect(clipRF, cornerPx, cornerPx, Path.Direction.CW)
             }
-            override fun onDraw(c: Canvas) {
-                c.save(); c.clipPath(clipPath); super.onDraw(c); c.restore()
+            override fun onDraw(canvas: Canvas) {
+                canvas.save(); canvas.clipPath(clipPath); super.onDraw(canvas); canvas.restore()
             }
         }
         iv.setImageBitmap(bmp)
@@ -303,19 +407,19 @@ class ContextMenuView(
 
     private fun prepareOpen(layout: ContextMenuLayout, snap: View?, emoji: View?, actions: View?) {
         currentLayout = layout
-        snap?.placeAt(layout.snapOrigin)
-        // Emoji появляется из зоны над снапшотом → стартует сжатым оттуда
+        // Скрываем оригинал только здесь — снапшот уже размещён на его месте, моргания нет
+        anchorViewRef?.alpha = 0f
+        snap?.apply { alpha = 1f; placeAt(layout.snapOrigin) }
         emoji?.apply {
             placeAt(layout.emojiOrigin)
             scaleX = OPEN_SCALE; scaleY = OPEN_SCALE
-            pivotX = width / 2f; pivotY = height.toFloat()  // масштабируем от низа (к снапу)
+            pivotX = width / 2f; pivotY = height.toFloat()
             alpha  = 0f
         }
-        // Actions появляется из зоны под снапшотом → стартует сжатым оттуда
         actions?.apply {
             placeAt(layout.actionsOrigin)
             scaleX = OPEN_SCALE; scaleY = OPEN_SCALE
-            pivotX = width / 2f; pivotY = 0f               // масштабируем от верха (к снапу)
+            pivotX = width / 2f; pivotY = 0f
             alpha  = 0f
         }
     }
@@ -356,16 +460,39 @@ class ContextMenuView(
         val backdrop = root.getChildAt(0)
         val closeMs = (theme.closeDuration * 1000).toLong()
 
+        // Учитываем текущий scrollY — снапшот должен вернуться туда где виден anchor.
+        // Аналог iOS: let offset = scrollView.contentOffset.y
+        //             let returnFrame = CGRect(x: ..., y: srcInView.minY + offset, ...)
+        val currentScrollY = scrollView?.scrollY?.toFloat() ?: 0f
+        val adjustedSnapOrigin = RectF(
+            layout.snapOrigin.left,
+            layout.snapOrigin.top  - currentScrollY,
+            layout.snapOrigin.right,
+            layout.snapOrigin.bottom - currentScrollY,
+        )
+        val adjustedEmojiOrigin = RectF(
+            layout.emojiOrigin.left,
+            layout.emojiOrigin.top  - currentScrollY,
+            layout.emojiOrigin.right,
+            layout.emojiOrigin.bottom - currentScrollY,
+        )
+        val adjustedActionsOrigin = RectF(
+            layout.actionsOrigin.left,
+            layout.actionsOrigin.top  - currentScrollY,
+            layout.actionsOrigin.right,
+            layout.actionsOrigin.bottom - currentScrollY,
+        )
+
         // 1. Backdrop fade-out
         backdrop?.animate()?.alpha(0f)?.setDuration(closeMs)?.start()
 
-        // 2. Emoji схлопывается вниз к снапшоту (обратно от emojiTarget к emojiOrigin)
+        // 2. Emoji схлопывается вниз к снапшоту
         emoji?.let {
             it.pivotX = it.width / 2f; it.pivotY = it.height.toFloat()
             AnimatorSet().apply {
                 playTogether(
-                    ObjectAnimator.ofFloat(it, View.X, layout.emojiOrigin.left),
-                    ObjectAnimator.ofFloat(it, View.Y, layout.emojiOrigin.top),
+                    ObjectAnimator.ofFloat(it, View.X, adjustedEmojiOrigin.left),
+                    ObjectAnimator.ofFloat(it, View.Y, adjustedEmojiOrigin.top),
                     ObjectAnimator.ofFloat(it, View.SCALE_X, CLOSE_SCALE),
                     ObjectAnimator.ofFloat(it, View.SCALE_Y, CLOSE_SCALE),
                     ObjectAnimator.ofFloat(it, View.ALPHA, 0f),
@@ -374,13 +501,13 @@ class ContextMenuView(
             }
         }
 
-        // 3. Actions схлопывается вверх к снапшоту (обратно от actionsTarget к actionsOrigin)
+        // 3. Actions схлопывается вверх к снапшоту
         actions?.let {
             it.pivotX = it.width / 2f; it.pivotY = 0f
             AnimatorSet().apply {
                 playTogether(
-                    ObjectAnimator.ofFloat(it, View.X, layout.actionsOrigin.left),
-                    ObjectAnimator.ofFloat(it, View.Y, layout.actionsOrigin.top),
+                    ObjectAnimator.ofFloat(it, View.X, adjustedActionsOrigin.left),
+                    ObjectAnimator.ofFloat(it, View.Y, adjustedActionsOrigin.top),
                     ObjectAnimator.ofFloat(it, View.SCALE_X, CLOSE_SCALE),
                     ObjectAnimator.ofFloat(it, View.SCALE_Y, CLOSE_SCALE),
                     ObjectAnimator.ofFloat(it, View.ALPHA, 0f),
@@ -390,12 +517,13 @@ class ContextMenuView(
         }
 
         // 4. Снапшот возвращается на место оригинала
-        snap?.let { springToRect(it, layout.snapOrigin, closeMs, 0.9f) }
+        snap?.let { springToRect(it, adjustedSnapOrigin, closeMs, 0.9f) }
 
         // 5. По завершении: убираем overlay, восстанавливаем оригинал
         root.postDelayed({
             (root.parent as? ViewGroup)?.removeView(root)
             rootOverlay = null
+            scrollView  = null
             anchorViewRef?.alpha = 1f  // оригинал появляется обратно
             anchorViewRef = null
             onDismiss()
@@ -446,16 +574,21 @@ class ContextMenuView(
         lp.width = r.width().toInt(); lp.height = r.height().toInt(); layoutParams = lp
     }
 
-    private fun View.hitTest(e: MotionEvent) =
-        e.rawX >= x && e.rawX <= x + width && e.rawY >= y && e.rawY <= y + height
+    private fun View.hitTestCanvas(canvasX: Float, canvasY: Float) =
+        canvasX >= x && canvasX <= x + width && canvasY >= y && canvasY <= y + height
 
-    // Tag-based finders — overlay child order: 0=backdrop, 1=snap, 2=emoji, 3=actions
-    private fun findSnap(root: FrameLayout)    = root.getChildAt(1)
-    private fun findEmoji(root: FrameLayout)   = if (root.childCount > 2) root.getChildAt(2) else null
-    private fun findActions(root: FrameLayout) = when (root.childCount) {
-        4 -> root.getChildAt(3)
-        3 -> root.getChildAt(2).takeIf { emojis.isEmpty() }
-        else -> null
+    // canvas — второй child root (0=backdrop, 1=scrollView), внутри scrollView → canvas
+    private fun getCanvas(): FrameLayout? =
+        (rootOverlay?.getChildAt(1) as? ScrollView)?.getChildAt(0) as? FrameLayout
+
+    private fun findSnap(root: FrameLayout)    = getCanvas()?.getChildAt(0)
+    private fun findEmoji(root: FrameLayout)   = getCanvas()?.let { c -> if (c.childCount > 1) c.getChildAt(1) else null }
+    private fun findActions(root: FrameLayout) = getCanvas()?.let { c ->
+        when (c.childCount) {
+            3    -> c.getChildAt(2)
+            2    -> c.getChildAt(1).takeIf { emojis.isEmpty() }
+            else -> null
+        }
     }
 
     companion object {
@@ -477,6 +610,9 @@ data class ContextMenuLayout(
     val actionsOrigin: RectF,
     val hasEmoji:      Boolean,
     val hasActions:    Boolean,
+    val canvasH:       Float,
+    val needsScroll:   Boolean,
+    val scrollOffset:  Float,
 )
 
 // ─── ContextMenuLayoutEngine ──────────────────────────────────────────────────
@@ -501,8 +637,6 @@ object ContextMenuLayoutEngine {
         val topLimit    = vPad
         val bottomLimit = screenH - vPad
 
-        // isMine bubbles are right-aligned → anchor snapshot at right, panels align right
-        // !isMine bubbles are left-aligned  → anchor snapshot at left,  panels align left
         val snapX = if (isMine)
             clamp(anchorRect.right - snapW, hPad, screenW - snapW - hPad)
         else
@@ -518,16 +652,34 @@ object ContextMenuLayoutEngine {
             else        clamp(snapX,                    hPad, screenW - actionsW - hPad)
         } else 0f
 
-        val totalH = emojiH + eGap + snapH + mGap + actionsH
+        val totalH      = emojiH + eGap + snapH + mGap + actionsH
+        val needsScroll = totalH > bottomLimit - topLimit
 
-        // Позиция блока: стараемся разместить так чтобы снапшот был там где был anchor
-        val blockTop = clamp(anchorRect.top - emojiH - eGap, topLimit, bottomLimit - totalH)
-        val emojiY   = blockTop
-        val snapY    = emojiY + emojiH + eGap
-        val menuY    = snapY  + snapH  + mGap
+        val emojiY: Float
+        val snapY: Float
+        val menuY: Float
+        val canvasH: Float
+        val scrollOffset: Float
 
-        // Origin = там где сейчас anchor (до анимации)
-        val originY = anchorRect.top
+        if (needsScroll) {
+            // Всё содержимое укладывается с topLimit — canvas выше экрана
+            // Начальный scrollOffset показывает низ (actions панель видна сразу)
+            emojiY       = topLimit
+            snapY        = emojiY + emojiH + eGap
+            menuY        = snapY  + snapH  + mGap
+            canvasH      = menuY  + actionsH + vPad
+            scrollOffset = maxOf(0f, canvasH - screenH)
+        } else {
+            val blockTop = clamp(anchorRect.top - emojiH - eGap, topLimit, bottomLimit - totalH)
+            emojiY       = blockTop
+            snapY        = emojiY + emojiH + eGap
+            menuY        = snapY  + snapH  + mGap
+            canvasH      = screenH
+            scrollOffset = 0f
+        }
+
+        // Origin позиции учитывают scrollOffset — снапшот стартует там где anchor виден на экране
+        val originY = anchorRect.top + scrollOffset
 
         return ContextMenuLayout(
             snapTarget    = RectF(snapX,  snapY,  snapX  + snapW,   snapY  + snapH),
@@ -538,6 +690,9 @@ object ContextMenuLayoutEngine {
             actionsOrigin = if (hasActions) RectF(menuX,  originY + snapH + mGap, menuX + actionsW, originY + snapH + mGap + actionsH) else RectF(),
             hasEmoji      = hasEmoji,
             hasActions    = hasActions,
+            canvasH       = canvasH,
+            needsScroll   = needsScroll,
+            scrollOffset  = scrollOffset,
         )
     }
 
