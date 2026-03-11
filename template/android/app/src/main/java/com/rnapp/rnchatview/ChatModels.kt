@@ -15,9 +15,6 @@ enum class MessageStatus(val raw: String) {
 }
 
 // ─── MessageContent ───────────────────────────────────────────────────────────
-//
-// Sealed hierarchy — точный аналог Swift enum MessageContent.
-// Каждый вариант самодостаточен и несёт все данные для рендера.
 
 sealed class MessageContent {
 
@@ -34,20 +31,17 @@ sealed class MessageContent {
     data class Image(val payload: ImagePayload) : MessageContent()
     data class Mixed(val text: TextPayload, val image: ImagePayload) : MessageContent()
 
-    // Convenience accessors
-    val textBody: String?
-        get() = when (this) {
-            is Text  -> payload.body
-            is Mixed -> text.body
-            is Image -> null
-        }
+    val textBody: String? get() = when (this) {
+        is Text  -> payload.body
+        is Mixed -> text.body
+        is Image -> null
+    }
 
-    val imagePayload: ImagePayload?
-        get() = when (this) {
-            is Image -> payload
-            is Mixed -> image
-            is Text  -> null
-        }
+    val imagePayload: ImagePayload? get() = when (this) {
+        is Image -> payload
+        is Mixed -> image
+        is Text  -> null
+    }
 
     val hasText: Boolean  get() = textBody != null
     val hasImage: Boolean get() = imagePayload != null
@@ -55,14 +49,16 @@ sealed class MessageContent {
 
 // ─── ReplyInfo ────────────────────────────────────────────────────────────────
 //
-// Хранит ТОЛЬКО ссылку (replyToId) + снапшот данных в момент ответа.
-// Снапшот — fallback для случая .deleted.
+// Хранит ТОЛЬКО ссылку replyToId.
+// Снапшот (senderName, text, hasImage) — fallback для удалённых сообщений.
+// Актуальный контент всегда берётся из MessageRepository по replyToId.
 
 data class ReplyInfo(
     val replyToId: String,
-    val senderName: String? = null,
-    val text: String? = null,
-    val hasImage: Boolean = false,
+    // Snapshot — используется только если оригинал удалён
+    val snapshotSenderName: String? = null,
+    val snapshotText: String? = null,
+    val snapshotHasImage: Boolean = false,
 )
 
 // ─── ChatMessage ──────────────────────────────────────────────────────────────
@@ -70,19 +66,19 @@ data class ReplyInfo(
 data class ChatMessage(
     val id: String,
     val content: MessageContent,
-    val timestamp: Long,          // Unix ms
+    val timestamp: Long,
     val senderName: String? = null,
     val isMine: Boolean = false,
-    val groupDate: String = "",   // "yyyy-MM-dd"
+    val groupDate: String = "",
     val status: MessageStatus = MessageStatus.SENT,
     val reply: ReplyInfo? = null,
     val isEdited: Boolean = false,
 ) {
-    val text: String?                           get() = content.textBody
-    val image: MessageContent.ImagePayload?     get() = content.imagePayload
-    val hasText: Boolean                        get() = content.hasText
-    val hasImage: Boolean                       get() = content.hasImage
-    val replyToId: String?                      get() = reply?.replyToId
+    val text: String?                       get() = content.textBody
+    val image: MessageContent.ImagePayload? get() = content.imagePayload
+    val hasText: Boolean                    get() = content.hasText
+    val hasImage: Boolean                   get() = content.hasImage
+    val replyToId: String?                  get() = reply?.replyToId
 }
 
 // ─── MessageAction ────────────────────────────────────────────────────────────
@@ -97,18 +93,21 @@ data class MessageAction(
 // ─── MessageSection ───────────────────────────────────────────────────────────
 
 data class MessageSection(
-    val dateKey: String,          // "yyyy-MM-dd"
+    val dateKey: String,
     val messages: List<ChatMessage>,
 )
 
 // ─── ResolvedReply ────────────────────────────────────────────────────────────
 //
-// Результат резолвинга ссылки на оригинал сообщения.
-// .Found содержит АКТУАЛЬНЫЕ данные из messageIndex.
+// Результат резолвинга reply по живому индексу.
+// Found содержит актуальные данные из MessageRepository.
+// Deleted — оригинал удалён, используем snapshot из ReplyInfo.
 
 sealed class ResolvedReply {
+    /** Оригинальное сообщение найдено — данные актуальны */
     data class Found(val info: ReplyDisplayInfo) : ResolvedReply()
-    object Deleted : ResolvedReply()
+    /** Оригинальное сообщение удалено — показываем snapshot */
+    data class Deleted(val info: ReplyDisplayInfo) : ResolvedReply()
 }
 
 // ─── ReplyDisplayInfo ─────────────────────────────────────────────────────────
@@ -118,22 +117,23 @@ data class ReplyDisplayInfo(
     val senderName: String? = null,
     val text: String? = null,
     val hasImage: Boolean = false,
+    val isDeleted: Boolean = false,
 ) {
     companion object {
-        /** Строит из живого ChatMessage (актуальные данные). */
-        fun from(message: ChatMessage) = ReplyDisplayInfo(
+        fun fromLive(message: ChatMessage) = ReplyDisplayInfo(
             replyToId  = message.id,
             senderName = message.senderName,
             text       = message.text,
             hasImage   = message.hasImage,
+            isDeleted  = false,
         )
 
-        /** Строит из снапшота для случая deleted (fallback). */
         fun fromSnapshot(info: ReplyInfo) = ReplyDisplayInfo(
             replyToId  = info.replyToId,
-            senderName = info.senderName,
-            text       = info.text,
-            hasImage   = info.hasImage,
+            senderName = info.snapshotSenderName,
+            text       = info.snapshotText,
+            hasImage   = info.snapshotHasImage,
+            isDeleted  = true,
         )
     }
 }
@@ -146,7 +146,7 @@ sealed class InputBarMode {
     data class Edit(val messageId: String, val originalText: String) : InputBarMode()
 }
 
-// ─── ChatInputAction (from RN bridge) ────────────────────────────────────────
+// ─── ChatInputAction ──────────────────────────────────────────────────────────
 
 sealed class ChatInputAction {
     data class Reply(val messageId: String) : ChatInputAction()
@@ -157,14 +157,14 @@ sealed class ChatInputAction {
         fun from(type: String?, messageId: String?): ChatInputAction {
             if (messageId.isNullOrBlank()) return None
             return when (type) {
-                "reply" -> Reply(messageId!!)
-                "edit"  -> Edit(messageId!!)
+                "reply" -> Reply(messageId)
+                "edit"  -> Edit(messageId)
                 else    -> None
             }
         }
     }
 }
 
-// ─── ScrollPosition ───────────────────────────────────────────────────────────
+// ─── ChatScrollPosition ───────────────────────────────────────────────────────
 
 enum class ChatScrollPosition { TOP, CENTER, BOTTOM }

@@ -49,16 +49,17 @@ class InputBarView(context: Context) : LinearLayout(context) {
     // ─── Top panel (reply/edit preview) ───────────────────────────────────
 
     private val topPanel: LinearLayout = LinearLayout(context).apply {
-        orientation = HORIZONTAL
-        visibility  = View.GONE
-        gravity     = Gravity.CENTER_VERTICAL
-        setPadding(context.dpToPx(12f), context.dpToPx(8f), context.dpToPx(12f), 0)
+        orientation  = HORIZONTAL
+        visibility   = View.GONE
+        gravity      = Gravity.CENTER_VERTICAL
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, context.dpToPx(C.INPUT_BAR_REPLY_PANEL_HEIGHT_DP))
+        setPadding(context.dpToPx(12f), context.dpToPx(8f), context.dpToPx(12f), context.dpToPx(8f))
     }
 
     private val topPanelBar: View = View(context).apply {
         layoutParams = LinearLayout.LayoutParams(
             context.dpToPx(C.REPLY_BAR_WIDTH_DP),
-            LinearLayout.LayoutParams.MATCH_PARENT
+            context.dpToPx(32f)
         ).apply { marginEnd = context.dpToPx(8f) }
         background = GradientDrawable().apply {
             setColor(Color.rgb(0, 122, 255))
@@ -233,11 +234,11 @@ class InputBarView(context: Context) : LinearLayout(context) {
             }
             is InputBarMode.Reply -> {
                 panelVisible = true
-                title   = "Reply to ${m.info.senderName ?: "message"}"
+                title   = "Reply to ${m.info.snapshotSenderName ?: "message"}"
                 preview = when {
-                    m.info.text != null -> m.info.text
-                    m.info.hasImage     -> "📷 Photo"
-                    else                -> ""
+                    m.info.snapshotText != null -> m.info.snapshotText
+                    m.info.snapshotHasImage     -> "📷 Photo"
+                    else                        -> ""
                 }
             }
             is InputBarMode.Edit -> {
@@ -252,8 +253,9 @@ class InputBarView(context: Context) : LinearLayout(context) {
 
         if (animate) {
             if (panelVisible && topPanel.visibility != View.VISIBLE) {
-                topPanel.visibility = View.VISIBLE
                 topPanel.alpha      = 0f
+                topPanel.visibility = View.VISIBLE
+                // requestLayout после смены visibility — чтобы высота пересчиталась
                 requestLayout()
                 topPanel.animate().alpha(1f).setDuration(200)
                     .setInterpolator(DecelerateInterpolator()).start()
@@ -266,7 +268,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
             }
         } else {
             topPanel.visibility = if (panelVisible) View.VISIBLE else View.GONE
-            topPanel.alpha = 1f
+            topPanel.alpha      = 1f
             requestLayout()
         }
 
@@ -314,6 +316,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
     }
 
     private fun notifyHeightChanged() {
-        post { post { delegate?.onHeightChanged(height) } }
+        // Используем один post после requestLayout чтобы height уже был пересчитан
+        post { delegate?.onHeightChanged(height) }
     }
 }

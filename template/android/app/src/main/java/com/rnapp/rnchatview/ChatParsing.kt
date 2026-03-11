@@ -9,36 +9,28 @@ import java.util.Locale
 // ─── ChatParsing.kt ───────────────────────────────────────────────────────────
 //
 // Парсинг ReadableMap/Array из JS-bridge в доменные модели.
-// Намеренно изолирован от ChatModels.kt:
-// модели не знают о мосте, мост не знает о деталях рендера.
+// Изолирован от ChatModels.kt — модели не знают о мосте.
 
 private val groupDateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
-// ─── ChatMessage ──────────────────────────────────────────────────────────────
-
 fun ReadableMap.toChatMessage(): ChatMessage? {
     val id          = getString("id")?.takeIf { it.isNotEmpty() } ?: return null
-    val timestampMs = if (hasKey("timestamp") && !isNull("timestamp")) getDouble("timestamp").toLong()
-                      else return null
+    val timestampMs = if (hasKey("timestamp") && !isNull("timestamp"))
+        getDouble("timestamp").toLong() else return null
 
-    val timestamp  = timestampMs
     val groupDate  = groupDateFormatter.format(Date(timestampMs))
     val status     = MessageStatus.from(if (hasKey("status")) getString("status") else null)
     val isMine     = if (hasKey("isMine")) getBoolean("isMine") else false
     val senderName = if (hasKey("senderName") && !isNull("senderName")) getString("senderName") else null
     val isEdited   = if (hasKey("isEdited")) getBoolean("isEdited") else false
 
-    // Text
-    val textBody = if (hasKey("text") && !isNull("text")) getString("text")?.takeIf { it.isNotEmpty() }
-                   else null
+    val textBody = if (hasKey("text") && !isNull("text"))
+        getString("text")?.takeIf { it.isNotEmpty() } else null
 
-    // First image from images array
     val imagePayload: MessageContent.ImagePayload? =
-        if (hasKey("images") && !isNull("images")) {
-            getArray("images")?.let { arr ->
-                if (arr.size() > 0) arr.getMap(0)?.toImagePayload() else null
-            }
-        } else null
+        if (hasKey("images") && !isNull("images"))
+            getArray("images")?.let { arr -> if (arr.size() > 0) arr.getMap(0)?.toImagePayload() else null }
+        else null
 
     val content: MessageContent = when {
         textBody != null && imagePayload != null ->
@@ -50,14 +42,12 @@ fun ReadableMap.toChatMessage(): ChatMessage? {
         else -> return null
     }
 
-    val reply: ReplyInfo? =
-        if (hasKey("replyTo") && !isNull("replyTo")) getMap("replyTo")?.toReplyInfo()
-        else null
+    val reply = if (hasKey("replyTo") && !isNull("replyTo")) getMap("replyTo")?.toReplyInfo() else null
 
     return ChatMessage(
         id         = id,
         content    = content,
-        timestamp  = timestamp,
+        timestamp  = timestampMs,
         senderName = senderName,
         isMine     = isMine,
         groupDate  = groupDate,
@@ -67,31 +57,26 @@ fun ReadableMap.toChatMessage(): ChatMessage? {
     )
 }
 
-// ─── ImagePayload ─────────────────────────────────────────────────────────────
-
 private fun ReadableMap.toImagePayload(): MessageContent.ImagePayload? {
     val url = getString("url")?.takeIf { it.isNotEmpty() } ?: return null
     return MessageContent.ImagePayload(
         url          = url,
-        width        = if (hasKey("width"))        getDouble("width").toFloat()   else null,
-        height       = if (hasKey("height"))       getDouble("height").toFloat()  else null,
+        width        = if (hasKey("width"))  getDouble("width").toFloat()  else null,
+        height       = if (hasKey("height")) getDouble("height").toFloat() else null,
         thumbnailUrl = if (hasKey("thumbnailUrl") && !isNull("thumbnailUrl")) getString("thumbnailUrl") else null,
     )
 }
 
-// ─── ReplyInfo ────────────────────────────────────────────────────────────────
-
+// ReplyInfo хранит только ссылку + snapshot для fallback при удалении
 private fun ReadableMap.toReplyInfo(): ReplyInfo? {
     val id = getString("id")?.takeIf { it.isNotEmpty() } ?: return null
     return ReplyInfo(
-        replyToId  = id,
-        senderName = if (hasKey("senderName") && !isNull("senderName")) getString("senderName") else null,
-        text       = if (hasKey("text") && !isNull("text")) getString("text") else null,
-        hasImage   = if (hasKey("hasImages")) getBoolean("hasImages") else false,
+        replyToId           = id,
+        snapshotSenderName  = if (hasKey("senderName") && !isNull("senderName")) getString("senderName") else null,
+        snapshotText        = if (hasKey("text") && !isNull("text")) getString("text") else null,
+        snapshotHasImage    = if (hasKey("hasImages")) getBoolean("hasImages") else false,
     )
 }
-
-// ─── MessageAction ────────────────────────────────────────────────────────────
 
 fun ReadableMap.toMessageAction(): MessageAction? {
     val id    = getString("id")?.takeIf { it.isNotEmpty() } ?: return null
@@ -104,14 +89,10 @@ fun ReadableMap.toMessageAction(): MessageAction? {
     )
 }
 
-// ─── ChatInputAction ──────────────────────────────────────────────────────────
-
 fun ReadableMap.toChatInputAction(): ChatInputAction = ChatInputAction.from(
     type      = if (hasKey("type")) getString("type") else null,
     messageId = if (hasKey("messageId") && !isNull("messageId")) getString("messageId") else null,
 )
-
-// ─── Array helpers ────────────────────────────────────────────────────────────
 
 fun ReadableArray.toChatMessages(): List<ChatMessage> =
     (0 until size()).mapNotNull { getMap(it)?.toChatMessage() }
