@@ -12,6 +12,7 @@ import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
@@ -65,10 +66,10 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private var lastKnownCount:         Int     = 0
     private var waitingForNewMessages:  Boolean = false
 
-    // Initial scroll — выполняется ровно один раз после первых данных
-    private var initialScrollId:   String?  = null
-    private var initialScrollDone: Boolean  = false
-    private var pendingScrollId:   String?  = null
+    // Initial scroll — выполняется ровно один раз после первых данных.
+    private var pendingInitialScrollId: String? = null
+    private var initialScrollDone:      Boolean = false
+    private var pendingInitialScroll:   Boolean = false
 
     private var isProgrammaticScroll: Boolean = false
     private var isUserDragging:       Boolean = false
@@ -95,6 +96,10 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             itemAnimator   = null
             clipToPadding  = false
             layoutParams   = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            // Скрываем до завершения initial scroll — предотвращает мерцание когда
+            // список сначала рендерится в неправильной позиции (stackFromEnd или top),
+            // а затем прыгает к нужному сообщению. Показываем в revealAfterInitialScroll().
+            alpha = 0f
         }
 
         inputBar = InputBarView(context).apply {
@@ -151,6 +156,14 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         super.onLayout(changed, left, top, right, bottom)
         updateRecyclerPadding()
         updateFabPosition()
+        if (pendingInitialScroll) {
+            pendingInitialScroll = false
+            recyclerView.post {
+                doInitialScroll()
+                // Сбрасываем stackFromEnd после скролла чтобы нормальное поведение вернулось
+                layoutManager.stackFromEnd = false
+            }
+        }
     }
 
     private fun updateRecyclerPadding() {
@@ -172,11 +185,16 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Props API ────────────────────────────────────────────────────────
 
     fun setMessages(newMessages: List<ChatMessage>) {
-        Log.d(TAG, "setMessages: ${newMessages.size} messages (was $lastKnownCount)")
+        Log.d(TAG, "setMessages: ${newMessages.size} messages | initialScrollDone=$initialScrollDone | pendingInitialScrollId=$pendingInitialScrollId")
+
+        // Для первой загрузки без initialScrollId — stackFromEnd=true ДО applyStrategy.
+        // Это заставляет LinearLayoutManager разложить items снизу с первого layout pass.
+        // Работало ранее. Если придёт initialScrollId — сбросим stackFromEnd в setInitialScrollId.
+        if (!initialScrollDone && newMessages.isNotEmpty() && pendingInitialScrollId == null) {
+            layoutManager.stackFromEnd = true
+        }
 
         val strategy = resolveStrategy(newMessages, messageIndex, sections, lastKnownCount)
-        Log.d(TAG, "strategy: ${strategy::class.simpleName}")
-
         applyStrategy(strategy)
         updateLoadingState()
         updateFabVisibility(animated = false)
@@ -186,7 +204,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         }
         lastKnownCount = newMessages.size
 
-        // Первый scroll — ровно один раз
         if (!initialScrollDone && newMessages.isNotEmpty()) {
             initialScrollDone = true
             performInitialScroll()
@@ -214,8 +231,25 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     fun setScrollToBottomThreshold(value: Int) { scrollToBottomThreshold = context.dpToPx(value.toFloat()) }
 
     fun setInitialScrollId(id: String?) {
-        initialScrollId = id
-        if (id != null) pendingScrollId = id
+        Log.d(TAG, "setInitialScrollId: id=$id | initialScrollDone=$initialScrollDone | pendingInitialScroll=$pendingInitialScroll")
+        if (id == null) return
+
+        if (!initialScrollDone) {
+            // setMessages ещё не было — просто сохраняем
+            pendingInitialScrollId = id
+        } else if (pendingInitialScroll) {
+            // setMessages было, onLayout ещё нет (именно этот случай из логов).
+            // Отменяем stackFromEnd и переключаемся на скролл к сообщению.
+            pendingInitialScrollId = id
+            layoutManager.stackFromEnd = false
+            Log.d(TAG, "setInitialScrollId: cancelled stackFromEnd, will scroll to $id in onLayout")
+        } else {
+            // onLayout уже прошёл — скроллим немедленно
+            Log.d(TAG, "setInitialScrollId: arrived after onLayout, scrolling now")
+            recyclerView.post {
+                scrollToMessage(id, ChatScrollPosition.CENTER, animated = false, highlight = true)
+            }
+        }
     }
 
     fun setCollectionInsets(top: Int, bottom: Int) {
@@ -250,16 +284,56 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Commands ─────────────────────────────────────────────────────────
 
     fun scrollToBottom(animated: Boolean = true) {
-        val totalItems = adapter.itemCount.takeIf { it > 0 } ?: return
-        isProgrammaticScroll = true
-        if (animated) recyclerView.smoothScrollToPosition(totalItems - 1)
-        else          layoutManager.scrollToPositionWithOffset(totalItems - 1, 0)
-        isProgrammaticScroll = false
+        val last = adapter.itemCount - 1
+        if (last < 0) return
+        Log.d(TAG, "scrollToBottom: last=$last animated=$animated rvHeight=${recyclerView.height}")
+        if (animated) {
+            isProgrammaticScroll = true
+            recyclerView.smoothScrollToPosition(last)
+            isProgrammaticScroll = false
+        } else {
+            isProgrammaticScroll = true
+            layoutManager.scrollToPositionWithOffset(last, 0)
+            isProgrammaticScroll = false
+            recyclerView.post {
+                recyclerView.post {
+                    val lastView = layoutManager.findViewByPosition(last)
+                    Log.d(TAG, "scrollToBottom post2: lastView=$lastView bottom=${lastView?.bottom} rvH=${recyclerView.height} padBottom=${recyclerView.paddingBottom}")
+                    if (lastView != null) {
+                        val extra = lastView.bottom - (recyclerView.height - recyclerView.paddingBottom)
+                        if (extra > 0) {
+                            isProgrammaticScroll = true
+                            recyclerView.scrollBy(0, extra)
+                            isProgrammaticScroll = false
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
      * Скролл к сообщению с подсветкой.
-     * Если сообщение уже видимо — всё равно центрируем и подсвечиваем.
+     *
+     * animated=true  → smoothScrollToPosition (стандартная анимация)
+     * animated=false → InstantScroller: кастомный LinearSmoothScroller с нулевой
+     *                  скоростью. Единственный надёжный способ прокрутить RecyclerView
+     *                  к произвольной позиции без анимации, гарантированно получив
+     *                  реальный View в onTargetFound() для точного центрирования.
+     *
+     * Почему не scrollToPositionWithOffset + post/post:
+     *   scrollToPositionWithOffset — pending scroll, выполняется при следующем
+     *   dispatchLayout. Но findViewByPosition возвращает null для позиций за
+     *   пределами текущего viewport — RecyclerView не держит невидимые ViewHolder-ы.
+     *   Поэтому читать координаты через post ненадёжно.
+     *
+     * Почему не OnLayoutChangeListener:
+     *   Срабатывает только при изменении bounds самого RecyclerView.
+     *   При initialScroll bounds уже финальны — listener не вызывается никогда.
+     *
+     * LinearSmoothScroller.onTargetFound() вызывается RecyclerView именно в тот
+     * момент когда target ViewHolder создан и выложен — это единственный
+     * гарантированный callback с доступом к реальному View.
      */
     fun scrollToMessage(
         id: String,
@@ -269,34 +343,65 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     ) {
         val pos = adapter.positionOfMessage(id)
         if (pos < 0) { Log.w(TAG, "scrollToMessage: id=$id not found"); return }
+        Log.d(TAG, "scrollToMessage: id=$id pos=$pos animated=$animated rvHeight=${recyclerView.height}")
 
-        val isVisible = isItemVisible(pos)
+        if (animated) {
+            isProgrammaticScroll = true
+            recyclerView.smoothScrollToPosition(pos)
+            isProgrammaticScroll = false
+            if (highlight) pendingHighlightPosition = pos
+            return
+        }
 
-        when {
-            !isVisible && animated -> {
-                // Сначала скроллим, подсвечиваем после остановки
-                isProgrammaticScroll = true
-                recyclerView.smoothScrollToPosition(pos)
-                isProgrammaticScroll = false
-                if (highlight) pendingHighlightPosition = pos
-            }
-            !isVisible -> {
-                val offset = when (position) {
-                    ChatScrollPosition.TOP    -> 0
-                    ChatScrollPosition.CENTER -> recyclerView.height / 2
-                    ChatScrollPosition.BOTTOM -> recyclerView.height
+        // Захватываем локально до анонимного класса — иначе компилятор видит
+        // обращение к членам класса через внешний this и считает их nullable.
+        val lm = layoutManager
+        val rv = recyclerView
+
+        // InstantScroller — LinearSmoothScroller с нулевой скоростью анимации.
+        // calculateSpeedPerPixel → 0f делает скролл мгновенным (0мс на пиксель).
+        // onTargetFound вызывается RecyclerView когда target item реально выложен —
+        // здесь мы получаем доступ к View и можем точно вычислить нужный offset.
+        isProgrammaticScroll = true
+        val scroller = object : LinearSmoothScroller(context) {
+
+            // Возвращаем 1мс на любое расстояние — визуально мгновенно,
+            // без деления на 0 которое даёт calculateSpeedPerPixel=0f.
+            override fun calculateTimeForScrolling(dx: Int) = 1
+
+            override fun getVerticalSnapPreference() = SNAP_TO_START
+
+            override fun onTargetFound(targetView: View, state: RecyclerView.State, action: Action) {
+                val padTop    = rv.paddingTop
+                val padBottom = rv.paddingBottom
+                val visibleH  = rv.height - padTop - padBottom
+
+                val top    = lm.getDecoratedTop(targetView)
+                val height = lm.getDecoratedMeasuredHeight(targetView)
+
+                val targetTop = when (position) {
+                    ChatScrollPosition.TOP    -> padTop
+                    ChatScrollPosition.CENTER -> padTop + (visibleH - height) / 2
+                    ChatScrollPosition.BOTTOM -> padTop + visibleH - height
                 }
-                isProgrammaticScroll = true
-                layoutManager.scrollToPositionWithOffset(pos, offset)
-                isProgrammaticScroll = false
-                if (highlight) recyclerView.post { adapter.highlightItem(recyclerView, pos) }
+
+                val dy = top - targetTop
+                Log.d(TAG, "scrollToMessage onTargetFound: pos=$pos top=$top targetTop=$targetTop dy=$dy")
+                if (dy != 0) {
+                    action.update(0, dy, 1, android.view.animation.LinearInterpolator())
+                }
             }
-            else -> {
-                // Уже видимо — центрируем без анимации и подсвечиваем
-                centerVisibleItem(pos, animated)
-                if (highlight) recyclerView.post { adapter.highlightItem(recyclerView, pos) }
+
+            override fun onStop() {
+                super.onStop()
+                isProgrammaticScroll = false
+                revealAfterInitialScroll()
+                if (highlight) rv.post { adapter.highlightItem(rv, pos) }
+                Log.d(TAG, "scrollToMessage onStop: pos=$pos")
             }
         }
+        scroller.targetPosition = pos
+        lm.startSmoothScroll(scroller)
     }
 
     // ─── Strategy application ─────────────────────────────────────────────
@@ -347,31 +452,41 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     // ─── Initial scroll ───────────────────────────────────────────────────
     //
-    // Скролл выполняется после завершения первого layout pass через
-    // ViewTreeObserver.OnPreDrawListener — это гарантирует что RecyclerView
-    // уже имеет реальные размеры и contentSize > 0, иначе scrollToBottom
-    // не работает (аналог collectionView.layoutIfNeeded() на iOS).
+    // Два случая:
+    // 1. Нет initialScrollId → stackFromEnd=true уже выставлен в setMessages,
+    //    после layout просто сбрасываем его. Скролл к низу происходит сам.
+    // 2. Есть initialScrollId → stackFromEnd сброшен в setInitialScrollId,
+    //    откладываем скролл к сообщению до onLayout через pendingInitialScroll.
 
     private fun performInitialScroll() {
-        val target = pendingScrollId
-        recyclerView.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
-            override fun onPreDraw(): Boolean {
-                recyclerView.viewTreeObserver.removeOnPreDrawListener(this)
-                if (target != null) {
-                    pendingScrollId = null
-                    scrollToMessage(target, ChatScrollPosition.CENTER, animated = false, highlight = true)
-                } else {
-                    // По умолчанию — показываем последнее сообщение (как iOS scrollToBottom)
-                    val totalItems = adapter.itemCount
-                    if (totalItems > 0) {
-                        layoutManager.scrollToPositionWithOffset(totalItems - 1, 0)
-                    }
-                }
-                return true
-            }
-        })
-        // Запускаем invalidate чтобы гарантировать вызов onPreDraw
-        recyclerView.invalidate()
+        // Всегда ставим флаг — реальный скролл в onLayout.
+        // stackFromEnd уже выставлен если нет initialScrollId,
+        // или будет сброшен в setInitialScrollId если он придёт до onLayout.
+        pendingInitialScroll = true
+    }
+
+    private fun doInitialScroll() {
+        val targetId = pendingInitialScrollId
+        Log.d(TAG, "doInitialScroll: targetId=$targetId adapterCount=${adapter.itemCount} rvHeight=${recyclerView.height}")
+        if (targetId != null) {
+            pendingInitialScrollId = null
+            scrollToMessage(targetId, ChatScrollPosition.CENTER, animated = false, highlight = true)
+            // reveal вызывается из InstantScroller.onStop() после завершения скролла
+        } else {
+            scrollToBottom(animated = false)
+            recyclerView.post { revealAfterInitialScroll() }
+        }
+    }
+
+    // Плавно проявляем RecyclerView после initial scroll.
+    // alpha=0 выставлен в init чтобы скрыть промежуточные позиции при первом layout pass.
+    private fun revealAfterInitialScroll() {
+        if (recyclerView.alpha == 1f) return
+        recyclerView.animate()
+            .alpha(1f)
+            .setDuration(120)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
     }
 
     // ─── Scroll helpers ───────────────────────────────────────────────────
