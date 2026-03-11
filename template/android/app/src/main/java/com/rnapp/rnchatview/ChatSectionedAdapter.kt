@@ -149,11 +149,16 @@ class ChatSectionedAdapter(
             is ListItem.MessageItem -> {
                 val msg = item.message
                 val resolved = resolveReply(msg)
-                (holder as MessageViewHolder).bubbleView.configure(msg, resolved, theme)
-                holder.itemView.setOnClickListener { onMessagePress?.invoke(msg.id) }
-                holder.itemView.setOnLongClickListener {
-                    onMessageLongPress?.invoke(msg.id, holder.itemView, msg.isMine)
-                    true
+                (holder as MessageViewHolder).apply {
+                    bubbleView.configure(msg, resolved, theme)
+                    // ── Нажатие и LongPress только по пузырю (как в iOS) ──────
+                    bubbleView.bubble.setOnClickListener {
+                        onMessagePress?.invoke(msg.id)
+                    }
+                    bubbleView.bubble.setOnLongClickListener {
+                        onMessageLongPress?.invoke(msg.id, bubbleView.bubble, msg.isMine)
+                        true
+                    }
                 }
             }
         }
@@ -182,15 +187,36 @@ class ChatSectionedAdapter(
     }
 
     // ─── Highlight ────────────────────────────────────────────────────────
+    //
+    // Анимирует backgroundColor пузыря как на iOS:
+    //   оригинальный цвет → жёлтый flash (0.25s) → пауза → обратно (0.25s)
 
     fun highlightItem(recyclerView: RecyclerView, position: Int) {
-        val holder = recyclerView.findViewHolderForAdapterPosition(position) ?: return
-        ValueAnimator.ofFloat(1f, 0.35f, 1f, 0.6f, 1f).apply {
-            duration = 600
+        val holder = recyclerView.findViewHolderForAdapterPosition(position)
+            as? MessageViewHolder ?: return
+        val bubble    = holder.bubbleView.bubble
+        val origColor = holder.bubbleView.currentBubbleColor
+        val flashColor = android.graphics.Color.argb(140, 255, 204, 0) // ~systemYellow 55%
+
+        val phase1 = ValueAnimator.ofArgb(origColor, flashColor).apply {
+            duration = 250
             interpolator = DecelerateInterpolator()
-            addUpdateListener { holder.itemView.alpha = it.animatedValue as Float }
-            start()
+            addUpdateListener {
+                (bubble.background as? android.graphics.drawable.GradientDrawable)
+                    ?.setColor(it.animatedValue as Int)
+            }
         }
+        val phase2 = ValueAnimator.ofArgb(flashColor, origColor).apply {
+            duration    = 250
+            startDelay  = 750   // iOS: 0.5s pause before restore
+            interpolator = DecelerateInterpolator()
+            addUpdateListener {
+                (bubble.background as? android.graphics.drawable.GradientDrawable)
+                    ?.setColor(it.animatedValue as Int)
+            }
+        }
+        phase1.start()
+        phase2.start()
     }
 
     // ─── Reply resolution ─────────────────────────────────────────────────

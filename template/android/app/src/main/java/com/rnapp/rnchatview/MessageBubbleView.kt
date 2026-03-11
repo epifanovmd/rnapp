@@ -28,7 +28,8 @@ class MessageBubbleView(
 ) : FrameLayout(context) {
 
     private val outerRow      = LinearLayout(context)
-    private val bubble        = LinearLayout(context)
+    // ── Публичный для доступа из адаптера (highlight, anchor) ──────────────
+    val bubble                = LinearLayout(context)
     private val replyPreview  = ReplyPreviewView(context)
     private val contentArea   = LinearLayout(context)
     private val textView      = TextView(context)
@@ -37,6 +38,10 @@ class MessageBubbleView(
     private val editedLabel   = TextView(context)
     private val timeLabel     = TextView(context)
     private val statusView    = StatusIconView(context)
+
+    // Текущий цвет пузыря — нужен для highlight анимации
+    var currentBubbleColor: Int = if (isMine) 0xFF3D9EFA.toInt() else 0xFFF0F0F0.toInt()
+        private set
 
     var onReplyTap: ((replyId: String) -> Unit)? = null
 
@@ -56,6 +61,7 @@ class MessageBubbleView(
         configureReply(resolvedReply, theme)
         configureContent(message, theme)
         configureFooter(message, theme)
+        applyMinBubbleWidth(message, resolvedReply)
     }
 
     fun prepareForReuse() {
@@ -163,7 +169,42 @@ class MessageBubbleView(
 
     private fun applyBubbleColors(theme: ChatTheme) {
         val color = if (isMine) theme.outgoingBubbleColor else theme.incomingBubbleColor
+        currentBubbleColor = color
         (bubble.background as? GradientDrawable)?.setColor(color)
+    }
+
+    // ─── Minimum bubble width (как в iOS MessageSizeCalculator) ──────────────
+    //
+    // Пузырь должен быть достаточно широким чтобы footer (edited + time + status)
+    // не обрезался. Вычисляется из реального текста меток.
+
+    private fun computeMinBubbleWidth(message: ChatMessage): Int {
+        val paint = android.graphics.Paint().apply {
+            textSize = context.spToPx(C.FOOTER_TEXT_SIZE_SP)
+        }
+
+        val timeText = DateHelper.timeString(message.timestamp)
+        val timeW    = paint.measureText(timeText)
+
+        val statusW: Float = if (message.isMine)
+            context.dpToPx(C.STATUS_ICON_SIZE_DP).toFloat() + context.dpToPx(C.FOOTER_SPACING_DP).toFloat()
+        else 0f
+
+        val editedW: Float = if (message.isEdited)
+            paint.measureText("edited") + context.dpToPx(C.FOOTER_SPACING_DP).toFloat()
+        else 0f
+
+        val footerW = timeW + statusW + editedW + context.dpToPx(C.FOOTER_TRAILING_PADDING_DP).toFloat() * 2
+        return footerW.toInt() + context.dpToPx(C.BUBBLE_HORIZONTAL_PADDING_DP) * 2
+    }
+
+    private fun applyMinBubbleWidth(message: ChatMessage, resolvedReply: ResolvedReply?) {
+        // Изображения и сообщения с цитатой всегда получают максимальную ширину — min не нужен
+        if (message.hasImage || resolvedReply is ResolvedReply.Found) return
+        val minW = computeMinBubbleWidth(message)
+        if (bubble.minimumWidth != minW) {
+            bubble.minimumWidth = minW
+        }
     }
 
     private fun configureReply(resolved: ResolvedReply?, theme: ChatTheme) {

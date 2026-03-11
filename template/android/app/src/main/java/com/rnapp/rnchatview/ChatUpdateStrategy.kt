@@ -92,7 +92,13 @@ fun resolveStrategy(
                 val existing = oldIndex[msg.id]
                 if (existing == null || existing != msg) msg.id else null
             }
-            UpdateStrategy.Update(newSections, newIndex, changedIds)
+            // Также перерисовываем сообщения, чьи цитаты указывают на изменённые сообщения.
+            // Это гарантирует что при редактировании оригинала цитата обновится — как в iOS applyUpdate.
+            val quoteReaderIds = newMessages.mapNotNullTo(mutableSetOf()) { msg ->
+                val replyId = msg.reply?.replyToId ?: return@mapNotNullTo null
+                if (replyId in changedIds && msg.id !in changedIds) msg.id else null
+            }
+            UpdateStrategy.Update(newSections, newIndex, changedIds + quoteReaderIds)
         }
     }
 }

@@ -132,7 +132,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         }
 
         adapter.onMessagePress     = { id -> sendEvent("onMessagePress", args { putString("messageId", id) }) }
-        adapter.onMessageLongPress = { id, anchor, _ -> showContextMenu(id, anchor) }
+        adapter.onMessageLongPress = { id, bubbleAnchor, _ -> showContextMenu(id, bubbleAnchor) }
         adapter.onReplyPress       = { replyId ->
             sendEvent("onReplyMessagePress", args { putString("messageId", replyId) })
             scrollToMessage(replyId, ChatScrollPosition.CENTER, animated = true, highlight = true)
@@ -346,18 +346,32 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     // ─── Initial scroll ───────────────────────────────────────────────────
+    //
+    // Скролл выполняется после завершения первого layout pass через
+    // ViewTreeObserver.OnPreDrawListener — это гарантирует что RecyclerView
+    // уже имеет реальные размеры и contentSize > 0, иначе scrollToBottom
+    // не работает (аналог collectionView.layoutIfNeeded() на iOS).
 
     private fun performInitialScroll() {
-        recyclerView.post {
-            if (pendingScrollId != null) {
-                val id = pendingScrollId!!
-                pendingScrollId = null
-                scrollToMessage(id, ChatScrollPosition.CENTER, animated = false, highlight = true)
-            } else {
-                // По умолчанию — показываем последнее сообщение
-                scrollToBottom(animated = false)
+        val target = pendingScrollId
+        recyclerView.viewTreeObserver.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                recyclerView.viewTreeObserver.removeOnPreDrawListener(this)
+                if (target != null) {
+                    pendingScrollId = null
+                    scrollToMessage(target, ChatScrollPosition.CENTER, animated = false, highlight = true)
+                } else {
+                    // По умолчанию — показываем последнее сообщение (как iOS scrollToBottom)
+                    val totalItems = adapter.itemCount
+                    if (totalItems > 0) {
+                        layoutManager.scrollToPositionWithOffset(totalItems - 1, 0)
+                    }
+                }
+                return true
             }
-        }
+        })
+        // Запускаем invalidate чтобы гарантировать вызов onPreDraw
+        recyclerView.invalidate()
     }
 
     // ─── Scroll helpers ───────────────────────────────────────────────────
