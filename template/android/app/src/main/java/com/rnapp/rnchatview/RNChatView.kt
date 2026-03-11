@@ -172,6 +172,9 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         val newTop    = context.dpToPx(C.COLLECTION_TOP_PADDING_DP) + collectionExtraInsetTop
         if (recyclerView.paddingBottom == newBottom && recyclerView.paddingTop == newTop) return
         recyclerView.setPadding(0, newTop, 0, newBottom)
+        // Смещаем текст EmptyStateView вверх ровно на высоту inputBar,
+        // чтобы он оказался по центру видимой области над панелью ввода.
+        emptyStateView.setBottomOffset(inputBar.height + collectionExtraInsetBottom)
     }
 
     private fun updateFabPosition() {
@@ -195,14 +198,11 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             layoutManager.stackFromEnd = true
         }
 
-        val strategy = resolveStrategy(newMessages, messageIndex, sections, lastKnownCount)
+        val strategy = resolveStrategy(newMessages, messageIndex, sections)
         applyStrategy(strategy)
         updateLoadingState()
         updateFabVisibility(animated = false)
 
-        if (waitingForNewMessages && newMessages.size > lastKnownCount) {
-            waitingForNewMessages = false
-        }
         lastKnownCount = newMessages.size
 
         if (!initialScrollDone && newMessages.isNotEmpty()) {
@@ -420,20 +420,72 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     private fun applyPrepend(s: UpdateStrategy.Prepend) {
-        val oldRange  = recyclerView.computeVerticalScrollRange()
-        val oldOffset = recyclerView.computeVerticalScrollOffset()
+        // Якорная компенсация при prepend — фиксируем viewport без прыжков.
+        //
+        // Почему scrollToPositionWithOffset недостаточен:
+        //   Это pending scroll — применяется в dispatchLayout, но RecyclerView
+        //   успевает отрисовать один промежуточный кадр со сдвинутым offset → прыжок.
+        //
+        // Правильный подход — scrollBy сразу после layout:
+        //   1. Запоминаем top первого видимого item ДО вставки.
+        //   2. submitSections → dispatchUpdatesTo → LLM планирует layout.
+        //   3. В OnLayoutChangeListener (срабатывает ровно один раз после layout pass)
+        //      вычисляем фактический сдвиг якорного item и компенсируем его scrollBy.
+        //      scrollBy применяется мгновенно, без промежуточного кадра.
+        //
+        // Инерционный скролл: RecyclerView прерывает fling при notify* — это
+        // ограничение платформы. Сохраняем velocity и перезапускаем fling после.
 
-        adapter.submitSections(s.sections, s.index)
+        val anchorPos = layoutManager.findFirstVisibleItemPosition().takeIf { it >= 0 }
+            ?: return run { adapter.submitSections(s.sections, s.index) }
+        val anchorView = layoutManager.findViewByPosition(anchorPos)
+            ?: return run { adapter.submitSections(s.sections, s.index) }
+        val anchorTopBefore = anchorView.top
 
-        recyclerView.post {
-            val delta = recyclerView.computeVerticalScrollRange() - oldRange
-            if (delta > 0 && !isProgrammaticScroll) {
-                isProgrammaticScroll = true
-                recyclerView.scrollBy(0, delta)
-                isProgrammaticScroll = false
+        val wasFling  = recyclerView.scrollState == RecyclerView.SCROLL_STATE_SETTLING
+        val velocityY = if (wasFling) captureVelocityY() else 0f
+
+        // Один раз после layout — вычисляем точный сдвиг и компенсируем scrollBy
+        val newAnchorPos = anchorPos + s.prependedCount
+        val layoutListener = object : View.OnLayoutChangeListener {
+            override fun onLayoutChange(
+                v: View, l: Int, t: Int, r: Int, b: Int,
+                ol: Int, ot: Int, or2: Int, ob: Int,
+            ) {
+                recyclerView.removeOnLayoutChangeListener(this)
+                val anchorViewAfter = layoutManager.findViewByPosition(newAnchorPos)
+                if (anchorViewAfter != null) {
+                    val delta = anchorViewAfter.top - anchorTopBefore
+                    if (delta != 0) {
+                        isProgrammaticScroll = true
+                        recyclerView.scrollBy(0, delta)
+                        isProgrammaticScroll = false
+                    }
+                }
+                if (wasFling && velocityY != 0f) {
+                    recyclerView.fling(0, velocityY.toInt())
+                }
             }
         }
+        recyclerView.addOnLayoutChangeListener(layoutListener)
+
+        isProgrammaticScroll = true
+        adapter.submitSections(s.sections, s.index)
+        isProgrammaticScroll = false
     }
+
+    /** Получает текущую вертикальную скорость скролла через ViewFlinger рефлексией.
+     *  Fallback — 0f если рефлексия недоступна. */
+    private fun captureVelocityY(): Float = try {
+        val flingerField = RecyclerView::class.java.getDeclaredField("mViewFlinger")
+            .also { it.isAccessible = true }
+        val flinger = flingerField.get(recyclerView) ?: return 0f
+        val scrollerField = flinger.javaClass.getDeclaredField("mOverScroller")
+            .also { it.isAccessible = true }
+        val scroller = scrollerField.get(flinger)
+            as? android.widget.OverScroller ?: return 0f
+        scroller.currVelocity * if (scroller.finalY > scroller.startY) 1f else -1f
+    } catch (_: Exception) { 0f }
 
     private fun applyAppend(s: UpdateStrategy.Append) {
         adapter.submitSections(s.sections, s.index)
@@ -660,12 +712,21 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                 putDouble("y", offsetY.toDouble())
             })
 
-            if (dy < 0) {
-                val firstView = layoutManager.findViewByPosition(0)
-                val topDist   = rv.paddingTop - (firstView?.top ?: Int.MAX_VALUE)
-                if (topDist < topThreshold && !waitingForNewMessages) {
+            // dy < 0 — пользователь скроллит к началу списка (к старым сообщениям, вверх).
+            // onReachTop стреляет только:
+            //   • при движении к верху (dy < 0)
+            //   • когда ещё не ждём ответа на предыдущий запрос (!waitingForNewMessages)
+            //   • когда не идёт загрузка (!isLoading) — не дублируем запрос
+            //   • когда до верха списка осталось меньше topThreshold пикселей
+            //
+            // Используем computeVerticalScrollOffset() — надёжный способ узнать расстояние
+            // от верха контента до верха viewport. findViewByPosition(0) возвращает null
+            // когда item 0 за пределами экрана, что давало ложное срабатывание.
+            if (dy < 0 && !waitingForNewMessages && !isLoading) {
+                val distanceFromTop = rv.computeVerticalScrollOffset()
+                if (distanceFromTop < topThreshold) {
                     waitingForNewMessages = true
-                    sendEvent("onReachTop", args { putDouble("distanceFromTop", topDist.toDouble()) })
+                    sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
                 }
             }
         }
@@ -703,8 +764,9 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private fun sendEvent(name: String, params: WritableMap) {
         val viewId = id.takeIf { it != NO_ID } ?: return
         try {
-            UIManagerHelper.getEventDispatcherForReactTag(reactContext, viewId)
-                ?.dispatchEvent(RNChatViewEvent(viewId, name, params))
+            val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, viewId) ?: return
+            val surfaceId  = UIManagerHelper.getSurfaceId(this)
+            dispatcher.dispatchEvent(RNChatViewEvent(surfaceId, viewId, name, params))
         } catch (e: Exception) {
             Log.e(TAG, "sendEvent $name failed", e)
         }
@@ -722,11 +784,23 @@ private class EmptyStateView(context: Context) : FrameLayout(context) {
     private val spinner = android.widget.ProgressBar(context)
 
     init {
-        label.text    = "No messages yet.\nBe the first! 👋"
-        label.gravity = Gravity.CENTER
-        label.textSize = 16f
-        addView(label, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER))
+        label.text      = "No messages yet.\nBe the first! 👋"
+        label.gravity   = Gravity.CENTER
+        label.textSize  = 16f
+        addView(label,   LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER))
         addView(spinner, LayoutParams(context.dpToPx(40f), context.dpToPx(40f), Gravity.CENTER))
+    }
+
+    /** Вызывается при каждом изменении высоты inputBar / inset-ов.
+     *  Сдвигаем контент вверх на половину высоты inputBar чтобы
+     *  текст оказался по центру видимой (над inputBar) области. */
+    fun setBottomOffset(offsetPx: Int) {
+        val lp = label.layoutParams as LayoutParams
+        lp.bottomMargin = offsetPx
+        label.layoutParams = lp
+        val sp = spinner.layoutParams as LayoutParams
+        sp.bottomMargin = offsetPx
+        spinner.layoutParams = sp
     }
 
     fun setLoading(loading: Boolean) {
@@ -766,10 +840,11 @@ private class FabButton(context: Context) : FrameLayout(context) {
 // ─── RNChatViewEvent ──────────────────────────────────────────────────────────
 
 private class RNChatViewEvent(
+    surfaceId: Int,
     viewId: Int,
     private val mEventName: String,
     private val mEventData: WritableMap,
-) : Event<RNChatViewEvent>(viewId) {
-    override fun getEventName(): String  = mEventName
+) : Event<RNChatViewEvent>(surfaceId, viewId) {
+    override fun getEventName(): String      = mEventName
     override fun getEventData(): WritableMap = mEventData
 }
