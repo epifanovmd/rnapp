@@ -1,13 +1,18 @@
 package com.rnapp.rnchatview
 
-import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.view.HapticFeedbackConstants
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.FrameLayout
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.uimanager.ThemedReactContext
-import com.facebook.react.uimanager.events.RCTEventEmitter
+import com.facebook.react.uimanager.UIManagerHelper
+import com.facebook.react.uimanager.events.Event
+import kotlin.math.abs
 
 class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLayout(reactContext) {
 
@@ -17,36 +22,84 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
     var emojis: List<String> = emptyList()
     var actions: List<MessageAction> = emptyList()
     var isDark: Boolean = false
-    var minimumPressDuration: Long = 350L   // ms
+    var minimumPressDuration: Long = 350L
 
     // ─── State ────────────────────────────────────────────────────────────
 
     private var activeMenu: ContextMenuView? = null
 
-    // ─── Long press setup ─────────────────────────────────────────────────
+    // ─── Long press detection ─────────────────────────────────────────────
 
-    init {
-        isLongClickable = true
-        setOnLongClickListener {
+    private val handler = Handler(Looper.getMainLooper())
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+    private var downX = 0f
+    private var downY = 0f
+    private var isWaitingForLongPress = false
+
+    private val longPressRunnable = Runnable {
+        if (isWaitingForLongPress) {
+            isWaitingForLongPress = false
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
             showMenu()
-            true
         }
     }
 
-    // ─── Children handling ────────────────────────────────────────────────
+    // ─── Layout ───────────────────────────────────────────────────────────
+    //
+    // FrameLayout.onLayout() расставляет детей по gravity в (0,0),
+    // перезаписывая Yoga-координаты которые выставил RN.
+    // Оставляем пустым — RN сам вызовет child.layout() через UIManager.
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        // Важно: после того как React добавит детей, мы можем с ними работать
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        // Намеренно пусто — RN позиционирует детей сам
     }
 
-    override fun addView(child: View) {
-        // Просто добавляем ребенка в наш FrameLayout
-        super.addView(child)
+    // ─── Touch interception ───────────────────────────────────────────────
+
+    override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> {
+                downX = ev.x
+                downY = ev.y
+                isWaitingForLongPress = true
+                handler.postDelayed(longPressRunnable, minimumPressDuration)
+                return false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (isWaitingForLongPress) {
+                    val dx = abs(ev.x - downX)
+                    val dy = abs(ev.y - downY)
+                    if (dx > touchSlop || dy > touchSlop) cancelLongPressTimer()
+                }
+                return false
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                cancelLongPressTimer()
+                return false
+            }
+        }
+        return false
     }
 
-    // ─── Show ─────────────────────────────────────────────────────────────
+    private fun cancelLongPressTimer() {
+        isWaitingForLongPress = false
+        handler.removeCallbacks(longPressRunnable)
+    }
+
+    // ─── Children ─────────────────────────────────────────────────────────
+
+    override fun addView(child: View, index: Int) {
+        super.addView(child, index)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        cancelLongPressTimer()
+        activeMenu?.dismiss()
+        activeMenu = null
+    }
+
+    // ─── Menu ─────────────────────────────────────────────────────────────
 
     private fun showMenu() {
         if (emojis.isEmpty() && actions.isEmpty()) return
@@ -59,7 +112,7 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
             emojis           = emojis,
             actions          = actions,
             isDark           = isDark,
-            isMine           = false,   // standalone: no side bias, anchored to self
+            isMine           = false,
             onEmojiSelected  = { emoji ->
                 sendEvent("onEmojiSelect", args {
                     putString("emoji", emoji)
@@ -80,15 +133,32 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
         activeMenu?.show(anchor = this, messageId = menuId)
     }
 
-    // ─── Event helper ─────────────────────────────────────────────────────
+    fun dismissMenu() {
+        activeMenu?.dismiss()
+        activeMenu = null
+    }
+
+    // ─── Events ───────────────────────────────────────────────────────────
 
     private fun sendEvent(name: String, params: WritableMap) {
-        val viewId = id
-        if (viewId == View.NO_ID) return
-        reactContext.getJSModule(RCTEventEmitter::class.java)
-            ?.receiveEvent(viewId, name, params)
+        val viewId = id.takeIf { it != NO_ID } ?: return
+        try {
+            val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, viewId) ?: return
+            val surfaceId  = UIManagerHelper.getSurfaceId(this)
+            dispatcher.dispatchEvent(RNContextMenuViewEvent(surfaceId, viewId, name, params))
+        } catch (_: Exception) {}
     }
 
     private fun args(block: WritableMap.() -> Unit): WritableMap =
         Arguments.createMap().also { it.block() }
+}
+
+private class RNContextMenuViewEvent(
+    surfaceId: Int,
+    viewId: Int,
+    private val mEventName: String,
+    private val mEventData: WritableMap,
+) : Event<RNContextMenuViewEvent>(surfaceId, viewId) {
+    override fun getEventName(): String      = mEventName
+    override fun getEventData(): WritableMap = mEventData
 }

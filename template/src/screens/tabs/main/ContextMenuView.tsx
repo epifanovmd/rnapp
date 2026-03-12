@@ -26,6 +26,7 @@ import {
   type NativeSyntheticEvent,
   Platform,
   requireNativeComponent,
+  View,
   type ViewProps,
   type ViewStyle,
 } from "react-native";
@@ -107,15 +108,16 @@ export const ContextMenuView: React.FC<ContextMenuViewProps> = ({
   onWillShow,
   ...rest
 }) => {
-  // if (Platform.OS !== "ios") {
-  //   const { View } = require("react-native");
-  //
-  //   return (
-  //     <View style={style} {...rest}>
-  //       {children}
-  //     </View>
-  //   );
-  // }
+  // Android: нативный компонент реализован и работает.
+  // iOS: нативный компонент реализован через UIContextMenuInteraction.
+  // Фоллбэк на простой View только если платформа не поддерживается.
+  if (Platform.OS !== "ios" && Platform.OS !== "android") {
+    return (
+      <View style={style} {...rest}>
+        {children}
+      </View>
+    );
+  }
 
   const handleEmojiSelect = (
     e: NativeSyntheticEvent<ContextMenuEmojiSelectEvent>,

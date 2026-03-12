@@ -45,19 +45,15 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
         view.minimumPressDuration = (seconds * 1000).toLong()
     }
 
-    // ─── Children handling ────────────────────────────────────────────────
+    // ─── Children ─────────────────────────────────────────────────────────
 
     override fun addView(parent: RNContextMenuView, child: View, index: Int) {
         parent.addView(child, index)
     }
 
-    override fun getChildCount(parent: RNContextMenuView): Int {
-        return parent.childCount
-    }
+    override fun getChildCount(parent: RNContextMenuView): Int = parent.childCount
 
-    override fun getChildAt(parent: RNContextMenuView, index: Int): View {
-        return parent.getChildAt(index)
-    }
+    override fun getChildAt(parent: RNContextMenuView, index: Int): View = parent.getChildAt(index)
 
     override fun removeViewAt(parent: RNContextMenuView, index: Int) {
         parent.removeViewAt(index)
@@ -67,14 +63,9 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
 
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? =
         MapBuilder.builder<String, Any>()
-            .put("onEmojiSelect", MapBuilder.of("registrationName", "onEmojiSelect"))
+            .put("onEmojiSelect",  MapBuilder.of("registrationName", "onEmojiSelect"))
             .put("onActionSelect", MapBuilder.of("registrationName", "onActionSelect"))
-            .put("onDismiss", MapBuilder.of("registrationName", "onDismiss"))
-            .put("onWillShow", MapBuilder.of("registrationName", "onWillShow"))
+            .put("onDismiss",      MapBuilder.of("registrationName", "onDismiss"))
+            .put("onWillShow",     MapBuilder.of("registrationName", "onWillShow"))
             .build()
-
-    // Важно: указываем, что наш ViewGroup поддерживает детей
-    override fun needsCustomLayoutForChildren(): Boolean {
-        return false // используем стандартный layout
-    }
 }

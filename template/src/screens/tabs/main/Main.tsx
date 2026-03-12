@@ -6,6 +6,7 @@ import {
   RefreshingContainer,
   SwitchTheme,
   Text,
+  Touchable,
 } from "@components";
 import { ImageBar } from "@components/navbar/ImageBar";
 import {
@@ -74,7 +75,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
                 console.log("actionId", actionId);
               }}
             >
-              <Col
+              <Touchable
                 bg={colors.onSurface}
                 radius={16}
                 pa={8}
@@ -88,7 +89,7 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
                 <Text textStyle={"Body_M1"} color={"textSecondary"}>
                   {"Текст"}
                 </Text>
-              </Col>
+              </Touchable>
             </ContextMenuView>
           )}
         />
