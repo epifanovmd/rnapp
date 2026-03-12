@@ -84,6 +84,8 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     // ─── Init ─────────────────────────────────────────────────────────────
 
     init {
+        clipChildren  = false   // позволяет topPanel InputBarView рисоваться поверх RecyclerView
+        clipToPadding = false
         layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
         adapter       = ChatSectionedAdapter(context)
 
