@@ -45,9 +45,14 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private var isLoading:    Boolean                  = false
 
     // ── Keyboard ──────────────────────────────────────────────────────────
-    // Высота клавиатуры в px (без nav bar). Обновляется покадрово через
-    // WindowInsetsAnimationCompat.
+    // Финальная высота клавиатуры в px (без nav bar).
+    // Обновляется один раз в onEnd, не на каждом кадре.
     private var keyboardHeightPx: Int = 0
+    // Высота клавиатуры в начале текущей анимации IME.
+    private var kbHeightAtAnimStart: Int = 0
+    // true пока идёт анимация IME: в этом режиме RV не меняет bounds,
+    // весь блок двигается через translationY.
+    private var isKeyboardAnimating: Boolean = false
 
     private var topThreshold:            Int = context.dpToPx(200f)
     private var scrollToBottomThreshold: Int = context.dpToPx(150f)
@@ -132,11 +137,38 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         //
         // DISPATCH_MODE_STOP: не пробрасываем в дочерние views — EditText
         // внутри InputBar не должен получать эти события независимо.
+        // ── WindowInsetsAnimationCompat ─────────────────────────────────
+        // Стратегия "единый слой" (как Telegram/WhatsApp):
+        //
+        // ПРОБЛЕМА старого подхода:
+        //   onProgress → applyKeyboardHeight → recyclerView.layout(w, rvBottom)
+        //   RecyclerView на каждом кадре меняет размер → пересчитывает anchor item
+        //   → свой внутренний scroll + наш scrollBy = два конкурирующих сдвига → дёрганье.
+        //
+        // РЕШЕНИЕ:
+        //   onPrepare  — снимаем "снимок" distanceFromEnd (скролл относительно дна).
+        //   onProgress — двигаем ТОЛЬКО translationY всего блока (RV + InputBar + FAB).
+        //                RV не меняет bounds → нет пересчёта anchor → плавно.
+        //   onEnd      — один раз: scrollBy для восстановления позиции,
+        //                затем сброс translationY и реальный layout.
         ViewCompat.setWindowInsetsAnimationCallback(
             this,
             object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
 
-                override fun onPrepare(animation: WindowInsetsAnimationCompat) {}
+                // distanceFromEnd в px в момент onPrepare.
+                // = 0  → скролл был в самом низу → после resize прижать к низу.
+                // > 0  → скролл был выше → сохранить расстояние до конца.
+                private var distanceFromEnd: Int = 0
+
+                override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+                    kbHeightAtAnimStart = keyboardHeightPx
+                    isKeyboardAnimating = true
+                    // Снимаем снимок позиции ДО любых изменений.
+                    val offset   = recyclerView.computeVerticalScrollOffset()
+                    val contentH = recyclerView.computeVerticalScrollRange()
+                    val rvH      = recyclerView.height
+                    distanceFromEnd = maxOf(0, contentH - offset - rvH)
+                }
 
                 override fun onStart(
                     animation: WindowInsetsAnimationCompat,
@@ -148,13 +180,15 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                     runningAnimations: List<WindowInsetsAnimationCompat>,
                 ): WindowInsetsCompat {
                     val kbH = extractKeyboardHeight(insets)
-                    applyKeyboardHeight(kbH)
+                    // Сдвиг от стартовой позиции анимации:
+                    // положительный при открытии (клавиатура растёт),
+                    // отрицательный при закрытии (клавиатура убирается).
+                    val shift = (kbH - kbHeightAtAnimStart).toFloat()
+                    // Весь блок едет вверх как единое целое — без изменения layout.
+                    recyclerView.translationY = -shift
+                    inputBar.translationY     = -kbH.toFloat()
+                    fabButton.translationY    = -kbH.toFloat()
                     return insets
-                }
-
-                override fun onEnd(animation: WindowInsetsAnimationCompat) {
-                    val rootInsets = ViewCompat.getRootWindowInsets(this@RNChatView) ?: return
-                    applyKeyboardHeight(extractKeyboardHeight(rootInsets))
                 }
             },
         )
@@ -191,53 +225,47 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     // ── Keyboard & Layout ────────────────────────────────────────────────
     //
-    // Архитектура позиционирования:
+    // Два режима:
     //
-    //   RNChatView (FrameLayout, размеры задаёт RN/Yoga — не трогаем)
-    //   ├── recyclerView  — вручную layout от top=0 до bottom=(height - inputH - kbH)
-    //   ├── inputBar      — translationY = -kbH (визуально поднимается, layout остаётся внизу)
-    //   ├── emptyState    — MATCH_PARENT
-    //   └── fabButton     — gravity=BOTTOM, bottomMargin = inputH + kbH + FAB_MARGIN
+    // 1. АНИМАЦИЯ (isKeyboardAnimating = true, onProgress):
+    //    translationY двигает весь блок как единый слой — RV НЕ меняет bounds.
+    //    recyclerView.translationY = -(kbH - kbHeightAtAnimStart)  ← "сжимается" снизу
+    //    inputBar.translationY     = -kbH                          ← едет вверх
+    //    fabButton.translationY    = -kbH
+    //    Результат: нет пересчёта anchor в RV → нет дёрганья.
+    //
+    // 2. ФИНАЛЬНЫЙ LAYOUT (onEnd / applyKeyboardHeight):
+    //    Один раз: scrollBy для восстановления позиции, затем сброс translationY=0
+    //    и реальный layout через recyclerView.layout(0, 0, w, rvBottom).
     //
     // Почему вручную layout recyclerView а не MATCH_PARENT:
-    //   Если recyclerView MATCH_PARENT, он перекрывает InputBar и перехватывает тачи
-    //   в его зоне (inputBar добавлен после, но RecyclerView занимает весь экран и
-    //   обрабатывает touch down до того как FrameLayout проверяет inputBar).
-    //   Ограничивая реальный bottom recyclerView = top InputBar, тачи в зоне InputBar
-    //   не попадают в recyclerView вообще.
-    //
-    // Почему translationY для inputBar (а не margin):
-    //   translationY синхронно с анимацией IME (покадрово через WindowInsetsAnimation).
-    //   Изменение margin требует requestLayout() — это дороже и может пропускать кадры.
+    //   MATCH_PARENT перекрывает InputBar → перехватывает тачи в его зоне.
 
+    // Вызывается только вне анимации IME (e.g. программный показ/скрытие
+    // клавиатуры без анимации, или первичный layout).
+    // Во время анимации используется onProgress/onEnd в callback выше.
     private fun applyKeyboardHeight(kbH: Int) {
-        if (keyboardHeightPx == kbH) return
+        if (keyboardHeightPx == kbH || isKeyboardAnimating) return
 
-        // Сохраняем расстояние от текущего скролла до конца контента —
-        // как iOS делает в updateCollectionBottomInset через distanceFromEnd.
-        // После изменения высоты RecyclerView восстанавливаем эту дистанцию,
-        // чтобы последнее видимое сообщение оставалось на экране.
-        val rvHeightBefore = recyclerView.height
-        val offsetBefore   = recyclerView.computeVerticalScrollOffset()
-        val contentH       = recyclerView.computeVerticalScrollRange()
+        val rvHeightBefore  = recyclerView.height
+        val offsetBefore    = recyclerView.computeVerticalScrollOffset()
+        val contentH        = recyclerView.computeVerticalScrollRange()
         val distanceFromEnd = maxOf(0, contentH - offsetBefore - rvHeightBefore)
 
-        keyboardHeightPx = kbH
+        keyboardHeightPx       = kbH
         inputBar.translationY  = -kbH.toFloat()
         fabButton.translationY = -kbH.toFloat()
+
+        val inputH      = inputBar.measuredHeight.takeIf { it > 0 } ?: inputBar.height
+        val rvHeightNew = (height - inputH - kbH).coerceAtLeast(0)
         repositionViews()
 
-        // Восстанавливаем позицию: двигаем скролл так чтобы
-        // distanceFromEnd осталась той же после изменения размера RV.
-        val rvHeightAfter = recyclerView.height
-        if (rvHeightAfter > 0 && rvHeightAfter != rvHeightBefore) {
-            val contentHAfter  = recyclerView.computeVerticalScrollRange()
-            val targetOffset   = contentHAfter - rvHeightAfter - distanceFromEnd
-            val currentOffset  = recyclerView.computeVerticalScrollOffset()
+        if (rvHeightNew > 0 && rvHeightNew != rvHeightBefore) {
+            val contentHAfter = recyclerView.computeVerticalScrollRange()
+            val targetOffset  = contentHAfter - rvHeightNew - distanceFromEnd
+            val currentOffset = recyclerView.computeVerticalScrollOffset()
             val delta = targetOffset - currentOffset
-            if (kotlin.math.abs(delta) > 1) {
-                recyclerView.scrollBy(0, delta)
-            }
+            if (kotlin.math.abs(delta) > 1) recyclerView.scrollBy(0, delta)
         }
     }
 

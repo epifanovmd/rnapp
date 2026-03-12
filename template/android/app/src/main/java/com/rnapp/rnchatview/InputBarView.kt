@@ -310,18 +310,24 @@ class InputBarView(context: Context) : LinearLayout(context) {
         if (notify) notifyHeightChanged()
     }
 
-    // ── FIX: notifyHeightChanged больше не откладывает всё через post {}.
-    // Если view уже измерена — уведомляем сразу с актуальным height.
-    // post {} только как фоллбэк при первом вызове до layout pass.
+    // notifyHeightChanged: форсируем measure/layout перед уведомлением,
+    // чтобы делегат всегда получал актуальную высоту (включая topPanel).
     private fun notifyHeightChanged() {
-        val panelH       = topPanelVisibleHeight
-        val minInputRowH = dpToPx(C.INPUT_BAR_TEXT_MIN_HEIGHT_DP + C.INPUT_BAR_VERTICAL_PADDING_DP * 2)
-        if (height > 0) {
-            delegate?.onHeightChanged(height, panelH)
+        val panelH = topPanelVisibleHeight
+        // Форсируем measure с текущими constraints родителя или WRAP_CONTENT.
+        val wSpec = if (width > 0)
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
+        else
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        val hSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        measure(wSpec, hSpec)
+        val measuredH = measuredHeight
+        if (measuredH > 0) {
+            delegate?.onHeightChanged(measuredH, panelH)
         } else {
-            // View ещё не измерена — ждём layout pass
             post {
-                val h = if (height > 0) height else minInputRowH + panelH
+                measure(wSpec, hSpec)
+                val h = if (measuredHeight > 0) measuredHeight else height
                 delegate?.onHeightChanged(h, panelH)
             }
         }

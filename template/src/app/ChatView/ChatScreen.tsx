@@ -557,7 +557,7 @@ const ChatScreen: React.FC = () => {
         topThreshold={200}
         scrollToBottomThreshold={150}
         collectionInsetTop={32}
-        initialScrollId={"19"}
+        initialScrollId={"10"}
         isLoading={isLoading}
         inputAction={inputAction}
         theme={theme}
