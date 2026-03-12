@@ -62,6 +62,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private var isUserDragging: Boolean = false
     private var fabVisible: Boolean = false
     private var lastTopPanelHeight: Int = 0
+    private var lastKnownInputBarHeight: Int = 0
 
     private val pendingVisibleIds = mutableSetOf<String>()
     private val visibilityDebounceMs = 300L
@@ -194,7 +195,9 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         inputBar.translationY = -kbH.toFloat()
         fabButton.translationY = -kbH.toFloat()
 
-        val inputH = inputBar.measuredHeight.takeIf { it > 0 } ?: inputBar.height
+        val inputH = lastKnownInputBarHeight.takeIf { it > 0 }
+            ?: inputBar.measuredHeight.takeIf { it > 0 }
+            ?: inputBar.height
         val rvHeightNew = (height - inputH - kbH).coerceAtLeast(0)
         repositionViews()
 
@@ -212,9 +215,19 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         val w = width
         val h = height
         val kbH = keyboardHeightPx
-        val inputH = inputBar.height.takeIf { it > 0 } ?: return
+        val inputH = lastKnownInputBarHeight.takeIf { it > 0 }
+            ?: inputBar.height.takeIf { it > 0 }
+            ?: return
 
-        val rvBottom = h - inputH - kbH
+        // Position inputBar explicitly: bottom = h - kbH, top = bottom - inputH
+        val inputBottom = h - kbH
+        val inputTop = inputBottom - inputH
+        if (inputTop >= 0 && (inputBar.left != 0 || inputBar.top != inputTop
+                    || inputBar.right != w || inputBar.bottom != inputBottom)) {
+            inputBar.layout(0, inputTop, w, inputBottom)
+        }
+
+        val rvBottom = inputTop
         if (rvBottom > 0 && (recyclerView.left != 0 || recyclerView.top != 0
                     || recyclerView.right != w || recyclerView.bottom != rvBottom)) {
             recyclerView.layout(0, 0, w, rvBottom)
@@ -229,6 +242,8 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         emptyStateView.setBottomOffset(inputH + kbH + collectionExtraInsetBottom)
 
         val lp = fabButton.layoutParams as? LayoutParams ?: return
+        // FAB floats above inputBar; when the reply/edit panel is shown it has already
+        // been added into inputH, so we only need the fixed gap on top of the bar.
         val newFabMargin = inputH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
         if (lp.bottomMargin != newFabMargin) {
             lp.bottomMargin = newFabMargin
@@ -240,6 +255,11 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
+        // Sync from real height when panel is not shown (normal state)
+        val actualInputH = inputBar.height
+        if (actualInputH > 0 && inputBar.topPanelVisibleHeight == 0) {
+            lastKnownInputBarHeight = actualInputH
+        }
         repositionViews()
         if (pendingInitialScroll) {
             pendingInitialScroll = false
@@ -674,6 +694,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         override fun onHeightChanged(heightPx: Int, topPanelVisibleHeight: Int) {
             val delta = topPanelVisibleHeight - lastTopPanelHeight
             lastTopPanelHeight = topPanelVisibleHeight
+            lastKnownInputBarHeight = heightPx
             syncLayout()
             if (delta != 0) recyclerView.post { recyclerView.scrollBy(0, delta) }
         }
