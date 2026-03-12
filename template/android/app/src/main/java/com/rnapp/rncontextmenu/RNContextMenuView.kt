@@ -1,4 +1,4 @@
-package com.rnapp.rnchatview
+package com.rnapp.rncontextmenu
 
 import android.os.Handler
 import android.os.Looper
@@ -16,20 +16,13 @@ import kotlin.math.abs
 
 class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLayout(reactContext) {
 
-    // ─── Props ────────────────────────────────────────────────────────────
-
     var menuId: String = ""
     var emojis: List<String> = emptyList()
-    var actions: List<MessageAction> = emptyList()
+    var actions: List<ContextMenuAction> = emptyList()
     var isDark: Boolean = false
     var minimumPressDuration: Long = 350L
 
-    // ─── State ────────────────────────────────────────────────────────────
-
     private var activeMenu: ContextMenuView? = null
-
-    // ─── Long press detection ─────────────────────────────────────────────
-
     private val handler = Handler(Looper.getMainLooper())
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private var downX = 0f
@@ -44,17 +37,8 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
         }
     }
 
-    // ─── Layout ───────────────────────────────────────────────────────────
-    //
-    // FrameLayout.onLayout() расставляет детей по gravity в (0,0),
-    // перезаписывая Yoga-координаты которые выставил RN.
-    // Оставляем пустым — RN сам вызовет child.layout() через UIManager.
-
-    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
-        // Намеренно пусто — RN позиционирует детей сам
-    }
-
-    // ─── Touch interception ───────────────────────────────────────────────
+    /** Переопределён намеренно пустым — RN позиционирует дочерние вью сам через Yoga. */
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {}
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         when (ev.action) {
@@ -81,17 +65,6 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
         return false
     }
 
-    private fun cancelLongPressTimer() {
-        isWaitingForLongPress = false
-        handler.removeCallbacks(longPressRunnable)
-    }
-
-    // ─── Children ─────────────────────────────────────────────────────────
-
-    override fun addView(child: View, index: Int) {
-        super.addView(child, index)
-    }
-
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         cancelLongPressTimer()
@@ -99,52 +72,46 @@ class RNContextMenuView(private val reactContext: ThemedReactContext) : FrameLay
         activeMenu = null
     }
 
-    // ─── Menu ─────────────────────────────────────────────────────────────
+    /** Программно скрывает активное меню. */
+    fun dismissMenu() {
+        activeMenu?.dismiss()
+        activeMenu = null
+    }
+
+    private fun cancelLongPressTimer() {
+        isWaitingForLongPress = false
+        handler.removeCallbacks(longPressRunnable)
+    }
 
     private fun showMenu() {
         if (emojis.isEmpty() && actions.isEmpty()) return
-
         sendEvent("onWillShow", args { putString("menuId", menuId) })
-
         activeMenu?.dismiss()
         activeMenu = ContextMenuView(
-            ctx              = context,
-            emojis           = emojis,
-            actions          = actions,
-            isDark           = isDark,
-            isMine           = false,
-            onEmojiSelected  = { emoji ->
-                sendEvent("onEmojiSelect", args {
-                    putString("emoji", emoji)
-                    putString("menuId", menuId)
-                })
+            ctx = context,
+            emojis = emojis,
+            actions = actions,
+            isDark = isDark,
+            isMine = false,
+            onEmojiSelected = { emoji ->
+                sendEvent("onEmojiSelect", args { putString("emoji", emoji); putString("menuId", menuId) })
             },
             onActionSelected = { action ->
-                sendEvent("onActionSelect", args {
-                    putString("actionId", action.id)
-                    putString("menuId", menuId)
-                })
+                sendEvent("onActionSelect", args { putString("actionId", action.id); putString("menuId", menuId) })
             },
             onDismiss = {
                 sendEvent("onDismiss", args { putString("menuId", menuId) })
                 activeMenu = null
             },
         )
-        activeMenu?.show(anchor = this, messageId = menuId)
+        activeMenu?.show(anchor = this, menuId = menuId)
     }
-
-    fun dismissMenu() {
-        activeMenu?.dismiss()
-        activeMenu = null
-    }
-
-    // ─── Events ───────────────────────────────────────────────────────────
 
     private fun sendEvent(name: String, params: WritableMap) {
         val viewId = id.takeIf { it != NO_ID } ?: return
         try {
             val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(reactContext, viewId) ?: return
-            val surfaceId  = UIManagerHelper.getSurfaceId(this)
+            val surfaceId = UIManagerHelper.getSurfaceId(this)
             dispatcher.dispatchEvent(RNContextMenuViewEvent(surfaceId, viewId, name, params))
         } catch (_: Exception) {}
     }
@@ -159,6 +126,6 @@ private class RNContextMenuViewEvent(
     private val mEventName: String,
     private val mEventData: WritableMap,
 ) : Event<RNContextMenuViewEvent>(surfaceId, viewId) {
-    override fun getEventName(): String      = mEventName
-    override fun getEventData(): WritableMap = mEventData
+    override fun getEventName() = mEventName
+    override fun getEventData() = mEventData
 }

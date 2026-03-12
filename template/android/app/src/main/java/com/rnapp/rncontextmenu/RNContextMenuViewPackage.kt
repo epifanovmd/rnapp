@@ -1,11 +1,9 @@
-package com.rnapp.rnchatview
+package com.rnapp.rncontextmenu
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
-
-// ─── RNContextMenuViewPackage ────────────────────────────────────────────────────────
 
 class RNContextMenuViewPackage : ReactPackage {
     override fun createNativeModules(context: ReactApplicationContext): List<NativeModule> = emptyList()

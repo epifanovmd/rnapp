@@ -1,4 +1,4 @@
-package com.rnapp.rnchatview
+package com.rnapp.rncontextmenu
 
 import android.view.View
 import com.facebook.react.bridge.ReadableArray
@@ -15,10 +15,7 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
 
     override fun getName() = REACT_CLASS
 
-    override fun createViewInstance(context: ThemedReactContext): RNContextMenuView =
-        RNContextMenuView(context)
-
-    // ─── Props ────────────────────────────────────────────────────────────
+    override fun createViewInstance(context: ThemedReactContext) = RNContextMenuView(context)
 
     @ReactProp(name = "menuId")
     fun setMenuId(view: RNContextMenuView, menuId: String?) {
@@ -32,7 +29,7 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
 
     @ReactProp(name = "actions")
     fun setActions(view: RNContextMenuView, actions: ReadableArray?) {
-        view.actions = actions?.toMessageActions() ?: emptyList()
+        view.actions = actions?.toContextMenuActions() ?: emptyList()
     }
 
     @ReactProp(name = "theme")
@@ -45,13 +42,11 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
         view.minimumPressDuration = (seconds * 1000).toLong()
     }
 
-    // ─── Children ─────────────────────────────────────────────────────────
-
     override fun addView(parent: RNContextMenuView, child: View, index: Int) {
         parent.addView(child, index)
     }
 
-    override fun getChildCount(parent: RNContextMenuView): Int = parent.childCount
+    override fun getChildCount(parent: RNContextMenuView) = parent.childCount
 
     override fun getChildAt(parent: RNContextMenuView, index: Int): View = parent.getChildAt(index)
 
@@ -59,13 +54,28 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
         parent.removeViewAt(index)
     }
 
-    // ─── Events ───────────────────────────────────────────────────────────
-
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? =
         MapBuilder.builder<String, Any>()
-            .put("onEmojiSelect",  MapBuilder.of("registrationName", "onEmojiSelect"))
+            .put("onEmojiSelect", MapBuilder.of("registrationName", "onEmojiSelect"))
             .put("onActionSelect", MapBuilder.of("registrationName", "onActionSelect"))
-            .put("onDismiss",      MapBuilder.of("registrationName", "onDismiss"))
-            .put("onWillShow",     MapBuilder.of("registrationName", "onWillShow"))
+            .put("onDismiss", MapBuilder.of("registrationName", "onDismiss"))
+            .put("onWillShow", MapBuilder.of("registrationName", "onWillShow"))
             .build()
 }
+
+/** Парсит ReadableArray в список ContextMenuAction. */
+private fun ReadableArray.toContextMenuActions(): List<ContextMenuAction> =
+    (0 until size()).mapNotNull { getMap(it)?.let { m ->
+        val id = m.getString("id")?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+        val title = m.getString("title")?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+        ContextMenuAction(
+            id = id,
+            title = title,
+            systemImage = if (m.hasKey("systemImage") && !m.isNull("systemImage")) m.getString("systemImage") else null,
+            isDestructive = if (m.hasKey("isDestructive")) m.getBoolean("isDestructive") else false,
+        )
+    }}
+
+/** Парсит ReadableArray в список строк эмодзи. */
+private fun ReadableArray.toEmojiList(): List<String> =
+    (0 until size()).mapNotNull { getString(it)?.takeIf { s -> s.isNotEmpty() } }

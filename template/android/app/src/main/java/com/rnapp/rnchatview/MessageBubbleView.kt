@@ -13,34 +13,22 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import com.rnapp.rnchatview.ChatLayoutConstants as C
 
-// ─── MessageBubbleView ────────────────────────────────────────────────────────
-//
-// Пузырь сообщения: [reply preview] → [content] → [footer].
-//
-// Принципы:
-//   • isMine задаётся при создании и не меняется (ViewHolder typed по viewType)
-//   • configure() обновляет данные без создания новых View
-//   • НЕТ лишних invalidate()/requestLayout() — RecyclerView управляет ими сам
-
 class MessageBubbleView(
     context: Context,
     private val isMine: Boolean,
 ) : FrameLayout(context) {
 
-    private val outerRow      = LinearLayout(context)
-    // ── Публичный для доступа из адаптера (highlight, anchor) ──────────────
-    val bubble                = LinearLayout(context)
-    private val replyPreview  = ReplyPreviewView(context)
-    private val contentArea   = LinearLayout(context)
-    private val textView      = TextView(context)
-    private val imageView     = ImageView(context)
-    private val footerRow     = LinearLayout(context)
-    private val editedLabel   = TextView(context)
-    private val timeLabel     = TextView(context)
-    private val statusView    = StatusIconView(context)
+    private val outerRow = LinearLayout(context)
+    val bubble = LinearLayout(context)
+    private val replyPreview = ReplyPreviewView(context)
+    private val contentArea = LinearLayout(context)
+    private val textView = TextView(context)
+    private val imageView = ImageView(context)
+    private val footerRow = LinearLayout(context)
+    private val editedLabel = TextView(context)
+    private val timeLabel = TextView(context)
+    private val statusView = StatusIconView(context)
 
-    // Текущий цвет пузыря — нужен для highlight анимации.
-    // Инициализируется значениями из ChatTheme.light() до первого configure().
     var currentBubbleColor: Int = if (isMine) 0xFF3D9EF9.toInt() else 0xFFF0F0F0.toInt()
         private set
 
@@ -51,13 +39,8 @@ class MessageBubbleView(
         buildLayout()
     }
 
-    // ─── Public API ───────────────────────────────────────────────────────
-
-    fun configure(
-        message: ChatMessage,
-        resolvedReply: ResolvedReply?,
-        theme: ChatTheme,
-    ) {
+    /** Применяет данные сообщения к вью. Вызывается при bind в адаптере. */
+    fun configure(message: ChatMessage, resolvedReply: ResolvedReply?, theme: ChatTheme) {
         applyBubbleColors(theme)
         configureReply(resolvedReply, theme)
         configureContent(message, theme)
@@ -65,32 +48,31 @@ class MessageBubbleView(
         applyMinBubbleWidth(message, resolvedReply)
     }
 
+    /** Сбрасывает состояние при возврате вью в пул. */
     fun prepareForReuse() {
         imageView.setImageBitmap(null)
-        ChatImageLoader.cancel(imageView)
+        ImageLoader.cancel(imageView)
     }
 
-    // ─── Layout ───────────────────────────────────────────────────────────
-
     private fun buildLayout() {
-        val sideMargin    = context.dpToPx(C.CELL_SIDE_MARGIN_DP)
+        val sideMargin = context.dpToPx(C.CELL_SIDE_MARGIN_DP)
         val farSideMargin = (context.resources.displayMetrics.widthPixels * (1f - C.BUBBLE_MAX_WIDTH_RATIO)).toInt()
-        val vertPad       = context.dpToPx(C.CELL_VERTICAL_PADDING_DP)
+        val vertPad = context.dpToPx(C.CELL_VERTICAL_PADDING_DP)
 
         outerRow.orientation = LinearLayout.HORIZONTAL
-        outerRow.gravity     = if (isMine) Gravity.END else Gravity.START
+        outerRow.gravity = if (isMine) Gravity.END else Gravity.START
         outerRow.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            topMargin    = vertPad
+            topMargin = vertPad
             bottomMargin = vertPad
         }
 
-        bubble.orientation  = LinearLayout.VERTICAL
+        bubble.orientation = LinearLayout.VERTICAL
         bubble.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
         ).apply {
             if (isMine) { marginStart = farSideMargin; marginEnd = sideMargin }
-            else        { marginStart = sideMargin;    marginEnd = farSideMargin }
+            else { marginStart = sideMargin; marginEnd = farSideMargin }
         }
         bubble.setPadding(
             context.dpToPx(C.BUBBLE_HORIZONTAL_PADDING_DP),
@@ -105,7 +87,7 @@ class MessageBubbleView(
             LinearLayout.LayoutParams.WRAP_CONTENT,
         ).apply { bottomMargin = context.dpToPx(C.STACK_SPACING_DP) }
 
-        contentArea.orientation  = LinearLayout.VERTICAL
+        contentArea.orientation = LinearLayout.VERTICAL
         contentArea.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -116,7 +98,7 @@ class MessageBubbleView(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
         )
 
-        imageView.scaleType   = ImageView.ScaleType.CENTER_CROP
+        imageView.scaleType = ImageView.ScaleType.CENTER_CROP
         imageView.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, context.dpToPx(200f)
         ).apply { topMargin = context.dpToPx(C.STACK_SPACING_DP) }
@@ -124,14 +106,14 @@ class MessageBubbleView(
         contentArea.addView(textView)
         contentArea.addView(imageView)
 
-        footerRow.orientation  = LinearLayout.HORIZONTAL
-        footerRow.gravity      = Gravity.CENTER_VERTICAL or Gravity.END
+        footerRow.orientation = LinearLayout.HORIZONTAL
+        footerRow.gravity = Gravity.CENTER_VERTICAL or Gravity.END
         footerRow.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply { topMargin = context.dpToPx(C.FOOTER_TOP_SPACING_DP) }
 
         editedLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, C.FOOTER_TEXT_SIZE_SP)
-        editedLabel.text       = "edited"
+        editedLabel.text = "edited"
         editedLabel.visibility = View.GONE
         editedLabel.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
@@ -160,12 +142,9 @@ class MessageBubbleView(
 
     private fun applyBubbleShape() {
         val r = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP).toFloat()
-        val radii = if (isMine) floatArrayOf(r, r, r, r, r, r, r, r)
-                    else        floatArrayOf(r,r, r, r, r, r, r, r)
+        val radii = floatArrayOf(r, r, r, r, r, r, r, r)
         bubble.background = GradientDrawable().apply { cornerRadii = radii }
     }
-
-    // ─── Configure ────────────────────────────────────────────────────────
 
     private fun applyBubbleColors(theme: ChatTheme) {
         val color = if (isMine) theme.outgoingBubbleColor else theme.incomingBubbleColor
@@ -173,23 +152,15 @@ class MessageBubbleView(
         (bubble.background as? GradientDrawable)?.setColor(color)
     }
 
-    // ─── Minimum bubble width (как в iOS MessageSizeCalculator) ──────────────
-    //
-    // Пузырь должен быть достаточно широким чтобы footer (edited + time + status)
-    // не обрезался. Вычисляется из реального текста меток.
-
+    /** Вычисляет минимальную ширину пузыря чтобы footer не обрезался. */
     private fun computeMinBubbleWidth(message: ChatMessage): Int {
         val paint = android.graphics.Paint().apply {
             textSize = context.spToPx(C.FOOTER_TEXT_SIZE_SP)
         }
-
-        val timeText = DateHelper.timeString(message.timestamp)
-        val timeW    = paint.measureText(timeText)
-
+        val timeW = paint.measureText(DateHelper.timeString(message.timestamp))
         val statusW: Float = if (message.isMine)
             context.dpToPx(C.STATUS_ICON_SIZE_DP).toFloat() + context.dpToPx(C.FOOTER_SPACING_DP).toFloat()
         else 0f
-
         val editedW: Float = if (message.isEdited)
             paint.measureText("edited") + context.dpToPx(C.FOOTER_SPACING_DP).toFloat()
         else 0f
@@ -199,12 +170,9 @@ class MessageBubbleView(
     }
 
     private fun applyMinBubbleWidth(message: ChatMessage, resolvedReply: ResolvedReply?) {
-        // Изображения и сообщения с цитатой всегда получают максимальную ширину — min не нужен
         if (message.hasImage || resolvedReply is ResolvedReply.Found) return
         val minW = computeMinBubbleWidth(message)
-        if (bubble.minimumWidth != minW) {
-            bubble.minimumWidth = minW
-        }
+        if (bubble.minimumWidth != minW) bubble.minimumWidth = minW
     }
 
     private fun configureReply(resolved: ResolvedReply?, theme: ChatTheme) {
@@ -215,7 +183,6 @@ class MessageBubbleView(
                 replyPreview.setOnClickListener { onReplyTap?.invoke(resolved.info.replyToId) }
             }
             is ResolvedReply.Deleted -> {
-                // Показываем snapshot с визуальным маркером "удалено"
                 replyPreview.isVisible = true
                 replyPreview.configure(resolved.info, isMine, theme)
                 replyPreview.setOnClickListener(null)
@@ -231,20 +198,20 @@ class MessageBubbleView(
         val textColor = if (isMine) theme.outgoingTextColor else theme.incomingTextColor
         when (message.content) {
             is MessageContent.Text -> {
-                textView.isVisible  = true
+                textView.isVisible = true
                 imageView.isVisible = false
-                textView.text       = message.content.textBody
+                textView.text = message.content.textBody
                 textView.setTextColor(textColor)
             }
             is MessageContent.Image -> {
-                textView.isVisible  = false
+                textView.isVisible = false
                 imageView.isVisible = true
                 loadImage(message.content.imagePayload!!, theme)
             }
             is MessageContent.Mixed -> {
-                textView.isVisible  = true
+                textView.isVisible = true
                 imageView.isVisible = true
-                textView.text       = message.content.textBody
+                textView.text = message.content.textBody
                 textView.setTextColor(textColor)
                 loadImage(message.content.imagePayload!!, theme)
             }
@@ -264,14 +231,14 @@ class MessageBubbleView(
             cornerRadius = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP).toFloat()
         }
         val url = payload.thumbnailUrl?.takeIf { it.isNotBlank() } ?: payload.url
-        ChatImageLoader.load(context, url, imageView,
+        ImageLoader.load(context, url, imageView,
             cornerRadius = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP),
             targetW = w, targetH = w,
         )
     }
 
     private fun configureFooter(message: ChatMessage, theme: ChatTheme) {
-        timeLabel.text      = DateHelper.timeString(message.timestamp)
+        timeLabel.text = DateHelper.timeString(message.timestamp)
         timeLabel.setTextColor(if (isMine) theme.outgoingTimeColor else theme.incomingTimeColor)
         editedLabel.isVisible = message.isEdited
         editedLabel.setTextColor(if (isMine) theme.outgoingEditedColor else theme.incomingEditedColor)
@@ -279,14 +246,12 @@ class MessageBubbleView(
     }
 }
 
-// ─── ReplyPreviewView ─────────────────────────────────────────────────────────
-
 class ReplyPreviewView(context: Context) : LinearLayout(context) {
 
-    private val accentBar    = View(context)
-    private val column       = LinearLayout(context)
-    private val senderLabel  = TextView(context)
-    private val bodyLabel    = TextView(context)
+    private val accentBar = View(context)
+    private val column = LinearLayout(context)
+    private val senderLabel = TextView(context)
+    private val bodyLabel = TextView(context)
     private val deletedLabel = TextView(context)
 
     init {
@@ -299,7 +264,7 @@ class ReplyPreviewView(context: Context) : LinearLayout(context) {
         }
         accentBar.background = GradientDrawable().apply { cornerRadius = context.dpToPx(2f).toFloat() }
 
-        column.orientation  = VERTICAL
+        column.orientation = VERTICAL
         column.layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
 
         senderLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12f)
@@ -320,11 +285,12 @@ class ReplyPreviewView(context: Context) : LinearLayout(context) {
         addView(column)
     }
 
+    /** Применяет данные цитаты к вью. */
     fun configure(info: ReplyDisplayInfo, isMine: Boolean, theme: ChatTheme) {
-        val bgColor     = if (isMine) theme.outgoingReplyBackground else theme.incomingReplyBackground
-        val accentColor = if (isMine) theme.outgoingReplyAccent     else theme.incomingReplyAccent
-        val senderColor = if (isMine) theme.outgoingReplySender     else theme.incomingReplySender
-        val textColor   = if (isMine) theme.outgoingReplyText       else theme.incomingReplyText
+        val bgColor = if (isMine) theme.outgoingReplyBackground else theme.incomingReplyBackground
+        val accentColor = if (isMine) theme.outgoingReplyAccent else theme.incomingReplyAccent
+        val senderColor = if (isMine) theme.outgoingReplySender else theme.incomingReplySender
+        val textColor = if (isMine) theme.outgoingReplyText else theme.incomingReplyText
 
         background = GradientDrawable().apply {
             setColor(bgColor)
@@ -333,28 +299,26 @@ class ReplyPreviewView(context: Context) : LinearLayout(context) {
         (accentBar.background as? GradientDrawable)?.setColor(accentColor)
 
         if (info.isDeleted) {
-            senderLabel.visibility  = View.GONE
-            bodyLabel.visibility    = View.GONE
+            senderLabel.visibility = View.GONE
+            bodyLabel.visibility = View.GONE
             deletedLabel.visibility = View.VISIBLE
-            deletedLabel.text       = "Message deleted"
+            deletedLabel.text = "Message deleted"
             deletedLabel.setTextColor(textColor)
         } else {
             deletedLabel.visibility = View.GONE
-            senderLabel.isVisible   = !info.senderName.isNullOrBlank()
-            senderLabel.text        = info.senderName ?: ""
+            senderLabel.isVisible = !info.senderName.isNullOrBlank()
+            senderLabel.text = info.senderName ?: ""
             senderLabel.setTextColor(senderColor)
-            bodyLabel.visibility    = View.VISIBLE
+            bodyLabel.visibility = View.VISIBLE
             bodyLabel.text = when {
                 info.text != null -> info.text
-                info.hasImage     -> "📷 Photo"
-                else              -> ""
+                info.hasImage -> "📷 Photo"
+                else -> ""
             }
             bodyLabel.setTextColor(textColor)
         }
     }
 }
-
-// ─── StatusIconView ───────────────────────────────────────────────────────────
 
 class StatusIconView(context: Context) : TextView(context) {
 
@@ -363,21 +327,20 @@ class StatusIconView(context: Context) : TextView(context) {
         gravity = Gravity.CENTER
     }
 
+    /** Обновляет иконку статуса доставки сообщения. */
     fun configure(status: MessageStatus, isMine: Boolean, theme: ChatTheme) {
         if (!isMine) { isVisible = false; return }
         isVisible = true
         val (icon, color) = when (status) {
-            MessageStatus.SENDING   -> "⏳" to theme.outgoingStatusColor
-            MessageStatus.SENT      -> "✓"  to theme.outgoingStatusColor
+            MessageStatus.SENDING -> "⏳" to theme.outgoingStatusColor
+            MessageStatus.SENT -> "✓" to theme.outgoingStatusColor
             MessageStatus.DELIVERED -> "✓✓" to theme.outgoingStatusColor
-            MessageStatus.READ      -> "✓✓" to theme.outgoingStatusReadColor
+            MessageStatus.READ -> "✓✓" to theme.outgoingStatusReadColor
         }
         text = icon
         setTextColor(color)
     }
 }
-
-// ─── DateSeparatorView ────────────────────────────────────────────────────────
 
 class DateSeparatorView(context: Context) : FrameLayout(context) {
 
@@ -394,6 +357,7 @@ class DateSeparatorView(context: Context) : FrameLayout(context) {
         addView(label, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER))
     }
 
+    /** Применяет заголовок и тему к разделителю дат. */
     fun configure(title: String, theme: ChatTheme) {
         label.text = title
         label.setTextColor(theme.dateSeparatorText)

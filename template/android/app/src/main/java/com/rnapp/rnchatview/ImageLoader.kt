@@ -16,30 +16,23 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
-// ─── ChatImageLoader ──────────────────────────────────────────────────────────
-//
-// Лёгкий загрузчик изображений с LRU-кэшем и отменой по ImageView-тегу.
-// В production замените на Glide/Coil, сохранив тот же публичный API:
-//   ChatImageLoader.load(context, url, imageView, cornerRadius, targetW, targetH)
-//   ChatImageLoader.cancel(imageView)
-
-object ChatImageLoader {
+object ImageLoader {
 
     private val executor: ExecutorService = Executors.newFixedThreadPool(4)
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Слабые ссылки: ImageView → Future (задача загрузки)
     private val futures: MutableMap<ImageView, Future<*>> =
         Collections.synchronizedMap(WeakHashMap())
 
-    // Простой in-memory LRU-кэш
     private val cache = object : LinkedHashMap<String, Bitmap>(64, 0.75f, true) {
         private val MAX_SIZE = 40
-        override fun removeEldestEntry(eldest: Map.Entry<String, Bitmap>?) =
-            size > MAX_SIZE
+        override fun removeEldestEntry(eldest: Map.Entry<String, Bitmap>?) = size > MAX_SIZE
     }
 
-    /** Загружает изображение в ImageView. Предыдущая задача для того же view отменяется. */
+    /**
+     * Загружает изображение по URL в ImageView.
+     * Предыдущая задача для того же view отменяется автоматически.
+     */
     fun load(
         context: Context,
         url: String,
@@ -48,51 +41,38 @@ object ChatImageLoader {
         targetW: Int = 0,
         targetH: Int = 0,
     ) {
-        // Проверяем кэш сначала на main thread
         val cacheKey = "$url-${targetW}x$targetH"
         synchronized(cache) { cache[cacheKey] }?.let { bitmap ->
             target.setImageDrawable(buildDrawable(context, bitmap, cornerRadius))
             return
         }
 
-        // Отменяем предыдущую задачу для этого ImageView
         cancel(target)
-
-        // Тэгируем view URL'ом — для защиты от race condition при переиспользовании
         target.tag = url
 
         val future = executor.submit {
             val bitmap = try { fetchBitmap(url, targetW, targetH) } catch (_: Exception) { null }
-
-            bitmap?.let {
-                synchronized(cache) { cache[cacheKey] = it }
-            }
-
+            bitmap?.let { synchronized(cache) { cache[cacheKey] = it } }
             mainHandler.post {
-                // Проверяем что view не переиспользован
-                if (target.tag == url) {
-                    if (bitmap != null) {
-                        target.setImageDrawable(buildDrawable(context, bitmap, cornerRadius))
-                    }
+                if (target.tag == url && bitmap != null) {
+                    target.setImageDrawable(buildDrawable(context, bitmap, cornerRadius))
                 }
             }
         }
         futures[target] = future
     }
 
-    /** Отменяет загрузку для данного ImageView. */
+    /** Отменяет текущую загрузку для указанного ImageView. */
     fun cancel(target: ImageView) {
         futures.remove(target)?.cancel(false)
         target.tag = null
     }
 
-    // ─── Private ──────────────────────────────────────────────────────────
-
     private fun fetchBitmap(url: String, targetW: Int, targetH: Int): Bitmap? {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
-            readTimeout    = 15_000
-            doInput        = true
+            readTimeout = 15_000
+            doInput = true
         }
         return try {
             conn.connect()
@@ -100,13 +80,11 @@ object ChatImageLoader {
             val stream: InputStream = conn.inputStream
 
             if (targetW > 0 && targetH > 0) {
-                // Сначала декодируем только размеры
                 val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeStream(stream, null, opts)
                 stream.close()
                 conn.disconnect()
 
-                // Переоткрываем для реального декода
                 val conn2 = (URL(url).openConnection() as HttpURLConnection).apply {
                     connectTimeout = 10_000; readTimeout = 15_000; doInput = true
                 }
@@ -114,9 +92,7 @@ object ChatImageLoader {
                 val decodeOpts = BitmapFactory.Options().apply {
                     inSampleSize = calculateSampleSize(opts.outWidth, opts.outHeight, targetW, targetH)
                 }
-                BitmapFactory.decodeStream(conn2.inputStream, null, decodeOpts).also {
-                    conn2.disconnect()
-                }
+                BitmapFactory.decodeStream(conn2.inputStream, null, decodeOpts).also { conn2.disconnect() }
             } else {
                 BitmapFactory.decodeStream(stream).also { conn.disconnect() }
             }
@@ -136,7 +112,6 @@ object ChatImageLoader {
 
     private fun buildDrawable(context: Context, bitmap: Bitmap, cornerRadius: Int): android.graphics.drawable.Drawable {
         if (cornerRadius <= 0) return BitmapDrawable(context.resources, bitmap)
-        // Создаём rounded drawable через RoundedBitmapDrawable
         return androidx.core.graphics.drawable.RoundedBitmapDrawableFactory
             .create(context.resources, bitmap).apply {
                 this.cornerRadius = cornerRadius.toFloat()

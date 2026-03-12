@@ -1,7 +1,5 @@
 package com.rnapp.rnchatview
 
-// ─── MessageStatus ────────────────────────────────────────────────────────────
-
 enum class MessageStatus(val raw: String) {
     SENDING("sending"),
     SENT("sent"),
@@ -9,12 +7,11 @@ enum class MessageStatus(val raw: String) {
     READ("read");
 
     companion object {
+        /** Создаёт статус из строки, возвращает SENT если строка не распознана. */
         fun from(raw: String?): MessageStatus =
             entries.firstOrNull { it.raw == raw } ?: SENT
     }
 }
-
-// ─── MessageContent ───────────────────────────────────────────────────────────
 
 sealed class MessageContent {
 
@@ -32,7 +29,7 @@ sealed class MessageContent {
     data class Mixed(val text: TextPayload, val image: ImagePayload) : MessageContent()
 
     val textBody: String? get() = when (this) {
-        is Text  -> payload.body
+        is Text -> payload.body
         is Mixed -> text.body
         is Image -> null
     }
@@ -40,28 +37,19 @@ sealed class MessageContent {
     val imagePayload: ImagePayload? get() = when (this) {
         is Image -> payload
         is Mixed -> image
-        is Text  -> null
+        is Text -> null
     }
 
-    val hasText: Boolean  get() = textBody != null
+    val hasText: Boolean get() = textBody != null
     val hasImage: Boolean get() = imagePayload != null
 }
 
-// ─── ReplyInfo ────────────────────────────────────────────────────────────────
-//
-// Хранит ТОЛЬКО ссылку replyToId.
-// Снапшот (senderName, text, hasImage) — fallback для удалённых сообщений.
-// Актуальный контент всегда берётся из MessageRepository по replyToId.
-
 data class ReplyInfo(
     val replyToId: String,
-    // Snapshot — используется только если оригинал удалён
     val snapshotSenderName: String? = null,
     val snapshotText: String? = null,
     val snapshotHasImage: Boolean = false,
 )
-
-// ─── ChatMessage ──────────────────────────────────────────────────────────────
 
 data class ChatMessage(
     val id: String,
@@ -74,14 +62,12 @@ data class ChatMessage(
     val reply: ReplyInfo? = null,
     val isEdited: Boolean = false,
 ) {
-    val text: String?                       get() = content.textBody
+    val text: String? get() = content.textBody
     val image: MessageContent.ImagePayload? get() = content.imagePayload
-    val hasText: Boolean                    get() = content.hasText
-    val hasImage: Boolean                   get() = content.hasImage
-    val replyToId: String?                  get() = reply?.replyToId
+    val hasText: Boolean get() = content.hasText
+    val hasImage: Boolean get() = content.hasImage
+    val replyToId: String? get() = reply?.replyToId
 }
-
-// ─── MessageAction ────────────────────────────────────────────────────────────
 
 data class MessageAction(
     val id: String,
@@ -90,27 +76,17 @@ data class MessageAction(
     val isDestructive: Boolean = false,
 )
 
-// ─── MessageSection ───────────────────────────────────────────────────────────
-
 data class MessageSection(
     val dateKey: String,
     val messages: List<ChatMessage>,
 )
 
-// ─── ResolvedReply ────────────────────────────────────────────────────────────
-//
-// Результат резолвинга reply по живому индексу.
-// Found содержит актуальные данные из MessageRepository.
-// Deleted — оригинал удалён, используем snapshot из ReplyInfo.
-
 sealed class ResolvedReply {
-    /** Оригинальное сообщение найдено — данные актуальны */
+    /** Оригинальное сообщение найдено — данные актуальны. */
     data class Found(val info: ReplyDisplayInfo) : ResolvedReply()
-    /** Оригинальное сообщение удалено — показываем snapshot */
+    /** Оригинальное сообщение удалено — показываем snapshot. */
     data class Deleted(val info: ReplyDisplayInfo) : ResolvedReply()
 }
-
-// ─── ReplyDisplayInfo ─────────────────────────────────────────────────────────
 
 data class ReplyDisplayInfo(
     val replyToId: String,
@@ -120,25 +96,25 @@ data class ReplyDisplayInfo(
     val isDeleted: Boolean = false,
 ) {
     companion object {
+        /** Создаёт из живого сообщения. */
         fun fromLive(message: ChatMessage) = ReplyDisplayInfo(
-            replyToId  = message.id,
+            replyToId = message.id,
             senderName = message.senderName,
-            text       = message.text,
-            hasImage   = message.hasImage,
-            isDeleted  = false,
+            text = message.text,
+            hasImage = message.hasImage,
+            isDeleted = false,
         )
 
+        /** Создаёт из снапшота удалённого сообщения. */
         fun fromSnapshot(info: ReplyInfo) = ReplyDisplayInfo(
-            replyToId  = info.replyToId,
+            replyToId = info.replyToId,
             senderName = info.snapshotSenderName,
-            text       = info.snapshotText,
-            hasImage   = info.snapshotHasImage,
-            isDeleted  = true,
+            text = info.snapshotText,
+            hasImage = info.snapshotHasImage,
+            isDeleted = true,
         )
     }
 }
-
-// ─── InputBarMode ─────────────────────────────────────────────────────────────
 
 sealed class InputBarMode {
     object Normal : InputBarMode()
@@ -146,25 +122,22 @@ sealed class InputBarMode {
     data class Edit(val messageId: String, val originalText: String) : InputBarMode()
 }
 
-// ─── ChatInputAction ──────────────────────────────────────────────────────────
-
 sealed class ChatInputAction {
     data class Reply(val messageId: String) : ChatInputAction()
     data class Edit(val messageId: String) : ChatInputAction()
     object None : ChatInputAction()
 
     companion object {
+        /** Создаёт действие из строк type и messageId, пришедших из JS-bridge. */
         fun from(type: String?, messageId: String?): ChatInputAction {
             if (messageId.isNullOrBlank()) return None
             return when (type) {
                 "reply" -> Reply(messageId)
-                "edit"  -> Edit(messageId)
-                else    -> None
+                "edit" -> Edit(messageId)
+                else -> None
             }
         }
     }
 }
-
-// ─── ChatScrollPosition ───────────────────────────────────────────────────────
 
 enum class ChatScrollPosition { TOP, CENTER, BOTTOM }
