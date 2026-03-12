@@ -1,5 +1,6 @@
 package com.rnapp.rnchatview
 
+import android.text.format.DateUtils
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -7,25 +8,31 @@ import java.util.Locale
 
 object DateHelper {
 
-    private val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-    private val fullDateFormatter = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
+    private val timeFormatter get() = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private val fullDateFormatter get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
+    private val shortDateFormatter get() = SimpleDateFormat("d MMMM", Locale.getDefault())
     private val sectionKeyFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
     /** Форматирует время сообщения в строку вида "14:25". */
     fun timeString(from: Long): String = timeFormatter.format(Date(from))
 
-    /** Возвращает заголовок секции: "Today", "Yesterday" или дату в виде "5 January 2024". */
+    /**
+     * Возвращает заголовок секции на языке устройства:
+     * "Сегодня" / "Вчера" / "5 мая" / "5 мая 2023".
+     */
     fun sectionTitle(from: String): String {
         val date = sectionKeyFormatter.parse(from) ?: return from
         val cal = Calendar.getInstance().apply { time = date }
         val now = Calendar.getInstance()
 
         return when {
-            isSameDay(cal, now) -> "Today"
-            isYesterday(cal, now) -> "Yesterday"
-            cal.get(Calendar.YEAR) == now.get(Calendar.YEAR) -> {
-                SimpleDateFormat("d MMMM", Locale.getDefault()).format(date)
-            }
+            isSameDay(cal, now) || isYesterday(cal, now) ->
+                DateUtils.getRelativeTimeSpanString(
+                    date.time,
+                    System.currentTimeMillis(),
+                    DateUtils.DAY_IN_MILLIS,
+                ).toString()
+            cal.get(Calendar.YEAR) == now.get(Calendar.YEAR) -> shortDateFormatter.format(date)
             else -> fullDateFormatter.format(date)
         }
     }

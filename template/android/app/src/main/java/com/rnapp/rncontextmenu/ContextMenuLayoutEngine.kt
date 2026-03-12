@@ -29,8 +29,7 @@ object ContextMenuLayoutEngine {
             clamp(anchorRect.left, hPad, screenW - snapW - hPad)
 
         val emojiX = if (hasEmoji) {
-            if (isMine) clamp(snapX + snapW - emojiW, hPad, screenW - emojiW - hPad)
-            else clamp(snapX, hPad, screenW - emojiW - hPad)
+            clamp(snapX + snapW - emojiW, hPad, screenW - emojiW - hPad)
         } else 0f
 
         val menuX = if (hasActions) {
