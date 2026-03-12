@@ -212,10 +212,33 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private fun applyKeyboardHeight(kbH: Int) {
         if (keyboardHeightPx == kbH) return
+
+        // Сохраняем расстояние от текущего скролла до конца контента —
+        // как iOS делает в updateCollectionBottomInset через distanceFromEnd.
+        // После изменения высоты RecyclerView восстанавливаем эту дистанцию,
+        // чтобы последнее видимое сообщение оставалось на экране.
+        val rvHeightBefore = recyclerView.height
+        val offsetBefore   = recyclerView.computeVerticalScrollOffset()
+        val contentH       = recyclerView.computeVerticalScrollRange()
+        val distanceFromEnd = maxOf(0, contentH - offsetBefore - rvHeightBefore)
+
         keyboardHeightPx = kbH
-        inputBar.translationY = -kbH.toFloat()
+        inputBar.translationY  = -kbH.toFloat()
         fabButton.translationY = -kbH.toFloat()
         repositionViews()
+
+        // Восстанавливаем позицию: двигаем скролл так чтобы
+        // distanceFromEnd осталась той же после изменения размера RV.
+        val rvHeightAfter = recyclerView.height
+        if (rvHeightAfter > 0 && rvHeightAfter != rvHeightBefore) {
+            val contentHAfter  = recyclerView.computeVerticalScrollRange()
+            val targetOffset   = contentHAfter - rvHeightAfter - distanceFromEnd
+            val currentOffset  = recyclerView.computeVerticalScrollOffset()
+            val delta = targetOffset - currentOffset
+            if (kotlin.math.abs(delta) > 1) {
+                recyclerView.scrollBy(0, delta)
+            }
+        }
     }
 
     // Пересчитываем позиции всех views. Вызывается при:

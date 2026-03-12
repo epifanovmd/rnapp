@@ -169,7 +169,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
         addView(mainDivider, LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(0.5f)))
 
         // topPanel — GONE по умолчанию, фиксированная высота
-        topPanelTexts.addView(topPanelTitle,  LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        topPanelTexts.addView(topPanelTitle,   LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         topPanelTexts.addView(topPanelPreview, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
 
         topPanel.addView(accentBar,
@@ -296,11 +296,35 @@ class InputBarView(context: Context) : LinearLayout(context) {
         }
     }
 
+    // ── FIX: topPanelVisibleHeight сохраняется синхронно в setPanel() —
+    // до layout pass. Это позволяет делегату всегда получить актуальное
+    // значение сразу при вызове onHeightChanged, без гонки с post {}.
+    var topPanelVisibleHeight: Int = 0
+        private set
+
     private fun setPanel(visible: Boolean, notify: Boolean) {
         val vis = if (visible) VISIBLE else GONE
         topPanel.visibility        = vis
         topPanelDivider.visibility = vis
+        topPanelVisibleHeight      = if (visible) topPanelHeight else 0
         if (notify) notifyHeightChanged()
+    }
+
+    // ── FIX: notifyHeightChanged больше не откладывает всё через post {}.
+    // Если view уже измерена — уведомляем сразу с актуальным height.
+    // post {} только как фоллбэк при первом вызове до layout pass.
+    private fun notifyHeightChanged() {
+        val panelH       = topPanelVisibleHeight
+        val minInputRowH = dpToPx(C.INPUT_BAR_TEXT_MIN_HEIGHT_DP + C.INPUT_BAR_VERTICAL_PADDING_DP * 2)
+        if (height > 0) {
+            delegate?.onHeightChanged(height, panelH)
+        } else {
+            // View ещё не измерена — ждём layout pass
+            post {
+                val h = if (height > 0) height else minInputRowH + panelH
+                delegate?.onHeightChanged(h, panelH)
+            }
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -345,17 +369,6 @@ class InputBarView(context: Context) : LinearLayout(context) {
         editText.requestFocus()
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
-    }
-
-    private fun notifyHeightChanged() {
-        val panelH  = if (topPanel.visibility == VISIBLE) topPanelHeight else 0
-        // Минимальная высота inputRow = textMinHeight + 2 * verticalPadding
-        val minInputRowH = dpToPx(C.INPUT_BAR_TEXT_MIN_HEIGHT_DP + C.INPUT_BAR_VERTICAL_PADDING_DP * 2)
-        // post: ждём пересчёт layout после VISIBLE/GONE чтобы height отразил изменения
-        post {
-            val reportedH = if (height > 0) height else minInputRowH + panelH
-            delegate?.onHeightChanged(reportedH, panelH)
-        }
     }
 
     private fun dpToPx(dp: Float) = context.dpToPx(dp)
