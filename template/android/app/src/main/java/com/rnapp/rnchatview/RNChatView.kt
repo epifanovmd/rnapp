@@ -82,7 +82,10 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             overScrollMode = OVER_SCROLL_NEVER
             itemAnimator   = null
             clipToPadding  = false
-            layoutParams   = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            // height=0: реальные bounds задаём вручную в repositionViews() через layout().
+            // MATCH_PARENT заставил бы super.onLayout() каждый раз перекрывать
+            // InputBar и ломать hit-testing.
+            layoutParams   = LayoutParams(LayoutParams.MATCH_PARENT, 0)
             alpha          = 0f
         }
 
@@ -156,6 +159,17 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             },
         )
 
+        // ── Adapter callbacks ─────────────────────────────────────────────
+        adapter.onMessagePress = { messageId ->
+            sendEvent("onMessagePress", args { putString("messageId", messageId) })
+        }
+        adapter.onMessageLongPress = { messageId, anchorView, _ ->
+            showContextMenu(messageId, anchorView)
+        }
+        adapter.onReplyPress = { replyId ->
+            sendEvent("onReplyMessagePress", args { putString("messageId", replyId) })
+        }
+
         post {
             inputBar.delegate = inputBarDelegate
             recyclerView.addOnScrollListener(scrollListener)
@@ -175,63 +189,79 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         return maxOf(0, imeInsets.bottom - navInsets.bottom)
     }
 
-    // ── Apply keyboard height ─────────────────────────────────────────────
+    // ── Keyboard & Layout ────────────────────────────────────────────────
     //
-    // Подход: translationY на InputBar + paddingBottom на RecyclerView.
+    // Архитектура позиционирования:
     //
-    // Почему translationY а не paddingBottom на RNChatView:
-    //   - RN управляет размерами RNChatView через Yoga, paddingBottom на нём
-    //     может конфликтовать с RN layout.
-    //   - translationY визуально двигает InputBar без изменения layout bounds.
-    //   - RecyclerView paddingBottom компенсирует сдвиг для контента.
+    //   RNChatView (FrameLayout, размеры задаёт RN/Yoga — не трогаем)
+    //   ├── recyclerView  — вручную layout от top=0 до bottom=(height - inputH - kbH)
+    //   ├── inputBar      — translationY = -kbH (визуально поднимается, layout остаётся внизу)
+    //   ├── emptyState    — MATCH_PARENT
+    //   └── fabButton     — gravity=BOTTOM, bottomMargin = inputH + kbH + FAB_MARGIN
     //
-    // Почему НЕ нужно добавлять keyboardHeightPx к inputBar.height в padding:
-    //   inputBar уже поднялся на keyboardHeightPx через translationY.
-    //   RecyclerView paddingBottom = inputBar.height + keyboardHeightPx — это
-    //   отступ от НИЖНЕГО КРАЯ recyclerView (который остался на месте layout)
-    //   до нижнего края контента. Последний item будет виден над InputBar.
+    // Почему вручную layout recyclerView а не MATCH_PARENT:
+    //   Если recyclerView MATCH_PARENT, он перекрывает InputBar и перехватывает тачи
+    //   в его зоне (inputBar добавлен после, но RecyclerView занимает весь экран и
+    //   обрабатывает touch down до того как FrameLayout проверяет inputBar).
+    //   Ограничивая реальный bottom recyclerView = top InputBar, тачи в зоне InputBar
+    //   не попадают в recyclerView вообще.
+    //
+    // Почему translationY для inputBar (а не margin):
+    //   translationY синхронно с анимацией IME (покадрово через WindowInsetsAnimation).
+    //   Изменение margin требует requestLayout() — это дороже и может пропускать кадры.
 
     private fun applyKeyboardHeight(kbH: Int) {
         if (keyboardHeightPx == kbH) return
         keyboardHeightPx = kbH
-        // Двигаем InputBar вверх на высоту клавиатуры
         inputBar.translationY = -kbH.toFloat()
-        syncLayout()
+        fabButton.translationY = -kbH.toFloat()
+        repositionViews()
     }
 
-    // ── Layout sync ───────────────────────────────────────────────────────
-    // Единая точка пересчёта всех позиций. Вызывается при:
-    //   - изменении высоты клавиатуры (applyKeyboardHeight)
-    //   - изменении высоты InputBar (onLayoutChangeListener)
-    //   - onLayout
+    // Пересчитываем позиции всех views. Вызывается при:
+    //   - изменении высоты клавиатуры
+    //   - изменении высоты InputBar
+    //   - onLayout (включая первый layout pass от RN)
 
-    private fun syncLayout() {
+    private fun repositionViews() {
+        val w      = width
+        val h      = height
         val kbH    = keyboardHeightPx
-        val inputH = inputBar.height
+        val inputH = inputBar.height.takeIf { it > 0 } ?: return
 
-        // RecyclerView paddingBottom: InputBar.height + keyboard — весь "занятый" низ
-        val newBottom = inputH + kbH + collectionExtraInsetBottom + context.dpToPx(C.COLLECTION_BOTTOM_PADDING_DP)
-        val newTop    = context.dpToPx(C.COLLECTION_TOP_PADDING_DP) + collectionExtraInsetTop
-        if (recyclerView.paddingBottom != newBottom || recyclerView.paddingTop != newTop) {
-            recyclerView.setPadding(0, newTop, 0, newBottom)
+        // RecyclerView: от 0 до верхнего края InputBar с учётом клавиатуры
+        val rvBottom = h - inputH - kbH
+        if (rvBottom > 0 && (recyclerView.left != 0 || recyclerView.top != 0
+                || recyclerView.right != w || recyclerView.bottom != rvBottom)) {
+            recyclerView.layout(0, 0, w, rvBottom)
+        }
+
+        // RecyclerView padding (contentInset аналог iOS)
+        val newRvPadBottom = collectionExtraInsetBottom + context.dpToPx(C.COLLECTION_BOTTOM_PADDING_DP)
+        val newRvPadTop    = context.dpToPx(C.COLLECTION_TOP_PADDING_DP) + collectionExtraInsetTop
+        if (recyclerView.paddingBottom != newRvPadBottom || recyclerView.paddingTop != newRvPadTop) {
+            recyclerView.setPadding(0, newRvPadTop, 0, newRvPadBottom)
         }
 
         emptyStateView.setBottomOffset(inputH + kbH + collectionExtraInsetBottom)
 
-        // FAB — позиционируем над InputBar с учётом клавиатуры
-        val lp = fabButton.layoutParams as? LayoutParams
-        if (lp != null) {
-            val newFabMargin = inputH + kbH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
-            if (lp.bottomMargin != newFabMargin) {
-                lp.bottomMargin = newFabMargin
-                fabButton.layoutParams = lp
-            }
+        // FAB: bottomMargin над InputBar. kbH уже учтён через translationY (синхронно с клавиатурой).
+        val lp = fabButton.layoutParams as? LayoutParams ?: return
+        val newFabMargin = inputH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
+        if (lp.bottomMargin != newFabMargin) {
+            lp.bottomMargin = newFabMargin
+            fabButton.layoutParams = lp
         }
     }
 
+    // syncLayout — алиас для обратной совместимости с вызовами из onHeightChanged
+    private fun syncLayout() = repositionViews()
+
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        // super.onLayout расставляет InputBar/FAB/emptyState по gravity,
+        // затем мы корректируем recyclerView вручную.
         super.onLayout(changed, left, top, right, bottom)
-        syncLayout()
+        repositionViews()
         if (pendingInitialScroll) {
             pendingInitialScroll = false
             recyclerView.post {
