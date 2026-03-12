@@ -2,7 +2,6 @@ package com.rnapp.rncontextmenu
 
 import android.view.View
 import com.facebook.react.bridge.ReadableArray
-import com.facebook.react.common.MapBuilder
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.ViewGroupManager
 import com.facebook.react.uimanager.annotations.ReactProp
@@ -54,13 +53,12 @@ class RNContextMenuViewManager : ViewGroupManager<RNContextMenuView>() {
         parent.removeViewAt(index)
     }
 
-    override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any>? =
-        MapBuilder.builder<String, Any>()
-            .put("onEmojiSelect", MapBuilder.of("registrationName", "onEmojiSelect"))
-            .put("onActionSelect", MapBuilder.of("registrationName", "onActionSelect"))
-            .put("onDismiss", MapBuilder.of("registrationName", "onDismiss"))
-            .put("onWillShow", MapBuilder.of("registrationName", "onWillShow"))
-            .build()
+    override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> = mapOf(
+        "onEmojiSelect"  to mapOf("registrationName" to "onEmojiSelect"),
+        "onActionSelect" to mapOf("registrationName" to "onActionSelect"),
+        "onDismiss"      to mapOf("registrationName" to "onDismiss"),
+        "onWillShow"     to mapOf("registrationName" to "onWillShow"),
+    )
 }
 
 /** Парсит ReadableArray в список ContextMenuAction. */

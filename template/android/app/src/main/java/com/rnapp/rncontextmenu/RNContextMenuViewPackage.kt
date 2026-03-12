@@ -1,12 +1,17 @@
 package com.rnapp.rncontextmenu
 
-import com.facebook.react.ReactPackage
+import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.module.model.ReactModuleInfoProvider
 import com.facebook.react.uimanager.ViewManager
 
-class RNContextMenuViewPackage : ReactPackage {
-    override fun createNativeModules(context: ReactApplicationContext): List<NativeModule> = emptyList()
-    override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> =
+class RNContextMenuViewPackage : BaseReactPackage() {
+
+    override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? = null
+
+    override fun getReactModuleInfoProvider(): ReactModuleInfoProvider = ReactModuleInfoProvider { emptyMap() }
+
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
         listOf(RNContextMenuViewManager())
 }

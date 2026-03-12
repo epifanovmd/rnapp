@@ -92,6 +92,7 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
         }
     }
 
+    @Deprecated("Use string command overload for New Architecture compatibility")
     override fun receiveCommand(view: RNChatView, commandId: Int, args: ReadableArray?) {
         when (commandId) {
             CMD_SCROLL_TO_BOTTOM -> view.scrollToBottom()
