@@ -61,7 +61,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private var isProgrammaticScroll: Boolean = false
     private var isUserDragging: Boolean = false
     private var fabVisible: Boolean = false
-    private var lastTopPanelHeight: Int = 0
     private var lastKnownInputBarHeight: Int = 0
 
     private val pendingVisibleIds = mutableSetOf<String>()
@@ -255,11 +254,9 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
         super.onLayout(changed, left, top, right, bottom)
-        // Sync from real height when panel is not shown (normal state)
+        // Always sync — during panel animation inputBar.height is the current animated value.
         val actualInputH = inputBar.height
-        if (actualInputH > 0 && inputBar.topPanelVisibleHeight == 0) {
-            lastKnownInputBarHeight = actualInputH
-        }
+        if (actualInputH > 0) lastKnownInputBarHeight = actualInputH
         repositionViews()
         if (pendingInitialScroll) {
             pendingInitialScroll = false
@@ -692,11 +689,12 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         override fun onAttachmentPress() = sendEvent("onAttachmentPress", Arguments.createMap())
 
         override fun onHeightChanged(heightPx: Int, topPanelVisibleHeight: Int) {
-            val delta = topPanelVisibleHeight - lastTopPanelHeight
-            lastTopPanelHeight = topPanelVisibleHeight
+            val prevHeight = lastKnownInputBarHeight
             lastKnownInputBarHeight = heightPx
+            val delta = heightPx - prevHeight
             syncLayout()
-            if (delta != 0) recyclerView.post { recyclerView.scrollBy(0, delta) }
+            // Compensate scroll so messages do not jump as the bar grows or shrinks
+            if (delta != 0) recyclerView.scrollBy(0, delta)
         }
     }
 

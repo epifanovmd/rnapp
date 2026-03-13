@@ -1,9 +1,6 @@
 package com.rnapp.rnchatview
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -16,7 +13,6 @@ import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
-import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -42,6 +38,19 @@ interface InputBarDelegate {
     fun onHeightChanged(heightPx: Int, topPanelVisibleHeight: Int)
 }
 
+/**
+ * InputBarView — инпут-бар с анимированной панелью цитаты/редактирования.
+ *
+ * Визуальная структура (сверху вниз):
+ *   ──────── mainDivider ────────
+ *   [  topPanel: сender / text  ]  ← появляется/скрывается с анимацией высоты
+ *   ──────── panelDivider ───────
+ *   [ 📎  Message text…   [↑] ]  ← inputRow, всегда виден
+ *
+ * Анимация: ValueAnimator плавно меняет высоту самого LinearLayout между
+ * «только inputRow» и «inputRow + topPanel». Никаких translationY-хаков.
+ * onHeightChanged вызывается на каждом кадре — RNChatView двигает recyclerView синхронно.
+ */
 class InputBarView(context: Context) : LinearLayout(context) {
 
     var delegate: InputBarDelegate? = null
@@ -50,102 +59,88 @@ class InputBarView(context: Context) : LinearLayout(context) {
         private set
 
     private var currentTheme: ChatTheme? = null
-    private val topPanelHeight = dpToPx(C.INPUT_BAR_REPLY_PANEL_HEIGHT_DP)
 
-    // ── Top panel (reply / edit preview) ─────────────────────────────────────
-    // Strategy: the panel is a child of LinearLayout with fixed height=topPanelHeight.
-    // visibility=GONE means LinearLayout skips it (no space). VISIBLE = space reserved.
-    // We animate translationY (slide up/down) + alpha for the Telegram feel.
+    // ── Heights ───────────────────────────────────────────────────────────────
 
+    /** Фиксированная высота панели цитаты/редактирования. */
+    val panelHeight: Int = dp(C.INPUT_BAR_REPLY_PANEL_HEIGHT_DP)
+
+    /** Высота нижнего ряда (attach + editText + send). Обновляется при layout. */
+    private var inputRowHeight: Int = 0
+
+    /** Текущая логическая высота панели в диапазоне 0..panelHeight. */
+    var topPanelVisibleHeight: Int = 0
+        private set
+
+    private var heightAnimator: ValueAnimator? = null
+
+    // ── Views ─────────────────────────────────────────────────────────────────
+
+    private val mainDivider = View(context)
+
+    // top panel
     private val topPanel = LinearLayout(context).apply {
         orientation = HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
-        setPadding(dpToPx(12f), 0, dpToPx(8f), 0)
-        visibility = GONE
+        setPadding(dp(12f), 0, dp(8f), 0)
+        visibility = View.GONE
     }
-
     private val accentBar = View(context).apply {
         background = GradientDrawable().apply {
-            cornerRadius = dpToPx(2f).toFloat()
+            cornerRadius = dp(2f).toFloat()
             setColor(Color.rgb(0, 122, 255))
         }
     }
-
-    private val topPanelTexts = LinearLayout(context).apply {
+    private val panelTexts = LinearLayout(context).apply {
         orientation = VERTICAL
         gravity = Gravity.CENTER_VERTICAL
     }
-
-    private val topPanelTitle = TextView(context).apply {
+    private val panelTitle = TextView(context).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        typeface = android.graphics.Typeface.create(
-            "sans-serif-medium", android.graphics.Typeface.NORMAL
-        )
+        typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
     }
-
-    private val topPanelPreview = TextView(context).apply {
+    private val panelPreview = TextView(context).apply {
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
         maxLines = 1
         ellipsize = TextUtils.TruncateAt.END
     }
-
-    private val topPanelClose = ImageView(context).apply {
+    private val panelClose = ImageView(context).apply {
         setImageDrawable(CloseCircleDrawable())
-        isClickable = true
-        isFocusable = true
-        background = with(context) {
-            val ta = obtainStyledAttributes(
-                intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
-            )
-            ta.getDrawable(0).also { ta.recycle() }
-        }
+        isClickable = true; isFocusable = true
+        background = context.selectableItemBgBorderless()
         contentDescription = "Cancel"
         setOnClickListener { closeTopPanel() }
     }
+    private val panelDivider = View(context).apply { visibility = View.GONE }
 
-    private val topPanelDivider = View(context).apply { visibility = GONE }
-    private val mainDivider = View(context)
-
-    // ── Input row ─────────────────────────────────────────────────────────────
-
+    // input row
     private val inputRow = LinearLayout(context).apply {
         orientation = HORIZONTAL
         gravity = Gravity.BOTTOM
-        setPadding(dpToPx(4f), dpToPx(8f), dpToPx(6f), dpToPx(8f))
+        setPadding(dp(4f), dp(8f), dp(6f), dp(8f))
     }
-
     private val attachButton = ImageView(context).apply {
         setImageDrawable(PaperclipDrawable())
-        isClickable = true
-        isFocusable = true
-        background = with(context) {
-            val ta = obtainStyledAttributes(
-                intArrayOf(android.R.attr.selectableItemBackgroundBorderless)
-            )
-            ta.getDrawable(0).also { ta.recycle() }
-        }
+        isClickable = true; isFocusable = true
+        background = context.selectableItemBgBorderless()
         setOnClickListener { delegate?.onAttachmentPress() }
         contentDescription = "Attach"
     }
-
     val editText = EditText(context).apply {
         hint = "Message"
         setTextSize(TypedValue.COMPLEX_UNIT_SP, C.INPUT_TEXT_SIZE_SP)
-        maxLines = 6
-        minLines = 1
+        maxLines = 6; minLines = 1
         imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
-        setPadding(dpToPx(14f), dpToPx(10f), dpToPx(14f), dpToPx(10f))
+        setPadding(dp(14f), dp(10f), dp(14f), dp(10f))
         background = GradientDrawable().apply {
             setColor(Color.rgb(242, 242, 247))
-            cornerRadius = dpToPx(20f).toFloat()
+            cornerRadius = dp(20f).toFloat()
         }
     }
-
     private val sendButton = FrameLayout(context).apply {
-        isClickable = true
-        isFocusable = true
+        isClickable = true; isFocusable = true
         setOnClickListener { handleSend() }
     }
     private val sendButtonBg = GradientDrawable().apply {
@@ -157,89 +152,59 @@ class InputBarView(context: Context) : LinearLayout(context) {
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
-    // ── State ─────────────────────────────────────────────────────────────────
-
-    var topPanelVisibleHeight: Int = 0
-        private set
-
-    private var panelAnimator: AnimatorSet? = null
-
     // ── Init ──────────────────────────────────────────────────────────────────
 
     init {
         orientation = VERTICAL
-        clipChildren = false
-        clipToPadding = false
-        val btnSize = dpToPx(38f)
+        val btnSize = dp(38f)
 
-        addView(mainDivider, LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(0.5f)))
+        addView(mainDivider, lp(MATCH, dp(0.5f)))
 
-        // Build topPanel
-        topPanelTexts.addView(
-            topPanelTitle,
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-        )
-        topPanelTexts.addView(
-            topPanelPreview,
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).also {
-                it.topMargin = dpToPx(2f)
-            }
-        )
-        topPanel.addView(
-            accentBar,
-            LayoutParams(dpToPx(C.REPLY_BAR_WIDTH_DP), dpToPx(32f)).also {
-                it.marginEnd = dpToPx(10f)
-            }
-        )
-        topPanel.addView(topPanelTexts, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        topPanel.addView(topPanelClose, LayoutParams(dpToPx(24f), dpToPx(24f)))
+        // topPanel
+        panelTexts.addView(panelTitle, lp(MATCH, WRAP))
+        panelTexts.addView(panelPreview, lp(MATCH, WRAP).also { it.topMargin = dp(2f) })
+        topPanel.addView(accentBar, lp(dp(C.REPLY_BAR_WIDTH_DP), dp(32f)).also { it.marginEnd = dp(10f) })
+        topPanel.addView(panelTexts, lp(0, WRAP, 1f))
+        topPanel.addView(panelClose, lp(dp(24f), dp(24f)))
+        addView(topPanel, lp(MATCH, WRAP))
+        addView(panelDivider, lp(MATCH, dp(0.5f)))
 
-        addView(topPanel, LayoutParams(LayoutParams.MATCH_PARENT, topPanelHeight))
-        addView(topPanelDivider, LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(0.5f)))
-
-        // Build input row
-        inputRow.addView(
-            attachButton,
-            LayoutParams(btnSize, btnSize).also { it.marginEnd = dpToPx(2f) }
-        )
-        inputRow.addView(editText, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        // inputRow
+        inputRow.addView(attachButton, lp(btnSize, btnSize).also { it.marginEnd = dp(2f) })
+        inputRow.addView(editText, lp(0, WRAP, 1f))
         sendButton.background = sendButtonBg
-        sendButton.addView(
-            sendIcon,
-            FrameLayout.LayoutParams(dpToPx(22f), dpToPx(22f), Gravity.CENTER)
-        )
-        inputRow.addView(
-            sendButton,
-            LayoutParams(btnSize, btnSize).also { it.marginStart = dpToPx(6f) }
-        )
-        addView(inputRow, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        sendButton.addView(sendIcon, FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER))
+        inputRow.addView(sendButton, lp(btnSize, btnSize).also { it.marginStart = dp(6f) })
+        addView(inputRow, lp(MATCH, WRAP))
 
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                updateSendButton(s?.isNotBlank() == true)
-            }
+            override fun afterTextChanged(s: Editable?) { updateSendButton(s?.isNotBlank() == true) }
         })
         editText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) { handleSend(); true } else false
+        }
+
+        // Запоминаем высоту inputRow при каждом его layout
+        inputRow.addOnLayoutChangeListener { _, _, t, _, b, _, _, _, _ ->
+            val h = b - t
+            if (h > 0) inputRowHeight = h
         }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     fun beginReply(info: ReplyInfo, theme: ChatTheme) {
-        Log.d(IBTAG, "beginReply sender=${info.snapshotSenderName}")
         currentTheme = theme
-        val prev = mode
+        val wasEdit = mode is InputBarMode.Edit
         mode = InputBarMode.Reply(info)
-        if (prev is InputBarMode.Edit) editText.setText("")
+        if (wasEdit) editText.setText("")
         applyModeToUI(animate = true)
         requestEditFocus()
     }
 
     fun beginEdit(messageId: String, text: String, theme: ChatTheme) {
-        Log.d(IBTAG, "beginEdit id=$messageId")
         currentTheme = theme
         mode = InputBarMode.Edit(messageId, text)
         editText.setText(text)
@@ -256,12 +221,11 @@ class InputBarView(context: Context) : LinearLayout(context) {
         currentTheme = theme
         setBackgroundColor(theme.inputBarBackground)
         mainDivider.setBackgroundColor(theme.inputBarSeparator)
-        topPanelDivider.setBackgroundColor(theme.inputBarSeparator)
-        topPanel.setBackgroundColor(theme.replyPanelBackground)
+        panelDivider.setBackgroundColor(theme.inputBarSeparator)
         (accentBar.background as? GradientDrawable)?.setColor(theme.replyPanelAccent)
-        topPanelTitle.setTextColor(theme.replyPanelSender)
-        topPanelPreview.setTextColor(theme.replyPanelText)
-        (topPanelClose.drawable as? CloseCircleDrawable)?.circleColor = theme.replyPanelClose
+        panelTitle.setTextColor(theme.replyPanelSender)
+        panelPreview.setTextColor(theme.replyPanelText)
+        (panelClose.drawable as? CloseCircleDrawable)?.circleColor = theme.replyPanelClose
         editText.setTextColor(theme.inputBarText)
         editText.setHintTextColor(theme.inputBarPlaceholder)
         (editText.background as? GradientDrawable)?.setColor(theme.inputBarTextViewBg)
@@ -269,7 +233,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
         updateSendButton(editText.text?.isNotBlank() == true)
     }
 
-    // ── Mode UI ───────────────────────────────────────────────────────────────
+    // ── Mode → UI ─────────────────────────────────────────────────────────────
 
     private fun applyModeToUI(animate: Boolean) {
         val show: Boolean
@@ -281,8 +245,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
             is InputBarMode.Reply  -> {
                 show = true
                 title = m.info.snapshotSenderName ?: "Message"
-                preview = m.info.snapshotText
-                    ?: if (m.info.snapshotHasImage) "📷 Photo" else ""
+                preview = m.info.snapshotText ?: if (m.info.snapshotHasImage) "📷 Photo" else ""
             }
             is InputBarMode.Edit   -> {
                 show = true
@@ -291,107 +254,109 @@ class InputBarView(context: Context) : LinearLayout(context) {
             }
         }
 
-        Log.d(IBTAG, "applyModeToUI show=$show title='$title' animate=$animate")
-        topPanelTitle.text = title
-        topPanelPreview.text = preview
+        panelTitle.text = title
+        panelPreview.text = preview
 
         if (animate) animatePanel(show) else setPanelImmediate(show)
     }
 
-    // ── Panel animation ───────────────────────────────────────────────────────
+    // ── Animation ─────────────────────────────────────────────────────────────
 
     private fun animatePanel(show: Boolean) {
-        panelAnimator?.cancel()
-        panelAnimator = null
+        heightAnimator?.cancel()
+        heightAnimator = null
 
-        Log.d(IBTAG, "animatePanel show=$show topPanelHeight=$topPanelHeight panelVis=${topPanel.visibility}")
-
-        if (show) {
-            // Make visible and reserve space immediately
-            topPanel.visibility = VISIBLE
-            topPanelDivider.visibility = VISIBLE
-            topPanel.alpha = 0f
-            topPanel.translationY = topPanelHeight.toFloat() * 0.35f
-            topPanelVisibleHeight = topPanelHeight
-            requestLayout()
-            notifyHeightChanged()
-
-            // Animate after next layout pass when the view has real dimensions
-            topPanel.post {
-                panelAnimator = AnimatorSet().apply {
-                    playTogether(
-                        ObjectAnimator.ofFloat(topPanel, View.TRANSLATION_Y,
-                            topPanel.translationY, 0f),
-                        ObjectAnimator.ofFloat(topPanel, View.ALPHA, 0f, 1f)
-                    )
-                    duration = 260
-                    interpolator = DecelerateInterpolator(2.2f)
-                    addListener(object : AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(a: Animator) {
-                            topPanel.translationY = 0f
-                            topPanel.alpha = 1f
-                        }
-                    })
-                    start()
-                }
-            }
-        } else {
-            panelAnimator = AnimatorSet().apply {
-                playTogether(
-                    ObjectAnimator.ofFloat(topPanel, View.TRANSLATION_Y,
-                        topPanel.translationY, topPanelHeight.toFloat() * 0.2f),
-                    ObjectAnimator.ofFloat(topPanel, View.ALPHA, topPanel.alpha, 0f)
-                )
-                duration = 180
-                interpolator = DecelerateInterpolator()
-                addListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(a: Animator) {
-                        topPanel.visibility = GONE
-                        topPanelDivider.visibility = GONE
-                        topPanel.translationY = 0f
-                        topPanel.alpha = 1f
-                        topPanelVisibleHeight = 0
-                        requestLayout()
-                        notifyHeightChanged()
-                    }
-                })
-                start()
-            }
-            topPanelVisibleHeight = 0
-            notifyHeightChanged()
+        // Нам нужна высота inputRow. Если ещё не измерена — используем measuredHeight.
+        val rowH = inputRowHeight.takeIf { it > 0 } ?: run {
+            measure(
+                MeasureSpec.makeMeasureSpec(width.takeIf { it > 0 } ?: 0, MeasureSpec.UNSPECIFIED),
+                MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+            )
+            (measuredHeight - (if (topPanel.visibility == View.VISIBLE) panelHeight + dp(0.5f) else 0))
+                .coerceAtLeast(dp(52f))
         }
+
+        val divH = dp(0.5f)   // panelDivider
+        val mainDivH = dp(0.5f)  // mainDivider (уже входит в measuredHeight)
+
+        val closedH = rowH + mainDivH
+        val openH   = rowH + mainDivH + panelHeight + divH
+
+        val fromH = measuredHeight.takeIf { it > 0 }
+            ?: if (show) closedH else openH
+        val toH = if (show) openH else closedH
+
+        // Делаем panelDivider и topPanel VISIBLE сразу при открытии —
+        // LinearLayout начнёт их учитывать в высоте, и animator доведёт до нужного значения.
+        if (show) {
+            topPanel.visibility = View.VISIBLE
+            panelDivider.visibility = View.VISIBLE
+        }
+
+        // Фиксируем начальную высоту
+        setFixedHeight(fromH)
+
+        heightAnimator = ValueAnimator.ofInt(fromH, toH).apply {
+            duration = 240
+            interpolator = DecelerateInterpolator(2f)
+            addUpdateListener { anim ->
+                val h = anim.animatedValue as Int
+                topPanelVisibleHeight = (h - closedH - divH).coerceIn(0, panelHeight)
+                setFixedHeight(h)
+                notifyHeightChanged(h)
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(a: android.animation.Animator) {
+                    heightAnimator = null
+                    finalizePanelState(show, rowH)
+                }
+                override fun onAnimationCancel(a: android.animation.Animator) {
+                    heightAnimator = null
+                }
+            })
+            start()
+        }
+    }
+
+    private fun finalizePanelState(show: Boolean, rowH: Int) {
+        topPanel.visibility = if (show) View.VISIBLE else View.GONE
+        panelDivider.visibility = if (show) View.VISIBLE else View.GONE
+        topPanelVisibleHeight = if (show) panelHeight else 0
+        // Снимаем фиксацию — пусть LinearLayout сам считает WRAP_CONTENT
+        setWrapHeight()
+        post { notifyHeightChanged(height.takeIf { it > 0 } ?: measureHeight()) }
     }
 
     private fun setPanelImmediate(visible: Boolean) {
-        Log.d(IBTAG, "setPanelImmediate visible=$visible")
-        topPanel.visibility = if (visible) VISIBLE else GONE
-        topPanelDivider.visibility = if (visible) VISIBLE else GONE
-        topPanel.translationY = 0f
-        topPanel.alpha = 1f
-        topPanelVisibleHeight = if (visible) topPanelHeight else 0
-        notifyHeightChanged()
+        heightAnimator?.cancel()
+        heightAnimator = null
+        topPanel.visibility = if (visible) View.VISIBLE else View.GONE
+        panelDivider.visibility = if (visible) View.VISIBLE else View.GONE
+        topPanelVisibleHeight = if (visible) panelHeight else 0
+        setWrapHeight()
+        post { notifyHeightChanged(height.takeIf { it > 0 } ?: measureHeight()) }
     }
 
-    private fun notifyHeightChanged() {
-        val panelH = topPanelVisibleHeight
-        val wSpec = if (width > 0)
-            MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY)
-        else
-            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-        val hSpec = MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
-        measure(wSpec, hSpec)
-        val mH = measuredHeight
-        Log.d(IBTAG, "notifyHeightChanged panelH=$panelH measuredH=$mH")
-        if (mH > 0) {
-            delegate?.onHeightChanged(mH, panelH)
-        } else {
-            post {
-                measure(wSpec, hSpec)
-                val h = if (measuredHeight > 0) measuredHeight else height
-                Log.d(IBTAG, "notifyHeightChanged(post) h=$h panelH=$panelH")
-                delegate?.onHeightChanged(h, panelH)
-            }
-        }
+    private fun setFixedHeight(h: Int) {
+        val lp = layoutParams ?: return
+        if (lp.height != h) { lp.height = h; layoutParams = lp }
+    }
+
+    private fun setWrapHeight() {
+        val lp = layoutParams ?: return
+        if (lp.height != WRAP) { lp.height = WRAP; layoutParams = lp }
+    }
+
+    private fun measureHeight(): Int {
+        measure(
+            MeasureSpec.makeMeasureSpec(width.takeIf { it > 0 } ?: 0, MeasureSpec.UNSPECIFIED),
+            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
+        )
+        return measuredHeight
+    }
+
+    private fun notifyHeightChanged(h: Int) {
+        if (h > 0) delegate?.onHeightChanged(h, topPanelVisibleHeight)
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
@@ -434,9 +399,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
                 if (it.isDark) Color.rgb(60, 60, 65) else Color.rgb(199, 199, 204)
             } ?: Color.rgb(199, 199, 204)
         sendButtonBg.setColor(color)
-        (sendIcon.drawable as? SendArrowDrawable)?.let {
-            it.enabled = hasText; it.invalidateSelf()
-        }
+        (sendIcon.drawable as? SendArrowDrawable)?.let { it.enabled = hasText; it.invalidateSelf() }
     }
 
     private fun animateSendButton() {
@@ -453,7 +416,22 @@ class InputBarView(context: Context) : LinearLayout(context) {
         imm?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    private fun dpToPx(dp: Float) = context.dpToPx(dp)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private fun dp(v: Float) = context.dpToPx(v)
+    private fun lp(w: Int, h: Int, weight: Float = 0f) = LayoutParams(w, h, weight)
+
+    companion object {
+        private const val MATCH = LayoutParams.MATCH_PARENT
+        private const val WRAP  = LayoutParams.WRAP_CONTENT
+    }
+}
+
+// ── Extension ─────────────────────────────────────────────────────────────────
+
+private fun Context.selectableItemBgBorderless(): android.graphics.drawable.Drawable? {
+    val ta = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
+    return ta.getDrawable(0).also { ta.recycle() }
 }
 
 // ── Drawables ─────────────────────────────────────────────────────────────────
@@ -461,21 +439,16 @@ class InputBarView(context: Context) : LinearLayout(context) {
 private class SendArrowDrawable : Drawable() {
     var enabled = false
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
-        strokeJoin = Paint.Join.ROUND
+        color = Color.WHITE; style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
     }
 
     override fun draw(c: Canvas) {
-        val w = bounds.width().toFloat()
-        val h = bounds.height().toFloat()
+        val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
         val cx = w / 2f; val cy = h / 2f
         paint.strokeWidth = w * 0.12f
         paint.alpha = if (enabled) 255 else 200
-        val top = cy - h * 0.22f
-        val bot = cy + h * 0.22f
-        val wing = w * 0.18f
+        val top = cy - h * 0.22f; val bot = cy + h * 0.22f; val wing = w * 0.18f
         c.drawLine(cx, bot, cx, top, paint)
         c.drawLine(cx, top, cx - wing, top + wing, paint)
         c.drawLine(cx, top, cx + wing, top + wing, paint)
@@ -491,32 +464,19 @@ private class PaperclipDrawable : Drawable() {
     var iconColor: Int = Color.rgb(120, 120, 128)
         set(v) { field = v; paint.color = v; invalidateSelf() }
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
+        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
         color = Color.rgb(120, 120, 128)
     }
 
     override fun draw(c: Canvas) {
-        val w = bounds.width().toFloat()
-        val h = bounds.height().toFloat()
-        paint.strokeWidth = w * 0.09f
-        val cx = w * 0.5f
-        val path = Path()
-        path.addRoundRect(
-            cx - w * 0.15f, h * 0.15f,
-            cx + w * 0.15f, h * 0.85f,
-            w * 0.15f, w * 0.15f,
-            Path.Direction.CW
-        )
-        c.drawPath(path, paint)
-        val path2 = Path()
-        path2.addRoundRect(
-            cx - w * 0.09f, h * 0.28f,
-            cx + w * 0.09f, h * 0.76f,
-            w * 0.09f, w * 0.09f,
-            Path.Direction.CW
-        )
-        c.drawPath(path2, paint)
+        val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
+        paint.strokeWidth = w * 0.09f; val cx = w * 0.5f
+        c.drawPath(Path().also {
+            it.addRoundRect(cx - w * .15f, h * .15f, cx + w * .15f, h * .85f, w * .15f, w * .15f, Path.Direction.CW)
+        }, paint)
+        c.drawPath(Path().also {
+            it.addRoundRect(cx - w * .09f, h * .28f, cx + w * .09f, h * .76f, w * .09f, w * .09f, Path.Direction.CW)
+        }, paint)
     }
 
     override fun setAlpha(a: Int) { paint.alpha = a; invalidateSelf() }
@@ -530,18 +490,13 @@ private class CloseCircleDrawable : Drawable() {
         set(v) { field = v; invalidateSelf() }
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
-        style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND
+        color = Color.WHITE; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
     }
 
     override fun draw(c: Canvas) {
-        val cx = bounds.width() / 2f
-        val cy = bounds.height() / 2f
-        val r = minOf(cx, cy) - 1f
-        val arm = r * 0.30f
-        fillPaint.color = circleColor
-        crossPaint.strokeWidth = r * 0.22f
+        val cx = bounds.width() / 2f; val cy = bounds.height() / 2f
+        val r = minOf(cx, cy) - 1f; val arm = r * 0.30f
+        fillPaint.color = circleColor; crossPaint.strokeWidth = r * 0.22f
         c.drawCircle(cx, cy, r, fillPaint)
         c.drawLine(cx - arm, cy - arm, cx + arm, cy + arm, crossPaint)
         c.drawLine(cx + arm, cy - arm, cx - arm, cy + arm, crossPaint)
