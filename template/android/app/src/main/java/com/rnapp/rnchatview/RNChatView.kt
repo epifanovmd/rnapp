@@ -157,6 +157,7 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
                     val shift = (kbH - kbHeightAtAnimStart).toFloat()
                     recyclerView.translationY = -shift
                     inputBar.translationY = -kbH.toFloat()
+                    // FAB layout() position ignores keyboard (like inputBar), so use absolute -kbH.
                     fabButton.translationY = -kbH.toFloat()
                     return insets
                 }
@@ -240,14 +241,16 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
         emptyStateView.setBottomOffset(inputH + kbH + collectionExtraInsetBottom)
 
-        val lp = fabButton.layoutParams as? LayoutParams ?: return
-        // FAB floats above inputBar; when the reply/edit panel is shown it has already
-        // been added into inputH, so we only need the fixed gap on top of the bar.
-        val newFabMargin = inputH + context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
-        if (lp.bottomMargin != newFabMargin) {
-            lp.bottomMargin = newFabMargin
-            fabButton.layoutParams = lp
-        }
+        // FAB layout() position mirrors inputBar/RecyclerView — keyboard offset is handled
+        // exclusively via translationY in onProgress, exactly like inputBar.
+        val fabSize = fabButton.width.takeIf { it > 0 } ?: context.dpToPx(C.FAB_SIZE_DP)
+        val fabMarginEnd = context.dpToPx(C.FAB_MARGIN_END_DP)
+        val fabMarginBottom = context.dpToPx(C.FAB_MARGIN_BOTTOM_DP)
+        val fabBottom = rvBottom - fabMarginBottom
+        val fabTop = fabBottom - fabSize
+        val fabRight = w - fabMarginEnd
+        val fabLeft = fabRight - fabSize
+        if (fabTop >= 0) fabButton.layout(fabLeft, fabTop, fabRight, fabBottom)
     }
 
     private fun syncLayout() = repositionViews()
@@ -547,7 +550,11 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private fun distanceFromBottom(): Int {
         val range = recyclerView.computeVerticalScrollRange()
         val offset = recyclerView.computeVerticalScrollOffset()
-        val extent = recyclerView.computeVerticalScrollExtent()
+        // When the keyboard is open, recyclerView.height may not yet reflect the
+        // reduced size (layout hasn't happened during animation). Subtract the
+        // keyboard height to get the actual visible extent.
+        val visibleHeight = (recyclerView.height - keyboardHeightPx).coerceAtLeast(0)
+        val extent = minOf(recyclerView.computeVerticalScrollExtent(), visibleHeight)
         return maxOf(0, range - offset - extent)
     }
 
