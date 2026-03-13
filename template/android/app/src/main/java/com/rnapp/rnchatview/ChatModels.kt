@@ -116,12 +116,6 @@ data class ReplyDisplayInfo(
     }
 }
 
-sealed class InputBarMode {
-    object Normal : InputBarMode()
-    data class Reply(val info: ReplyInfo) : InputBarMode()
-    data class Edit(val messageId: String, val originalText: String) : InputBarMode()
-}
-
 sealed class ChatInputAction {
     data class Reply(val messageId: String) : ChatInputAction()
     data class Edit(val messageId: String) : ChatInputAction()

@@ -2,16 +2,9 @@ package com.rnapp.rnchatview
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.ColorFilter
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.PixelFormat
-import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
-import android.text.TextUtils
 import android.text.TextWatcher
 import android.util.TypedValue
 import android.view.Gravity
@@ -24,114 +17,115 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import com.rnapp.rnchatview.ChatLayoutConstants as C
 
-private const val IBTAG = "InputBarView"
+// ─────────────────────────────────────────────────────────────────────────────
+// InputBarView.kt
+//
+// Зона ответственности: оркестрация инпут-бара.
+//
+// Визуальная структура (сверху вниз):
+//   ──────── mainDivider ────────
+//   [  InputBarTopPanel          ]  ← появляется/скрывается с анимацией высоты
+//   ──────── panelDivider ───────
+//   [ 📎   Message text…   [↑] ]  ← inputRow, всегда виден
+//
+// Ключевая идея анимации:
+//   Вместо translationY используем ValueAnimator который пошагово меняет
+//   layoutParams.height самого LinearLayout. Это заставляет RecyclerView
+//   синхронно сдвигаться через onHeightChanged — без «прыжков» списка.
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface InputBarDelegate {
-    fun onSendText(text: String, replyToId: String?)
-    fun onEditText(text: String, messageId: String)
-    fun onCancelReply()
-    fun onCancelEdit()
-    fun onAttachmentPress()
-    fun onHeightChanged(heightPx: Int, topPanelVisibleHeight: Int)
-}
-
-/**
- * InputBarView — инпут-бар с анимированной панелью цитаты/редактирования.
- *
- * Визуальная структура (сверху вниз):
- *   ──────── mainDivider ────────
- *   [  topPanel: сender / text  ]  ← появляется/скрывается с анимацией высоты
- *   ──────── panelDivider ───────
- *   [ 📎  Message text…   [↑] ]  ← inputRow, всегда виден
- *
- * Анимация: ValueAnimator плавно меняет высоту самого LinearLayout между
- * «только inputRow» и «inputRow + topPanel». Никаких translationY-хаков.
- * onHeightChanged вызывается на каждом кадре — RNChatView двигает recyclerView синхронно.
- */
 class InputBarView(context: Context) : LinearLayout(context) {
 
+    // ── Внешний контракт ──────────────────────────────────────────────────────
+
+    /**
+     * Слушатель событий инпут-бара.
+     * Устанавливается из RNChatView после добавления View в иерархию.
+     */
     var delegate: InputBarDelegate? = null
 
+    /**
+     * Текущий режим инпут-бара: Normal / Reply / Edit.
+     * Меняется только через публичные методы [beginReply], [beginEdit], [cancelMode].
+     * Приватный set — защита от случайной мутации снаружи.
+     */
     var mode: InputBarMode = InputBarMode.Normal
         private set
 
+    /**
+     * Активная тема. Нужна при обновлении цвета кнопки отправки
+     * (зависит от isDark) и при сбросе через [cancelMode].
+     */
     private var currentTheme: ChatTheme? = null
 
-    // ── Heights ───────────────────────────────────────────────────────────────
+    // ── Размеры ───────────────────────────────────────────────────────────────
 
-    /** Фиксированная высота панели цитаты/редактирования. */
+    /**
+     * Фиксированная высота верхней панели (reply/edit) в пикселях.
+     * Константа из ChatLayoutConstants, вычисляется один раз при инициализации.
+     * Используется как целевая высота в ValueAnimator и для расчёта topPanelVisibleHeight.
+     */
     val panelHeight: Int = dp(C.INPUT_BAR_REPLY_PANEL_HEIGHT_DP)
 
-    /** Высота нижнего ряда (attach + editText + send). Обновляется при layout. */
+    /**
+     * Высота нижней строки (attach + поле ввода + send) в пикселях.
+     * Обновляется в addOnLayoutChangeListener при каждом layout inputRow.
+     * Нужна аниматору чтобы знать базовую высоту «закрытого» состояния.
+     */
     private var inputRowHeight: Int = 0
 
-    /** Текущая логическая высота панели в диапазоне 0..panelHeight. */
+    /**
+     * Сколько пикселей верхней панели сейчас показано (диапазон 0..panelHeight).
+     * Пересчитывается на каждом кадре анимации и передаётся в onHeightChanged.
+     * RNChatView использует это значение чтобы компенсировать скролл списка.
+     */
     var topPanelVisibleHeight: Int = 0
         private set
 
+    /**
+     * Текущий запущенный аниматор высоты.
+     * Хранится чтобы можно было отменить его перед запуском нового
+     * (например: быстро открыть reply → сразу edit).
+     * null когда анимация не активна.
+     */
     private var heightAnimator: ValueAnimator? = null
 
     // ── Views ─────────────────────────────────────────────────────────────────
 
+    /** Разделитель между контентом выше и инпут-баром. Всегда виден. */
     private val mainDivider = View(context)
 
-    // top panel
-    private val topPanel = LinearLayout(context).apply {
-        orientation = HORIZONTAL
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(dp(12f), 0, dp(8f), 0)
-        visibility = View.GONE
-    }
-    private val accentBar = View(context).apply {
-        background = GradientDrawable().apply {
-            cornerRadius = dp(2f).toFloat()
-            setColor(Color.rgb(0, 122, 255))
-        }
-    }
-    private val panelTexts = LinearLayout(context).apply {
-        orientation = VERTICAL
-        gravity = Gravity.CENTER_VERTICAL
-    }
-    private val panelTitle = TextView(context).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-        typeface = android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL)
-        maxLines = 1
-        ellipsize = TextUtils.TruncateAt.END
-    }
-    private val panelPreview = TextView(context).apply {
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-        maxLines = 1
-        ellipsize = TextUtils.TruncateAt.END
-    }
-    private val panelClose = ImageView(context).apply {
-        setImageDrawable(CloseCircleDrawable())
-        isClickable = true; isFocusable = true
-        background = context.selectableItemBgBorderless()
-        contentDescription = "Cancel"
-        setOnClickListener { closeTopPanel() }
-    }
+    /** Верхняя панель с данными цитаты или редактирования. */
+    private val topPanel = InputBarTopPanel(context, onCloseClick = ::closeTopPanel)
+
+    /** Разделитель между верхней панелью и строкой ввода. Виден только когда панель открыта. */
     private val panelDivider = View(context).apply { visibility = View.GONE }
 
-    // input row
+    // Строка ввода (attach + editText + send)
     private val inputRow = LinearLayout(context).apply {
         orientation = HORIZONTAL
         gravity = Gravity.BOTTOM
         setPadding(dp(4f), dp(8f), dp(6f), dp(8f))
     }
+
     private val attachButton = ImageView(context).apply {
         setImageDrawable(PaperclipDrawable())
-        isClickable = true; isFocusable = true
+        isClickable = true
+        isFocusable = true
         background = context.selectableItemBgBorderless()
-        setOnClickListener { delegate?.onAttachmentPress() }
         contentDescription = "Attach"
+        setOnClickListener { delegate?.onAttachmentPress() }
     }
+
+    /** Поле ввода текста. public val — RNChatView может читать содержимое если нужно. */
     val editText = EditText(context).apply {
         hint = "Message"
         setTextSize(TypedValue.COMPLEX_UNIT_SP, C.INPUT_TEXT_SIZE_SP)
-        maxLines = 6; minLines = 1
+        maxLines = 6
+        minLines = 1
+        // IME_FLAG_NO_ENTER_ACTION: Enter не отправляет — используется для переноса строки
         imeOptions = EditorInfo.IME_FLAG_NO_ENTER_ACTION
         setPadding(dp(14f), dp(10f), dp(14f), dp(10f))
         background = GradientDrawable().apply {
@@ -139,62 +133,81 @@ class InputBarView(context: Context) : LinearLayout(context) {
             cornerRadius = dp(20f).toFloat()
         }
     }
+
     private val sendButton = FrameLayout(context).apply {
-        isClickable = true; isFocusable = true
+        isClickable = true
+        isFocusable = true
         setOnClickListener { handleSend() }
     }
+
+    /**
+     * Фон кнопки отправки — овальный GradientDrawable.
+     * Хранится отдельно чтобы менять цвет без пересоздания фона:
+     * серый когда поле пустое, акцентный когда есть текст.
+     */
     private val sendButtonBg = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
         setColor(Color.rgb(199, 199, 204))
     }
+
     private val sendIcon = ImageView(context).apply {
         setImageDrawable(SendArrowDrawable())
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
-    // ── Init ──────────────────────────────────────────────────────────────────
+    // ── Инициализация ─────────────────────────────────────────────────────────
 
     init {
         orientation = VERTICAL
         val btnSize = dp(38f)
 
+        // Порядок добавления определяет порядок отображения сверху вниз
         addView(mainDivider, lp(MATCH, dp(0.5f)))
-
-        // topPanel
-        panelTexts.addView(panelTitle, lp(MATCH, WRAP))
-        panelTexts.addView(panelPreview, lp(MATCH, WRAP).also { it.topMargin = dp(2f) })
-        topPanel.addView(accentBar, lp(dp(C.REPLY_BAR_WIDTH_DP), dp(32f)).also { it.marginEnd = dp(10f) })
-        topPanel.addView(panelTexts, lp(0, WRAP, 1f))
-        topPanel.addView(panelClose, lp(dp(24f), dp(24f)))
         addView(topPanel, lp(MATCH, WRAP))
         addView(panelDivider, lp(MATCH, dp(0.5f)))
 
-        // inputRow
+        // Сборка строки ввода
         inputRow.addView(attachButton, lp(btnSize, btnSize).also { it.marginEnd = dp(2f) })
         inputRow.addView(editText, lp(0, WRAP, 1f))
         sendButton.background = sendButtonBg
-        sendButton.addView(sendIcon, FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER))
+        sendButton.addView(
+            sendIcon,
+            FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER)
+        )
         inputRow.addView(sendButton, lp(btnSize, btnSize).also { it.marginStart = dp(6f) })
         addView(inputRow, lp(MATCH, WRAP))
 
+        // Обновляем цвет кнопки отправки при каждом изменении текста
         editText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
-            override fun afterTextChanged(s: Editable?) { updateSendButton(s?.isNotBlank() == true) }
+            override fun afterTextChanged(s: Editable?) {
+                updateSendButton(hasText = s?.isNotBlank() == true)
+            }
         })
+
+        // IME_ACTION_SEND срабатывает на клавиатурах с кнопкой «Отправить»
         editText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEND) { handleSend(); true } else false
         }
 
-        // Запоминаем высоту inputRow при каждом его layout
-        inputRow.addOnLayoutChangeListener { _, _, t, _, b, _, _, _, _ ->
-            val h = b - t
+        // Запоминаем актуальную высоту inputRow для использования в аниматоре
+        inputRow.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
+            val h = bottom - top
             if (h > 0) inputRowHeight = h
         }
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
+    // ── Публичный API ─────────────────────────────────────────────────────────
 
+    /**
+     * Переводит инпут-бар в режим ответа на сообщение.
+     * Если до этого был режим редактирования — очищает поле ввода,
+     * так как текст редактируемого сообщения больше не актуален.
+     *
+     * @param info  данные цитируемого сообщения для отображения в панели
+     * @param theme текущая тема (нужна для правильного цвета кнопки)
+     */
     fun beginReply(info: ReplyInfo, theme: ChatTheme) {
         currentTheme = theme
         val wasEdit = mode is InputBarMode.Edit
@@ -204,107 +217,141 @@ class InputBarView(context: Context) : LinearLayout(context) {
         requestEditFocus()
     }
 
+    /**
+     * Переводит инпут-бар в режим редактирования сообщения.
+     * Подставляет оригинальный текст в поле ввода и перемещает курсор в конец.
+     *
+     * @param messageId id сообщения, которое будет отредактировано
+     * @param text      оригинальный текст для подстановки в поле
+     * @param theme     текущая тема
+     */
     fun beginEdit(messageId: String, text: String, theme: ChatTheme) {
         currentTheme = theme
         mode = InputBarMode.Edit(messageId, text)
         editText.setText(text)
-        editText.setSelection(text.length)
+        editText.setSelection(text.length) // курсор в конец
         applyModeToUI(animate = true)
         requestEditFocus()
     }
 
+    /**
+     * Сбрасывает режим в Normal (скрывает верхнюю панель, очищает поле).
+     * Ничего не делает если уже Normal — защита от лишних анимаций.
+     *
+     * @param theme опциональная новая тема — применится вместе со сбросом
+     */
     fun cancelMode(theme: ChatTheme? = null) {
         if (mode != InputBarMode.Normal) clearAndReset(theme)
     }
 
+    /**
+     * Применяет новую тему ко всем дочерним элементам.
+     * Вызывается из RNChatView.setTheme().
+     */
     fun applyTheme(theme: ChatTheme) {
         currentTheme = theme
         setBackgroundColor(theme.inputBarBackground)
         mainDivider.setBackgroundColor(theme.inputBarSeparator)
         panelDivider.setBackgroundColor(theme.inputBarSeparator)
-        (accentBar.background as? GradientDrawable)?.setColor(theme.replyPanelAccent)
-        panelTitle.setTextColor(theme.replyPanelSender)
-        panelPreview.setTextColor(theme.replyPanelText)
-        (panelClose.drawable as? CloseCircleDrawable)?.circleColor = theme.replyPanelClose
+        topPanel.applyTheme(theme)
         editText.setTextColor(theme.inputBarText)
         editText.setHintTextColor(theme.inputBarPlaceholder)
         (editText.background as? GradientDrawable)?.setColor(theme.inputBarTextViewBg)
         (attachButton.drawable as? PaperclipDrawable)?.iconColor = theme.inputBarTint
-        updateSendButton(editText.text?.isNotBlank() == true)
+        updateSendButton(hasText = editText.text?.isNotBlank() == true)
     }
 
-    // ── Mode → UI ─────────────────────────────────────────────────────────────
+    // ── Режим → UI ────────────────────────────────────────────────────────────
 
+    /**
+     * Синхронизирует состояние всех вью с текущим [mode].
+     * Решает показывать ли верхнюю панель и что в ней написать,
+     * затем запускает анимацию или применяет состояние мгновенно.
+     *
+     * @param animate true → плавная анимация высоты, false → мгновенный переход
+     */
     private fun applyModeToUI(animate: Boolean) {
-        val show: Boolean
-        val title: String
-        val preview: String
-
         when (val m = mode) {
-            is InputBarMode.Normal -> { show = false; title = ""; preview = "" }
-            is InputBarMode.Reply  -> {
-                show = true
-                title = m.info.snapshotSenderName ?: "Message"
-                preview = m.info.snapshotText ?: if (m.info.snapshotHasImage) "📷 Photo" else ""
+            is InputBarMode.Normal -> {
+                if (animate) animatePanel(show = false) else setPanelImmediate(visible = false)
             }
-            is InputBarMode.Edit   -> {
-                show = true
-                title = "Edit Message"
-                preview = m.originalText
+            is InputBarMode.Reply -> {
+                topPanel.bindReply(m.info)
+                if (animate) animatePanel(show = true) else setPanelImmediate(visible = true)
+            }
+            is InputBarMode.Edit -> {
+                topPanel.bindEdit(m.originalText)
+                if (animate) animatePanel(show = true) else setPanelImmediate(visible = true)
             }
         }
-
-        panelTitle.text = title
-        panelPreview.text = preview
-
-        if (animate) animatePanel(show) else setPanelImmediate(show)
     }
 
-    // ── Animation ─────────────────────────────────────────────────────────────
+    // ── Анимация высоты ───────────────────────────────────────────────────────
 
+    /**
+     * Плавно показывает или скрывает верхнюю панель через анимацию высоты.
+     *
+     * Механика:
+     * 1. Вычисляем closedH (только inputRow) и openH (inputRow + панель + разделитель).
+     * 2. Фиксируем текущую высоту через layoutParams.height — иначе WRAP_CONTENT
+     *    мешает аниматору (View сама меняла бы высоту под контент).
+     * 3. При открытии сразу делаем topPanel VISIBLE — чтобы LinearLayout
+     *    включил её в расчёт высоты при каждом кадре.
+     * 4. На каждом кадре обновляем topPanelVisibleHeight и сообщаем делегату —
+     *    RNChatView компенсирует скролл RecyclerView.
+     * 5. По окончании снимаем фиксацию высоты (возвращаем WRAP_CONTENT).
+     *
+     * @param show true → открыть панель, false → закрыть
+     */
     private fun animatePanel(show: Boolean) {
         heightAnimator?.cancel()
         heightAnimator = null
 
-        // Нам нужна высота inputRow. Если ещё не измерена — используем measuredHeight.
+        // Высота нижней строки — база для расчёта closedH.
+        // Если inputRow ещё не прошёл layout, форсируем измерение.
         val rowH = inputRowHeight.takeIf { it > 0 } ?: run {
             measure(
                 MeasureSpec.makeMeasureSpec(width.takeIf { it > 0 } ?: 0, MeasureSpec.UNSPECIFIED),
                 MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
             )
-            (measuredHeight - (if (topPanel.visibility == View.VISIBLE) panelHeight + dp(0.5f) else 0))
-                .coerceAtLeast(dp(52f))
+            // Вычитаем высоту панели если она сейчас видна
+            val subtractPanel = if (topPanel.visibility == View.VISIBLE)
+                panelHeight + dp(0.5f) else 0
+            (measuredHeight - subtractPanel).coerceAtLeast(dp(52f))
         }
 
-        val divH = dp(0.5f)   // panelDivider
-        val mainDivH = dp(0.5f)  // mainDivider (уже входит в measuredHeight)
+        val divH = dp(0.5f)     // высота panelDivider
+        val mainDivH = dp(0.5f) // высота mainDivider
 
-        val closedH = rowH + mainDivH
-        val openH   = rowH + mainDivH + panelHeight + divH
+        val closedH = rowH + mainDivH          // высота без панели
+        val openH = rowH + mainDivH + panelHeight + divH  // высота с панелью
 
+        // Стартовая высота = фактическая если измерена, иначе противоположная конечная
         val fromH = measuredHeight.takeIf { it > 0 }
             ?: if (show) closedH else openH
         val toH = if (show) openH else closedH
 
-        // Делаем panelDivider и topPanel VISIBLE сразу при открытии —
-        // LinearLayout начнёт их учитывать в высоте, и animator доведёт до нужного значения.
+        // При открытии панель должна быть VISIBLE до старта анимации —
+        // иначе LinearLayout не учтёт её в layout и высота не дорастёт до openH
         if (show) {
             topPanel.visibility = View.VISIBLE
             panelDivider.visibility = View.VISIBLE
         }
 
-        // Фиксируем начальную высоту
         setFixedHeight(fromH)
 
         heightAnimator = ValueAnimator.ofInt(fromH, toH).apply {
             duration = 240
             interpolator = DecelerateInterpolator(2f)
+
             addUpdateListener { anim ->
                 val h = anim.animatedValue as Int
+                // Сколько пикселей панели видно прямо сейчас — нужно для компенсации скролла
                 topPanelVisibleHeight = (h - closedH - divH).coerceIn(0, panelHeight)
                 setFixedHeight(h)
                 notifyHeightChanged(h)
             }
+
             addListener(object : android.animation.AnimatorListenerAdapter() {
                 override fun onAnimationEnd(a: android.animation.Animator) {
                     heightAnimator = null
@@ -318,15 +365,26 @@ class InputBarView(context: Context) : LinearLayout(context) {
         }
     }
 
+    /**
+     * Завершает анимацию: устанавливает финальную видимость и снимает фиксацию высоты.
+     * После снятия фиксации LinearLayout самостоятельно считает высоту через WRAP_CONTENT.
+     *
+     * @param show  финальное состояние панели
+     * @param rowH  высота inputRow (не используется напрямую, но нужна для согласованности)
+     */
     private fun finalizePanelState(show: Boolean, rowH: Int) {
         topPanel.visibility = if (show) View.VISIBLE else View.GONE
         panelDivider.visibility = if (show) View.VISIBLE else View.GONE
         topPanelVisibleHeight = if (show) panelHeight else 0
-        // Снимаем фиксацию — пусть LinearLayout сам считает WRAP_CONTENT
         setWrapHeight()
+        // post нужен: после setWrapHeight новый layout ещё не прошёл, height ещё старый
         post { notifyHeightChanged(height.takeIf { it > 0 } ?: measureHeight()) }
     }
 
+    /**
+     * Мгновенно применяет видимость панели без анимации.
+     * Используется при первом рендере или программном сбросе без анимации.
+     */
     private fun setPanelImmediate(visible: Boolean) {
         heightAnimator?.cancel()
         heightAnimator = null
@@ -337,16 +395,28 @@ class InputBarView(context: Context) : LinearLayout(context) {
         post { notifyHeightChanged(height.takeIf { it > 0 } ?: measureHeight()) }
     }
 
+    /**
+     * Фиксирует высоту View через layoutParams.
+     * Вызывает requestLayout только если высота реально изменилась — оптимизация.
+     */
     private fun setFixedHeight(h: Int) {
         val lp = layoutParams ?: return
         if (lp.height != h) { lp.height = h; layoutParams = lp }
     }
 
+    /**
+     * Возвращает высоту к WRAP_CONTENT — LinearLayout снова сам управляет высотой.
+     * Вызывается после завершения анимации.
+     */
     private fun setWrapHeight() {
         val lp = layoutParams ?: return
         if (lp.height != WRAP) { lp.height = WRAP; layoutParams = lp }
     }
 
+    /**
+     * Принудительно измеряет View и возвращает measuredHeight.
+     * Используется как fallback когда height == 0 (до первого layout).
+     */
     private fun measureHeight(): Int {
         measure(
             MeasureSpec.makeMeasureSpec(width.takeIf { it > 0 } ?: 0, MeasureSpec.UNSPECIFIED),
@@ -355,24 +425,42 @@ class InputBarView(context: Context) : LinearLayout(context) {
         return measuredHeight
     }
 
+    /**
+     * Сообщает делегату об изменении высоты инпут-бара.
+     * Фильтрует нулевые значения — они означают что View ещё не измерена.
+     */
     private fun notifyHeightChanged(h: Int) {
         if (h > 0) delegate?.onHeightChanged(h, topPanelVisibleHeight)
     }
 
-    // ── Actions ───────────────────────────────────────────────────────────────
+    // ── Действия пользователя ─────────────────────────────────────────────────
 
+    /**
+     * Обрабатывает нажатие кнопки «Отправить».
+     * Проверяет что текст не пустой, запускает анимацию кнопки,
+     * уведомляет делегата в зависимости от текущего режима, затем сбрасывает бар.
+     */
     private fun handleSend() {
         val text = editText.text?.toString()?.trim() ?: return
         if (text.isBlank()) return
+
         animateSendButton()
+
         when (val m = mode) {
-            is InputBarMode.Normal -> delegate?.onSendText(text, null)
-            is InputBarMode.Reply  -> delegate?.onSendText(text, m.info.replyToId)
-            is InputBarMode.Edit   -> delegate?.onEditText(text, m.messageId)
+            is InputBarMode.Normal -> delegate?.onSendText(text, replyToId = null)
+            is InputBarMode.Reply  -> delegate?.onSendText(text, replyToId = m.info.replyToId)
+            is InputBarMode.Edit   -> delegate?.onEditText(text, messageId = m.messageId)
         }
+
         clearAndReset()
     }
 
+    /**
+     * Обрабатывает нажатие кнопки «✕» на верхней панели.
+     * Сначала запоминает предыдущий режим, затем сбрасывает бар,
+     * после чего уведомляет делегата — в этом порядке, чтобы делегат
+     * получил событие уже после того как UI обновлён.
+     */
     private fun closeTopPanel() {
         val prev = mode
         clearAndReset()
@@ -383,40 +471,71 @@ class InputBarView(context: Context) : LinearLayout(context) {
         }
     }
 
+    /**
+     * Очищает поле ввода, сбрасывает режим в Normal и запускает анимацию закрытия панели.
+     *
+     * @param theme опциональная тема — если передана, применяется до сброса
+     *              (используется когда RNChatView меняет тему вместе со сбросом)
+     */
     private fun clearAndReset(theme: ChatTheme? = null) {
         theme?.let { currentTheme = it }
         editText.setText("")
         mode = InputBarMode.Normal
-        updateSendButton(false)
+        updateSendButton(hasText = false)
         applyModeToUI(animate = true)
     }
 
+    /**
+     * Обновляет цвет фона и прозрачность иконки кнопки отправки.
+     * Активный цвет — акцентный из темы (или синий по умолчанию).
+     * Неактивный — серый (зависит от isDark чтобы не сливаться с фоном в тёмной теме).
+     *
+     * @param hasText true если поле ввода содержит непустой текст
+     */
     private fun updateSendButton(hasText: Boolean) {
-        val color = if (hasText)
+        val color = if (hasText) {
             currentTheme?.inputBarTint ?: Color.rgb(0, 122, 255)
-        else
+        } else {
             currentTheme?.let {
                 if (it.isDark) Color.rgb(60, 60, 65) else Color.rgb(199, 199, 204)
             } ?: Color.rgb(199, 199, 204)
+        }
         sendButtonBg.setColor(color)
-        (sendIcon.drawable as? SendArrowDrawable)?.let { it.enabled = hasText; it.invalidateSelf() }
+        (sendIcon.drawable as? SendArrowDrawable)?.let {
+            it.enabled = hasText
+            it.invalidateSelf()
+        }
     }
 
+    /**
+     * Анимирует кнопку отправки — лёгкое «вжатие» и отскок с Overshoot.
+     * Чисто визуальный эффект, никак не влияет на логику отправки.
+     */
     private fun animateSendButton() {
-        sendButton.animate().scaleX(0.88f).scaleY(0.88f).setDuration(80)
+        sendButton.animate()
+            .scaleX(0.88f).scaleY(0.88f)
+            .setDuration(80)
             .withEndAction {
-                sendButton.animate().scaleX(1f).scaleY(1f).setDuration(160)
-                    .setInterpolator(OvershootInterpolator(3f)).start()
+                sendButton.animate()
+                    .scaleX(1f).scaleY(1f)
+                    .setDuration(160)
+                    .setInterpolator(OvershootInterpolator(3f))
+                    .start()
             }.start()
     }
 
+    /**
+     * Запрашивает фокус для поля ввода и программно показывает клавиатуру.
+     * SHOW_IMPLICIT — «мягкий» запрос: система может проигнорировать
+     * если сочтёт что клавиатура сейчас неуместна (например, в split-screen).
+     */
     private fun requestEditFocus() {
         editText.requestFocus()
         val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.showSoftInput(editText, InputMethodManager.SHOW_IMPLICIT)
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Вспомогательные ───────────────────────────────────────────────────────
 
     private fun dp(v: Float) = context.dpToPx(v)
     private fun lp(w: Int, h: Int, weight: Float = 0f) = LayoutParams(w, h, weight)
@@ -425,85 +544,4 @@ class InputBarView(context: Context) : LinearLayout(context) {
         private const val MATCH = LayoutParams.MATCH_PARENT
         private const val WRAP  = LayoutParams.WRAP_CONTENT
     }
-}
-
-// ── Extension ─────────────────────────────────────────────────────────────────
-
-private fun Context.selectableItemBgBorderless(): android.graphics.drawable.Drawable? {
-    val ta = obtainStyledAttributes(intArrayOf(android.R.attr.selectableItemBackgroundBorderless))
-    return ta.getDrawable(0).also { ta.recycle() }
-}
-
-// ── Drawables ─────────────────────────────────────────────────────────────────
-
-private class SendArrowDrawable : Drawable() {
-    var enabled = false
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE; style = Paint.Style.STROKE
-        strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
-    }
-
-    override fun draw(c: Canvas) {
-        val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
-        val cx = w / 2f; val cy = h / 2f
-        paint.strokeWidth = w * 0.12f
-        paint.alpha = if (enabled) 255 else 200
-        val top = cy - h * 0.22f; val bot = cy + h * 0.22f; val wing = w * 0.18f
-        c.drawLine(cx, bot, cx, top, paint)
-        c.drawLine(cx, top, cx - wing, top + wing, paint)
-        c.drawLine(cx, top, cx + wing, top + wing, paint)
-    }
-
-    override fun setAlpha(a: Int) { paint.alpha = a; invalidateSelf() }
-    override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf }
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity() = PixelFormat.TRANSLUCENT
-}
-
-private class PaperclipDrawable : Drawable() {
-    var iconColor: Int = Color.rgb(120, 120, 128)
-        set(v) { field = v; paint.color = v; invalidateSelf() }
-    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
-        color = Color.rgb(120, 120, 128)
-    }
-
-    override fun draw(c: Canvas) {
-        val w = bounds.width().toFloat(); val h = bounds.height().toFloat()
-        paint.strokeWidth = w * 0.09f; val cx = w * 0.5f
-        c.drawPath(Path().also {
-            it.addRoundRect(cx - w * .15f, h * .15f, cx + w * .15f, h * .85f, w * .15f, w * .15f, Path.Direction.CW)
-        }, paint)
-        c.drawPath(Path().also {
-            it.addRoundRect(cx - w * .09f, h * .28f, cx + w * .09f, h * .76f, w * .09f, w * .09f, Path.Direction.CW)
-        }, paint)
-    }
-
-    override fun setAlpha(a: Int) { paint.alpha = a; invalidateSelf() }
-    override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf }
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity() = PixelFormat.TRANSLUCENT
-}
-
-private class CloseCircleDrawable : Drawable() {
-    var circleColor: Int = Color.rgb(180, 180, 185)
-        set(v) { field = v; invalidateSelf() }
-    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-    private val crossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE; style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND
-    }
-
-    override fun draw(c: Canvas) {
-        val cx = bounds.width() / 2f; val cy = bounds.height() / 2f
-        val r = minOf(cx, cy) - 1f; val arm = r * 0.30f
-        fillPaint.color = circleColor; crossPaint.strokeWidth = r * 0.22f
-        c.drawCircle(cx, cy, r, fillPaint)
-        c.drawLine(cx - arm, cy - arm, cx + arm, cy + arm, crossPaint)
-        c.drawLine(cx + arm, cy - arm, cx - arm, cy + arm, crossPaint)
-    }
-
-    override fun setAlpha(a: Int) { fillPaint.alpha = a; crossPaint.alpha = a; invalidateSelf() }
-    override fun setColorFilter(cf: ColorFilter?) { fillPaint.colorFilter = cf }
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity() = PixelFormat.TRANSLUCENT
 }
