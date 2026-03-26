@@ -1,4 +1,4 @@
-import { createServiceDecorator, SupportInitialize } from "@common/ioc";
+import { createServiceDecorator, SupportInitialize } from "@di";
 
 import { IAuthStore } from "../auth";
 

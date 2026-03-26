@@ -1,4 +1,4 @@
-import { mergeRefs } from "@common/hooks/mergeRefs";
+import { mergeRefs } from "@hooks/mergeRefs";
 import { ViewabilityConfig } from "@react-native/virtualized-lists";
 import {
   FlashList,

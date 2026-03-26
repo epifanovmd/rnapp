@@ -1,4 +1,3 @@
-import { useBiometric } from "@common";
 import {
   Button,
   Col,
@@ -11,6 +10,7 @@ import {
   Text,
 } from "@components";
 import { TransitionProvider, useTheme, useTransitionContext } from "@core";
+import { useBiometric } from "@hooks";
 import { AppScreenProps } from "@navigation";
 import { useAuthStore } from "@store";
 import { User } from "lucide-react-native";

@@ -1,9 +1,3 @@
-import { mergeRefs } from "@common/hooks/mergeRefs";
-import {
-  FilterHolder,
-  FiltersHolder,
-  IFilterOption,
-} from "@common/store/holders";
 import {
   BottomSheet,
   Button,
@@ -13,6 +7,8 @@ import {
   Text,
   useBottomSheetRef,
 } from "@components";
+import { mergeRefs } from "@hooks/mergeRefs";
+import { FilterHolder, FiltersHolder, IFilterOption } from "@store/holders";
 import { observer, useLocalObservable } from "mobx-react-lite";
 import React, { forwardRef, useEffect } from "react";
 

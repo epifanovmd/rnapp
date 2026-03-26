@@ -1,5 +1,5 @@
-import { useBiometric } from "@common";
 import { Navbar, SwitchTheme } from "@components";
+import { useBiometric } from "@hooks";
 import {
   ScreenParamList,
   StackNavigation,

@@ -1,5 +1,5 @@
-import { iocHook } from "@common/ioc";
-import { createServiceDecorator } from "@common/ioc";
+import { iocHook } from "@di";
+import { createServiceDecorator } from "@di";
 import {
   createNavigationContainerRef,
   StackActions,

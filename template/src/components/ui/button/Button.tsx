@@ -1,4 +1,4 @@
-import { isString } from "@common/helpers/typeGuards";
+import { isString } from "@utils/typeGuards";
 import React, { memo } from "react";
 import { ActivityIndicator } from "react-native";
 

@@ -1,7 +1,6 @@
+import { LambdaValue, resolveLambdaValue } from "@utils/lambdaValue";
+import { isFunction } from "@utils/typeGuards";
 import { action, computed, makeObservable, observable, when } from "mobx";
-
-import { LambdaValue, resolveLambdaValue } from "../helpers/lambdaValue";
-import { isFunction } from "../helpers/typeGuards";
 
 export class ValueHolder<T> {
   private _value: LambdaValue<T>;

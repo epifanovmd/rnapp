@@ -1,4 +1,4 @@
-import { LambdaValue } from "@common/helpers/lambdaValue";
+import { LambdaValue } from "@utils/lambdaValue";
 
 export interface IFilterOption<V> {
   readonly label: string;

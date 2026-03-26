@@ -9,13 +9,13 @@ import {
   TSignUpRequestDto,
   UserDto,
 } from "@api/api-gen/data-contracts";
-import { EntityHolder } from "@common/store/holders";
 import { IAuthSessionService } from "@core/auth";
 import {
   canAccess,
   computeEffectivePermissions,
   isAdminRole,
 } from "@core/permissions";
+import { EntityHolder } from "@store/holders";
 import { makeAutoObservable } from "mobx";
 
 import { AuthStatus, IAuthStore } from "./Auth.types";

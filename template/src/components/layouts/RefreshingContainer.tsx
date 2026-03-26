@@ -1,6 +1,6 @@
 import "react-native-gesture-handler";
 
-import { mergeRefs } from "@common/hooks/mergeRefs";
+import { mergeRefs } from "@hooks/mergeRefs";
 import React, {
   ComponentProps,
   forwardRef,

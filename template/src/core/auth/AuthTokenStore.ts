@@ -1,4 +1,4 @@
-import { createServiceDecorator } from "@common/ioc";
+import { createServiceDecorator } from "@di";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { makeAutoObservable } from "mobx";
 

@@ -1,6 +1,6 @@
-import { disposer } from "@common/ioc";
 import { Dialog, HoldItemProvider } from "@components";
 import { ThemeProvider, useTheme } from "@core";
+import { disposer } from "@di";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { navigationRef } from "@navigation";
 import { useAppDataStore } from "@store/app";

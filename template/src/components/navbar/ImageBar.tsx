@@ -1,4 +1,4 @@
-import { createSlot, useSlotProps } from "@common/slots";
+import { createSlot, useSlotProps } from "@components/slots";
 import { useTheme, useTransition } from "@core";
 import React, { memo, PropsWithChildren } from "react";
 import { ImageProps, StyleSheet, ViewProps } from "react-native";

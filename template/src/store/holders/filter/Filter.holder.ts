@@ -1,4 +1,4 @@
-import { ValueHolder } from "@common/store";
+import { ValueHolder } from "@store";
 import { isEqual } from "lodash";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 

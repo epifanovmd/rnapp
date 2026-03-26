@@ -1,8 +1,8 @@
-import { isEmail, isPhone } from "@common";
 import { useNotification } from "@core";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigation } from "@navigation";
 import { useAuthStore } from "@store";
+import { isEmail, isPhone } from "@utils";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 

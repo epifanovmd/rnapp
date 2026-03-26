@@ -1,4 +1,4 @@
-import { useMergedCallback } from "@common";
+import { useMergedCallback } from "@hooks";
 import React, { memo, useCallback } from "react";
 import {
   GestureResponderEvent,

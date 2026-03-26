@@ -1,4 +1,4 @@
-import { createSlot, useSlotProps } from "@common/slots";
+import { createSlot, useSlotProps } from "@components/slots";
 import React, { FC, memo, PropsWithChildren } from "react";
 
 import { Col, Row } from "../../flexView";

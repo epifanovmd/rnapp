@@ -1,6 +1,6 @@
 import { DeviceTokenDto } from "@api/api-gen/data-contracts";
-import { iocHook } from "@common/ioc";
-import { createServiceDecorator, SupportInitialize } from "@common/ioc";
+import { iocHook } from "@di";
+import { createServiceDecorator, SupportInitialize } from "@di";
 
 export interface IPushNotificationDataStore extends SupportInitialize {
   myDeviceToken?: string;

@@ -1,4 +1,4 @@
-import { disposer, InitializeDispose } from "@common/ioc";
+import { disposer, InitializeDispose } from "@di";
 import { INavigationService, NavigationService } from "@navigation";
 import { ISocketTransport } from "@socket";
 import { makeAutoObservable, reaction } from "mobx";

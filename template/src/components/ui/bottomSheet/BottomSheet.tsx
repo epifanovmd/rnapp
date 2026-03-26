@@ -1,6 +1,6 @@
-import { useMergedCallback } from "@common";
-import { createSlot, useSlotProps } from "@common/slots";
+import { createSlot, useSlotProps } from "@components/slots";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useMergedCallback } from "@hooks";
 import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
 import haptic from "react-native-haptic-feedback";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

@@ -1,4 +1,3 @@
-import { useBiometric } from "@common";
 import {
   Button,
   Col,
@@ -9,6 +8,7 @@ import {
   TextField,
 } from "@components";
 import { useTheme } from "@core";
+import { useBiometric } from "@hooks";
 import { StackProps } from "@navigation";
 import { ScanFace } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
