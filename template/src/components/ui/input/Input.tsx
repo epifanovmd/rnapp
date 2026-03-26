@@ -1,4 +1,4 @@
-import { mergeRefs } from "@force-dev/react";
+import { mergeRefs } from "@common/hooks/mergeRefs";
 import React, { ForwardedRef, forwardRef, memo, useRef } from "react";
 import {
   TextInput as RNTextInput,

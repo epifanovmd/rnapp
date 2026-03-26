@@ -1,7 +1,7 @@
 import { useApi } from "@api";
 import { useNotification } from "@core";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useSessionDataStore, useUserDataStore } from "@store";
+import { useAuthStore } from "@store";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
 import { getDeviceName, getUniqueId } from "react-native-device-info";
@@ -13,8 +13,7 @@ export const useBiometric = () => {
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
   const api = useApi();
-  const sessionDataStore = useSessionDataStore();
-  const { user } = useUserDataStore();
+  const authStore = useAuthStore();
   const { show } = useNotification();
 
   const available = !!registeredUserId && support;
@@ -49,7 +48,7 @@ export const useBiometric = () => {
   }, [registeredUserId, show]);
 
   const registration = useCallback(async () => {
-    const userId = user?.id;
+    const userId = authStore.user?.id;
 
     if (!userId) {
       return false;
@@ -63,7 +62,6 @@ export const useBiometric = () => {
       const response = await api.registerBiometric({
         deviceName,
         deviceId,
-        userId,
         publicKey,
       });
 
@@ -84,20 +82,18 @@ export const useBiometric = () => {
     }
 
     return false;
-  }, [api, getBiometricPublicKey, show, user?.id]);
+  }, [api, authStore.user?.id, getBiometricPublicKey, show]);
 
   const authorization = useCallback(async () => {
     if (!registeredUserId) {
       return;
     }
 
-    const userId = registeredUserId;
     const deviceId = await getUniqueId();
 
-    const response = await api.generateNonce({ userId });
+    const response = await api.generateNonce({ deviceId });
 
     if (response.error) {
-      // await onRemoveBiometric();
       show(response.error.message, { type: "danger" });
     } else if (response.data) {
       const payload = response.data.nonce;
@@ -108,11 +104,9 @@ export const useBiometric = () => {
       });
 
       if (error) {
-        // await onRemoveBiometric();
         show(error, { type: "danger" });
       } else if (success && signature) {
         const response = await api.verifySignature({
-          userId,
           deviceId,
           signature,
         });
@@ -121,13 +115,13 @@ export const useBiometric = () => {
           await onRemoveBiometric();
           show(response.error.message, { type: "danger" });
         } else if (response.data?.verified) {
-          await sessionDataStore.restore(response.data.tokens);
+          await authStore.restore(response.data.tokens);
         }
       }
     }
 
     return false;
-  }, [registeredUserId, api, onRemoveBiometric, show, sessionDataStore]);
+  }, [registeredUserId, api, onRemoveBiometric, show, authStore]);
 
   return {
     available,

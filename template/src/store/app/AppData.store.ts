@@ -1,26 +1,16 @@
-import { IApiService } from "@api";
-import { disposer, InitializeDispose, Interval } from "@force-dev/utils";
-import {
-  INavigationService,
-  ISocketService,
-  NavigationService,
-} from "@service";
+import { disposer, InitializeDispose } from "@common/ioc";
+import { INavigationService, NavigationService } from "@core/navigation";
+import { ISocketTransport } from "@socket";
 import { makeAutoObservable, reaction } from "mobx";
 
-import { IPushNotificationDataStore } from "../pushNotification";
-import { ISessionDataStore } from "../session";
+import { IAuthStore } from "../auth";
 import { IAppDataStore } from "./AppData.types";
 
 @IAppDataStore()
 export class AppDataStore implements IAppDataStore {
-  private _interval = new Interval({ timeout: 6000 });
-
   constructor(
-    @ISessionDataStore() public sessionDataStore: ISessionDataStore,
-    @IApiService() private _apiService: IApiService,
-    @IPushNotificationDataStore()
-    private _pushNotificationDataStore: IPushNotificationDataStore,
-    @ISocketService() private _socketService: ISocketService,
+    @IAuthStore() public authStore: IAuthStore,
+    @ISocketTransport() private _socketTransport: ISocketTransport,
     @INavigationService() private _navigationService: NavigationService,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -31,26 +21,18 @@ export class AppDataStore implements IAppDataStore {
 
     return [
       reaction(
-        () => this.sessionDataStore.isAuthorized,
-        isAuthorized => {
-          if (isAuthorized) {
-            // disposers.add(this._pushNotificationDataStore.initialize());
-            disposers.add(this._socketService.initialize());
-
-            this._interval.start(async () => {
-              await this.sessionDataStore.updateToken();
-            });
+        () => this.authStore.isAuthenticated,
+        isAuthenticated => {
+          if (isAuthenticated) {
+            disposers.add(this._socketTransport.initialize());
           } else {
-            this._interval.stop();
-
             disposer(Array.from(disposers));
             disposers.clear();
 
-            this._navigationService.navigateTo("SignIn", {});
+            this._navigationService.navigateTo("SignIn");
           }
         },
       ),
-      () => this._interval.stop(),
       () => {
         disposer(Array.from(disposers));
         disposers.clear();

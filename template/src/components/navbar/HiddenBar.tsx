@@ -1,5 +1,5 @@
+import { createSlot, useSlotProps } from "@common/slots";
 import { useTheme, useTransition } from "@core";
-import { createSlot, useSlotProps } from "@force-dev/react";
 import React, { memo, PropsWithChildren, useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {

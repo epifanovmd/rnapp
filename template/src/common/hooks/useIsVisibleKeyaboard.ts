@@ -1,4 +1,4 @@
-import { useBoolean } from "@force-dev/react";
+import { useBoolean } from "@common/hooks/useBoolean";
 import { useEffect } from "react";
 import { Keyboard } from "react-native";
 

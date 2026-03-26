@@ -1,4 +1,4 @@
-import { isString } from "@force-dev/utils";
+import { isString } from "@common/helpers/typeGuards";
 import React, { memo } from "react";
 import { ActivityIndicator } from "react-native";
 

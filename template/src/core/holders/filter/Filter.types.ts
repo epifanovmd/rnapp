@@ -1,4 +1,4 @@
-import { LambdaValue } from "@force-dev/utils";
+import { LambdaValue } from "@common/helpers/lambdaValue";
 
 export interface IFilterOption<V> {
   readonly label: string;

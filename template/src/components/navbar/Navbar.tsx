@@ -1,5 +1,5 @@
+import { createSlot, useSlotProps } from "@common/slots";
 import { useTheme } from "@core";
-import { createSlot, useSlotProps } from "@force-dev/react";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { memo, useCallback, useRef, useState } from "react";
 import {

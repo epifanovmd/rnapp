@@ -1,65 +1,135 @@
+import { IAuthSessionService } from "@core/auth";
+import axios, {
+  AxiosHeaders,
+  AxiosResponse,
+  CanceledError,
+  CancelTokenSource,
+  isAxiosError,
+} from "axios";
 import Config from "react-native-config";
 
-import { ApiError, IApiService } from "./Api.types";
+import { ApiError, ApiServiceResponse, IApiService } from "./Api.types";
 import { Api } from "./api-gen/Api";
-import { IApiTokenProvider } from "./ApiToken.provider";
+import {
+  ApiRequestConfig,
+  ApiResponse,
+  CancelablePromise,
+} from "./api-gen/http-client";
+import { QueryRace } from "./QueryRace";
 
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
 
+const DEFAULT_HEADERS = new AxiosHeaders({
+  Accept: "application/json",
+  "Content-Type": "application/json",
+});
+
 @IApiService({ inSingleton: true })
-class ApiService extends Api<ApiError, ApiError> implements IApiService {
-  constructor(@IApiTokenProvider() private _tokenProvider: IApiTokenProvider) {
-    super(
-      {
-        timeout: 2 * 60 * 1000,
-        withCredentials: true,
-        baseURL: BASE_URL,
-      },
-      error => {
-        const err = new ApiError(
-          error.response?.data.name ?? error.name,
-          error.response?.data.message ?? error.message,
-          error.status ?? 400,
-          error.response?.data.reason ?? error.cause,
-        );
+class ApiService extends Api<ApiError> implements IApiService {
+  private readonly _instance;
+  private readonly _queryRace = new QueryRace();
 
-        if (err.status === 401 && this._tokenProvider.accessToken) {
-          this._tokenProvider.clear();
-        }
+  constructor(@IAuthSessionService() private _session: IAuthSessionService) {
+    super();
 
-        if (err.status === 403) {
-          this.updateToken().then();
-        }
+    this._instance = axios.create({
+      baseURL: BASE_URL,
+      timeout: 2 * 60 * 1000,
+      withCredentials: true,
+      headers: DEFAULT_HEADERS,
+    });
 
-        return err;
-      },
-    );
+    this._setupInterceptors();
+  }
 
-    this.instance.interceptors.request.use(async request => {
-      const headers = request.headers;
-      const token = this._tokenProvider.accessToken;
+  get instance() {
+    return this._instance;
+  }
+
+  // --- Abstract implementation from HttpClient -----------------------------
+
+  instancePromise<R = any, P = any>(
+    config: ApiRequestConfig<P>,
+    options?: ApiRequestConfig<P>,
+  ): CancelablePromise<ApiResponse<R, ApiError>> {
+    const source: CancelTokenSource = axios.CancelToken.source();
+    const endpoint = `${config.method ?? "GET"} ${config.url}`;
+
+    if (options?.useQueryRace !== false) {
+      this._queryRace.apply(endpoint, source.cancel);
+    }
+
+    const promise = this._instance({
+      ...config,
+      ...options,
+      cancelToken: source.token,
+    }) as CancelablePromise<ApiResponse<R, ApiError>>;
+
+    promise.finally(() => this._queryRace.delete(endpoint));
+    promise.cancel = (message?: string) =>
+      source.cancel(message ?? "Query was cancelled");
+
+    return promise;
+  }
+
+  // --- Interceptors --------------------------------------------------------
+
+  private _setupInterceptors(): void {
+    // Inject auth token before each request
+    this._instance.interceptors.request.use(async request => {
+      await this._session.ensureFreshToken();
+
+      const token = this._session.accessToken;
 
       if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+        request.headers.set("Authorization", `Bearer ${token}`);
       }
 
       return request;
     });
-  }
 
-  public async updateToken() {
-    const res = await this.refresh({
-      refreshToken: this._tokenProvider.refreshToken,
-    });
+    // Wrap response/error into ApiResponse + handle 401 retry.
+    // Cast needed because we transform AxiosResponse → ApiServiceResponse,
+    // which changes the response shape flowing through the interceptor chain.
+    (this._instance.interceptors.response as any).use(
+      (res: AxiosResponse): ApiServiceResponse<any> => ({
+        data: res.data,
+        status: res.status,
+        axiosResponse: res,
+      }),
+      async (e: any): Promise<ApiServiceResponse<any>> => {
+        const axiosError = isAxiosError(e) ? e : undefined;
+        const status = e.response?.status || e.request?.status || 400;
 
-    if (res.data) {
-      this._tokenProvider.setTokens(
-        res.data.accessToken,
-        res.data.refreshToken,
-      );
-    } else {
-      this._tokenProvider.clear();
-    }
+        // 401 — attempt token refresh and retry once
+        const config = axiosError?.config as any;
+
+        if (status === 401 && config && !config._retry) {
+          config._retry = true;
+
+          try {
+            await this._session.refreshToken();
+          } catch {
+            return {
+              status,
+              error: ApiError.fromAxiosError(axiosError!),
+              axiosError,
+            };
+          }
+
+          return this.instancePromise(config, {
+            useQueryRace: false,
+          }) as unknown as Promise<ApiServiceResponse<any>>;
+        }
+
+        return {
+          status,
+          error: ApiError.fromAxiosError(axiosError!),
+          axiosError,
+          isCanceled: e instanceof CanceledError,
+        };
+      },
+    );
   }
 }

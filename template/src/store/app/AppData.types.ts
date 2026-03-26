@@ -1,8 +1,9 @@
-import { createServiceDecorator, SupportInitialize } from "@force-dev/utils";
-import { ISessionDataStore } from "@store";
+import { createServiceDecorator, SupportInitialize } from "@common/ioc";
+
+import { IAuthStore } from "../auth";
 
 export const IAppDataStore = createServiceDecorator<IAppDataStore>();
 
 export interface IAppDataStore extends SupportInitialize {
-  sessionDataStore: ISessionDataStore;
+  authStore: IAuthStore;
 }

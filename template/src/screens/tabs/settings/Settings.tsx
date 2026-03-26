@@ -16,7 +16,7 @@ import {
   useTheme,
   useTransitionContext,
 } from "@core";
-import { useSessionDataStore, useUserDataStore } from "@store";
+import { useAuthStore } from "@store";
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -32,9 +32,8 @@ const AnimatedCol = Animated.createAnimatedComponent(Col);
 const height = 250;
 
 export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
-  const { user } = useUserDataStore();
+  const { user, signOut } = useAuthStore();
   const context = useTransitionContext();
-  const { clear } = useSessionDataStore();
   const { support, registration, available, onRemoveBiometric } =
     useBiometric();
   const insets = useSafeAreaInsets();
@@ -146,7 +145,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
             <Col bg={"surface"} radius={16}>
               <Row centerContent={true} pa={16}>
-                <Button color={"red500"} type={"text"} onPress={clear}>
+                <Button color={"red500"} type={"text"} onPress={signOut}>
                   {"Выйти"}
                 </Button>
               </Row>

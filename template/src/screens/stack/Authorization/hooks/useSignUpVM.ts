@@ -1,14 +1,14 @@
 import { isEmail, isPhone } from "@common";
 import { useNavigation, useNotification } from "@core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSessionDataStore } from "@store";
+import { useAuthStore } from "@store";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 
 import { signUpFormValidationSchema, TSignUpForm } from "../validations";
 
 export const useSignUpVM = () => {
-  const sessionDataStore = useSessionDataStore();
+  const authStore = useAuthStore();
   const navigation = useNavigation();
   const { show } = useNotification();
 
@@ -23,22 +23,22 @@ export const useSignUpVM = () => {
       const phone = isPhone(data.login) ? data.login : undefined;
 
       if (email) {
-        await sessionDataStore.signUp({
+        await authStore.signUp({
           email,
           password: data.password,
         });
       } else if (phone) {
-        await sessionDataStore.signUp({
+        await authStore.signUp({
           phone,
           password: data.password,
         });
       }
 
-      if (sessionDataStore.isAuthorized) {
+      if (authStore.isAuthenticated) {
         navigation.navigate("Main");
       }
     })();
-  }, [form, navigation, sessionDataStore]);
+  }, [form, navigation, authStore]);
 
   return {
     form,

@@ -15,85 +15,77 @@ import React, { FC } from "react";
 
 import { useSignInVM } from "./hooks";
 
-export const SignIn: FC<StackProps<"SignIn">> = observer(
-  ({ route: { params: { code } = {} } }) => {
-    const { colors } = useTheme();
+export const SignIn: FC<StackProps<"SignIn">> = observer(() => {
+  const { colors } = useTheme();
 
-    const {
-      form,
-      processingAuth,
-      loginByGithub,
-      handleLogin,
-      handleNavigateSignUp,
-      handleNavigateRecoveryPassword,
-    } = useSignInVM({ code });
+  const {
+    form,
+    loginByGithub,
+    handleLogin,
+    handleNavigateSignUp,
+    handleNavigateRecoveryPassword,
+  } = useSignInVM();
 
-    const { available, authorization } = useBiometric();
+  const { available, authorization } = useBiometric();
 
-    const login = form.watch("login");
-    const password = form.watch("password");
+  const login = form.watch("login");
+  const password = form.watch("password");
 
-    return (
-      <Container>
-        <Content justifyContent={"center"}>
-          <Col style={{ gap: 8 }}>
-            <TextField
-              label={"Логин"}
-              value={login}
-              onChangeText={text => form.setValue("login", text)}
-            />
+  return (
+    <Container>
+      <Content justifyContent={"center"}>
+        <Col style={{ gap: 8 }}>
+          <TextField
+            label={"Логин"}
+            value={login}
+            onChangeText={text => form.setValue("login", text)}
+          />
 
-            <TextField
-              label={"Пароль"}
-              value={password}
-              onChangeText={text => form.setValue("password", text)}
-              secureTextEntry={true}
-            />
+          <TextField
+            label={"Пароль"}
+            value={password}
+            onChangeText={text => form.setValue("password", text)}
+            secureTextEntry={true}
+          />
 
-            <Row gap={8} mt={8} alignItems={"center"}>
-              <Button
-                flex={1}
-                size={"small"}
-                onPress={handleLogin}
-                loading={form.formState.isSubmitting}
-              >
-                {"Войти"}
-              </Button>
-
-              {available && (
-                <Button flex={1} size={"small"} onPress={authorization}>
-                  <ScanFace color={colors["textPrimary"]} />
-                </Button>
-              )}
-            </Row>
-            <Row gap={8} alignItems={"center"}>
-              <Col
-                bg={colors["textPrimary"]}
-                style={{ borderStyle: "dashed" }}
-                height={1}
-                flex={1}
-              />
-              <Text color={"textPrimary"} textAlign={"center"}>
-                {"или"}
-              </Text>
-              <Col
-                bg={colors["textPrimary"]}
-                style={{ borderStyle: "dashed" }}
-                height={1}
-                flex={1}
-              />
-            </Row>
+          <Row gap={8} mt={8} alignItems={"center"}>
             <Button
-              loading={processingAuth}
               flex={1}
               size={"small"}
-              onPress={loginByGithub}
+              onPress={handleLogin}
+              loading={form.formState.isSubmitting}
             >
-              {"Войти через Github"}
+              {"Войти"}
             </Button>
-          </Col>
-        </Content>
-      </Container>
-    );
-  },
-);
+
+            {available && (
+              <Button flex={1} size={"small"} onPress={authorization}>
+                <ScanFace color={colors["textPrimary"]} />
+              </Button>
+            )}
+          </Row>
+          <Row gap={8} alignItems={"center"}>
+            <Col
+              bg={colors["textPrimary"]}
+              style={{ borderStyle: "dashed" }}
+              height={1}
+              flex={1}
+            />
+            <Text color={"textPrimary"} textAlign={"center"}>
+              {"или"}
+            </Text>
+            <Col
+              bg={colors["textPrimary"]}
+              style={{ borderStyle: "dashed" }}
+              height={1}
+              flex={1}
+            />
+          </Row>
+          <Button flex={1} size={"small"} onPress={loginByGithub}>
+            {"Войти через Github"}
+          </Button>
+        </Col>
+      </Content>
+    </Container>
+  );
+});

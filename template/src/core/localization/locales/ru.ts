@@ -8,7 +8,6 @@ export const ruLocale = {
     Pickers: "Пиккеры",
     Components: "Компоненты",
     Modals: "Modals",
-    ChatScreen: "Чат",
   },
   button: {
     cancel: "Отмена",

@@ -1,3 +1,7 @@
+// Side-effect: register auth IoC singletons (AuthTokenStore, AuthSessionService)
+import "@core/auth";
+
+import { disposer } from "@common/ioc";
 import { Dialog, HoldItemProvider } from "@components";
 import {
   initLocalization,
@@ -5,10 +9,9 @@ import {
   useTheme,
   useTranslation,
 } from "@core";
-import { disposer } from "@force-dev/utils";
+import { log, navigationRef } from "@core";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { log, navigationRef } from "@service";
 import { useAppDataStore } from "@store/app";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";

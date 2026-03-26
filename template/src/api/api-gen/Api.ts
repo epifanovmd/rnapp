@@ -10,52 +10,63 @@
  * ---------------------------------------------------------------
  */
 
-import type { AxiosError } from "axios";
 import {
-  AddAvatarPayload,
+  AcceptContactParams,
+  AddMembersParams,
   ApiResponseDto,
-  AuthenticatePayload,
   Base64URLString,
-  COSEAlgorithmIdentifier,
-  DialogDetailDto,
-  DialogLastMessagesDto,
-  DialogMembersDto,
-  DialogMessagesDto,
-  FcmTokenDto,
-  FcmTokenRequestDto,
-  GenerateAuthenticationOptionsPayload,
-  GenerateRegistrationOptionsPayload,
-  GetDialogsParams,
+  BlockContactParams,
+  ChatDto,
+  ChatMemberDto,
+  ContactDto,
+  DeleteDeviceParams,
+  DeleteFileParams,
+  DeleteMessageParams,
+  DeleteProfileParams,
+  DeleteUserParams,
+  DeviceTokenDto,
+  EditMessageParams,
+  GetChatByIdParams,
+  GetContactsParams,
   GetFileByIdParams,
-  GetLastMessageParams,
-  GetMembersParams,
   GetMessagesParams,
+  GetProfileByIdParams,
   GetProfilesParams,
-  GetTokensParams,
-  GetUnreadMessagesCountParams,
+  GetUserByIdParams,
+  GetUserChatsParams,
+  GetUserOptionsParams,
   GetUsersParams,
-  IDialogCreateRequestDto,
-  IDialogFindOrCreateResponseDto,
-  IDialogFindRequestDto,
-  IDialogFindResponseDto,
-  IDialogListDto,
-  IDialogListMessagesDto,
-  IDialogMembersAddRequestDto,
-  IFCMMessageDto,
+  IAddMembersBody,
+  IBiometricDevicesResponseDto,
+  IChatListDto,
+  ICreateContactBody,
+  ICreateDirectChatBody,
+  ICreateGroupChatBody,
+  IDeleteBiometricResponseDto,
+  IEditMessageBody,
   IFileDto,
+  IGenerateAuthenticationOptionsRequestDto,
   IGenerateNonceRequestDto,
   IGenerateNonceResponseDto,
-  IMessagesRequestDto,
-  IMessagesUpdateRequestDto,
+  IMarkReadBody,
+  IMessageListDto,
   IProfileListDto,
   IProfileUpdateRequestDto,
   IRegisterBiometricRequestDto,
   IRegisterBiometricResponseDto,
+  IRegisterDeviceBody,
+  IRoleDto,
+  IRolePermissionsRequestDto,
+  ISendMessageBody,
   ISignInRequestDto,
   ITokensDto,
+  IUpdateChatBody,
+  IUpdateMemberRoleBody,
+  IUpdateNotificationSettingsBody,
   IUserChangePasswordDto,
   IUserListDto,
   IUserLoginRequestDto,
+  IUserOptionsDto,
   IUserPrivilegesRequestDto,
   IUserResetPasswordRequestDto,
   IUserUpdateRequestDto,
@@ -65,71 +76,34 @@ import {
   IVerifyBiometricSignatureRequestDto,
   IVerifyBiometricSignatureResponseDto,
   IVerifyRegistrationRequestDto,
+  IVerifyRegistrationResponseDto,
+  LeaveChatParams,
+  MarkAsReadParams,
+  MessageDto,
+  NotificationSettingsDto,
   ProfileDto,
+  PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
+  PublicProfileDto,
   RefreshPayload,
-  RegisterApnPayload,
+  RemoveContactParams,
+  RemoveMemberParams,
+  SendMessageParams,
+  SetPrivilegesParams,
+  SetRolePermissionsParams,
   TSignUpRequestDto,
+  UnregisterDeviceParams,
+  UpdateChatParams,
+  UpdateMemberRoleParams,
+  UpdateProfileParams,
+  UpdateUserParams,
   UploadFilePayload,
   UserDto,
+  VerifyEmailParams,
 } from "./data-contracts";
 import { EContentType, HttpClient, RequestParams } from "./http-client";
 
-export class Api<
-  E extends Error | AxiosError<EBody> = AxiosError<unknown>,
-  EBody = unknown,
-> extends HttpClient<E, EBody> {
-  /**
-   * @description Получить файл по ID. Этот эндпоинт позволяет пользователю получить файл по его уникальному ID. Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут получить доступ к этому ресурсу.
-   *
-   * @tags Files
-   * @name GetFileById
-   * @summary Получение файла по ID
-   * @request GET:/api/file
-   * @secure
-   */
-  getFileById = (query: GetFileByIdParams, params: RequestParams = {}) =>
-    this.request<IFileDto, any>({
-      url: `/api/file`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Загрузить файл. Этот эндпоинт позволяет пользователю загрузить один файл на сервер. Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут загружать файлы.
-   *
-   * @tags Files
-   * @name UploadFile
-   * @summary Загрузка файла
-   * @request POST:/api/file
-   * @secure
-   */
-  uploadFile = (data: UploadFilePayload, params: RequestParams = {}) =>
-    this.request<IFileDto[], any>({
-      url: `/api/file`,
-      method: "POST",
-      data: data,
-      type: EContentType.FormData,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Удалить файл. Этот эндпоинт позволяет пользователю удалить файл по его ID. Доступ разрешен только пользователю, который загрузил файл, либо администратору.
-   *
-   * @tags Files
-   * @name DeleteFile
-   * @summary Удаление файла
-   * @request DELETE:/api/file/{id}
-   * @secure
-   */
-  deleteFile = (id: string, params: RequestParams = {}) =>
-    this.request<boolean, any>({
-      url: `/api/file/${id}`,
-      method: "DELETE",
-      responseType: "json",
-      ...params,
-    });
+export class Api<E = unknown> extends HttpClient<E> {
   /**
    * @description Получить профиль текущего пользователя. Этот эндпоинт позволяет получить данные профиля пользователя, который выполнил запрос. Используется для получения информации о текущем пользователе, например, его имени, email, и других данных.
    *
@@ -140,7 +114,7 @@ export class Api<
    * @secure
    */
   getMyProfile = (params: RequestParams = {}) =>
-    this.request<ProfileDto, any>({
+    this.request<ProfileDto>({
       url: `/api/profile/my`,
       method: "GET",
       responseType: "json",
@@ -159,7 +133,7 @@ export class Api<
     data: IProfileUpdateRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<ProfileDto, any>({
+    this.request<ProfileDto>({
       url: `/api/profile/my/update`,
       method: "PATCH",
       data: data,
@@ -177,7 +151,7 @@ export class Api<
    * @secure
    */
   deleteMyProfile = (params: RequestParams = {}) =>
-    this.request<Base64URLString, any>({
+    this.request<Base64URLString>({
       url: `/api/profile/my/delete`,
       method: "DELETE",
       responseType: "json",
@@ -193,7 +167,7 @@ export class Api<
    * @secure
    */
   getProfiles = (query: GetProfilesParams, params: RequestParams = {}) =>
-    this.request<IProfileListDto, any>({
+    this.request<IProfileListDto>({
       url: `/api/profile/all`,
       method: "GET",
       params: query,
@@ -209,8 +183,11 @@ export class Api<
    * @request GET:/api/profile/{userId}
    * @secure
    */
-  getProfileById = (userId: string, params: RequestParams = {}) =>
-    this.request<ProfileDto, any>({
+  getProfileById = (
+    { userId, ...query }: GetProfileByIdParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<PublicProfileDto>({
       url: `/api/profile/${userId}`,
       method: "GET",
       responseType: "json",
@@ -226,49 +203,15 @@ export class Api<
    * @secure
    */
   updateProfile = (
-    userId: string,
+    { userId, ...query }: UpdateProfileParams,
     data: IProfileUpdateRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<ProfileDto, any>({
+    this.request<ProfileDto>({
       url: `/api/profile/update/${userId}`,
       method: "PATCH",
       data: data,
       type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Загрузить аватар для текущего пользователя. Этот эндпоинт позволяет пользователю загрузить аватар для своего профиля.
-   *
-   * @tags Profile
-   * @name AddAvatar
-   * @summary Загрузка аватара
-   * @request POST:/api/profile/avatar/upload
-   * @secure
-   */
-  addAvatar = (data: AddAvatarPayload, params: RequestParams = {}) =>
-    this.request<ProfileDto, any>({
-      url: `/api/profile/avatar/upload`,
-      method: "POST",
-      data: data,
-      type: EContentType.FormData,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Удалить аватар пользователя. Этот эндпоинт позволяет пользователю удалить свой аватар.
-   *
-   * @tags Profile
-   * @name RemoveAvatar
-   * @summary Удаление аватара
-   * @request DELETE:/api/profile/avatar
-   * @secure
-   */
-  removeAvatar = (params: RequestParams = {}) =>
-    this.request<ProfileDto, any>({
-      url: `/api/profile/avatar`,
-      method: "DELETE",
       responseType: "json",
       ...params,
     });
@@ -281,10 +224,51 @@ export class Api<
    * @request DELETE:/api/profile/delete/{userId}
    * @secure
    */
-  deleteProfile = (userId: string, params: RequestParams = {}) =>
-    this.request<Base64URLString, any>({
+  deleteProfile = (
+    { userId, ...query }: DeleteProfileParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<Base64URLString>({
       url: `/api/profile/delete/${userId}`,
       method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить все роли с их правами.
+   *
+   * @tags Role
+   * @name GetRoles
+   * @summary Список ролей
+   * @request GET:/api/roles
+   * @secure
+   */
+  getRoles = (params: RequestParams = {}) =>
+    this.request<IRoleDto[]>({
+      url: `/api/roles`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Установить права для роли. Заменяет текущий набор прав роли указанным.
+   *
+   * @tags Role
+   * @name SetRolePermissions
+   * @summary Установка прав роли
+   * @request PATCH:/api/roles/{id}/permissions
+   * @secure
+   */
+  setRolePermissions = (
+    { id, ...query }: SetRolePermissionsParams,
+    data: IRolePermissionsRequestDto,
+    params: RequestParams = {},
+  ) =>
+    this.request<IRoleDto>({
+      url: `/api/roles/${id}/permissions`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
       responseType: "json",
       ...params,
     });
@@ -298,7 +282,7 @@ export class Api<
    * @secure
    */
   getMyUser = (params: RequestParams = {}) =>
-    this.request<UserDto, any>({
+    this.request<UserDto>({
       url: `/api/user/my`,
       method: "GET",
       responseType: "json",
@@ -314,7 +298,7 @@ export class Api<
    * @secure
    */
   updateMyUser = (data: IUserUpdateRequestDto, params: RequestParams = {}) =>
-    this.request<UserDto, any>({
+    this.request<UserDto>({
       url: `/api/user/my/update`,
       method: "PATCH",
       data: data,
@@ -332,14 +316,14 @@ export class Api<
    * @secure
    */
   deleteMyUser = (params: RequestParams = {}) =>
-    this.request<boolean, any>({
+    this.request<boolean>({
       url: `/api/user/my/delete`,
       method: "DELETE",
       responseType: "json",
       ...params,
     });
   /**
-   * @description Получить всех пользователей. Этот эндпоинт позволяет администраторам получить список всех пользователей системы. Он поддерживает пагинацию через параметры `offset` и `limit`.
+   * @description Получить всех пользователей. Поддерживает пагинацию и поиск по email.
    *
    * @tags User
    * @name GetUsers
@@ -348,8 +332,25 @@ export class Api<
    * @secure
    */
   getUsers = (query: GetUsersParams, params: RequestParams = {}) =>
-    this.request<IUserListDto, any>({
+    this.request<IUserListDto>({
       url: `/api/user/all`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить опции пользователей для выпадающих списков (id + name). name — имя и фамилия или email если профиль не заполнен.
+   *
+   * @tags User
+   * @name GetUserOptions
+   * @summary Опции пользователей
+   * @request GET:/api/user/options
+   * @secure
+   */
+  getUserOptions = (query: GetUserOptionsParams, params: RequestParams = {}) =>
+    this.request<IUserOptionsDto>({
+      url: `/api/user/options`,
       method: "GET",
       params: query,
       responseType: "json",
@@ -364,8 +365,11 @@ export class Api<
    * @request GET:/api/user/{id}
    * @secure
    */
-  getUserById = (id: string, params: RequestParams = {}) =>
-    this.request<UserDto, any>({
+  getUserById = (
+    { id, ...query }: GetUserByIdParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<UserDto>({
       url: `/api/user/${id}`,
       method: "GET",
       responseType: "json",
@@ -381,11 +385,11 @@ export class Api<
    * @secure
    */
   setPrivileges = (
-    id: string,
+    { id, ...query }: SetPrivilegesParams,
     data: IUserPrivilegesRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<UserDto, any>({
+    this.request<UserDto>({
       url: `/api/user/setPrivileges/${id}`,
       method: "PATCH",
       data: data,
@@ -403,7 +407,7 @@ export class Api<
    * @secure
    */
   requestVerifyEmail = (params: RequestParams = {}) =>
-    this.request<boolean, any>({
+    this.request<boolean>({
       url: `/api/user/requestVerifyEmail`,
       method: "POST",
       responseType: "json",
@@ -418,8 +422,11 @@ export class Api<
    * @request GET:/api/user/verifyEmail/{code}
    * @secure
    */
-  verifyEmail = (code: string, params: RequestParams = {}) =>
-    this.request<ApiResponseDto, any>({
+  verifyEmail = (
+    { code, ...query }: VerifyEmailParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ApiResponseDto>({
       url: `/api/user/verifyEmail/${code}`,
       method: "GET",
       responseType: "json",
@@ -435,11 +442,11 @@ export class Api<
    * @secure
    */
   updateUser = (
-    id: string,
+    { id, ...query }: UpdateUserParams,
     data: IUserUpdateRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<UserDto, any>({
+    this.request<UserDto>({
       url: `/api/user/update/${id}`,
       method: "PATCH",
       data: data,
@@ -457,7 +464,7 @@ export class Api<
    * @secure
    */
   changePassword = (data: IUserChangePasswordDto, params: RequestParams = {}) =>
-    this.request<ApiResponseDto, any>({
+    this.request<ApiResponseDto>({
       url: `/api/user/changePassword`,
       method: "POST",
       data: data,
@@ -474,8 +481,11 @@ export class Api<
    * @request DELETE:/api/user/delete/{id}
    * @secure
    */
-  deleteUser = (id: string, params: RequestParams = {}) =>
-    this.request<boolean, any>({
+  deleteUser = (
+    { id, ...query }: DeleteUserParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<boolean>({
       url: `/api/user/delete/${id}`,
       method: "DELETE",
       responseType: "json",
@@ -490,7 +500,7 @@ export class Api<
    * @request POST:/api/auth/sign-up
    */
   signUp = (data: TSignUpRequestDto, params: RequestParams = {}) =>
-    this.request<IUserWithTokensDto, any>({
+    this.request<IUserWithTokensDto>({
       url: `/api/auth/sign-up`,
       method: "POST",
       data: data,
@@ -507,25 +517,8 @@ export class Api<
    * @request POST:/api/auth/sign-in
    */
   signIn = (data: ISignInRequestDto, params: RequestParams = {}) =>
-    this.request<IUserWithTokensDto, any>({
+    this.request<IUserWithTokensDto>({
       url: `/api/auth/sign-in`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Авторизация пользователя через OAuth code GitHub
-   *
-   * @tags Authorization
-   * @name Authenticate
-   * @summary Вход в систему
-   * @request POST:/api/auth/authenticate
-   */
-  authenticate = (data: AuthenticatePayload, params: RequestParams = {}) =>
-    this.request<IUserWithTokensDto, any>({
-      url: `/api/auth/authenticate`,
       method: "POST",
       data: data,
       type: EContentType.Json,
@@ -544,7 +537,7 @@ export class Api<
     data: IUserLoginRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<ApiResponseDto, any>({
+    this.request<ApiResponseDto>({
       url: `/api/auth/request-reset-password`,
       method: "POST",
       data: data,
@@ -564,7 +557,7 @@ export class Api<
     data: IUserResetPasswordRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<ApiResponseDto, any>({
+    this.request<ApiResponseDto>({
       url: `/api/auth/reset-password`,
       method: "POST",
       data: data,
@@ -581,7 +574,7 @@ export class Api<
    * @request POST:/api/auth/refresh
    */
   refresh = (data: RefreshPayload, params: RequestParams = {}) =>
-    this.request<ITokensDto, any>({
+    this.request<ITokensDto>({
       url: `/api/auth/refresh`,
       method: "POST",
       data: data,
@@ -595,12 +588,13 @@ export class Api<
    * @tags Biometric
    * @name RegisterBiometric
    * @request POST:/api/biometric/register
+   * @secure
    */
   registerBiometric = (
     data: IRegisterBiometricRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<IRegisterBiometricResponseDto, any>({
+    this.request<IRegisterBiometricResponseDto>({
       url: `/api/biometric/register`,
       method: "POST",
       data: data,
@@ -614,12 +608,13 @@ export class Api<
    * @tags Biometric
    * @name GenerateNonce
    * @request POST:/api/biometric/generate-nonce
+   * @secure
    */
   generateNonce = (
     data: IGenerateNonceRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<IGenerateNonceResponseDto, any>({
+    this.request<IGenerateNonceResponseDto>({
       url: `/api/biometric/generate-nonce`,
       method: "POST",
       data: data,
@@ -633,12 +628,13 @@ export class Api<
    * @tags Biometric
    * @name VerifySignature
    * @request POST:/api/biometric/verify-signature
+   * @secure
    */
   verifySignature = (
     data: IVerifyBiometricSignatureRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<IVerifyBiometricSignatureResponseDto, any>({
+    this.request<IVerifyBiometricSignatureResponseDto>({
       url: `/api/biometric/verify-signature`,
       method: "POST",
       data: data,
@@ -647,398 +643,129 @@ export class Api<
       ...params,
     });
   /**
-   * @description Регистрирует APN-токены (Apple Push Notification) для iOS-устройств.
+   * @description Список зарегистрированных устройств пользователя
    *
-   * @tags FCM
-   * @name RegisterApn
-   * @summary Регистрация APN-токенов
-   * @request POST:/api/fcm/register-apn-token
+   * @tags Biometric
+   * @name GetDevices
+   * @request GET:/api/biometric/devices
    * @secure
    */
-  registerApn = (data: RegisterApnPayload, params: RequestParams = {}) =>
-    this.request<string[], any>({
-      url: `/api/fcm/register-apn-token`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Отправляет push-уведомление через Firebase Cloud Messaging (FCM).
-   *
-   * @tags FCM
-   * @name SendPushNotification
-   * @summary Отправка push-уведомления
-   * @request POST:/api/fcm/push
-   * @secure
-   */
-  sendPushNotification = (data: IFCMMessageDto, params: RequestParams = {}) =>
-    this.request<Base64URLString, any>({
-      url: `/api/fcm/push`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает все FCM-токены пользователя по его `userId`.
-   *
-   * @tags FCM
-   * @name GetTokens
-   * @summary Получение токенов по `userId`
-   * @request GET:/api/fcm/tokens
-   * @secure
-   */
-  getTokens = (query: GetTokensParams, params: RequestParams = {}) =>
-    this.request<FcmTokenDto[], any>({
-      url: `/api/fcm/tokens`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает все FCM-токены текущего аутентифицированного пользователя.
-   *
-   * @tags FCM
-   * @name GetMyTokens
-   * @summary Получение токенов текущего пользователя
-   * @request GET:/api/fcm/my-tokens
-   * @secure
-   */
-  getMyTokens = (params: RequestParams = {}) =>
-    this.request<FcmTokenDto[], any>({
-      url: `/api/fcm/my-tokens`,
+  getDevices = (params: RequestParams = {}) =>
+    this.request<IBiometricDevicesResponseDto>({
+      url: `/api/biometric/devices`,
       method: "GET",
       responseType: "json",
       ...params,
     });
   /**
-   * @description Удаляет все FCM-токены текущего пользователя.
+   * @description Удалить зарегистрированное устройство
    *
-   * @tags FCM
-   * @name DeleteTokens
-   * @summary Удаление всех токенов пользователя
-   * @request DELETE:/api/fcm/my-tokens
+   * @tags Biometric
+   * @name DeleteDevice
+   * @request DELETE:/api/biometric/{deviceId}
    * @secure
    */
-  deleteTokens = (params: RequestParams = {}) =>
-    this.request<boolean, any>({
-      url: `/api/fcm/my-tokens`,
-      method: "DELETE",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает FCM-токен по его ID.
-   *
-   * @tags FCM
-   * @name GetToken
-   * @summary Получение токена по `id`
-   * @request GET:/api/fcm/token/{id}
-   * @secure
-   */
-  getToken = (id: number, params: RequestParams = {}) =>
-    this.request<FcmTokenDto, any>({
-      url: `/api/fcm/token/${id}`,
-      method: "GET",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Удаляет FCM-токен по его `id`.
-   *
-   * @tags FCM
-   * @name DeleteToken
-   * @summary Удаление токена
-   * @request DELETE:/api/fcm/token/{id}
-   * @secure
-   */
-  deleteToken = (id: number, params: RequestParams = {}) =>
-    this.request<boolean, any>({
-      url: `/api/fcm/token/${id}`,
-      method: "DELETE",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Добавляет новый FCM-токен для текущего пользователя.
-   *
-   * @tags FCM
-   * @name AddToken
-   * @summary Добавление FCM-токена
-   * @request POST:/api/fcm/token
-   * @secure
-   */
-  addToken = (data: FcmTokenRequestDto, params: RequestParams = {}) =>
-    this.request<FcmTokenDto, any>({
-      url: `/api/fcm/token`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает количество непрочитанных сообщений пользователя.
-   *
-   * @tags Dialog
-   * @name GetUnreadMessagesCount
-   * @summary Количество непрочитанных сообщений
-   * @request GET:/api/dialog/unread-messages-count
-   * @secure
-   */
-  getUnreadMessagesCount = (
-    query: GetUnreadMessagesCountParams,
+  deleteDevice = (
+    { deviceId, ...query }: DeleteDeviceParams,
     params: RequestParams = {},
   ) =>
-    this.request<COSEAlgorithmIdentifier, any>({
-      url: `/api/dialog/unread-messages-count`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает список всех диалогов пользователя.
-   *
-   * @tags Dialog
-   * @name GetDialogs
-   * @summary Список диалогов
-   * @request GET:/api/dialog/all
-   * @secure
-   */
-  getDialogs = (query: GetDialogsParams, params: RequestParams = {}) =>
-    this.request<IDialogListDto, any>({
-      url: `/api/dialog/all`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает информацию о конкретном диалоге по ID.
-   *
-   * @tags Dialog
-   * @name GetDialogById
-   * @summary Информация о диалоге
-   * @request GET:/api/dialog/info/{id}
-   * @secure
-   */
-  getDialogById = (id: string, params: RequestParams = {}) =>
-    this.request<DialogDetailDto, any>({
-      url: `/api/dialog/info/${id}`,
-      method: "GET",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Ищет диалог между текущим пользователем и собеседником.
-   *
-   * @tags Dialog
-   * @name GetPrivateDialogWithUser
-   * @summary Поиск диалога
-   * @request GET:/api/dialog/private-with/{userId}
-   * @secure
-   */
-  getPrivateDialogWithUser = (userId: string, params: RequestParams = {}) =>
-    this.request<IDialogFindResponseDto, any>({
-      url: `/api/dialog/private-with/${userId}`,
-      method: "GET",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Ищет диалог между текущим пользователем и другим участником.
-   *
-   * @tags Dialog
-   * @name FindDialog
-   * @summary Поиск диалога
-   * @request POST:/api/dialog/find
-   * @secure
-   */
-  findDialog = (data: IDialogFindRequestDto, params: RequestParams = {}) =>
-    this.request<IDialogFindResponseDto, any>({
-      url: `/api/dialog/find`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Ищет диалог или создает если не найден.
-   *
-   * @tags Dialog
-   * @name FindOrCreate
-   * @summary Поиск или создание диалога
-   * @request POST:/api/dialog/findOrCreate
-   * @secure
-   */
-  findOrCreate = (data: IDialogFindRequestDto, params: RequestParams = {}) =>
-    this.request<IDialogFindOrCreateResponseDto, any>({
-      url: `/api/dialog/findOrCreate`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Создает новый диалог.
-   *
-   * @tags Dialog
-   * @name CreateDialog
-   * @summary Создание диалога
-   * @request POST:/api/dialog
-   * @secure
-   */
-  createDialog = (data: IDialogCreateRequestDto, params: RequestParams = {}) =>
-    this.request<DialogDetailDto, any>({
-      url: `/api/dialog`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает список участников диалога.
-   *
-   * @tags Dialog
-   * @name GetMembers
-   * @summary Участники диалога
-   * @request GET:/api/dialog/members
-   * @secure
-   */
-  getMembers = (query: GetMembersParams, params: RequestParams = {}) =>
-    this.request<DialogMembersDto[], any>({
-      url: `/api/dialog/members`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Добавляет новых участников в диалог.
-   *
-   * @tags Dialog
-   * @name AddMembers
-   * @summary Добавление участников
-   * @request POST:/api/dialog/member
-   * @secure
-   */
-  addMembers = (
-    data: IDialogMembersAddRequestDto,
-    params: RequestParams = {},
-  ) =>
-    this.request<DialogMembersDto[], any>({
-      url: `/api/dialog/member`,
-      method: "POST",
-      data: data,
-      type: EContentType.Json,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Удаляет участника из диалога.
-   *
-   * @tags Dialog
-   * @name DeleteMember
-   * @summary Удаление участника
-   * @request DELETE:/api/dialog/member/{id}
-   * @secure
-   */
-  deleteMember = (id: string, params: RequestParams = {}) =>
-    this.request<boolean, any>({
-      url: `/api/dialog/member/${id}`,
+    this.request<IDeleteBiometricResponseDto>({
+      url: `/api/biometric/${deviceId}`,
       method: "DELETE",
       responseType: "json",
       ...params,
     });
   /**
-   * @description Удаляет диалог.
+   * @description Создать или получить существующий личный чат.
    *
-   * @tags Dialog
-   * @name RemoveDialog
-   * @summary Удаление диалога
-   * @request DELETE:/api/dialog/{id}
+   * @tags Chat
+   * @name CreateDirectChat
+   * @summary Создание личного чата
+   * @request POST:/api/chat/direct
    * @secure
    */
-  removeDialog = (id: string, params: RequestParams = {}) =>
-    this.request<void, any>({
-      url: `/api/dialog/${id}`,
-      method: "DELETE",
-      ...params,
-    });
-  /**
-   * @description Получает сообщения диалога с пагинацией.
-   *
-   * @tags Dialog
-   * @name GetMessages
-   * @summary Получение сообщений
-   * @request GET:/api/dialog/message/all
-   * @secure
-   */
-  getMessages = (query: GetMessagesParams, params: RequestParams = {}) =>
-    this.request<IDialogListMessagesDto, any>({
-      url: `/api/dialog/message/all`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает последнее сообщение в диалоге.
-   *
-   * @tags Dialog
-   * @name GetLastMessage
-   * @summary Последнее сообщение
-   * @request GET:/api/dialog/message/last-message
-   * @secure
-   */
-  getLastMessage = (query: GetLastMessageParams, params: RequestParams = {}) =>
-    this.request<DialogLastMessagesDto[], any>({
-      url: `/api/dialog/message/last-message`,
-      method: "GET",
-      params: query,
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Получает сообщение по ID.
-   *
-   * @tags Dialog
-   * @name GetMessageById
-   * @summary Получение сообщения по ID
-   * @request GET:/api/dialog/message/{id}
-   * @secure
-   */
-  getMessageById = (id: string, params: RequestParams = {}) =>
-    this.request<DialogMessagesDto, any>({
-      url: `/api/dialog/message/${id}`,
-      method: "GET",
-      responseType: "json",
-      ...params,
-    });
-  /**
-   * @description Обновляет существующее сообщение в диалоге.
-   *
-   * @tags Dialog
-   * @name UpdateMessage
-   * @summary Обновление сообщения
-   * @request PATCH:/api/dialog/message/{id}
-   * @secure
-   */
-  updateMessage = (
-    id: string,
-    data: IMessagesUpdateRequestDto,
+  createDirectChat = (
+    data: ICreateDirectChatBody,
     params: RequestParams = {},
   ) =>
-    this.request<DialogMessagesDto, any>({
-      url: `/api/dialog/message/${id}`,
+    this.request<ChatDto>({
+      url: `/api/chat/direct`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Создать групповой чат.
+   *
+   * @tags Chat
+   * @name CreateGroupChat
+   * @summary Создание группового чата
+   * @request POST:/api/chat/group
+   * @secure
+   */
+  createGroupChat = (data: ICreateGroupChatBody, params: RequestParams = {}) =>
+    this.request<ChatDto>({
+      url: `/api/chat/group`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить список чатов текущего пользователя.
+   *
+   * @tags Chat
+   * @name GetUserChats
+   * @summary Список чатов
+   * @request GET:/api/chat
+   * @secure
+   */
+  getUserChats = (query: GetUserChatsParams, params: RequestParams = {}) =>
+    this.request<IChatListDto>({
+      url: `/api/chat`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить информацию о чате.
+   *
+   * @tags Chat
+   * @name GetChatById
+   * @summary Получение чата
+   * @request GET:/api/chat/{id}
+   * @secure
+   */
+  getChatById = (
+    { id, ...query }: GetChatByIdParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatDto>({
+      url: `/api/chat/${id}`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Обновить групповой чат (название, аватар).
+   *
+   * @tags Chat
+   * @name UpdateChat
+   * @summary Обновление чата
+   * @request PATCH:/api/chat/{id}
+   * @secure
+   */
+  updateChat = (
+    { id, ...query }: UpdateChatParams,
+    data: IUpdateChatBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatDto>({
+      url: `/api/chat/${id}`,
       method: "PATCH",
       data: data,
       type: EContentType.Json,
@@ -1046,33 +773,37 @@ export class Api<
       ...params,
     });
   /**
-   * @description Удаляет сообщение из диалога.
+   * @description Покинуть чат.
    *
-   * @tags Dialog
-   * @name DeleteMessage
-   * @summary Удаление сообщения
-   * @request DELETE:/api/dialog/message/{id}
+   * @tags Chat
+   * @name LeaveChat
+   * @summary Выход из чата
+   * @request DELETE:/api/chat/{id}
    * @secure
    */
-  deleteMessage = (id: string, params: RequestParams = {}) =>
-    this.request<boolean, any>({
-      url: `/api/dialog/message/${id}`,
+  leaveChat = ({ id, ...query }: LeaveChatParams, params: RequestParams = {}) =>
+    this.request<Base64URLString>({
+      url: `/api/chat/${id}`,
       method: "DELETE",
       responseType: "json",
       ...params,
     });
   /**
-   * @description Отправляет новое сообщение в диалог.
+   * @description Добавить участников в групповой чат.
    *
-   * @tags Dialog
-   * @name NewMessage
-   * @summary Отправка сообщения
-   * @request POST:/api/dialog/message
+   * @tags Chat
+   * @name AddMembers
+   * @summary Добавление участников
+   * @request POST:/api/chat/{id}/members
    * @secure
    */
-  newMessage = (data: IMessagesRequestDto, params: RequestParams = {}) =>
-    this.request<DialogMessagesDto, any>({
-      url: `/api/dialog/message`,
+  addMembers = (
+    { id, ...query }: AddMembersParams,
+    data: IAddMembersBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatMemberDto[]>({
+      url: `/api/chat/${id}/members`,
       method: "POST",
       data: data,
       type: EContentType.Json,
@@ -1080,43 +811,325 @@ export class Api<
       ...params,
     });
   /**
-   * @description Генерирует параметры для регистрации нового устройства с использованием Passkeys. Этот эндпоинт используется для создания параметров, которые будут отправлены клиенту для регистрации нового устройства. Клиент должен будет выполнить регистрацию, используя данные сгенерированные этим запросом.
+   * @description Удалить участника из группового чата.
+   *
+   * @tags Chat
+   * @name RemoveMember
+   * @summary Удаление участника
+   * @request DELETE:/api/chat/{id}/members/{userId}
+   * @secure
+   */
+  removeMember = (
+    { id, userId, ...query }: RemoveMemberParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<Base64URLString>({
+      url: `/api/chat/${id}/members/${userId}`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Изменить роль участника в групповом чате.
+   *
+   * @tags Chat
+   * @name UpdateMemberRole
+   * @summary Изменение роли участника
+   * @request PATCH:/api/chat/{id}/members/{userId}
+   * @secure
+   */
+  updateMemberRole = (
+    { id, userId, ...query }: UpdateMemberRoleParams,
+    data: IUpdateMemberRoleBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatMemberDto>({
+      url: `/api/chat/${id}/members/${userId}`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Добавить контакт.
+   *
+   * @tags Contact
+   * @name AddContact
+   * @summary Добавление контакта
+   * @request POST:/api/contact
+   * @secure
+   */
+  addContact = (data: ICreateContactBody, params: RequestParams = {}) =>
+    this.request<ContactDto>({
+      url: `/api/contact`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить список контактов текущего пользователя.
+   *
+   * @tags Contact
+   * @name GetContacts
+   * @summary Список контактов
+   * @request GET:/api/contact
+   * @secure
+   */
+  getContacts = (query: GetContactsParams, params: RequestParams = {}) =>
+    this.request<ContactDto[]>({
+      url: `/api/contact`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Принять запрос на добавление в контакты.
+   *
+   * @tags Contact
+   * @name AcceptContact
+   * @summary Принять контакт
+   * @request PATCH:/api/contact/{id}/accept
+   * @secure
+   */
+  acceptContact = (
+    { id, ...query }: AcceptContactParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ContactDto>({
+      url: `/api/contact/${id}/accept`,
+      method: "PATCH",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить контакт.
+   *
+   * @tags Contact
+   * @name RemoveContact
+   * @summary Удаление контакта
+   * @request DELETE:/api/contact/{id}
+   * @secure
+   */
+  removeContact = (
+    { id, ...query }: RemoveContactParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<Base64URLString>({
+      url: `/api/contact/${id}`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Заблокировать контакт.
+   *
+   * @tags Contact
+   * @name BlockContact
+   * @summary Блокировка контакта
+   * @request POST:/api/contact/{id}/block
+   * @secure
+   */
+  blockContact = (
+    { id, ...query }: BlockContactParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ContactDto>({
+      url: `/api/contact/${id}/block`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить файл по ID. Этот эндпоинт позволяет пользователю получить файл по его уникальному ID. Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут получить доступ к этому ресурсу.
+   *
+   * @tags Files
+   * @name GetFileById
+   * @summary Получение файла по ID
+   * @request GET:/api/file
+   * @secure
+   */
+  getFileById = (query: GetFileByIdParams, params: RequestParams = {}) =>
+    this.request<IFileDto>({
+      url: `/api/file`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Загрузить файл. Этот эндпоинт позволяет пользователю загрузить один файл на сервер. Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут загружать файлы.
+   *
+   * @tags Files
+   * @name UploadFile
+   * @summary Загрузка файла
+   * @request POST:/api/file
+   * @secure
+   */
+  uploadFile = (data: UploadFilePayload, params: RequestParams = {}) =>
+    this.request<IFileDto[]>({
+      url: `/api/file`,
+      method: "POST",
+      data: data,
+      type: EContentType.FormData,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить файл. Этот эндпоинт позволяет пользователю удалить файл по его ID. Доступ разрешен только пользователю, который загрузил файл, либо администратору.
+   *
+   * @tags Files
+   * @name DeleteFile
+   * @summary Удаление файла
+   * @request DELETE:/api/file/{id}
+   * @secure
+   */
+  deleteFile = (
+    { id, ...query }: DeleteFileParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<boolean>({
+      url: `/api/file/${id}`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отправить сообщение в чат.
+   *
+   * @tags Message
+   * @name SendMessage
+   * @summary Отправка сообщения
+   * @request POST:/api/chat/{chatId}/message
+   * @secure
+   */
+  sendMessage = (
+    { chatId, ...query }: SendMessageParams,
+    data: ISendMessageBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<MessageDto>({
+      url: `/api/chat/${chatId}/message`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить сообщения чата с cursor-based пагинацией.
+   *
+   * @tags Message
+   * @name GetMessages
+   * @summary Список сообщений
+   * @request GET:/api/chat/{chatId}/message
+   * @secure
+   */
+  getMessages = (
+    { chatId, ...query }: GetMessagesParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IMessageListDto>({
+      url: `/api/chat/${chatId}/message`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отметить сообщения как прочитанные до указанного messageId.
+   *
+   * @tags Message
+   * @name MarkAsRead
+   * @summary Прочитать сообщения
+   * @request POST:/api/chat/{chatId}/message/read
+   * @secure
+   */
+  markAsRead = (
+    { chatId, ...query }: MarkAsReadParams,
+    data: IMarkReadBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/chat/${chatId}/message/read`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Отредактировать сообщение.
+   *
+   * @tags Message
+   * @name EditMessage
+   * @summary Редактирование сообщения
+   * @request PATCH:/api/message/{id}
+   * @secure
+   */
+  editMessage = (
+    { id, ...query }: EditMessageParams,
+    data: IEditMessageBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<MessageDto>({
+      url: `/api/message/${id}`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить сообщение (soft delete).
+   *
+   * @tags Message
+   * @name DeleteMessage
+   * @summary Удаление сообщения
+   * @request DELETE:/api/message/{id}
+   * @secure
+   */
+  deleteMessage = (
+    { id, ...query }: DeleteMessageParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/message/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Генерирует параметры для регистрации нового passkey. Требует авторизации — passkey привязывается к текущему пользователю.
    *
    * @tags Passkeys
    * @name GenerateRegistrationOptions
-   * @summary Генерация параметров регистрации
+   * @summary Параметры регистрации passkey
    * @request POST:/api/passkeys/generate-registration-options
+   * @secure
    */
-  generateRegistrationOptions = (
-    data: GenerateRegistrationOptionsPayload,
-    params: RequestParams = {},
-  ) =>
-    this.request<PublicKeyCredentialRequestOptionsJSON, any>({
+  generateRegistrationOptions = (params: RequestParams = {}) =>
+    this.request<PublicKeyCredentialCreationOptionsJSON>({
       url: `/api/passkeys/generate-registration-options`,
       method: "POST",
-      data: data,
-      type: EContentType.Json,
       responseType: "json",
       ...params,
     });
   /**
-   * @description Проверяет данные регистрации для нового устройства. Этот эндпоинт используется для подтверждения данных, которые были отправлены клиентом после попытки регистрации нового устройства. Он валидирует предоставленные данные и завершает процесс регистрации.
+   * @description Верифицирует ответ устройства и сохраняет passkey для текущего пользователя.
    *
    * @tags Passkeys
    * @name VerifyRegistration
-   * @summary Проверка данных регистрации
+   * @summary Верификация регистрации passkey
    * @request POST:/api/passkeys/verify-registration
+   * @secure
    */
   verifyRegistration = (
     data: IVerifyRegistrationRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<
-      {
-        verified: boolean;
-      },
-      any
-    >({
+    this.request<IVerifyRegistrationResponseDto>({
       url: `/api/passkeys/verify-registration`,
       method: "POST",
       data: data,
@@ -1125,18 +1138,18 @@ export class Api<
       ...params,
     });
   /**
-   * @description Генерирует параметры для аутентификации пользователя с использованием Passkeys. Этот эндпоинт создает параметры аутентификации, которые будут отправлены клиенту для выполнения аутентификации с помощью Passkeys. Эти параметры используются клиентом для вызова аутентификации на его устройстве.
+   * @description Генерирует параметры для аутентификации по passkey. Принимает login (email или телефон) пользователя.
    *
    * @tags Passkeys
    * @name GenerateAuthenticationOptions
-   * @summary Генерация параметров аутентификации
+   * @summary Параметры аутентификации passkey
    * @request POST:/api/passkeys/generate-authentication-options
    */
   generateAuthenticationOptions = (
-    data: GenerateAuthenticationOptionsPayload,
+    data: IGenerateAuthenticationOptionsRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<PublicKeyCredentialRequestOptionsJSON, any>({
+    this.request<PublicKeyCredentialRequestOptionsJSON>({
       url: `/api/passkeys/generate-authentication-options`,
       method: "POST",
       data: data,
@@ -1145,20 +1158,93 @@ export class Api<
       ...params,
     });
   /**
-   * @description Проверяет данные аутентификации для пользователя. Этот эндпоинт проверяет данные аутентификации, которые были отправлены с клиентской стороны, и завершается успешной или неудачной аутентификацией в зависимости от результатов проверки.
+   * @description Верифицирует ответ устройства и возвращает токены при успехе.
    *
    * @tags Passkeys
    * @name VerifyAuthentication
-   * @summary Проверка данных аутентификации
+   * @summary Аутентификация по passkey
    * @request POST:/api/passkeys/verify-authentication
    */
   verifyAuthentication = (
     data: IVerifyAuthenticationRequestDto,
     params: RequestParams = {},
   ) =>
-    this.request<IVerifyAuthenticationResponseDto, any>({
+    this.request<IVerifyAuthenticationResponseDto>({
       url: `/api/passkeys/verify-authentication`,
       method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Зарегистрировать устройство для push-уведомлений.
+   *
+   * @tags Push
+   * @name RegisterDevice
+   * @summary Регистрация устройства
+   * @request POST:/api/device
+   * @secure
+   */
+  registerDevice = (data: IRegisterDeviceBody, params: RequestParams = {}) =>
+    this.request<DeviceTokenDto>({
+      url: `/api/device`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить устройство из push-уведомлений.
+   *
+   * @tags Push
+   * @name UnregisterDevice
+   * @summary Удаление устройства
+   * @request DELETE:/api/device/{token}
+   * @secure
+   */
+  unregisterDevice = (
+    { token, ...query }: UnregisterDeviceParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/device/${token}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Получить настройки уведомлений текущего пользователя.
+   *
+   * @tags Push
+   * @name GetSettings
+   * @summary Настройки уведомлений
+   * @request GET:/api/notification/settings
+   * @secure
+   */
+  getSettings = (params: RequestParams = {}) =>
+    this.request<NotificationSettingsDto>({
+      url: `/api/notification/settings`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Обновить настройки уведомлений.
+   *
+   * @tags Push
+   * @name UpdateSettings
+   * @summary Обновление настроек уведомлений
+   * @request PATCH:/api/notification/settings
+   * @secure
+   */
+  updateSettings = (
+    data: IUpdateNotificationSettingsBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<NotificationSettingsDto>({
+      url: `/api/notification/settings`,
+      method: "PATCH",
       data: data,
       type: EContentType.Json,
       responseType: "json",

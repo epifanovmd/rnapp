@@ -1,26 +1,16 @@
 import { IApiService } from "@api";
-import { FcmTokenDto } from "@api/api-gen/data-contracts";
-import { DataHolder, isString } from "@force-dev/utils";
-// import PushNotificationIOS from "@react-native-community/push-notification-ios";
-import { INavigationService, log, NavigationService } from "@service";
-import { makeAutoObservable, reaction, runInAction } from "mobx";
-import { Linking, Platform } from "react-native";
+import { DeviceTokenDto, EDevicePlatform } from "@api/api-gen/data-contracts";
+import { log } from "@core";
+import { makeAutoObservable, runInAction } from "mobx";
+import { Platform } from "react-native";
 
-// import PushNotification from "react-native-push-notification";
 import { IPushNotificationDataStore } from "./PushNotificationData.types";
 
 @IPushNotificationDataStore({ inSingleton: true })
 export class PushNotificationDataStore implements IPushNotificationDataStore {
-  private _showInForeground?: boolean = true;
   private _deviceToken?: string = undefined;
-  private _fcmToken?: string = undefined;
-  private _holder: DataHolder<FcmTokenDto[]> = new DataHolder<FcmTokenDto[]>();
 
-  constructor(
-    @IApiService()
-    private _apiService: IApiService,
-    @INavigationService() private _navigationService: NavigationService,
-  ) {
+  constructor(@IApiService() private _apiService: IApiService) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
@@ -149,27 +139,39 @@ export class PushNotificationDataStore implements IPushNotificationDataStore {
     return this._deviceToken;
   }
 
-  get myPushNotificationToken() {
-    return this._fcmToken;
-  }
+  async registerDevice(
+    token: string,
+    platform?: string,
+  ): Promise<DeviceTokenDto | undefined> {
+    const devicePlatform =
+      platform ??
+      Platform.select({
+        ios: EDevicePlatform.Ios,
+        android: EDevicePlatform.Android,
+        default: EDevicePlatform.Web,
+      });
 
-  get tokens() {
-    return this._holder.d ?? [];
-  }
+    const res = await this._apiService.registerDevice({
+      token,
+      platform: devicePlatform as EDevicePlatform,
+    });
 
-  showInForeground(show?: boolean) {
-    this._showInForeground = !!show;
-  }
+    if (res.data) {
+      runInAction(() => {
+        this._deviceToken = token;
+      });
 
-  async onGetPushNotificationTokens(userId: string) {
-    this._holder.setLoading();
-
-    const res = await this._apiService.getTokens({ userId });
-
-    if (res.error) {
-      this._holder.setError(res.error.message);
-    } else if (res.data) {
-      this._holder.setData(res.data);
+      return res.data;
     }
+
+    return undefined;
+  }
+
+  async unregisterDevice(token: string): Promise<void> {
+    await this._apiService.unregisterDevice({ token });
+
+    runInAction(() => {
+      this._deviceToken = undefined;
+    });
   }
 }

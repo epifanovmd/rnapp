@@ -1,5 +1,5 @@
 import { useMergedCallback } from "@common";
-import { mergeRefs } from "@force-dev/react";
+import { mergeRefs } from "@common/hooks/mergeRefs";
 import React, {
   forwardRef,
   memo,

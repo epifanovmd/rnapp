@@ -8,7 +8,6 @@ export const enLocale = {
     Pickers: "Pickers",
     Components: "Components",
     Modals: "Modals",
-    ChatScreen: "ChatScreen",
   },
   button: {
     cancel: "Cancel",

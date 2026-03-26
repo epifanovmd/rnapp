@@ -1,4 +1,4 @@
-import { RecursiveObjectType } from "@force-dev/utils";
+import { RecursiveObjectType } from "@common/helpers/deepKeys";
 import dayjs from "dayjs";
 import { changeLanguage, i18n as I18n, TFunction } from "i18next";
 import { useTranslation as useT } from "react-i18next";

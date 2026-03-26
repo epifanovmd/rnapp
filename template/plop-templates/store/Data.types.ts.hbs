@@ -1,19 +1,18 @@
-import { AsyncDataSource, createServiceDecorator } from "@force-dev/utils";
+import { createServiceDecorator } from "@common/ioc";
 
-import { {{properCase name}}Model } from "@models";
-import { I{{properCase name}}, I{{properCase name}}Request } from "@service";
+import { EntityHolder } from "@core/holders";
+
+import { I{{properCase name}}, I{{properCase name}}Request } from "@api";
 
 export const I{{properCase name}}DataStore = createServiceDecorator<I{{properCase name}}DataStore>();
 
 export interface I{{properCase name}}DataStore {
-  dataSource: AsyncDataSource<I{{properCase name}}, I{{properCase name}}Request>;
+  holder: EntityHolder<I{{properCase name}}, I{{properCase name}}Request>;
 
-  data?: I{{properCase name}};
-  model?: {{properCase name}}Model;
-
+  data: I{{properCase name}} | null;
   error?: string;
-  loading: boolean;
-  loaded: boolean;
+  isLoading: boolean;
+  isReady: boolean;
 
-  onRefresh(req: I{{properCase name}}Request): Promise<I{{properCase name}} | undefined>;
+  load(params?: I{{properCase name}}Request): Promise<void>;
 }

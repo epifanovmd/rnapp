@@ -1,4 +1,4 @@
-import { ValueHolder } from "@force-dev/utils";
+import { ValueHolder } from "@common/store";
 import { isEqual } from "lodash";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 

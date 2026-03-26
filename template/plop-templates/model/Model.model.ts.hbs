@@ -1,9 +1,9 @@
-import { DataModelBase } from "@force-dev/utils";
+import { I{{properCase name}} } from "@api";
 
-import { I{{properCase name}} } from "@service";
+export class {{properCase name}}Model {
+  constructor(private _data: I{{properCase name}}) {}
 
-export class {{properCase name}}Model extends DataModelBase<I{{properCase name}} | undefined> {
   get value() {
-    return this.data;
+    return this._data;
   }
 }

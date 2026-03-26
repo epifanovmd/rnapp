@@ -6,6 +6,8 @@
     "lib": ["ESNext", "ES6", "dom"],
     "allowImportingTsExtensions": false,
     "paths": {
+      "@core": ["./src/core"],
+      "@core/*": ["./src/core/*"],
       "@api": ["./src/api"],
       "@api/*": ["./src/api/*"],
       "@common": ["./src/common"],
@@ -14,12 +16,10 @@
       "@components/*": ["./src/components/*"],
       "@models": ["./src/models"],
       "@models/*": ["./src/models/*"],
-      "@service": ["./src/service"],
-      "@service/*": ["./src/service/*"],
+      "@socket": ["./src/socket"],
+      "@socket/*": ["./src/socket/*"],
       "@store": ["./src/store"],
-      "@store/*": ["./src/store/*"],
-      "@core": ["./src/core"],
-      "@core/*": ["./src/core/*"]
+      "@store/*": ["./src/store/*"]
     }
   },
   "include": ["./src/**/*"],

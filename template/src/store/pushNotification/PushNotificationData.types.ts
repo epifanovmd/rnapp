@@ -1,14 +1,15 @@
-import { FcmTokenDto } from "@api/api-gen/data-contracts";
-import { iocHook } from "@force-dev/react";
-import { createServiceDecorator, SupportInitialize } from "@force-dev/utils";
+import { DeviceTokenDto } from "@api/api-gen/data-contracts";
+import { iocHook } from "@common/ioc";
+import { createServiceDecorator, SupportInitialize } from "@common/ioc";
 
 export interface IPushNotificationDataStore extends SupportInitialize {
   myDeviceToken?: string;
-  myPushNotificationToken?: string;
-  tokens: FcmTokenDto[];
 
-  showInForeground(show?: boolean): void;
-  onGetPushNotificationTokens(userId: string): Promise<void>;
+  registerDevice(
+    token: string,
+    platform: string,
+  ): Promise<DeviceTokenDto | undefined>;
+  unregisterDevice(token: string): Promise<void>;
 }
 
 export const IPushNotificationDataStore =

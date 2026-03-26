@@ -1,40 +1,37 @@
-import { AsyncDataSource } from "@force-dev/utils";
 import { makeAutoObservable } from "mobx";
 
-import { {{properCase name}}Model } from "@models";
-import { I{{properCase name}}, I{{properCase name}}Request, I{{properCase name}}Service } from "@service";
+import { IApiService } from "@api";
+import { EntityHolder } from "@core/holders";
 
 import { I{{properCase name}}DataStore } from "./{{properCase name}}Data.types";
 
-@I{{properCase name}}DataStore()
+@I{{properCase name}}DataStore({ inSingleton: true })
 export class {{properCase name}}DataStore implements I{{properCase name}}DataStore {
-  public dataSource: AsyncDataSource<I{{properCase name}}, I{{properCase name}}Request>;
-  public model = new {{properCase name}}Model(() => this.data);
+  public holder = new EntityHolder({
+    onFetch: (params: any) => this._api.get{{properCase name}}(params),
+  });
 
-  constructor(@I{{properCase name}}Service() private _{{camelCase name}}Service: I{{properCase name}}Service) {
-    this.dataSource = new AsyncDataSource(query =>
-      this._{{camelCase name}}Service.get{{properCase name}}(query),
-    );
+  constructor(@IApiService() private _api: IApiService) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
   get data() {
-    return this.dataSource.d;
+    return this.holder.data;
   }
 
   get error() {
-    return this.dataSource.error;
+    return this.holder.error?.message;
   }
 
-  get loading() {
-    return this.dataSource.isLoading;
+  get isLoading() {
+    return this.holder.isLoading;
   }
 
-  get loaded() {
-    return this.dataSource.isReady;
+  get isReady() {
+    return this.holder.isReady;
   }
 
-  onRefresh = async (id: number) => {
-    return this.dataSource.refresh(id);
-  };
+  async load(params?: any) {
+    await this.holder.load(params);
+  }
 }

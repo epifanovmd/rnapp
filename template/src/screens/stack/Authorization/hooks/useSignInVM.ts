@@ -1,39 +1,23 @@
-import { AuthenticatePayload } from "@api/api-gen/data-contracts";
 import { useNavigation } from "@core";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSessionDataStore } from "@store";
-import { useCallback, useEffect, useState } from "react";
+import { useAuthStore } from "@store";
+import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { Linking } from "react-native";
 
 import { signInFormValidationSchema, TSignInForm } from "../validations";
 
-export const useSignInVM = ({ code }: Partial<AuthenticatePayload>) => {
-  const [processingAuth, setProcessingAuth] = useState<boolean>(false);
-
-  const sessionDataStore = useSessionDataStore();
+export const useSignInVM = () => {
+  const authStore = useAuthStore();
   const navigation = useNavigation();
 
   const form = useForm<TSignInForm>({
     defaultValues: {
       login: "user@example.com",
       password: "password123",
-      // login: "epifanovmd@gmail.com",
-      // password: "Epifan123",
     },
     resolver: zodResolver(signInFormValidationSchema),
   });
-
-  useEffect(() => {
-    if (code) {
-      setProcessingAuth(true);
-      sessionDataStore
-        .auth({ code })
-        .catch(() => null)
-        .finally(() => setProcessingAuth(false));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code]);
 
   const handleNavigateSignUp = useCallback(() => {
     return navigation.navigate("SignUp");
@@ -45,9 +29,9 @@ export const useSignInVM = ({ code }: Partial<AuthenticatePayload>) => {
 
   const handleLogin = useCallback(async () => {
     return form.handleSubmit(async data => {
-      await sessionDataStore.signIn(data);
+      await authStore.signIn(data);
     })();
-  }, [form, sessionDataStore]);
+  }, [form, authStore]);
 
   const getAuthUrl = useCallback((): string => {
     const baseUrl = "https://github.com/login/oauth/authorize";
@@ -60,7 +44,6 @@ export const useSignInVM = ({ code }: Partial<AuthenticatePayload>) => {
     return `${baseUrl}?${params.toString()}`;
   }, []);
 
-  // Открытие браузера для авторизации
   const loginByGithub = useCallback(async (): Promise<void> => {
     try {
       const authUrl = getAuthUrl();
@@ -73,7 +56,6 @@ export const useSignInVM = ({ code }: Partial<AuthenticatePayload>) => {
 
   return {
     form,
-    processingAuth,
     loginByGithub,
     handleLogin,
     handleNavigateRecoveryPassword,

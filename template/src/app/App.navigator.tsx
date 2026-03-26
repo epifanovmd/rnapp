@@ -57,23 +57,23 @@ export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IAppNavigatorProps>(
     (_props, ref) => {
       const navigatorTheme = useAppNavigationTheme();
-      const { sessionDataStore } = useAppDataStore();
+      const { authStore } = useAppDataStore();
       const { available, authorization } = useBiometric();
 
       useLogger(ref as any);
 
       const routes = useMemo(() => {
-        if (sessionDataStore.isAuthorized) {
+        if (authStore.isAuthenticated) {
           return { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS };
         }
 
         return PUBLIC_SCREENS;
-      }, [sessionDataStore.isAuthorized]);
+      }, [authStore.isAuthenticated]);
 
       const onReady = useCallback(async () => {
-        await sessionDataStore.restore();
+        await authStore.restore();
 
-        if (available && !sessionDataStore.isAuthorized) {
+        if (available && !authStore.isAuthenticated) {
           await authorization();
         }
 
@@ -81,7 +81,7 @@ export const AppNavigator = observer(
           trigger(HapticFeedbackTypes.impactLight);
           BootSplash.hide({ fade: true });
         }, 500);
-      }, [authorization, available, sessionDataStore]);
+      }, [authorization, available, authStore]);
 
       return (
         <NavigationContainer

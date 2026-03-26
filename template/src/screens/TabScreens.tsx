@@ -12,16 +12,10 @@ import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,
 } from "@react-navigation/bottom-tabs";
-import {
-  HomeIcon,
-  ListIcon,
-  MessageCircle,
-  SettingsIcon,
-} from "lucide-react-native";
+import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import React, { FC, memo, useMemo } from "react";
 
 import { Main, Playground } from "./tabs";
-import { Dialogs } from "./tabs/dialogs";
 import { Settings } from "./tabs/settings";
 
 interface IProps extends StackProps {}
@@ -42,15 +36,6 @@ export const TAB_SCREENS: AppTabScreens = {
     screen: Playground,
     options: {
       tabBarIcon: ({ size, color }) => <ListIcon size={size} color={color} />,
-      headerShown: false,
-    },
-  },
-  Dialogs: {
-    screen: Dialogs,
-    options: {
-      tabBarIcon: ({ size, color }) => (
-        <MessageCircle size={size} color={color} />
-      ),
       headerShown: false,
     },
   },
