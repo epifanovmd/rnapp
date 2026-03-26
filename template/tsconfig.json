@@ -2,9 +2,14 @@
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
-    "lib": ["ESNext", "ES6", "dom"],
+    "lib": ["ESNext", "DOM"],
     "allowImportingTsExtensions": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
     "paths": {
       "@core": ["./src/core"],
       "@core/*": ["./src/core/*"],

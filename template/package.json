@@ -97,6 +97,7 @@
     "@react-native/typescript-config": "0.84.1",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.23",
+    "@types/node": "^25.5.0",
     "@types/react": "^19.2.0",
     "@types/shortid": "^2.2.0",
     "@typescript-eslint/parser": "^8.54.0",
