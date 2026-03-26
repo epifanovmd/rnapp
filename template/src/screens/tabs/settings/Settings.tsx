@@ -10,12 +10,8 @@ import {
   SwitchTheme,
   Text,
 } from "@components";
-import {
-  AppScreenProps,
-  TransitionProvider,
-  useTheme,
-  useTransitionContext,
-} from "@core";
+import { TransitionProvider, useTheme, useTransitionContext } from "@core";
+import { AppScreenProps } from "@navigation";
 import { useAuthStore } from "@store";
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";

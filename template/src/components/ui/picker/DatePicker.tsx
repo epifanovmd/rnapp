@@ -1,4 +1,3 @@
-import { useTranslation } from "@core";
 import { BottomSheetView } from "@gorhom/bottom-sheet";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
@@ -90,7 +89,6 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     children,
     ...rest
   }) => {
-    const { i18n } = useTranslation();
     const modalRef = useBottomSheetRef();
 
     const months = useMemo(
@@ -99,7 +97,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
           .months()
           .map(item => item[0]?.toUpperCase() + item.slice(1, item.length)),
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [i18n.language],
+      [],
     );
 
     const now = useMemo(() => (date ? dayjs(date) : dayjs()), [date]);

@@ -35,14 +35,11 @@ function createServiceDecorator<TInterface>(): IoCServiceDecorator<TInterface> {
       index?: number | undefined,
     ) {
       if (index !== undefined) {
-        // Constructor parameter injection
         inject(name)(target, targetKey!, index);
-
         if (options?.optional) {
           optional()(target, targetKey!, index);
         }
       } else if (targetKey) {
-        // Property injection
         if (options?.optional) {
           inject(name)(target, targetKey);
           optional()(target, targetKey);
@@ -50,9 +47,7 @@ function createServiceDecorator<TInterface>(): IoCServiceDecorator<TInterface> {
           lazyInject(name)(target, targetKey);
         }
       } else {
-        // Class registration
         injectable()(target);
-
         if (!iocContainer.isBound(name)) {
           const binding = iocContainer.bind<TInterface>(name).to(target);
 

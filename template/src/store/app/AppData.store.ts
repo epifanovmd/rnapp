@@ -1,5 +1,5 @@
 import { disposer, InitializeDispose } from "@common/ioc";
-import { INavigationService, NavigationService } from "@core/navigation";
+import { INavigationService, NavigationService } from "@navigation";
 import { ISocketTransport } from "@socket";
 import { makeAutoObservable, reaction } from "mobx";
 

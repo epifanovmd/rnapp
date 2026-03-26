@@ -1,12 +1,7 @@
 import { HiddenBar, Navbar } from "@components";
 import { Tabs } from "@components/ui/tabs";
-import {
-  StackProps,
-  TabScreens,
-  TopTabNavigation,
-  TransitionProvider,
-  useTransitionContext,
-} from "@core";
+import { TransitionProvider, useTransitionContext } from "@core";
+import { StackProps, TabScreens, TopTabNavigation } from "@navigation";
 import React, { FC, memo } from "react";
 
 import {

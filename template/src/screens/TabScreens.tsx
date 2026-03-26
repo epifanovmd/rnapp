@@ -1,13 +1,11 @@
 import { Navbar, TabBar } from "@components";
+import { TransitionProvider, useTransition } from "@core";
 import {
   AppNavigation,
   AppTabScreens,
   ScreenName,
   StackProps,
-  TransitionProvider,
-  useTransition,
-  useTranslation,
-} from "@core";
+} from "@navigation";
 import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,
@@ -56,32 +54,13 @@ const screenOptions: BottomTabNavigationOptions = {
 };
 
 export const TabScreens: FC<IProps> = memo(() => {
-  const { t } = useTranslation();
   const context = useTransition();
-
-  const tabs = useMemo(
-    () =>
-      Object.keys(TAB_SCREENS).reduce<any>((acc, key) => {
-        const item = TAB_SCREENS[key as ScreenName];
-
-        acc[key] = {
-          ...item,
-          options: {
-            ...item?.options,
-            title: t(item?.options?.title as any),
-          },
-        } as any;
-
-        return acc;
-      }, {}),
-    [t],
-  );
 
   return (
     <TransitionProvider context={context}>
       <AppNavigation
         tabBar={props => <TabBar {...props} />}
-        routes={tabs}
+        routes={TAB_SCREENS}
         screenOptions={screenOptions}
         initialRouteName={"Playground"}
       />

@@ -11,7 +11,8 @@ import {
   useBottomSheetRef,
 } from "@components";
 import { Icon } from "@components/ui/icon";
-import { TabProps, useTransition } from "@core";
+import { useTransition } from "@core";
+import { TabProps } from "@navigation";
 import React, { FC, memo } from "react";
 
 import { CustomFilter } from "./CustomFilter";

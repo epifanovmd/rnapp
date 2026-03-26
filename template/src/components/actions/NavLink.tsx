@@ -1,4 +1,4 @@
-import { ScreenName } from "@core";
+import { ScreenName } from "@navigation";
 import { NavigationProp, useNavigation } from "@react-navigation/native";
 import React, { FC, memo, useCallback } from "react";
 

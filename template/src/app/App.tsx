@@ -1,18 +1,11 @@
-// Side-effect: register auth IoC singletons (AuthTokenStore, AuthSessionService)
-import "@core/auth";
-
 import { disposer } from "@common/ioc";
 import { Dialog, HoldItemProvider } from "@components";
-import {
-  initLocalization,
-  ThemeProvider,
-  useTheme,
-  useTranslation,
-} from "@core";
-import { log, navigationRef } from "@core";
+import { ThemeProvider, useTheme } from "@core";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { navigationRef } from "@navigation";
 import { useAppDataStore } from "@store/app";
+import { setDefaultOptions } from "date-fns";
+import { ru } from "date-fns/locale";
 import { configure } from "mobx";
 import { observer } from "mobx-react-lite";
 import React, { FC, memo, PropsWithChildren, useEffect } from "react";
@@ -27,27 +20,17 @@ import {
 
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
-import { TestRNGridView } from "./TestRNGridView";
 
 configure({ enforceActions: "observed" });
-
-initLocalization({ initLang: "ru" });
+setDefaultOptions({ locale: ru });
 
 export const App: FC = observer(() => {
-  const { changeLanguage } = useTranslation();
-
   const { initialize } = useAppDataStore();
 
   useEffect(() => {
     const dispose = initialize();
 
-    AsyncStorage.getItem("i18nextLng").then(async lang => {
-      if (lang) {
-        await changeLanguage(lang);
-      }
-    });
-
-    log.debug("CONFIG", JSON.stringify(Config));
+    console.log("CONFIG", JSON.stringify(Config));
 
     return () => {
       disposer(dispose);

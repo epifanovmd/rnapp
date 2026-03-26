@@ -1,4 +1,4 @@
-import { useRoute, useTranslation } from "@core";
+import { useRoute } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren } from "react";
 
@@ -15,9 +15,6 @@ export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
   ({ title, rightSlot, textProps, children, ...rest }) => {
     const { flexProps } = useFlexProps(rest);
     const route = useRoute();
-    const { t } = useTranslation();
-
-    const _title = title || t(`navigation.${route.name}` as any);
 
     return (
       <Row
@@ -30,7 +27,7 @@ export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
       >
         {children ?? (
           <Text textStyle={"Title_L"} {...textProps}>
-            {_title}
+            {title || route.name}
           </Text>
         )}
 

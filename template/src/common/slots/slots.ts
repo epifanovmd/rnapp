@@ -93,10 +93,7 @@ export function getSlotsProps<
     }
   }
 
-  return {
-    ...result,
-    $children,
-  };
+  return { ...result, $children };
 }
 
 export function useSlotProps<

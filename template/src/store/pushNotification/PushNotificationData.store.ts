@@ -1,6 +1,6 @@
 import { IApiService } from "@api";
 import { DeviceTokenDto, EDevicePlatform } from "@api/api-gen/data-contracts";
-import { INavigationService, log, NavigationService } from "@core";
+import { INavigationService, NavigationService } from "@navigation";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 import { Platform } from "react-native";
 
@@ -19,8 +19,6 @@ export class PushNotificationDataStore implements IPushNotificationDataStore {
   }
 
   initialize() {
-    log.debug("GoogleStore init");
-
     // if (!this._deviceToken && !this._fcmToken) {
     //   // https://github.com/zo0r/react-native-push-notification/issues/1251#issuecomment-565373047
     //   const getToken = Platform.select<(token: string) => Promise<string>>({

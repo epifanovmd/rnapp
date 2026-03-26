@@ -9,3 +9,5 @@ export interface SupportInitialize<T = undefined> {
     ? () => InitializeDispose
     : (data: T) => InitializeDispose;
 }
+
+export type Maybe<T> = T | undefined;

@@ -1,4 +1,5 @@
 import { IAuthSessionService } from "@core/auth";
+import { notificationService } from "@core/notification";
 import axios, {
   AxiosHeaders,
   AxiosResponse,
@@ -89,9 +90,7 @@ class ApiService extends Api<ApiError> implements IApiService {
       return request;
     });
 
-    // Wrap response/error into ApiResponse + handle 401 retry.
-    // Cast needed because we transform AxiosResponse → ApiServiceResponse,
-    // which changes the response shape flowing through the interceptor chain.
+    // Wrap response/error into ApiResponse + handle 401 retry + global notifications
     (this._instance.interceptors.response as any).use(
       (res: AxiosResponse): ApiServiceResponse<any> => ({
         data: res.data,
@@ -123,9 +122,27 @@ class ApiService extends Api<ApiError> implements IApiService {
           }) as unknown as Promise<ApiServiceResponse<any>>;
         }
 
+        // Global notifications for infrastructure errors
+        const apiError = ApiError.fromAxiosError(axiosError!);
+
+        if (apiError.isNetworkError) {
+          notificationService.show("Нет соединения с сервером", {
+            type: "danger",
+            duration: 6000,
+          });
+        } else if (apiError.isServerError) {
+          notificationService.show(
+            apiError.message || "Внутренняя ошибка сервера",
+            {
+              type: "danger",
+              duration: 6000,
+            },
+          );
+        }
+
         return {
           status,
-          error: ApiError.fromAxiosError(axiosError!),
+          error: apiError,
           axiosError,
           isCanceled: e instanceof CanceledError,
         };

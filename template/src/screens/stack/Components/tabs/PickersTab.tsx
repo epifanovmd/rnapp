@@ -7,7 +7,8 @@ import {
   Title,
   YearRangePicker,
 } from "@components";
-import { TabProps, useTransition } from "@core";
+import { useTransition } from "@core";
+import { TabProps } from "@navigation";
 import React, { FC, memo } from "react";
 
 export const PickersTab: FC<TabProps> = memo(({ route }) => {

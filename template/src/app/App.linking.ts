@@ -3,7 +3,7 @@ import {
   ScreenName,
   ScreenParamList,
   StackScreens,
-} from "@core";
+} from "@navigation";
 import { LinkingOptions, PathConfigMap } from "@react-navigation/native";
 import { Linking } from "react-native";
 import Config from "react-native-config";

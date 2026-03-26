@@ -8,7 +8,8 @@ import {
   Text,
   TextField,
 } from "@components";
-import { StackProps, useTheme } from "@core";
+import { useTheme } from "@core";
+import { StackProps } from "@navigation";
 import { ScanFace } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";

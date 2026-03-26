@@ -9,12 +9,8 @@ import {
   Touchable,
 } from "@components";
 import { ImageBar } from "@components/navbar/ImageBar";
-import {
-  AppScreenProps,
-  TransitionProvider,
-  useTheme,
-  useTransition,
-} from "@core";
+import { useTheme, useTransition } from "@core";
+import { AppScreenProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 import { View } from "react-native";

@@ -1,6 +1,6 @@
 import { useDimensions } from "@common";
 import { Container } from "@components";
-import { StackProps } from "@core";
+import { StackProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import { ImageStyle, StyleProp } from "react-native";

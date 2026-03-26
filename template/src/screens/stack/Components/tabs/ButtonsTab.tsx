@@ -1,5 +1,6 @@
 import { Button, Col, Row, ScrollView, SwitchTheme } from "@components";
-import { TabProps, useTransition } from "@core";
+import { useTransition } from "@core";
+import { TabProps } from "@navigation";
 import { memo, useCallback } from "react";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

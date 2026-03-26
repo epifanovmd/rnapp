@@ -1,5 +1,6 @@
 import { Checkbox, Col, Switch, SwitchTheme } from "@components";
-import { TabProps, useTransition } from "@core";
+import { useTransition } from "@core";
+import { TabProps } from "@navigation";
 import React, { FC, memo, useState } from "react";
 
 export const ElementsTab: FC<TabProps> = memo(({ route }) => {

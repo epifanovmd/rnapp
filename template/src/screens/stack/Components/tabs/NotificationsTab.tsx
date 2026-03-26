@@ -1,5 +1,6 @@
 import { Button, Col } from "@components";
-import { TabProps, useNotification, useTransition } from "@core";
+import { useNotification, useTransition } from "@core";
+import { TabProps } from "@navigation";
 import notifee from "@notifee/react-native";
 import React, { FC, memo } from "react";
 

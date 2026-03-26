@@ -7,8 +7,7 @@ import {
 import { identity, pickBy } from "lodash";
 import { makeAutoObservable, runInAction } from "mobx";
 
-import { DebugVars } from "../../../debugVars";
-import { log } from "../logs";
+import { DebugVars } from "../../debugVars";
 import { ScreenName, ScreenParamList } from "./navigation.types";
 
 export const navigationRef = createNavigationContainerRef<ScreenParamList>();
@@ -61,8 +60,8 @@ export class NavigationService {
       });
 
       if (DebugVars.logNavHistory) {
-        log.debug("Nav Current Screen", this._currentScreenName);
-        log.debug("Nav History -> ", JSON.stringify(this.history));
+        console.log("Nav Current Screen", this._currentScreenName);
+        console.log("Nav History -> ", JSON.stringify(this.history));
       }
     });
   }

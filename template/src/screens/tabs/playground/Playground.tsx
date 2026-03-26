@@ -7,7 +7,7 @@ import {
   ScrollView,
   Text,
 } from "@components";
-import { AppScreenProps } from "@core";
+import { AppScreenProps } from "@navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 

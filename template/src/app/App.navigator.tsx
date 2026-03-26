@@ -4,8 +4,7 @@ import {
   ScreenParamList,
   StackNavigation,
   StackScreenOption,
-  useTranslation,
-} from "@core";
+} from "@navigation";
 import { useLogger } from "@react-navigation/devtools";
 import {
   NavigationContainer,
@@ -27,13 +26,8 @@ import { useAppNavigationTheme } from "./hooks";
 interface IAppNavigatorProps {}
 
 const AppHeader = ({ route: { name }, options }: StackHeaderProps) => {
-  const { t } = useTranslation();
-
   return (
-    <Navbar
-      title={options.title ?? t(`navigation.${name}` as any)}
-      safeArea={true}
-    >
+    <Navbar title={options.title ?? name} safeArea={true}>
       <Navbar.BackButton />
       <Navbar.Right>
         <View style={{ margin: 12 }}>
