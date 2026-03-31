@@ -20,15 +20,15 @@ import {
   toHolderError,
 } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface IInfiniteHolderOptions<TItem, TArgs = void> {
-  /** Called on every load (initial, refresh, loadMore). */
+  /** Вызывается при каждой загрузке (первичной, обновлении, loadMore). */
   onFetch?: InfiniteFetchFn<TItem, TArgs>;
-  /** Key extractor for CRUD helpers. */
+  /** Извлекатель ключа для CRUD-хелперов. */
   keyExtractor?: (item: TItem) => string | number;
-  /** Items per page (default: 20). */
-  pageSize?: number;
+  /** Элементов на страницу (default: 20). */
+  limit?: number;
 }
 
 export interface IInfiniteHolderResult<TItem, TError extends IHolderError> {
@@ -37,46 +37,55 @@ export interface IInfiniteHolderResult<TItem, TError extends IHolderError> {
   error: TError | null;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Holder for lists with **infinite scroll / "Load More"**.
+ * Холдер для списков с бесконечной прокруткой на основе **offset / limit**.
  *
- * Unlike PagedHolder, all pages accumulate in `items`.
- * Separate `loadMoreStatus` tracks the "load more" spinner independently
- * from the main loading status.
+ * Все страницы накапливаются в `items`. Отдельный `loadMoreStatus`
+ * отслеживает спиннер подгрузки независимо от статуса первичной загрузки.
  *
- * Features:
- * - `load(args?)` -> initial load, clears items
- * - `refresh(args?)` -> silent reload from offset 0, replaces items
- * - `loadMore()` -> appends next page (no-op if `!hasMore` or already loading)
- * - Built-in CRUD helpers over the full accumulated list
- * - `fromApi()` for manual control
+ * - `load(args?)` → первичная загрузка, очищает элементы
+ * - `refresh(args?)` → тихая перезагрузка с offset 0
+ * - `loadMore()` → добавляет следующую страницу
+ * - `fromApi()` для ручного управления
+ *
+ * @example
+ * ```ts
+ * notificationsHolder = new InfiniteHolder<NotificationDto>({
+ *   limit: 50,
+ *   keyExtractor: n => n.id,
+ *   onFetch: ({ offset, limit }) => this._api.getNotifications({ offset, limit }),
+ * });
+ *
+ * // В компоненте
+ * <List onEndReached={() => notificationsHolder.loadMore()} />
+ * ```
  */
 export class InfiniteHolder<
   TItem,
   TArgs = void,
   TError extends IHolderError = IHolderError,
 > extends BaseListHolder<TItem, TError> {
-  /** Status of the **"load more"** action (independent of `status`). */
+  /** Статус действия **«загрузить ещё»** (независим от `status`). */
   loadMoreStatus = MutationStatus.Idle;
 
   loadMoreError: TError | null = null;
 
-  /** Server indicated there are more items available. */
+  /** Сервер сообщил, что есть ещё элементы. */
   hasMore: boolean = true;
 
-  /** Last used arguments - for refresh / continuing loadMore. */
+  /** Последние использованные аргументы — для refresh / продолжения loadMore. */
   lastArgs: TArgs | null = null;
 
   private _currentOffset: number = 0;
-  private readonly _pageSize: number;
+  private readonly _limit: number;
   private readonly _onFetch?: InfiniteFetchFn<TItem, TArgs>;
 
   constructor(options?: IInfiniteHolderOptions<TItem, TArgs>) {
     super(options?.keyExtractor);
 
-    this._pageSize = options?.pageSize ?? 20;
+    this._limit = options?.limit ?? 20;
     this._onFetch = options?.onFetch;
 
     makeObservable(this, {
@@ -97,7 +106,7 @@ export class InfiniteHolder<
     });
   }
 
-  // --- Computed ------------------------------------------------------------
+  // ─── Computed ──────────────────────────────────────────────────────────────
 
   get isLoadingMore() {
     return this.loadMoreStatus === MutationStatus.Loading;
@@ -107,11 +116,11 @@ export class InfiniteHolder<
     return this.loadMoreStatus === MutationStatus.Error;
   }
 
-  // --- State setters -------------------------------------------------------
+  // ─── State setters ────────────────────────────────────────────────────────
 
   /**
-   * Replaces all items (first load or refresh).
-   * Resets offset to items.length.
+   * Заменяет все элементы (первая загрузка или refresh).
+   * Сбрасывает offset в items.length.
    */
   setItems(items: TItem[], hasMore: boolean) {
     this.items = items;
@@ -123,7 +132,9 @@ export class InfiniteHolder<
     this.loadMoreError = null;
   }
 
-  /** Appends next page items to the end of the list. */
+  /**
+   * Добавляет элементы следующей страницы в конец списка.
+   */
   appendItems(items: TItem[], hasMore: boolean) {
     this.items = [...this.items, ...items];
     this.hasMore = hasMore;
@@ -143,16 +154,16 @@ export class InfiniteHolder<
     this._currentOffset = 0;
   }
 
-  // --- CRUD helpers --------------------------------------------------------
+  // ─── CRUD-хелперы ─────────────────────────────────────────────────────────
 
   prependItem(item: TItem) {
     this.items = [item, ...this.items];
-    this._currentOffset += 1;
+    this._currentOffset++;
   }
 
   appendItem(item: TItem) {
     this.items = [...this.items, item];
-    this._currentOffset += 1;
+    this._currentOffset++;
   }
 
   removeItem(predicate: ((item: TItem) => boolean) | string | number) {
@@ -162,9 +173,12 @@ export class InfiniteHolder<
     this._currentOffset = Math.max(0, this._currentOffset - 1);
   }
 
-  // --- Async helpers -------------------------------------------------------
+  // ─── Async helpers ────────────────────────────────────────────────────────
 
-  /** Initial load - clears existing items, shows skeleton. Resets offset to 0. */
+  /**
+   * Первичная загрузка — очищает существующие элементы, показывает скелетон.
+   * Сбрасывает offset в 0.
+   */
   async load(
     ..._args: TArgs extends void ? [] : [args: TArgs]
   ): Promise<IInfiniteHolderResult<TItem, TError>> {
@@ -176,7 +190,6 @@ export class InfiniteHolder<
     return this._runFetch(args, "loading");
   }
 
-  /** Silent reload from offset 0 - old items stay visible during request. */
   async refresh(
     ..._args: TArgs extends void ? [] : [args: TArgs]
   ): Promise<IInfiniteHolderResult<TItem, TError>> {
@@ -188,21 +201,27 @@ export class InfiniteHolder<
     return this._runFetch(args, "refreshing");
   }
 
-  /** Appends the next page. No-op if already loading or `!hasMore`. */
+  /**
+   * Добавляет следующую страницу. No-op, если уже грузится или `!hasMore`.
+   */
   async loadMore(): Promise<IInfiniteHolderResult<TItem, TError>> {
     if (!this.hasMore || this.isLoadingMore || this.isBusy) {
-      return {
-        data: this.items,
-        hasMore: this.hasMore,
-        error: null,
-      };
+      return { data: this.items, hasMore: this.hasMore, error: null };
     }
 
     return this._runFetch(this.lastArgs as TArgs, "loadMore");
   }
 
   /**
-   * Manual API wrapper for initial load / refresh.
+   * Ручная обёртка API для первичной загрузки / refresh.
+   *
+   * @example
+   * ```ts
+   * await this.notificationsHolder.fromApi(
+   *   () => this._api.getNotifications({ offset: 0, limit: 50 }),
+   *   res => ({ items: res.data, hasMore: res.data.length === 50 }),
+   * );
+   * ```
    */
   async fromApi<TResponse, TApiError extends IHolderError = TError>(
     fn: () => Promise<IApiResponse<TResponse, TApiError>>,
@@ -256,13 +275,11 @@ export class InfiniteHolder<
         const { items, hasMore } = extractor(
           res.data as TResponse,
           this._currentOffset,
-          this._pageSize,
+          this._limit,
         );
 
         if (options?.append) {
-          runInAction(() => {
-            this.appendItems(items, hasMore);
-          });
+          this.appendItems(items, hasMore);
         } else {
           this.setItems(items, hasMore);
         }
@@ -282,7 +299,6 @@ export class InfiniteHolder<
       return { data: [], hasMore: false, error: null };
     } catch (e) {
       this._pendingFetch = null;
-
       if (isCancelError(e))
         return { data: null, hasMore: this.hasMore, error: null };
 
@@ -301,7 +317,7 @@ export class InfiniteHolder<
     }
   }
 
-  // --- Private -------------------------------------------------------------
+  // ─── Приватное ────────────────────────────────────────────────────────────
 
   private async _runFetch(
     args: TArgs,
@@ -309,7 +325,7 @@ export class InfiniteHolder<
   ): Promise<IInfiniteHolderResult<TItem, TError>> {
     if (!this._onFetch) {
       console.warn(
-        "[InfiniteHolder] load/refresh/loadMore called but no onFetch was provided in options.",
+        "[InfiniteHolder] load/refresh/loadMore called but no onFetch was provided.",
       );
 
       return { data: null, hasMore: false, error: null };
@@ -331,7 +347,7 @@ export class InfiniteHolder<
     }
 
     const offset = isAppend ? this._currentOffset : 0;
-    const promise = this._onFetch({ offset, limit: this._pageSize }, args);
+    const promise = this._onFetch({ offset, limit: this._limit }, args);
 
     this._pendingFetch = promise as CancellablePromise;
 
@@ -363,12 +379,10 @@ export class InfiniteHolder<
       if (res.data != null) {
         const pagedRes = res.data as IPagedResponse<TItem>;
         const items = pagedRes.data ?? [];
-        const hasMore = items.length >= this._pageSize;
+        const hasMore = items.length >= this._limit;
 
         if (isAppend) {
-          runInAction(() => {
-            this.appendItems(items, hasMore);
-          });
+          this.appendItems(items, hasMore);
         } else {
           this.setItems(items, hasMore);
         }

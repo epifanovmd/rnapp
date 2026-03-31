@@ -2,11 +2,11 @@ import { action, computed, makeObservable, observable } from "mobx";
 
 import { CancellablePromise, HolderStatus, IHolderError } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Base class for all holders.
- * Manages lifecycle status, error state, and current request cancellation.
+ * Базовый класс для всех холдеров.
+ * Управляет статусом жизненного цикла, ошибкой и отменой текущего запроса.
  */
 export abstract class BaseHolder<TError extends IHolderError = IHolderError> {
   status = HolderStatus.Idle;

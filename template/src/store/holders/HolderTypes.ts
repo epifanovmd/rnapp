@@ -1,15 +1,15 @@
-// ---------------------------------------------------------------------------
-// Holder Types
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Holder Types — общие примитивы системы холдеров
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Lifecycle status of any holder.
+ * Статус жизненного цикла любого холдера.
  *
- * idle       - no request has been made yet (initial state after reset)
- * loading    - primary/full load in progress (skeleton, spinner)
- * refreshing - silent background update (old data stays visible)
- * success    - last request completed successfully
- * error      - last request completed with an error
+ * idle       — запрос ещё не выполнялся (начальное состояние после reset)
+ * loading    — идёт первичная/полная загрузка (скелетон, спиннер)
+ * refreshing — тихое фоновое обновление (старые данные остаются видны)
+ * success    — последний запрос завершился успешно
+ * error      — последний запрос завершился с ошибкой
  */
 export enum HolderStatus {
   Idle = "idle",
@@ -19,7 +19,7 @@ export enum HolderStatus {
   Error = "error",
 }
 
-/** Mutation statuses - subset without "refreshing". */
+/** Статусы мутации — подмножество без понятия «refreshing». */
 export enum MutationStatus {
   Idle = "idle",
   Loading = "loading",
@@ -27,17 +27,17 @@ export enum MutationStatus {
   Error = "error",
 }
 
-// --- Cancellable promise ---------------------------------------------------
+// ─── Отменяемый промис ───────────────────────────────────────────────────────
 
 /**
- * Promise with an optional cancel() method.
- * Used in holders to cancel previous requests on race conditions.
+ * Промис с опциональным методом cancel().
+ * Используется в холдерах для отмены предыдущего запроса при race condition.
  */
 export type CancellablePromise = Promise<unknown> & { cancel?: () => void };
 
-// --- Error -----------------------------------------------------------------
+// ─── Ошибка ──────────────────────────────────────────────────────────────────
 
-/** Normalized error stored inside every holder. */
+/** Нормализованная ошибка, хранящаяся внутри каждого холдера. */
 export interface IHolderError {
   message: string;
   status?: number;
@@ -46,9 +46,9 @@ export interface IHolderError {
 }
 
 /**
- * Checks whether a response is the result of a cancelled axios request.
- * ApiService resolves (not throws) cancelled requests with `isCanceled: true`.
- * Used by holders to avoid overwriting state on race conditions.
+ * Проверяет, является ли ответ результатом отменённого axios-запроса.
+ * ApiService резолвит (не бросает) отменённые запросы с флагом `isCanceled: true`.
+ * Используется холдерами, чтобы не затирать состояние при race condition.
  */
 export function isCancelResponse(res: unknown): boolean {
   return (
@@ -60,8 +60,8 @@ export function isCancelResponse(res: unknown): boolean {
 }
 
 /**
- * Checks whether a thrown value is an axios cancel error.
- * Fallback in case the promise rejects instead of resolving.
+ * Проверяет, является ли брошенное значение ошибкой отмены axios.
+ * Запасной вариант на случай если промис всё же реджектится.
  */
 export function isCancelError(e: unknown): boolean {
   return (
@@ -73,8 +73,8 @@ export function isCancelError(e: unknown): boolean {
 }
 
 /**
- * Converts any thrown value or string into `IHolderError`.
- * Used inside the `fromApi` method of every holder.
+ * Преобразует любое брошенное значение или строку в `IHolderError`.
+ * Используется внутри метода `fromApi` каждого холдера.
  */
 export function toHolderError(e: unknown): IHolderError {
   if (e instanceof Error) {
@@ -88,10 +88,11 @@ export function toHolderError(e: unknown): IHolderError {
   return { message: "Unknown error", details: e };
 }
 
-// --- API response contract -------------------------------------------------
+// ─── Контракт ответа API ─────────────────────────────────────────────────────
 
 /**
- * Shape that every API call must return for holders to process it.
+ * Форма, которую **каждый** API-вызов должен возвращать, чтобы холдеры могли
+ * его обработать.
  */
 export interface IApiResponse<
   TData = unknown,
@@ -101,46 +102,50 @@ export interface IApiResponse<
   error?: TError | null;
 }
 
-// --- Pagination params -----------------------------------------------------
+// ─── Параметры пагинации ─────────────────────────────────────────────────────
 
-/** Offset parameters sent to the server. */
+/** Offset-параметры, отправляемые на сервер. */
 export interface IOffsetParams {
   offset: number;
   limit: number;
 }
 
-/** Page-based parameters (internally converted to offset). */
+/** Параметры на основе номера страницы (внутри конвертируются в offset). */
 export interface IPageParams {
   page: number; // 1-based
   pageSize: number;
 }
 
-/** Shape of a paged API endpoint response. */
+/** Форма ответа, которую должен возвращать постраничный API-эндпоинт. */
 export interface IPagedResponse<TItem> {
   data: TItem[];
-  /** Items on the current page */
+  /** Элементов на текущей странице */
   count?: number;
-  /** Total items across all pages */
+  /** Всего элементов по всем страницам */
   totalCount?: number;
   offset?: number;
   limit?: number;
 }
 
-// --- Fetch function signatures ---------------------------------------------
+// ─── Сигнатуры функций загрузки ───────────────────────────────────────────────
 
-/** `onFetch` for EntityHolder - returns a single entity or null. */
+/**
+ * `onFetch` для EntityHolder — возвращает одну сущность или null.
+ */
 export type EntityFetchFn<TData, TArgs = void> = (
   args: TArgs,
 ) => Promise<IApiResponse<TData>>;
 
-/** `onFetch` for CollectionHolder - returns an array of items. */
+/**
+ * `onFetch` для CollectionHolder — возвращает массив элементов.
+ */
 export type CollectionFetchFn<TItem, TArgs = void> = (
   args: TArgs,
 ) => Promise<IApiResponse<TItem[]>>;
 
 /**
- * `onFetch` for PagedHolder - receives pagination params + user arguments.
- * Must return current page items and total count from the server.
+ * `onFetch` для PagedHolder — принимает параметры пагинации + пользовательские аргументы.
+ * Должна вернуть элементы текущей страницы и общее количество на сервере.
  */
 export type PagedFetchFn<TItem, TArgs = void> = (
   pagination: IOffsetParams,
@@ -148,15 +153,17 @@ export type PagedFetchFn<TItem, TArgs = void> = (
 ) => Promise<IApiResponse<IPagedResponse<TItem>>>;
 
 /**
- * `onFetch` for InfiniteHolder - receives offset/limit + user arguments.
- * Must return the next slice of items and a flag indicating more pages.
+ * `onFetch` для InfiniteHolder — принимает offset/limit + пользовательские аргументы.
+ * Должна вернуть очередной срез элементов и флаг наличия следующих страниц.
  */
 export type InfiniteFetchFn<TItem, TArgs = void> = (
   pagination: IOffsetParams,
   args: TArgs,
 ) => Promise<IApiResponse<IPagedResponse<TItem>>>;
 
-/** Mutation function for MutationHolder. */
+/**
+ * Функция мутации для MutationHolder.
+ */
 export type MutationFn<TArgs, TData> = (
   args: TArgs,
 ) => Promise<IApiResponse<TData>>;

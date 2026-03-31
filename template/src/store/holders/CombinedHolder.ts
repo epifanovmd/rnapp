@@ -2,12 +2,13 @@ import { computed, makeObservable } from "mobx";
 
 import { IHolderError } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Minimal interface a holder must satisfy to be used inside CombinedHolder.
- * Compatible with EntityHolder, CollectionHolder, PagedHolder, InfiniteHolder,
- * and MutationHolder (which lacks `isRefreshing`/`isBusy`).
+ * Минимальный интерфейс, которому должен соответствовать холдер, чтобы
+ * использоваться внутри CombinedHolder.
+ * Совместим с EntityHolder, CollectionHolder, PagedHolder, InfiniteHolder и
+ * MutationHolder (у которого нет `isRefreshing`/`isBusy`).
  */
 export interface IHolderLike {
   isLoading: boolean;
@@ -18,22 +19,30 @@ export interface IHolderLike {
   error: IHolderError | null;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Aggregates reactive status from multiple holders into a single object.
+ * Агрегирует реактивный статус нескольких холдеров в один объект.
  *
- * Useful for pages that perform several parallel API requests and need
- * a unified loading/error state for UI management.
+ * Полезен для страниц, которые выполняют несколько параллельных API-запросов
+ * и нуждаются в едином состоянии загрузки/ошибки для управления UI.
  *
- * Rules:
- * - `isLoading`    - true if **any** holder is loading
- * - `isRefreshing` - true if **any** holder is refreshing
- * - `isBusy`       - true if **any** holder is busy (loading OR refreshing)
- * - `isError`      - true if **any** holder is in error state
- * - `isSuccess`    - true only if **all** holders are in success state
- * - `errors`       - non-null errors from all holders
- * - `firstError`   - first non-null error (convenient for toast/alert)
+ * Правила:
+ * - `isLoading`    — true, если **любой** холдер загружается
+ * - `isRefreshing` — true, если **любой** холдер обновляется
+ * - `isBusy`       — true, если **любой** холдер занят (loading ИЛИ refreshing)
+ * - `isError`      — true, если **любой** холдер в состоянии ошибки
+ * - `isSuccess`    — true только если **все** холдеры в состоянии success
+ * - `errors`       — не-null ошибки из всех холдеров
+ * - `firstError`   — первая не-null ошибка (удобно для toast/alert)
+ *
+ * @example
+ * ```ts
+ * pageHolder = new CombinedHolder([this.profileHolder, this.settingsHolder]);
+ *
+ * // В VM:
+ * isLoading: store.pageHolder.isLoading,
+ * ```
  */
 export class CombinedHolder {
   private readonly _holders: IHolderLike[];
@@ -52,39 +61,39 @@ export class CombinedHolder {
     });
   }
 
-  /** True if any holder is in `loading` state. */
+  /** True, если любой холдер в состоянии `loading`. */
   get isLoading(): boolean {
     return this._holders.some(h => h.isLoading);
   }
 
-  /** True if any holder is in `refreshing` state. */
+  /** True, если любой холдер в состоянии `refreshing`. */
   get isRefreshing(): boolean {
     return this._holders.some(h => h.isRefreshing ?? false);
   }
 
-  /** True if any holder is loading or refreshing. */
+  /** True, если любой холдер загружается или обновляется. */
   get isBusy(): boolean {
     return this._holders.some(h => h.isBusy ?? h.isLoading);
   }
 
-  /** True if any holder is in `error` state. */
+  /** True, если любой холдер в состоянии `error`. */
   get isError(): boolean {
     return this._holders.some(h => h.isError);
   }
 
-  /** True only if all holders are in `success` state. */
+  /** True только если все холдеры в состоянии `success`. */
   get isSuccess(): boolean {
     return this._holders.every(h => h.isSuccess);
   }
 
-  /** All non-null errors from all holders. */
+  /** Все не-null ошибки из всех холдеров. */
   get errors(): IHolderError[] {
     return this._holders
       .map(h => h.error)
       .filter((e): e is IHolderError => e !== null);
   }
 
-  /** First non-null error, or null. */
+  /** Первая не-null ошибка, или null. */
   get firstError(): IHolderError | null {
     return this.errors[0] ?? null;
   }

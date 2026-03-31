@@ -6,6 +6,8 @@ export enum TabScreenName {
   MAIN = "MAIN",
 
   Main = "Main",
+  Chats = "Chats",
+  Contacts = "Contacts",
   Playground = "Playground",
   Settings = "Settings",
 }
@@ -14,6 +16,8 @@ interface TabScreenParams {
   MAIN: undefined;
 
   Posts: undefined;
+  Chats: undefined;
+  Contacts: undefined;
   Playground: undefined;
   Settings: undefined;
 }
@@ -26,6 +30,10 @@ export enum StackScreenName {
   Carousel = "Carousel",
   PdfView = "PdfView",
   WebView = "WebView",
+  ChatRoom = "ChatRoom",
+  NewChat = "NewChat",
+  NewGroupChat = "NewGroupChat",
+  ChatInfo = "ChatInfo",
 }
 
 interface StackScreenParams {
@@ -38,6 +46,10 @@ interface StackScreenParams {
   Carousel: undefined;
   PdfView: IPdfViewProps;
   WebView: IWebViewProps;
+  ChatRoom: { chatId: string };
+  NewChat: undefined;
+  NewGroupChat: undefined;
+  ChatInfo: { chatId: string };
 }
 
 export enum ComponentsScreenName {

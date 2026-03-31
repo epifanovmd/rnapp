@@ -1,9 +1,9 @@
 import { Dialog, HoldItemProvider } from "@components";
 import { ThemeProvider, useTheme } from "@core";
-import { disposer } from "@di";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { navigationRef } from "@navigation";
 import { useAppDataStore } from "@store/app";
+import { disposer } from "@utils";
 import { setDefaultOptions } from "date-fns";
 import { ru } from "date-fns/locale";
 import { configure } from "mobx";

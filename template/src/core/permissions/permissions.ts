@@ -1,4 +1,4 @@
-import { EPermissions, ERole } from "@api/api-gen/data-contracts";
+import { KnownPermission, KnownRole } from "@api/api-gen/data-contracts";
 
 /**
  * Проверяет наличие права с поддержкой wildcard-иерархии.
@@ -9,17 +9,16 @@ import { EPermissions, ERole } from "@api/api-gen/data-contracts";
  *   "wg:peer:manage" → проверяет "wg:peer:*"  → "wg:*" → "*"
  */
 export function hasPermission(
-  userPerms: EPermissions[],
-  required: EPermissions,
+  userPerms: KnownPermission[],
+  required: KnownPermission,
 ): boolean {
-  if (userPerms.includes(EPermissions.Value)) return true;
+  if (userPerms.includes(KnownPermission.Value)) return true;
   if (userPerms.includes(required)) return true;
 
   const parts = required.split(":");
 
-  // eslint-disable-next-line no-plusplus
   for (let i = parts.length - 1; i >= 1; i--) {
-    const wildcard = [...parts.slice(0, i), "*"].join(":") as EPermissions;
+    const wildcard = [...parts.slice(0, i), "*"].join(":") as KnownPermission;
 
     if (userPerms.includes(wildcard)) return true;
   }
@@ -30,17 +29,17 @@ export function hasPermission(
 /**
  * Возвращает true если пользователь имеет роль ADMIN (superadmin bypass).
  */
-export function isAdminRole(roles: ERole[]): boolean {
-  return roles.includes(ERole.Admin);
+export function isAdminRole(roles: KnownRole[]): boolean {
+  return roles.includes(KnownRole.Admin);
 }
 
 /**
  * Проверяет доступ: admin bypass ИЛИ конкретное право.
  */
 export function canAccess(
-  roles: ERole[],
-  userPerms: EPermissions[],
-  required: EPermissions,
+  roles: KnownRole[],
+  userPerms: KnownPermission[],
+  required: KnownPermission,
 ): boolean {
   return isAdminRole(roles) || hasPermission(userPerms, required);
 }
@@ -50,8 +49,8 @@ export function canAccess(
  * Дедуплицирует результат.
  */
 export function computeEffectivePermissions(
-  rolePermissions: EPermissions[],
-  directPermissions: EPermissions[],
-): EPermissions[] {
+  rolePermissions: KnownPermission[],
+  directPermissions: KnownPermission[],
+): KnownPermission[] {
   return Array.from(new Set([...rolePermissions, ...directPermissions]));
 }

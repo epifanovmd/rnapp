@@ -16,10 +16,10 @@ import {
   toHolderError,
 } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface IMutationHolderOptions<TArgs, TData> {
-  /** API call to execute. Can be set here or passed inline to `execute()`. */
+  /** API-вызов для выполнения. Можно задать здесь или передать инлайн в `execute()`. */
   onMutate?: MutationFn<TArgs, TData>;
 }
 
@@ -31,28 +31,51 @@ export interface IMutationHolderResult<
   error: TError | null;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Holder for a **single API mutation** - create, update, delete, start, stop, etc.
+ * Холдер для **одной API-мутации** — создание, обновление, удаление,
+ * запуск, остановка и т.п.
  *
- * Unlike data holders, mutations:
- * - Have no "refreshing" state (either executing or not)
- * - Optionally store the last successful response in `data`
- * - Provide `isLoading` for button blocking / spinner display
+ * В отличие от холдеров данных, мутации:
+ * - Не имеют состояния «refreshing» (либо выполняется, либо нет)
+ * - Опционально хранят последний успешный ответ в `data`
+ * - Предоставляют `isLoading` для блокировки кнопок / показа спиннеров
  *
- * Features:
- * - `execute(args?)` - runs the mutation, stores result/error
- * - `reset()` - resets to idle
- * - `onMutate` can be set in options OR passed inline to `execute()`
- * - Full MobX reactivity
+ * Возможности:
+ * - `execute(args?)` — выполняет мутацию, сохраняет результат/ошибку
+ * - `reset()` — сбрасывает в idle
+ * - `onMutate` можно задать в опциях ИЛИ передать инлайн в `execute()`
+ * - Полная MobX-реактивность
+ *
+ * @example
+ * ```ts
+ * // В сторе
+ * createCommentMutation = new MutationHolder<ICreateCommentDto, CommentDto>();
+ *
+ * async createComment(postId: string, params: ICreateCommentDto) {
+ *   return this.createCommentMutation.execute(
+ *     params,
+ *     args => this._api.createComment(postId, args),
+ *   );
+ * }
+ *
+ * // Или с onMutate в опциях:
+ * deleteCommentMutation = new MutationHolder<string, void>({
+ *   onMutate: id => this._api.deleteComment(id),
+ * });
+ *
+ * async deleteComment(id: string) {
+ *   return this.deleteCommentMutation.execute(id);
+ * }
+ * ```
  */
 export class MutationHolder<
   TArgs = void,
   TData = void,
   TError extends IHolderError = IHolderError,
 > {
-  /** Data from the last successful response. */
+  /** Данные последнего успешного ответа. */
   data: TData | null = null;
   status = MutationStatus.Idle;
   error: TError | null = null;
@@ -76,7 +99,7 @@ export class MutationHolder<
     this._onMutate = options?.onMutate;
   }
 
-  // --- Computed ------------------------------------------------------------
+  // ─── Computed ────────────────────────────────────────────────────────────
 
   get isIdle() {
     return this.status === MutationStatus.Idle;
@@ -94,7 +117,7 @@ export class MutationHolder<
     return this.status === MutationStatus.Error;
   }
 
-  // --- Actions -------------------------------------------------------------
+  // ─── Действия ────────────────────────────────────────────────────────────
 
   reset() {
     this.data = null;
@@ -102,13 +125,25 @@ export class MutationHolder<
     this.error = null;
   }
 
-  // --- Execution -----------------------------------------------------------
+  // ─── Выполнение ──────────────────────────────────────────────────────────
 
   /**
-   * Executes the mutation.
+   * Выполняет мутацию.
    *
-   * Can use `onMutate` from constructor options or pass a function
-   * inline as the second argument.
+   * Можно использовать `onMutate` из опций конструктора или передать
+   * функцию инлайн вторым аргументом.
+   *
+   * @example
+   * ```ts
+   * // Через onMutate из опций:
+   * const { data, error } = await this.deleteMutation.execute(id);
+   *
+   * // Инлайн (onMutate в опциях не нужен):
+   * const { data, error } = await this.createMutation.execute(
+   *   params,
+   *   args => this._api.createItem(categoryId, args),
+   * );
+   * ```
    */
   async execute(
     ..._params: TArgs extends void
@@ -168,8 +203,11 @@ export class MutationHolder<
   }
 
   /**
-   * Convenience wrapper - same as `execute()` but accepts a function
-   * with no arguments and directly returns the response.
+   * Удобная обёртка — то же, что `execute()`, но принимает функцию без
+   * аргументов и напрямую возвращает ответ в формате `{ data?, error? }`.
+   *
+   * Полезно, когда нужно передать сырой ответ вызывающему коду без
+   * дополнительной распаковки.
    */
   async run(
     fn: () => Promise<IApiResponse<TData>>,

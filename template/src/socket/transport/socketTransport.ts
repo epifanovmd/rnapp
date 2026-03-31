@@ -1,7 +1,6 @@
 import { SOCKET_BASE_URL } from "@api";
 import { IAuthSessionService, IAuthTokenStore } from "@core/auth";
 import { reaction } from "mobx";
-import { AppState, AppStateStatus } from "react-native";
 import { connect } from "socket.io-client";
 
 import {
@@ -10,6 +9,7 @@ import {
 } from "../events";
 import { EmitQueue } from "./emitQueue";
 import { PersistentListeners } from "./persistentListeners";
+import { ISocketPlatformBridge } from "./socketPlatformBridge.types";
 import {
   AppSocket,
   ISocketTransport,
@@ -17,37 +17,48 @@ import {
   SocketTransportState,
 } from "./socketTransport.types";
 
+// ── Heartbeat constants ─────────────────────────────────────────────
+const HEARTBEAT_INTERVAL_MS = 30_000; // отправлять ping каждые 30 секунд
+const HEARTBEAT_TIMEOUT_MS = 5_000; // ждать pong не более 5 секунд
+
 @ISocketTransport({ inSingleton: true })
 export class SocketTransport implements ISocketTransport {
   private _socket: AppSocket | null = null;
   private _isManualDisconnect = false;
 
-  // Guards against concurrent connect() calls
+  // Guards against concurrent connect() calls (e.g. visibilitychange + online
+  // firing at the same time, or auth_error handler racing with a retry).
   private _connectingPromise: Promise<void> | null = null;
 
   private _statusListeners = new Set<SocketStatusListener>();
   private _persistentListeners = new PersistentListeners();
   private _emitQueue = new EmitQueue();
 
+  // ── Heartbeat ───────────────────────────────────────────────────────
+  private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private _heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
+
   private _state: SocketTransportState = { status: "idle", error: null };
 
   constructor(
     @IAuthTokenStore() private _tokenStore: IAuthTokenStore,
     @IAuthSessionService() private _session: IAuthSessionService,
+    @ISocketPlatformBridge() private _platform: ISocketPlatformBridge,
   ) {}
 
   get state(): SocketTransportState {
     return this._state;
   }
 
-  // --- Lifecycle -----------------------------------------------------------
+  // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
   initialize(): () => void {
-    // React to token changes to keep socket auth up-to-date
     const disposeTokenReaction = reaction(
       () => this._tokenStore.accessToken,
       token => {
         if (this._socket && token) {
+          // Update both auth and query so the token is fresh on the next
+          // reconnection attempt regardless of which mechanism the server reads.
           this._socket.auth = { token };
           (this._socket.io.opts.query as Record<string, string>).access_token =
             token;
@@ -55,27 +66,29 @@ export class SocketTransport implements ISocketTransport {
       },
     );
 
-    // React Native: reconnect when app comes back to foreground
-    const handleAppStateChange = (nextState: AppStateStatus) => {
-      if (
-        nextState === "active" &&
-        !this._isManualDisconnect &&
-        !this._socket?.connected
-      ) {
+    const disposeAppActive = this._platform.onAppActive(() => {
+      if (this._isManualDisconnect) return;
+
+      if (!this._socket?.connected) {
+        this.connect().catch(() => {});
+      } else {
+        // Вкладка/приложение стало активным — немедленно проверяем, что соединение живо
+        this._sendHeartbeat();
+      }
+    });
+
+    const disposeNetworkOnline = this._platform.onNetworkOnline(() => {
+      if (!this._isManualDisconnect && !this._socket?.connected) {
         this.connect().catch(() => {});
       }
-    };
-
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange,
-    );
+    });
 
     this.connect().catch(() => {});
 
     return () => {
       disposeTokenReaction();
-      subscription.remove();
+      disposeAppActive();
+      disposeNetworkOnline();
       this.disconnect();
     };
   }
@@ -99,7 +112,7 @@ export class SocketTransport implements ISocketTransport {
     this._setState({ status: "disconnected", error: null });
   }
 
-  // --- Pub/Sub -------------------------------------------------------------
+  // ─── Pub/Sub ────────────────────────────────────────────────────────────────
 
   on<K extends keyof SocketServerToClientEvents>(
     event: K,
@@ -168,7 +181,7 @@ export class SocketTransport implements ISocketTransport {
     return () => this._statusListeners.delete(listener);
   }
 
-  // --- Private -------------------------------------------------------------
+  // ─── Private ────────────────────────────────────────────────────────────────
 
   private _doConnect(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -199,14 +212,15 @@ export class SocketTransport implements ISocketTransport {
         timeout: 10_000,
         auth: { token: accessToken },
         query: { access_token: accessToken },
-      }) as AppSocket;
+      });
 
       this._socket = socket;
 
-      // Re-attach all handlers to the fresh socket instance
+      // Re-attach all handlers (onConnect / onDisconnect / on) to the
+      // fresh socket instance so nothing is lost after teardown.
       this._persistentListeners.bindTo(socket);
 
-      // One-shot handlers that settle the Promise
+      // One-shot handlers that settle the Promise.
       const onFirstConnect = () => {
         socket.off("connect_error", onFirstError);
         resolve();
@@ -220,22 +234,70 @@ export class SocketTransport implements ISocketTransport {
       socket.once("connect", onFirstConnect);
       socket.once("connect_error", onFirstError);
 
-      // Internal lifecycle handlers
+      // Internal lifecycle handlers (not user-facing, registered every time).
       socket.on("connect", this._onConnect);
       socket.on("connect_error", this._onConnectError);
       socket.on("disconnect", this._onDisconnect);
-      socket.on("auth_error" as any, this._onAuthError);
+      socket.on("auth_error", this._onAuthError);
 
       socket.connect();
     });
   }
 
   private _teardown(): void {
+    this._stopHeartbeat();
     if (this._socket) {
       this._socket.removeAllListeners();
       this._socket.disconnect();
       this._socket = null;
     }
+  }
+
+  // ── Heartbeat ───────────────────────────────────────────────────────
+
+  private _startHeartbeat(): void {
+    this._stopHeartbeat();
+    this._heartbeatTimer = setInterval(() => {
+      this._sendHeartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  private _stopHeartbeat(): void {
+    if (this._heartbeatTimer) {
+      clearInterval(this._heartbeatTimer);
+      this._heartbeatTimer = null;
+    }
+    if (this._heartbeatTimeout) {
+      clearTimeout(this._heartbeatTimeout);
+      this._heartbeatTimeout = null;
+    }
+  }
+
+  private _sendHeartbeat(): void {
+    if (!this._socket?.connected) return;
+    if (this._heartbeatTimeout) return; // уже ждём ответа
+
+    const ts = Date.now();
+
+    const onPong = () => {
+      if (this._heartbeatTimeout) {
+        clearTimeout(this._heartbeatTimeout);
+        this._heartbeatTimeout = null;
+      }
+    };
+
+    this._socket.once("pong", onPong);
+    this._socket.emit("ping", { ts });
+
+    this._heartbeatTimeout = setTimeout(() => {
+      this._heartbeatTimeout = null;
+      this._socket?.off("pong", onPong);
+
+      console.warn("[Socket] Heartbeat timeout — forcing reconnect");
+      // Соединение мертво, но Socket.IO этого не знает.
+      // Принудительно разрываем и даём встроенному reconnection переподключиться.
+      this._socket?.disconnect();
+    }, HEARTBEAT_TIMEOUT_MS);
   }
 
   private _setState(partial: Partial<SocketTransportState>): void {
@@ -245,17 +307,22 @@ export class SocketTransport implements ISocketTransport {
 
   private _onConnect = (): void => {
     this._setState({ status: "connected", error: null });
+    this._startHeartbeat();
     if (this._socket) {
       this._emitQueue.flush(this._socket);
     }
   };
 
   private _onDisconnect = (reason: string): void => {
+    this._stopHeartbeat();
     if (this._isManualDisconnect) return;
 
     this._setState({ status: "disconnected" });
 
-    // "io server disconnect" is the only case where socket.io will NOT retry
+    // socket.io handles most disconnect reasons internally (transport error,
+    // ping timeout, etc.) via built-in reconnection.
+    // "io server disconnect" is the only case where the server intentionally
+    // closes the connection and socket.io will NOT retry on its own.
     if (reason === "io server disconnect") {
       this._session
         .refreshToken()

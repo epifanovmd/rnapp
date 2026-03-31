@@ -3,11 +3,11 @@ import { action, computed, makeObservable, observable } from "mobx";
 import { BaseHolder } from "./BaseHolder";
 import { IHolderError } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Extends `BaseHolder` with list item support.
- * Contains shared CRUD helpers and predicate normalization by key.
+ * Расширяет `BaseHolder` поддержкой списка элементов.
+ * Содержит общие CRUD-хелперы и нормализацию предиката по ключу.
  */
 export abstract class BaseListHolder<
   TItem,
@@ -66,6 +66,18 @@ export abstract class BaseListHolder<
     } else {
       this.appendItem(item);
     }
+  }
+
+  exists(predicate: ((item: TItem) => boolean) | string | number) {
+    const fn = this._normalizePredicate(predicate);
+
+    return this.items.some(fn);
+  }
+
+  get(predicate: ((item: TItem) => boolean) | string | number) {
+    const fn = this._normalizePredicate(predicate);
+
+    return this.items.find(fn);
   }
 
   protected _normalizePredicate(

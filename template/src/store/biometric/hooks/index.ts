@@ -1,0 +1,1 @@
+export { useBiometricStore } from "./useBiometricStore";

@@ -18,12 +18,12 @@ import {
   toHolderError,
 } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface IEntityHolderOptions<TData, TArgs = void> {
-  /** Called automatically from `load()` / `refresh()`. */
+  /** Вызывается автоматически из `load()` / `refresh()`. */
   onFetch?: EntityFetchFn<TData, TArgs>;
-  /** Initial data (status immediately becomes 'success'). */
+  /** Начальные данные (статус сразу становится 'success'). */
   initialData?: TData;
 }
 
@@ -32,17 +32,38 @@ export interface IEntityHolderResult<TData, TError extends IHolderError> {
   error: TError | null;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Holder for a **single entity** - detail pages, profile, current user, etc.
+ * Холдер для **одной сущности** — детальные страницы, профиль, текущий
+ * пользователь и т.п.
  *
- * Features:
- * - Full lifecycle: idle -> loading -> success / error
- * - Silent background refresh (data stays visible, `isRefreshing` = true)
- * - `fromApi()` method auto-manages loading state, error normalization, data storage
- * - `load()` / `refresh()` for stores passing `onFetch` in options
- * - Full MobX reactivity
+ * Возможности:
+ * - Полный жизненный цикл: idle → loading → success / error
+ * - Тихое фоновое обновление (данные остаются видны, `isRefreshing` = true)
+ * - Метод `fromApi()` сам управляет состоянием загрузки, нормализацией ошибок
+ *   и сохранением данных
+ * - `load()` / `refresh()` для сторов, передающих `onFetch` в опциях
+ * - Полная MobX-реактивность (все поля и вычисляемые свойства)
+ *
+ * @example
+ * ```ts
+ * // Ручное управление (явный вызов fromApi в методе стора)
+ * articleHolder = new EntityHolder<ArticleDto>();
+ *
+ * async loadArticle(id: string) {
+ *   return this.articleHolder.fromApi(() => this._api.getArticle(id));
+ * }
+ *
+ * // Авто-загрузка через onFetch
+ * articleHolder = new EntityHolder<ArticleDto, string>({
+ *   onFetch: id => this._api.getArticle(id),
+ * });
+ *
+ * async loadArticle(id: string) {
+ *   return this.articleHolder.load(id);
+ * }
+ * ```
  */
 export class EntityHolder<
   TData,
@@ -75,24 +96,24 @@ export class EntityHolder<
     }
   }
 
-  // --- Computed ------------------------------------------------------------
+  // ─── Computed ──────────────────────────────────────────────────────────────
 
-  /** Success, but server returned null / empty response. */
+  /** Успех, но сервер вернул null / пустой ответ. */
   get isEmpty() {
     return this.isSuccess && this.data === null;
   }
 
-  /** Data is not null (regardless of current status). */
+  /** Данные не null (независимо от текущего статуса). */
   get isFilled() {
     return this.data !== null;
   }
 
-  /** At least one request has completed (success or error). Not idle and not loading. */
+  /** Хотя бы один запрос завершён (успешно или с ошибкой). Не idle и не loading. */
   get isReady() {
     return this.isSuccess || this.isError;
   }
 
-  // --- Manual state setters ------------------------------------------------
+  // ─── Ручные сеттеры состояния ─────────────────────────────────────────────
 
   setData(data: TData) {
     this.data = data;
@@ -100,20 +121,29 @@ export class EntityHolder<
     this.error = null;
   }
 
-  /** Clears data and resets status to idle. */
+  /** Очищает данные и сбрасывает статус в idle. */
   reset() {
     this.data = null;
     this.status = HolderStatus.Idle;
     this.error = null;
   }
 
-  // --- Async helpers -------------------------------------------------------
+  // ─── Async-хелперы ────────────────────────────────────────────────────────
 
   /**
-   * Wraps **any** API call returning `{ data?, error? }`.
-   * Automatically manages loading state, error normalization, and data storage.
+   * Оборачивает **любой** API-вызов, возвращающий `{ data?, error? }`.
+   * Автоматически управляет состоянием загрузки, нормализацией ошибок и
+   * сохранением данных.
    *
-   * Pass `{ refresh: true }` so old data stays visible during reload.
+   * Передайте `{ refresh: true }`, чтобы старые данные оставались видны во
+   * время перезагрузки.
+   *
+   * @example
+   * ```ts
+   * const { data, error } = await this.userHolder.fromApi(
+   *   () => this._api.getUser(id),
+   * );
+   * ```
    */
   async fromApi<TApiError extends IHolderError = TError>(
     fn: () => Promise<IApiResponse<TData, TApiError>>,
@@ -150,7 +180,7 @@ export class EntityHolder<
         return { data: res.data, error: null };
       }
 
-      // Server returned success without body (204 / empty data)
+      // Сервер вернул успех без тела (204 / пустые данные)
       runInAction(() => {
         this.data = null;
         this.status = HolderStatus.Success;
@@ -171,8 +201,13 @@ export class EntityHolder<
   }
 
   /**
-   * Calls `onFetch` passed in constructor options.
-   * Performs a full load (spinner, clears old data on error).
+   * Вызывает `onFetch`, переданный в опциях конструктора.
+   * Выполняет полную загрузку (спиннер, при ошибке очищает старые данные).
+   *
+   * @example
+   * ```ts
+   * await this.userHolder.load(userId);
+   * ```
    */
   async load(
     ..._args: TArgs extends void ? [] : [args: TArgs]
@@ -183,8 +218,8 @@ export class EntityHolder<
   }
 
   /**
-   * Calls `onFetch` silently - old data stays visible.
-   * Used for pull-to-refresh or background updates.
+   * Вызывает `onFetch` тихо — старые данные остаются видны.
+   * Используется для pull-to-refresh или фонового обновления.
    */
   async refresh(
     ..._args: TArgs extends void ? [] : [args: TArgs]
@@ -194,7 +229,7 @@ export class EntityHolder<
     return this._runFetch(args, true);
   }
 
-  // --- Private -------------------------------------------------------------
+  // ─── Приватное ────────────────────────────────────────────────────────────
 
   private async _runFetch(
     args: TArgs,

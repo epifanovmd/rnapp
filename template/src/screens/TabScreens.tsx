@@ -10,10 +10,16 @@ import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,
 } from "@react-navigation/bottom-tabs";
-import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
+import {
+  HomeIcon,
+  ListIcon,
+  MessageSquareIcon,
+  SettingsIcon,
+  UsersIcon,
+} from "lucide-react-native";
 import React, { FC, memo, useMemo } from "react";
 
-import { Main, Playground } from "./tabs";
+import { Chats, Contacts, Main, Playground } from "./tabs";
 import { Settings } from "./tabs/settings";
 
 interface IProps extends StackProps {}
@@ -23,6 +29,22 @@ const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
 };
 
 export const TAB_SCREENS: AppTabScreens = {
+  Chats: {
+    screen: Chats,
+    options: {
+      tabBarIcon: ({ size, color }) => (
+        <MessageSquareIcon size={size} color={color} />
+      ),
+      headerShown: false,
+    },
+  },
+  Contacts: {
+    screen: Contacts,
+    options: {
+      tabBarIcon: ({ size, color }) => <UsersIcon size={size} color={color} />,
+      headerShown: false,
+    },
+  },
   Main: {
     screen: Main,
     options: {
@@ -62,7 +84,7 @@ export const TabScreens: FC<IProps> = memo(() => {
         tabBar={props => <TabBar {...props} />}
         routes={TAB_SCREENS}
         screenOptions={screenOptions}
-        initialRouteName={"Playground"}
+        initialRouteName={"Chats"}
       />
     </TransitionProvider>
   );

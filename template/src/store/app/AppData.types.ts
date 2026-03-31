@@ -1,9 +1,6 @@
-import { createServiceDecorator, SupportInitialize } from "@di";
-
-import { IAuthStore } from "../auth";
+import { createServiceDecorator } from "@di";
+import { SupportInitialize } from "@utils";
 
 export const IAppDataStore = createServiceDecorator<IAppDataStore>();
 
-export interface IAppDataStore extends SupportInitialize {
-  authStore: IAuthStore;
-}
+export type IAppDataStore = SupportInitialize;

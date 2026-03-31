@@ -70,7 +70,7 @@ export class DateFormatter {
 
     const days = differenceInDays(now, date);
 
-    if (days === 1) return "вчера";
+    if (days <= 1) return "вчера";
     if (days < 7) return `${pluralizeDay(days, true)} назад`;
 
     return format(date, "d MMMM yyyy");

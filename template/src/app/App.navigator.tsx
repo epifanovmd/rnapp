@@ -11,7 +11,7 @@ import {
   NavigationContainerRef,
 } from "@react-navigation/native";
 import { StackHeaderProps } from "@react-navigation/stack";
-import { useAppDataStore } from "@store";
+import { useAuthStore } from "@store";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useCallback, useMemo } from "react";
 import { View } from "react-native";
@@ -51,7 +51,7 @@ export const AppNavigator = observer(
   forwardRef<NavigationContainerRef<ScreenParamList>, IAppNavigatorProps>(
     (_props, ref) => {
       const navigatorTheme = useAppNavigationTheme();
-      const { authStore } = useAppDataStore();
+      const authStore = useAuthStore();
       const { available, authorization } = useBiometric();
 
       useLogger(ref as any);

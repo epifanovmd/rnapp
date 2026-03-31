@@ -13,22 +13,22 @@ import {
   toHolderError,
 } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 export interface IPagedHolderPagination {
-  /** Current page, 1-based. */
+  /** Текущая страница, нумерация с 1. */
   page: number;
   pageSize: number;
-  /** Total items across all pages (from server). */
+  /** Общее количество элементов по всем страницам (от сервера). */
   totalCount: number;
 }
 
 export interface IPagedHolderOptions<TItem, TArgs = void> {
-  /** Called automatically from `load()` / `goToPage()` / `reload()`. */
+  /** Вызывается автоматически из `load()` / `goToPage()` / `reload()`. */
   onFetch?: PagedFetchFn<TItem, TArgs>;
-  /** Key extractor for CRUD helpers (updateItem / removeItem). */
+  /** Извлекатель ключа для CRUD-хелперов (updateItem / removeItem). */
   keyExtractor?: (item: TItem) => string | number;
-  /** Default page size (default: 20). */
+  /** Размер страницы по умолчанию (default: 20). */
   pageSize?: number;
 }
 
@@ -38,22 +38,36 @@ export interface IPagedHolderResult<TItem, TError extends IHolderError> {
   error: TError | null;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Holder for **server-side pagination**.
+ * Холдер для **серверной постраничной пагинации**.
  *
- * Manages current page, page size, total count, and navigation.
- * Each page change triggers a new API request.
+ * Управляет текущей страницей, размером страницы, общим количеством
+ * и навигацией. Каждая смена страницы инициирует новый API-запрос.
  *
- * Features:
- * - Full lifecycle + silent refresh
- * - `load(args?)` -> loads page 1
- * - `goToPage(n)` -> navigates to page n
- * - `setPageSize(n)` -> changes page size and reloads from page 1
- * - `reload()` -> re-fetches current page with same arguments
- * - Built-in CRUD helpers for optimistic updates on current page
- * - `fromApi()` for manual control
+ * Возможности:
+ * - Полный жизненный цикл + тихое обновление
+ * - `load(args?)` → загружает страницу 1
+ * - `goToPage(n)` → переходит на страницу n
+ * - `setPageSize(n)` → меняет размер страницы и перезагружает с 1-й
+ * - `reload()` → перезапрашивает текущую страницу с теми же аргументами
+ * - Встроенные CRUD-хелперы для оптимистичного обновления *текущей страницы*
+ * - `fromApi()` для ручного управления
+ *
+ * @example
+ * ```ts
+ * ordersHolder = new PagedHolder<OrderDto, { userId: string }>({
+ *   pageSize: 20,
+ *   keyExtractor: o => o.id,
+ *   onFetch: ({ offset, limit }, { userId }) =>
+ *     this._api.getOrdersByUser({ userId, offset, limit }),
+ * });
+ *
+ * async load(userId: string) {
+ *   await this.ordersHolder.load({ userId });
+ * }
+ * ```
  */
 export class PagedHolder<
   TItem,
@@ -62,7 +76,7 @@ export class PagedHolder<
 > extends BaseListHolder<TItem, TError> {
   pagination: IPagedHolderPagination;
 
-  /** Arguments from the last successful load - used in reload(). */
+  /** Аргументы последней успешной загрузки — используются в reload(). */
   lastArgs: TArgs | null = null;
 
   private readonly _onFetch?: PagedFetchFn<TItem, TArgs>;
@@ -98,9 +112,9 @@ export class PagedHolder<
     this._onFetch = options?.onFetch;
   }
 
-  // --- Computed ------------------------------------------------------------
+  // ─── Computed ──────────────────────────────────────────────────────────────
 
-  /** Total number of pages based on server totalCount. */
+  /** Общее количество страниц на основе серверного totalCount. */
   get pageCount() {
     const { pageSize, totalCount } = this.pagination;
 
@@ -115,33 +129,33 @@ export class PagedHolder<
     return this.pagination.page > 1;
   }
 
-  /** Offset to send to server for the current page. */
+  /** Offset для отправки на сервер для текущей страницы. */
   get offset() {
     const { page, pageSize } = this.pagination;
 
     return (page - 1) * pageSize;
   }
 
-  // --- State setters -------------------------------------------------------
+  // ─── Сеттеры состояния ────────────────────────────────────────────────────
 
-  /** Moves to a page without making a request (use with manual setItems). */
+  /** Переходит на страницу без запроса (совместно с ручным setItems). */
   setPage(page: number) {
     this.pagination = { ...this.pagination, page: Math.max(1, page) };
   }
 
-  /** Changes page size and resets to page 1 (does NOT make a request). */
+  /** Меняет размер страницы и сбрасывает на страницу 1 (запрос НЕ выполняется). */
   setPageSize(pageSize: number) {
     this.pagination = { ...this.pagination, pageSize, page: 1 };
   }
 
-  /** Batch-updates pagination fields (does NOT make a request). */
+  /** Массово обновляет поля пагинации (запрос НЕ выполняется). */
   setPagination(update: Partial<IPagedHolderPagination>) {
     this.pagination = { ...this.pagination, ...update };
   }
 
   /**
-   * Sets current page items and total count from server.
-   * Called after a successful API response.
+   * Устанавливает элементы текущей страницы и общее количество от сервера.
+   * Вызывается после успешного API-ответа.
    */
   setItems(items: TItem[], totalCount: number) {
     this.items = items;
@@ -150,7 +164,7 @@ export class PagedHolder<
     this.error = null;
   }
 
-  /** Resets items, pagination (except pageSize), and status to idle. */
+  /** Сбрасывает элементы, пагинацию (кроме pageSize) и статус в idle. */
   reset() {
     this.items = [];
     this.status = HolderStatus.Idle;
@@ -159,7 +173,7 @@ export class PagedHolder<
     this.pagination = { ...this.pagination, page: 1, totalCount: 0 };
   }
 
-  // --- CRUD helpers (optimistic, current page only) ------------------------
+  // ─── CRUD-хелперы (оптимистичные, только текущая страница) ───────────────
 
   prependItem(item: TItem) {
     this.items = [item, ...this.items];
@@ -187,11 +201,19 @@ export class PagedHolder<
     };
   }
 
-  // --- Async helpers -------------------------------------------------------
+  // ─── Async-хелперы ────────────────────────────────────────────────────────
 
   /**
-   * Wraps a **manual** API call returning a paged response.
-   * Manages loading state, error normalization, and data storage.
+   * Оборачивает **ручной** API-вызов, возвращающий постраничный ответ.
+   * Управляет состоянием загрузки, нормализацией ошибок и сохранением данных.
+   *
+   * @example
+   * ```ts
+   * await this.ordersHolder.fromApi(
+   *   () => this._api.getOrders({ offset: this.ordersHolder.offset, limit: this.ordersHolder.pagination.pageSize }),
+   *   res => ({ items: res.data ?? [], totalCount: res.totalCount ?? 0 }),
+   * );
+   * ```
    */
   async fromApi<TResponse, TApiError extends IHolderError = TError>(
     fn: () => Promise<IApiResponse<TResponse, TApiError>>,
@@ -249,8 +271,8 @@ export class PagedHolder<
   }
 
   /**
-   * Loads page 1 with new arguments.
-   * Resets current page to 1 before making the request.
+   * Загружает страницу 1 с новыми аргументами.
+   * Сбрасывает текущую страницу в 1 перед запросом.
    */
   async load(
     ..._args: TArgs extends void ? [] : [args: TArgs]
@@ -264,7 +286,7 @@ export class PagedHolder<
   }
 
   /**
-   * Re-fetches **current page** with the same arguments used last time.
+   * Перезапрашивает **текущую страницу** с теми же аргументами, что использовались последний раз.
    */
   async reload(options?: {
     refresh?: boolean;
@@ -272,7 +294,9 @@ export class PagedHolder<
     return this._runFetch(this.lastArgs as TArgs, options?.refresh ?? false);
   }
 
-  /** Navigates to the specified page and loads its data. */
+  /**
+   * Переходит на указанную страницу и загружает её данные.
+   */
   async goToPage(
     page: number,
     options?: { refresh?: boolean },
@@ -307,7 +331,7 @@ export class PagedHolder<
     return this.goToPage(this.pagination.page - 1);
   }
 
-  // --- Private -------------------------------------------------------------
+  // ─── Приватное ────────────────────────────────────────────────────────────
 
   private async _runFetch(
     args: TArgs,

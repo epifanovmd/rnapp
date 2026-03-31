@@ -2,6 +2,7 @@ export * from "./BaseHolder";
 export * from "./BaseListHolder";
 export * from "./CollectionHolder";
 export * from "./CombinedHolder";
+export * from "./CursorHolder";
 export * from "./EntityHolder";
 export * from "./filter";
 export * from "./HolderTypes";

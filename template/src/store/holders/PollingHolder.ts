@@ -3,7 +3,7 @@ import { action, makeObservable, observable } from "mobx";
 import { EntityHolder, IEntityHolderOptions } from "./EntityHolder";
 import { IHolderError } from "./HolderTypes";
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 export type PollingStartOptions<TArgs> = TArgs extends void
   ? { interval?: number } | undefined
@@ -11,22 +11,39 @@ export type PollingStartOptions<TArgs> = TArgs extends void
 
 export interface IPollingHolderOptions<TData, TArgs = void>
   extends IEntityHolderOptions<TData, TArgs> {
-  /** Default polling interval in ms (default: 5000). */
+  /** Интервал опроса по умолчанию в мс (default: 5000). */
   interval?: number;
 }
 
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Extends `EntityHolder` with automatic polling.
+ * Расширяет `EntityHolder` автоматическим опросом.
  *
- * The next request starts `interval` ms **after the previous one completes**,
- * so slow responses never cause parallel request accumulation.
+ * Следующий запрос начинается через `interval` мс **после завершения предыдущего**,
+ * поэтому медленные ответы не вызывают гонки и не накапливают параллельных запросов.
  *
- * - `startPolling(options?)` - initial load (if idle) + periodic silent refresh
- * - `stopPolling()` - stops polling
- * - `reset()` - stops polling and resets to idle
- * - `isPolling` - observable flag
+ * - `startPolling(options?)` — первичная загрузка (если idle) + периодическое тихое обновление
+ * - `stopPolling()` — останавливает опрос
+ * - `reset()` — останавливает опрос и сбрасывает в idle
+ * - `isPolling` — observable-флаг
+ *
+ * @example
+ * ```ts
+ * // TArgs = void
+ * healthHolder = new PollingHolder<HealthDto>({
+ *   onFetch: () => this._api.getHealth(),
+ *   interval: 10_000,
+ * });
+ * healthHolder.startPolling();
+ * healthHolder.stopPolling();
+ *
+ * // TArgs = string (идентификатор ресурса)
+ * jobStatusHolder = new PollingHolder<JobStatusDto, string>({
+ *   onFetch: id => this._api.getJobStatus(id),
+ * });
+ * jobStatusHolder.startPolling({ args: jobId, interval: 5_000 });
+ * ```
  */
 export class PollingHolder<
   TData,
@@ -50,13 +67,14 @@ export class PollingHolder<
   }
 
   /**
-   * Starts polling.
+   * Запускает опрос.
    *
-   * If the holder is idle, immediately performs `load()`, then begins
-   * the refresh cycle. Each request waits for the previous one to complete
-   * before scheduling the next.
+   * Если холдер в состоянии idle — немедленно выполняет `load()`, иначе сразу
+   * начинает цикл обновлений. После завершения каждого запроса ждёт `interval` мс,
+   * затем тихо вызывает `refresh()`. Следующий запрос никогда не стартует раньше,
+   * чем завершится предыдущий, поэтому медленные ответы не накапливают параллельных запросов.
    *
-   * Calling again while already polling restarts the cycle.
+   * Повторный вызов во время активного опроса перезапускает цикл.
    */
   startPolling(options?: PollingStartOptions<TArgs>): void {
     this.stopPolling();
@@ -87,7 +105,7 @@ export class PollingHolder<
     }
   }
 
-  /** Stops polling. */
+  /** Останавливает опрос. */
   stopPolling(): void {
     if (this._timeoutId !== null) {
       clearTimeout(this._timeoutId);

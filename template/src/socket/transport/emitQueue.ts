@@ -1,9 +1,5 @@
 import { AppSocket } from "./socketTransport.types";
 
-/**
- * Queue for buffering emitted events while socket is disconnected.
- * Flushes queued emissions once the socket connects.
- */
 export class EmitQueue {
   private _queue: Array<(socket: AppSocket) => void> = [];
 

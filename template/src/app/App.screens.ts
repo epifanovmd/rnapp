@@ -3,7 +3,11 @@ import { CardStyleInterpolators } from "@react-navigation/stack";
 
 import {
   CarouselScreen,
+  ChatInfo,
+  ChatRoom,
   Components,
+  NewChat,
+  NewGroupChat,
   PdfView,
   RecoveryPassword,
   SignIn,
@@ -33,6 +37,12 @@ export const PRIVATE_SCREENS: StackScreens = {
       headerShown: false,
     },
   },
+
+  // Messenger screens
+  ChatRoom: { screen: ChatRoom, options: { headerShown: false } },
+  NewChat: { screen: NewChat, options: { headerShown: false } },
+  NewGroupChat: { screen: NewGroupChat, options: { headerShown: false } },
+  ChatInfo: { screen: ChatInfo, options: { headerShown: false } },
 };
 
 export const PUBLIC_SCREENS: StackScreens = {

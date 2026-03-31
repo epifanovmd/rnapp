@@ -25,8 +25,10 @@ export interface IoCServiceDecorator<T> {
 
 const { lazyInject } = decorators(iocContainer);
 
-function createServiceDecorator<TInterface>(): IoCServiceDecorator<TInterface> {
-  const name: string = shortid();
+function createServiceDecorator<TInterface>(
+  _name?: string,
+): IoCServiceDecorator<TInterface> {
+  const name: string = _name ?? shortid();
 
   function serviceDecoratorFactory(options?: IIoCDecoratorOptions) {
     return function serviceDecorator(

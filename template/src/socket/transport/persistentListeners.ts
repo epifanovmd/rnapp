@@ -2,11 +2,6 @@ import { AppSocket } from "./socketTransport.types";
 
 type AnyHandler = (...args: any[]) => void;
 
-/**
- * Maintains event listeners that survive socket reconnections.
- * Uses a Map to store handlers by event name and re-binds them
- * to new socket instances.
- */
 export class PersistentListeners {
   private _store = new Map<string, Set<AnyHandler>>();
 

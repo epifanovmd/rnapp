@@ -1,4 +1,5 @@
-import { createServiceDecorator, SupportInitialize } from "@di";
+import { createServiceDecorator } from "@di";
+import { SupportInitialize } from "@utils";
 import { Socket as SocketIO } from "socket.io-client";
 
 import {

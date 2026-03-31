@@ -1,4 +1,3 @@
-import { ValueHolder } from "@store";
 import { isEqual } from "lodash";
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 
@@ -9,6 +8,7 @@ import {
   TFilterOptions,
   TFilterValueType,
 } from "./Filter.types";
+import { ValueHolder } from "./ValueHolder";
 
 export type TFilterConfig = Record<string, FilterHolder<any, any, boolean>>;
 

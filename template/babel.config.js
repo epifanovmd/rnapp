@@ -9,7 +9,7 @@ module.exports = {
       "module-resolver",
       {
         alias: {
-          "@core/": "./src/core",
+          "@core": "./src/core",
           "@core/*": "./src/core/*",
           "@api": "./src/api",
           "@api/*": "./src/api/*",
@@ -21,7 +21,7 @@ module.exports = {
           "@di/*": "./src/di/*",
           "@components": "./src/components",
           "@components/*": "./src/components/*",
-          "@models": "./src/models",
+          "@store/models": "./src/models",
           "@models/*": "./src/models/*",
           "@socket": "./src/socket",
           "@socket/*": "./src/socket/*",
