@@ -10,6 +10,20 @@
  * ---------------------------------------------------------------
  */
 
+export enum ESyncAction {
+  Create = "create",
+  Update = "update",
+  Delete = "delete",
+}
+
+export enum ESyncEntityType {
+  Message = "message",
+  Chat = "chat",
+  ChatMember = "chat_member",
+  Contact = "contact",
+  Profile = "profile",
+}
+
 export enum EDevicePlatform {
   Ios = "ios",
   Android = "android",
@@ -59,14 +73,6 @@ export enum PublicKeyCredentialType {
   PublicKey = "public-key",
 }
 
-export enum EMessageType {
-  Text = "text",
-  Image = "image",
-  File = "file",
-  Voice = "voice",
-  System = "system",
-}
-
 export enum EContactStatus {
   Pending = "pending",
   Accepted = "accepted",
@@ -77,22 +83,58 @@ export enum EChatMemberRole {
   Owner = "owner",
   Admin = "admin",
   Member = "member",
+  Subscriber = "subscriber",
 }
 
 export enum EChatType {
   Direct = "direct",
   Group = "group",
+  Channel = "channel",
 }
 
-export enum EProfileStatus {
-  Online = "online",
-  Offline = "offline",
+export enum ECallStatus {
+  Ringing = "ringing",
+  Active = "active",
+  Ended = "ended",
+  Missed = "missed",
+  Declined = "declined",
 }
 
-export enum EPermissions {
+export enum ECallType {
+  Voice = "voice",
+  Video = "video",
+}
+
+export enum EMessageStatus {
+  Sent = "sent",
+  Delivered = "delivered",
+  Read = "read",
+}
+
+export enum EMessageType {
+  Text = "text",
+  Image = "image",
+  File = "file",
+  Voice = "voice",
+  System = "system",
+  Poll = "poll",
+}
+
+export enum EPrivacyLevel {
+  Everyone = "everyone",
+  Contacts = "contacts",
+  Nobody = "nobody",
+}
+
+/** Тип для предопределённых permissions (автодополнение в IDE). */
+export enum KnownPermission {
   Value = "*",
   UserView = "user:view",
   UserManage = "user:manage",
+  RoleView = "role:view",
+  RoleManage = "role:manage",
+  ProfileView = "profile:view",
+  ProfileManage = "profile:manage",
   ContactView = "contact:view",
   ContactManage = "contact:manage",
   Contact = "contact:*",
@@ -105,33 +147,76 @@ export enum EPermissions {
   PushManage = "push:manage",
 }
 
-export enum ERole {
+/** Тип для предопределённых ролей (автодополнение в IDE). */
+export enum KnownRole {
   Admin = "admin",
   User = "user",
   Guest = "guest",
 }
 
-export interface ProfileDto {
+export interface SessionDto {
   id: string;
   userId: string;
-  firstName?: string;
-  lastName?: string;
+  deviceName: string | null;
+  deviceType: string | null;
+  ip: string | null;
+  userAgent: string | null;
   /** @format date-time */
-  birthDate?: string | null;
-  gender?: string;
-  status?: string;
+  lastActiveAt: string;
   /** @format date-time */
-  lastOnline?: string | null;
+  createdAt: string;
+}
+
+export interface IFileDto {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  /** @format double */
+  size: number;
+  thumbnailUrl: string | null;
+  mediumUrl: string | null;
+  blurhash: string | null;
+  /** @format double */
+  width: number | null;
+  /** @format double */
+  height: number | null;
+  /** @format double */
+  duration: number | null;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
+}
+
+export interface ProfileDto {
+  id: string;
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  /** @format date-time */
+  birthDate: string | null;
+  gender: string | null;
+  /** @format date-time */
+  lastOnline: string | null;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  avatar?: IFileDto;
   user?: UserDto;
 }
 
+/** Роль — произвольная строка; предопределённые значения дают автодополнение. */
+export type TRole = KnownRole | (string & object);
+
+/** Permission — произвольная строка; предопределённые значения дают автодополнение. */
+export type TPermission = KnownPermission | (string & object);
+
 export interface IPermissionDto {
   id: string;
-  name: EPermissions;
+  /** Permission — произвольная строка; предопределённые значения дают автодополнение. */
+  name: TPermission;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
@@ -140,7 +225,8 @@ export interface IPermissionDto {
 
 export interface IRoleDto {
   id: string;
-  name: ERole;
+  /** Роль — произвольная строка; предопределённые значения дают автодополнение. */
+  name: TRole;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
@@ -150,9 +236,10 @@ export interface IRoleDto {
 
 export interface UserDto {
   id: string;
-  email?: string;
+  email: string | null;
   emailVerified?: boolean;
-  phone?: string;
+  phone: string | null;
+  username: string | null;
   profile?: ProfileDto;
   roles: IRoleDto[];
   directPermissions: IPermissionDto[];
@@ -165,20 +252,24 @@ export interface UserDto {
 export interface IProfileUpdateRequestDto {
   firstName?: string;
   lastName?: string;
-  bio?: string;
   /** @format date-time */
   birthDate?: string;
   gender?: string;
-  status?: EProfileStatus;
+}
+
+export interface PrivacySettingsDto {
+  showLastOnline: EPrivacyLevel;
+  showPhone: EPrivacyLevel;
+  showAvatar: EPrivacyLevel;
 }
 
 export interface PublicProfileDto {
   id: string;
-  firstName?: string;
-  lastName?: string;
-  status: EProfileStatus;
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
   /** @format date-time */
-  lastOnline?: string;
+  lastOnline: string | null;
 }
 
 export interface IProfileListDto {
@@ -193,8 +284,13 @@ export interface IProfileListDto {
   data: PublicProfileDto[];
 }
 
+export interface ICreateRoleRequestDto {
+  /** Роль — произвольная строка; предопределённые значения дают автодополнение. */
+  name: TRole;
+}
+
 export interface IRolePermissionsRequestDto {
-  permissions: EPermissions[];
+  permissions: TPermission[];
 }
 
 export interface IUserUpdateRequestDto {
@@ -205,7 +301,8 @@ export interface IUserUpdateRequestDto {
 
 export interface PublicUserDto {
   userId: string;
-  email: string;
+  email: string | null;
+  username: string | null;
   profile: PublicProfileDto;
 }
 
@@ -223,7 +320,7 @@ export interface IUserListDto {
 
 export interface IUserOptionDto {
   id: string;
-  name: string;
+  name: string | null;
 }
 
 export interface IUserOptionsDto {
@@ -232,12 +329,12 @@ export interface IUserOptionsDto {
 
 export interface IUserPrivilegesRequestDto {
   /** Роли для назначения пользователю (заменяет текущие роли). */
-  roles: ERole[];
+  roles: TRole[];
   /**
    * Прямые разрешения, выданные этому пользователю дополнительно к разрешениям ролей.
    * Заменяет текущие прямые разрешения.
    */
-  permissions: EPermissions[];
+  permissions: TPermission[];
 }
 
 export interface ApiResponseDto {
@@ -256,9 +353,10 @@ export interface ITokensDto {
 
 export interface IUserWithTokensDto {
   id: string;
-  email?: string;
+  email: string | null;
   emailVerified?: boolean;
-  phone?: string;
+  phone: string | null;
+  username: string | null;
   profile?: ProfileDto;
   roles: IRoleDto[];
   directPermissions: IPermissionDto[];
@@ -284,6 +382,14 @@ export type TSignUpRequestDto = {
     }
 );
 
+export interface I2FARequiredDto {
+  require2FA: true;
+  twoFactorToken: string;
+  twoFactorHint?: string;
+}
+
+export type ISignInResponseDto = IUserWithTokensDto | I2FARequiredDto;
+
 export interface ISignInRequestDto {
   /** Может быть телефоном, email-ом и username-ом */
   login: string;
@@ -298,6 +404,20 @@ export interface IUserLoginRequestDto {
 export interface IUserResetPasswordRequestDto {
   password: string;
   token: string;
+}
+
+export interface IEnable2FARequestDto {
+  password: string;
+  hint?: string;
+}
+
+export interface IDisable2FARequestDto {
+  password: string;
+}
+
+export interface IVerify2FARequestDto {
+  twoFactorToken: string;
+  password: string;
 }
 
 export interface IRegisterBiometricResponseDto {
@@ -334,9 +454,9 @@ export interface IVerifyBiometricSignatureRequestDto {
 export interface IBiometricDeviceDto {
   id: string;
   deviceId: string;
-  deviceName: string;
+  deviceName: string | null;
   /** @format date-time */
-  lastUsedAt: string;
+  lastUsedAt: string | null;
   /** @format date-time */
   createdAt: string;
 }
@@ -349,6 +469,273 @@ export interface IDeleteBiometricResponseDto {
   deleted: boolean;
 }
 
+export interface MessageDto {
+  id: string;
+  chatId: string;
+  senderId: string | null;
+  type: EMessageType;
+  status: EMessageStatus;
+  content: string | null;
+  replyToId: string | null;
+  forwardedFromId: string | null;
+  isEdited: boolean;
+  isDeleted: boolean;
+  isPinned: boolean;
+  /** @format date-time */
+  pinnedAt: string | null;
+  pinnedById: string | null;
+  keyboard: any;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  sender?: {
+    avatarUrl?: string | null;
+    lastName?: string | null;
+    firstName?: string | null;
+    id: string;
+  };
+  replyTo?: MessageDto | null;
+  attachments: MessageAttachmentDto[];
+  reactions: {
+    userIds: string[];
+    /** @format double */
+    count: number;
+    emoji: string;
+  }[];
+  mentions: {
+    isAll: boolean;
+    userId: string | null;
+  }[];
+  poll?: PollDto | null;
+}
+
+export interface MessageAttachmentDto {
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  /** @format double */
+  fileSize: number;
+  thumbnailUrl: string | null;
+  /** @format double */
+  width: number | null;
+  /** @format double */
+  height: number | null;
+  /** @format double */
+  duration: number | null;
+}
+
+export interface PollOptionDto {
+  id: string;
+  text: string;
+  /** @format double */
+  position: number;
+  /** @format double */
+  voterCount: number;
+  voterIds: string[];
+}
+
+export interface PollDto {
+  id: string;
+  messageId: string;
+  question: string;
+  isAnonymous: boolean;
+  isMultipleChoice: boolean;
+  isClosed: boolean;
+  /** @format date-time */
+  closedAt: string | null;
+  options: PollOptionDto[];
+  /** @format double */
+  totalVotes: number;
+  userVotedOptionIds: string[];
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+}
+
+export interface IBotSendMessageBody {
+  chatId: string;
+  content?: string;
+  type?: EMessageType;
+  replyToId?: string;
+  fileIds?: string[];
+}
+
+export interface IBotEditMessageBody {
+  content: string;
+}
+
+export interface BotCommandDto {
+  command: string;
+  description: string;
+}
+
+export interface BotDetailDto {
+  id: string;
+  username: string;
+  displayName: string;
+  description: string | null;
+  avatarUrl: string | null;
+  isActive: boolean;
+  /** @format date-time */
+  createdAt: string;
+  token: string;
+  webhookUrl: string | null;
+  webhookSecret: string | null;
+  webhookEvents: string[];
+  commands: BotCommandDto[];
+}
+
+export interface ICreateBotBody {
+  username: string;
+  displayName: string;
+  description?: string;
+}
+
+export interface BotDto {
+  id: string;
+  username: string;
+  displayName: string;
+  description: string | null;
+  avatarUrl: string | null;
+  isActive: boolean;
+  /** @format date-time */
+  createdAt: string;
+}
+
+export interface IUpdateBotBody {
+  displayName?: string;
+  description?: string | null;
+  avatarId?: string | null;
+}
+
+export interface ISetWebhookBody {
+  url: string;
+  secret?: string;
+}
+
+export interface ISetCommandsBody {
+  commands: {
+    description: string;
+    command: string;
+  }[];
+}
+
+export interface IWebhookTestResponse {
+  success: boolean;
+  /** @format double */
+  statusCode: number | null;
+  errorMessage: string | null;
+  /** @format double */
+  durationMs: number;
+}
+
+/** Construct a type with a set of properties K of type T */
+export type RecordStringUnknown = object;
+
+export interface WebhookLogDto {
+  id: string;
+  eventType: string;
+  payload: RecordStringUnknown | null;
+  /** @format double */
+  statusCode: number | null;
+  success: boolean;
+  errorMessage: string | null;
+  /** @format double */
+  attempts: number;
+  /** @format double */
+  durationMs: number | null;
+  /** @format date-time */
+  createdAt: string;
+}
+
+export interface IWebhookLogsResponse {
+  data: WebhookLogDto[];
+  /** @format double */
+  totalCount: number;
+}
+
+export interface ISetWebhookEventsBody {
+  events: string[];
+}
+
+export interface CallDto {
+  id: string;
+  callerId: string;
+  calleeId: string;
+  chatId: string | null;
+  type: ECallType;
+  status: ECallStatus;
+  /** @format date-time */
+  startedAt: string | null;
+  /** @format date-time */
+  endedAt: string | null;
+  /** @format double */
+  duration: number | null;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+  caller?: {
+    avatarUrl?: string | null;
+    lastName?: string | null;
+    firstName?: string | null;
+    id: string;
+  };
+  callee?: {
+    avatarUrl?: string | null;
+    lastName?: string | null;
+    firstName?: string | null;
+    id: string;
+  };
+}
+
+export interface IInitiateCallBody {
+  calleeId: string;
+  chatId?: string;
+  type?: ECallType;
+}
+
+export interface ICallHistoryDto {
+  data: CallDto[];
+  /** @format double */
+  totalCount: number;
+}
+
+export interface ISetSlowModeBody {
+  /** @format double */
+  seconds: number;
+}
+
+export interface IBanMemberBody {
+  /** @format double */
+  duration?: number;
+  reason?: string;
+}
+
+export interface IBannedMemberDto {
+  userId: string;
+  chatId: string;
+  reason?: string;
+  /** @format date-time */
+  bannedAt: string;
+  /** @format date-time */
+  expiresAt?: string;
+}
+
+export interface ChatLastMessageDto {
+  id: string;
+  content: string | null;
+  type: EMessageType;
+  senderId: string | null;
+  senderName: string | null;
+  /** @format date-time */
+  createdAt: string;
+}
+
 export interface ChatMemberDto {
   id: string;
   userId: string;
@@ -357,6 +744,18 @@ export interface ChatMemberDto {
   joinedAt: string;
   /** @format date-time */
   mutedUntil: string | null;
+  lastReadMessageId: string | null;
+  isPinnedChat: boolean;
+  /** @format date-time */
+  pinnedChatAt: string | null;
+  folderId: string | null;
+  profile?: PublicProfileDto;
+}
+
+/** Публичные данные собеседника в direct-чате (без приватных настроек членства). */
+export interface ChatPeerDto {
+  userId: string;
+  role: EChatMemberRole;
   profile?: PublicProfileDto;
 }
 
@@ -364,15 +763,25 @@ export interface ChatDto {
   id: string;
   type: EChatType;
   name: string | null;
+  description: string | null;
+  username: string | null;
+  isPublic: boolean;
   avatarUrl: string | null;
-  createdById: string;
+  createdById: string | null;
+  /** @format double */
+  slowModeSeconds: number;
   /** @format date-time */
   lastMessageAt: string | null;
+  lastMessage: ChatLastMessageDto | null;
   /** @format date-time */
   createdAt: string;
   /** @format date-time */
   updatedAt: string;
   members: ChatMemberDto[];
+  /** Членство текущего пользователя в чате */
+  me: ChatMemberDto | null;
+  /** Собеседник в direct-чате (null для групп/каналов) */
+  peer: ChatPeerDto | null;
 }
 
 export interface ICreateDirectChatBody {
@@ -383,6 +792,22 @@ export interface ICreateGroupChatBody {
   name: string;
   memberIds: string[];
   avatarId?: string;
+}
+
+export interface ICreateChannelBody {
+  name: string;
+  description?: string;
+  username?: string;
+  avatarId?: string;
+  isPublic?: boolean;
+}
+
+export interface IUpdateChannelBody {
+  name?: string;
+  description?: string | null;
+  username?: string | null;
+  avatarId?: string | null;
+  isPublic?: boolean;
 }
 
 export interface IChatListDto {
@@ -402,12 +827,64 @@ export interface IUpdateChatBody {
   avatarId?: string | null;
 }
 
+export interface ChatInviteDto {
+  id: string;
+  chatId: string;
+  code: string;
+  createdById: string;
+  /** @format date-time */
+  expiresAt: string | null;
+  /** @format double */
+  maxUses: number | null;
+  /** @format double */
+  useCount: number;
+  isActive: boolean;
+  /** @format date-time */
+  createdAt: string;
+}
+
+export interface ICreateInviteBody {
+  expiresAt?: string;
+  /** @format double */
+  maxUses?: number;
+}
+
+export interface IMuteChatBody {
+  mutedUntil: string | null;
+}
+
 export interface IAddMembersBody {
   memberIds: string[];
 }
 
 export interface IUpdateMemberRoleBody {
   role: EChatMemberRole;
+}
+
+export interface IMoveChatToFolderBody {
+  folderId: string | null;
+}
+
+export interface ChatFolderDto {
+  id: string;
+  userId: string;
+  name: string;
+  /** @format double */
+  position: number;
+  /** @format date-time */
+  createdAt: string;
+  /** @format date-time */
+  updatedAt: string;
+}
+
+export interface ICreateFolderBody {
+  name: string;
+}
+
+export interface IUpdateFolderBody {
+  name?: string;
+  /** @format double */
+  position?: number;
 }
 
 export interface ContactDto {
@@ -428,64 +905,62 @@ export interface ICreateContactBody {
   displayName?: string;
 }
 
-export interface IFileDto {
-  id: string;
-  name: string;
-  type: string;
-  url: string;
-  /** @format double */
-  size: number;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-}
-
-export interface MessageDto {
-  id: string;
-  chatId: string;
-  senderId: string;
-  type: EMessageType;
-  content: string | null;
-  replyToId: string | null;
-  forwardedFromId: string | null;
-  isEdited: boolean;
-  isDeleted: boolean;
-  /** @format date-time */
-  createdAt: string;
-  /** @format date-time */
-  updatedAt: string;
-  sender?: {
-    avatarUrl?: string;
-    lastName?: string;
-    firstName?: string;
-    id: string;
-  };
-  replyTo?: MessageDto | null;
-  attachments: MessageAttachmentDto[];
-}
-
-export interface MessageAttachmentDto {
-  id: string;
-  fileId: string;
-  fileName: string;
-  fileUrl: string;
-  fileType: string;
-  /** @format double */
-  fileSize: number;
-}
-
 export interface ISendMessageBody {
   type?: EMessageType;
   content?: string;
   replyToId?: string;
   forwardedFromId?: string;
   fileIds?: string[];
+  mentionedUserIds?: string[];
+  mentionAll?: boolean;
 }
 
 export interface IMessageListDto {
   data: MessageDto[];
   hasMore: boolean;
+  /** Present when using `around` — indicates newer messages exist above the window. */
+  hasNewer?: boolean;
+}
+
+export interface IMessageSearchDto {
+  data: MessageDto[];
+  /** @format double */
+  totalCount: number;
+}
+
+export interface MediaItemDto {
+  id: string;
+  messageId: string;
+  chatId: string;
+  senderId: string | null;
+  attachments: MessageAttachmentDto[];
+  /** @format date-time */
+  createdAt: string;
+  sender?: {
+    avatarUrl?: string | null;
+    lastName?: string | null;
+    firstName?: string | null;
+    id: string;
+  };
+}
+
+export interface IMediaGalleryDto {
+  data: MediaItemDto[];
+  /** @format double */
+  totalCount: number;
+}
+
+export interface IMediaStatsDto {
+  /** @format double */
+  images: number;
+  /** @format double */
+  videos: number;
+  /** @format double */
+  audio: number;
+  /** @format double */
+  documents: number;
+  /** @format double */
+  total: number;
 }
 
 export interface IMarkReadBody {
@@ -494,6 +969,10 @@ export interface IMarkReadBody {
 
 export interface IEditMessageBody {
   content: string;
+}
+
+export interface IAddReactionBody {
+  emoji: string;
 }
 
 export interface PublicKeyCredentialRpEntity {
@@ -706,6 +1185,17 @@ export interface IVerifyAuthenticationRequestDto {
   data: AuthenticationResponseJSON;
 }
 
+export interface ICreatePollBody {
+  question: string;
+  options: string[];
+  isAnonymous?: boolean;
+  isMultipleChoice?: boolean;
+}
+
+export interface IVotePollBody {
+  optionIds: string[];
+}
+
 export interface DeviceTokenDto {
   id: string;
   token: string;
@@ -731,6 +1221,33 @@ export interface IUpdateNotificationSettingsBody {
   muteAll?: boolean;
   soundEnabled?: boolean;
   showPreview?: boolean;
+}
+
+export interface SyncLogDto {
+  version: string;
+  entityType: ESyncEntityType;
+  entityId: string;
+  action: ESyncAction;
+  chatId: string | null;
+  payload: RecordStringUnknown | null;
+  /** @format date-time */
+  createdAt: string;
+}
+
+export interface ISyncResponseDto {
+  changes: SyncLogDto[];
+  currentVersion: string;
+  hasMore: boolean;
+}
+
+export interface TerminateSessionParams {
+  id: string;
+}
+
+export interface UpdatePrivacySettingsPayload {
+  showAvatar?: EPrivacyLevel;
+  showPhone?: EPrivacyLevel;
+  showLastOnline?: EPrivacyLevel;
 }
 
 export interface GetProfilesParams {
@@ -761,9 +1278,30 @@ export interface DeleteProfileParams {
   userId: string;
 }
 
+export interface DeleteRoleParams {
+  /** ID роли */
+  id: string;
+}
+
 export interface SetRolePermissionsParams {
   /** ID роли */
   id: string;
+}
+
+export interface SetUsernamePayload {
+  username: string;
+}
+
+export interface SearchUsersParams {
+  q: string;
+  /** @format double */
+  limit?: number;
+  /** @format double */
+  offset?: number;
+}
+
+export interface GetUserByUsernameParams {
+  username: string;
 }
 
 export interface GetUsersParams {
@@ -820,6 +1358,119 @@ export interface DeleteDeviceParams {
   deviceId: string;
 }
 
+export interface BotEditMessageParams {
+  id: string;
+}
+
+export interface BotDeleteMessageParams {
+  id: string;
+}
+
+export interface GetBotByIdParams {
+  id: string;
+}
+
+export interface UpdateBotParams {
+  id: string;
+}
+
+export interface DeleteBotParams {
+  id: string;
+}
+
+export interface RegenerateTokenParams {
+  id: string;
+}
+
+export interface SetWebhookParams {
+  id: string;
+}
+
+export interface DeleteWebhookParams {
+  id: string;
+}
+
+export interface SetCommandsParams {
+  id: string;
+}
+
+export interface GetCommandsParams {
+  id: string;
+}
+
+export interface TestWebhookParams {
+  id: string;
+}
+
+export interface GetWebhookLogsParams {
+  /** @format double */
+  offset?: number;
+  /** @format double */
+  limit?: number;
+  id: string;
+}
+
+export interface SetWebhookEventsParams {
+  id: string;
+}
+
+export interface AnswerCallParams {
+  id: string;
+}
+
+export interface DeclineCallParams {
+  id: string;
+}
+
+export interface EndCallParams {
+  id: string;
+}
+
+export interface GetCallHistoryParams {
+  /** @format double */
+  limit?: number;
+  /** @format double */
+  offset?: number;
+}
+
+export interface SetSlowModeParams {
+  id: string;
+}
+
+export interface BanMemberParams {
+  id: string;
+  userId: string;
+}
+
+export interface UnbanMemberParams {
+  id: string;
+  userId: string;
+}
+
+export interface GetBannedMembersParams {
+  id: string;
+}
+
+export interface UpdateChannelParams {
+  id: string;
+}
+
+export interface SubscribeToChannelParams {
+  id: string;
+}
+
+export interface UnsubscribeFromChannelParams {
+  id: string;
+}
+
+export interface SearchChannelsParams {
+  q?: string;
+  /** @format double */
+  offset?: number;
+  /** @format double */
+  limit?: number;
+}
+
 export interface GetUserChatsParams {
   /** @format double */
   offset?: number;
@@ -839,6 +1490,27 @@ export interface LeaveChatParams {
   id: string;
 }
 
+export interface CreateInviteLinkParams {
+  id: string;
+}
+
+export interface GetInvitesParams {
+  id: string;
+}
+
+export interface RevokeInviteParams {
+  id: string;
+  inviteId: string;
+}
+
+export interface JoinByInviteParams {
+  code: string;
+}
+
+export interface MuteChatParams {
+  id: string;
+}
+
 export interface AddMembersParams {
   id: string;
 }
@@ -851,6 +1523,26 @@ export interface RemoveMemberParams {
 export interface UpdateMemberRoleParams {
   id: string;
   userId: string;
+}
+
+export interface PinChatParams {
+  id: string;
+}
+
+export interface UnpinChatParams {
+  id: string;
+}
+
+export interface MoveChatToFolderParams {
+  id: string;
+}
+
+export interface UpdateFolderParams {
+  folderId: string;
+}
+
+export interface DeleteFolderParams {
+  folderId: string;
 }
 
 export interface GetContactsParams {
@@ -892,8 +1584,12 @@ export interface SendMessageParams {
 }
 
 export interface GetMessagesParams {
-  /** ID сообщения для курсора (загрузить более старые) */
+  /** ID сообщения — загрузить более старые */
   before?: string;
+  /** ID сообщения — загрузить более новые */
+  after?: string;
+  /** ID сообщения — загрузить окно вокруг него */
+  around?: string;
   /**
    * Количество сообщений (по умолчанию 50)
    * @format double
@@ -903,8 +1599,50 @@ export interface GetMessagesParams {
   chatId: string;
 }
 
+export interface SearchMessagesParams {
+  q: string;
+  /** @format double */
+  limit?: number;
+  /** @format double */
+  offset?: number;
+  chatId: string;
+}
+
+export interface GetPinnedMessagesParams {
+  chatId: string;
+}
+
+export interface GetChatMediaParams {
+  /** Фильтр по MIME-префиксу (image, video, audio) */
+  type?: string;
+  /**
+   * Количество (по умолчанию 50)
+   * @format double
+   */
+  limit?: number;
+  /**
+   * Смещение
+   * @format double
+   */
+  offset?: number;
+  /** ID чата */
+  chatId: string;
+}
+
+export interface GetChatMediaStatsParams {
+  chatId: string;
+}
+
 export interface MarkAsReadParams {
   chatId: string;
+}
+
+export interface SearchMessages2Params {
+  q: string;
+  /** @format double */
+  limit?: number;
+  /** @format double */
+  offset?: number;
 }
 
 export interface EditMessageParams {
@@ -915,6 +1653,48 @@ export interface DeleteMessageParams {
   id: string;
 }
 
+export interface AddReactionParams {
+  id: string;
+}
+
+export interface RemoveReactionParams {
+  id: string;
+}
+
+export interface PinMessageParams {
+  id: string;
+}
+
+export interface UnpinMessageParams {
+  id: string;
+}
+
+export interface CreatePollParams {
+  chatId: string;
+}
+
+export interface VoteParams {
+  id: string;
+}
+
+export interface RetractVoteParams {
+  id: string;
+}
+
+export interface ClosePollParams {
+  id: string;
+}
+
+export interface GetPollParams {
+  id: string;
+}
+
 export interface UnregisterDeviceParams {
   token: string;
+}
+
+export interface GetChangesParams {
+  sinceVersion?: string;
+  /** @format double */
+  limit?: number;
 }

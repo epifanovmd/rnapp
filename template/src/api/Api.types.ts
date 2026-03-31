@@ -52,19 +52,15 @@ export class ApiError extends Error {
   get isUnauthorized() {
     return this.status === 401;
   }
-
   get isForbidden() {
     return this.status === 403;
   }
-
   get isNotFound() {
     return this.status === 404;
   }
-
   get isServerError() {
     return this.status >= 500;
   }
-
   get isNetworkError() {
     return this.status === 0;
   }

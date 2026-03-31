@@ -13,43 +13,95 @@
 import {
   AcceptContactParams,
   AddMembersParams,
+  AddReactionParams,
+  AnswerCallParams,
   ApiResponseDto,
+  BanMemberParams,
   Base64URLString,
   BlockContactParams,
+  BotCommandDto,
+  BotDeleteMessageParams,
+  BotDetailDto,
+  BotDto,
+  BotEditMessageParams,
+  CallDto,
   ChatDto,
+  ChatFolderDto,
+  ChatInviteDto,
   ChatMemberDto,
+  ClosePollParams,
   ContactDto,
+  CreateInviteLinkParams,
+  CreatePollParams,
+  DeclineCallParams,
+  DeleteBotParams,
   DeleteDeviceParams,
   DeleteFileParams,
+  DeleteFolderParams,
   DeleteMessageParams,
   DeleteProfileParams,
+  DeleteRoleParams,
   DeleteUserParams,
+  DeleteWebhookParams,
   DeviceTokenDto,
   EditMessageParams,
+  EndCallParams,
+  GetBannedMembersParams,
+  GetBotByIdParams,
+  GetCallHistoryParams,
+  GetChangesParams,
   GetChatByIdParams,
+  GetChatMediaParams,
+  GetChatMediaStatsParams,
+  GetCommandsParams,
   GetContactsParams,
   GetFileByIdParams,
+  GetInvitesParams,
   GetMessagesParams,
+  GetPinnedMessagesParams,
+  GetPollParams,
   GetProfileByIdParams,
   GetProfilesParams,
   GetUserByIdParams,
+  GetUserByUsernameParams,
   GetUserChatsParams,
   GetUserOptionsParams,
   GetUsersParams,
+  GetWebhookLogsParams,
   IAddMembersBody,
+  IAddReactionBody,
+  IBanMemberBody,
+  IBannedMemberDto,
   IBiometricDevicesResponseDto,
+  IBotEditMessageBody,
+  IBotSendMessageBody,
+  ICallHistoryDto,
   IChatListDto,
+  ICreateBotBody,
+  ICreateChannelBody,
   ICreateContactBody,
   ICreateDirectChatBody,
+  ICreateFolderBody,
   ICreateGroupChatBody,
+  ICreateInviteBody,
+  ICreatePollBody,
+  ICreateRoleRequestDto,
   IDeleteBiometricResponseDto,
+  IDisable2FARequestDto,
   IEditMessageBody,
+  IEnable2FARequestDto,
   IFileDto,
   IGenerateAuthenticationOptionsRequestDto,
   IGenerateNonceRequestDto,
   IGenerateNonceResponseDto,
+  IInitiateCallBody,
   IMarkReadBody,
+  IMediaGalleryDto,
+  IMediaStatsDto,
   IMessageListDto,
+  IMessageSearchDto,
+  IMoveChatToFolderBody,
+  IMuteChatBody,
   IProfileListDto,
   IProfileUpdateRequestDto,
   IRegisterBiometricRequestDto,
@@ -58,9 +110,18 @@ import {
   IRoleDto,
   IRolePermissionsRequestDto,
   ISendMessageBody,
+  ISetCommandsBody,
+  ISetSlowModeBody,
+  ISetWebhookBody,
+  ISetWebhookEventsBody,
   ISignInRequestDto,
+  ISignInResponseDto,
+  ISyncResponseDto,
   ITokensDto,
+  IUpdateBotBody,
+  IUpdateChannelBody,
   IUpdateChatBody,
+  IUpdateFolderBody,
   IUpdateMemberRoleBody,
   IUpdateNotificationSettingsBody,
   IUserChangePasswordDto,
@@ -71,39 +132,126 @@ import {
   IUserResetPasswordRequestDto,
   IUserUpdateRequestDto,
   IUserWithTokensDto,
+  IVerify2FARequestDto,
   IVerifyAuthenticationRequestDto,
   IVerifyAuthenticationResponseDto,
   IVerifyBiometricSignatureRequestDto,
   IVerifyBiometricSignatureResponseDto,
   IVerifyRegistrationRequestDto,
   IVerifyRegistrationResponseDto,
+  IVotePollBody,
+  IWebhookLogsResponse,
+  IWebhookTestResponse,
+  JoinByInviteParams,
   LeaveChatParams,
   MarkAsReadParams,
   MessageDto,
+  MoveChatToFolderParams,
+  MuteChatParams,
   NotificationSettingsDto,
+  PinChatParams,
+  PinMessageParams,
+  PollDto,
+  PrivacySettingsDto,
   ProfileDto,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   PublicProfileDto,
+  PublicUserDto,
   RefreshPayload,
+  RegenerateTokenParams,
   RemoveContactParams,
   RemoveMemberParams,
+  RemoveReactionParams,
+  RetractVoteParams,
+  RevokeInviteParams,
+  SearchChannelsParams,
+  SearchMessages2Params,
+  SearchMessagesParams,
+  SearchUsersParams,
   SendMessageParams,
+  SessionDto,
+  SetCommandsParams,
   SetPrivilegesParams,
   SetRolePermissionsParams,
+  SetSlowModeParams,
+  SetUsernamePayload,
+  SetWebhookEventsParams,
+  SetWebhookParams,
+  SubscribeToChannelParams,
+  TerminateSessionParams,
+  TestWebhookParams,
   TSignUpRequestDto,
+  UnbanMemberParams,
+  UnpinChatParams,
+  UnpinMessageParams,
   UnregisterDeviceParams,
+  UnsubscribeFromChannelParams,
+  UpdateBotParams,
+  UpdateChannelParams,
   UpdateChatParams,
+  UpdateFolderParams,
   UpdateMemberRoleParams,
+  UpdatePrivacySettingsPayload,
   UpdateProfileParams,
   UpdateUserParams,
   UploadFilePayload,
   UserDto,
   VerifyEmailParams,
+  VoteParams,
 } from "./data-contracts";
 import { EContentType, HttpClient, RequestParams } from "./http-client";
 
 export class Api<E = unknown> extends HttpClient<E> {
+  /**
+   * @description Получить список активных сессий пользователя.
+   *
+   * @tags Session
+   * @name GetSessions
+   * @summary Список сессий
+   * @request GET:/api/session
+   * @secure
+   */
+  getSessions = (params: RequestParams = {}) =>
+    this.request<SessionDto[]>({
+      url: `/api/session`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Завершить конкретную сессию.
+   *
+   * @tags Session
+   * @name TerminateSession
+   * @summary Завершение сессии
+   * @request DELETE:/api/session/{id}
+   * @secure
+   */
+  terminateSession = (
+    { id, ...query }: TerminateSessionParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/session/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Завершить все сессии, кроме текущей.
+   *
+   * @tags Session
+   * @name TerminateOtherSessions
+   * @summary Завершение остальных сессий
+   * @request POST:/api/session/terminate-others
+   * @secure
+   */
+  terminateOtherSessions = (params: RequestParams = {}) =>
+    this.request<void>({
+      url: `/api/session/terminate-others`,
+      method: "POST",
+      ...params,
+    });
   /**
    * @description Получить профиль текущего пользователя. Этот эндпоинт позволяет получить данные профиля пользователя, который выполнил запрос. Используется для получения информации о текущем пользователе, например, его имени, email, и других данных.
    *
@@ -135,6 +283,43 @@ export class Api<E = unknown> extends HttpClient<E> {
   ) =>
     this.request<ProfileDto>({
       url: `/api/profile/my/update`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить настройки приватности.
+   *
+   * @tags Profile
+   * @name GetPrivacySettings
+   * @summary Настройки приватности
+   * @request GET:/api/profile/my/privacy
+   * @secure
+   */
+  getPrivacySettings = (params: RequestParams = {}) =>
+    this.request<PrivacySettingsDto>({
+      url: `/api/profile/my/privacy`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Обновить настройки приватности.
+   *
+   * @tags Profile
+   * @name UpdatePrivacySettings
+   * @summary Обновление настроек приватности
+   * @request PATCH:/api/profile/my/privacy
+   * @secure
+   */
+  updatePrivacySettings = (
+    data: UpdatePrivacySettingsPayload,
+    params: RequestParams = {},
+  ) =>
+    this.request<PrivacySettingsDto>({
+      url: `/api/profile/my/privacy`,
       method: "PATCH",
       data: data,
       type: EContentType.Json,
@@ -251,6 +436,42 @@ export class Api<E = unknown> extends HttpClient<E> {
       ...params,
     });
   /**
+   * @description Создать новую роль.
+   *
+   * @tags Role
+   * @name CreateRole
+   * @summary Создание роли
+   * @request POST:/api/roles
+   * @secure
+   */
+  createRole = (data: ICreateRoleRequestDto, params: RequestParams = {}) =>
+    this.request<IRoleDto>({
+      url: `/api/roles`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить роль.
+   *
+   * @tags Role
+   * @name DeleteRole
+   * @summary Удаление роли
+   * @request DELETE:/api/roles/{id}
+   * @secure
+   */
+  deleteRole = (
+    { id, ...query }: DeleteRoleParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/roles/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
    * @description Установить права для роли. Заменяет текущий набор прав роли указанным.
    *
    * @tags Role
@@ -319,6 +540,60 @@ export class Api<E = unknown> extends HttpClient<E> {
     this.request<boolean>({
       url: `/api/user/my/delete`,
       method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Установить username для текущего пользователя.
+   *
+   * @tags User
+   * @name SetUsername
+   * @summary Установка username
+   * @request PATCH:/api/user/my/username
+   * @secure
+   */
+  setUsername = (data: SetUsernamePayload, params: RequestParams = {}) =>
+    this.request<UserDto>({
+      url: `/api/user/my/username`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Поиск пользователей по запросу (username, email, имя, фамилия).
+   *
+   * @tags User
+   * @name SearchUsers
+   * @summary Поиск пользователей
+   * @request GET:/api/user/search
+   * @secure
+   */
+  searchUsers = (query: SearchUsersParams, params: RequestParams = {}) =>
+    this.request<IUserListDto>({
+      url: `/api/user/search`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить пользователя по username.
+   *
+   * @tags User
+   * @name GetUserByUsername
+   * @summary Получение по username
+   * @request GET:/api/user/by-username/{username}
+   * @secure
+   */
+  getUserByUsername = (
+    { username, ...query }: GetUserByUsernameParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<PublicUserDto>({
+      url: `/api/user/by-username/${username}`,
+      method: "GET",
       responseType: "json",
       ...params,
     });
@@ -517,7 +792,7 @@ export class Api<E = unknown> extends HttpClient<E> {
    * @request POST:/api/auth/sign-in
    */
   signIn = (data: ISignInRequestDto, params: RequestParams = {}) =>
-    this.request<IUserWithTokensDto>({
+    this.request<ISignInResponseDto>({
       url: `/api/auth/sign-in`,
       method: "POST",
       data: data,
@@ -576,6 +851,59 @@ export class Api<E = unknown> extends HttpClient<E> {
   refresh = (data: RefreshPayload, params: RequestParams = {}) =>
     this.request<ITokensDto>({
       url: `/api/auth/refresh`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Включить двухфакторную аутентификацию.
+   *
+   * @tags Authorization
+   * @name Enable2Fa
+   * @summary Включение 2FA
+   * @request POST:/api/auth/enable-2fa
+   * @secure
+   */
+  enable2Fa = (data: IEnable2FARequestDto, params: RequestParams = {}) =>
+    this.request<ApiResponseDto>({
+      url: `/api/auth/enable-2fa`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отключить двухфакторную аутентификацию.
+   *
+   * @tags Authorization
+   * @name Disable2Fa
+   * @summary Отключение 2FA
+   * @request POST:/api/auth/disable-2fa
+   * @secure
+   */
+  disable2Fa = (data: IDisable2FARequestDto, params: RequestParams = {}) =>
+    this.request<ApiResponseDto>({
+      url: `/api/auth/disable-2fa`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Верифицировать 2FA и получить токены.
+   *
+   * @tags Authorization
+   * @name Verify2Fa
+   * @summary Верификация 2FA
+   * @request POST:/api/auth/verify-2fa
+   */
+  verify2Fa = (data: IVerify2FARequestDto, params: RequestParams = {}) =>
+    this.request<IUserWithTokensDto>({
+      url: `/api/auth/verify-2fa`,
       method: "POST",
       data: data,
       type: EContentType.Json,
@@ -676,6 +1004,504 @@ export class Api<E = unknown> extends HttpClient<E> {
       ...params,
     });
   /**
+   * @description Отправить сообщение от имени бота.
+   *
+   * @tags Bot API
+   * @name BotSendMessage
+   * @summary Bot: отправка сообщения
+   * @request POST:/api/bot-api/message/send
+   * @secure
+   */
+  botSendMessage = (data: IBotSendMessageBody, params: RequestParams = {}) =>
+    this.request<MessageDto>({
+      url: `/api/bot-api/message/send`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Редактировать сообщение бота.
+   *
+   * @tags Bot API
+   * @name BotEditMessage
+   * @summary Bot: редактирование сообщения
+   * @request POST:/api/bot-api/message/{id}/edit
+   * @secure
+   */
+  botEditMessage = (
+    { id, ...query }: BotEditMessageParams,
+    data: IBotEditMessageBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<MessageDto>({
+      url: `/api/bot-api/message/${id}/edit`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить сообщение бота.
+   *
+   * @tags Bot API
+   * @name BotDeleteMessage
+   * @summary Bot: удаление сообщения
+   * @request DELETE:/api/bot-api/message/{id}
+   * @secure
+   */
+  botDeleteMessage = (
+    { id, ...query }: BotDeleteMessageParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/bot-api/message/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name CreateBot
+   * @summary Создать бота
+   * @request POST:/api/bot
+   * @secure
+   */
+  createBot = (data: ICreateBotBody, params: RequestParams = {}) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name GetMyBots
+   * @summary Мои боты
+   * @request GET:/api/bot
+   * @secure
+   */
+  getMyBots = (params: RequestParams = {}) =>
+    this.request<BotDto[]>({
+      url: `/api/bot`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name GetBotById
+   * @summary Детали бота
+   * @request GET:/api/bot/{id}
+   * @secure
+   */
+  getBotById = (
+    { id, ...query }: GetBotByIdParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot/${id}`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name UpdateBot
+   * @summary Обновить бота
+   * @request PATCH:/api/bot/{id}
+   * @secure
+   */
+  updateBot = (
+    { id, ...query }: UpdateBotParams,
+    data: IUpdateBotBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot/${id}`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name DeleteBot
+   * @summary Удалить бота
+   * @request DELETE:/api/bot/{id}
+   * @secure
+   */
+  deleteBot = ({ id, ...query }: DeleteBotParams, params: RequestParams = {}) =>
+    this.request<void>({
+      url: `/api/bot/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name RegenerateToken
+   * @summary Перегенерировать токен
+   * @request POST:/api/bot/{id}/token
+   * @secure
+   */
+  regenerateToken = (
+    { id, ...query }: RegenerateTokenParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot/${id}/token`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name SetWebhook
+   * @summary Установить webhook
+   * @request POST:/api/bot/{id}/webhook
+   * @secure
+   */
+  setWebhook = (
+    { id, ...query }: SetWebhookParams,
+    data: ISetWebhookBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot/${id}/webhook`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name DeleteWebhook
+   * @summary Удалить webhook
+   * @request DELETE:/api/bot/{id}/webhook
+   * @secure
+   */
+  deleteWebhook = (
+    { id, ...query }: DeleteWebhookParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/bot/${id}/webhook`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name SetCommands
+   * @summary Установить команды бота
+   * @request POST:/api/bot/{id}/commands
+   * @secure
+   */
+  setCommands = (
+    { id, ...query }: SetCommandsParams,
+    data: ISetCommandsBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotCommandDto[]>({
+      url: `/api/bot/${id}/commands`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name GetCommands
+   * @summary Получить команды бота
+   * @request GET:/api/bot/{id}/commands
+   * @secure
+   */
+  getCommands = (
+    { id, ...query }: GetCommandsParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotCommandDto[]>({
+      url: `/api/bot/${id}/commands`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name TestWebhook
+   * @summary Тестировать webhook (отправляет ping)
+   * @request POST:/api/bot/{id}/webhook/test
+   * @secure
+   */
+  testWebhook = (
+    { id, ...query }: TestWebhookParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IWebhookTestResponse>({
+      url: `/api/bot/${id}/webhook/test`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name GetWebhookLogs
+   * @summary Получить логи доставки webhook
+   * @request GET:/api/bot/{id}/webhook/logs
+   * @secure
+   */
+  getWebhookLogs = (
+    { id, ...query }: GetWebhookLogsParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IWebhookLogsResponse>({
+      url: `/api/bot/${id}/webhook/logs`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Bot
+   * @name SetWebhookEvents
+   * @summary Обновить фильтр событий webhook
+   * @request POST:/api/bot/{id}/webhook/events
+   * @secure
+   */
+  setWebhookEvents = (
+    { id, ...query }: SetWebhookEventsParams,
+    data: ISetWebhookEventsBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<BotDetailDto>({
+      url: `/api/bot/${id}/webhook/events`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Инициировать звонок.
+   *
+   * @tags Call
+   * @name InitiateCall
+   * @summary Начать звонок
+   * @request POST:/api/call
+   * @secure
+   */
+  initiateCall = (data: IInitiateCallBody, params: RequestParams = {}) =>
+    this.request<CallDto>({
+      url: `/api/call`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Ответить на звонок.
+   *
+   * @tags Call
+   * @name AnswerCall
+   * @summary Ответить
+   * @request POST:/api/call/{id}/answer
+   * @secure
+   */
+  answerCall = (
+    { id, ...query }: AnswerCallParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<CallDto>({
+      url: `/api/call/${id}/answer`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отклонить звонок.
+   *
+   * @tags Call
+   * @name DeclineCall
+   * @summary Отклонить
+   * @request POST:/api/call/{id}/decline
+   * @secure
+   */
+  declineCall = (
+    { id, ...query }: DeclineCallParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<CallDto>({
+      url: `/api/call/${id}/decline`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Завершить звонок.
+   *
+   * @tags Call
+   * @name EndCall
+   * @summary Завершить
+   * @request POST:/api/call/{id}/end
+   * @secure
+   */
+  endCall = ({ id, ...query }: EndCallParams, params: RequestParams = {}) =>
+    this.request<CallDto>({
+      url: `/api/call/${id}/end`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить историю звонков.
+   *
+   * @tags Call
+   * @name GetCallHistory
+   * @summary История звонков
+   * @request GET:/api/call/history
+   * @secure
+   */
+  getCallHistory = (query: GetCallHistoryParams, params: RequestParams = {}) =>
+    this.request<ICallHistoryDto>({
+      url: `/api/call/history`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить активный звонок.
+   *
+   * @tags Call
+   * @name GetActiveCall
+   * @summary Активный звонок
+   * @request GET:/api/call/active
+   * @secure
+   */
+  getActiveCall = (params: RequestParams = {}) =>
+    this.request<CallDto | null>({
+      url: `/api/call/active`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Установить режим медленной отправки.
+   *
+   * @tags Chat Moderation
+   * @name SetSlowMode
+   * @summary Медленный режим
+   * @request PATCH:/api/chat/{id}/slow-mode
+   * @secure
+   */
+  setSlowMode = (
+    { id, ...query }: SetSlowModeParams,
+    data: ISetSlowModeBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<{
+      /** @format double */
+      slowModeSeconds: number;
+      chatId: string;
+    }>({
+      url: `/api/chat/${id}/slow-mode`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Заблокировать участника чата.
+   *
+   * @tags Chat Moderation
+   * @name BanMember
+   * @summary Блокировка участника
+   * @request POST:/api/chat/{id}/members/{userId}/ban
+   * @secure
+   */
+  banMember = (
+    { id, userId, ...query }: BanMemberParams,
+    data: IBanMemberBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/chat/${id}/members/${userId}/ban`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Разблокировать участника чата.
+   *
+   * @tags Chat Moderation
+   * @name UnbanMember
+   * @summary Разблокировка участника
+   * @request DELETE:/api/chat/{id}/members/{userId}/ban
+   * @secure
+   */
+  unbanMember = (
+    { id, userId, ...query }: UnbanMemberParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/chat/${id}/members/${userId}/ban`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Получить заблокированных участников.
+   *
+   * @tags Chat Moderation
+   * @name GetBannedMembers
+   * @summary Заблокированные участники
+   * @request GET:/api/chat/{id}/members/banned
+   * @secure
+   */
+  getBannedMembers = (
+    { id, ...query }: GetBannedMembersParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IBannedMemberDto[]>({
+      url: `/api/chat/${id}/members/banned`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
    * @description Создать или получить существующий личный чат.
    *
    * @tags Chat
@@ -711,6 +1537,101 @@ export class Api<E = unknown> extends HttpClient<E> {
       method: "POST",
       data: data,
       type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Создать канал.
+   *
+   * @tags Chat
+   * @name CreateChannel
+   * @summary Создание канала
+   * @request POST:/api/chat/channel
+   * @secure
+   */
+  createChannel = (data: ICreateChannelBody, params: RequestParams = {}) =>
+    this.request<ChatDto>({
+      url: `/api/chat/channel`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Обновить канал.
+   *
+   * @tags Chat
+   * @name UpdateChannel
+   * @summary Обновление канала
+   * @request PATCH:/api/chat/channel/{id}
+   * @secure
+   */
+  updateChannel = (
+    { id, ...query }: UpdateChannelParams,
+    data: IUpdateChannelBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatDto>({
+      url: `/api/chat/channel/${id}`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Подписаться на публичный канал.
+   *
+   * @tags Chat
+   * @name SubscribeToChannel
+   * @summary Подписка на канал
+   * @request POST:/api/chat/channel/{id}/subscribe
+   * @secure
+   */
+  subscribeToChannel = (
+    { id, ...query }: SubscribeToChannelParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatDto>({
+      url: `/api/chat/channel/${id}/subscribe`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отписаться от канала.
+   *
+   * @tags Chat
+   * @name UnsubscribeFromChannel
+   * @summary Отписка от канала
+   * @request DELETE:/api/chat/channel/{id}/subscribe
+   * @secure
+   */
+  unsubscribeFromChannel = (
+    { id, ...query }: UnsubscribeFromChannelParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<Base64URLString>({
+      url: `/api/chat/channel/${id}/subscribe`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Поиск публичных каналов.
+   *
+   * @tags Chat
+   * @name SearchChannels
+   * @summary Поиск каналов
+   * @request GET:/api/chat/channel/search
+   * @secure
+   */
+  searchChannels = (query: SearchChannelsParams, params: RequestParams = {}) =>
+    this.request<IChatListDto>({
+      url: `/api/chat/channel/search`,
+      method: "GET",
+      params: query,
       responseType: "json",
       ...params,
     });
@@ -789,6 +1710,106 @@ export class Api<E = unknown> extends HttpClient<E> {
       ...params,
     });
   /**
+   * @description Создать invite-ссылку для группового чата.
+   *
+   * @tags Chat
+   * @name CreateInviteLink
+   * @summary Создание invite-ссылки
+   * @request POST:/api/chat/{id}/invite
+   * @secure
+   */
+  createInviteLink = (
+    { id, ...query }: CreateInviteLinkParams,
+    data: ICreateInviteBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatInviteDto>({
+      url: `/api/chat/${id}/invite`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить список invite-ссылок чата.
+   *
+   * @tags Chat
+   * @name GetInvites
+   * @summary Список invite-ссылок
+   * @request GET:/api/chat/{id}/invite
+   * @secure
+   */
+  getInvites = (
+    { id, ...query }: GetInvitesParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatInviteDto[]>({
+      url: `/api/chat/${id}/invite`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отозвать invite-ссылку.
+   *
+   * @tags Chat
+   * @name RevokeInvite
+   * @summary Отзыв invite-ссылки
+   * @request DELETE:/api/chat/{id}/invite/{inviteId}
+   * @secure
+   */
+  revokeInvite = (
+    { id, inviteId, ...query }: RevokeInviteParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/chat/${id}/invite/${inviteId}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Присоединиться к чату по invite-коду.
+   *
+   * @tags Chat
+   * @name JoinByInvite
+   * @summary Вступление по invite-ссылке
+   * @request POST:/api/chat/join/{code}
+   * @secure
+   */
+  joinByInvite = (
+    { code, ...query }: JoinByInviteParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatDto>({
+      url: `/api/chat/join/${code}`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Замутить или размутить чат.
+   *
+   * @tags Chat
+   * @name MuteChat
+   * @summary Мут чата
+   * @request PATCH:/api/chat/{id}/mute
+   * @secure
+   */
+  muteChat = (
+    { id, ...query }: MuteChatParams,
+    data: IMuteChatBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatMemberDto>({
+      url: `/api/chat/${id}/mute`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
    * @description Добавить участников в групповой чат.
    *
    * @tags Chat
@@ -849,6 +1870,134 @@ export class Api<E = unknown> extends HttpClient<E> {
       data: data,
       type: EContentType.Json,
       responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Закрепить чат.
+   *
+   * @tags Chat
+   * @name PinChat
+   * @summary Закрепление чата
+   * @request POST:/api/chat/{id}/pin
+   * @secure
+   */
+  pinChat = ({ id, ...query }: PinChatParams, params: RequestParams = {}) =>
+    this.request<ChatMemberDto>({
+      url: `/api/chat/${id}/pin`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Открепить чат.
+   *
+   * @tags Chat
+   * @name UnpinChat
+   * @summary Открепление чата
+   * @request DELETE:/api/chat/{id}/pin
+   * @secure
+   */
+  unpinChat = ({ id, ...query }: UnpinChatParams, params: RequestParams = {}) =>
+    this.request<ChatMemberDto>({
+      url: `/api/chat/${id}/pin`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Переместить чат в папку.
+   *
+   * @tags Chat
+   * @name MoveChatToFolder
+   * @summary Перемещение в папку
+   * @request PATCH:/api/chat/{id}/folder
+   * @secure
+   */
+  moveChatToFolder = (
+    { id, ...query }: MoveChatToFolderParams,
+    data: IMoveChatToFolderBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatMemberDto>({
+      url: `/api/chat/${id}/folder`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить список папок чатов.
+   *
+   * @tags Chat
+   * @name GetUserFolders
+   * @summary Список папок
+   * @request GET:/api/chat/folder/list
+   * @secure
+   */
+  getUserFolders = (params: RequestParams = {}) =>
+    this.request<ChatFolderDto[]>({
+      url: `/api/chat/folder/list`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Создать папку для чатов.
+   *
+   * @tags Chat
+   * @name CreateFolder
+   * @summary Создание папки
+   * @request POST:/api/chat/folder
+   * @secure
+   */
+  createFolder = (data: ICreateFolderBody, params: RequestParams = {}) =>
+    this.request<ChatFolderDto>({
+      url: `/api/chat/folder`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Обновить папку.
+   *
+   * @tags Chat
+   * @name UpdateFolder
+   * @summary Обновление папки
+   * @request PATCH:/api/chat/folder/{folderId}
+   * @secure
+   */
+  updateFolder = (
+    { folderId, ...query }: UpdateFolderParams,
+    data: IUpdateFolderBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<ChatFolderDto>({
+      url: `/api/chat/folder/${folderId}`,
+      method: "PATCH",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Удалить папку.
+   *
+   * @tags Chat
+   * @name DeleteFolder
+   * @summary Удаление папки
+   * @request DELETE:/api/chat/folder/{folderId}
+   * @secure
+   */
+  deleteFolder = (
+    { folderId, ...query }: DeleteFolderParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/chat/folder/${folderId}`,
+      method: "DELETE",
       ...params,
     });
   /**
@@ -1020,7 +2169,7 @@ export class Api<E = unknown> extends HttpClient<E> {
       ...params,
     });
   /**
-   * @description Получить сообщения чата с cursor-based пагинацией.
+   * @description Получить сообщения чата с cursor-based пагинацией. - `before` — загрузить старые сообщения (скролл вверх) - `after` — загрузить новые сообщения (скролл вниз из detached окна) - `around` — загрузить окно вокруг конкретного сообщения (навигация) - без параметров — последние сообщения
    *
    * @tags Message
    * @name GetMessages
@@ -1036,6 +2185,84 @@ export class Api<E = unknown> extends HttpClient<E> {
       url: `/api/chat/${chatId}/message`,
       method: "GET",
       params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Поиск сообщений в чате.
+   *
+   * @tags Message
+   * @name SearchMessages
+   * @summary Поиск в чате
+   * @request GET:/api/chat/{chatId}/message/search
+   * @secure
+   */
+  searchMessages = (
+    { chatId, ...query }: SearchMessagesParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IMessageSearchDto>({
+      url: `/api/chat/${chatId}/message/search`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить закреплённые сообщения чата.
+   *
+   * @tags Message
+   * @name GetPinnedMessages
+   * @summary Закреплённые сообщения
+   * @request GET:/api/chat/{chatId}/message/pinned
+   * @secure
+   */
+  getPinnedMessages = (
+    { chatId, ...query }: GetPinnedMessagesParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<MessageDto[]>({
+      url: `/api/chat/${chatId}/message/pinned`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить медиафайлы чата.
+   *
+   * @tags Message
+   * @name GetChatMedia
+   * @summary Медиа-галерея чата
+   * @request GET:/api/chat/{chatId}/media
+   * @secure
+   */
+  getChatMedia = (
+    { chatId, ...query }: GetChatMediaParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IMediaGalleryDto>({
+      url: `/api/chat/${chatId}/media`,
+      method: "GET",
+      params: query,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить статистику медиафайлов чата.
+   *
+   * @tags Message
+   * @name GetChatMediaStats
+   * @summary Статистика медиа
+   * @request GET:/api/chat/{chatId}/media/stats
+   * @secure
+   */
+  getChatMediaStats = (
+    { chatId, ...query }: GetChatMediaStatsParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<IMediaStatsDto>({
+      url: `/api/chat/${chatId}/media/stats`,
+      method: "GET",
       responseType: "json",
       ...params,
     });
@@ -1058,6 +2285,28 @@ export class Api<E = unknown> extends HttpClient<E> {
       method: "POST",
       data: data,
       type: EContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Глобальный поиск по сообщениям во всех чатах пользователя.
+   *
+   * @tags Message
+   * @name SearchMessages2
+   * @summary Глобальный поиск сообщений
+   * @request GET:/api/message/search
+   * @originalName searchMessages
+   * @duplicate
+   * @secure
+   */
+  searchMessages2 = (
+    query: SearchMessages2Params,
+    params: RequestParams = {},
+  ) =>
+    this.request<IMessageSearchDto>({
+      url: `/api/message/search`,
+      method: "GET",
+      params: query,
+      responseType: "json",
       ...params,
     });
   /**
@@ -1097,6 +2346,82 @@ export class Api<E = unknown> extends HttpClient<E> {
   ) =>
     this.request<void>({
       url: `/api/message/${id}`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Добавить реакцию на сообщение.
+   *
+   * @tags Message
+   * @name AddReaction
+   * @summary Добавление реакции
+   * @request POST:/api/message/{id}/reaction
+   * @secure
+   */
+  addReaction = (
+    { id, ...query }: AddReactionParams,
+    data: IAddReactionBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/message/${id}/reaction`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      ...params,
+    });
+  /**
+   * @description Удалить реакцию с сообщения.
+   *
+   * @tags Message
+   * @name RemoveReaction
+   * @summary Удаление реакции
+   * @request DELETE:/api/message/{id}/reaction
+   * @secure
+   */
+  removeReaction = (
+    { id, ...query }: RemoveReactionParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/message/${id}/reaction`,
+      method: "DELETE",
+      ...params,
+    });
+  /**
+   * @description Закрепить сообщение.
+   *
+   * @tags Message
+   * @name PinMessage
+   * @summary Закрепление сообщения
+   * @request POST:/api/message/{id}/pin
+   * @secure
+   */
+  pinMessage = (
+    { id, ...query }: PinMessageParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<MessageDto>({
+      url: `/api/message/${id}/pin`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Открепить сообщение.
+   *
+   * @tags Message
+   * @name UnpinMessage
+   * @summary Открепление сообщения
+   * @request DELETE:/api/message/{id}/pin
+   * @secure
+   */
+  unpinMessage = (
+    { id, ...query }: UnpinMessageParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<void>({
+      url: `/api/message/${id}/pin`,
       method: "DELETE",
       ...params,
     });
@@ -1178,6 +2503,101 @@ export class Api<E = unknown> extends HttpClient<E> {
       ...params,
     });
   /**
+   * @description Создать опрос в чате.
+   *
+   * @tags Poll
+   * @name CreatePoll
+   * @summary Создание опроса
+   * @request POST:/api/chat/{chatId}/poll
+   * @secure
+   */
+  createPoll = (
+    { chatId, ...query }: CreatePollParams,
+    data: ICreatePollBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<PollDto>({
+      url: `/api/chat/${chatId}/poll`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Проголосовать в опросе.
+   *
+   * @tags Poll
+   * @name Vote
+   * @summary Голосование
+   * @request POST:/api/poll/{id}/vote
+   * @secure
+   */
+  vote = (
+    { id, ...query }: VoteParams,
+    data: IVotePollBody,
+    params: RequestParams = {},
+  ) =>
+    this.request<PollDto>({
+      url: `/api/poll/${id}/vote`,
+      method: "POST",
+      data: data,
+      type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Отозвать голос.
+   *
+   * @tags Poll
+   * @name RetractVote
+   * @summary Отзыв голоса
+   * @request DELETE:/api/poll/{id}/vote
+   * @secure
+   */
+  retractVote = (
+    { id, ...query }: RetractVoteParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<PollDto>({
+      url: `/api/poll/${id}/vote`,
+      method: "DELETE",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Закрыть опрос.
+   *
+   * @tags Poll
+   * @name ClosePoll
+   * @summary Закрытие опроса
+   * @request POST:/api/poll/{id}/close
+   * @secure
+   */
+  closePoll = ({ id, ...query }: ClosePollParams, params: RequestParams = {}) =>
+    this.request<PollDto>({
+      url: `/api/poll/${id}/close`,
+      method: "POST",
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить опрос по ID.
+   *
+   * @tags Poll
+   * @name GetPoll
+   * @summary Получение опроса
+   * @request GET:/api/poll/{id}
+   * @secure
+   */
+  getPoll = ({ id, ...query }: GetPollParams, params: RequestParams = {}) =>
+    this.request<PollDto>({
+      url: `/api/poll/${id}`,
+      method: "GET",
+      responseType: "json",
+      ...params,
+    });
+  /**
    * @description Зарегистрировать устройство для push-уведомлений.
    *
    * @tags Push
@@ -1247,6 +2667,23 @@ export class Api<E = unknown> extends HttpClient<E> {
       method: "PATCH",
       data: data,
       type: EContentType.Json,
+      responseType: "json",
+      ...params,
+    });
+  /**
+   * @description Получить изменения с указанной версии.
+   *
+   * @tags Sync
+   * @name GetChanges
+   * @summary Incremental sync
+   * @request GET:/api/sync
+   * @secure
+   */
+  getChanges = (query: GetChangesParams, params: RequestParams = {}) =>
+    this.request<ISyncResponseDto>({
+      url: `/api/sync`,
+      method: "GET",
+      params: query,
       responseType: "json",
       ...params,
     });
