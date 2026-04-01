@@ -11,7 +11,7 @@ final class MessageBubbleView: UIView {
 
     let replyPreview = ReplyPreviewView()
 
-    private var contentView: (any MessageContentView)?
+    private(set) var contentView: (any MessageContentView)?
 
     private let editedLabel: UILabel = {
         let l = UILabel()
@@ -55,6 +55,9 @@ final class MessageBubbleView: UIView {
         return sv
     }()
 
+    /// true если текущее сообщение — emoji-only (без пузыря и footer).
+    private(set) var isEmojiOnly = false
+
     // MARK: - Init
 
     override init(frame: CGRect) {
@@ -77,7 +80,6 @@ final class MessageBubbleView: UIView {
         statusView.heightAnchor.constraint(
             equalToConstant: ChatLayoutConstants.statusIconHeight).isActive = true
 
-        // Порядок в footerStack: edited → time → status
         footerStack.addArrangedSubview(editedLabel)
         footerStack.addArrangedSubview(timeLabel)
         footerStack.addArrangedSubview(statusView)
@@ -107,32 +109,39 @@ final class MessageBubbleView: UIView {
 
     // MARK: - Configure
 
-    /// Заполняет пузырь данными сообщения и применяет тему.
     func configure(with message: ChatMessage, resolvedReply: ResolvedReply?, theme: ChatTheme) {
         let isMine = message.isMine
+        let hasReply = resolvedReply != nil
+
+        // Emoji-only detection
+        let emojiCount = MessageSizeCalculator.emojiOnlyCount(for: message)
+        isEmojiOnly = emojiCount != nil && !hasReply
+
         applyBubbleColors(isMine: isMine, theme: theme)
         configureReply(resolvedReply: resolvedReply, isMine: isMine, theme: theme)
         configureContent(message: message, isMine: isMine, theme: theme)
         configureFooter(message: message, isMine: isMine, theme: theme)
     }
 
-    /// Применяет финальную ширину пузыря к контенту (изображения).
     func applyLayout(bubbleWidth: CGFloat) {
         contentView?.applyLayout(bubbleWidth: bubbleWidth)
     }
 
-    /// Сбрасывает состояние contentView перед переиспользованием ячейки.
     func prepareForReuse() {
         contentView?.prepareForReuse()
+        isEmojiOnly = false
     }
 
     // MARK: - Private helpers
 
     private func applyBubbleColors(isMine: Bool, theme: ChatTheme) {
-        backgroundColor = isMine ? theme.outgoingBubbleColor : theme.incomingBubbleColor
+        if isEmojiOnly {
+            backgroundColor = .clear
+        } else {
+            backgroundColor = isMine ? theme.outgoingBubbleColor : theme.incomingBubbleColor
+        }
     }
 
-    /// Показывает/скрывает replyPreview в зависимости от результата резолвинга.
     private func configureReply(
         resolvedReply: ResolvedReply?,
         isMine: Bool,
@@ -147,7 +156,6 @@ final class MessageBubbleView: UIView {
         }
     }
 
-    /// Создаёт новый рендерер контента только при смене типа; иначе переиспользует.
     private func configureContent(message: ChatMessage, isMine: Bool, theme: ChatTheme) {
         if !MessageContentViewFactory.matches(contentView, content: message.content) {
             contentView?.removeFromSuperview()
@@ -160,6 +168,12 @@ final class MessageBubbleView: UIView {
     }
 
     private func configureFooter(message: ChatMessage, isMine: Bool, theme: ChatTheme) {
+        if isEmojiOnly {
+            footerStack.isHidden = true
+            return
+        }
+        footerStack.isHidden = false
+
         timeLabel.text      = DateHelper.shared.timeString(from: message.timestamp)
         timeLabel.textColor = isMine ? theme.outgoingTimeColor : theme.incomingTimeColor
 

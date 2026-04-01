@@ -34,6 +34,7 @@ extension ChatViewController {
     }
 
     func resetLoadingState() { waitingForNewMessages = false }
+    func resetLoadingBottomState() { waitingForNewerMessages = false }
 }
 
 // MARK: - Стратегии обновления

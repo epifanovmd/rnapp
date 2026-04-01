@@ -39,16 +39,91 @@ extension ChatViewController {
             guard let self else { return }
             delegate?.chatViewController(self, didTapReply: replyId)
         }
-        // Long press обрабатывается самой ячейкой — GR создан один раз в MessageCell.init()
+        // Long press — контекстное меню с per-message actions
         cell?.onLongPress = { [weak self] message, sourceView in
-            guard let self, !actions.isEmpty else { return }
+            guard let self, !message.actions.isEmpty else { return }
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             freezeCollectionBottomInset()
             inputBar.textView.resignFirstResponder()
             showContextMenu(for: message, sourceView: sourceView)
         }
+        // Wire content view callbacks for video/poll/file
+        if let bubbleView = cell?.bubbleView {
+            wireContentCallbacks(bubbleView: bubbleView, message: msg)
+        }
         return cell
     }
+}
+
+// MARK: - Content view callbacks (video / poll / file)
+
+extension ChatViewController {
+
+    func wireContentCallbacks(bubbleView: MessageBubbleView, message: ChatMessage) {
+        // Video tap — tap on the entire video content view triggers delegate
+        if let videoView = bubbleView.contentView as? VideoContentView {
+            let tapGR = videoView.gestureRecognizers?.first(where: { $0 is UITapGestureRecognizer })
+            if tapGR == nil {
+                let tap = UITapGestureRecognizer(target: self, action: nil)
+                tap.cancelsTouchesInView = false
+                videoView.addGestureRecognizer(tap)
+            }
+            // Use a closure-based approach via property
+            if let url = message.content.video?.url {
+                let msgCopy = message
+                videoView.isUserInteractionEnabled = true
+                // Remove old targets
+                videoView.gestureRecognizers?.forEach { videoView.removeGestureRecognizer($0) }
+                let tap = BlockTapGestureRecognizer { [weak self] in
+                    guard let self else { return }
+                    self.delegate?.chatViewController(self, didTapVideo: url, for: msgCopy)
+                }
+                videoView.addGestureRecognizer(tap)
+            }
+        } else if let mixedVideoView = bubbleView.contentView as? MixedTextVideoContentView {
+            if let url = message.content.video?.url {
+                let msgCopy = message
+                mixedVideoView.isUserInteractionEnabled = true
+                mixedVideoView.gestureRecognizers?.forEach { mixedVideoView.removeGestureRecognizer($0) }
+                let tap = BlockTapGestureRecognizer { [weak self] in
+                    guard let self else { return }
+                    self.delegate?.chatViewController(self, didTapVideo: url, for: msgCopy)
+                }
+                mixedVideoView.addGestureRecognizer(tap)
+            }
+        }
+
+        // Poll option tap
+        if let pollView = bubbleView.contentView as? PollContentView {
+            let msgCopy = message
+            pollView.onOptionTap = { [weak self] pollId, optionId in
+                guard let self else { return }
+                self.delegate?.chatViewController(self, didTapPollOption: optionId, pollId: pollId, for: msgCopy)
+            }
+        }
+
+        // File tap
+        if let fileView = bubbleView.contentView as? FileContentView {
+            let msgCopy = message
+            fileView.onFileTap = { [weak self] fileUrl, fileName in
+                guard let self else { return }
+                self.delegate?.chatViewController(self, didTapFile: fileUrl, fileName: fileName, for: msgCopy)
+            }
+        }
+    }
+}
+
+/// Простой tap gesture recognizer с замыканием.
+private final class BlockTapGestureRecognizer: UITapGestureRecognizer {
+    private let action: () -> Void
+
+    init(action: @escaping () -> Void) {
+        self.action = action
+        super.init(target: nil, action: nil)
+        addTarget(self, action: #selector(handleTap))
+    }
+
+    @objc private func handleTap() { action() }
 }
 
 // MARK: - Секции и snapshot

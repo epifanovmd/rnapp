@@ -5,6 +5,7 @@ import {
   MessageDto,
   PollDto,
 } from "@api/api-gen/data-contracts";
+import { IMessengerSocketService } from "@socket/messenger";
 import {
   CollectionHolder,
   CursorHolder,
@@ -43,10 +44,14 @@ export class MessageStore implements IMessageStore {
   public isSearching = false;
   public isDetachedFromBottom = false;
 
+  private _unsubscribeChat: (() => void) | null = null;
+
   constructor(
     @IApiService() private _api: IApiService,
     @IAuthStore() private _authStore: IAuthStore,
     @IChatStore() private _chatStore: IChatStore,
+    @IMessengerSocketService()
+    private _messengerSocket: IMessengerSocketService,
   ) {
     makeAutoObservable(
       this,
@@ -76,6 +81,10 @@ export class MessageStore implements IMessageStore {
   // ── Lifecycle ──────────────────────────────────────────────────────
 
   async openChat(chatId: string): Promise<void> {
+    // Отписываемся от предыдущего чата если был
+    this._unsubscribeChat?.();
+    this._unsubscribeChat = null;
+
     this.currentChatId = chatId;
     this.messagesHolder.reset();
     this.pinnedHolder.reset();
@@ -84,10 +93,38 @@ export class MessageStore implements IMessageStore {
     this.isDetachedFromBottom = false;
     this.clearSearch();
 
+    // Подписываемся на socket-события текущего чата
+    this._unsubscribeChat = this._messengerSocket.subscribeChat(chatId, {
+      onNewMessage: message => this.handleNewMessage(message),
+      onMessageUpdated: message => this.handleMessageUpdated(message),
+      onMessageDeleted: ({ messageId }) => this.handleMessageDeleted(messageId),
+      onMessageReaction: data => this.handleReaction(data),
+      onMessagePinned: message => this.handlePinned(message),
+      onMessageUnpinned: ({ messageId }) => this.handleUnpinned(messageId),
+      onMessageStatus: data => this.handleStatus(data),
+      onTyping: ({ userId }) => this.handleTyping(userId),
+      onChatUpdated: chat => this._chatStore.handleChatUpdated(chat),
+      onMemberJoined: ({ chatId: cid, userId }) =>
+        this._chatStore.handleMemberJoined(cid, userId),
+      onMemberLeft: ({ chatId: cid, userId }) =>
+        this._chatStore.handleMemberLeft(cid, userId),
+      onSlowMode: ({ chatId: cid, seconds }) =>
+        this._chatStore.handleSlowMode(cid, seconds),
+      onMemberBanned: ({ chatId: cid, userId }) =>
+        this._chatStore.handleMemberBanned(cid, userId),
+      onMemberUnbanned: ({ chatId: cid, userId }) =>
+        this._chatStore.handleMemberUnbanned(cid, userId),
+      onPollVoted: poll => this.handlePollUpdated(poll),
+      onPollClosed: poll => this.handlePollUpdated(poll),
+    });
+
     await this._loadMessages(chatId);
   }
 
   closeChat(): void {
+    this._unsubscribeChat?.();
+    this._unsubscribeChat = null;
+
     this.currentChatId = null;
     this.messagesHolder.reset();
     this.pinnedHolder.reset();
@@ -377,6 +414,7 @@ export class MessageStore implements IMessageStore {
   // ── Socket event handlers ──────────────────────────────────────────
 
   handleNewMessage(message: MessageDto): void {
+    console.log("message", message);
     if (message.chatId !== this.currentChatId) return;
     // Don't inject new messages while viewing older history
     if (this.isDetachedFromBottom) return;

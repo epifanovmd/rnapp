@@ -15,6 +15,14 @@ private const val TYPE_INCOMING_IMAGE = 3
 private const val TYPE_OUTGOING_IMAGE = 4
 private const val TYPE_INCOMING_MIXED = 5
 private const val TYPE_OUTGOING_MIXED = 6
+private const val TYPE_INCOMING_VIDEO = 7
+private const val TYPE_OUTGOING_VIDEO = 8
+private const val TYPE_INCOMING_MIXED_VIDEO = 9
+private const val TYPE_OUTGOING_MIXED_VIDEO = 10
+private const val TYPE_INCOMING_POLL = 11
+private const val TYPE_OUTGOING_POLL = 12
+private const val TYPE_INCOMING_FILE = 13
+private const val TYPE_OUTGOING_FILE = 14
 
 sealed class ListItem {
     data class DateItem(val dateKey: String, val title: String) : ListItem()
@@ -39,11 +47,10 @@ class ChatAdapter(
     var onMessagePress: ((messageId: String) -> Unit)? = null
     var onMessageLongPress: ((messageId: String, anchorView: View, isMine: Boolean) -> Unit)? = null
     var onReplyPress: ((replyId: String) -> Unit)? = null
+    var onVideoPress: ((messageId: String, videoUrl: String) -> Unit)? = null
+    var onPollOptionPress: ((messageId: String, pollId: String, optionId: String) -> Unit)? = null
+    var onFilePress: ((messageId: String, fileUrl: String, fileName: String) -> Unit)? = null
 
-    /**
-     * Обновляет данные адаптера через DiffUtil.
-     * affectedIds используется для сброса alpha вью после операций с контекстным меню.
-     */
     fun submitSections(
         sections: List<MessageSection>,
         newIndex: Map<String, ChatMessage>,
@@ -67,11 +74,9 @@ class ChatAdapter(
         recyclerViewRef?.scrollBy(0, 0)
     }
 
-    /** Возвращает позицию сообщения по id, или -1 если не найдено. */
     fun positionOfMessage(id: String): Int =
         items.indexOfFirst { it is ListItem.MessageItem && it.message.id == id }
 
-    /** Возвращает сообщение по позиции в адаптере, или null. */
     fun messageAt(position: Int): ChatMessage? =
         (items.getOrNull(position) as? ListItem.MessageItem)?.message
 
@@ -91,13 +96,14 @@ class ChatAdapter(
         is ListItem.DateItem -> TYPE_DATE_SEPARATOR
         is ListItem.MessageItem -> {
             val msg = item.message
-            when {
-                msg.hasImage && msg.hasText && msg.isMine -> TYPE_OUTGOING_MIXED
-                msg.hasImage && msg.hasText && !msg.isMine -> TYPE_INCOMING_MIXED
-                msg.hasImage && msg.isMine -> TYPE_OUTGOING_IMAGE
-                msg.hasImage && !msg.isMine -> TYPE_INCOMING_IMAGE
-                msg.isMine -> TYPE_OUTGOING_TEXT
-                else -> TYPE_INCOMING_TEXT
+            when (msg.content) {
+                is MessageContent.Poll -> if (msg.isMine) TYPE_OUTGOING_POLL else TYPE_INCOMING_POLL
+                is MessageContent.File -> if (msg.isMine) TYPE_OUTGOING_FILE else TYPE_INCOMING_FILE
+                is MessageContent.Video -> if (msg.isMine) TYPE_OUTGOING_VIDEO else TYPE_INCOMING_VIDEO
+                is MessageContent.MixedTextVideo -> if (msg.isMine) TYPE_OUTGOING_MIXED_VIDEO else TYPE_INCOMING_MIXED_VIDEO
+                is MessageContent.Mixed -> if (msg.isMine) TYPE_OUTGOING_MIXED else TYPE_INCOMING_MIXED
+                is MessageContent.Image -> if (msg.isMine) TYPE_OUTGOING_IMAGE else TYPE_INCOMING_IMAGE
+                is MessageContent.Text -> if (msg.isMine) TYPE_OUTGOING_TEXT else TYPE_INCOMING_TEXT
             }
         }
     }
@@ -106,7 +112,10 @@ class ChatAdapter(
         when (viewType) {
             TYPE_DATE_SEPARATOR -> DateSeparatorViewHolder(DateSeparatorView(context))
             else -> {
-                val isMine = viewType in setOf(TYPE_OUTGOING_TEXT, TYPE_OUTGOING_IMAGE, TYPE_OUTGOING_MIXED)
+                val isMine = viewType in setOf(
+                    TYPE_OUTGOING_TEXT, TYPE_OUTGOING_IMAGE, TYPE_OUTGOING_MIXED,
+                    TYPE_OUTGOING_VIDEO, TYPE_OUTGOING_MIXED_VIDEO,
+                    TYPE_OUTGOING_POLL, TYPE_OUTGOING_FILE)
                 MessageViewHolder(MessageBubbleView(context, isMine)).also { vh ->
                     vh.bubbleView.onReplyTap = { replyId -> onReplyPress?.invoke(replyId) }
                 }
@@ -127,6 +136,16 @@ class ChatAdapter(
                         onMessageLongPress?.invoke(msg.id, bubbleView.bubble, msg.isMine)
                         true
                     }
+                    // Wire content-specific callbacks
+                    bubbleView.onVideoTap = { videoUrl ->
+                        onVideoPress?.invoke(msg.id, videoUrl)
+                    }
+                    bubbleView.onPollOptionTap = { pollId, optionId ->
+                        onPollOptionPress?.invoke(msg.id, pollId, optionId)
+                    }
+                    bubbleView.onFileTap = { fileUrl, fileName ->
+                        onFilePress?.invoke(msg.id, fileUrl, fileName)
+                    }
                 }
             }
         }
@@ -143,9 +162,6 @@ class ChatAdapter(
         if (holder is MessageViewHolder) holder.bubbleView.prepareForReuse()
     }
 
-    /**
-     * Анимирует вспышку жёлтым цветом на пузыре сообщения (highlight при скролле к сообщению).
-     */
     fun highlightItem(recyclerView: RecyclerView, position: Int) {
         val holder = recyclerView.findViewHolderForAdapterPosition(position) as? MessageViewHolder ?: return
         val bubble = holder.bubbleView.bubble
@@ -221,7 +237,6 @@ class ChatAdapter(
 }
 
 class DateSeparatorViewHolder(val view: DateSeparatorView) : RecyclerView.ViewHolder(view) {
-    /** Применяет данные к вью разделителя дат. */
     fun bind(title: String, theme: ChatTheme) = view.configure(title, theme)
 }
 

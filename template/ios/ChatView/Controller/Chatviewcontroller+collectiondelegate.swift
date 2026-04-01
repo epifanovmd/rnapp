@@ -52,10 +52,21 @@ extension ChatViewController: UICollectionViewDelegate {
 
         delegate?.chatViewController(self, didScrollToOffset: offset)
 
+        // Reach top — load older messages
         let topDist = offset.y + scrollView.contentInset.top
-        if dy < 0, topDist < topThreshold, !waitingForNewMessages {
+        if dy < 0, topDist < topThreshold, !waitingForNewMessages, hasMore {
             waitingForNewMessages = true
             delegate?.chatViewController(self, didReachTopThreshold: topDist)
+        }
+
+        // Reach bottom — load newer messages (detached mode)
+        let contentH  = scrollView.contentSize.height
+        let frameH    = scrollView.bounds.height
+        let bottomInset = scrollView.contentInset.bottom
+        let bottomDist = contentH - offset.y - frameH + bottomInset
+        if dy > 0, bottomDist < bottomThreshold, !waitingForNewerMessages, hasNewer {
+            waitingForNewerMessages = true
+            delegate?.chatViewController(self, didReachBottomThreshold: bottomDist)
         }
     }
 }
@@ -106,7 +117,7 @@ extension ChatViewController {
             id:                   message.id,
             sourceView:           sourceView,
             emojis:               contextMenuEmojis,
-            actions:              actions.map {
+            actions:              message.actions.map {
                 ContextMenuAction(id: $0.id, title: $0.title,
                                   systemImage: $0.systemImage, isDestructive: $0.isDestructive)
             },

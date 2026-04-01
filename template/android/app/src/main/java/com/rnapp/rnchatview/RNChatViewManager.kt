@@ -26,11 +26,6 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
         view.setMessages(messages?.toChatMessages() ?: emptyList())
     }
 
-    @ReactProp(name = "actions")
-    fun setActions(view: RNChatView, actions: ReadableArray?) {
-        view.setActions(actions?.toMessageActions() ?: emptyList())
-    }
-
     @ReactProp(name = "emojiReactions")
     fun setEmojiReactions(view: RNChatView, emojis: ReadableArray?) {
         view.setEmojiReactions(emojis?.toEmojiList() ?: emptyList())
@@ -41,14 +36,30 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
         view.setTheme(theme ?: "light")
     }
 
+    @ReactProp(name = "hasMore", defaultBoolean = false)
+    fun setHasMore(view: RNChatView, value: Boolean) { view.setHasMore(value) }
+
+    @ReactProp(name = "hasNewer", defaultBoolean = false)
+    fun setHasNewer(view: RNChatView, value: Boolean) { view.setHasNewer(value) }
+
     @ReactProp(name = "isLoading", defaultBoolean = false)
     fun setIsLoading(view: RNChatView, loading: Boolean) {
         view.setIsLoading(loading)
     }
 
+    @ReactProp(name = "isLoadingBottom", defaultBoolean = false)
+    fun setIsLoadingBottom(view: RNChatView, loading: Boolean) {
+        view.setIsLoadingBottom(loading)
+    }
+
     @ReactProp(name = "topThreshold", defaultDouble = 200.0)
     fun setTopThreshold(view: RNChatView, value: Double) {
         view.setTopThreshold(value.toInt())
+    }
+
+    @ReactProp(name = "bottomThreshold", defaultDouble = 200.0)
+    fun setBottomThreshold(view: RNChatView, value: Double) {
+        view.setBottomThreshold(value.toInt())
     }
 
     @ReactProp(name = "scrollToBottomThreshold", defaultDouble = 150.0)
@@ -116,6 +127,7 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> = mapOf(
         "onScroll" to event("onScroll"),
         "onReachTop" to event("onReachTop"),
+        "onReachBottom" to event("onReachBottom"),
         "onMessagesVisible" to event("onMessagesVisible"),
         "onMessagePress" to event("onMessagePress"),
         "onActionPress" to event("onActionPress"),
@@ -125,6 +137,9 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
         "onCancelInputAction" to event("onCancelInputAction"),
         "onAttachmentPress" to event("onAttachmentPress"),
         "onReplyMessagePress" to event("onReplyMessagePress"),
+        "onVideoPress" to event("onVideoPress"),
+        "onPollOptionPress" to event("onPollOptionPress"),
+        "onFilePress" to event("onFilePress"),
     )
 
     private fun event(name: String) = mapOf("registrationName" to name)

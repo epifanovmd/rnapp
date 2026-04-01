@@ -39,22 +39,26 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private var sections: List<MessageSection> = emptyList()
     private var messageIndex: Map<String, ChatMessage> = emptyMap()
-    private var actions: List<MessageAction> = emptyList()
     private var emojis: List<String> = emptyList()
     private var theme: ChatTheme = ChatTheme.light()
     private var isLoading: Boolean = false
+    private var isLoadingBottom: Boolean = false
+    private var hasMore: Boolean = false
+    private var hasNewer: Boolean = false
 
     private var keyboardHeightPx: Int = 0
     private var kbHeightAtAnimStart: Int = 0
     private var isKeyboardAnimating: Boolean = false
 
     private var topThreshold: Int = context.dpToPx(200f)
+    private var bottomThreshold: Int = context.dpToPx(200f)
     private var scrollToBottomThreshold: Int = context.dpToPx(150f)
     private var collectionExtraInsetTop: Int = 0
     private var collectionExtraInsetBottom: Int = 0
 
     private var lastKnownCount: Int = 0
     private var waitingForNewMessages: Boolean = false
+    private var waitingForNewerMessages: Boolean = false
     private var pendingInitialScrollId: String? = null
     private var initialScrollDone: Boolean = false
     private var pendingInitialScroll: Boolean = false
@@ -175,6 +179,19 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         adapter.onReplyPress = { replyId ->
             sendEvent("onReplyMessagePress", args { putString("messageId", replyId) })
         }
+        adapter.onVideoPress = { messageId, videoUrl ->
+            sendEvent("onVideoPress", args { putString("messageId", messageId); putString("videoUrl", videoUrl) })
+        }
+        adapter.onPollOptionPress = { messageId, pollId, optionId ->
+            sendEvent("onPollOptionPress", args {
+                putString("messageId", messageId); putString("pollId", pollId); putString("optionId", optionId)
+            })
+        }
+        adapter.onFilePress = { messageId, fileUrl, fileName ->
+            sendEvent("onFilePress", args {
+                putString("messageId", messageId); putString("fileUrl", fileUrl); putString("fileName", fileName)
+            })
+        }
     }
 
     private fun extractKeyboardHeight(insets: WindowInsetsCompat): Int {
@@ -291,8 +308,6 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         }
     }
 
-    fun setActions(newActions: List<MessageAction>) { actions = newActions }
-
     fun setEmojiReactions(newEmojis: List<String>) { emojis = newEmojis }
 
     /** Применяет тему по имени ("light" / "dark"). */
@@ -312,9 +327,21 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         updateLoadingState()
     }
 
+    fun setHasMore(value: Boolean) { hasMore = value }
+    fun setHasNewer(value: Boolean) { hasNewer = value }
+
     fun setTopThreshold(value: Int) { topThreshold = context.dpToPx(value.toFloat()) }
+    fun setBottomThreshold(value: Int) { bottomThreshold = context.dpToPx(value.toFloat()) }
 
     fun setScrollToBottomThreshold(value: Int) { scrollToBottomThreshold = context.dpToPx(value.toFloat()) }
+
+    fun setIsLoadingBottom(loading: Boolean) {
+        isLoadingBottom = loading
+        if (!loading) {
+            waitingForNewerMessages = false
+            recyclerView.post { checkAndFireReachBottomIfNeeded() }
+        }
+    }
 
     /** Задаёт id сообщения для начального скролла при первой загрузке. */
     fun setInitialScrollId(id: String?) {
@@ -560,9 +587,16 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
 
     private fun checkAndFireReachTopIfNeeded() {
         val distanceFromTop = recyclerView.computeVerticalScrollOffset()
-        if (isLoading || waitingForNewMessages || distanceFromTop >= topThreshold) return
+        if (isLoading || waitingForNewMessages || !hasMore || distanceFromTop >= topThreshold) return
         waitingForNewMessages = true
         sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
+    }
+
+    private fun checkAndFireReachBottomIfNeeded() {
+        val dist = distanceFromBottom()
+        if (isLoadingBottom || waitingForNewerMessages || !hasNewer || dist >= bottomThreshold) return
+        waitingForNewerMessages = true
+        sendEvent("onReachBottom", args { putDouble("distanceFromBottom", dist.toDouble()) })
     }
 
     // ─── FAB ──────────────────────────────────────────────────────────────
@@ -601,11 +635,13 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     }
 
     private fun showContextMenu(messageId: String, anchor: View) {
+        val message = messageIndex[messageId] ?: return
+        if (message.actions.isEmpty() && emojis.isEmpty()) return
         contextMenu?.dismiss()
         contextMenu = ContextMenuView(
             ctx = context,
             emojis = emojis,
-            actions = actions.map { ContextMenuAction(it.id, it.title, it.systemImage, it.isDestructive) },
+            actions = message.actions.map { ContextMenuAction(it.id, it.title, it.systemImage, it.isDestructive) },
             isDark = theme.isDark,
             onEmojiSelected = { emoji ->
                 sendEvent("onEmojiReactionSelect", args { putString("emoji", emoji); putString("messageId", messageId) })
@@ -661,11 +697,18 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             updateFabVisibility(animated = true)
             trackVisibleMessages()
 
-            if (dy < 0 && !isProgrammaticScroll) {
-                val distanceFromTop = rv.computeVerticalScrollOffset()
-                if (!waitingForNewMessages && distanceFromTop < topThreshold) {
-                    waitingForNewMessages = true
-                    sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
+            if (!isProgrammaticScroll) {
+                // Reach top — load older
+                if (dy < 0) {
+                    val distanceFromTop = rv.computeVerticalScrollOffset()
+                    if (!waitingForNewMessages && hasMore && distanceFromTop < topThreshold) {
+                        waitingForNewMessages = true
+                        sendEvent("onReachTop", args { putDouble("distanceFromTop", distanceFromTop.toDouble()) })
+                    }
+                }
+                // Reach bottom — load newer (detached mode)
+                if (dy > 0 && hasNewer) {
+                    checkAndFireReachBottomIfNeeded()
                 }
             }
 

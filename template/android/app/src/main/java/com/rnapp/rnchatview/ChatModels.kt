@@ -7,7 +7,6 @@ enum class MessageStatus(val raw: String) {
     READ("read");
 
     companion object {
-        /** Создаёт статус из строки, возвращает SENT если строка не распознана. */
         fun from(raw: String?): MessageStatus =
             entries.firstOrNull { it.raw == raw } ?: SENT
     }
@@ -24,24 +23,80 @@ sealed class MessageContent {
         val thumbnailUrl: String? = null,
     )
 
+    data class VideoPayload(
+        val url: String,
+        val thumbnailUrl: String? = null,
+        val width: Float? = null,
+        val height: Float? = null,
+        val duration: Double? = null,
+    )
+
+    data class PollOption(
+        val id: String,
+        val text: String,
+        val votes: Int = 0,
+        val percentage: Float = 0f,
+    )
+
+    data class PollPayload(
+        val id: String,
+        val question: String,
+        val options: List<PollOption>,
+        val totalVotes: Int = 0,
+        val selectedOptionId: String? = null,
+        val isClosed: Boolean = false,
+    )
+
+    data class FilePayload(
+        val url: String,
+        val name: String,
+        val size: Long = 0,
+        val mimeType: String? = null,
+    )
+
     data class Text(val payload: TextPayload) : MessageContent()
     data class Image(val payload: ImagePayload) : MessageContent()
     data class Mixed(val text: TextPayload, val image: ImagePayload) : MessageContent()
+    data class Video(val payload: VideoPayload) : MessageContent()
+    data class MixedTextVideo(val text: TextPayload, val video: VideoPayload) : MessageContent()
+    data class Poll(val payload: PollPayload) : MessageContent()
+    data class File(val payload: FilePayload) : MessageContent()
 
     val textBody: String? get() = when (this) {
         is Text -> payload.body
         is Mixed -> text.body
-        is Image -> null
+        is MixedTextVideo -> text.body
+        is Image, is Video, is Poll, is File -> null
     }
 
     val imagePayload: ImagePayload? get() = when (this) {
         is Image -> payload
         is Mixed -> image
-        is Text -> null
+        else -> null
+    }
+
+    val videoPayload: VideoPayload? get() = when (this) {
+        is Video -> payload
+        is MixedTextVideo -> video
+        else -> null
+    }
+
+    val pollPayload: PollPayload? get() = when (this) {
+        is Poll -> payload
+        else -> null
+    }
+
+    val filePayload: FilePayload? get() = when (this) {
+        is File -> payload
+        else -> null
     }
 
     val hasText: Boolean get() = textBody != null
     val hasImage: Boolean get() = imagePayload != null
+    val hasVideo: Boolean get() = videoPayload != null
+    val hasPoll: Boolean get() = pollPayload != null
+    val hasFile: Boolean get() = filePayload != null
+    val hasMedia: Boolean get() = hasImage || hasVideo
 }
 
 data class ReplyInfo(
@@ -61,11 +116,14 @@ data class ChatMessage(
     val status: MessageStatus = MessageStatus.SENT,
     val reply: ReplyInfo? = null,
     val isEdited: Boolean = false,
+    val actions: List<MessageAction> = emptyList(),
 ) {
     val text: String? get() = content.textBody
     val image: MessageContent.ImagePayload? get() = content.imagePayload
+    val video: MessageContent.VideoPayload? get() = content.videoPayload
     val hasText: Boolean get() = content.hasText
     val hasImage: Boolean get() = content.hasImage
+    val hasVideo: Boolean get() = content.hasVideo
     val replyToId: String? get() = reply?.replyToId
 }
 
@@ -82,9 +140,7 @@ data class MessageSection(
 )
 
 sealed class ResolvedReply {
-    /** Оригинальное сообщение найдено — данные актуальны. */
     data class Found(val info: ReplyDisplayInfo) : ResolvedReply()
-    /** Оригинальное сообщение удалено — показываем snapshot. */
     data class Deleted(val info: ReplyDisplayInfo) : ResolvedReply()
 }
 
@@ -96,7 +152,6 @@ data class ReplyDisplayInfo(
     val isDeleted: Boolean = false,
 ) {
     companion object {
-        /** Создаёт из живого сообщения. */
         fun fromLive(message: ChatMessage) = ReplyDisplayInfo(
             replyToId = message.id,
             senderName = message.senderName,
@@ -105,7 +160,6 @@ data class ReplyDisplayInfo(
             isDeleted = false,
         )
 
-        /** Создаёт из снапшота удалённого сообщения. */
         fun fromSnapshot(info: ReplyInfo) = ReplyDisplayInfo(
             replyToId = info.replyToId,
             senderName = info.snapshotSenderName,
@@ -122,7 +176,6 @@ sealed class ChatInputAction {
     object None : ChatInputAction()
 
     companion object {
-        /** Создаёт действие из строк type и messageId, пришедших из JS-bridge. */
         fun from(type: String?, messageId: String?): ChatInputAction {
             if (messageId.isNullOrBlank()) return None
             return when (type) {

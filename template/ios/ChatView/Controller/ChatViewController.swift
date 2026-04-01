@@ -7,9 +7,12 @@ final class ChatViewController: UIViewController {
     // MARK: - Публичные свойства
 
     weak var delegate: ChatViewControllerDelegate?
-    var actions: [MessageAction] = []
+    var hasMore: Bool = false
+    var hasNewer: Bool = false
     var topThreshold: CGFloat = 200
+    var bottomThreshold: CGFloat = 200
     var isLoading: Bool = false { didSet { updateLoadingState() } }
+    var isLoadingBottom: Bool = false
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
     var theme: ChatTheme = .light { didSet { applyTheme() } }
 
@@ -128,6 +131,7 @@ final class ChatViewController: UIViewController {
     let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
 
     var isUserDragging = false
+    var waitingForNewerMessages = false
 
     // MARK: - Private — дебаунс видимости
 

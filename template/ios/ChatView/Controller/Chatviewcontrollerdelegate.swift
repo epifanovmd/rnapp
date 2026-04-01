@@ -1,12 +1,9 @@
 // MARK: - ChatViewControllerDelegate.swift
-// Протокол делегата ChatViewController.
-// UPDATED: добавлен didSelectEmojiReaction для кастомного контекстного меню.
 
 import UIKit
 
 // MARK: - ChatScrollPosition
 
-/// Позиция прокрутки при переходе к конкретному сообщению.
 enum ChatScrollPosition {
     case top, center, bottom
 
@@ -26,18 +23,20 @@ protocol ChatViewControllerDelegate: AnyObject {
     // MARK: Scroll
     func chatViewController(_ vc: ChatViewController, didScrollToOffset offset: CGPoint)
     func chatViewController(_ vc: ChatViewController, didReachTopThreshold threshold: CGFloat)
+    func chatViewController(_ vc: ChatViewController, didReachBottomThreshold distance: CGFloat)
 
     // MARK: Visibility
     func chatViewController(_ vc: ChatViewController, messagesDidAppear messageIDs: [String])
 
     // MARK: Message interaction
     func chatViewController(_ vc: ChatViewController, didTapMessage message: ChatMessage)
-
-    /// Выбрано действие из кастомного контекстного меню.
     func chatViewController(_ vc: ChatViewController, didSelectAction action: MessageAction, for message: ChatMessage)
-
-    /// Выбрана emoji-реакция из кастомного контекстного меню.
     func chatViewController(_ vc: ChatViewController, didSelectEmojiReaction emoji: String, for message: ChatMessage)
+
+    // MARK: Media interaction
+    func chatViewController(_ vc: ChatViewController, didTapVideo videoUrl: String, for message: ChatMessage)
+    func chatViewController(_ vc: ChatViewController, didTapPollOption optionId: String, pollId: String, for message: ChatMessage)
+    func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String, fileName: String, for message: ChatMessage)
 
     // MARK: Input bar
     func chatViewController(_ vc: ChatViewController, didSendMessage text: String, replyToId: String?)
@@ -56,4 +55,8 @@ extension ChatViewControllerDelegate {
     func chatViewController(_ vc: ChatViewController, didCancelReply vc2: ChatViewController) {}
     func chatViewController(_ vc: ChatViewController, didCancelEdit vc2: ChatViewController) {}
     func chatViewController(_ vc: ChatViewController, didSelectEmojiReaction emoji: String, for message: ChatMessage) {}
+    func chatViewController(_ vc: ChatViewController, didReachBottomThreshold distance: CGFloat) {}
+    func chatViewController(_ vc: ChatViewController, didTapVideo videoUrl: String, for message: ChatMessage) {}
+    func chatViewController(_ vc: ChatViewController, didTapPollOption optionId: String, pollId: String, for message: ChatMessage) {}
+    func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String, fileName: String, for message: ChatMessage) {}
 }

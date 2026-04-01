@@ -1,7 +1,5 @@
 // MARK: - ChatParsing.swift
 // Парсинг словарей из JS-bridge в доменные модели.
-// Намеренно изолирован от ChatModels.swift:
-// модели не знают о мосте, мост не знает о деталях рендера.
 
 import Foundation
 
@@ -9,7 +7,7 @@ import Foundation
 
 private let groupDateFormatter: DateFormatter = {
     let f = DateFormatter()
-    f.locale     = Locale(identifier: "en_US_POSIX")   // стабильный парсинг ключей
+    f.locale     = Locale(identifier: "en_US_POSIX")
     f.dateFormat = "yyyy-MM-dd"
     return f
 }()
@@ -33,24 +31,48 @@ extension ChatMessage {
         let senderName = dict["senderName"] as? String
         let isEdited   = dict["isEdited"]  as? Bool ?? false
 
-        // Парсинг контента — text и/или image (первое изображение из массива)
+        // Парсинг контента — text, image, video, poll, file
         let textBody  = (dict["text"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let imageItem = (dict["images"] as? [[String: Any]])?.first.flatMap {
             MessageContent.ImagePayload.from(dict: $0)
         }
-
-        let content: MessageContent
-        switch (textBody, imageItem) {
-        case let (t?, img?): content = .mixed(.init(body: t), img)
-        case let (t?, nil):  content = .text(.init(body: t))
-        case let (nil, img?): content = .image(img)
-        default: return nil
+        let videoItem = (dict["video"] as? [String: Any]).flatMap {
+            MessageContent.VideoPayload.from(dict: $0)
+        }
+        let pollItem = (dict["poll"] as? [String: Any]).flatMap {
+            MessageContent.PollPayload.from(dict: $0)
+        }
+        let fileItem = (dict["file"] as? [String: Any]).flatMap {
+            MessageContent.FilePayload.from(dict: $0)
         }
 
-        // Парсинг цитаты
+        // Приоритет: poll > file > video > image > text
+        let content: MessageContent
+        if let poll = pollItem {
+            content = .poll(poll)
+        } else if let file = fileItem {
+            content = .file(file)
+        } else if let video = videoItem {
+            if let t = textBody {
+                content = .mixedTextVideo(.init(body: t), video)
+            } else {
+                content = .video(video)
+            }
+        } else {
+            switch (textBody, imageItem) {
+            case let (t?, img?): content = .mixed(.init(body: t), img)
+            case let (t?, nil):  content = .text(.init(body: t))
+            case let (nil, img?): content = .image(img)
+            default: return nil
+            }
+        }
+
         let reply: ReplyInfo? = (dict["replyTo"] as? [String: Any]).flatMap {
             ReplyInfo.from(dict: $0)
         }
+
+        let actions: [MessageAction] = (dict["actions"] as? [[String: Any]] ?? [])
+            .compactMap { MessageAction.from(dict: $0) }
 
         return ChatMessage(
             id:         id,
@@ -61,7 +83,8 @@ extension ChatMessage {
             groupDate:  groupDate,
             status:     status,
             reply:      reply,
-            isEdited:   isEdited
+            isEdited:   isEdited,
+            actions:    actions
         )
     }
 }
@@ -77,6 +100,81 @@ extension MessageContent.ImagePayload {
             width:        dict["width"]        as? CGFloat,
             height:       dict["height"]       as? CGFloat,
             thumbnailUrl: dict["thumbnailUrl"] as? String
+        )
+    }
+}
+
+// MARK: - MessageContent.VideoPayload + JS parsing
+
+extension MessageContent.VideoPayload {
+
+    static func from(dict: [String: Any]) -> MessageContent.VideoPayload? {
+        guard let url = dict["url"] as? String, !url.isEmpty else { return nil }
+        return MessageContent.VideoPayload(
+            url:          url,
+            thumbnailUrl: dict["thumbnailUrl"] as? String,
+            width:        dict["width"]        as? CGFloat,
+            height:       dict["height"]       as? CGFloat,
+            duration:     dict["duration"]     as? TimeInterval
+        )
+    }
+}
+
+// MARK: - MessageContent.PollPayload + JS parsing
+
+extension MessageContent.PollPayload {
+
+    static func from(dict: [String: Any]) -> MessageContent.PollPayload? {
+        guard
+            let id       = dict["id"]       as? String,
+            let question = dict["question"] as? String,
+            let optArr   = dict["options"]  as? [[String: Any]]
+        else { return nil }
+
+        let options = optArr.compactMap { MessageContent.PollOption.from(dict: $0) }
+        guard !options.isEmpty else { return nil }
+
+        return MessageContent.PollPayload(
+            id:               id,
+            question:         question,
+            options:          options,
+            totalVotes:       Int(dict["totalVotes"] as? Double ?? 0),
+            selectedOptionId: dict["selectedOptionId"] as? String,
+            isClosed:         dict["isClosed"] as? Bool ?? false
+        )
+    }
+}
+
+extension MessageContent.PollOption {
+
+    static func from(dict: [String: Any]) -> MessageContent.PollOption? {
+        guard
+            let id   = dict["id"]   as? String,
+            let text = dict["text"] as? String
+        else { return nil }
+        return MessageContent.PollOption(
+            id:         id,
+            text:       text,
+            votes:      Int(dict["votes"]      as? Double ?? 0),
+            percentage: CGFloat(dict["percentage"] as? Double ?? 0)
+        )
+    }
+}
+
+// MARK: - MessageContent.FilePayload + JS parsing
+
+extension MessageContent.FilePayload {
+
+    static func from(dict: [String: Any]) -> MessageContent.FilePayload? {
+        guard
+            let url  = dict["url"]  as? String, !url.isEmpty,
+            let name = dict["name"] as? String, !name.isEmpty
+        else { return nil }
+        return MessageContent.FilePayload(
+            url:      url,
+            name:     name,
+            size:     Int64(dict["size"] as? Double ?? 0),
+            mimeType: dict["mimeType"] as? String
         )
     }
 }

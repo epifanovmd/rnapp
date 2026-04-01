@@ -1,6 +1,5 @@
 // NativeChatViewSpec.ts
-// UPDATED: добавлены emojiReactions проп и onEmojiReactionSelect ивент
-// для кастомного контекстного меню.
+// Native ChatView specification with codegen types.
 
 import React from "react";
 import type { HostComponent, ViewProps } from "react-native";
@@ -21,6 +20,37 @@ export type NativeChatImageItem = {
   thumbnailUrl?: string;
 };
 
+export type NativeChatVideoItem = {
+  url: string;
+  thumbnailUrl?: string;
+  width?: Double;
+  height?: Double;
+  duration?: Double;
+};
+
+export type NativeChatPollOption = {
+  id: string;
+  text: string;
+  votes: Double;
+  percentage: Double;
+};
+
+export type NativeChatPoll = {
+  id: string;
+  question: string;
+  options: NativeChatPollOption[];
+  totalVotes: Double;
+  selectedOptionId?: string;
+  isClosed?: boolean;
+};
+
+export type NativeChatFileItem = {
+  url: string;
+  name: string;
+  size: Double;
+  mimeType?: string;
+};
+
 export type NativeChatReplyRef = {
   id: string;
   text?: string;
@@ -28,23 +58,27 @@ export type NativeChatReplyRef = {
   hasImages?: boolean;
 };
 
+export type NativeChatAction = {
+  id: string;
+  title: string;
+  systemImage?: string;
+  isDestructive?: boolean;
+};
+
 export type NativeChatMessage = {
   id: string;
   text?: string;
   images?: NativeChatImageItem[];
+  video?: NativeChatVideoItem;
+  poll?: NativeChatPoll;
+  file?: NativeChatFileItem;
   timestamp: Double;
   senderName?: string;
   isMine?: boolean;
   status?: string;
   replyTo?: NativeChatReplyRef;
   isEdited?: boolean;
-};
-
-export type NativeChatAction = {
-  id: string;
-  title: string;
-  systemImage?: string;
-  isDestructive?: boolean;
+  actions?: NativeChatAction[];
 };
 
 export type NativeChatInputAction = {
@@ -56,6 +90,7 @@ export type NativeChatInputAction = {
 
 export type NativeChatScrollEventData = { x: Double; y: Double };
 export type NativeChatReachTopEventData = { distanceFromTop: Double };
+export type NativeChatReachBottomEventData = { distanceFromBottom: Double };
 export type NativeChatMessagesVisibleEventData = { messageIds: string[] };
 export type NativeChatMessagePressEventData = { messageId: string };
 export type NativeChatActionPressEventData = {
@@ -65,7 +100,7 @@ export type NativeChatActionPressEventData = {
 export type NativeChatEmojiReactionSelectData = {
   emoji: string;
   messageId: string;
-}; // ← NEW
+};
 export type NativeChatSendMessageEventData = {
   text: string;
   replyToId?: string;
@@ -77,18 +112,38 @@ export type NativeChatEditMessageEventData = {
 export type NativeChatCancelInputActionEventData = { type: string };
 export type NativeChatAttachmentPressEventData = {};
 export type NativeChatReplyMessagePressEventData = { messageId: string };
+export type NativeChatVideoPressEventData = {
+  messageId: string;
+  videoUrl: string;
+};
+export type NativeChatPollOptionPressEventData = {
+  messageId: string;
+  pollId: string;
+  optionId: string;
+};
+export type NativeChatFilePressEventData = {
+  messageId: string;
+  fileUrl: string;
+  fileName: string;
+};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface NativeChatViewProps extends ViewProps {
   messages: NativeChatMessage[];
-  actions?: NativeChatAction[];
 
   /** Список эмодзи для панели контекстного меню. Пример: ["❤️", "👍", "😂"] */
-  emojiReactions?: string[]; // ← NEW
+  emojiReactions?: string[];
+
+  /** Есть ли более старые сообщения для подгрузки сверху. */
+  hasMore?: WithDefault<boolean, false>;
+  /** Есть ли более новые сообщения для подгрузки снизу (detached mode). */
+  hasNewer?: WithDefault<boolean, false>;
 
   topThreshold?: WithDefault<Double, 200>;
+  bottomThreshold?: WithDefault<Double, 200>;
   isLoading?: WithDefault<boolean, false>;
+  isLoadingBottom?: WithDefault<boolean, false>;
   inputAction?: NativeChatInputAction | null;
   initialScrollId?: string;
   scrollToBottomThreshold?: WithDefault<Double, 150>;
@@ -98,15 +153,19 @@ export interface NativeChatViewProps extends ViewProps {
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;
+  onReachBottom?: DirectEventHandler<NativeChatReachBottomEventData>;
   onMessagesVisible?: DirectEventHandler<NativeChatMessagesVisibleEventData>;
   onMessagePress?: DirectEventHandler<NativeChatMessagePressEventData>;
   onActionPress?: DirectEventHandler<NativeChatActionPressEventData>;
-  onEmojiReactionSelect?: DirectEventHandler<NativeChatEmojiReactionSelectData>; // ← NEW
+  onEmojiReactionSelect?: DirectEventHandler<NativeChatEmojiReactionSelectData>;
   onSendMessage?: DirectEventHandler<NativeChatSendMessageEventData>;
   onEditMessage?: DirectEventHandler<NativeChatEditMessageEventData>;
   onCancelInputAction?: DirectEventHandler<NativeChatCancelInputActionEventData>;
   onAttachmentPress?: DirectEventHandler<NativeChatAttachmentPressEventData>;
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
+  onVideoPress?: DirectEventHandler<NativeChatVideoPressEventData>;
+  onPollOptionPress?: DirectEventHandler<NativeChatPollOptionPressEventData>;
+  onFilePress?: DirectEventHandler<NativeChatFilePressEventData>;
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

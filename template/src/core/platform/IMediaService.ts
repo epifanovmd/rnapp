@@ -1,8 +1,9 @@
 import { createServiceDecorator } from "@di";
+import { mediaDevices } from "react-native-webrtc";
 
 /**
  * Абстракция доступа к медиа-устройствам.
- * Web: navigator.mediaDevices. React Native: react-native-webrtc / expo-camera.
+ * React Native: react-native-webrtc mediaDevices.
  */
 export interface IMediaService {
   getUserMedia(constraints?: MediaStreamConstraints): Promise<MediaStream>;
@@ -11,12 +12,14 @@ export interface IMediaService {
 export const IMediaService = createServiceDecorator<IMediaService>();
 
 @IMediaService({ inSingleton: true })
-export class WebMediaService implements IMediaService {
+export class RNMediaService implements IMediaService {
   async getUserMedia(
     constraints?: MediaStreamConstraints,
   ): Promise<MediaStream> {
-    return navigator.mediaDevices.getUserMedia(
-      constraints ?? { audio: true, video: false },
+    const stream = await mediaDevices.getUserMedia(
+      (constraints ?? { audio: true, video: false }) as any,
     );
+
+    return stream as unknown as MediaStream;
   }
 }

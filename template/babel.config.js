@@ -21,8 +21,6 @@ module.exports = {
           "@di/*": "./src/di/*",
           "@components": "./src/components",
           "@components/*": "./src/components/*",
-          "@store/models": "./src/models",
-          "@models/*": "./src/models/*",
           "@socket": "./src/socket",
           "@socket/*": "./src/socket/*",
           "@store": "./src/store",

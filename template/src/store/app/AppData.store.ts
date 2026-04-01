@@ -8,6 +8,7 @@ import { ICallStore } from "../calls";
 import { IChatStore } from "../chat";
 import { IChatListStore } from "../chatList";
 import { IContactStore } from "../contacts";
+import { IMessageStore } from "../message";
 import { IPresenceStore } from "../presence";
 import { IProfileStore } from "../profile";
 import { ISessionStore } from "../sessions";
@@ -30,6 +31,7 @@ export class AppDataStore implements IAppDataStore {
     @IContactStore() private _contactStore: IContactStore,
     @IProfileStore() private _profileStore: IProfileStore,
     @IPresenceStore() private _presenceStore: IPresenceStore,
+    @IMessageStore() private _messageStore: IMessageStore,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -43,6 +45,7 @@ export class AppDataStore implements IAppDataStore {
         () => this._authStore.isAuthenticated,
         isAuthenticated => {
           if (isAuthenticated) {
+            console.log("isAuthenticated", isAuthenticated);
             socketDisposers.add(this._socketTransport.initialize());
 
             globalDisposers.push(this._setupGlobalSocketListeners());
@@ -123,6 +126,8 @@ export class AppDataStore implements IAppDataStore {
     return [
       this._messengerSocket.onNewMessage(message => {
         this._chatListStore.handleNewMessage(message);
+        // Проксируем в MessageStore — он сам проверит совпадение chatId
+        this._messageStore.handleNewMessage(message);
       }),
       this._messengerSocket.onChatCreated(chat => {
         this._chatListStore.handleChatCreated(chat);

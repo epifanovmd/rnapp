@@ -9,12 +9,8 @@
 //
 // Reply-архитектура:
 //   • ChatMessage.reply (ReplyInfo) — неизменяемый снапшот момента отправки.
-//     Хранит replyToId + данные как они были в момент ответа.
 //   • ResolvedReply — результат резолвинга в рантайме через messageIndex.
-//     .found содержит АКТУАЛЬНЫЕ данные оригинала из messageIndex,
-//     поэтому при редактировании оригинала цитата автоматически обновляется.
-//   • ReplyInfo.staticSnapshot используется только как fallback когда
-//     оригинал удалён (.deleted).
+//   • ReplyInfo.staticSnapshot используется только как fallback когда оригинал удалён.
 
 import Foundation
 
@@ -35,6 +31,10 @@ enum MessageContent {
     case text(TextPayload)
     case image(ImagePayload)
     case mixed(TextPayload, ImagePayload)
+    case video(VideoPayload)
+    case mixedTextVideo(TextPayload, VideoPayload)
+    case poll(PollPayload)
+    case file(FilePayload)
 
     // MARK: Payloads
 
@@ -49,13 +49,45 @@ enum MessageContent {
         let thumbnailUrl: String?
     }
 
+    struct VideoPayload: Equatable {
+        let url:          String
+        let thumbnailUrl: String?
+        let width:        CGFloat?
+        let height:       CGFloat?
+        let duration:     TimeInterval?
+    }
+
+    struct PollOption: Equatable {
+        let id:         String
+        let text:       String
+        let votes:      Int
+        let percentage: CGFloat
+    }
+
+    struct PollPayload: Equatable {
+        let id:               String
+        let question:         String
+        let options:          [PollOption]
+        let totalVotes:       Int
+        let selectedOptionId: String?
+        let isClosed:         Bool
+    }
+
+    struct FilePayload: Equatable {
+        let url:      String
+        let name:     String
+        let size:     Int64
+        let mimeType: String?
+    }
+
     // MARK: Convenience accessors
 
     var text: String? {
         switch self {
-        case .text(let p):     return p.body
-        case .mixed(let p, _): return p.body
-        case .image:           return nil
+        case .text(let p):              return p.body
+        case .mixed(let p, _):          return p.body
+        case .mixedTextVideo(let p, _): return p.body
+        case .image, .video, .poll, .file: return nil
         }
     }
 
@@ -63,12 +95,36 @@ enum MessageContent {
         switch self {
         case .image(let p):    return p
         case .mixed(_, let p): return p
-        case .text:            return nil
+        default:               return nil
         }
+    }
+
+    var video: VideoPayload? {
+        switch self {
+        case .video(let p):              return p
+        case .mixedTextVideo(_, let p):  return p
+        default:                         return nil
+        }
+    }
+
+    var poll: PollPayload? {
+        if case .poll(let p) = self { return p }
+        return nil
+    }
+
+    var file: FilePayload? {
+        if case .file(let p) = self { return p }
+        return nil
     }
 
     var hasText:  Bool { text  != nil }
     var hasImage: Bool { image != nil }
+    var hasVideo: Bool { video != nil }
+    var hasPoll:  Bool { poll  != nil }
+    var hasFile:  Bool { file  != nil }
+
+    /// true если контент содержит медиа (изображение или видео) — используется для ширины пузыря.
+    var hasMedia: Bool { hasImage || hasVideo }
 }
 
 extension MessageContent: Equatable {
@@ -77,21 +133,20 @@ extension MessageContent: Equatable {
         case (.text(let l),           .text(let r)):              return l == r
         case (.image(let l),          .image(let r)):             return l == r
         case (.mixed(let lt, let li), .mixed(let rt, let ri)):    return lt == rt && li == ri
+        case (.video(let l),          .video(let r)):             return l == r
+        case (.mixedTextVideo(let lt, let lv), .mixedTextVideo(let rt, let rv)):
+            return lt == rt && lv == rv
+        case (.poll(let l),           .poll(let r)):              return l == r
+        case (.file(let l),           .file(let r)):              return l == r
         default:                                                   return false
         }
     }
 }
 
 // MARK: - ReplyInfo
-//
-// Хранит ТОЛЬКО ссылку (replyToId) плюс снапшот данных в момент ответа.
-// Снапшот нужен исключительно для случая .deleted — когда оригинал удалён
-// и показать актуальные данные невозможно.
-// При рендере живого сообщения данные берутся из messageIndex (см. ResolvedReply).
 
 struct ReplyInfo: Equatable {
     let replyToId:  String
-    /// Данные оригинала в момент создания ответа (fallback для deleted).
     let senderName: String?
     let text:       String?
     let hasImage:   Bool
@@ -109,23 +164,22 @@ struct ChatMessage: Identifiable, Equatable {
     let status:     MessageStatus
     let reply:      ReplyInfo?
     let isEdited:   Bool
+    let actions:    [MessageAction]
 
     // MARK: Convenience
 
     var text:      String?                      { content.text }
     var image:     MessageContent.ImagePayload? { content.image }
+    var video:     MessageContent.VideoPayload? { content.video }
     var hasText:   Bool                         { content.hasText }
     var hasImage:  Bool                         { content.hasImage }
+    var hasVideo:  Bool                         { content.hasVideo }
     var replyToId: String?                      { reply?.replyToId }
 }
 
 // MARK: - MessageAction
-//
-// Описывает пункт контекстного меню. Намеренно совпадает по структуре с
-// ContextMenuAction — оба типа реализуют MessageActionRepresentable,
-// что устраняет map-конверсии и дублирование при показе контекстного меню.
 
-struct MessageAction {
+struct MessageAction: Equatable {
     let id:            String
     let title:         String
     let systemImage:   String?
@@ -133,9 +187,6 @@ struct MessageAction {
 }
 
 // MARK: - MessageActionRepresentable
-//
-// Протокол, которому соответствуют и MessageAction, и ContextMenuAction.
-// Используется в showContextMenu для передачи actions без промежуточного map.
 
 protocol MessageActionRepresentable {
     var id:            String  { get }
@@ -155,25 +206,13 @@ struct MessageSection {
 }
 
 // MARK: - ResolvedReply
-//
-// Результат резолвинга ссылки на оригинал сообщения.
-// Используется исключительно на уровне рендера (MessageBubbleView).
-// Резолвинг происходит в ChatViewController.resolveReply(for:) каждый раз при
-// конфигурации ячейки — это гарантирует что цитата всегда отражает
-// актуальное состояние оригинала (после редактирования).
 
 enum ResolvedReply {
-    /// Оригинал найден — несёт АКТУАЛЬНЫЕ данные из messageIndex.
     case found(ReplyDisplayInfo)
-    /// Оригинал удалён — показываем заглушку.
     case deleted
 }
 
 // MARK: - ReplyDisplayInfo
-//
-// Данные для рендера цитаты. Строится из ЖИВОГО ChatMessage в messageIndex,
-// а не из снапшота ReplyInfo. Благодаря этому редактирование оригинала
-// мгновенно отражается во всех ссылающихся на него ячейках.
 
 struct ReplyDisplayInfo: Equatable {
     let replyToId:  String
@@ -181,7 +220,6 @@ struct ReplyDisplayInfo: Equatable {
     let text:       String?
     let hasImage:   Bool
 
-    /// Строит ReplyDisplayInfo из актуального ChatMessage (источник — messageIndex).
     init(from message: ChatMessage) {
         replyToId  = message.id
         senderName = message.senderName
@@ -189,7 +227,6 @@ struct ReplyDisplayInfo: Equatable {
         hasImage   = message.hasImage
     }
 
-    /// Строит ReplyDisplayInfo из снапшота для случая deleted (fallback).
     init(fromSnapshot info: ReplyInfo) {
         replyToId  = info.replyToId
         senderName = info.senderName

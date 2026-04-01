@@ -1,8 +1,9 @@
 import { createServiceDecorator } from "@di";
+import { createMMKV } from "react-native-mmkv";
 
 /**
  * Абстракция key-value хранилища.
- * Web: localStorage. React Native: AsyncStorage / MMKV.
+ * React Native: MMKV — синхронное высокопроизводительное хранилище.
  */
 export interface IStorageService {
   getItem(key: string): string | null;
@@ -13,16 +14,18 @@ export interface IStorageService {
 export const IStorageService = createServiceDecorator<IStorageService>();
 
 @IStorageService({ inSingleton: true })
-export class WebStorageService implements IStorageService {
+export class MmkvStorageService implements IStorageService {
+  private readonly _storage = createMMKV();
+
   getItem(key: string): string | null {
-    return localStorage.getItem(key);
+    return this._storage.getString(key) ?? null;
   }
 
   setItem(key: string, value: string): void {
-    localStorage.setItem(key, value);
+    this._storage.set(key, value);
   }
 
   removeItem(key: string): void {
-    localStorage.removeItem(key);
+    this._storage.remove(key);
   }
 }

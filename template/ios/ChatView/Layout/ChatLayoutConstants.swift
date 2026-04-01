@@ -47,10 +47,44 @@ enum ChatLayoutConstants {
     static let statusIconWidth:       CGFloat = 13
     static let statusIconHeight:      CGFloat = 13
 
-    // MARK: - Image aspect ratio
+    // MARK: - Image / Video aspect ratio
 
     /// Высота одиночного изображения = ширина × ratio.
     static let imageAspectRatio:      CGFloat = 0.6
+
+    // MARK: - Video overlay
+
+    static let videoPlayButtonSize:   CGFloat = 48
+    static let videoDurationFont      = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
+    static let videoDurationPadH:     CGFloat = 6
+    static let videoDurationPadV:     CGFloat = 3
+    static let videoDurationCorner:   CGFloat = 8
+
+    // MARK: - Emoji-only
+
+    static let emojiOnlyFont1:  UIFont = .systemFont(ofSize: 48)   // 1 emoji
+    static let emojiOnlyFont2:  UIFont = .systemFont(ofSize: 40)   // 2 emoji
+    static let emojiOnlyFont3:  UIFont = .systemFont(ofSize: 34)   // 3 emoji
+    static let emojiOnlyExtraH: CGFloat = 4                         // extra padding
+
+    // MARK: - Poll
+
+    static let pollQuestionFont      = UIFont.systemFont(ofSize: 15, weight: .semibold)
+    static let pollOptionFont        = UIFont.systemFont(ofSize: 14)
+    static let pollOptionRowHeight:  CGFloat = 40
+    static let pollBarHeight:        CGFloat = 28
+    static let pollBarCornerRadius:  CGFloat = 6
+    static let pollVotesFont         = UIFont.systemFont(ofSize: 12, weight: .regular)
+    static let pollSpacing:          CGFloat = 6
+    static let pollCheckmarkSize:    CGFloat = 18
+
+    // MARK: - File
+
+    static let fileIconSize:         CGFloat = 40
+    static let fileRowHeight:        CGFloat = 52
+    static let fileNameFont          = UIFont.systemFont(ofSize: 14, weight: .medium)
+    static let fileSizeFont          = UIFont.systemFont(ofSize: 12, weight: .regular)
+    static let fileSpacing:          CGFloat = 8
 
     // MARK: - Typography
 

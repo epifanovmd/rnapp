@@ -36,6 +36,7 @@ enum ChatInputAction {
 
     @objc var onScroll:              RCTDirectEventBlock?
     @objc var onReachTop:            RCTDirectEventBlock?
+    @objc var onReachBottom:         RCTDirectEventBlock?
     @objc var onMessagesVisible:     RCTDirectEventBlock?
     @objc var onMessagePress:        RCTDirectEventBlock?
     @objc var onActionPress:         RCTDirectEventBlock?
@@ -45,6 +46,9 @@ enum ChatInputAction {
     @objc var onCancelInputAction:   RCTDirectEventBlock?
     @objc var onAttachmentPress:     RCTDirectEventBlock?
     @objc var onReplyMessagePress:   RCTDirectEventBlock?
+    @objc var onVideoPress:          RCTDirectEventBlock?
+    @objc var onPollOptionPress:     RCTDirectEventBlock?
+    @objc var onFilePress:           RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -52,24 +56,38 @@ enum ChatInputAction {
         didSet { updateMessages() }
     }
 
-    @objc var actions: NSArray = [] {
-        didSet { updateActions() }
-    }
-
     /// Список эмодзи для панели контекстного меню.
-    /// Формат: ["❤️", "👍", "😂", "😮", "😢", "🙏"]
     @objc var emojiReactions: NSArray = [] {
         didSet { updateEmojiReactions() }
+    }
+
+    @objc var hasMore: Bool = false {
+        didSet { chatVC?.hasMore = hasMore }
+    }
+
+    @objc var hasNewer: Bool = false {
+        didSet { chatVC?.hasNewer = hasNewer }
     }
 
     @objc var topThreshold: NSNumber = 200 {
         didSet { chatVC?.topThreshold = CGFloat(topThreshold.doubleValue) }
     }
 
+    @objc var bottomThreshold: NSNumber = 200 {
+        didSet { chatVC?.bottomThreshold = CGFloat(bottomThreshold.doubleValue) }
+    }
+
     @objc var isLoading: Bool = false {
         didSet {
             chatVC?.isLoading = isLoading
             if !isLoading { chatVC?.resetLoadingState() }
+        }
+    }
+
+    @objc var isLoadingBottom: Bool = false {
+        didSet {
+            chatVC?.isLoadingBottom = isLoadingBottom
+            if !isLoadingBottom { chatVC?.resetLoadingBottomState() }
         }
     }
 
@@ -102,7 +120,7 @@ enum ChatInputAction {
     private weak var chatVC: ChatViewController?
     private var pendingInitialScrollId: String?
     private var initialScrollDone      = false
-    private var isAttachedToHierarchy  = false   // guard от повторного addChild
+    private var isAttachedToHierarchy  = false
 
     // MARK: - Init
 
@@ -147,7 +165,6 @@ enum ChatInputAction {
     // MARK: - Prop handlers
 
     private func applyTheme() {
-        // Безопасная конвертация строки в тему через rawValue-инициализатор
         chatVC?.theme = (theme as String).lowercased() == "dark" ? .dark : .light
     }
 
@@ -182,11 +199,6 @@ enum ChatInputAction {
                 vc.scrollToBottom(animated: false)
             }
         }
-    }
-
-    private func updateActions() {
-        guard let vc = chatVC else { return }
-        vc.actions = (actions as? [[String: Any]] ?? []).compactMap { MessageAction.from(dict: $0) }
     }
 
     private func updateEmojiReactions() {
@@ -265,6 +277,10 @@ extension RNChatView: ChatViewControllerDelegate {
         onReachTop?(["distanceFromTop": threshold])
     }
 
+    func chatViewController(_ vc: ChatViewController, didReachBottomThreshold distance: CGFloat) {
+        onReachBottom?(["distanceFromBottom": distance])
+    }
+
     func chatViewController(_ vc: ChatViewController, messagesDidAppear messageIDs: [String]) {
         onMessagesVisible?(["messageIds": messageIDs])
     }
@@ -309,5 +325,20 @@ extension RNChatView: ChatViewControllerDelegate {
 
     func chatViewController(_ vc: ChatViewController, didTapReply replyId: String) {
         onReplyMessagePress?(["messageId": replyId])
+    }
+
+    func chatViewController(_ vc: ChatViewController, didTapVideo videoUrl: String,
+                            for message: ChatMessage) {
+        onVideoPress?(["messageId": message.id, "videoUrl": videoUrl])
+    }
+
+    func chatViewController(_ vc: ChatViewController, didTapPollOption optionId: String,
+                            pollId: String, for message: ChatMessage) {
+        onPollOptionPress?(["messageId": message.id, "pollId": pollId, "optionId": optionId])
+    }
+
+    func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String,
+                            fileName: String, for message: ChatMessage) {
+        onFilePress?(["messageId": message.id, "fileUrl": fileUrl, "fileName": fileName])
     }
 }

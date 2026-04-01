@@ -96,7 +96,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
               </AnimatedCol>
 
               <Navbar
-                title={user?.email}
+                title={user?.email ?? undefined}
                 transparent={true}
                 onLayout={context.onLayoutNavBar}
               />

@@ -1,7 +1,5 @@
 // MARK: - MessageSizeCalculator.swift
 // Stateless калькулятор размеров ячеек.
-// Не зависит от UIKit layout, не имеет side-эффектов.
-// Все вычисления детерминированы — одинаковый input → одинаковый output.
 
 import UIKit
 
@@ -9,7 +7,6 @@ enum MessageSizeCalculator {
 
     // MARK: - Public API
 
-    /// Возвращает итоговый CGSize ячейки для CollectionView.
     static func cellSize(
         for message: ChatMessage,
         hasReply: Bool,
@@ -29,18 +26,23 @@ enum MessageSizeCalculator {
 
     // MARK: - Bubble width
 
-    /// Вычисляет точную ширину пузыря.
-    /// Изображения и сообщения с цитатой всегда получают максимальную ширину.
     static func bubbleWidth(
         for message: ChatMessage,
         hasReply: Bool,
         maxWidth: CGFloat
     ) -> CGFloat {
-        if message.hasImage || hasReply { return maxWidth }
-
+        // Emoji-only: без пузыря, ширина по размеру текста
+        if let count = emojiOnlyCount(for: message), !hasReply {
+            let font = EmojiHelper.font(forCount: count)
+            let w = ceil((message.text! as NSString).size(withAttributes: [.font: font]).width)
+            return min(w + ChatLayoutConstants.bubbleHorizontalPad, maxWidth)
+        }
+        // Media, replies, polls, files — max width
+        if message.content.hasMedia || hasReply || message.content.hasPoll || message.content.hasFile {
+            return maxWidth
+        }
         let minW = minimumBubbleWidth(for: message)
         guard let text = message.text else { return minW }
-
         let natural   = naturalTextWidth(for: text)
         let candidate = ceil(natural) + ChatLayoutConstants.bubbleHorizontalPad
         return min(max(candidate, minW), maxWidth)
@@ -48,12 +50,18 @@ enum MessageSizeCalculator {
 
     // MARK: - Bubble height
 
-    /// Суммирует высоты всех компонентов пузыря сверху вниз.
     static func bubbleHeight(
         for message: ChatMessage,
         hasReply: Bool,
         bubbleWidth: CGFloat
     ) -> CGFloat {
+        // Emoji-only: без footer
+        if let count = emojiOnlyCount(for: message), !hasReply {
+            let font = EmojiHelper.font(forCount: count)
+            let h = ceil((message.text! as NSString).size(withAttributes: [.font: font]).height)
+            return h + ChatLayoutConstants.emojiOnlyExtraH
+        }
+
         var h = ChatLayoutConstants.bubbleTopPad
 
         if hasReply {
@@ -69,12 +77,17 @@ enum MessageSizeCalculator {
     }
 
     // MARK: - Content height dispatch
-    // Единственное место, требующее изменений при добавлении нового типа.
 
     static func contentHeight(for content: MessageContent, bubbleWidth: CGFloat) -> CGFloat {
         let inner = bubbleWidth - ChatLayoutConstants.bubbleHorizontalPad
         switch content {
         case .text(let p):
+            // Emoji-only обрабатывается в bubbleHeight, тут обычный текст
+            if let count = EmojiHelper.emojiOnlyCount(p.body) {
+                let font = EmojiHelper.font(forCount: count)
+                return ceil((p.body as NSString).size(withAttributes: [.font: font]).height)
+                    + ChatLayoutConstants.stackSpacing
+            }
             return textHeight(p.body, width: inner) + ChatLayoutConstants.stackSpacing
 
         case .image:
@@ -85,12 +98,26 @@ enum MessageSizeCalculator {
                  + ChatLayoutConstants.stackSpacing
                  + textHeight(tp.body, width: inner)
                  + ChatLayoutConstants.stackSpacing
+
+        case .video:
+            return imageHeight(width: inner) + ChatLayoutConstants.stackSpacing
+
+        case .mixedTextVideo(let tp, _):
+            return imageHeight(width: inner)
+                 + ChatLayoutConstants.stackSpacing
+                 + textHeight(tp.body, width: inner)
+                 + ChatLayoutConstants.stackSpacing
+
+        case .poll(let p):
+            return pollHeight(p, width: inner)
+
+        case .file:
+            return ChatLayoutConstants.fileRowHeight + ChatLayoutConstants.stackSpacing
         }
     }
 
-    // MARK: - Minimum width (footer must never clip)
+    // MARK: - Minimum width
 
-    /// Минимальная ширина пузыря, при которой footer не обрезается.
     static func minimumBubbleWidth(for message: ChatMessage) -> CGFloat {
         let timeText = DateHelper.shared.timeString(from: message.timestamp)
         let timeW = ceil((timeText as NSString).size(
@@ -110,7 +137,6 @@ enum MessageSizeCalculator {
 
     // MARK: - Edited label width (cached)
 
-    /// Ширина строки «edited» при шрифте footer — вычисляется один раз.
     private static let editedLabelWidth: CGFloat = {
         let text = NSLocalizedString(
             "chat.bubble.edited",
@@ -123,12 +149,16 @@ enum MessageSizeCalculator {
 
     // MARK: - Helpers
 
-    /// Высота одиночного изображения по фиксированному ratio.
     static func imageHeight(width: CGFloat) -> CGFloat {
         width * ChatLayoutConstants.imageAspectRatio
     }
 
-    /// Натуральная (однострочная) ширина текста без переносов.
+    /// Проверяет, является ли сообщение emoji-only.
+    static func emojiOnlyCount(for message: ChatMessage) -> Int? {
+        guard case .text(let p) = message.content else { return nil }
+        return EmojiHelper.emojiOnlyCount(p.body)
+    }
+
     private static func naturalTextWidth(for text: String) -> CGFloat {
         ceil((text as NSString).boundingRect(
             with: CGSize(width: 10_000, height: CGFloat.greatestFiniteMagnitude),
@@ -138,7 +168,6 @@ enum MessageSizeCalculator {
         ).width)
     }
 
-    /// Высота многострочного текста при заданной ширине.
     private static func textHeight(_ text: String, width: CGFloat) -> CGFloat {
         guard width > 0 else { return 0 }
         return ceil((text as NSString).boundingRect(
@@ -147,5 +176,26 @@ enum MessageSizeCalculator {
             attributes: [.font: ChatLayoutConstants.messageFont],
             context: nil
         ).height)
+    }
+
+    private static func pollHeight(_ poll: MessageContent.PollPayload, width: CGFloat) -> CGFloat {
+        // Question height
+        let qH = ceil((poll.question as NSString).boundingRect(
+            with: CGSize(width: width, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: ChatLayoutConstants.pollQuestionFont],
+            context: nil
+        ).height)
+
+        // Option rows
+        let optionsH = CGFloat(poll.options.count) * ChatLayoutConstants.pollBarHeight
+        let optionsSpacing = CGFloat(poll.options.count) * ChatLayoutConstants.pollSpacing
+
+        // Total votes label
+        let votesH: CGFloat = 18
+
+        return qH + ChatLayoutConstants.pollSpacing
+             + optionsH + optionsSpacing
+             + votesH + ChatLayoutConstants.stackSpacing
     }
 }

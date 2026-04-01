@@ -98,6 +98,7 @@ class ApiService extends Api<ApiError> implements IApiService {
         axiosResponse: res,
       }),
       async (e: any): Promise<ApiServiceResponse<any>> => {
+        console.log("e", e);
         const axiosError = isAxiosError(e) ? e : undefined;
         const status = e.response?.status || e.request?.status || 400;
 

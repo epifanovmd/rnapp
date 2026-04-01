@@ -45,6 +45,35 @@ object ChatLayoutConstants {
     const val CONTEXT_MENU_CORNER_DP = 14f
     const val CONTEXT_MENU_EMOJI_SIZE_DP = 36f
     const val CONTEXT_MENU_ACTION_H_DP = 44f
+
+    // Video overlay
+    const val VIDEO_PLAY_BUTTON_SIZE_DP = 48f
+    const val VIDEO_DURATION_TEXT_SIZE_SP = 12f
+    const val VIDEO_DURATION_PAD_H_DP = 6f
+    const val VIDEO_DURATION_PAD_V_DP = 3f
+    const val VIDEO_DURATION_CORNER_DP = 8f
+
+    // Emoji-only
+    const val EMOJI_ONLY_TEXT_SIZE_1 = 48f   // 1 emoji
+    const val EMOJI_ONLY_TEXT_SIZE_2 = 40f   // 2 emoji
+    const val EMOJI_ONLY_TEXT_SIZE_3 = 34f   // 3 emoji
+
+    // Poll
+    const val POLL_QUESTION_TEXT_SIZE_SP = 15f
+    const val POLL_OPTION_TEXT_SIZE_SP = 14f
+    const val POLL_OPTION_ROW_HEIGHT_DP = 40f
+    const val POLL_BAR_HEIGHT_DP = 28f
+    const val POLL_BAR_CORNER_DP = 6f
+    const val POLL_VOTES_TEXT_SIZE_SP = 12f
+    const val POLL_SPACING_DP = 6f
+    const val POLL_CHECKMARK_SIZE_DP = 18f
+
+    // File
+    const val FILE_ICON_SIZE_DP = 40f
+    const val FILE_ROW_HEIGHT_DP = 52f
+    const val FILE_NAME_TEXT_SIZE_SP = 14f
+    const val FILE_SIZE_TEXT_SIZE_SP = 12f
+    const val FILE_SPACING_DP = 8f
 }
 
 /** Конвертирует dp в пиксели. */

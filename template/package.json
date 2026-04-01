@@ -66,6 +66,8 @@
     "react-native-keyboard-controller": "^1.20.6",
     "react-native-localize": "^3.6.1",
     "react-native-masked-text": "^1.13.0",
+    "react-native-mmkv": "^4.3.0",
+    "react-native-nitro-modules": "^0.35.2",
     "react-native-pager-view": "^8.0.0",
     "react-native-parsed-text": "^0.0.22",
     "react-native-pdf": "^7.0.3",
@@ -76,6 +78,7 @@
     "react-native-screens": "4.18.0",
     "react-native-svg": "^15.15.1",
     "react-native-tab-view": "^3.5.2",
+    "react-native-webrtc": "^124.0.7",
     "react-native-webview": "^13.16.0",
     "react-native-worklets": "^0.7.4",
     "reflect-metadata": "^0.2.2",
@@ -136,6 +139,9 @@
   "codegenConfig": {
     "name": "RNChatViewSpec",
     "type": "components",
-    "jsSrcsDir": "."
+    "jsSrcsDir": "src",
+    "android": {
+      "javaPackageName": "com.rnapp.rnchatview"
+    }
   }
 }

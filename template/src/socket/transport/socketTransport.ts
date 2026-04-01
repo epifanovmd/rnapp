@@ -56,6 +56,7 @@ export class SocketTransport implements ISocketTransport {
     const disposeTokenReaction = reaction(
       () => this._tokenStore.accessToken,
       token => {
+        console.log("token", token);
         if (this._socket && token) {
           // Update both auth and query so the token is fresh on the next
           // reconnection attempt regardless of which mechanism the server reads.

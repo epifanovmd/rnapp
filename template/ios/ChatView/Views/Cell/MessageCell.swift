@@ -8,7 +8,7 @@ final class MessageCell: UICollectionViewCell {
 
     // MARK: - Subviews
 
-    private let bubbleView = MessageBubbleView()
+    private(set) var bubbleView = MessageBubbleView()
 
     // MARK: - Constraints
 
