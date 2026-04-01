@@ -44,11 +44,23 @@ export type NativeChatPoll = {
   isClosed?: boolean;
 };
 
+export type NativeChatVoiceItem = {
+  url: string;
+  duration: Double;
+  waveform?: Double[];
+};
+
 export type NativeChatFileItem = {
   url: string;
   name: string;
   size: Double;
   mimeType?: string;
+};
+
+export type NativeChatReaction = {
+  emoji: string;
+  count: Double;
+  isMine?: boolean;
 };
 
 export type NativeChatReplyRef = {
@@ -70,13 +82,16 @@ export type NativeChatMessage = {
   text?: string;
   images?: NativeChatImageItem[];
   video?: NativeChatVideoItem;
+  voice?: NativeChatVoiceItem;
   poll?: NativeChatPoll;
   file?: NativeChatFileItem;
+  reactions?: NativeChatReaction[];
   timestamp: Double;
   senderName?: string;
   isMine?: boolean;
   status?: string;
   replyTo?: NativeChatReplyRef;
+  forwardedFrom?: string;
   isEdited?: boolean;
   actions?: NativeChatAction[];
 };

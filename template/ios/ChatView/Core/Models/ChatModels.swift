@@ -33,6 +33,7 @@ enum MessageContent {
     case mixed(TextPayload, ImagePayload)
     case video(VideoPayload)
     case mixedTextVideo(TextPayload, VideoPayload)
+    case voice(VoicePayload)
     case poll(PollPayload)
     case file(FilePayload)
 
@@ -47,6 +48,12 @@ enum MessageContent {
         let width:        CGFloat?
         let height:       CGFloat?
         let thumbnailUrl: String?
+    }
+
+    struct VoicePayload: Equatable {
+        let url:      String
+        let duration: TimeInterval
+        let waveform: [CGFloat]
     }
 
     struct VideoPayload: Equatable {
@@ -87,8 +94,13 @@ enum MessageContent {
         case .text(let p):              return p.body
         case .mixed(let p, _):          return p.body
         case .mixedTextVideo(let p, _): return p.body
-        case .image, .video, .poll, .file: return nil
+        case .image, .video, .voice, .poll, .file: return nil
         }
+    }
+
+    var voice: VoicePayload? {
+        if case .voice(let p) = self { return p }
+        return nil
     }
 
     var image: ImagePayload? {
@@ -120,6 +132,7 @@ enum MessageContent {
     var hasText:  Bool { text  != nil }
     var hasImage: Bool { image != nil }
     var hasVideo: Bool { video != nil }
+    var hasVoice: Bool { voice != nil }
     var hasPoll:  Bool { poll  != nil }
     var hasFile:  Bool { file  != nil }
 
@@ -136,11 +149,20 @@ extension MessageContent: Equatable {
         case (.video(let l),          .video(let r)):             return l == r
         case (.mixedTextVideo(let lt, let lv), .mixedTextVideo(let rt, let rv)):
             return lt == rt && lv == rv
+        case (.voice(let l),          .voice(let r)):             return l == r
         case (.poll(let l),           .poll(let r)):              return l == r
         case (.file(let l),           .file(let r)):              return l == r
         default:                                                   return false
         }
     }
+}
+
+// MARK: - Reaction
+
+struct Reaction: Equatable {
+    let emoji:  String
+    let count:  Int
+    let isMine: Bool
 }
 
 // MARK: - ReplyInfo
@@ -155,25 +177,29 @@ struct ReplyInfo: Equatable {
 // MARK: - ChatMessage
 
 struct ChatMessage: Identifiable, Equatable {
-    let id:         String
-    let content:    MessageContent
-    let timestamp:  Date
-    let senderName: String?
-    let isMine:     Bool
-    let groupDate:  String
-    let status:     MessageStatus
-    let reply:      ReplyInfo?
-    let isEdited:   Bool
-    let actions:    [MessageAction]
+    let id:            String
+    let content:       MessageContent
+    let timestamp:     Date
+    let senderName:    String?
+    let isMine:        Bool
+    let groupDate:     String
+    let status:        MessageStatus
+    let reply:         ReplyInfo?
+    let forwardedFrom: String?
+    let reactions:     [Reaction]
+    let isEdited:      Bool
+    let actions:       [MessageAction]
 
     // MARK: Convenience
 
     var text:      String?                      { content.text }
     var image:     MessageContent.ImagePayload? { content.image }
     var video:     MessageContent.VideoPayload? { content.video }
+    var voice:     MessageContent.VoicePayload? { content.voice }
     var hasText:   Bool                         { content.hasText }
     var hasImage:  Bool                         { content.hasImage }
     var hasVideo:  Bool                         { content.hasVideo }
+    var hasVoice:  Bool                         { content.hasVoice }
     var replyToId: String?                      { reply?.replyToId }
 }
 

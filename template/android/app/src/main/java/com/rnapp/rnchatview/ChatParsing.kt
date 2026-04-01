@@ -31,16 +31,23 @@ fun ReadableMap.toChatMessage(): ChatMessage? {
     val videoPayload: MessageContent.VideoPayload? =
         if (hasKey("video") && !isNull("video")) getMap("video")?.toVideoPayload() else null
 
+    val voicePayload: MessageContent.VoicePayload? =
+        if (hasKey("voice") && !isNull("voice")) getMap("voice")?.toVoicePayload() else null
+
     val pollPayload: MessageContent.PollPayload? =
         if (hasKey("poll") && !isNull("poll")) getMap("poll")?.toPollPayload() else null
 
     val filePayload: MessageContent.FilePayload? =
         if (hasKey("file") && !isNull("file")) getMap("file")?.toFilePayload() else null
 
-    // Приоритет: poll > file > video > image > text
+    val forwardedFrom: String? =
+        if (hasKey("forwardedFrom") && !isNull("forwardedFrom")) getString("forwardedFrom") else null
+
+    // Приоритет: poll > file > voice > video > image > text
     val content: MessageContent = when {
         pollPayload != null -> MessageContent.Poll(pollPayload)
         filePayload != null -> MessageContent.File(filePayload)
+        voicePayload != null -> MessageContent.Voice(voicePayload)
         videoPayload != null -> {
             if (textBody != null)
                 MessageContent.MixedTextVideo(MessageContent.TextPayload(textBody), videoPayload)
@@ -58,6 +65,10 @@ fun ReadableMap.toChatMessage(): ChatMessage? {
 
     val reply = if (hasKey("replyTo") && !isNull("replyTo")) getMap("replyTo")?.toReplyInfo() else null
 
+    val reactions: List<Reaction> = if (hasKey("reactions") && !isNull("reactions"))
+        getArray("reactions")?.toReactions() ?: emptyList()
+    else emptyList()
+
     val actions: List<MessageAction> = if (hasKey("actions") && !isNull("actions"))
         getArray("actions")?.toMessageActions() ?: emptyList()
     else emptyList()
@@ -71,6 +82,8 @@ fun ReadableMap.toChatMessage(): ChatMessage? {
         groupDate = groupDate,
         status = status,
         reply = reply,
+        forwardedFrom = forwardedFrom,
+        reactions = reactions,
         isEdited = isEdited,
         actions = actions,
     )
@@ -159,6 +172,28 @@ private fun ReadableMap.toFilePayload(): MessageContent.FilePayload? {
         mimeType = if (hasKey("mimeType") && !isNull("mimeType")) getString("mimeType") else null,
     )
 }
+
+private fun ReadableMap.toVoicePayload(): MessageContent.VoicePayload? {
+    val url = getString("url")?.takeIf { it.isNotEmpty() } ?: return null
+    val duration = if (hasKey("duration")) getDouble("duration") else 0.0
+    val waveform = if (hasKey("waveform") && !isNull("waveform")) {
+        val arr = getArray("waveform")
+        if (arr != null) (0 until arr.size()).map { arr.getDouble(it).toFloat() } else emptyList()
+    } else emptyList()
+    return MessageContent.VoicePayload(url = url, duration = duration, waveform = waveform)
+}
+
+private fun ReadableMap.toReaction(): Reaction? {
+    val emoji = getString("emoji")?.takeIf { it.isNotEmpty() } ?: return null
+    return Reaction(
+        emoji = emoji,
+        count = if (hasKey("count")) getDouble("count").toInt() else 0,
+        isMine = if (hasKey("isMine")) getBoolean("isMine") else false,
+    )
+}
+
+fun ReadableArray.toReactions(): List<Reaction> =
+    (0 until size()).mapNotNull { getMap(it)?.toReaction() }
 
 private fun ReadableMap.toReplyInfo(): ReplyInfo? {
     val id = getString("id")?.takeIf { it.isNotEmpty() } ?: return null

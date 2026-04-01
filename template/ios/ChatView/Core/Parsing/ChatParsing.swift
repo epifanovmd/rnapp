@@ -31,13 +31,18 @@ extension ChatMessage {
         let senderName = dict["senderName"] as? String
         let isEdited   = dict["isEdited"]  as? Bool ?? false
 
-        // Парсинг контента — text, image, video, poll, file
+        let forwardedFrom = dict["forwardedFrom"] as? String
+
+        // Парсинг контента — text, image, video, voice, poll, file
         let textBody  = (dict["text"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let imageItem = (dict["images"] as? [[String: Any]])?.first.flatMap {
             MessageContent.ImagePayload.from(dict: $0)
         }
         let videoItem = (dict["video"] as? [String: Any]).flatMap {
             MessageContent.VideoPayload.from(dict: $0)
+        }
+        let voiceItem = (dict["voice"] as? [String: Any]).flatMap {
+            MessageContent.VoicePayload.from(dict: $0)
         }
         let pollItem = (dict["poll"] as? [String: Any]).flatMap {
             MessageContent.PollPayload.from(dict: $0)
@@ -46,12 +51,14 @@ extension ChatMessage {
             MessageContent.FilePayload.from(dict: $0)
         }
 
-        // Приоритет: poll > file > video > image > text
+        // Приоритет: poll > file > voice > video > image > text
         let content: MessageContent
         if let poll = pollItem {
             content = .poll(poll)
         } else if let file = fileItem {
             content = .file(file)
+        } else if let voice = voiceItem {
+            content = .voice(voice)
         } else if let video = videoItem {
             if let t = textBody {
                 content = .mixedTextVideo(.init(body: t), video)
@@ -71,20 +78,25 @@ extension ChatMessage {
             ReplyInfo.from(dict: $0)
         }
 
+        let reactions: [Reaction] = (dict["reactions"] as? [[String: Any]] ?? [])
+            .compactMap { Reaction.from(dict: $0) }
+
         let actions: [MessageAction] = (dict["actions"] as? [[String: Any]] ?? [])
             .compactMap { MessageAction.from(dict: $0) }
 
         return ChatMessage(
-            id:         id,
-            content:    content,
-            timestamp:  timestamp,
-            senderName: senderName,
-            isMine:     isMine,
-            groupDate:  groupDate,
-            status:     status,
-            reply:      reply,
-            isEdited:   isEdited,
-            actions:    actions
+            id:            id,
+            content:       content,
+            timestamp:     timestamp,
+            senderName:    senderName,
+            isMine:        isMine,
+            groupDate:     groupDate,
+            status:        status,
+            reply:         reply,
+            forwardedFrom: forwardedFrom,
+            reactions:     reactions,
+            isEdited:      isEdited,
+            actions:       actions
         )
     }
 }
@@ -175,6 +187,36 @@ extension MessageContent.FilePayload {
             name:     name,
             size:     Int64(dict["size"] as? Double ?? 0),
             mimeType: dict["mimeType"] as? String
+        )
+    }
+}
+
+// MARK: - MessageContent.VoicePayload + JS parsing
+
+extension MessageContent.VoicePayload {
+
+    static func from(dict: [String: Any]) -> MessageContent.VoicePayload? {
+        guard let url = dict["url"] as? String, !url.isEmpty else { return nil }
+        let duration = dict["duration"] as? TimeInterval ?? 0
+        let waveform = (dict["waveform"] as? [Double])?.map { CGFloat($0) } ?? []
+        return MessageContent.VoicePayload(
+            url:      url,
+            duration: duration,
+            waveform: waveform
+        )
+    }
+}
+
+// MARK: - Reaction + JS parsing
+
+extension Reaction {
+
+    static func from(dict: [String: Any]) -> Reaction? {
+        guard let emoji = dict["emoji"] as? String, !emoji.isEmpty else { return nil }
+        return Reaction(
+            emoji:  emoji,
+            count:  Int(dict["count"] as? Double ?? 0),
+            isMine: dict["isMine"] as? Bool ?? false
         )
     }
 }

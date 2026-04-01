@@ -47,6 +47,12 @@ sealed class MessageContent {
         val isClosed: Boolean = false,
     )
 
+    data class VoicePayload(
+        val url: String,
+        val duration: Double = 0.0,
+        val waveform: List<Float> = emptyList(),
+    )
+
     data class FilePayload(
         val url: String,
         val name: String,
@@ -59,6 +65,7 @@ sealed class MessageContent {
     data class Mixed(val text: TextPayload, val image: ImagePayload) : MessageContent()
     data class Video(val payload: VideoPayload) : MessageContent()
     data class MixedTextVideo(val text: TextPayload, val video: VideoPayload) : MessageContent()
+    data class Voice(val payload: VoicePayload) : MessageContent()
     data class Poll(val payload: PollPayload) : MessageContent()
     data class File(val payload: FilePayload) : MessageContent()
 
@@ -66,7 +73,12 @@ sealed class MessageContent {
         is Text -> payload.body
         is Mixed -> text.body
         is MixedTextVideo -> text.body
-        is Image, is Video, is Poll, is File -> null
+        is Image, is Video, is Voice, is Poll, is File -> null
+    }
+
+    val voicePayload: VoicePayload? get() = when (this) {
+        is Voice -> payload
+        else -> null
     }
 
     val imagePayload: ImagePayload? get() = when (this) {
@@ -94,10 +106,17 @@ sealed class MessageContent {
     val hasText: Boolean get() = textBody != null
     val hasImage: Boolean get() = imagePayload != null
     val hasVideo: Boolean get() = videoPayload != null
+    val hasVoice: Boolean get() = voicePayload != null
     val hasPoll: Boolean get() = pollPayload != null
     val hasFile: Boolean get() = filePayload != null
     val hasMedia: Boolean get() = hasImage || hasVideo
 }
+
+data class Reaction(
+    val emoji: String,
+    val count: Int,
+    val isMine: Boolean = false,
+)
 
 data class ReplyInfo(
     val replyToId: String,
@@ -115,15 +134,19 @@ data class ChatMessage(
     val groupDate: String = "",
     val status: MessageStatus = MessageStatus.SENT,
     val reply: ReplyInfo? = null,
+    val forwardedFrom: String? = null,
+    val reactions: List<Reaction> = emptyList(),
     val isEdited: Boolean = false,
     val actions: List<MessageAction> = emptyList(),
 ) {
     val text: String? get() = content.textBody
     val image: MessageContent.ImagePayload? get() = content.imagePayload
     val video: MessageContent.VideoPayload? get() = content.videoPayload
+    val voice: MessageContent.VoicePayload? get() = content.voicePayload
     val hasText: Boolean get() = content.hasText
     val hasImage: Boolean get() = content.hasImage
     val hasVideo: Boolean get() = content.hasVideo
+    val hasVoice: Boolean get() = content.hasVoice
     val replyToId: String? get() = reply?.replyToId
 }
 

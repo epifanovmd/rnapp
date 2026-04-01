@@ -68,11 +68,11 @@ const mapStatus = (status: EMessageStatus): ChatMessage["status"] => {
   }
 };
 
-const findAttachmentByType = (
+const findAllAttachmentsByType = (
   attachments: MessageAttachmentDto[],
   prefix: string,
-): MessageAttachmentDto | undefined =>
-  attachments.find(a => a.fileType.startsWith(prefix));
+): MessageAttachmentDto[] =>
+  attachments.filter(a => a.fileType.startsWith(prefix));
 
 const findFileAttachment = (
   attachments: MessageAttachmentDto[],
@@ -108,8 +108,15 @@ const mapMessageToNative = (
 ): ChatMessage => {
   const isMine = msg.senderId === currentUserId;
 
-  const imageAttachment = findAttachmentByType(msg.attachments, "image/");
-  const videoAttachment = findAttachmentByType(msg.attachments, "video/");
+  const imageAttachments = findAllAttachmentsByType(msg.attachments, "image/");
+  const videoAttachment = findAllAttachmentsByType(
+    msg.attachments,
+    "video/",
+  )[0];
+  const voiceAttachment = findAllAttachmentsByType(
+    msg.attachments,
+    "audio/",
+  )[0];
   const fileAttachment = findFileAttachment(msg.attachments);
 
   return {
@@ -124,17 +131,22 @@ const mapMessageToNative = (
       : undefined,
     status: mapStatus(msg.status),
     isEdited: msg.isEdited,
-
-    images: imageAttachment
-      ? [
-          {
-            url: imageAttachment.fileUrl,
-            width: imageAttachment.width ?? undefined,
-            height: imageAttachment.height ?? undefined,
-            thumbnailUrl: imageAttachment.thumbnailUrl ?? undefined,
-          },
-        ]
+    forwardedFrom: msg.forwardedFromId
+      ? msg.sender
+        ? formatFullName(msg.sender.firstName, msg.sender.lastName)
+        : "Forwarded"
       : undefined,
+
+    // Multiple images
+    images:
+      imageAttachments.length > 0
+        ? imageAttachments.map(a => ({
+            url: a.fileUrl,
+            width: a.width ?? undefined,
+            height: a.height ?? undefined,
+            thumbnailUrl: a.thumbnailUrl ?? undefined,
+          }))
+        : undefined,
 
     video: videoAttachment
       ? {
@@ -143,6 +155,13 @@ const mapMessageToNative = (
           width: videoAttachment.width ?? undefined,
           height: videoAttachment.height ?? undefined,
           duration: videoAttachment.duration ?? undefined,
+        }
+      : undefined,
+
+    voice: voiceAttachment
+      ? {
+          url: voiceAttachment.fileUrl,
+          duration: voiceAttachment.duration ?? 0,
         }
       : undefined,
 
@@ -156,6 +175,16 @@ const mapMessageToNative = (
           mimeType: fileAttachment.fileType,
         }
       : undefined,
+
+    // Reactions with counts
+    reactions:
+      msg.reactions.length > 0
+        ? msg.reactions.map(r => ({
+            emoji: r.emoji,
+            count: r.count,
+            isMine: r.userIds.includes(currentUserId ?? ""),
+          }))
+        : undefined,
 
     replyTo: msg.replyTo
       ? {
