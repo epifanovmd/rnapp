@@ -17,6 +17,7 @@
 		1A53D5AF2F562180005F571B /* InputBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A53D5AE2F56217F005F571B /* InputBarView.swift */; };
 		1A8169DA2D8B10600020AC31 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8169D92D8B10590020AC31 /* AppDelegate.swift */; };
 		1A8368032F13070100FB3432 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A8368022F13070100FB3432 /* GoogleService-Info.plist */; };
+		1A9474F82F7D434F001D82F5 /* ReactionsRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9474F72F7D434E001D82F5 /* ReactionsRowView.swift */; };
 		1A9C3D732F582BB300694F32 /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D722F582BB200694F32 /* MessageBubbleView.swift */; };
 		1A9C3D772F582BC500694F32 /* ReplyPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D762F582BC400694F32 /* ReplyPreviewView.swift */; };
 		1A9C3D792F582BD300694F32 /* MessageStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D782F582BD200694F32 /* MessageStatusView.swift */; };
@@ -68,6 +69,7 @@
 		1A53D5AE2F56217F005F571B /* InputBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputBarView.swift; sourceTree = "<group>"; };
 		1A8169D92D8B10590020AC31 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = rnapp/AppDelegate.swift; sourceTree = "<group>"; };
 		1A8368022F13070100FB3432 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		1A9474F72F7D434E001D82F5 /* ReactionsRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsRowView.swift; sourceTree = "<group>"; };
 		1A9C3D722F582BB200694F32 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
 		1A9C3D762F582BC400694F32 /* ReplyPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyPreviewView.swift; sourceTree = "<group>"; };
 		1A9C3D782F582BD200694F32 /* MessageStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStatusView.swift; sourceTree = "<group>"; };
@@ -111,17 +113,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		1A881F2A2E47D2E80057B776 /* Picker */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = Picker;
-			sourceTree = "<group>";
-		};
+		1A881F2A2E47D2E80057B776 /* Picker */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Picker; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -269,6 +261,7 @@
 		1A9C40722F58C46300694F32 /* Content */ = {
 			isa = PBXGroup;
 			children = (
+				1A9474F72F7D434E001D82F5 /* ReactionsRowView.swift */,
 				1A9C3D7D2F583F7C00694F32 /* MessageContentViews.swift */,
 				1A9C3D762F582BC400694F32 /* ReplyPreviewView.swift */,
 				1A9C3D782F582BD200694F32 /* MessageStatusView.swift */,
@@ -506,9 +499,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -523,9 +520,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -618,6 +619,7 @@
 				1A53D5AD2F562174005F571B /* DateSeparatorCell.swift in Sources */,
 				1A53D5AF2F562180005F571B /* InputBarView.swift in Sources */,
 				1A8169DA2D8B10600020AC31 /* AppDelegate.swift in Sources */,
+				1A9474F82F7D434F001D82F5 /* ReactionsRowView.swift in Sources */,
 				1A9C41592F5B12A100694F32 /* ContextMenuAnimator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
