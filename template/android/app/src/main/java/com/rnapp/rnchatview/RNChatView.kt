@@ -36,6 +36,8 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
     private val emptyStateView: EmptyStateView
     private val fabButton: FabButton
     private var contextMenu: ContextMenuView? = null
+    private val voiceRecorder = VoiceRecorder(reactContext)
+    private val voicePlayer = VoicePlayer.getInstance(reactContext)
 
     private var sections: List<MessageSection> = emptyList()
     private var messageIndex: Map<String, ChatMessage> = emptyMap()
@@ -130,6 +132,9 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
             inputBar.delegate = inputBarDelegate
             recyclerView.addOnScrollListener(scrollListener)
         }
+
+        setupVoiceRecorder()
+        setupVoicePlayer()
     }
 
     private fun setupKeyboardAnimation() {
@@ -722,6 +727,52 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         }
     }
 
+    // ─── Voice recording / playback ─────────────────────────────────────
+
+    private fun setupVoiceRecorder() {
+        voiceRecorder.listener = object : VoiceRecorder.Listener {
+            override fun onRecordingStarted() {
+                inputBar.showRecordingUI()
+            }
+
+            override fun onRecordingStopped(filePath: String, durationMs: Long) {
+                inputBar.hideRecordingUI()
+                sendEvent("onVoiceRecordingComplete", args {
+                    putString("fileUrl", filePath)
+                    putDouble("duration", durationMs / 1000.0)
+                })
+            }
+
+            override fun onRecordingCancelled() {
+                inputBar.hideRecordingUI()
+            }
+
+            override fun onRecordingTimeUpdate(elapsedMs: Long) {
+                inputBar.updateRecordingTime((elapsedMs / 1000).toInt())
+            }
+        }
+    }
+
+    private fun setupVoicePlayer() {
+        voicePlayer.listener = object : VoicePlayer.Listener {
+            override fun onPlaybackStarted(messageId: String) {
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun onPlaybackFinished(messageId: String) {
+                adapter.notifyDataSetChanged()
+            }
+
+            override fun onPlaybackProgress(messageId: String, progress: Float) {
+                // Progress updates handled per-cell if needed
+            }
+        }
+
+        adapter.onVoicePress = { url, messageId ->
+            voicePlayer.toggle(url, messageId)
+        }
+    }
+
     private val inputBarDelegate = object : InputBarDelegate {
         override fun onSendText(text: String, replyToId: String?) {
             sendEvent("onSendMessage", args {
@@ -737,6 +788,14 @@ class RNChatView(private val reactContext: ThemedReactContext) : FrameLayout(rea
         override fun onCancelReply() = sendEvent("onCancelInputAction", args { putString("type", "reply") })
         override fun onCancelEdit() = sendEvent("onCancelInputAction", args { putString("type", "edit") })
         override fun onAttachmentPress() = sendEvent("onAttachmentPress", Arguments.createMap())
+
+        override fun onVoiceTap() {
+            if (voiceRecorder.isRecording) {
+                voiceRecorder.stopRecording()
+            } else {
+                voiceRecorder.startRecording()
+            }
+        }
 
         override fun onHeightChanged(heightPx: Int, topPanelVisibleHeight: Int) {
             val prevHeight = lastKnownInputBarHeight

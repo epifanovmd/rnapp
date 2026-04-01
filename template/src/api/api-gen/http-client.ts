@@ -99,7 +99,15 @@ export abstract class HttpClient<E = unknown> {
         property instanceof Array ? property : [property];
 
       for (const formItem of propertyContent) {
-        const isFileType = formItem instanceof Blob || formItem instanceof File;
+        const isFileType =
+          formItem instanceof Blob ||
+          formItem instanceof File ||
+          (typeof formItem === "object" &&
+            formItem !== null &&
+            "uri" in formItem &&
+            "type" in formItem &&
+            "name" in formItem);
+
         formData.append(
           key,
           isFileType ? formItem : this.stringifyFormItem(formItem),

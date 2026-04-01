@@ -40,7 +40,8 @@ export type NativeChatPoll = {
   question: string;
   options: NativeChatPollOption[];
   totalVotes: Double;
-  selectedOptionId?: string;
+  selectedOptionIds?: string[];
+  isMultipleChoice?: boolean;
   isClosed?: boolean;
 };
 
@@ -136,10 +137,20 @@ export type NativeChatPollOptionPressEventData = {
   pollId: string;
   optionId: string;
 };
+export type NativeChatPollDetailPressEventData = {
+  messageId: string;
+  pollId: string;
+};
+
 export type NativeChatFilePressEventData = {
   messageId: string;
   fileUrl: string;
   fileName: string;
+};
+
+export type NativeChatVoiceRecordingCompleteEventData = {
+  fileUrl: string;
+  duration: Double;
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -180,7 +191,9 @@ export interface NativeChatViewProps extends ViewProps {
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
   onVideoPress?: DirectEventHandler<NativeChatVideoPressEventData>;
   onPollOptionPress?: DirectEventHandler<NativeChatPollOptionPressEventData>;
+  onPollDetailPress?: DirectEventHandler<NativeChatPollDetailPressEventData>;
   onFilePress?: DirectEventHandler<NativeChatFilePressEventData>;
+  onVoiceRecordingComplete?: DirectEventHandler<NativeChatVoiceRecordingCompleteEventData>;
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

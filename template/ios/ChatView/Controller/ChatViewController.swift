@@ -56,6 +56,7 @@ final class ChatViewController: UIViewController {
     var dataSource:  UICollectionViewDiffableDataSource<String, String>!
     var inputBar:    InputBarView!
     let sizeCache = MessageSizeCache()
+    let voiceRecorder = VoiceRecorder()
 
     // MARK: - Internal — контекстное меню
 
@@ -150,6 +151,8 @@ final class ChatViewController: UIViewController {
         setupFAB()
         setupDataSource()
         applyTheme()
+        voiceRecorder.delegate = self
+        VoicePlayer.shared.delegate = self
     }
 
     override func viewDidLayoutSubviews() {

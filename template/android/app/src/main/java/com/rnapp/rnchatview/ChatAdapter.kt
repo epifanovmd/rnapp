@@ -52,6 +52,7 @@ class ChatAdapter(
     var onVideoPress: ((messageId: String, videoUrl: String) -> Unit)? = null
     var onPollOptionPress: ((messageId: String, pollId: String, optionId: String) -> Unit)? = null
     var onFilePress: ((messageId: String, fileUrl: String, fileName: String) -> Unit)? = null
+    var onVoicePress: ((url: String, messageId: String) -> Unit)? = null
 
     fun submitSections(
         sections: List<MessageSection>,
@@ -148,6 +149,9 @@ class ChatAdapter(
                     }
                     bubbleView.onFileTap = { fileUrl, fileName ->
                         onFilePress?.invoke(msg.id, fileUrl, fileName)
+                    }
+                    bubbleView.onVoiceTap = { url, messageId ->
+                        onVoicePress?.invoke(url, messageId)
                     }
                 }
             }

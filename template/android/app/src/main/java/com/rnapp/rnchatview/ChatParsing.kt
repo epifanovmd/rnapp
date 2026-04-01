@@ -141,12 +141,18 @@ private fun ReadableMap.toPollPayload(): MessageContent.PollPayload? {
     val optArr = if (hasKey("options") && !isNull("options")) getArray("options") else return null
     val options = (0 until optArr!!.size()).mapNotNull { optArr.getMap(it)?.toPollOption() }
     if (options.isEmpty()) return null
+    val selectedIds = if (hasKey("selectedOptionIds") && !isNull("selectedOptionIds")) {
+        val arr = getArray("selectedOptionIds")
+        if (arr != null) (0 until arr.size()).mapNotNull { arr.getString(it) } else emptyList()
+    } else emptyList()
+
     return MessageContent.PollPayload(
         id = id,
         question = question,
         options = options,
         totalVotes = if (hasKey("totalVotes")) getDouble("totalVotes").toInt() else 0,
-        selectedOptionId = if (hasKey("selectedOptionId") && !isNull("selectedOptionId")) getString("selectedOptionId") else null,
+        selectedOptionIds = selectedIds,
+        isMultipleChoice = if (hasKey("isMultipleChoice")) getBoolean("isMultipleChoice") else false,
         isClosed = if (hasKey("isClosed")) getBoolean("isClosed") else false,
     )
 }

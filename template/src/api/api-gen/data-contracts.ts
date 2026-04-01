@@ -525,6 +525,7 @@ export interface MessageAttachmentDto {
   height: number | null;
   /** @format double */
   duration: number | null;
+  waveform: number[] | null;
 }
 
 export interface PollOptionDto {

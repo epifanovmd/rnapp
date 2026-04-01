@@ -1,4 +1,6 @@
+import { toAbsoluteUrl } from "@api/Api.utils";
 import {
+  EChatType,
   EMessageStatus,
   EMessageType,
   MessageAttachmentDto,
@@ -9,13 +11,16 @@ import { Col, Navbar, Text } from "@components";
 import {
   type ChatAction,
   type ChatActionPressEventData,
+  type ChatAttachmentPressEventData,
   type ChatCancelInputActionEventData,
   type ChatEditMessageEventData,
   type ChatEmojiReactionSelectData,
   type ChatFilePressEventData,
   type ChatInputAction,
   type ChatMessage,
+  type ChatMessagePressEventData,
   type ChatMessagesVisibleEventData,
+  type ChatPollDetailPressEventData,
   type ChatPollOptionPressEventData,
   type ChatReachBottomEventData,
   type ChatReachTopEventData,
@@ -24,11 +29,17 @@ import {
   type ChatVideoPressEventData,
   ChatView,
 } from "@components/chatView";
+import { ImageViewing } from "@components/imageViewing";
+import { AttachmentPickerSheet } from "@components/shared/chat/AttachmentPickerSheet";
+import { PollDetailModal } from "@components/shared/chat/PollDetailModal";
 import { useTheme } from "@core";
 import { iocHook } from "@di";
+import { useRelativeTime } from "@hooks/useRelativeTime";
 import { StackProps } from "@navigation";
+import { usePresenceStore } from "@store";
 import { IAuthStore } from "@store/auth";
 import { useChatStore } from "@store/chat";
+import { useFileUploadStore } from "@store/file/hooks";
 import { useMessageStore } from "@store/message";
 import { usePollStore } from "@store/poll";
 import { formatFullName } from "@utils";
@@ -97,7 +108,9 @@ const mapPollToNative = (poll: PollDto) => {
       percentage: totalVotes > 0 ? (o.voterCount / totalVotes) * 100 : 0,
     })),
     totalVotes,
-    selectedOptionId: poll.userVotedOptionIds?.[0],
+    selectedOptionIds:
+      poll.userVotedOptionIds?.length > 0 ? poll.userVotedOptionIds : undefined,
+    isMultipleChoice: poll.isMultipleChoice,
     isClosed: poll.isClosed,
   };
 };
@@ -118,6 +131,11 @@ const mapMessageToNative = (
     "audio/",
   )[0];
   const fileAttachment = findFileAttachment(msg.attachments);
+
+  // TODO: Rich text parsing — detect and mark up links, bold (**text**), and
+  // code (`code`) in msg.content before sending to native. The native side
+  // needs attributed string (iOS) / Spannable (Android) support, which is a
+  // separate task. For now we pass plain text.
 
   return {
     id: msg.id,
@@ -141,17 +159,20 @@ const mapMessageToNative = (
     images:
       imageAttachments.length > 0
         ? imageAttachments.map(a => ({
-            url: a.fileUrl,
+            url: toAbsoluteUrl(a.fileUrl) ?? a.fileUrl,
             width: a.width ?? undefined,
             height: a.height ?? undefined,
-            thumbnailUrl: a.thumbnailUrl ?? undefined,
+            thumbnailUrl: toAbsoluteUrl(a.thumbnailUrl ?? undefined),
           }))
         : undefined,
 
     video: videoAttachment
       ? {
-          url: videoAttachment.fileUrl,
-          thumbnailUrl: videoAttachment.thumbnailUrl ?? undefined,
+          url:
+            toAbsoluteUrl(videoAttachment.fileUrl) ?? videoAttachment.fileUrl,
+          thumbnailUrl: toAbsoluteUrl(
+            videoAttachment.thumbnailUrl ?? undefined,
+          ),
           width: videoAttachment.width ?? undefined,
           height: videoAttachment.height ?? undefined,
           duration: videoAttachment.duration ?? undefined,
@@ -160,8 +181,10 @@ const mapMessageToNative = (
 
     voice: voiceAttachment
       ? {
-          url: voiceAttachment.fileUrl,
+          url:
+            toAbsoluteUrl(voiceAttachment.fileUrl) ?? voiceAttachment.fileUrl,
           duration: voiceAttachment.duration ?? 0,
+          waveform: voiceAttachment.waveform ?? undefined,
         }
       : undefined,
 
@@ -169,7 +192,7 @@ const mapMessageToNative = (
 
     file: fileAttachment
       ? {
-          url: fileAttachment.fileUrl,
+          url: toAbsoluteUrl(fileAttachment.fileUrl) ?? fileAttachment.fileUrl,
           name: fileAttachment.fileName,
           size: fileAttachment.fileSize,
           mimeType: fileAttachment.fileType,
@@ -216,13 +239,21 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
     const chatStore = useChatStore();
     const messageStore = useMessageStore();
     const pollStore = usePollStore();
+    const presenceStore = usePresenceStore();
     const authStore = useAuthStore();
+    const fileUploadStore = useFileUploadStore();
     const chatRef = useRef<ChatView>(null);
     const colorScheme = useColorScheme();
 
     const [inputAction, setInputAction] = useState<ChatInputAction | null>(
       null,
     );
+    const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
+    const [pollDetailId, setPollDetailId] = useState<string | null>(null);
+    const [imageViewerIndex, setImageViewerIndex] = useState(-1);
+    const [imageViewerImages, setImageViewerImages] = useState<
+      { uri: string }[]
+    >([]);
 
     const currentUserId = authStore.user?.id;
     const chat = chatStore.chat;
@@ -264,25 +295,62 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [messages, currentUserId],
     );
 
+    console.log("nativeMessages", nativeMessages);
+    console.log("nativeMessages", nativeMessages);
+
+    const memberCount = chat?.members.length;
     const chatDisplayName = chatStore.chatModel?.displayName ?? "";
+    const isDirect = chat?.type === EChatType.Direct;
+    const peer = isDirect ? chat?.peer : undefined;
+    const typingMap = messageStore.typingUsers;
+    const userIds = Array.from(typingMap.keys());
 
-    const typingText = useMemo(() => {
-      const typingMap = messageStore.typingUsers;
-      const userIds = Array.from(typingMap.keys());
+    const lastOnlineRaw = peer
+      ? presenceStore.getLastOnline(peer.userId) ?? peer.profile?.lastOnline
+      : undefined;
+    const lastOnlineFormatted = useRelativeTime(lastOnlineRaw);
 
-      if (userIds.length === 0) return null;
+    const typingUserNames = useMemo(() => {
+      return Array.from(messageStore.typingUsers.keys());
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [messageStore.typingUsers, messageStore.typingUsers.size]);
 
-      if (userIds.length === 1) {
-        const member = chat?.members.find(m => m.userId === userIds[0]);
-        const name = member?.profile
-          ? formatFullName(member.profile.firstName, member.profile.lastName)
-          : "Someone";
+    const typingCount = typingUserNames.length;
+    const typingText =
+      typingCount > 0
+        ? isDirect
+          ? "печатает..."
+          : typingCount === 1
+          ? (() => {
+              const member = chat?.members.find(
+                m => m.userId === typingUserNames[0],
+              );
+              const name = member?.profile
+                ? [member.profile.firstName, member.profile.lastName]
+                    .filter(Boolean)
+                    .join(" ") || "Кто-то"
+                : "Кто-то";
 
-        return `${name} is typing...`;
+              return `${name} печатает...`;
+            })()
+          : typingCount <= 3
+          ? "печатают..."
+          : "несколько человек печатают..."
+        : null;
+
+    // Subtitle for header
+    const subtitle = (() => {
+      if (!isDirect) return `${memberCount} участников`;
+      if (!peer) return "";
+
+      if (presenceStore.isOnline(peer.userId)) return "в сети";
+
+      if (lastOnlineFormatted) {
+        return `был(а) в сети ${lastOnlineFormatted}`;
       }
 
-      return `${userIds.length} people are typing...`;
-    }, [messageStore.typingUsers, chat]);
+      return "был(а) в сети недавно";
+    })();
 
     // ─── Per-message context menu actions ────────────────────────────────────
 
@@ -359,6 +427,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleReachTop = useCallback(
       (_: ChatReachTopEventData) => {
+        console.log("handleReachTop");
         messageStore.loadMoreMessages(chatId);
       },
       [messageStore, chatId],
@@ -489,6 +558,13 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [pollStore],
     );
 
+    const handlePollDetailPress = useCallback(
+      ({ pollId }: ChatPollDetailPressEventData) => {
+        setPollDetailId(pollId);
+      },
+      [],
+    );
+
     const handleFilePress = useCallback(
       ({ fileUrl }: ChatFilePressEventData) => {
         Linking.openURL(fileUrl).catch(() => {
@@ -496,6 +572,31 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
         });
       },
       [],
+    );
+
+    const handleMessagePress = useCallback(
+      ({ messageId }: ChatMessagePressEventData) => {
+        const msg = messages.find(m => m.id === messageId);
+
+        if (!msg) return;
+
+        const imageAttachments = findAllAttachmentsByType(
+          msg.attachments,
+          "image/",
+        );
+
+        if (imageAttachments.length > 0) {
+          console.log(
+            "1111",
+            imageAttachments.map(a => ({ uri: toAbsoluteUrl(a.fileUrl)! })),
+          );
+          setImageViewerImages(
+            imageAttachments.map(a => ({ uri: toAbsoluteUrl(a.fileUrl)! })),
+          );
+          setImageViewerIndex(0);
+        }
+      },
+      [messages],
     );
 
     const handleGoBack = useCallback(() => {
@@ -506,37 +607,95 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       (navigation as any).navigate("ChatInfo", { chatId });
     }, [navigation, chatId]);
 
-    // ─── Render ─────────────────────────────────────────────────────────────
+    // ─── Attachment picker ──────────────────────────────────────────────────
 
-    const isInitialLoading =
-      messageStore.messagesHolder.isLoading && messages.length === 0;
+    const handleAttachmentPress = useCallback(
+      (_: ChatAttachmentPressEventData) => {
+        setShowAttachmentPicker(true);
+      },
+      [],
+    );
 
-    if (isInitialLoading) {
-      return (
-        <Col flex={1}>
-          <Navbar title={chatDisplayName} safeArea>
-            <Navbar.BackButton onPress={handleGoBack} />
-            <Navbar.Title />
-          </Navbar>
-          <Col flex={1} justifyContent={"center"} alignItems={"center"}>
-            <ActivityIndicator size={"large"} color={colors.blue600} />
-          </Col>
-        </Col>
+    const handleAttachmentPickerClose = useCallback(() => {
+      setShowAttachmentPicker(false);
+    }, []);
+
+    const handleCameraPress = useCallback(() => {
+      // TODO: integrate react-native-image-picker (launchCamera) once added to dependencies
+      Alert.alert(
+        "Camera",
+        "Camera picker is not yet available. Add react-native-image-picker to enable.",
       );
-    }
+    }, []);
+
+    const handleGalleryPress = useCallback(() => {
+      // TODO: integrate react-native-image-picker (launchImageLibrary) once added to dependencies
+      Alert.alert(
+        "Gallery",
+        "Gallery picker is not yet available. Add react-native-image-picker to enable.",
+      );
+    }, []);
+
+    const handleFilePickerPress = useCallback(() => {
+      // TODO: integrate react-native-document-picker once added to dependencies
+      Alert.alert(
+        "File",
+        "Document picker is not yet available. Add react-native-document-picker to enable.",
+      );
+    }, []);
+
+    // ─── Voice recording ────────────────────────────────────────────────────
+
+    const handleVoiceRecordingComplete = useCallback(
+      async (event: { fileUrl: string; duration: number }) => {
+        try {
+          const { fileUrl } = event;
+          const fileName = `voice_${Date.now()}.m4a`;
+
+          // React Native FormData: { uri, type, name } — recognized by http-client
+          const voiceFile = {
+            uri: fileUrl,
+            type: "audio/mp4",
+            name: fileName,
+          } as unknown as File;
+
+          const uploaded = await fileUploadStore.upload(voiceFile);
+          const fileIds = uploaded.map(f => f.id);
+
+          await messageStore.sendMessage(chatId, {
+            type: EMessageType.Voice,
+            fileIds,
+          });
+        } catch (e) {
+          console.log("e", e);
+          Alert.alert("Error", "Failed to send voice message");
+        }
+      },
+      [fileUploadStore, messageStore, chatId],
+    );
+
+    // ─── Render ─────────────────────────────────────────────────────────────
 
     return (
       <Col flex={1}>
         <Navbar title={chatDisplayName} safeArea>
           <Navbar.BackButton onPress={handleGoBack} />
           <Navbar.Title onPress={handleChatInfo} />
-          {typingText && (
-            <View style={styles.typingContainer}>
-              <Text textStyle={"Body_S1"} color={"blue600"}>
-                {typingText}
-              </Text>
-            </View>
-          )}
+          <Navbar.Subtitle>
+            {typingText ? (
+              <View style={styles.typingContainer}>
+                <Text textStyle={"Body_S1"} color={"blue600"}>
+                  {typingText}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.typingContainer}>
+                <Text textStyle={"Body_S1"} color={"blue600"}>
+                  {subtitle}
+                </Text>
+              </View>
+            )}
+          </Navbar.Subtitle>
         </Navbar>
 
         <ChatView
@@ -567,8 +726,35 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           onReplyMessagePress={handleReplyMessagePress}
           onVideoPress={handleVideoPress}
           onPollOptionPress={handlePollOptionPress}
+          onPollDetailPress={handlePollDetailPress}
+          onMessagePress={handleMessagePress}
           onFilePress={handleFilePress}
+          onAttachmentPress={handleAttachmentPress}
+          onVoiceRecordingComplete={handleVoiceRecordingComplete}
         />
+
+        <AttachmentPickerSheet
+          visible={showAttachmentPicker}
+          onClose={handleAttachmentPickerClose}
+          onCameraPress={handleCameraPress}
+          onGalleryPress={handleGalleryPress}
+          onFilePress={handleFilePickerPress}
+        />
+
+        <ImageViewing
+          images={imageViewerImages}
+          imageIndex={imageViewerIndex >= 0 ? imageViewerIndex : 0}
+          visible={imageViewerIndex >= 0}
+          onRequestClose={() => setImageViewerIndex(-1)}
+        />
+
+        {pollDetailId && (
+          <PollDetailModal
+            pollId={pollDetailId}
+            messages={messages}
+            onClose={() => setPollDetailId(null)}
+          />
+        )}
       </Col>
     );
   },

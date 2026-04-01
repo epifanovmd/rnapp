@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,6 +18,8 @@
 		1A8169DA2D8B10600020AC31 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8169D92D8B10590020AC31 /* AppDelegate.swift */; };
 		1A8368032F13070100FB3432 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A8368022F13070100FB3432 /* GoogleService-Info.plist */; };
 		1A9474F82F7D434F001D82F5 /* ReactionsRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9474F72F7D434E001D82F5 /* ReactionsRowView.swift */; };
+		1A9475E12F7D7A27001D82F5 /* VoicePlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9475DE2F7D7A27001D82F5 /* VoicePlayer.swift */; };
+		1A9475E22F7D7A27001D82F5 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9475DF2F7D7A27001D82F5 /* VoiceRecorder.swift */; };
 		1A9C3D732F582BB300694F32 /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D722F582BB200694F32 /* MessageBubbleView.swift */; };
 		1A9C3D772F582BC500694F32 /* ReplyPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D762F582BC400694F32 /* ReplyPreviewView.swift */; };
 		1A9C3D792F582BD300694F32 /* MessageStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C3D782F582BD200694F32 /* MessageStatusView.swift */; };
@@ -70,6 +72,8 @@
 		1A8169D92D8B10590020AC31 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = rnapp/AppDelegate.swift; sourceTree = "<group>"; };
 		1A8368022F13070100FB3432 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		1A9474F72F7D434E001D82F5 /* ReactionsRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsRowView.swift; sourceTree = "<group>"; };
+		1A9475DE2F7D7A27001D82F5 /* VoicePlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoicePlayer.swift; sourceTree = "<group>"; };
+		1A9475DF2F7D7A27001D82F5 /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
 		1A9C3D722F582BB200694F32 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
 		1A9C3D762F582BC400694F32 /* ReplyPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyPreviewView.swift; sourceTree = "<group>"; };
 		1A9C3D782F582BD200694F32 /* MessageStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStatusView.swift; sourceTree = "<group>"; };
@@ -179,6 +183,15 @@
 			path = Bridge;
 			sourceTree = "<group>";
 		};
+		1A9475E02F7D7A27001D82F5 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				1A9475DE2F7D7A27001D82F5 /* VoicePlayer.swift */,
+				1A9475DF2F7D7A27001D82F5 /* VoiceRecorder.swift */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
 		1A9C3D7C2F582BE400694F32 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
@@ -201,6 +214,7 @@
 				1A9C405F2F58C3E200694F32 /* Parsing */,
 				1A9C405A2F58C3C600694F32 /* Models */,
 				1A9C40822F58D2FC00694F32 /* Keyboard */,
+				1A9475E02F7D7A27001D82F5 /* Audio */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -607,6 +621,8 @@
 				1A53D5A82F56207D005F571B /* RNChatView.swift in Sources */,
 				1A9C40CE2F59B88400694F32 /* Chatviewcontroller+collectiondelegate.swift in Sources */,
 				1A9C41312F5AE21F00694F32 /* ContextMenuTheme.swift in Sources */,
+				1A9475E12F7D7A27001D82F5 /* VoicePlayer.swift in Sources */,
+				1A9475E22F7D7A27001D82F5 /* VoiceRecorder.swift in Sources */,
 				1A9C3D7E2F583F7F00694F32 /* MessageContentViews.swift in Sources */,
 				1A9C40CA2F59B85F00694F32 /* Chatviewcontroller+updates .swift in Sources */,
 				1A9C406A2F58C41C00694F32 /* MessageSizeCalculator.swift in Sources */,

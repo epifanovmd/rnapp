@@ -133,6 +133,132 @@ internal class PaperclipDrawable : Drawable() {
  * Используется в верхней панели (reply/edit) для кнопки отмены.
  * Цвет круга задаётся через [circleColor] — крестик всегда белый.
  */
+/**
+ * Иконка микрофона для кнопки записи голосового сообщения.
+ *
+ * Рисует классический силуэт микрофона: скруглённый прямоугольник (капсула)
+ * сверху и дуга-подставка снизу. Стиль совпадает с SendArrowDrawable.
+ */
+internal class MicDrawable : Drawable() {
+
+    var iconColor: Int = Color.WHITE
+        set(v) { field = v; paint.color = v; invalidateSelf() }
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeJoin = Paint.Join.ROUND
+    }
+
+    private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+    }
+
+    override fun draw(c: Canvas) {
+        val w = bounds.width().toFloat()
+        val h = bounds.height().toFloat()
+        val cx = w / 2f
+        val stroke = w * 0.10f
+        paint.strokeWidth = stroke
+        paint.color = iconColor
+        fillPaint.color = iconColor
+
+        // Capsule (mic head): rounded rect
+        val capW = w * 0.24f
+        val capTop = h * 0.18f
+        val capBot = h * 0.52f
+        val capR = capW // full rounding
+        c.drawRoundRect(cx - capW, capTop, cx + capW, capBot, capR, capR, fillPaint)
+
+        // Arc below capsule
+        val arcLeft = cx - w * 0.28f
+        val arcRight = cx + w * 0.28f
+        val arcTop2 = h * 0.30f
+        val arcBot2 = h * 0.68f
+        c.drawArc(arcLeft, arcTop2, arcRight, arcBot2, 0f, 180f, false, paint)
+
+        // Stem
+        val stemTop = h * 0.68f
+        val stemBot = h * 0.78f
+        c.drawLine(cx, stemTop, cx, stemBot, paint)
+
+        // Base
+        val baseW = w * 0.16f
+        c.drawLine(cx - baseW, stemBot, cx + baseW, stemBot, paint)
+    }
+
+    override fun setAlpha(a: Int) { paint.alpha = a; fillPaint.alpha = a; invalidateSelf() }
+    override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf; fillPaint.colorFilter = cf }
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity() = PixelFormat.TRANSLUCENT
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Иконка «play» — треугольник вправо.
+ * Используется для кнопки воспроизведения голосового сообщения.
+ */
+internal class PlayTriangleDrawable : Drawable() {
+
+    var iconColor: Int = Color.WHITE
+        set(v) { field = v; paint.color = v; invalidateSelf() }
+
+    var isPlaying: Boolean = false
+        set(v) { field = v; invalidateSelf() }
+
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.FILL
+    }
+
+    private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
+
+    override fun draw(c: Canvas) {
+        val w = bounds.width().toFloat()
+        val h = bounds.height().toFloat()
+        val cx = w / 2f
+        val cy = h / 2f
+        paint.color = iconColor
+        strokePaint.color = iconColor
+
+        if (isPlaying) {
+            // Pause icon: two vertical bars
+            strokePaint.strokeWidth = w * 0.14f
+            val barH = h * 0.36f
+            val gap = w * 0.14f
+            c.drawLine(cx - gap, cy - barH / 2, cx - gap, cy + barH / 2, strokePaint)
+            c.drawLine(cx + gap, cy - barH / 2, cx + gap, cy + barH / 2, strokePaint)
+        } else {
+            // Play triangle
+            val path = Path()
+            val size = w * 0.32f
+            val left = cx - size * 0.4f
+            val right = cx + size * 0.6f
+            val top = cy - size * 0.5f
+            val bottom = cy + size * 0.5f
+            path.moveTo(left, top)
+            path.lineTo(right, cy)
+            path.lineTo(left, bottom)
+            path.close()
+            c.drawPath(path, paint)
+        }
+    }
+
+    override fun setAlpha(a: Int) { paint.alpha = a; invalidateSelf() }
+    override fun setColorFilter(cf: ColorFilter?) { paint.colorFilter = cf }
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity() = PixelFormat.TRANSLUCENT
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 internal class CloseCircleDrawable : Drawable() {
 
     /**

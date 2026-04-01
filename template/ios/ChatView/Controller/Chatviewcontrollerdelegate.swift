@@ -36,6 +36,7 @@ protocol ChatViewControllerDelegate: AnyObject {
     // MARK: Media interaction
     func chatViewController(_ vc: ChatViewController, didTapVideo videoUrl: String, for message: ChatMessage)
     func chatViewController(_ vc: ChatViewController, didTapPollOption optionId: String, pollId: String, for message: ChatMessage)
+    func chatViewController(_ vc: ChatViewController, didTapPollDetail pollId: String, for message: ChatMessage)
     func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String, fileName: String, for message: ChatMessage)
 
     // MARK: Input bar
@@ -44,6 +45,7 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatViewController(_ vc: ChatViewController, didCancelReply vc2: ChatViewController)
     func chatViewController(_ vc: ChatViewController, didCancelEdit vc2: ChatViewController)
     func chatViewControllerDidTapAttachment(_ vc: ChatViewController)
+    func chatViewController(_ vc: ChatViewController, didFinishVoiceRecording fileURL: URL, duration: TimeInterval)
 
     // MARK: Reply navigation
     func chatViewController(_ vc: ChatViewController, didTapReply replyId: String)
@@ -58,5 +60,7 @@ extension ChatViewControllerDelegate {
     func chatViewController(_ vc: ChatViewController, didReachBottomThreshold distance: CGFloat) {}
     func chatViewController(_ vc: ChatViewController, didTapVideo videoUrl: String, for message: ChatMessage) {}
     func chatViewController(_ vc: ChatViewController, didTapPollOption optionId: String, pollId: String, for message: ChatMessage) {}
+    func chatViewController(_ vc: ChatViewController, didTapPollDetail pollId: String, for message: ChatMessage) {}
     func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String, fileName: String, for message: ChatMessage) {}
+    func chatViewController(_ vc: ChatViewController, didFinishVoiceRecording fileURL: URL, duration: TimeInterval) {}
 }

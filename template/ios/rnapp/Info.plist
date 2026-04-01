@@ -42,7 +42,7 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
-		<false/>
+		<true/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 		<key>NSExceptionDomains</key>
@@ -52,12 +52,25 @@
 				<key>NSExceptionAllowsInsecureHTTPLoads</key>
 				<true/>
 			</dict>
+			<key>192.168.1.114</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+				 <key>NSTemporaryExceptionAllowsInsecureHTTPLoads</key>
+                            <true/>
+                               <key>NSTemporaryExceptionMinimumTLSVersion</key>
+                                        <string>TLSv1.1</string>
+			</dict>
 		</dict>
 	</dict>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Enabling Face ID allows you quick access to RealApp</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Разрешите доступ к микрофону для записи голосовых сообщений</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Разрешите доступ к вашим фото</string>
 	<key>RCTNewArchEnabled</key>

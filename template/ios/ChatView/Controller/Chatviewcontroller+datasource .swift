@@ -100,6 +100,10 @@ extension ChatViewController {
                 guard let self else { return }
                 self.delegate?.chatViewController(self, didTapPollOption: optionId, pollId: pollId, for: msgCopy)
             }
+            pollView.onDetailTap = { [weak self] pollId in
+                guard let self else { return }
+                self.delegate?.chatViewController(self, didTapPollDetail: pollId, for: msgCopy)
+            }
         }
 
         // File tap

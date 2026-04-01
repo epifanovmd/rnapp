@@ -30,4 +30,70 @@ extension ChatViewController: InputBarDelegate {
     func inputBarDidTapAttachment(_ bar: InputBarView) {
         delegate?.chatViewControllerDidTapAttachment(self)
     }
+
+    func inputBarDidStartVoiceRecording(_ bar: InputBarView) {
+        voiceRecorder.startRecording()
+    }
+
+    func inputBarDidStopVoiceRecording(_ bar: InputBarView) {
+        voiceRecorder.stopRecording()
+    }
+
+    func inputBarDidCancelVoiceRecording(_ bar: InputBarView) {
+        voiceRecorder.cancelRecording()
+    }
+}
+
+// MARK: - VoiceRecorderDelegate
+
+extension ChatViewController: VoiceRecorderDelegate {
+
+    func voiceRecorderDidStart(_ recorder: VoiceRecorder) {}
+
+    func voiceRecorderDidStop(_ recorder: VoiceRecorder, fileURL: URL, duration: TimeInterval) {
+        inputBar.resetRecordingUI()
+        delegate?.chatViewController(self, didFinishVoiceRecording: fileURL, duration: duration)
+    }
+
+    func voiceRecorderDidCancel(_ recorder: VoiceRecorder) {
+        inputBar.resetRecordingUI()
+    }
+
+    func voiceRecorderDidUpdateTime(_ recorder: VoiceRecorder, currentTime: TimeInterval) {
+        inputBar.updateRecordingTime(currentTime)
+    }
+}
+
+// MARK: - VoicePlayerDelegate
+
+extension ChatViewController: VoicePlayerDelegate {
+
+    func voicePlayer(_ player: VoicePlayer, didChangeState state: VoicePlayerState, previousMessageId: String?) {
+        if let prevId = previousMessageId {
+            syncVoiceCell(messageId: prevId)
+        }
+
+        switch state {
+        case .loading(let id), .playing(let id), .paused(let id):
+            syncVoiceCell(messageId: id)
+        case .idle:
+            break
+        }
+    }
+
+    func voicePlayer(_ player: VoicePlayer, didUpdateProgress progress: Float, messageId: String) {
+        guard let ip = indexPathIndex[messageId],
+              let cell = collectionView.cellForItem(at: ip) as? MessageCell,
+              let voiceView = cell.bubbleView.contentView as? VoiceContentView
+        else { return }
+        voiceView.updateProgress(progress)
+    }
+
+    private func syncVoiceCell(messageId: String) {
+        guard let ip = indexPathIndex[messageId],
+              let cell = collectionView.cellForItem(at: ip) as? MessageCell,
+              let voiceView = cell.bubbleView.contentView as? VoiceContentView
+        else { return }
+        voiceView.syncWithPlayer()
+    }
 }

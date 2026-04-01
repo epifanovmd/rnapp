@@ -67,7 +67,7 @@ final class MessageCell: UICollectionViewCell {
     private func setupLongPressRecognizer() {
         let gr = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress(_:)))
         gr.minimumPressDuration = 0.4
-        gr.cancelsTouchesInView = true
+        gr.cancelsTouchesInView = false
         bubbleView.addGestureRecognizer(gr)
     }
 

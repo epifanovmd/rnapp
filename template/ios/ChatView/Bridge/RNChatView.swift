@@ -48,7 +48,9 @@ enum ChatInputAction {
     @objc var onReplyMessagePress:   RCTDirectEventBlock?
     @objc var onVideoPress:          RCTDirectEventBlock?
     @objc var onPollOptionPress:     RCTDirectEventBlock?
+    @objc var onPollDetailPress:     RCTDirectEventBlock?
     @objc var onFilePress:           RCTDirectEventBlock?
+    @objc var onVoiceRecordingComplete: RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -149,8 +151,14 @@ enum ChatInputAction {
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
+
+        if window == nil {
+            // Chat unmounted — stop any playing voice
+            VoicePlayer.shared.stop()
+            return
+        }
+
         guard
-            window != nil,
             !isAttachedToHierarchy,
             let vc = chatVC,
             vc.parent == nil,
@@ -337,8 +345,20 @@ extension RNChatView: ChatViewControllerDelegate {
         onPollOptionPress?(["messageId": message.id, "pollId": pollId, "optionId": optionId])
     }
 
+    func chatViewController(_ vc: ChatViewController, didTapPollDetail pollId: String,
+                            for message: ChatMessage) {
+        onPollDetailPress?(["messageId": message.id, "pollId": pollId])
+    }
+
     func chatViewController(_ vc: ChatViewController, didTapFile fileUrl: String,
                             fileName: String, for message: ChatMessage) {
         onFilePress?(["messageId": message.id, "fileUrl": fileUrl, "fileName": fileName])
+    }
+
+    func chatViewController(_ vc: ChatViewController, didFinishVoiceRecording fileURL: URL, duration: TimeInterval) {
+        onVoiceRecordingComplete?([
+            "fileUrl": fileURL.absoluteString,
+            "duration": duration,
+        ])
     }
 }

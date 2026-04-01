@@ -33,6 +33,7 @@ import {
   NativeChatMessagePressEventData as ChatMessagePressEventData,
   NativeChatMessagesVisibleEventData as ChatMessagesVisibleEventData,
   NativeChatPoll as ChatPoll,
+  NativeChatPollDetailPressEventData as ChatPollDetailPressEventData,
   NativeChatPollOption as ChatPollOption,
   NativeChatPollOptionPressEventData as ChatPollOptionPressEventData,
   NativeChatReachBottomEventData as ChatReachBottomEventData,
@@ -45,6 +46,7 @@ import {
   NativeChatVideoPressEventData as ChatVideoPressEventData,
   NativeChatViewCommands,
   NativeChatViewProps,
+  NativeChatVoiceRecordingCompleteEventData as ChatVoiceRecordingCompleteEventData,
 } from "../../NativeChatViewSpec";
 
 // ─── Public types ─────────────────────────────────────────────────────────────
@@ -87,6 +89,7 @@ export type {
   ChatMessagePressEventData,
   ChatMessagesVisibleEventData,
   ChatPoll,
+  ChatPollDetailPressEventData,
   ChatPollOption,
   ChatPollOptionPressEventData,
   ChatReachBottomEventData,
@@ -100,6 +103,7 @@ export type {
   ChatVideoItem,
   ChatVideoPressEventData,
   ChatViewCommands,
+  ChatVoiceRecordingCompleteEventData,
 };
 
 // ─── Imperative handle ────────────────────────────────────────────────────────
@@ -166,7 +170,11 @@ export interface ChatViewProps extends ViewProps {
   onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
   onVideoPress?: (event: ChatVideoPressEventData) => void;
   onPollOptionPress?: (event: ChatPollOptionPressEventData) => void;
+  onPollDetailPress?: (event: ChatPollDetailPressEventData) => void;
   onFilePress?: (event: ChatFilePressEventData) => void;
+  onVoiceRecordingComplete?: (
+    event: ChatVoiceRecordingCompleteEventData,
+  ) => void;
 }
 
 // ─── Native component ─────────────────────────────────────────────────────────
@@ -246,7 +254,9 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onReplyMessagePress,
     onVideoPress,
     onPollOptionPress,
+    onPollDetailPress,
     onFilePress,
+    onVoiceRecordingComplete,
   } = props;
 
   const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
@@ -359,10 +369,20 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onPollOptionPress?.(e.nativeEvent),
     [onPollOptionPress],
   );
+  const handlePollDetailPress = useCallback(
+    (e: NativeSyntheticEvent<ChatPollDetailPressEventData>) =>
+      onPollDetailPress?.(e.nativeEvent),
+    [onPollDetailPress],
+  );
   const handleFilePress = useCallback(
     (e: NativeSyntheticEvent<ChatFilePressEventData>) =>
       onFilePress?.(e.nativeEvent),
     [onFilePress],
+  );
+  const handleVoiceRecordingComplete = useCallback(
+    (e: NativeSyntheticEvent<ChatVoiceRecordingCompleteEventData>) =>
+      onVoiceRecordingComplete?.(e.nativeEvent),
+    [onVoiceRecordingComplete],
   );
 
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
@@ -401,7 +421,9 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onReplyMessagePress={handleReplyMessagePress}
       onVideoPress={handleVideoPress}
       onPollOptionPress={handlePollOptionPress}
+      onPollDetailPress={handlePollDetailPress}
       onFilePress={handleFilePress}
+      onVoiceRecordingComplete={handleVoiceRecordingComplete}
     />
   );
 });

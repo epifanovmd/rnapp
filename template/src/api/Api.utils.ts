@@ -2,7 +2,7 @@ import { BASE_URL } from "./Api.service";
 
 export const noop = () => {};
 
-export const hostname = (BASE_URL ?? "").replace("api/", "") || "/";
+export const hostname = "http://192.168.1.114:8182".replace("api/", "") || "/";
 
 export const toAbsoluteUrl = (url?: string) => {
   if (!url) {

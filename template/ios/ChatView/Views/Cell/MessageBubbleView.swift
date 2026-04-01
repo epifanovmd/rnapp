@@ -184,6 +184,11 @@ final class MessageBubbleView: UIView {
             contentView = cv
         }
         contentView?.configure(content: message.content, isMine: isMine, theme: theme)
+
+        // Pass messageId to VoiceContentView for player state matching
+        if let voiceView = contentView as? VoiceContentView {
+            voiceView.messageId = message.id
+        }
     }
 
     private func configureForwarded(message: ChatMessage, isMine: Bool, theme: ChatTheme) {

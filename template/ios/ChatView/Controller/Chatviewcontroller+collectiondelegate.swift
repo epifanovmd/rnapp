@@ -6,6 +6,13 @@ extension ChatViewController: UICollectionViewDelegate {
 
     func collectionView(_ cv: UICollectionView, didSelectItemAt ip: IndexPath) {
         guard let id = dataSource.itemIdentifier(for: ip), let msg = messageIndex[id] else { return }
+
+        // Voice message — toggle playback on tap
+        if let voice = msg.content.voice, let url = URL(string: voice.url) {
+            VoicePlayer.shared.toggle(url: url, messageId: msg.id)
+            return
+        }
+
         delegate?.chatViewController(self, didTapMessage: msg)
     }
 

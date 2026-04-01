@@ -447,6 +447,8 @@ final class PollContentView: UIView, MessageContentView {
 
     /// Коллбэк при нажатии на опцию. Устанавливается из BubbleView.
     var onOptionTap: ((String, String) -> Void)?  // (pollId, optionId)
+    /// Коллбэк при нажатии на "Details".
+    var onDetailTap: ((String) -> Void)?  // (pollId)
 
     private let questionLabel: UILabel = {
         let l = UILabel()
@@ -459,6 +461,13 @@ final class PollContentView: UIView, MessageContentView {
         let l = UILabel()
         l.font = ChatLayoutConstants.pollVotesFont
         return l
+    }()
+
+    private let detailButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.titleLabel?.font = .systemFont(ofSize: 13, weight: .medium)
+        btn.contentHorizontalAlignment = .left
+        return btn
     }()
 
     private let stack: UIStackView = {
@@ -505,7 +514,7 @@ final class PollContentView: UIView, MessageContentView {
         for option in poll.options {
             let row = PollOptionRowView()
             row.configure(option: option,
-                          isSelected: option.id == poll.selectedOptionId,
+                          isSelected: poll.selectedOptionIds.contains(option.id),
                           isClosed: poll.isClosed,
                           isMine: isMine,
                           theme: theme)
@@ -522,16 +531,34 @@ final class PollContentView: UIView, MessageContentView {
             ? theme.outgoingTextColor.withAlphaComponent(0.6)
             : theme.incomingTextColor.withAlphaComponent(0.6)
         stack.addArrangedSubview(totalVotesLabel)
+
+        // Detail button — shows when there are votes
+        detailButton.removeFromSuperview()
+        if poll.totalVotes > 0 {
+            let accentColor = isMine ? theme.outgoingReplyAccent : theme.incomingReplyAccent
+            detailButton.setTitle("View details", for: .normal)
+            detailButton.setTitleColor(accentColor, for: .normal)
+            detailButton.removeTarget(nil, action: nil, for: .allEvents)
+            detailButton.addTarget(self, action: #selector(detailTapped), for: .touchUpInside)
+            stack.addArrangedSubview(detailButton)
+        }
     }
 
     func applyLayout(bubbleWidth: CGFloat) {}
 
+    @objc private func detailTapped() {
+        guard let p = pollPayload else { return }
+        onDetailTap?(p.id)
+    }
+
     func prepareForReuse() {
         optionViews.forEach { $0.removeFromSuperview() }
+        detailButton.removeFromSuperview()
         optionViews.removeAll()
         totalVotesLabel.removeFromSuperview()
         pollPayload = nil
         onOptionTap = nil
+        onDetailTap = nil
     }
 }
 
@@ -761,16 +788,31 @@ final class FileContentView: UIView, MessageContentView {
 }
 
 // MARK: - VoiceContentView
-// Telegram-style voice message: play button + waveform + duration.
+// Telegram-style voice message: play button / spinner + waveform + duration.
 
 final class VoiceContentView: UIView, MessageContentView {
 
-    private let playButton: UIImageView = {
+    enum State { case idle, loading, playing, paused }
+
+    private(set) var voiceURL: String?
+    var messageId: String?
+    private var currentState: State = .idle
+    private var tintColorSaved: UIColor = .systemBlue
+    private var totalDuration: TimeInterval = 0
+
+    private let playButtonView: UIImageView = {
         let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
         let iv = UIImageView(image: UIImage(systemName: "play.circle.fill", withConfiguration: config))
         iv.contentMode = .center
         iv.translatesAutoresizingMaskIntoConstraints = false
         return iv
+    }()
+
+    private let spinner: UIActivityIndicatorView = {
+        let s = UIActivityIndicatorView(style: .medium)
+        s.hidesWhenStopped = true
+        s.translatesAutoresizingMaskIntoConstraints = false
+        return s
     }()
 
     private let waveformView: WaveformView = {
@@ -788,19 +830,24 @@ final class VoiceContentView: UIView, MessageContentView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        addSubview(playButton)
+        isUserInteractionEnabled = true
+        addSubview(playButtonView)
+        addSubview(spinner)
         addSubview(waveformView)
         addSubview(durationLabel)
 
         NSLayoutConstraint.activate([
             heightAnchor.constraint(equalToConstant: 40),
 
-            playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
-            playButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playButton.widthAnchor.constraint(equalToConstant: 36),
-            playButton.heightAnchor.constraint(equalToConstant: 36),
+            playButtonView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            playButtonView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            playButtonView.widthAnchor.constraint(equalToConstant: 36),
+            playButtonView.heightAnchor.constraint(equalToConstant: 36),
 
-            waveformView.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
+            spinner.centerXAnchor.constraint(equalTo: playButtonView.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: playButtonView.centerYAnchor),
+
+            waveformView.leadingAnchor.constraint(equalTo: playButtonView.trailingAnchor, constant: 8),
             waveformView.trailingAnchor.constraint(equalTo: trailingAnchor),
             waveformView.topAnchor.constraint(equalTo: topAnchor, constant: 4),
             waveformView.bottomAnchor.constraint(equalTo: durationLabel.topAnchor, constant: -2),
@@ -817,14 +864,95 @@ final class VoiceContentView: UIView, MessageContentView {
     func configure(content: MessageContent, isMine: Bool, theme: ChatTheme) {
         guard let voice = content.voice else { return }
 
-        let tint = isMine ? theme.outgoingTextColor : theme.incomingReplyAccent
-        playButton.tintColor = tint
+        voiceURL = voice.url
+        totalDuration = voice.duration
+        tintColorSaved = isMine ? theme.outgoingTextColor : theme.incomingReplyAccent
+        playButtonView.tintColor = tintColorSaved
+        spinner.color = tintColorSaved
         durationLabel.textColor = (isMine ? theme.outgoingTextColor : theme.incomingTextColor).withAlphaComponent(0.6)
         durationLabel.text = Self.formatDuration(voice.duration)
-        waveformView.configure(samples: voice.waveform, tintColor: tint)
+        waveformView.configure(samples: voice.waveform, tintColor: tintColorSaved)
+
+        if let url = URL(string: voice.url) {
+            VoicePlayer.shared.preload(url: url)
+        }
+
+        syncWithPlayer()
     }
 
     func applyLayout(bubbleWidth: CGFloat) {}
+
+    func prepareForReuse() {
+        voiceURL = nil
+        messageId = nil
+        totalDuration = 0
+        currentState = .idle
+        waveformView.setProgress(0)
+        applyState(.idle)
+    }
+
+    func syncWithPlayer() {
+        guard let mid = messageId else {
+            applyState(.idle)
+            return
+        }
+
+        let player = VoicePlayer.shared
+        switch player.state {
+        case .loading(let id) where id == mid:
+            applyState(.loading)
+        case .playing(let id) where id == mid:
+            applyState(.playing)
+            updateProgress(player.progress)
+        case .paused(let id) where id == mid:
+            applyState(.paused)
+            updateProgress(player.progress)
+        default:
+            applyState(.idle)
+        }
+    }
+
+    func updateProgress(_ progress: Float) {
+        waveformView.setProgress(CGFloat(progress))
+        if totalDuration > 0 {
+            let remaining = totalDuration * Double(1 - progress)
+            durationLabel.text = Self.formatDuration(remaining)
+        }
+    }
+
+    private func applyState(_ state: State) {
+        currentState = state
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+
+        switch state {
+        case .idle:
+            playButtonView.isHidden = false
+            playButtonView.image = UIImage(systemName: "play.circle.fill", withConfiguration: config)
+            spinner.stopAnimating()
+            waveformView.setProgress(0)
+            if totalDuration > 0 {
+                durationLabel.text = Self.formatDuration(totalDuration)
+            }
+
+        case .loading:
+            playButtonView.isHidden = true
+            spinner.startAnimating()
+
+        case .playing:
+            playButtonView.isHidden = false
+            playButtonView.image = UIImage(systemName: "pause.circle.fill", withConfiguration: config)
+            spinner.stopAnimating()
+
+        case .paused:
+            playButtonView.isHidden = false
+            playButtonView.image = UIImage(systemName: "play.circle.fill", withConfiguration: config)
+            spinner.stopAnimating()
+        }
+    }
+
+    func setPlaying(_ playing: Bool) {
+        applyState(playing ? .playing : .idle)
+    }
 
     private static func formatDuration(_ seconds: TimeInterval) -> String {
         let total = Int(seconds)
@@ -840,10 +968,18 @@ private final class WaveformView: UIView {
 
     private var samples: [CGFloat] = []
     private var barColor: UIColor = .systemBlue
+    private var progress: CGFloat = 0
 
     func configure(samples: [CGFloat], tintColor: UIColor) {
         self.samples = samples.isEmpty ? Array(repeating: 0.3, count: 32) : samples
         self.barColor = tintColor
+        setNeedsDisplay()
+    }
+
+    func setProgress(_ value: CGFloat) {
+        let clamped = min(max(value, 0), 1)
+        guard abs(progress - clamped) > 0.005 else { return }
+        progress = clamped
         setNeedsDisplay()
     }
 
@@ -857,8 +993,7 @@ private final class WaveformView: UIView {
         let totalBarWidth = barWidth + barSpacing
         let barCount = min(samples.count, Int(rect.width / totalBarWidth))
         let maxHeight = rect.height
-
-        barColor.setFill()
+        let progressX = rect.width * progress
 
         for i in 0..<barCount {
             let sample = min(max(samples[i], 0.05), 1.0)
@@ -866,6 +1001,15 @@ private final class WaveformView: UIView {
             let x = CGFloat(i) * totalBarWidth
             let y = (maxHeight - barHeight) / 2
             let barRect = CGRect(x: x, y: y, width: barWidth, height: barHeight)
+
+            // Played bars = full color, unplayed = 40% alpha
+            let isPlayed = x + barWidth <= progressX
+            if isPlayed {
+                barColor.setFill()
+            } else {
+                barColor.withAlphaComponent(0.35).setFill()
+            }
+
             let path = UIBezierPath(roundedRect: barRect, cornerRadius: barWidth / 2)
             path.fill()
         }

@@ -1,5 +1,6 @@
 package com.rnapp.rnchatview
 
+import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Color
@@ -19,6 +20,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import com.rnapp.rnchatview.ChatLayoutConstants as C
 
 private const val TAG = "InputBarView"
@@ -88,6 +90,56 @@ class InputBarView(context: Context) : LinearLayout(context) {
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
+    // ── Mic button ───────────────────────────────────────────────────────────
+
+    private val micButton = FrameLayout(context).apply {
+        isClickable = true
+        isFocusable = true
+        setOnClickListener { delegate?.onVoiceTap() }
+    }
+
+    private val micButtonBg = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(Color.rgb(0, 122, 255))
+    }
+
+    private val micIcon = ImageView(context).apply {
+        setImageDrawable(MicDrawable())
+        scaleType = ImageView.ScaleType.CENTER_INSIDE
+    }
+
+    // ── Recording overlay ────────────────────────────────────────────────────
+
+    private val recordingOverlay = FrameLayout(context).apply {
+        visibility = View.GONE
+    }
+
+    private val recordingDot = View(context).apply {
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.rgb(255, 59, 48))
+        }
+    }
+
+    private val recordingLabel = TextView(context).apply {
+        text = "Recording"
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+        setTextColor(Color.rgb(255, 59, 48))
+    }
+
+    private val recordingTimer = TextView(context).apply {
+        text = "0:00"
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+    }
+
+    private val recordingCancelHint = TextView(context).apply {
+        text = "\u25C0  Slide to cancel"
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        setTextColor(Color.rgb(142, 142, 147))
+    }
+
+    private var dotAnimator: ObjectAnimator? = null
+
     // ── Инициализация ─────────────────────────────────────────────────────────
 
     init {
@@ -109,6 +161,18 @@ class InputBarView(context: Context) : LinearLayout(context) {
         sendButton.background = sendButtonBg
         sendButton.addView(sendIcon, FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER))
         inputRow.addView(sendButton, lp(btnSize, btnSize).also { it.marginStart = dp(6f) })
+
+        micButton.background = micButtonBg
+        micButton.addView(micIcon, FrameLayout.LayoutParams(dp(22f), dp(22f), Gravity.CENTER))
+        inputRow.addView(micButton, lp(btnSize, btnSize).also { it.marginStart = dp(6f) })
+
+        // Initially: empty text → show mic, hide send
+        sendButton.visibility = View.GONE
+        micButton.visibility = View.VISIBLE
+
+        // Build recording overlay (sits on top of inputRow)
+        buildRecordingOverlay()
+
         addView(inputRow, lp(MATCH, WRAP))
 
         editText.addTextChangedListener(object : TextWatcher {
@@ -118,6 +182,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
                 val hasText = s?.isNotBlank() == true
                 Log.v(TAG, "textChanged: hasText=$hasText text='${s?.toString()?.take(40)}'")
                 updateSendButton(hasText = hasText)
+                updateMicSendVisibility(hasText = hasText)
             }
         })
 
@@ -201,6 +266,8 @@ class InputBarView(context: Context) : LinearLayout(context) {
         (editText.background as? GradientDrawable)?.setColor(theme.inputBarTextViewBg)
         (attachButton.drawable as? PaperclipDrawable)?.iconColor = theme.inputBarTint
         updateSendButton(hasText = editText.text?.isNotBlank() == true)
+        micButtonBg.setColor(theme.inputBarTint)
+        recordingTimer.setTextColor(theme.inputBarText)
     }
 
     // ── Режим → UI ────────────────────────────────────────────────────────────
@@ -404,6 +471,86 @@ class InputBarView(context: Context) : LinearLayout(context) {
         }
     }
 
+    // ── Recording UI ─────────────────────────────────────────────────────────
+
+    private fun buildRecordingOverlay() {
+        val overlayContent = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12f), 0, dp(12f), 0)
+        }
+
+        val dotSize = dp(10f)
+        overlayContent.addView(recordingDot, lp(dotSize, dotSize).also { it.marginEnd = dp(6f) })
+        overlayContent.addView(recordingLabel, lp(WRAP, WRAP).also { it.marginEnd = dp(12f) })
+        overlayContent.addView(recordingTimer, lp(WRAP, WRAP).also { it.marginEnd = dp(16f) })
+        overlayContent.addView(recordingCancelHint, lp(0, WRAP, 1f))
+
+        recordingOverlay.addView(
+            overlayContent,
+            FrameLayout.LayoutParams(MATCH, MATCH)
+        )
+    }
+
+    fun showRecordingUI() {
+        Log.d(TAG, "showRecordingUI")
+        attachButton.visibility = View.GONE
+        editText.visibility = View.GONE
+        sendButton.visibility = View.GONE
+        micButton.visibility = View.GONE
+
+        // Insert overlay into inputRow
+        if (recordingOverlay.parent == null) {
+            inputRow.addView(recordingOverlay, 0, lp(0, MATCH, 1f))
+        }
+        recordingOverlay.visibility = View.VISIBLE
+
+        recordingTimer.text = "0:00"
+
+        // Pulsing red dot animation
+        dotAnimator?.cancel()
+        dotAnimator = ObjectAnimator.ofFloat(recordingDot, "alpha", 1f, 0.2f).apply {
+            duration = 600
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            start()
+        }
+    }
+
+    fun hideRecordingUI() {
+        Log.d(TAG, "hideRecordingUI")
+        dotAnimator?.cancel()
+        dotAnimator = null
+        recordingDot.alpha = 1f
+
+        recordingOverlay.visibility = View.GONE
+        if (recordingOverlay.parent != null) {
+            inputRow.removeView(recordingOverlay)
+        }
+
+        attachButton.visibility = View.VISIBLE
+        editText.visibility = View.VISIBLE
+
+        val hasText = editText.text?.isNotBlank() == true
+        updateMicSendVisibility(hasText = hasText)
+    }
+
+    fun updateRecordingTime(seconds: Int) {
+        val m = seconds / 60
+        val s = seconds % 60
+        recordingTimer.text = String.format("%d:%02d", m, s)
+    }
+
+    private fun updateMicSendVisibility(hasText: Boolean) {
+        if (hasText) {
+            sendButton.visibility = View.VISIBLE
+            micButton.visibility = View.GONE
+        } else {
+            sendButton.visibility = View.GONE
+            micButton.visibility = View.VISIBLE
+        }
+    }
+
     // ── Действия пользователя ─────────────────────────────────────────────────
 
     private fun handleSend() {
@@ -442,6 +589,7 @@ class InputBarView(context: Context) : LinearLayout(context) {
         editText.setText("")
         mode = InputBarMode.Normal
         updateSendButton(hasText = false)
+        updateMicSendVisibility(hasText = false)
         applyModeToUI(animate = true)
     }
 

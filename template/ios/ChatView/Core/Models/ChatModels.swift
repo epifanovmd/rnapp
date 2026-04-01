@@ -72,12 +72,13 @@ enum MessageContent {
     }
 
     struct PollPayload: Equatable {
-        let id:               String
-        let question:         String
-        let options:          [PollOption]
-        let totalVotes:       Int
-        let selectedOptionId: String?
-        let isClosed:         Bool
+        let id:                String
+        let question:          String
+        let options:           [PollOption]
+        let totalVotes:        Int
+        let selectedOptionIds: [String]
+        let isMultipleChoice:  Bool
+        let isClosed:          Bool
     }
 
     struct FilePayload: Equatable {

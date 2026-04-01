@@ -146,13 +146,16 @@ extension MessageContent.PollPayload {
         let options = optArr.compactMap { MessageContent.PollOption.from(dict: $0) }
         guard !options.isEmpty else { return nil }
 
+        let selectedIds: [String] = (dict["selectedOptionIds"] as? [String]) ?? []
+
         return MessageContent.PollPayload(
-            id:               id,
-            question:         question,
-            options:          options,
-            totalVotes:       Int(dict["totalVotes"] as? Double ?? 0),
-            selectedOptionId: dict["selectedOptionId"] as? String,
-            isClosed:         dict["isClosed"] as? Bool ?? false
+            id:                id,
+            question:          question,
+            options:           options,
+            totalVotes:        Int(dict["totalVotes"] as? Double ?? 0),
+            selectedOptionIds: selectedIds,
+            isMultipleChoice:  dict["isMultipleChoice"] as? Bool ?? false,
+            isClosed:          dict["isClosed"] as? Bool ?? false
         )
     }
 }

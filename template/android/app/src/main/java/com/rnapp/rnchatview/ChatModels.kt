@@ -43,7 +43,8 @@ sealed class MessageContent {
         val question: String,
         val options: List<PollOption>,
         val totalVotes: Int = 0,
-        val selectedOptionId: String? = null,
+        val selectedOptionIds: List<String> = emptyList(),
+        val isMultipleChoice: Boolean = false,
         val isClosed: Boolean = false,
     )
 

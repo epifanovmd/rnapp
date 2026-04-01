@@ -140,6 +140,7 @@ class RNChatViewManager : SimpleViewManager<RNChatView>() {
         "onVideoPress" to event("onVideoPress"),
         "onPollOptionPress" to event("onPollOptionPress"),
         "onFilePress" to event("onFilePress"),
+        "onVoiceRecordingComplete" to event("onVoiceRecordingComplete"),
     )
 
     private fun event(name: String) = mapOf("registrationName" to name)

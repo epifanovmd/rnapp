@@ -71,6 +71,10 @@ class MessageBubbleView(
     var onVideoTap: ((videoUrl: String) -> Unit)? = null
     var onPollOptionTap: ((pollId: String, optionId: String) -> Unit)? = null
     var onFileTap: ((fileUrl: String, fileName: String) -> Unit)? = null
+    var onVoiceTap: ((url: String, messageId: String) -> Unit)? = null
+
+    private var boundMessageId: String? = null
+    private var boundVoiceUrl: String? = null
 
     init {
         layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -78,6 +82,8 @@ class MessageBubbleView(
     }
 
     fun configure(message: ChatMessage, resolvedReply: ResolvedReply?, theme: ChatTheme) {
+        boundMessageId = message.id
+
         // Emoji-only detection
         isEmojiOnly = message.content is MessageContent.Text
                 && resolvedReply == null
@@ -382,9 +388,9 @@ class MessageBubbleView(
             marginEnd = context.dpToPx(8f)
         }
         voicePlayButton.scaleType = ImageView.ScaleType.CENTER_INSIDE
-        voicePlayButton.setImageDrawable(SendArrowDrawable(context).apply {
-            // reuse play icon concept — ideally use a proper play icon
-        })
+        voicePlayButton.setImageDrawable(PlayTriangleDrawable())
+        voicePlayButton.isClickable = true
+        voicePlayButton.isFocusable = true
 
         val infoColumn = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -407,7 +413,24 @@ class MessageBubbleView(
 
     private fun configureVoice(payload: MessageContent.VoicePayload, textColor: Int, theme: ChatTheme) {
         val accentColor = if (isMine) theme.outgoingTextColor else theme.incomingReplyAccent
-        voicePlayButton.setColorFilter(accentColor)
+        boundVoiceUrl = payload.url
+
+        // Set up play/pause drawable
+        val playDrawable = (voicePlayButton.drawable as? PlayTriangleDrawable)
+            ?: PlayTriangleDrawable().also { voicePlayButton.setImageDrawable(it) }
+        playDrawable.iconColor = accentColor
+
+        // Update play/pause state based on VoicePlayer
+        val player = VoicePlayer.getInstance(context)
+        val isPlaying = player.currentlyPlayingId == boundMessageId
+        playDrawable.isPlaying = isPlaying
+
+        voicePlayButton.setOnClickListener {
+            val url = boundVoiceUrl ?: return@setOnClickListener
+            val msgId = boundMessageId ?: return@setOnClickListener
+            onVoiceTap?.invoke(url, msgId)
+        }
+
         voiceDurationLabel.setTextColor(textColor and 0x99FFFFFF.toInt())
 
         val total = payload.duration.toInt()
@@ -590,7 +613,7 @@ class MessageBubbleView(
         val votesIndex = pollContainer.indexOfChild(pollVotesLabel)
         for (option in poll.options) {
             val row = PollOptionRowView(context)
-            row.configure(option, option.id == poll.selectedOptionId, poll.isClosed, isMine, theme)
+            row.configure(option, poll.selectedOptionIds.contains(option.id), poll.isClosed, isMine, theme)
             row.setOnClickListener {
                 if (!poll.isClosed) onPollOptionTap?.invoke(poll.id, option.id)
             }

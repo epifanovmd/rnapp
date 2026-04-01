@@ -37,6 +37,12 @@ protocol InputBarDelegate: AnyObject {
     func inputBar(_ bar: InputBarView, didChangeHeight height: CGFloat)
     /// Нажата кнопка вложения.
     func inputBarDidTapAttachment(_ bar: InputBarView)
+    /// Запись голоса начата (hold mic button).
+    func inputBarDidStartVoiceRecording(_ bar: InputBarView)
+    /// Запись голоса завершена (отпустили или locked → tap stop).
+    func inputBarDidStopVoiceRecording(_ bar: InputBarView)
+    /// Запись голоса отменена (slide left to cancel).
+    func inputBarDidCancelVoiceRecording(_ bar: InputBarView)
 }
 
 /// Необязательные методы с пустой реализацией по умолчанию.
@@ -44,6 +50,9 @@ extension InputBarDelegate {
     func inputBar(_ bar: InputBarView, didEditText text: String, messageId: String) {}
     func inputBarDidCancelReply(_ bar: InputBarView) {}
     func inputBarDidCancelEdit(_ bar: InputBarView) {}
+    func inputBarDidStartVoiceRecording(_ bar: InputBarView) {}
+    func inputBarDidStopVoiceRecording(_ bar: InputBarView) {}
+    func inputBarDidCancelVoiceRecording(_ bar: InputBarView) {}
 }
 
 // MARK: - InputBarView
@@ -161,8 +170,90 @@ final class InputBarView: UIView {
         btn.translatesAutoresizingMaskIntoConstraints = false
         btn.alpha     = 0.5
         btn.isEnabled = false
+        btn.isHidden  = true // hidden by default, shown when text is not empty
         return btn
     }()
+
+    private let voiceButton: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        let cfg = UIImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+        let iv = UIImageView(image: UIImage(systemName: "mic.fill", withConfiguration: cfg))
+        iv.tag = 100
+        iv.contentMode = .center
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        v.addSubview(iv)
+        NSLayoutConstraint.activate([
+            iv.centerXAnchor.constraint(equalTo: v.centerXAnchor),
+            iv.centerYAnchor.constraint(equalTo: v.centerYAnchor),
+        ])
+        return v
+    }()
+
+    // MARK: - Recording overlay
+
+    private let recordingOverlay: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.isHidden = true
+        v.alpha = 0
+        return v
+    }()
+
+    private let recordingDot: UIView = {
+        let v = UIView()
+        v.backgroundColor = .systemRed
+        v.layer.cornerRadius = 5
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let recordingTimeLabel: UILabel = {
+        let l = UILabel()
+        l.font = UIFont.monospacedDigitSystemFont(ofSize: 15, weight: .medium)
+        l.text = "0:00"
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let slideToCancel: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 14)
+        l.text = "◀ Slide to cancel"
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    private let lockContainer: UIView = {
+        let v = UIView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        v.layer.cornerRadius = 20
+        v.clipsToBounds = true
+        v.isHidden = true
+        return v
+    }()
+
+    private let lockIcon: UIImageView = {
+        let cfg = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
+        let iv = UIImageView(image: UIImage(systemName: "lock.fill", withConfiguration: cfg))
+        iv.contentMode = .center
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let stopButton: UIButton = {
+        let btn = UIButton(type: .system)
+        let cfg = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+        btn.setImage(UIImage(systemName: "stop.circle.fill", withConfiguration: cfg), for: .normal)
+        btn.tintColor = .systemRed
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.isHidden = true
+        return btn
+    }()
+
+    private(set) var isRecording = false
+    private var isLocked = false
+    private var recordingStartLocation: CGPoint = .zero
 
     /// Фон, продолжающий containerView вниз в safe-area зону.
     private let bottomBackdropView: UIView = {
@@ -200,6 +291,12 @@ final class InputBarView: UIView {
         placeholderLabel.textColor         = theme.inputBarPlaceholder
         attachButton.tintColor             = theme.inputBarTint
         sendButton.tintColor               = theme.inputBarTint
+        (voiceButton.viewWithTag(100) as? UIImageView)?.tintColor = theme.inputBarTint
+        recordingOverlay.backgroundColor   = theme.inputBarBackground
+        recordingTimeLabel.textColor       = theme.inputBarText
+        slideToCancel.textColor            = theme.inputBarPlaceholder
+        lockContainer.backgroundColor      = theme.inputBarTextViewBg
+        lockIcon.tintColor                 = theme.inputBarTint
         topPanelCloseButton.tintColor      = theme.replyPanelClose
         editIconView.tintColor             = theme.replyPanelAccent
         editTitleLabel.textColor           = theme.replyPanelSender
@@ -308,7 +405,17 @@ final class InputBarView: UIView {
         containerView.addSubview(attachButton)
         containerView.addSubview(textView)
         containerView.addSubview(sendButton)
+        containerView.addSubview(voiceButton)
         textView.addSubview(placeholderLabel)
+
+        // Recording overlay
+        containerView.addSubview(recordingOverlay)
+        recordingOverlay.addSubview(recordingDot)
+        recordingOverlay.addSubview(recordingTimeLabel)
+        recordingOverlay.addSubview(slideToCancel)
+        containerView.addSubview(lockContainer)
+        lockContainer.addSubview(lockIcon)
+        containerView.addSubview(stopButton)
         insertSubview(bottomBackdropView, belowSubview: containerView)
 
         textViewHeightConstraint = textView.heightAnchor.constraint(
@@ -347,6 +454,43 @@ final class InputBarView: UIView {
             sendButton.widthAnchor.constraint(equalToConstant: 36),
             sendButton.heightAnchor.constraint(equalToConstant: 36),
 
+            voiceButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            voiceButton.bottomAnchor.constraint(equalTo: textView.bottomAnchor),
+            voiceButton.widthAnchor.constraint(equalToConstant: 36),
+            voiceButton.heightAnchor.constraint(equalToConstant: 36),
+
+            // Recording overlay
+            recordingOverlay.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            recordingOverlay.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -56),
+            recordingOverlay.topAnchor.constraint(equalTo: separatorView.bottomAnchor),
+            recordingOverlay.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+
+            recordingDot.leadingAnchor.constraint(equalTo: recordingOverlay.leadingAnchor, constant: 4),
+            recordingDot.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
+            recordingDot.widthAnchor.constraint(equalToConstant: 10),
+            recordingDot.heightAnchor.constraint(equalToConstant: 10),
+
+            recordingTimeLabel.leadingAnchor.constraint(equalTo: recordingDot.trailingAnchor, constant: 8),
+            recordingTimeLabel.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
+
+            slideToCancel.centerXAnchor.constraint(equalTo: recordingOverlay.centerXAnchor, constant: 20),
+            slideToCancel.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
+
+            // Lock container (above voice button)
+            lockContainer.centerXAnchor.constraint(equalTo: voiceButton.centerXAnchor),
+            lockContainer.bottomAnchor.constraint(equalTo: voiceButton.topAnchor, constant: -8),
+            lockContainer.widthAnchor.constraint(equalToConstant: 40),
+            lockContainer.heightAnchor.constraint(equalToConstant: 60),
+
+            lockIcon.centerXAnchor.constraint(equalTo: lockContainer.centerXAnchor),
+            lockIcon.centerYAnchor.constraint(equalTo: lockContainer.centerYAnchor),
+
+            // Stop button (same position as voice button, shown when locked)
+            stopButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            stopButton.bottomAnchor.constraint(equalTo: textView.bottomAnchor),
+            stopButton.widthAnchor.constraint(equalToConstant: 36),
+            stopButton.heightAnchor.constraint(equalToConstant: 36),
+
             placeholderLabel.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 16),
             placeholderLabel.trailingAnchor.constraint(equalTo: textView.trailingAnchor, constant: -16),
             placeholderLabel.topAnchor.constraint(equalTo: textView.topAnchor, constant: 8),
@@ -364,6 +508,12 @@ final class InputBarView: UIView {
         sendButton.addTarget(self, action: #selector(sendTapped), for: .touchUpInside)
         attachButton.addTarget(self, action: #selector(attachTapped), for: .touchUpInside)
         topPanelCloseButton.addTarget(self, action: #selector(closeTopPanelTapped), for: .touchUpInside)
+        stopButton.addTarget(self, action: #selector(stopRecordingTapped), for: .touchUpInside)
+
+        // Voice: long press to start, pan to lock/cancel
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleVoiceLongPress(_:)))
+        longPress.minimumPressDuration = 0.15
+        voiceButton.addGestureRecognizer(longPress)
     }
 
     @objc private func sendTapped() {
@@ -384,6 +534,158 @@ final class InputBarView: UIView {
 
     @objc private func attachTapped() {
         delegate?.inputBarDidTapAttachment(self)
+    }
+
+    @objc private func stopRecordingTapped() {
+        finishRecording()
+    }
+
+    @objc private func handleVoiceLongPress(_ gesture: UILongPressGestureRecognizer) {
+        let location = gesture.location(in: containerView)
+
+        switch gesture.state {
+        case .began:
+            recordingStartLocation = location
+            startRecordingUI()
+            delegate?.inputBarDidStartVoiceRecording(self)
+
+        case .changed:
+            guard isRecording, !isLocked else { return }
+            let dx = max(0, recordingStartLocation.x - location.x)
+            let dy = max(0, recordingStartLocation.y - location.y)
+
+            // Slide left to cancel (> 100pt)
+            if dx > 100 {
+                let wasCancelled = isRecording
+                resetRecordingUI()
+                if wasCancelled {
+                    delegate?.inputBarDidCancelVoiceRecording(self)
+                }
+                gesture.isEnabled = false
+                gesture.isEnabled = true
+                return
+            }
+
+            // Slide up to lock (> 60pt)
+            if dy > 60 {
+                lockRecording()
+                return
+            }
+
+            // Update slide-to-cancel opacity
+            let cancelProgress = dx / 100
+            slideToCancel.alpha = 1.0 - cancelProgress * 0.5
+
+            // Update lock container
+            let lockProgress = dy / 60
+            lockContainer.alpha = 0.5 + lockProgress * 0.5
+            lockContainer.transform = CGAffineTransform(scaleX: 1 + lockProgress * 0.15,
+                                                         y: 1 + lockProgress * 0.15)
+
+        case .ended, .cancelled:
+            guard isRecording, !isLocked else { return }
+            finishRecording()
+
+        default:
+            break
+        }
+    }
+
+    // MARK: - Recording UI
+
+    private func startRecordingUI() {
+        isRecording = true
+        isLocked = false
+
+        // Hide normal input
+        textView.isHidden = true
+        placeholderLabel.isHidden = true
+        attachButton.isHidden = true
+        sendButton.isHidden = true
+
+        // Show recording overlay
+        recordingOverlay.isHidden = false
+        lockContainer.isHidden = false
+        lockContainer.alpha = 0.5
+        lockContainer.transform = .identity
+        stopButton.isHidden = true
+
+        // Animate in
+        UIView.animate(withDuration: 0.2) {
+            self.recordingOverlay.alpha = 1
+        }
+
+        // Pulsing red dot
+        UIView.animate(withDuration: 0.6,
+                       delay: 0,
+                       options: [.autoreverse, .repeat],
+                       animations: { self.recordingDot.alpha = 0.3 })
+
+        // Mic button grows
+        UIView.animate(withDuration: 0.15,
+                       delay: 0,
+                       usingSpringWithDamping: 0.5,
+                       initialSpringVelocity: 0.8,
+                       options: [],
+                       animations: { self.voiceButton.transform = CGAffineTransform(scaleX: 1.4, y: 1.4) })
+    }
+
+    private func lockRecording() {
+        isLocked = true
+
+        UIView.animate(withDuration: 0.2) {
+            self.lockContainer.isHidden = true
+            self.slideToCancel.isHidden = true
+            self.stopButton.isHidden = false
+            self.voiceButton.transform = .identity
+            self.voiceButton.isHidden = true
+        }
+    }
+
+    private func finishRecording() {
+        guard isRecording else { return }
+        resetRecordingUI()
+        delegate?.inputBarDidStopVoiceRecording(self)
+    }
+
+    private func cancelRecordingUI() {
+        guard isRecording else { return }
+        resetRecordingUI()
+    }
+
+    func resetRecordingUI() {
+        isRecording = false
+        isLocked = false
+
+        recordingDot.layer.removeAllAnimations()
+        recordingDot.alpha = 1
+
+        UIView.animate(withDuration: 0.2) {
+            self.recordingOverlay.alpha = 0
+            self.voiceButton.transform = .identity
+        } completion: { _ in
+            self.recordingOverlay.isHidden = true
+            self.lockContainer.isHidden = true
+            self.stopButton.isHidden = true
+            self.slideToCancel.isHidden = false
+
+            // Restore normal input
+            self.textView.isHidden = false
+            self.attachButton.isHidden = false
+            self.voiceButton.isHidden = false
+            self.updatePlaceholderVisibility()
+            self.updateSendButtonState()
+        }
+
+        recordingTimeLabel.text = "0:00"
+    }
+
+    /// Вызывается извне для обновления таймера.
+    func updateRecordingTime(_ seconds: TimeInterval) {
+        let total = Int(seconds)
+        let m = total / 60
+        let s = total % 60
+        recordingTimeLabel.text = String(format: "%d:%02d", m, s)
     }
 
     /// Пользователь нажал крестик — сохраняем режим для уведомления делегата.
@@ -467,8 +769,10 @@ final class InputBarView: UIView {
     private func updateSendButtonState() {
         let hasText = !textView.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         UIView.animate(withDuration: 0.15) {
+            self.sendButton.isHidden  = !hasText
             self.sendButton.alpha     = hasText ? 1.0 : 0.5
             self.sendButton.isEnabled = hasText
+            self.voiceButton.isHidden = hasText
         }
     }
 
