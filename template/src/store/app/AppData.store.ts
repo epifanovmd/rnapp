@@ -1,4 +1,3 @@
-import { INavigationService, NavigationService } from "@navigation";
 import { IMessengerSocketService, ISocketTransport } from "@socket";
 import { disposer, InitializeDispose } from "@utils";
 import { makeAutoObservable, reaction } from "mobx";
@@ -8,7 +7,7 @@ import { ICallStore } from "../calls";
 import { IChatStore } from "../chat";
 import { IChatListStore } from "../chatList";
 import { IContactStore } from "../contacts";
-import { IMessageStore } from "../message";
+import { INotificationSettingsStore } from "../notifications";
 import { IPresenceStore } from "../presence";
 import { IProfileStore } from "../profile";
 import { ISessionStore } from "../sessions";
@@ -19,7 +18,6 @@ import { IAppDataStore } from "./AppData.types";
 export class AppDataStore implements IAppDataStore {
   constructor(
     @IAuthStore() private _authStore: IAuthStore,
-    @INavigationService() private _navigationService: NavigationService,
     @ISocketTransport() private _socketTransport: ISocketTransport,
     @IMessengerSocketService()
     private _messengerSocket: IMessengerSocketService,
@@ -31,7 +29,8 @@ export class AppDataStore implements IAppDataStore {
     @IContactStore() private _contactStore: IContactStore,
     @IProfileStore() private _profileStore: IProfileStore,
     @IPresenceStore() private _presenceStore: IPresenceStore,
-    @IMessageStore() private _messageStore: IMessageStore,
+    @INotificationSettingsStore()
+    private _notificationSettingsStore: INotificationSettingsStore,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -45,12 +44,12 @@ export class AppDataStore implements IAppDataStore {
         () => this._authStore.isAuthenticated,
         isAuthenticated => {
           if (isAuthenticated) {
-            console.log("isAuthenticated", isAuthenticated);
             socketDisposers.add(this._socketTransport.initialize());
 
             globalDisposers.push(this._setupGlobalSocketListeners());
 
             this._syncStore.sync().catch(() => {});
+            this._callStore.loadActiveCall().catch(() => {});
           } else {
             disposer(Array.from(socketDisposers));
             socketDisposers.clear();
@@ -59,8 +58,6 @@ export class AppDataStore implements IAppDataStore {
             globalDisposers.length = 0;
 
             this._presenceStore.clear();
-
-            this._navigationService.navigateTo("SignIn");
           }
         },
       ),
@@ -84,6 +81,9 @@ export class AppDataStore implements IAppDataStore {
       ...this._setupCallListeners(),
       ...this._setupPresenceListeners(),
       ...this._setupSessionListeners(),
+      ...this._setupUserListeners(),
+      ...this._setupAuthListeners(),
+      ...this._setupPushListeners(),
     );
 
     return () => disposers.forEach(d => d());
@@ -103,6 +103,9 @@ export class AppDataStore implements IAppDataStore {
           this._syncStore.sync().catch(() => {});
           wasDisconnected = false;
         }
+      }),
+      this._messengerSocket.onSyncAvailable(({ version }) => {
+        this._syncStore.handleSyncAvailable(version);
       }),
     ];
   }
@@ -126,8 +129,6 @@ export class AppDataStore implements IAppDataStore {
     return [
       this._messengerSocket.onNewMessage(message => {
         this._chatListStore.handleNewMessage(message);
-        // Проксируем в MessageStore — он сам проверит совпадение chatId
-        this._messageStore.handleNewMessage(message);
       }),
       this._messengerSocket.onChatCreated(chat => {
         this._chatListStore.handleChatCreated(chat);
@@ -141,6 +142,9 @@ export class AppDataStore implements IAppDataStore {
       this._messengerSocket.onChatLastMessage(({ chatId, lastMessage }) => {
         this._chatListStore.handleLastMessageUpdated(chatId, lastMessage);
       }),
+      this._messengerSocket.onChatPinned(({ chatId, isPinned }) => {
+        this._chatListStore.handleChatPinned(chatId, isPinned);
+      }),
     ];
   }
 
@@ -153,6 +157,15 @@ export class AppDataStore implements IAppDataStore {
       }),
       this._messengerSocket.onContactAccepted(contact => {
         this._contactStore.handleContactAccepted(contact);
+      }),
+      this._messengerSocket.onContactRemoved(({ contactId }) => {
+        this._contactStore.handleContactRemoved(contactId);
+      }),
+      this._messengerSocket.onContactBlocked(contact => {
+        this._contactStore.handleContactBlocked(contact);
+      }),
+      this._messengerSocket.onContactUnblocked(contact => {
+        this._contactStore.handleContactUnblocked(contact);
       }),
     ];
   }
@@ -196,6 +209,51 @@ export class AppDataStore implements IAppDataStore {
     return [
       this._messengerSocket.onSessionTerminated(({ sessionId }) => {
         this._sessionStore.handleSessionTerminated(sessionId);
+      }),
+      this._messengerSocket.onSessionNew(session => {
+        this._sessionStore.handleNewSession(session);
+      }),
+    ];
+  }
+
+  // ── User ───────────────────────────────────────────────────────────
+
+  private _setupUserListeners(): Array<() => void> {
+    return [
+      this._messengerSocket.onEmailVerified(() => {
+        this._authStore.handleEmailVerified();
+      }),
+      this._messengerSocket.onPasswordChanged(() => {
+        this._authStore.handlePasswordChanged();
+      }),
+      this._messengerSocket.onPrivilegesChanged(() => {
+        this._authStore.handlePrivilegesChanged();
+      }),
+      this._messengerSocket.onUsernameChanged(({ username }) => {
+        this._profileStore.handleUsernameChanged(username);
+      }),
+      this._messengerSocket.onPrivacyChanged(settings => {
+        this._profileStore.handlePrivacyChanged(settings);
+      }),
+    ];
+  }
+
+  // ── Auth ───────────────────────────────────────────────────────────
+
+  private _setupAuthListeners(): Array<() => void> {
+    return [
+      this._messengerSocket.on2faChanged(({ enabled }) => {
+        this._authStore.handle2faChanged(enabled);
+      }),
+    ];
+  }
+
+  // ── Push ───────────────────────────────────────────────────────────
+
+  private _setupPushListeners(): Array<() => void> {
+    return [
+      this._messengerSocket.onPushSettingsChanged(settings => {
+        this._notificationSettingsStore.handleSettingsChanged(settings);
       }),
     ];
   }

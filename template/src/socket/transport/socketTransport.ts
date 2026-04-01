@@ -1,5 +1,5 @@
-import { SOCKET_BASE_URL } from "@api";
 import { IAuthSessionService, IAuthTokenStore } from "@core/auth";
+import { SOCKET_BASE_URL } from "@core/env";
 import { reaction } from "mobx";
 import { connect } from "socket.io-client";
 
@@ -56,7 +56,6 @@ export class SocketTransport implements ISocketTransport {
     const disposeTokenReaction = reaction(
       () => this._tokenStore.accessToken,
       token => {
-        console.log("token", token);
         if (this._socket && token) {
           // Update both auth and query so the token is fresh on the next
           // reconnection attempt regardless of which mechanism the server reads.

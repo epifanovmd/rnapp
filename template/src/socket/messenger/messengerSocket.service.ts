@@ -219,4 +219,88 @@ export class MessengerSocketService implements IMessengerSocketService {
   ): () => void {
     return this._transport.on("session:terminated", handler);
   }
+
+  onSessionNew(
+    handler: MessengerSocketServerEvents["session:new"],
+  ): () => void {
+    return this._transport.on("session:new", handler);
+  }
+
+  // ── Contacts (extended) ──────────────────────────────────────────
+
+  onContactRemoved(
+    handler: MessengerSocketServerEvents["contact:removed"],
+  ): () => void {
+    return this._transport.on("contact:removed", handler);
+  }
+
+  onContactBlocked(
+    handler: MessengerSocketServerEvents["contact:blocked"],
+  ): () => void {
+    return this._transport.on("contact:blocked", handler);
+  }
+
+  onContactUnblocked(
+    handler: MessengerSocketServerEvents["contact:unblocked"],
+  ): () => void {
+    return this._transport.on("contact:unblocked", handler);
+  }
+
+  // ── User ─────────────────────────────────────────────────────────
+
+  onEmailVerified(
+    handler: MessengerSocketServerEvents["user:email-verified"],
+  ): () => void {
+    return this._transport.on("user:email-verified", handler);
+  }
+
+  onPasswordChanged(
+    handler: MessengerSocketServerEvents["user:password-changed"],
+  ): () => void {
+    return this._transport.on("user:password-changed", handler);
+  }
+
+  onPrivilegesChanged(
+    handler: MessengerSocketServerEvents["user:privileges-changed"],
+  ): () => void {
+    return this._transport.on("user:privileges-changed", handler);
+  }
+
+  onUsernameChanged(
+    handler: MessengerSocketServerEvents["user:username-changed"],
+  ): () => void {
+    return this._transport.on("user:username-changed", handler);
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────
+
+  on2faChanged(
+    handler: MessengerSocketServerEvents["auth:2fa-changed"],
+  ): () => void {
+    return this._transport.on("auth:2fa-changed", handler);
+  }
+
+  // ── Profile privacy ──────────────────────────────────────────────
+
+  onPrivacyChanged(
+    handler: MessengerSocketServerEvents["profile:privacy-changed"],
+  ): () => void {
+    return this._transport.on("profile:privacy-changed", handler);
+  }
+
+  // ── Push ──────────────────────────────────────────────────────────
+
+  onPushSettingsChanged(
+    handler: MessengerSocketServerEvents["push:settings-changed"],
+  ): () => void {
+    return this._transport.on("push:settings-changed", handler);
+  }
+
+  // ── Chat pinned ──────────────────────────────────────────────────
+
+  onChatPinned(
+    handler: MessengerSocketServerEvents["chat:pinned"],
+  ): () => void {
+    return this._transport.on("chat:pinned", handler);
+  }
 }

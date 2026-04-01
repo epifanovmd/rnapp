@@ -113,6 +113,62 @@ export interface IMessengerSocketService {
     handler: MessengerSocketServerEvents["session:terminated"],
   ): () => void;
 
+  /** Listen for new session */
+  onSessionNew(handler: MessengerSocketServerEvents["session:new"]): () => void;
+
+  /** Listen for contact removed */
+  onContactRemoved(
+    handler: MessengerSocketServerEvents["contact:removed"],
+  ): () => void;
+
+  /** Listen for contact blocked */
+  onContactBlocked(
+    handler: MessengerSocketServerEvents["contact:blocked"],
+  ): () => void;
+
+  /** Listen for contact unblocked */
+  onContactUnblocked(
+    handler: MessengerSocketServerEvents["contact:unblocked"],
+  ): () => void;
+
+  /** Listen for email verified */
+  onEmailVerified(
+    handler: MessengerSocketServerEvents["user:email-verified"],
+  ): () => void;
+
+  /** Listen for password changed */
+  onPasswordChanged(
+    handler: MessengerSocketServerEvents["user:password-changed"],
+  ): () => void;
+
+  /** Listen for privileges changed */
+  onPrivilegesChanged(
+    handler: MessengerSocketServerEvents["user:privileges-changed"],
+  ): () => void;
+
+  /** Listen for username changed */
+  onUsernameChanged(
+    handler: MessengerSocketServerEvents["user:username-changed"],
+  ): () => void;
+
+  /** Listen for 2FA status change */
+  on2faChanged(
+    handler: MessengerSocketServerEvents["auth:2fa-changed"],
+  ): () => void;
+
+  /** Listen for privacy settings changed */
+  onPrivacyChanged(
+    handler: MessengerSocketServerEvents["profile:privacy-changed"],
+  ): () => void;
+
+  /** Listen for push settings changed */
+  onPushSettingsChanged(
+    handler: MessengerSocketServerEvents["push:settings-changed"],
+  ): () => void;
+
+  /** Listen for chat pinned */
+  onChatPinned(handler: MessengerSocketServerEvents["chat:pinned"]): () => void;
+
   /** Emit profile subscribe */
   emitProfileSubscribe(): void;
 

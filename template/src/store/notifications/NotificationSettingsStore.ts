@@ -51,4 +51,8 @@ export class NotificationSettingsStore implements INotificationSettingsStore {
   async unregisterDevice(token: string) {
     await this._api.unregisterDevice({ token });
   }
+
+  handleSettingsChanged(settings: NotificationSettingsDto) {
+    this.settingsHolder.setData(settings);
+  }
 }

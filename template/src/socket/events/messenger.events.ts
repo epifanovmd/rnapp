@@ -3,11 +3,15 @@ import type {
   ChatDto,
   ContactDto,
   MessageDto,
+  NotificationSettingsDto,
   PollDto,
+  PrivacySettingsDto,
   PublicProfileDto,
+  SessionDto,
 } from "@api/api-gen/data-contracts";
 
 import type {
+  ISocketAuth2faChangedPayload,
   ISocketAuthenticatedPayload,
   ISocketAuthErrorPayload,
   ISocketCallEndedPayload,
@@ -26,6 +30,7 @@ import type {
   ISocketChatSlowModePayload,
   ISocketChatTypingPayload,
   ISocketChatUnreadPayload,
+  ISocketContactRemovedPayload,
   ISocketMessageDeliveredPayload,
   ISocketMessageIdentifierPayload,
   ISocketMessageReactionPayload,
@@ -34,7 +39,11 @@ import type {
   ISocketPresenceInitPayload,
   ISocketSessionPayload,
   ISocketSyncAvailablePayload,
+  ISocketUserEmailVerifiedPayload,
+  ISocketUserPasswordChangedPayload,
   ISocketUserPresencePayload,
+  ISocketUserPrivilegesChangedPayload,
+  ISocketUserUsernameChangedPayload,
 } from "./types";
 
 // ── Server → Client Events ──────────────────────────────────────────
@@ -95,14 +104,35 @@ export interface MessengerSocketServerEvents {
   // Contacts
   "contact:request": (data: ContactDto) => void;
   "contact:accepted": (data: ContactDto) => void;
+  "contact:removed": (data: ISocketContactRemovedPayload) => void;
+  "contact:blocked": (data: ContactDto) => void;
+  "contact:unblocked": (data: ContactDto) => void;
 
   // Presence
   "user:online": (data: ISocketUserPresencePayload) => void;
   "user:offline": (data: ISocketUserPresencePayload) => void;
   "presence:init": (data: ISocketPresenceInitPayload) => void;
 
+  // User
+  "user:email-verified": (data: ISocketUserEmailVerifiedPayload) => void;
+  "user:password-changed": (data: ISocketUserPasswordChangedPayload) => void;
+  "user:privileges-changed": (
+    data: ISocketUserPrivilegesChangedPayload,
+  ) => void;
+  "user:username-changed": (data: ISocketUserUsernameChangedPayload) => void;
+
   // Sessions
+  "session:new": (data: SessionDto) => void;
   "session:terminated": (data: ISocketSessionPayload) => void;
+
+  // Auth
+  "auth:2fa-changed": (data: ISocketAuth2faChangedPayload) => void;
+
+  // Profile privacy
+  "profile:privacy-changed": (data: PrivacySettingsDto) => void;
+
+  // Push
+  "push:settings-changed": (data: NotificationSettingsDto) => void;
 }
 
 // ── Client → Server Events ──────────────────────────────────────────

@@ -34,4 +34,6 @@ export interface IProfileStore {
   verifyEmail(code: string): Promise<ApiResponse<ApiResponseDto, ApiError>>;
 
   handleProfileUpdated(profile: PublicProfileDto): void;
+  handleUsernameChanged(username: string | null): void;
+  handlePrivacyChanged(settings: PrivacySettingsDto): void;
 }

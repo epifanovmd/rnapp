@@ -1,28 +1,11 @@
 import { CallDto, ECallStatus, ECallType } from "@api/api-gen/data-contracts";
-import { computed, makeObservable } from "mobx";
+import { formatFullName } from "@utils";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 import { DateModel } from "../date";
 
-export class CallModel extends DataModelBase<CallDto> {
+export class CallModel extends TypedModel<CallDto>() {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
-
-  constructor(data: CallDto) {
-    super(data);
-    makeObservable(this, {
-      isVoice: computed,
-      isVideo: computed,
-      isRinging: computed,
-      isActive: computed,
-      isEnded: computed,
-      isMissed: computed,
-      isDeclined: computed,
-      callerName: computed,
-      calleeName: computed,
-      formattedDuration: computed,
-      statusLabel: computed,
-    });
-  }
 
   get isVoice(): boolean {
     return this.data.type === ECallType.Voice;
@@ -55,17 +38,13 @@ export class CallModel extends DataModelBase<CallDto> {
   get callerName(): string {
     const c = this.data.caller;
 
-    if (!c) return "Unknown";
-
-    return [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unknown";
+    return c ? formatFullName(c.firstName, c.lastName) : "Unknown";
   }
 
   get calleeName(): string {
     const c = this.data.callee;
 
-    if (!c) return "Unknown";
-
-    return [c.firstName, c.lastName].filter(Boolean).join(" ") || "Unknown";
+    return c ? formatFullName(c.firstName, c.lastName) : "Unknown";
   }
 
   get formattedDuration(): string {

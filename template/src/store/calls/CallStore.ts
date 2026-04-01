@@ -1,5 +1,5 @@
 import { IApiService } from "@api";
-import { CallDto, ECallType } from "@api/api-gen/data-contracts";
+import { CallDto, ECallStatus, ECallType } from "@api/api-gen/data-contracts";
 import { IWebRTCService } from "@core/webrtc";
 import type {
   ISocketCallIceCandidateRelayPayload,
@@ -7,7 +7,7 @@ import type {
 } from "@socket";
 import { IMessengerSocketService } from "@socket/messenger";
 import { CollectionHolder, EntityHolder, MutationHolder } from "@store/holders";
-import { CallModel } from "@store/models";
+import { CallModel, createModelMapper } from "@store/models";
 import { action, makeAutoObservable, observable, runInAction } from "mobx";
 
 import { IAuthStore } from "../auth";
@@ -30,6 +30,10 @@ export class CallStore implements ICallStore {
   public isVideoEnabled = true;
   public incomingCall: CallDto | null = null;
 
+  private _toHistoryModels = createModelMapper<CallDto, CallModel>(
+    c => c.id,
+    c => new CallModel(c),
+  );
   private _peerConnection: RTCPeerConnection | null = null;
   /** Stores the remote offer SDP until we're ready to process it */
   private _pendingOffer: ISocketCallRelayPayload | null = null;
@@ -66,8 +70,16 @@ export class CallStore implements ICallStore {
     return this.activeCallHolder.data;
   }
 
+  get activeCallModel(): CallModel | null {
+    return this.activeCall ? new CallModel(this.activeCall) : null;
+  }
+
+  get incomingCallModel(): CallModel | null {
+    return this.incomingCall ? new CallModel(this.incomingCall) : null;
+  }
+
   get historyModels(): CallModel[] {
-    return this.historyHolder.items.map(c => new CallModel(c));
+    return this._toHistoryModels(this.historyHolder.items);
   }
 
   get isLoading(): boolean {
@@ -83,7 +95,21 @@ export class CallStore implements ICallStore {
   }
 
   async loadActiveCall(): Promise<void> {
-    await this.activeCallHolder.fromApi(() => this._api.getActiveCall());
+    const res = await this._api.getActiveCall();
+
+    if (res.data) {
+      const call = res.data;
+      const myId = this._getMyUserId();
+
+      if (call.status === ECallStatus.Ringing && call.calleeId === myId) {
+        // Входящий звонок, ещё не отвечен — показать как incoming
+        runInAction(() => {
+          this.incomingCall = call;
+        });
+      } else if (call.status === ECallStatus.Active) {
+        this.activeCallHolder.setData(call);
+      }
+    }
   }
 
   // ── Caller side: initiate ──────────────────────────────────────────
@@ -99,19 +125,20 @@ export class CallStore implements ICallStore {
         this.activeCallHolder.setData(res.data);
         this.isVideoEnabled = type === ECallType.Video;
 
-        // 1. Create PeerConnection
         this._createPeerConnection(res.data);
 
-        // 2. Get local media
-        await this._setupLocalStream(type === ECallType.Video);
+        const mediaOk = await this._setupLocalStream(type === ECallType.Video);
 
-        // 3. Add local tracks to PC
+        if (!mediaOk) {
+          await this._api.endCall({ id: res.data.id });
+          this.cleanup();
+
+          return res;
+        }
+
         this._addLocalTracksToPC();
 
-        // 4. Create and send offer
         const offer = await this._webrtc.createOffer(this._peerConnection!);
-
-        console.log("[WebRTC] Sending offer, callId=%s", res.data.id);
 
         this._socket.emitCallOffer({
           callId: res.data.id,
@@ -139,18 +166,20 @@ export class CallStore implements ICallStore {
         this.isVideoEnabled = isVideo;
       });
 
-      // 1. Create PeerConnection
       this._createPeerConnection(call);
 
-      // 2. Get local media
-      await this._setupLocalStream(isVideo);
+      const mediaOk = await this._setupLocalStream(isVideo);
 
-      // 3. Add local tracks to PC
+      if (!mediaOk) {
+        await this._api.endCall({ id: callId });
+        this.cleanup();
+
+        return;
+      }
+
       this._addLocalTracksToPC();
 
-      // 4. If we already received the offer, process it now
       if (this._pendingOffer) {
-        console.log("[WebRTC] Processing pending offer");
         await this._processOffer(this._pendingOffer);
         this._pendingOffer = null;
       }
@@ -204,6 +233,19 @@ export class CallStore implements ICallStore {
 
   handleCallAnswered(call: CallDto): void {
     this.activeCallHolder.setData(call);
+
+    // Если мы звонящий и уже создали offer — отправить повторно,
+    // т.к. вызываемый мог пропустить его (был оффлайн)
+    if (
+      this._peerConnection?.localDescription &&
+      call.callerId === this._getMyUserId()
+    ) {
+      this._socket.emitCallOffer({
+        callId: call.id,
+        targetUserId: call.calleeId,
+        sdp: this._peerConnection.localDescription,
+      });
+    }
   }
 
   handleCallDeclined(call: CallDto): void {
@@ -215,14 +257,14 @@ export class CallStore implements ICallStore {
   handleCallEnded(data: CallDto | { callId: string; endedBy: string }): void {
     const callId = "id" in data ? data.id : data.callId;
 
-    if (this.activeCall?.id === callId) {
+    if (this.activeCall?.id === callId || this.incomingCall?.id === callId) {
       this.cleanup();
     }
   }
 
   handleCallMissed(call: CallDto): void {
     if (this.incomingCall?.id === call.id) {
-      this.incomingCall = null;
+      this.cleanup();
     }
   }
 
@@ -353,45 +395,35 @@ export class CallStore implements ICallStore {
 
       console.log("[WebRTC] Connection state: %s", state);
 
-      if (
-        state === "disconnected" ||
-        state === "failed" ||
-        state === "closed"
-      ) {
-        console.warn("[WebRTC] Connection lost:", state);
+      if (state === "failed") {
+        console.error("[WebRTC] Connection failed — ending call");
+        const activeCall = this.activeCall;
+
+        if (activeCall) {
+          this.endCall(activeCall.id).catch(() => {});
+        } else {
+          this.cleanup();
+        }
       }
     };
   }
 
-  private async _setupLocalStream(withVideo: boolean): Promise<void> {
+  private async _setupLocalStream(withVideo: boolean): Promise<boolean> {
     try {
-      console.log(
-        "[WebRTC] Getting local media: audio=true, video=%s",
-        withVideo,
-      );
       const stream = await this._webrtc.getUserMedia({
         audio: true,
         video: withVideo,
       });
 
-      console.log(
-        "[WebRTC] Local stream acquired: %d tracks",
-        stream.getTracks().length,
-      );
-      stream.getTracks().forEach(t => {
-        console.log(
-          "[WebRTC]   track: kind=%s, enabled=%s, readyState=%s",
-          t.kind,
-          t.enabled,
-          t.readyState,
-        );
-      });
-
       runInAction(() => {
         this.localStream = stream;
       });
+
+      return true;
     } catch (err) {
       console.error("[WebRTC] Failed to get local media:", err);
+
+      return false;
     }
   }
 

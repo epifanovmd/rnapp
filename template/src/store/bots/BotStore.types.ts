@@ -5,8 +5,8 @@ import {
   ICreateBotBody,
   ISetCommandsBody,
   IUpdateBotBody,
-  IWebhookLogsResponse,
   IWebhookTestResponse,
+  WebhookLogDto,
 } from "@api/api-gen/data-contracts";
 import { ApiResponse } from "@api/api-gen/http-client";
 import { createServiceDecorator } from "@di";
@@ -24,6 +24,12 @@ export interface IBotStore {
   detail: BotDetailDto | null;
   isLoading: boolean;
 
+  webhookLogs: WebhookLogDto[];
+  webhookLogsTotal: number;
+  isLoadingLogs: boolean;
+  isTesting: boolean;
+  lastTestResult: IWebhookTestResponse | null;
+
   loadBots(): Promise<void>;
   loadBot(id: string): Promise<void>;
   createBot(data: ICreateBotBody): Promise<void>;
@@ -33,11 +39,7 @@ export interface IBotStore {
   setWebhook(id: string, url: string, secret?: string): Promise<void>;
   deleteWebhook(id: string): Promise<void>;
   testWebhook(id: string): Promise<IWebhookTestResponse | null>;
-  getWebhookLogs(
-    id: string,
-    offset?: number,
-    limit?: number,
-  ): Promise<IWebhookLogsResponse | null>;
+  loadWebhookLogs(id: string, offset?: number, limit?: number): Promise<void>;
   setWebhookEvents(id: string, events: string[]): Promise<void>;
   setCommands(
     id: string,

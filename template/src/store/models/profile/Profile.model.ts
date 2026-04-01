@@ -1,47 +1,33 @@
 import { KnownRole, ProfileDto } from "@api/api-gen/data-contracts";
+import { formatFullName, formatInitials } from "@utils";
 import { LambdaValue } from "@utils/lambdaValue";
-import { computed, makeObservable } from "mobx";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 import { DateModel } from "../date";
 
-export class ProfileModel extends DataModelBase<ProfileDto> {
+export class ProfileModel extends TypedModel<ProfileDto>() {
   public readonly registeredAtDate = new DateModel(() => this.data?.createdAt);
   public readonly lastOnlineDate = new DateModel(() => this.data.lastOnline);
   public readonly birthDateModel = new DateModel(() => this.data.birthDate);
 
   constructor(data: LambdaValue<ProfileDto>) {
     super(data);
-    makeObservable(this, {
-      displayName: computed,
-      initials: computed,
-      email: computed,
-      phone: computed,
-      login: computed,
-      roleLabel: computed,
-      emailVerified: computed,
-    });
   }
 
   get displayName() {
-    const name = [this.data.firstName, this.data.lastName]
-      .filter(Boolean)
-      .join(" ");
-
-    return name || this.email || this.phone || "Без имени";
+    return formatFullName(
+      this.data.firstName,
+      this.data.lastName,
+      this.email || this.phone || "Без имени",
+    );
   }
 
   get initials() {
-    const parts = [this.data.firstName, this.data.lastName].filter(Boolean);
-
-    if (parts.length > 0) {
-      return parts
-        .map(s => s![0])
-        .join("")
-        .toUpperCase();
-    }
-
-    return (this.data.user?.email?.[0] ?? "U").toUpperCase();
+    return formatInitials(
+      this.data.firstName,
+      this.data.lastName,
+      this.data.user?.email?.[0] ?? "U",
+    );
   }
 
   get email() {

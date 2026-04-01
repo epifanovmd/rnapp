@@ -66,4 +66,11 @@ export interface IAuthStore {
     twoFactorToken: string,
     password: string,
   ): Promise<ApiResponse<IUserWithTokensDto, ApiError>>;
+
+  // Socket handlers
+  handleEmailVerified(): void;
+  handlePasswordChanged(): void;
+  handlePrivilegesChanged(): void;
+  handle2faChanged(enabled: boolean): void;
+  handleUsernameChanged(username: string | null): void;
 }

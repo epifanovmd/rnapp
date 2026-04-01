@@ -2,6 +2,7 @@ export * from "./deepKeys";
 export * from "./downloadBlob";
 export * from "./enumValues";
 export * from "./flatten";
+export * from "./formatName";
 export * from "./formatter";
 export * from "./initialize";
 export * from "./lambdaValue";

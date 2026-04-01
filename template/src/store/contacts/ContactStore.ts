@@ -7,7 +7,7 @@ import {
   PublicProfileDto,
 } from "@api/api-gen/data-contracts";
 import { CollectionHolder, MutationHolder } from "@store/holders";
-import { ContactModel } from "@store/models";
+import { ContactModel, createModelMapper } from "@store/models";
 import { action, makeAutoObservable } from "mobx";
 
 import { IContactStore } from "./ContactStore.types";
@@ -21,12 +21,20 @@ export class ContactStore implements IContactStore {
 
   public addMutation = new MutationHolder<ICreateContactBody, ContactDto>();
 
+  private _toModels = createModelMapper<ContactDto, ContactModel>(
+    c => c.id,
+    c => new ContactModel(c),
+  );
+
   constructor(@IApiService() private _api: IApiService) {
     makeAutoObservable(
       this,
       {
         handleContactRequest: action,
         handleContactAccepted: action,
+        handleContactRemoved: action,
+        handleContactBlocked: action,
+        handleContactUnblocked: action,
         handleProfileUpdated: action,
       },
       { autoBind: true },
@@ -34,7 +42,7 @@ export class ContactStore implements IContactStore {
   }
 
   private get _models(): ContactModel[] {
-    return this.contactsHolder.items.map(c => new ContactModel(c));
+    return this._toModels(this.contactsHolder.items);
   }
 
   get allContacts(): ContactModel[] {
@@ -98,14 +106,22 @@ export class ContactStore implements IContactStore {
   }
 
   handleContactRequest(contact: ContactDto): void {
-    const exists = this.contactsHolder.exists(contact.id);
-
-    if (!exists) {
-      this.contactsHolder.appendItem(contact);
-    }
+    this.contactsHolder.appendIfNotExists(contact.id, contact);
   }
 
   handleContactAccepted(contact: ContactDto): void {
+    this.contactsHolder.updateItem(contact.id, contact);
+  }
+
+  handleContactRemoved(contactId: string): void {
+    this.contactsHolder.removeItem(contactId);
+  }
+
+  handleContactBlocked(contact: ContactDto): void {
+    this.contactsHolder.updateItem(contact.id, contact);
+  }
+
+  handleContactUnblocked(contact: ContactDto): void {
     this.contactsHolder.updateItem(contact.id, contact);
   }
 

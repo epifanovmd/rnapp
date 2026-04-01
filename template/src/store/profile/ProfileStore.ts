@@ -1,5 +1,5 @@
 import { IApiService } from "@api";
-import {
+import type {
   IProfileUpdateRequestDto,
   PrivacySettingsDto,
   ProfileDto,
@@ -97,5 +97,13 @@ export class ProfileStore implements IProfileStore {
         ...profile,
       });
     }
+  }
+
+  handleUsernameChanged(username: string | null) {
+    this._auth.handleUsernameChanged(username);
+  }
+
+  handlePrivacyChanged(settings: PrivacySettingsDto) {
+    this.privacyHolder.setData(settings);
   }
 }

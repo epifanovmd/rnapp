@@ -6,10 +6,11 @@ import {
   ICreateBotBody,
   ISetCommandsBody,
   IUpdateBotBody,
-  IWebhookLogsResponse,
   IWebhookTestResponse,
+  WebhookLogDto,
 } from "@api/api-gen/data-contracts";
 import { CollectionHolder, EntityHolder, MutationHolder } from "@store/holders";
+import { BotModel } from "@store/models";
 import { makeAutoObservable } from "mobx";
 
 import { IBotStore } from "./BotStore.types";
@@ -46,6 +47,12 @@ export class BotStore implements IBotStore {
     },
   });
 
+  public webhookLogs: WebhookLogDto[] = [];
+  public webhookLogsTotal = 0;
+  public isLoadingLogs = false;
+  public isTesting = false;
+  public lastTestResult: IWebhookTestResponse | null = null;
+
   constructor(@IApiService() private _api: IApiService) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -56,6 +63,10 @@ export class BotStore implements IBotStore {
 
   get detail() {
     return this.detailHolder.data;
+  }
+
+  get detailModel() {
+    return this.detailHolder.data ? new BotModel(this.detailHolder.data) : null;
   }
 
   get isLoading() {
@@ -112,19 +123,33 @@ export class BotStore implements IBotStore {
   }
 
   async testWebhook(id: string): Promise<IWebhookTestResponse | null> {
-    const res = await this._api.testWebhook({ id });
+    this.isTesting = true;
+    this.lastTestResult = null;
 
-    return res.data ?? null;
+    try {
+      const res = await this._api.testWebhook({ id });
+
+      this.lastTestResult = res.data ?? null;
+
+      return this.lastTestResult;
+    } finally {
+      this.isTesting = false;
+    }
   }
 
-  async getWebhookLogs(
-    id: string,
-    offset = 0,
-    limit = 50,
-  ): Promise<IWebhookLogsResponse | null> {
-    const res = await this._api.getWebhookLogs({ id, offset, limit });
+  async loadWebhookLogs(id: string, offset = 0, limit = 30): Promise<void> {
+    this.isLoadingLogs = true;
 
-    return res.data ?? null;
+    try {
+      const res = await this._api.getWebhookLogs({ id, offset, limit });
+
+      if (res.data) {
+        this.webhookLogs = res.data.data;
+        this.webhookLogsTotal = res.data.totalCount;
+      }
+    } finally {
+      this.isLoadingLogs = false;
+    }
   }
 
   async setWebhookEvents(id: string, events: string[]) {

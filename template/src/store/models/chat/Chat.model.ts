@@ -3,31 +3,16 @@ import {
   EChatMemberRole,
   EChatType,
 } from "@api/api-gen/data-contracts";
-import { computed, makeObservable } from "mobx";
+import { formatFullName } from "@utils";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 import { DateModel } from "../date";
 
-export class ChatModel extends DataModelBase<ChatDto> {
+export class ChatModel extends TypedModel<ChatDto>() {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
   public readonly lastMessageDate = new DateModel(
     () => this.data.lastMessageAt,
   );
-
-  constructor(data: ChatDto) {
-    super(data);
-    makeObservable(this, {
-      displayName: computed,
-      avatarUrl: computed,
-      isDirect: computed,
-      isGroup: computed,
-      isChannel: computed,
-      memberCount: computed,
-      isPublic: computed,
-      ownerIds: computed,
-      adminIds: computed,
-    });
-  }
 
   get displayName(): string {
     if (this.data.name) return this.data.name;
@@ -37,19 +22,15 @@ export class ChatModel extends DataModelBase<ChatDto> {
       );
 
       if (other?.profile) {
-        const name = [other.profile.firstName, other.profile.lastName]
-          .filter(Boolean)
-          .join(" ");
-
-        return name || "Чат";
+        return formatFullName(
+          other.profile.firstName,
+          other.profile.lastName,
+          "Чат",
+        );
       }
     }
 
     return "Чат";
-  }
-
-  get avatarUrl(): string | null {
-    return this.data.avatarUrl;
   }
 
   get isDirect(): boolean {
@@ -66,10 +47,6 @@ export class ChatModel extends DataModelBase<ChatDto> {
 
   get memberCount(): number {
     return this.data.members.length;
-  }
-
-  get isPublic(): boolean {
-    return this.data.isPublic;
   }
 
   get ownerIds(): string[] {

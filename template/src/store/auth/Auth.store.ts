@@ -242,6 +242,36 @@ class AuthStore implements IAuthStore {
     return res;
   }
 
+  // ── Socket handlers ────────────────────────────────────────────────
+
+  handleEmailVerified() {
+    const user = this._userHolder.data;
+
+    if (user) {
+      this._userHolder.setData({ ...user, emailVerified: true });
+    }
+  }
+
+  handlePasswordChanged() {
+    this.signOut();
+  }
+
+  handlePrivilegesChanged() {
+    this.load();
+  }
+
+  handle2faChanged(_enabled: boolean) {
+    this.load();
+  }
+
+  handleUsernameChanged(username: string | null) {
+    const user = this._userHolder.data;
+
+    if (user) {
+      this._userHolder.setData({ ...user, username });
+    }
+  }
+
   private _setStatus(status: AuthStatus) {
     this.status = status;
   }

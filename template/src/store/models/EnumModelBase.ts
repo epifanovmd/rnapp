@@ -2,7 +2,6 @@ import { Maybe } from "@utils";
 import { getEnumNamesAndValues } from "@utils/enumValues";
 import { LambdaValue } from "@utils/lambdaValue";
 import { stringCapitalize } from "@utils/string";
-import { computed } from "mobx";
 
 import { DataModelBase } from "./DataModelBase";
 
@@ -28,9 +27,8 @@ export function createEnumModelBase<TEnum>(enm: any) {
       get() {
         return this.data === item.value;
       },
+      configurable: true,
     });
-
-    computed(EnumModel, key);
   });
 
   return EnumModel as TEnumModelBase<TEnum>;

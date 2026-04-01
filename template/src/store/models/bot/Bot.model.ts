@@ -1,33 +1,13 @@
 import { BotDetailDto } from "@api/api-gen/data-contracts";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 
-export class BotModel extends DataModelBase<BotDetailDto> {
-  get id() {
-    return this.data.id;
-  }
-
+export class BotModel extends TypedModel<BotDetailDto>() {
   get name() {
-    return this.data.displayName;
-  }
-
-  get username() {
-    return this.data.username;
-  }
-
-  get description() {
-    return this.data.description;
-  }
-
-  get isActive() {
-    return this.data.isActive;
-  }
-
-  get webhookUrl() {
-    return this.data.webhookUrl;
+    return this.displayName;
   }
 
   get hasWebhook() {
-    return !!this.data.webhookUrl;
+    return !!this.webhookUrl;
   }
 }

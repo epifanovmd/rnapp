@@ -5,6 +5,7 @@ import {
   IUpdateFolderBody,
 } from "@api/api-gen/data-contracts";
 import { CollectionHolder, MutationHolder } from "@store/holders";
+import { createModelMapper, FolderModel } from "@store/models";
 import { makeAutoObservable } from "mobx";
 
 import { IChatFolderStore } from "./ChatFolderStore.types";
@@ -42,12 +43,21 @@ export class ChatFolderStore implements IChatFolderStore {
     },
   });
 
+  private _toModels = createModelMapper<ChatFolderDto, FolderModel>(
+    f => f.id,
+    f => new FolderModel(f),
+  );
+
   constructor(@IApiService() private _api: IApiService) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
   get folders(): ChatFolderDto[] {
     return this.foldersHolder.items;
+  }
+
+  get folderModels() {
+    return this._toModels(this.foldersHolder.items);
   }
 
   get isLoading(): boolean {

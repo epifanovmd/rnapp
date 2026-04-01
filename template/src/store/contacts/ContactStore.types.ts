@@ -29,5 +29,8 @@ export interface IContactStore {
 
   handleContactRequest(contact: ContactDto): void;
   handleContactAccepted(contact: ContactDto): void;
+  handleContactRemoved(contactId: string): void;
+  handleContactBlocked(contact: ContactDto): void;
+  handleContactUnblocked(contact: ContactDto): void;
   handleProfileUpdated(profile: PublicProfileDto): void;
 }

@@ -5,14 +5,14 @@ import {
   MessageDto,
   PollDto,
 } from "@api/api-gen/data-contracts";
-import { IMessengerSocketService } from "@socket/messenger";
+import { IMessengerSocketService, ISocketTransport } from "@socket";
 import {
   CollectionHolder,
   CursorHolder,
   MutationHolder,
   MutationStatus,
 } from "@store/holders";
-import { MessageModel } from "@store/models";
+import { createModelMapper, MessageModel } from "@store/models";
 import { action, makeAutoObservable, observable, runInAction } from "mobx";
 
 import { IAuthStore } from "../auth/Auth.types";
@@ -44,12 +44,17 @@ export class MessageStore implements IMessageStore {
   public isSearching = false;
   public isDetachedFromBottom = false;
 
-  private _unsubscribeChat: (() => void) | null = null;
+  private _roomDisposers: Array<() => void> = [];
+  private _toModels = createModelMapper<MessageDto, MessageModel>(
+    m => m.id,
+    m => new MessageModel(m),
+  );
 
   constructor(
     @IApiService() private _api: IApiService,
     @IAuthStore() private _authStore: IAuthStore,
     @IChatStore() private _chatStore: IChatStore,
+    @ISocketTransport() private _socketTransport: ISocketTransport,
     @IMessengerSocketService()
     private _messengerSocket: IMessengerSocketService,
   ) {
@@ -75,16 +80,12 @@ export class MessageStore implements IMessageStore {
   }
 
   get messageModels(): MessageModel[] {
-    return this.messagesHolder.items.map(m => new MessageModel(m));
+    return this._toModels(this.messagesHolder.items);
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────
 
   async openChat(chatId: string): Promise<void> {
-    // Отписываемся от предыдущего чата если был
-    this._unsubscribeChat?.();
-    this._unsubscribeChat = null;
-
     this.currentChatId = chatId;
     this.messagesHolder.reset();
     this.pinnedHolder.reset();
@@ -92,39 +93,13 @@ export class MessageStore implements IMessageStore {
     this.editingMessage = null;
     this.isDetachedFromBottom = false;
     this.clearSearch();
-
-    // Подписываемся на socket-события текущего чата
-    this._unsubscribeChat = this._messengerSocket.subscribeChat(chatId, {
-      onNewMessage: message => this.handleNewMessage(message),
-      onMessageUpdated: message => this.handleMessageUpdated(message),
-      onMessageDeleted: ({ messageId }) => this.handleMessageDeleted(messageId),
-      onMessageReaction: data => this.handleReaction(data),
-      onMessagePinned: message => this.handlePinned(message),
-      onMessageUnpinned: ({ messageId }) => this.handleUnpinned(messageId),
-      onMessageStatus: data => this.handleStatus(data),
-      onTyping: ({ userId }) => this.handleTyping(userId),
-      onChatUpdated: chat => this._chatStore.handleChatUpdated(chat),
-      onMemberJoined: ({ chatId: cid, userId }) =>
-        this._chatStore.handleMemberJoined(cid, userId),
-      onMemberLeft: ({ chatId: cid, userId }) =>
-        this._chatStore.handleMemberLeft(cid, userId),
-      onSlowMode: ({ chatId: cid, seconds }) =>
-        this._chatStore.handleSlowMode(cid, seconds),
-      onMemberBanned: ({ chatId: cid, userId }) =>
-        this._chatStore.handleMemberBanned(cid, userId),
-      onMemberUnbanned: ({ chatId: cid, userId }) =>
-        this._chatStore.handleMemberUnbanned(cid, userId),
-      onPollVoted: poll => this.handlePollUpdated(poll),
-      onPollClosed: poll => this.handlePollUpdated(poll),
-    });
+    this._subscribeToMessageEvents(chatId);
 
     await this._loadMessages(chatId);
   }
 
   closeChat(): void {
-    this._unsubscribeChat?.();
-    this._unsubscribeChat = null;
-
+    this._unsubscribeFromMessageEvents();
     this.currentChatId = null;
     this.messagesHolder.reset();
     this.pinnedHolder.reset();
@@ -414,16 +389,10 @@ export class MessageStore implements IMessageStore {
   // ── Socket event handlers ──────────────────────────────────────────
 
   handleNewMessage(message: MessageDto): void {
-    console.log("message", message);
     if (message.chatId !== this.currentChatId) return;
-    // Don't inject new messages while viewing older history
     if (this.isDetachedFromBottom) return;
 
-    const exists = this.messagesHolder.exists(message.id);
-
-    if (exists) return;
-
-    this.messagesHolder.prependItem(message);
+    this.messagesHolder.prependIfNotExists(message.id, message);
   }
 
   handleMessageUpdated(message: MessageDto): void {
@@ -471,11 +440,11 @@ export class MessageStore implements IMessageStore {
 
     // 1. Remove user from ALL existing reactions (user can have only one reaction)
     reactions = reactions
-      .map(r => ({
-        ...r,
-        userIds: r.userIds.filter(id => id !== data.userId),
-        count: r.userIds.filter(id => id !== data.userId).length,
-      }))
+      .map(r => {
+        const userIds = r.userIds.filter(id => id !== data.userId);
+
+        return { ...r, userIds, count: userIds.length };
+      })
       .filter(r => r.count > 0);
 
     // 2. Add new reaction if not null (null = just remove)
@@ -568,5 +537,57 @@ export class MessageStore implements IMessageStore {
   private _clearTypingTimeouts(): void {
     this.typingUsers.forEach(entry => clearTimeout(entry.timer));
     this.typingUsers.clear();
+  }
+
+  // ── Room subscription ─────────────────────────────────────────────
+
+  private _subscribeToMessageEvents(chatId: string): void {
+    this._unsubscribeFromMessageEvents();
+
+    const currentUserId = this._authStore.user?.id;
+
+    this._roomDisposers.push(
+      this._socketTransport.on("message:new", msg => {
+        this.handleNewMessage(msg);
+        if (msg.senderId !== currentUserId && msg.id) {
+          this._messengerSocket.markDelivered(chatId, [msg.id]);
+          this._messengerSocket.markRead(chatId, msg.id);
+        }
+      }),
+      this._socketTransport.on("message:updated", msg => {
+        this.handleMessageUpdated(msg);
+      }),
+      this._socketTransport.on("message:deleted", ({ messageId }) => {
+        this.handleMessageDeleted(messageId);
+      }),
+      this._socketTransport.on("message:reaction", data => {
+        this.handleReaction(data);
+      }),
+      this._socketTransport.on("message:pinned", msg => {
+        this.handlePinned(msg);
+      }),
+      this._socketTransport.on("message:unpinned", ({ messageId }) => {
+        this.handleUnpinned(messageId);
+      }),
+      this._socketTransport.on("message:status", data => {
+        this.handleStatus(data);
+      }),
+      this._socketTransport.on("chat:typing", ({ userId }) => {
+        if (userId !== currentUserId) {
+          this.handleTyping(userId);
+        }
+      }),
+      this._socketTransport.on("poll:voted", poll => {
+        this.handlePollUpdated(poll);
+      }),
+      this._socketTransport.on("poll:closed", poll => {
+        this.handlePollUpdated(poll);
+      }),
+    );
+  }
+
+  private _unsubscribeFromMessageEvents(): void {
+    this._roomDisposers.forEach(d => d());
+    this._roomDisposers = [];
   }
 }

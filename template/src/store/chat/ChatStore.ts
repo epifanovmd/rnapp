@@ -1,15 +1,19 @@
 import { IApiService } from "@api";
 import {
   ChatDto,
+  ChatMemberDto,
   IBanMemberBody,
   ICreateInviteBody,
   IUpdateChannelBody,
   IUpdateChatBody,
   PublicProfileDto,
 } from "@api/api-gen/data-contracts";
+import { ISocketTransport } from "@socket";
 import { EntityHolder } from "@store/holders";
+import { ChatModel } from "@store/models";
 import { action, makeAutoObservable } from "mobx";
 
+import { updateChatProfile } from "../utils";
 import { IChatStore } from "./ChatStore.types";
 
 @IChatStore({ inSingleton: true })
@@ -20,7 +24,12 @@ export class ChatStore implements IChatStore {
 
   public currentChatId: string | null = null;
 
-  constructor(@IApiService() private _api: IApiService) {
+  private _roomDisposers: Array<() => void> = [];
+
+  constructor(
+    @IApiService() private _api: IApiService,
+    @ISocketTransport() private _socketTransport: ISocketTransport,
+  ) {
     makeAutoObservable(
       this,
       {
@@ -41,6 +50,10 @@ export class ChatStore implements IChatStore {
     return this.chatHolder.data;
   }
 
+  get chatModel(): ChatModel | null {
+    return this.chatHolder.data ? new ChatModel(this.chatHolder.data) : null;
+  }
+
   get isLoading(): boolean {
     return this.chatHolder.isLoading;
   }
@@ -49,12 +62,18 @@ export class ChatStore implements IChatStore {
 
   async openChat(chatId: string): Promise<void> {
     this.currentChatId = chatId;
+    this._subscribeToChatRoom(chatId);
     await this.chatHolder.load(chatId);
   }
 
   closeChat(): void {
+    this._unsubscribeFromChatRoom();
     this.currentChatId = null;
     this.chatHolder.reset();
+  }
+
+  sendTyping(chatId: string): void {
+    this._socketTransport.emit("chat:typing", { chatId });
   }
 
   // ── Chat CRUD ─────────────────────────────────────────────────────
@@ -154,8 +173,23 @@ export class ChatStore implements IChatStore {
     }
   }
 
-  handleMemberJoined(chatId: string, _userId: string): void {
-    if (this.currentChatId === chatId) {
+  handleMemberJoined(
+    chatId: string,
+    _userId: string,
+    member?: ChatMemberDto,
+  ): void {
+    const chat = this.chatHolder.data;
+
+    if (chat && chat.id === chatId && member) {
+      const exists = chat.members.some(m => m.userId === member.userId);
+
+      if (!exists) {
+        this.chatHolder.setData({
+          ...chat,
+          members: [...chat.members, member],
+        });
+      }
+    } else if (this.currentChatId === chatId) {
       this.chatHolder.refresh(chatId);
     }
   }
@@ -201,30 +235,68 @@ export class ChatStore implements IChatStore {
 
     if (!chat) return;
 
-    // Обновляем peer (direct-чат)
-    if (chat.peer?.userId === profile.userId && chat.peer.profile) {
-      this.chatHolder.setData({
-        ...chat,
-        peer: { ...chat.peer, profile: { ...chat.peer.profile, ...profile } },
-      });
+    const updated = updateChatProfile(chat, profile);
 
-      return;
+    if (updated) {
+      this.chatHolder.setData(updated);
     }
+  }
 
-    // Обновляем в members (группы/каналы)
-    const memberIdx = chat.members.findIndex(
-      m => m.profile?.userId === profile.userId,
+  // ── Room subscription ─────────────────────────────────────────────
+
+  private _subscribeToChatRoom(chatId: string): void {
+    this._unsubscribeFromChatRoom();
+
+    this._socketTransport.emit("chat:join", { chatId });
+
+    this._roomDisposers.push(
+      this._socketTransport.onConnect(() => {
+        this._socketTransport.emit("chat:join", { chatId });
+      }),
+      this._socketTransport.on("chat:updated", chat => {
+        this.handleChatUpdated(chat);
+      }),
+      this._socketTransport.on(
+        "chat:member:joined",
+        ({ chatId: cId, userId, member }) => {
+          this.handleMemberJoined(cId, userId, member);
+        },
+      ),
+      this._socketTransport.on(
+        "chat:member:left",
+        ({ chatId: cId, userId }) => {
+          this.handleMemberLeft(cId, userId);
+        },
+      ),
+      this._socketTransport.on(
+        "chat:member:role-changed",
+        ({ chatId: cId, userId, role }) => {
+          this.handleMemberRoleChanged(cId, userId, role);
+        },
+      ),
+      this._socketTransport.on("chat:slow-mode", ({ chatId: cId, seconds }) => {
+        this.handleSlowMode(cId, seconds);
+      }),
+      this._socketTransport.on(
+        "chat:member:banned",
+        ({ chatId: cId, userId }) => {
+          this.handleMemberBanned(cId, userId);
+        },
+      ),
+      this._socketTransport.on(
+        "chat:member:unbanned",
+        ({ chatId: cId, userId }) => {
+          this.handleMemberUnbanned(cId, userId);
+        },
+      ),
     );
+  }
 
-    if (memberIdx !== -1) {
-      const member = chat.members[memberIdx];
-      const updatedMembers = [...chat.members];
-
-      updatedMembers[memberIdx] = {
-        ...member,
-        profile: { ...member.profile!, ...profile },
-      };
-      this.chatHolder.setData({ ...chat, members: updatedMembers });
+  private _unsubscribeFromChatRoom(): void {
+    if (this.currentChatId) {
+      this._socketTransport.emit("chat:leave", { chatId: this.currentChatId });
     }
+    this._roomDisposers.forEach(d => d());
+    this._roomDisposers = [];
   }
 }

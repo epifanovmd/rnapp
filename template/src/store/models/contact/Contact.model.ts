@@ -1,36 +1,18 @@
 import { ContactDto, EContactStatus } from "@api/api-gen/data-contracts";
-import { computed, makeObservable } from "mobx";
+import { formatFullName } from "@utils";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 import { DateModel } from "../date";
 
-export class ContactModel extends DataModelBase<ContactDto> {
+export class ContactModel extends TypedModel<ContactDto>() {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
-
-  constructor(data: ContactDto) {
-    super(data);
-    makeObservable(this, {
-      displayName: computed,
-      isPending: computed,
-      isAccepted: computed,
-      isBlocked: computed,
-      statusLabel: computed,
-      contactUserId: computed,
-    });
-  }
 
   get displayName(): string {
     if (this.data.displayName) return this.data.displayName;
 
     const p = this.data.contactProfile;
 
-    if (p) {
-      const name = [p.firstName, p.lastName].filter(Boolean).join(" ");
-
-      if (name) return name;
-    }
-
-    return "Контакт";
+    return p ? formatFullName(p.firstName, p.lastName, "Контакт") : "Контакт";
   }
 
   get isPending(): boolean {
@@ -56,9 +38,5 @@ export class ContactModel extends DataModelBase<ContactDto> {
       default:
         return "";
     }
-  }
-
-  get contactUserId(): string {
-    return this.data.contactUserId;
   }
 }

@@ -1,6 +1,4 @@
 import {
-  ChatDto,
-  EChatType,
   EMessageStatus,
   EMessageType,
   MessageAttachmentDto,
@@ -29,11 +27,11 @@ import {
 import { useTheme } from "@core";
 import { iocHook } from "@di";
 import { StackProps } from "@navigation";
-import { IMessengerSocketService } from "@socket/messenger";
 import { IAuthStore } from "@store/auth";
 import { useChatStore } from "@store/chat";
 import { useMessageStore } from "@store/message";
 import { usePollStore } from "@store/poll";
+import { formatFullName } from "@utils";
 import { observer } from "mobx-react-lite";
 import React, {
   FC,
@@ -54,7 +52,6 @@ import {
 } from "react-native";
 
 const useAuthStore = iocHook(IAuthStore);
-const useMessengerSocket = iocHook(IMessengerSocketService);
 
 // ─── Message mapping ──────────────────────────────────────────────────────────
 
@@ -87,7 +84,7 @@ const findFileAttachment = (
       !a.fileType.startsWith("audio/"),
   );
 
-const mapPollToNative = (poll: PollDto, currentUserId?: string) => {
+const mapPollToNative = (poll: PollDto) => {
   const totalVotes = poll.totalVotes;
 
   return {
@@ -105,36 +102,6 @@ const mapPollToNative = (poll: PollDto, currentUserId?: string) => {
   };
 };
 
-const getSenderName = (
-  msg: MessageDto,
-  currentUserId?: string,
-): string | undefined => {
-  if (msg.senderId === currentUserId) return undefined;
-  if (!msg.sender) return undefined;
-
-  return (
-    [msg.sender.firstName, msg.sender.lastName].filter(Boolean).join(" ") ||
-    undefined
-  );
-};
-
-const mapReplyToNative = (
-  replyTo: MessageDto,
-  currentUserId?: string,
-): ChatMessage["replyTo"] => ({
-  id: replyTo.id,
-  text: replyTo.content ?? undefined,
-  senderName:
-    replyTo.senderId === currentUserId
-      ? "You"
-      : replyTo.sender
-      ? [replyTo.sender.firstName, replyTo.sender.lastName]
-          .filter(Boolean)
-          .join(" ")
-      : undefined,
-  hasImages: replyTo.attachments.some(a => a.fileType.startsWith("image/")),
-});
-
 const mapMessageToNative = (
   msg: MessageDto,
   currentUserId?: string,
@@ -150,11 +117,14 @@ const mapMessageToNative = (
     text: msg.content ?? undefined,
     timestamp: new Date(msg.createdAt).getTime(),
     isMine,
-    senderName: getSenderName(msg, currentUserId),
+    senderName: isMine
+      ? undefined
+      : msg.sender
+      ? formatFullName(msg.sender.firstName, msg.sender.lastName)
+      : undefined,
     status: mapStatus(msg.status),
     isEdited: msg.isEdited,
 
-    // Images
     images: imageAttachment
       ? [
           {
@@ -166,7 +136,6 @@ const mapMessageToNative = (
         ]
       : undefined,
 
-    // Video
     video: videoAttachment
       ? {
           url: videoAttachment.fileUrl,
@@ -177,10 +146,8 @@ const mapMessageToNative = (
         }
       : undefined,
 
-    // Poll
-    poll: msg.poll ? mapPollToNative(msg.poll, currentUserId) : undefined,
+    poll: msg.poll ? mapPollToNative(msg.poll) : undefined,
 
-    // File
     file: fileAttachment
       ? {
           url: fileAttachment.fileUrl,
@@ -190,45 +157,25 @@ const mapMessageToNative = (
         }
       : undefined,
 
-    // Reply
     replyTo: msg.replyTo
-      ? mapReplyToNative(msg.replyTo, currentUserId)
+      ? {
+          id: msg.replyTo.id,
+          text: msg.replyTo.content ?? undefined,
+          senderName:
+            msg.replyTo.senderId === currentUserId
+              ? "You"
+              : msg.replyTo.sender
+              ? formatFullName(
+                  msg.replyTo.sender.firstName,
+                  msg.replyTo.sender.lastName,
+                )
+              : undefined,
+          hasImages: msg.replyTo.attachments.some(a =>
+            a.fileType.startsWith("image/"),
+          ),
+        }
       : undefined,
   };
-};
-
-// ─── Chat display name ────────────────────────────────────────────────────────
-
-const getChatDisplayName = (
-  chat: ChatDto | null,
-  currentUserId?: string,
-): string => {
-  if (!chat) return "";
-  if (chat.name) return chat.name;
-
-  if (chat.type === EChatType.Direct) {
-    const peer = chat.peer;
-
-    if (peer?.profile) {
-      return (
-        [peer.profile.firstName, peer.profile.lastName]
-          .filter(Boolean)
-          .join(" ") || "User"
-      );
-    }
-
-    const other = chat.members.find(m => m.userId !== currentUserId);
-
-    if (other?.profile) {
-      return (
-        [other.profile.firstName, other.profile.lastName]
-          .filter(Boolean)
-          .join(" ") || "User"
-      );
-    }
-  }
-
-  return "Chat";
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -241,7 +188,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
     const messageStore = useMessageStore();
     const pollStore = usePollStore();
     const authStore = useAuthStore();
-    const messengerSocket = useMessengerSocket();
     const chatRef = useRef<ChatView>(null);
     const colorScheme = useColorScheme();
 
@@ -251,14 +197,27 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const currentUserId = authStore.user?.id;
     const chat = chatStore.chat;
-    const isGroup =
-      chat?.type === EChatType.Group || chat?.type === EChatType.Channel;
 
     // ─── Lifecycle ──────────────────────────────────────────────────────────
 
     useEffect(() => {
-      chatStore.openChat(chatId);
-      messageStore.openChat(chatId);
+      const initChat = async () => {
+        await chatStore.openChat(chatId);
+        await messageStore.openChat(chatId);
+        messageStore.loadPinnedMessages(chatId);
+
+        // Mark as read with the newest message from others
+        const msgs = messageStore.messagesHolder.items;
+        const newestFromOther = msgs.find(
+          m => m.senderId && m.senderId !== currentUserId,
+        );
+
+        if (newestFromOther?.id) {
+          messageStore.markAsRead(chatId, newestFromOther.id).catch(() => {});
+        }
+      };
+
+      initChat();
 
       return () => {
         chatStore.closeChat();
@@ -276,7 +235,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [messages, currentUserId],
     );
 
-    const chatDisplayName = getChatDisplayName(chat, currentUserId);
+    const chatDisplayName = chatStore.chatModel?.displayName ?? "";
 
     const typingText = useMemo(() => {
       const typingMap = messageStore.typingUsers;
@@ -287,9 +246,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       if (userIds.length === 1) {
         const member = chat?.members.find(m => m.userId === userIds[0]);
         const name = member?.profile
-          ? [member.profile.firstName, member.profile.lastName]
-              .filter(Boolean)
-              .join(" ")
+          ? formatFullName(member.profile.firstName, member.profile.lastName)
           : "Someone";
 
         return `${name} is typing...`;
@@ -302,7 +259,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const getActionsForMessage = useCallback(
       (msg: { isMine?: boolean }): ChatAction[] => {
-        const isMine = msg.isMine;
         const actions: ChatAction[] = [
           {
             id: "reply",
@@ -317,7 +273,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           },
         ];
 
-        if (isMine) {
+        if (msg.isMine) {
           actions.push({ id: "edit", title: "Edit", systemImage: "pencil" });
         }
 
@@ -349,9 +305,8 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           replyToId,
         });
         setInputAction(null);
-        messengerSocket.sendTyping(chatId);
       },
-      [messageStore, messengerSocket, chatId],
+      [messageStore, chatId],
     );
 
     const handleEditMessage = useCallback(
@@ -368,6 +323,10 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       },
       [],
     );
+
+    const handleTyping = useCallback(() => {
+      chatStore.sendTyping(chatId);
+    }, [chatStore, chatId]);
 
     const handleReachTop = useCallback(
       (_: ChatReachTopEventData) => {
@@ -460,7 +419,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleReplyMessagePress = useCallback(
       ({ messageId }: ChatReplyMessagePressEventData) => {
-        // Если сообщение есть в текущем окне — скроллим к нему
         const exists = messages.some(m => m.id === messageId);
 
         if (exists) {
@@ -470,10 +428,8 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
             highlight: true,
           });
         } else {
-          // Сообщение не в текущем окне — навигируем к нему через стор
           messageStore.navigateToMessage(chatId, messageId).then(success => {
             if (success) {
-              // После загрузки сообщений вокруг target — скроллим к нему
               setTimeout(() => {
                 chatRef.current?.scrollToMessage(messageId, {
                   position: "center",
@@ -490,7 +446,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleVideoPress = useCallback(
       ({ videoUrl }: ChatVideoPressEventData) => {
-        // Открываем видео через системный плеер
         Linking.openURL(videoUrl).catch(() => {
           Alert.alert("Error", "Cannot open video");
         });

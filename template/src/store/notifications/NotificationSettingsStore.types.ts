@@ -21,4 +21,6 @@ export interface INotificationSettingsStore {
   update(data: Partial<NotificationSettingsDto>): Promise<void>;
   registerDevice(token: string, platform: EDevicePlatform): Promise<void>;
   unregisterDevice(token: string): Promise<void>;
+
+  handleSettingsChanged(settings: NotificationSettingsDto): void;
 }

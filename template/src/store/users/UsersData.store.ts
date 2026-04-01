@@ -7,7 +7,7 @@ import {
   UserDto,
 } from "@api/api-gen/data-contracts";
 import { EntityHolder, MutationHolder, PagedHolder } from "@store";
-import { PublicUserModel, UserModel } from "@store/models";
+import { createModelMapper, PublicUserModel, UserModel } from "@store/models";
 import { makeAutoObservable } from "mobx";
 
 import { IUsersDataStore } from "./UsersData.types";
@@ -28,12 +28,17 @@ export class UsersDataStore implements IUsersDataStore {
   >();
   public deleteUserMutation = new MutationHolder<string, boolean>();
 
+  private _toModels = createModelMapper<PublicUserDto, PublicUserModel>(
+    u => u.userId,
+    u => new PublicUserModel(u),
+  );
+
   constructor(@IApiService() private _apiService: IApiService) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 
   get models() {
-    return this.listHolder.items.map(u => new PublicUserModel(u));
+    return this._toModels(this.listHolder.items);
   }
 
   get isLoading() {

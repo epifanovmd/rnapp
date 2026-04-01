@@ -3,37 +3,14 @@ import {
   EMessageType,
   MessageDto,
 } from "@api/api-gen/data-contracts";
-import { computed, makeObservable } from "mobx";
+import { formatFullName } from "@utils";
 
-import { DataModelBase } from "../DataModelBase";
+import { TypedModel } from "../DataModelBase";
 import { DateModel } from "../date";
 
-export class MessageModel extends DataModelBase<MessageDto> {
+export class MessageModel extends TypedModel<MessageDto>() {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
   public readonly updatedAtDate = new DateModel(() => this.data.updatedAt);
-
-  constructor(data: MessageDto) {
-    super(data);
-    makeObservable(this, {
-      senderName: computed,
-      formattedTime: computed,
-      isEdited: computed,
-      isPinned: computed,
-      isDeleted: computed,
-      hasAttachments: computed,
-      hasReactions: computed,
-      reactionsList: computed,
-      isText: computed,
-      isImage: computed,
-      isFile: computed,
-      isVoice: computed,
-      isSystem: computed,
-      isPoll: computed,
-      contentPreview: computed,
-      hasMentions: computed,
-      statusIcon: computed,
-    });
-  }
 
   isOwn(currentUserId: string): boolean {
     return this.data.senderId === currentUserId;
@@ -42,10 +19,7 @@ export class MessageModel extends DataModelBase<MessageDto> {
   get senderName(): string {
     const s = this.data.sender;
 
-    if (!s) return "Unknown";
-    const name = [s.firstName, s.lastName].filter(Boolean).join(" ");
-
-    return name || "Unknown";
+    return s ? formatFullName(s.firstName, s.lastName) : "Unknown";
   }
 
   get formattedTime(): string {

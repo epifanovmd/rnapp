@@ -8,9 +8,10 @@ import {
 } from "@api/api-gen/data-contracts";
 import { IAuthStore } from "@store/auth/Auth.types";
 import { PagedHolder } from "@store/holders";
-import { ChatModel } from "@store/models";
+import { ChatModel, createModelMapper } from "@store/models";
 import { action, computed, makeAutoObservable, observable } from "mobx";
 
+import { updateChatProfile } from "../utils";
 import { IChatListStore } from "./ChatListStore.types";
 
 @IChatListStore({ inSingleton: true })
@@ -25,6 +26,11 @@ export class ChatListStore implements IChatListStore {
   public activeFolderId: string | null = null;
   public unreadCounts: Map<string, number> = observable.map();
 
+  private _toModels = createModelMapper<ChatDto, ChatModel>(
+    c => c.id,
+    c => new ChatModel(c),
+  );
+
   constructor(
     @IApiService() private _api: IApiService,
     @IAuthStore() private _authStore: IAuthStore,
@@ -34,6 +40,7 @@ export class ChatListStore implements IChatListStore {
       {
         unreadCounts: observable,
         sortedChats: computed,
+        filteredChats: computed,
         handleNewMessage: action,
         handleChatCreated: action,
         handleChatUpdated: action,
@@ -48,7 +55,7 @@ export class ChatListStore implements IChatListStore {
   // ── Computed ───────────────────────────────────────────────────────────
 
   get models() {
-    return this.listHolder.items.map(c => new ChatModel(c));
+    return this._toModels(this.listHolder.items);
   }
 
   get isLoading() {
@@ -69,6 +76,35 @@ export class ChatListStore implements IChatListStore {
 
       return bTime - aTime;
     });
+  }
+
+  /** Sorted chats with folder + search filters applied */
+  get filteredChats(): ChatDto[] {
+    let chats = this.sortedChats;
+
+    if (this.activeFolderId) {
+      chats = chats.filter(c => c.me?.folderId === this.activeFolderId);
+    }
+
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
+
+      chats = chats.filter(c => {
+        const name = c.name?.toLowerCase() ?? "";
+        const memberNames = c.members
+          .map(m =>
+            [m.profile?.firstName, m.profile?.lastName]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase(),
+          )
+          .join(" ");
+
+        return name.includes(q) || memberNames.includes(q);
+      });
+    }
+
+    return chats;
   }
 
   // ── Data loading ───────────────────────────────────────────────────────
@@ -120,6 +156,32 @@ export class ChatListStore implements IChatListStore {
   }
 
   // ── Chat organization (optimistic) ────────────────────────────────────
+
+  async togglePin(chatId: string): Promise<void> {
+    const chat = this.listHolder.items.find(c => c.id === chatId);
+
+    if (chat?.me?.isPinnedChat) {
+      await this.unpinChat(chatId);
+    } else {
+      await this.pinChat(chatId);
+    }
+  }
+
+  async toggleMute(chatId: string): Promise<void> {
+    const chat = this.listHolder.items.find(c => c.id === chatId);
+    const isMuted = chat?.me?.mutedUntil
+      ? new Date(chat.me.mutedUntil) > new Date()
+      : false;
+
+    if (isMuted) {
+      await this.muteChat(chatId, null);
+    } else {
+      const until = new Date();
+
+      until.setFullYear(until.getFullYear() + 1);
+      await this.muteChat(chatId, until.toISOString());
+    }
+  }
 
   async muteChat(chatId: string, mutedUntil: string | null): Promise<void> {
     // Optimistic update
@@ -219,12 +281,7 @@ export class ChatListStore implements IChatListStore {
   }
 
   handleChatCreated(chat: ChatDto): void {
-    // Avoid duplicates
-    const exists = this.listHolder.exists(c => c.id === chat.id);
-
-    if (!exists) {
-      this.listHolder.prependItem(chat);
-    }
+    this.listHolder.prependIfNotExists(chat.id, chat);
   }
 
   handleChatUpdated(chat: ChatDto): void {
@@ -250,34 +307,20 @@ export class ChatListStore implements IChatListStore {
     });
   }
 
+  handleChatPinned(chatId: string, isPinned: boolean): void {
+    this._updateMyMember(chatId, m => ({
+      ...m,
+      isPinnedChat: isPinned,
+      pinnedChatAt: isPinned ? new Date().toISOString() : null,
+    }));
+  }
+
   handleProfileUpdated(profile: PublicProfileDto): void {
     for (const chat of this.listHolder.items) {
-      // Обновляем профиль в peer (direct-чаты)
-      if (chat.peer?.userId === profile.userId && chat.peer.profile) {
-        this.listHolder.updateItem(chat.id, {
-          ...chat,
-          peer: { ...chat.peer, profile: { ...chat.peer.profile, ...profile } },
-        });
-        continue;
-      }
+      const updated = updateChatProfile(chat, profile);
 
-      // Обновляем профиль в members (группы/каналы)
-      const memberIdx = chat.members.findIndex(
-        m => m.profile?.userId === profile.userId,
-      );
-
-      if (memberIdx !== -1) {
-        const member = chat.members[memberIdx];
-        const updatedMembers = [...chat.members];
-
-        updatedMembers[memberIdx] = {
-          ...member,
-          profile: { ...member.profile!, ...profile },
-        };
-        this.listHolder.updateItem(chat.id, {
-          ...chat,
-          members: updatedMembers,
-        });
+      if (updated) {
+        this.listHolder.updateItem(chat.id, updated);
       }
     }
   }

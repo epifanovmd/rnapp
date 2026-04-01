@@ -138,6 +138,33 @@ export interface ISocketSessionPayload {
   sessionId: string;
 }
 
+export interface ISocketContactRemovedPayload {
+  contactId: string;
+}
+
+export interface ISocketAuth2faChangedPayload {
+  enabled: boolean;
+}
+
+export interface ISocketUserEmailVerifiedPayload {
+  verified: boolean;
+}
+
+export interface ISocketUserPasswordChangedPayload {
+  userId: string;
+  method: "change" | "reset";
+}
+
+export interface ISocketUserPrivilegesChangedPayload {
+  roles: string[];
+  permissions: string[];
+}
+
+export interface ISocketUserUsernameChangedPayload {
+  userId: string;
+  username: string | null;
+}
+
 export interface ISocketUserPresencePayload {
   userId: string;
   lastOnline?: string | null;

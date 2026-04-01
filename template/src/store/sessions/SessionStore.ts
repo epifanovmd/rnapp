@@ -1,7 +1,8 @@
 import { IApiService } from "@api";
-import { SessionDto } from "@api/api-gen/data-contracts";
+import type { SessionDto } from "@api/api-gen/data-contracts";
 import { IAuthTokenStore } from "@core/auth";
 import { CollectionHolder, MutationHolder } from "@store/holders";
+import { createModelMapper, SessionModel } from "@store/models";
 import { action, makeAutoObservable } from "mobx";
 
 import { IAuthStore } from "../auth/Auth.types";
@@ -13,6 +14,11 @@ export class SessionStore implements ISessionStore {
     keyExtractor: s => s.id,
   });
   public terminateMutation = new MutationHolder<string, void>();
+
+  private _toModels = createModelMapper<SessionDto, SessionModel>(
+    s => s.id,
+    s => new SessionModel(s),
+  );
 
   constructor(
     @IApiService() private _api: IApiService,
@@ -28,6 +34,10 @@ export class SessionStore implements ISessionStore {
 
   get sessions() {
     return this.sessionsHolder.items;
+  }
+
+  get sessionModels() {
+    return this._toModels(this.sessionsHolder.items);
   }
 
   get isLoading() {
@@ -53,6 +63,10 @@ export class SessionStore implements ISessionStore {
   async terminateOtherSessions() {
     await this._api.terminateOtherSessions();
     await this.load();
+  }
+
+  handleNewSession(session: SessionDto) {
+    this.sessionsHolder.appendIfNotExists(session.id, session);
   }
 
   handleSessionTerminated(sessionId: string) {

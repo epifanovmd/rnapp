@@ -1,6 +1,6 @@
 import { NotificationActions } from "./Notification";
 
-class NotificationService implements NotificationActions {
+class NotificationServiceImpl implements NotificationActions {
   private notificationInstance: NotificationActions | null = null;
 
   show: NotificationActions["show"] = (...args) => {
@@ -23,4 +23,4 @@ class NotificationService implements NotificationActions {
   }
 }
 
-export const notificationService = new NotificationService();
+export const notificationService = new NotificationServiceImpl();

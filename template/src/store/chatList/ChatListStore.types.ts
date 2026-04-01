@@ -15,6 +15,7 @@ export interface IChatListStore {
   listHolder: PagedHolder<ChatDto>;
   models: ChatModel[];
   sortedChats: ChatDto[];
+  filteredChats: ChatDto[];
   isLoading: boolean;
   searchQuery: string;
   activeFolderId: string | null;
@@ -31,6 +32,8 @@ export interface IChatListStore {
   setSearchQuery(query: string): void;
   setActiveFolder(folderId: string | null): void;
 
+  togglePin(chatId: string): Promise<void>;
+  toggleMute(chatId: string): Promise<void>;
   muteChat(chatId: string, mutedUntil: string | null): Promise<void>;
   pinChat(chatId: string): Promise<void>;
   unpinChat(chatId: string): Promise<void>;
@@ -38,6 +41,7 @@ export interface IChatListStore {
   moveChatToFolder(chatId: string, folderId: string | null): Promise<void>;
   markAsRead(chatId: string, messageId: string): Promise<void>;
 
+  handleChatPinned(chatId: string, isPinned: boolean): void;
   handleNewMessage(message: MessageDto): void;
   handleChatCreated(chat: ChatDto): void;
   handleChatUpdated(chat: ChatDto): void;

@@ -1,5 +1,6 @@
 import { IAuthSessionService } from "@core/auth";
-import { notificationService } from "@core/notification";
+import { BASE_URL } from "@core/env";
+import { INotificationService } from "@core/notifications";
 import axios, {
   AxiosHeaders,
   AxiosResponse,
@@ -7,7 +8,6 @@ import axios, {
   CancelTokenSource,
   isAxiosError,
 } from "axios";
-import Config from "react-native-config";
 
 import { ApiError, ApiServiceResponse, IApiService } from "./Api.types";
 import { Api } from "./api-gen/Api";
@@ -18,8 +18,8 @@ import {
 } from "./api-gen/http-client";
 import { QueryRace } from "./QueryRace";
 
-export const BASE_URL = Config.BASE_URL;
-export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
+export { BASE_URL };
+export { SOCKET_BASE_URL } from "@core/env";
 
 const DEFAULT_HEADERS = new AxiosHeaders({
   Accept: "application/json",
@@ -31,7 +31,10 @@ class ApiService extends Api<ApiError> implements IApiService {
   private readonly _instance;
   private readonly _queryRace = new QueryRace();
 
-  constructor(@IAuthSessionService() private _session: IAuthSessionService) {
+  constructor(
+    @IAuthSessionService() private _session: IAuthSessionService,
+    @INotificationService() private _notifications: INotificationService,
+  ) {
     super();
 
     this._instance = axios.create({
@@ -98,7 +101,6 @@ class ApiService extends Api<ApiError> implements IApiService {
         axiosResponse: res,
       }),
       async (e: any): Promise<ApiServiceResponse<any>> => {
-        console.log("e", e);
         const axiosError = isAxiosError(e) ? e : undefined;
         const status = e.response?.status || e.request?.status || 400;
 
@@ -127,17 +129,12 @@ class ApiService extends Api<ApiError> implements IApiService {
         const apiError = ApiError.fromAxiosError(axiosError!);
 
         if (apiError.isNetworkError) {
-          notificationService.show("Нет соединения с сервером", {
-            type: "danger",
+          this._notifications.error("Нет соединения с сервером", {
             duration: 6000,
           });
         } else if (apiError.isServerError) {
-          notificationService.show(
+          this._notifications.error(
             apiError.message || "Внутренняя ошибка сервера",
-            {
-              type: "danger",
-              duration: 6000,
-            },
           );
         }
 

@@ -68,6 +68,24 @@ export abstract class BaseListHolder<
     }
   }
 
+  appendIfNotExists(
+    predicate: ((item: TItem) => boolean) | string | number,
+    item: TItem,
+  ) {
+    if (!this.exists(predicate)) {
+      this.appendItem(item);
+    }
+  }
+
+  prependIfNotExists(
+    predicate: ((item: TItem) => boolean) | string | number,
+    item: TItem,
+  ) {
+    if (!this.exists(predicate)) {
+      this.prependItem(item);
+    }
+  }
+
   exists(predicate: ((item: TItem) => boolean) | string | number) {
     const fn = this._normalizePredicate(predicate);
 

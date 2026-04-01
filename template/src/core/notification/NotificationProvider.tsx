@@ -5,7 +5,7 @@ import {
   NotificationActions,
   NotificationProps,
 } from "./Notification";
-import { notificationService } from "./notificationService";
+import { notificationService } from "./notificationServiceInstance";
 
 type PropsWithChildren = NotificationProps & {
   children: React.ReactNode;

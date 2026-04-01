@@ -14,6 +14,7 @@ import {
 import { ApiResponse } from "@api/api-gen/http-client";
 import { createServiceDecorator } from "@di";
 import { EntityHolder } from "@store/holders";
+import { ChatModel } from "@store/models";
 
 export const IChatStore = createServiceDecorator<IChatStore>();
 
@@ -21,10 +22,12 @@ export interface IChatStore {
   readonly chatHolder: EntityHolder<ChatDto, string>;
   readonly currentChatId: string | null;
   readonly chat: ChatDto | null;
+  readonly chatModel: ChatModel | null;
   readonly isLoading: boolean;
 
   openChat(chatId: string): Promise<void>;
   closeChat(): void;
+  sendTyping(chatId: string): void;
 
   // Chat CRUD
   updateChat(
@@ -95,7 +98,11 @@ export interface IChatStore {
 
   // Socket handlers
   handleChatUpdated(chat: ChatDto): void;
-  handleMemberJoined(chatId: string, userId: string): void;
+  handleMemberJoined(
+    chatId: string,
+    userId: string,
+    member?: ChatMemberDto,
+  ): void;
   handleMemberLeft(chatId: string, userId: string): void;
   handleMemberRoleChanged(chatId: string, userId: string, role: string): void;
   handleSlowMode(chatId: string, seconds: number): void;

@@ -15,5 +15,6 @@ export interface ISessionStore {
   terminateSession(sessionId: string): Promise<void>;
   terminateOtherSessions(): Promise<void>;
 
+  handleNewSession(session: SessionDto): void;
   handleSessionTerminated(sessionId: string): void;
 }
