@@ -9,9 +9,23 @@ final class MessageBubbleView: UIView {
 
     // MARK: - Subviews
 
+    private let forwardedLabel: UILabel = {
+        let l = UILabel()
+        l.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        l.numberOfLines = 1
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
     let replyPreview = ReplyPreviewView()
 
     private(set) var contentView: (any MessageContentView)?
+
+    private let reactionsView: ReactionsRowView = {
+        let v = ReactionsRowView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
 
     private let editedLabel: UILabel = {
         let l = UILabel()
@@ -84,6 +98,8 @@ final class MessageBubbleView: UIView {
         footerStack.addArrangedSubview(timeLabel)
         footerStack.addArrangedSubview(statusView)
 
+        forwardedLabel.translatesAutoresizingMaskIntoConstraints = false
+        mainStack.addArrangedSubview(forwardedLabel)
         replyPreview.translatesAutoresizingMaskIntoConstraints = false
         mainStack.addArrangedSubview(replyPreview)
 
@@ -115,11 +131,13 @@ final class MessageBubbleView: UIView {
 
         // Emoji-only detection
         let emojiCount = MessageSizeCalculator.emojiOnlyCount(for: message)
-        isEmojiOnly = emojiCount != nil && !hasReply
+        isEmojiOnly = emojiCount != nil && !hasReply && message.forwardedFrom == nil
 
         applyBubbleColors(isMine: isMine, theme: theme)
+        configureForwarded(message: message, isMine: isMine, theme: theme)
         configureReply(resolvedReply: resolvedReply, isMine: isMine, theme: theme)
         configureContent(message: message, isMine: isMine, theme: theme)
+        configureReactions(message: message, isMine: isMine, theme: theme)
         configureFooter(message: message, isMine: isMine, theme: theme)
     }
 
@@ -129,6 +147,7 @@ final class MessageBubbleView: UIView {
 
     func prepareForReuse() {
         contentView?.prepareForReuse()
+        reactionsView.prepareForReuse()
         isEmojiOnly = false
     }
 
@@ -165,6 +184,33 @@ final class MessageBubbleView: UIView {
             contentView = cv
         }
         contentView?.configure(content: message.content, isMine: isMine, theme: theme)
+    }
+
+    private func configureForwarded(message: ChatMessage, isMine: Bool, theme: ChatTheme) {
+        if let fwd = message.forwardedFrom {
+            forwardedLabel.isHidden = false
+            forwardedLabel.text = "↗ Forwarded from \(fwd)"
+            forwardedLabel.textColor = isMine
+                ? theme.outgoingReplyAccent
+                : theme.incomingReplyAccent
+        } else {
+            forwardedLabel.isHidden = true
+        }
+    }
+
+    private func configureReactions(message: ChatMessage, isMine: Bool, theme: ChatTheme) {
+        if message.reactions.isEmpty {
+            reactionsView.isHidden = true
+            if reactionsView.superview != nil {
+                reactionsView.removeFromSuperview()
+            }
+        } else {
+            reactionsView.isHidden = false
+            if reactionsView.superview == nil {
+                mainStack.addArrangedSubview(reactionsView)
+            }
+            reactionsView.configure(reactions: message.reactions, isMine: isMine, theme: theme)
+        }
     }
 
     private func configureFooter(message: ChatMessage, isMine: Bool, theme: ChatTheme) {

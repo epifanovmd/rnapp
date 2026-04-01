@@ -37,8 +37,8 @@ enum MessageSizeCalculator {
             let w = ceil((message.text! as NSString).size(withAttributes: [.font: font]).width)
             return min(w + ChatLayoutConstants.bubbleHorizontalPad, maxWidth)
         }
-        // Media, replies, polls, files — max width
-        if message.content.hasMedia || hasReply || message.content.hasPoll || message.content.hasFile {
+        // Media, replies, polls, files, voice — max width
+        if message.content.hasMedia || hasReply || message.content.hasPoll || message.content.hasFile || message.content.hasVoice {
             return maxWidth
         }
         let minW = minimumBubbleWidth(for: message)
@@ -64,11 +64,20 @@ enum MessageSizeCalculator {
 
         var h = ChatLayoutConstants.bubbleTopPad
 
+        if message.forwardedFrom != nil {
+            h += 18 + ChatLayoutConstants.stackSpacing  // forwarded label height
+        }
+
         if hasReply {
             h += ChatLayoutConstants.replyBlockHeight + ChatLayoutConstants.stackSpacing
         }
 
         h += contentHeight(for: message.content, bubbleWidth: bubbleWidth)
+
+        if !message.reactions.isEmpty {
+            h += 26 + ChatLayoutConstants.stackSpacing  // reactions row height
+        }
+
         h += ChatLayoutConstants.footerTopSpacing
            + ChatLayoutConstants.footerHeight
            + ChatLayoutConstants.bubbleBottomPad
@@ -107,6 +116,9 @@ enum MessageSizeCalculator {
                  + ChatLayoutConstants.stackSpacing
                  + textHeight(tp.body, width: inner)
                  + ChatLayoutConstants.stackSpacing
+
+        case .voice:
+            return 40 + ChatLayoutConstants.stackSpacing
 
         case .poll(let p):
             return pollHeight(p, width: inner)

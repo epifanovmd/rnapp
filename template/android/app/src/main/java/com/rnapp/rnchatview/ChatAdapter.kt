@@ -23,6 +23,8 @@ private const val TYPE_INCOMING_POLL = 11
 private const val TYPE_OUTGOING_POLL = 12
 private const val TYPE_INCOMING_FILE = 13
 private const val TYPE_OUTGOING_FILE = 14
+private const val TYPE_INCOMING_VOICE = 15
+private const val TYPE_OUTGOING_VOICE = 16
 
 sealed class ListItem {
     data class DateItem(val dateKey: String, val title: String) : ListItem()
@@ -99,6 +101,7 @@ class ChatAdapter(
             when (msg.content) {
                 is MessageContent.Poll -> if (msg.isMine) TYPE_OUTGOING_POLL else TYPE_INCOMING_POLL
                 is MessageContent.File -> if (msg.isMine) TYPE_OUTGOING_FILE else TYPE_INCOMING_FILE
+                is MessageContent.Voice -> if (msg.isMine) TYPE_OUTGOING_VOICE else TYPE_INCOMING_VOICE
                 is MessageContent.Video -> if (msg.isMine) TYPE_OUTGOING_VIDEO else TYPE_INCOMING_VIDEO
                 is MessageContent.MixedTextVideo -> if (msg.isMine) TYPE_OUTGOING_MIXED_VIDEO else TYPE_INCOMING_MIXED_VIDEO
                 is MessageContent.Mixed -> if (msg.isMine) TYPE_OUTGOING_MIXED else TYPE_INCOMING_MIXED
@@ -115,7 +118,7 @@ class ChatAdapter(
                 val isMine = viewType in setOf(
                     TYPE_OUTGOING_TEXT, TYPE_OUTGOING_IMAGE, TYPE_OUTGOING_MIXED,
                     TYPE_OUTGOING_VIDEO, TYPE_OUTGOING_MIXED_VIDEO,
-                    TYPE_OUTGOING_POLL, TYPE_OUTGOING_FILE)
+                    TYPE_OUTGOING_VOICE, TYPE_OUTGOING_POLL, TYPE_OUTGOING_FILE)
                 MessageViewHolder(MessageBubbleView(context, isMine)).also { vh ->
                     vh.bubbleView.onReplyTap = { replyId -> onReplyPress?.invoke(replyId) }
                 }

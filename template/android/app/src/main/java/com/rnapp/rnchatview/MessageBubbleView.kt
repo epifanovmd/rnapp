@@ -49,6 +49,18 @@ class MessageBubbleView(
     private val fileNameLabel = TextView(context)
     private val fileSizeLabel = TextView(context)
 
+    // Voice views
+    private val voiceContainer = LinearLayout(context)
+    private val voicePlayButton = ImageView(context)
+    private val voiceWaveform = View(context)  // placeholder for waveform
+    private val voiceDurationLabel = TextView(context)
+
+    // Forwarded header
+    private val forwardedLabel = TextView(context)
+
+    // Reactions row
+    private val reactionsContainer = LinearLayout(context)
+
     var currentBubbleColor: Int = if (isMine) 0xFF3D9EF9.toInt() else 0xFFF0F0F0.toInt()
         private set
 
@@ -69,13 +81,73 @@ class MessageBubbleView(
         // Emoji-only detection
         isEmojiOnly = message.content is MessageContent.Text
                 && resolvedReply == null
+                && message.forwardedFrom == null
                 && EmojiHelper.emojiOnlyCount(message.content.textBody ?: "") != null
 
         applyBubbleColors(theme)
+        configureForwarded(message, theme)
         configureReply(resolvedReply, theme)
         configureContent(message, theme)
+        configureReactions(message, theme)
         configureFooter(message, theme)
         if (!isEmojiOnly) applyMinBubbleWidth(message, resolvedReply)
+    }
+
+    private fun configureForwarded(message: ChatMessage, theme: ChatTheme) {
+        val fwd = message.forwardedFrom
+        if (fwd != null) {
+            forwardedLabel.isVisible = true
+            forwardedLabel.text = "↗ Forwarded from $fwd"
+            forwardedLabel.setTextColor(
+                if (isMine) theme.outgoingReplyAccent else theme.incomingReplyAccent
+            )
+        } else {
+            forwardedLabel.isVisible = false
+        }
+    }
+
+    private fun configureReactions(message: ChatMessage, theme: ChatTheme) {
+        reactionsContainer.removeAllViews()
+        if (message.reactions.isEmpty()) {
+            reactionsContainer.isVisible = false
+            return
+        }
+        reactionsContainer.isVisible = true
+
+        for (reaction in message.reactions) {
+            val chip = TextView(context).apply {
+                text = "${reaction.emoji} ${reaction.count}"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(C.dpToPx(6), C.dpToPx(3), C.dpToPx(6), C.dpToPx(3))
+
+                val bg = GradientDrawable().apply {
+                    cornerRadius = C.dpToPx(13).toFloat()
+                    if (reaction.isMine) {
+                        setColor(adjustAlpha(
+                            if (isMine) theme.outgoingReplyAccent else theme.incomingReplyAccent,
+                            0.2f
+                        ))
+                    } else {
+                        setColor(adjustAlpha(
+                            if (isMine) Color.WHITE else Color.BLACK,
+                            0.08f
+                        ))
+                    }
+                }
+                background = bg
+                setTextColor(if (isMine) theme.outgoingTextColor else theme.incomingTextColor)
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = C.dpToPx(4) }
+            reactionsContainer.addView(chip, lp)
+        }
+    }
+
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = (Color.alpha(color) * factor).toInt().coerceIn(0, 255)
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
     }
 
     fun prepareForReuse() {
@@ -141,9 +213,13 @@ class MessageBubbleView(
         // File container
         buildFileContainer()
 
+        // Voice container
+        buildVoiceContainer()
+
         contentArea.addView(textView)
         contentArea.addView(imageView)
         contentArea.addView(videoOverlay)
+        contentArea.addView(voiceContainer)
         contentArea.addView(pollContainer)
         contentArea.addView(fileContainer)
 
@@ -173,8 +249,24 @@ class MessageBubbleView(
         footerRow.addView(timeLabel)
         footerRow.addView(statusView)
 
+        // Forwarded label
+        forwardedLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        forwardedLabel.isVisible = false
+        forwardedLabel.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { bottomMargin = context.dpToPx(C.STACK_SPACING_DP) }
+
+        // Reactions container
+        reactionsContainer.orientation = LinearLayout.HORIZONTAL
+        reactionsContainer.isVisible = false
+        reactionsContainer.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = context.dpToPx(C.STACK_SPACING_DP) }
+
+        bubble.addView(forwardedLabel)
         bubble.addView(replyPreview)
         bubble.addView(contentArea)
+        bubble.addView(reactionsContainer)
         bubble.addView(footerRow)
 
         outerRow.addView(bubble)
@@ -277,6 +369,59 @@ class MessageBubbleView(
         fileContainer.addView(textColumn)
     }
 
+    private fun buildVoiceContainer() {
+        voiceContainer.orientation = LinearLayout.HORIZONTAL
+        voiceContainer.gravity = Gravity.CENTER_VERTICAL
+        voiceContainer.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, context.dpToPx(40f)
+        )
+        voiceContainer.isVisible = false
+
+        val playSize = context.dpToPx(36f)
+        voicePlayButton.layoutParams = LinearLayout.LayoutParams(playSize, playSize).apply {
+            marginEnd = context.dpToPx(8f)
+        }
+        voicePlayButton.scaleType = ImageView.ScaleType.CENTER_INSIDE
+        voicePlayButton.setImageDrawable(SendArrowDrawable(context).apply {
+            // reuse play icon concept — ideally use a proper play icon
+        })
+
+        val infoColumn = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        voiceWaveform.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, context.dpToPx(20f)
+        )
+        voiceWaveform.setBackgroundColor(Color.TRANSPARENT)
+
+        voiceDurationLabel.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+
+        infoColumn.addView(voiceWaveform)
+        infoColumn.addView(voiceDurationLabel)
+
+        voiceContainer.addView(voicePlayButton)
+        voiceContainer.addView(infoColumn)
+    }
+
+    private fun configureVoice(payload: MessageContent.VoicePayload, textColor: Int, theme: ChatTheme) {
+        val accentColor = if (isMine) theme.outgoingTextColor else theme.incomingReplyAccent
+        voicePlayButton.setColorFilter(accentColor)
+        voiceDurationLabel.setTextColor(textColor and 0x99FFFFFF.toInt())
+
+        val total = payload.duration.toInt()
+        val m = total / 60
+        val s = total % 60
+        voiceDurationLabel.text = String.format("%d:%02d", m, s)
+
+        // Simple waveform background — colored bar
+        voiceWaveform.background = GradientDrawable().apply {
+            cornerRadius = context.dpToPx(2f).toFloat()
+            setColor(adjustAlpha(accentColor, 0.3f))
+        }
+    }
+
     private fun applyBubbleShape() {
         val r = context.dpToPx(C.BUBBLE_CORNER_RADIUS_DP).toFloat()
         val radii = floatArrayOf(r, r, r, r, r, r, r, r)
@@ -341,6 +486,7 @@ class MessageBubbleView(
         textView.isVisible = false
         imageView.isVisible = false
         videoOverlay.isVisible = false
+        voiceContainer.isVisible = false
         pollContainer.isVisible = false
         fileContainer.isVisible = false
 
@@ -384,6 +530,10 @@ class MessageBubbleView(
                 textView.gravity = Gravity.START
                 textView.setTextColor(textColor)
                 configureVideoOverlay(content.video, theme)
+            }
+            is MessageContent.Voice -> {
+                voiceContainer.isVisible = true
+                configureVoice(content.payload, textColor, theme)
             }
             is MessageContent.Poll -> {
                 pollContainer.isVisible = true

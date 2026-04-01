@@ -26,6 +26,7 @@ enum MessageContentViewFactory {
         case .mixed:          return MixedContentView()
         case .video:          return VideoContentView()
         case .mixedTextVideo: return MixedTextVideoContentView()
+        case .voice:          return VoiceContentView()
         case .poll:           return PollContentView()
         case .file:           return FileContentView()
         }
@@ -38,6 +39,7 @@ enum MessageContentViewFactory {
         case .mixed:          return view is MixedContentView
         case .video:          return view is VideoContentView
         case .mixedTextVideo: return view is MixedTextVideoContentView
+        case .voice:          return view is VoiceContentView
         case .poll:           return view is PollContentView
         case .file:           return view is FileContentView
         }
@@ -755,5 +757,117 @@ final class FileContentView: UIView, MessageContentView {
         if mime.contains("zip") || mime.contains("rar") || mime.contains("tar") { return "archivebox" }
         if mime.contains("text")          { return "doc.text" }
         return "doc.fill"
+    }
+}
+
+// MARK: - VoiceContentView
+// Telegram-style voice message: play button + waveform + duration.
+
+final class VoiceContentView: UIView, MessageContentView {
+
+    private let playButton: UIImageView = {
+        let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+        let iv = UIImageView(image: UIImage(systemName: "play.circle.fill", withConfiguration: config))
+        iv.contentMode = .center
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
+    private let waveformView: WaveformView = {
+        let v = WaveformView()
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
+    }()
+
+    private let durationLabel: UILabel = {
+        let l = UILabel()
+        l.font = UIFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        l.translatesAutoresizingMaskIntoConstraints = false
+        return l
+    }()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        addSubview(playButton)
+        addSubview(waveformView)
+        addSubview(durationLabel)
+
+        NSLayoutConstraint.activate([
+            heightAnchor.constraint(equalToConstant: 40),
+
+            playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
+            playButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            playButton.widthAnchor.constraint(equalToConstant: 36),
+            playButton.heightAnchor.constraint(equalToConstant: 36),
+
+            waveformView.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
+            waveformView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            waveformView.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            waveformView.bottomAnchor.constraint(equalTo: durationLabel.topAnchor, constant: -2),
+
+            durationLabel.leadingAnchor.constraint(equalTo: waveformView.leadingAnchor),
+            durationLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented — use init(frame:)")
+    }
+
+    func configure(content: MessageContent, isMine: Bool, theme: ChatTheme) {
+        guard let voice = content.voice else { return }
+
+        let tint = isMine ? theme.outgoingTextColor : theme.incomingReplyAccent
+        playButton.tintColor = tint
+        durationLabel.textColor = (isMine ? theme.outgoingTextColor : theme.incomingTextColor).withAlphaComponent(0.6)
+        durationLabel.text = Self.formatDuration(voice.duration)
+        waveformView.configure(samples: voice.waveform, tintColor: tint)
+    }
+
+    func applyLayout(bubbleWidth: CGFloat) {}
+
+    private static func formatDuration(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        let m = total / 60
+        let s = total % 60
+        return String(format: "%d:%02d", m, s)
+    }
+}
+
+// MARK: - WaveformView
+
+private final class WaveformView: UIView {
+
+    private var samples: [CGFloat] = []
+    private var barColor: UIColor = .systemBlue
+
+    func configure(samples: [CGFloat], tintColor: UIColor) {
+        self.samples = samples.isEmpty ? Array(repeating: 0.3, count: 32) : samples
+        self.barColor = tintColor
+        setNeedsDisplay()
+    }
+
+    override func draw(_ rect: CGRect) {
+        guard !samples.isEmpty else { return }
+        let ctx = UIGraphicsGetCurrentContext()
+        ctx?.clear(rect)
+
+        let barWidth: CGFloat = 2
+        let barSpacing: CGFloat = 1.5
+        let totalBarWidth = barWidth + barSpacing
+        let barCount = min(samples.count, Int(rect.width / totalBarWidth))
+        let maxHeight = rect.height
+
+        barColor.setFill()
+
+        for i in 0..<barCount {
+            let sample = min(max(samples[i], 0.05), 1.0)
+            let barHeight = maxHeight * sample
+            let x = CGFloat(i) * totalBarWidth
+            let y = (maxHeight - barHeight) / 2
+            let barRect = CGRect(x: x, y: y, width: barWidth, height: barHeight)
+            let path = UIBezierPath(roundedRect: barRect, cornerRadius: barWidth / 2)
+            path.fill()
+        }
     }
 }
