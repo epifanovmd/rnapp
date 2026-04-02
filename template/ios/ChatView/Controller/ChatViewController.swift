@@ -21,7 +21,7 @@ final class ChatViewController: UIViewController {
     }
 
     var collectionExtraInsetTop: CGFloat = 0 {
-        didSet { guard isViewLoaded else { return }; updateCollectionInsets() }
+        didSet { guard isViewLoaded else { return }; view.setNeedsLayout() }
     }
     var collectionExtraInsetBottom: CGFloat = 0 {
         didSet { guard isViewLoaded else { return }; view.setNeedsLayout() }
@@ -36,12 +36,12 @@ final class ChatViewController: UIViewController {
 
     private(set) var messages: [ChatMessage] = []
     var messageIndex: [String: ChatMessage] = [:]
-    private var listItems: [ListDiffable] = []
+    var listItems: [ListDiffable] = []
 
     // MARK: - IGListKit
 
-    private var collectionView: UICollectionView!
-    private var adapter: ListAdapter!
+    var collectionView: UICollectionView!
+    var adapter: ListAdapter!
 
     // MARK: - UI Components
 
@@ -49,9 +49,9 @@ final class ChatViewController: UIViewController {
     private let emptyContainer = UIView()
     private let emptyLabel = UILabel()
     private let centerSpinner = UIActivityIndicatorView(style: .large)
-    private let fabButton = UIButton(type: .custom)
-    private var fabBlurView: UIVisualEffectView!
-    private let fabArrow = UIImageView()
+    let fabButton = UIButton(type: .custom)
+    var fabBlurView: UIVisualEffectView!
+    let fabArrow = UIImageView()
 
     // MARK: - Floating Date
 
@@ -70,32 +70,40 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Constraints
 
-    private var inputBarKeyboardConstraint: NSLayoutConstraint?
+    var inputBarKeyboardConstraint: NSLayoutConstraint?
 
     // MARK: - Scroll State
 
-    private var fabVisible = false
-    private var isProgrammaticScroll = false
-    private var lastScrollEventTime: CFTimeInterval = 0
-    private let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
-    private var visibleMessageIDs: Set<String> = []
-    private var pendingVisibleIDs: Set<String> = []
-    private var visibilityDebounceTask: DispatchWorkItem?
-    private let visibilityDebounceInterval: TimeInterval = 0.3
-    private var pendingHighlightId: String?
-    private var lastContentOffsetY: CGFloat = 0
-    private var isUserDragging = false
-    private var waitingForNewMessages = false
-    private var waitingForNewerMessages = false
-    private var lastKnownMessageCount = 0
-    private var pendingScrollToBottom = false
+    var fabVisible = false
+    var isProgrammaticScroll = false
+    var lastScrollEventTime: CFTimeInterval = 0
+    let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
+    var visibleMessageIDs: Set<String> = []
+    var pendingVisibleIDs: Set<String> = []
+    var visibilityDebounceTask: DispatchWorkItem?
+    let visibilityDebounceInterval: TimeInterval = 0.3
+    var pendingHighlightId: String?
+    var lastContentOffsetY: CGFloat = 0
+    var isUserDragging = false
+    var waitingForNewMessages = false
+    var waitingForNewerMessages = false
+    var lastKnownMessageCount = 0
+    var pendingScrollToBottom = false
 
-    // MARK: - Scroll Compensation (для delegate)
+    // MARK: - Scroll Compensation
 
-    private var scrollAnchorId: String?
-    private var scrollAnchorOffset: CGFloat = 0
-    private var needsScrollCompensation = false
-    private var savedOffsetForAppend: CGPoint?
+    var scrollAnchorId: String?
+    var scrollAnchorOffset: CGFloat = 0
+    var needsScrollCompensation = false
+    var savedOffsetForAppend: CGPoint?
+
+    // MARK: - Keyboard Freeze (контекстное меню)
+
+    var isInsetFrozen = false
+    var frozenBottomInset: CGFloat?
+    var keyboardWasVisible = false
+    var kbHideObserver: Any?
+    var kbShowObserver: Any?
 
     // MARK: - Lifecycle
 
@@ -131,6 +139,7 @@ final class ChatViewController: UIViewController {
         collectionView.keyboardDismissMode = .interactive
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.alwaysBounceVertical = true
+        collectionView.isPrefetchingEnabled = false
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
 
@@ -148,12 +157,10 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Setup Adapter
 
-    private var listUpdater: ListAdapterUpdater!
-
     private func setupAdapter() {
-        listUpdater = ListAdapterUpdater()
-        listUpdater.delegate = self
-        adapter = ListAdapter(updater: listUpdater, viewController: self)
+        let updater = ListAdapterUpdater()
+        updater.delegate = self
+        adapter = ListAdapter(updater: updater, viewController: self)
         adapter.collectionView = collectionView
         adapter.dataSource = self
         adapter.scrollViewDelegate = self
@@ -253,7 +260,7 @@ final class ChatViewController: UIViewController {
         ])
     }
 
-    private func rebuildFABBlur() {
+    func rebuildFABBlur() {
         fabBlurView?.removeFromSuperview()
         fabBlurView = UIVisualEffectView(effect: UIBlurEffect(style: theme.fabBlurStyle))
         fabBlurView.translatesAutoresizingMaskIntoConstraints = false
@@ -284,7 +291,7 @@ final class ChatViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             floatingDatePill.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            floatingDatePill.topAnchor.constraint(equalTo: collectionView.topAnchor, constant: ChatLayout.collectionTopPadding + collectionExtraInsetTop + 8),
+            floatingDatePill.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             floatingDateLabel.topAnchor.constraint(equalTo: floatingDatePill.topAnchor, constant: ChatLayout.dateSeparatorVPad),
             floatingDateLabel.bottomAnchor.constraint(equalTo: floatingDatePill.bottomAnchor, constant: -ChatLayout.dateSeparatorVPad),
             floatingDateLabel.leadingAnchor.constraint(equalTo: floatingDatePill.leadingAnchor, constant: ChatLayout.dateSeparatorHPad),
@@ -292,13 +299,9 @@ final class ChatViewController: UIViewController {
         ])
     }
 
-    private func updateFloatingDate() {
-        guard !messages.isEmpty else {
-            hideFloatingDate()
-            return
-        }
+    func updateFloatingDate() {
+        guard !messages.isEmpty else { hideFloatingDate(); return }
 
-        // Найти самый верхний видимый элемент и определить его groupDate
         var topGroupDate: String?
         let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
 
@@ -306,33 +309,26 @@ final class ChatViewController: UIViewController {
             guard let attrs = collectionView.layoutAttributesForItem(at: IndexPath(item: 0, section: index)) else { continue }
             if attrs.frame.intersects(visibleRect) {
                 if let msgItem = item as? MessageListItem {
-                    topGroupDate = msgItem.message.groupDate
-                    break
+                    topGroupDate = msgItem.message.groupDate; break
                 } else if let dateItem = item as? DateSeparatorListItem {
-                    topGroupDate = dateItem.groupDate
-                    break
+                    topGroupDate = dateItem.groupDate; break
                 }
             }
         }
 
         guard let groupDate = topGroupDate else { return }
-
         if groupDate != currentFloatingDate {
             currentFloatingDate = groupDate
-            let title = DateHelper.shared.sectionTitle(from: groupDate)
-            floatingDateLabel.text = title
+            floatingDateLabel.text = DateHelper.shared.sectionTitle(from: groupDate)
         }
-
         showFloatingDate()
     }
 
     private func showFloatingDate() {
         floatingDateHideTask?.cancel()
-
         if floatingDatePill.alpha < 1 {
             UIView.animate(withDuration: 0.15) { self.floatingDatePill.alpha = 1 }
         }
-
         let task = DispatchWorkItem { [weak self] in
             UIView.animate(withDuration: 0.3) { self?.floatingDatePill.alpha = 0 }
         }
@@ -347,7 +343,7 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Theme
 
-    private func applyTheme() {
+    func applyTheme() {
         guard isViewLoaded else { return }
         collectionView.backgroundColor = theme.backgroundColor
         emptyLabel.textColor = theme.emptyStateText
@@ -372,8 +368,6 @@ final class ChatViewController: UIViewController {
         messageIndex = Dictionary(newMessages.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
         rebuildListItems()
 
-        // ── Классификация ──
-
         let grew = newMessages.count > oldCount
 
         let isPrepend = !wasEmpty && grew
@@ -387,12 +381,6 @@ final class ChatViewController: UIViewController {
         let isNewMessage = !wasEmpty && grew
             && oldLastId != nil && oldLastId != newMessages.last?.id
             && !isAppendFromLoad
-
-        // ── Prepend: подгрузка сверху ──
-        // 1. Снимаем snapshot видимой области и кладём поверх collectionView
-        // 2. Запоминаем anchor, ставим флаг
-        // 3. Delegate скомпенсирует offset в didPerformBatchUpdates
-        // 4. Убираем snapshot — пользователь видит только финальное состояние
 
         if isPrepend {
             let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
@@ -409,7 +397,6 @@ final class ChatViewController: UIViewController {
                 anchorOffset = topAttr.frame.minY - visibleTop
             }
 
-            // Snapshot поверх коллекции — скрывает промежуточные кадры
             let snapshot = collectionView.snapshotView(afterScreenUpdates: false)
             if let snapshot {
                 snapshot.frame = collectionView.frame
@@ -420,42 +407,30 @@ final class ChatViewController: UIViewController {
             scrollAnchorOffset = anchorOffset
             needsScrollCompensation = true
 
-            UIView.performWithoutAnimation {
-                self.adapter.performUpdates(animated: false) { [weak self] _ in
-                    guard let self else { return }
-                    // Убираем snapshot после компенсации (delegate уже отработал)
-                    snapshot?.removeFromSuperview()
-                    self.lastKnownMessageCount = newMessages.count
-                    self.updateEmptyState()
-                    self.updateFABVisibility(animated: false)
-                }
+            adapter.performUpdates(animated: false) { [weak self] _ in
+                guard let self else { return }
+                snapshot?.removeFromSuperview()
+                self.lastKnownMessageCount = newMessages.count
+                self.updateEmptyState()
+                self.updateFABVisibility(animated: false)
             }
             return
         }
-
-        // ── AppendFromLoad: подгрузка снизу ──
-        // Сохраняем offset, delegate восстановит его в didPerformBatchUpdates.
 
         if isAppendFromLoad {
             savedOffsetForAppend = collectionView.contentOffset
-
-            UIView.performWithoutAnimation {
-                self.adapter.performUpdates(animated: false) { [weak self] _ in
-                    guard let self else { return }
-                    self.lastKnownMessageCount = newMessages.count
-                    self.updateEmptyState()
-                    self.updateFABVisibility(animated: false)
-                }
+            adapter.performUpdates(animated: false) { [weak self] _ in
+                guard let self else { return }
+                self.lastKnownMessageCount = newMessages.count
+                self.updateEmptyState()
+                self.updateFABVisibility(animated: false)
             }
             return
         }
 
-        // ── Остальное: initial, новое сообщение, обновление ──
-
-        adapter.performUpdates(animated: !wasEmpty) { [weak self] _ in
-            guard let self else { return }
-
-            if wasEmpty && !newMessages.isEmpty {
+        if wasEmpty && !newMessages.isEmpty {
+            adapter.reloadData { [weak self] _ in
+                guard let self else { return }
                 if let scrollId = self.pendingScrollMessageId {
                     self.scrollToMessage(id: scrollId, position: "center", animated: false, highlight: false)
                     self.pendingScrollMessageId = nil
@@ -463,13 +438,21 @@ final class ChatViewController: UIViewController {
                     self.scrollToBottom(animated: false)
                 }
                 self.isInitialScrollProtected = false
-            } else if isNewMessage || self.pendingScrollToBottom {
-                if wasAtBottom || self.pendingScrollToBottom {
-                    self.pendingScrollToBottom = false
-                    self.scrollToBottom(animated: true)
-                }
+                self.lastKnownMessageCount = newMessages.count
+                self.updateEmptyState()
+                self.updateFABVisibility(animated: false)
             }
+            return
+        }
 
+        let shouldScrollAfter = isNewMessage && (wasAtBottom || pendingScrollToBottom)
+
+        adapter.performUpdates(animated: true) { [weak self] _ in
+            guard let self else { return }
+            if shouldScrollAfter {
+                self.pendingScrollToBottom = false
+                self.scrollToBottom(animated: true)
+            }
             self.lastKnownMessageCount = newMessages.count
             self.updateEmptyState()
             self.updateFABVisibility(animated: true)
@@ -507,12 +490,10 @@ final class ChatViewController: UIViewController {
         guard !messages.isEmpty else { return }
         if collectionView.contentSize.height <= 0 { collectionView.layoutIfNeeded() }
         isProgrammaticScroll = true
-
         let maxY = collectionView.contentSize.height - collectionView.bounds.height + collectionView.contentInset.bottom
         if maxY > -collectionView.contentInset.top {
             collectionView.setContentOffset(CGPoint(x: 0, y: maxY), animated: animated)
         }
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
             self?.isProgrammaticScroll = false
         }
@@ -522,6 +503,8 @@ final class ChatViewController: UIViewController {
         guard let sectionIndex = listItems.firstIndex(where: {
             ($0 as? MessageListItem)?.message.id == id
         }) else { return }
+        let totalSections = collectionView.numberOfSections
+        guard sectionIndex < totalSections else { return }
 
         isProgrammaticScroll = true
         collectionView.layoutIfNeeded()
@@ -542,13 +525,12 @@ final class ChatViewController: UIViewController {
                 self?.performHighlight()
             }
         }
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.isProgrammaticScroll = false
         }
     }
 
-    private func performHighlight() {
+    func performHighlight() {
         guard let id = pendingHighlightId else { return }
         pendingHighlightId = nil
         guard let sectionIndex = listItems.firstIndex(where: {
@@ -560,28 +542,20 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Input Mode
 
-    func beginReply(info: ReplyInfo) {
-        inputBar.beginReply(info: info, theme: theme)
-    }
-
-    func beginEdit(messageId: String, text: String) {
-        inputBar.beginEdit(messageId: messageId, text: text, theme: theme)
-    }
-
-    func clearInputMode() {
-        inputBar.cancelMode()
-    }
+    func beginReply(info: ReplyInfo) { inputBar.beginReply(info: info, theme: theme) }
+    func beginEdit(messageId: String, text: String) { inputBar.beginEdit(messageId: messageId, text: text, theme: theme) }
+    func clearInputMode() { inputBar.cancelMode() }
 
     // MARK: - Helpers
 
     func message(forID id: String) -> ChatMessage? { messageIndex[id] }
 
-    private func distanceFromBottom() -> CGFloat {
+    func distanceFromBottom() -> CGFloat {
         guard let cv = collectionView else { return 0 }
         return max(0, cv.contentSize.height - cv.contentOffset.y - cv.bounds.height + cv.contentInset.bottom)
     }
 
-    private func isNearBottom() -> Bool {
+    func isNearBottom() -> Bool {
         guard collectionView.contentSize.height > 0 else { return true }
         return distanceFromBottom() <= scrollToBottomThreshold
     }
@@ -599,7 +573,7 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    private func updateEmptyState() {
+    func updateEmptyState() {
         let isEmpty = messages.isEmpty
         emptyContainer.isHidden = !isEmpty
         if isEmpty && isLoading {
@@ -611,433 +585,30 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    private func updateCollectionInsets() {
-        collectionView.contentInset.top = ChatLayout.collectionTopPadding + collectionExtraInsetTop
-    }
-
-    /// Синхронизирует contentInset.bottom с текущей позицией inputBar.
-    /// Вызывается каждый кадр анимации клавиатуры через viewDidLayoutSubviews.
-    /// Сохраняет distanceFromEnd — контент плавно поднимается/опускается вместе с клавиатурой.
-    private func updateCollectionBottomInset() {
+    func updateCollectionBottomInset() {
+        guard !isInsetFrozen else { return }
         guard let cv = collectionView else { return }
-        guard inputBar.frame.height > 0, view.bounds.height > 0 else { return }
+        guard inputBar != nil, inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
         let inputBarZone = view.bounds.height - inputBar.frame.minY
         let newBottom = inputBarZone + ChatLayout.collectionBottomPadding + collectionExtraInsetBottom
         let newIndicatorBottom = inputBarZone
-
         let oldBottom = cv.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
 
-        // При интерактивном dismiss UIKit сам ведёт offset — только inset
         if isUserDragging {
             cv.contentInset.bottom = newBottom
             cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
             return
         }
 
-        // Сохраняем расстояние от текущей позиции до конца контента
         let distanceFromEnd = cv.contentSize.height - cv.contentOffset.y - cv.bounds.height + oldBottom
-
         cv.contentInset.bottom = newBottom
         cv.verticalScrollIndicatorInsets.bottom = newIndicatorBottom
-
-        // Восстанавливаем то же расстояние до конца
         let newOffsetY = cv.contentSize.height - cv.bounds.height + newBottom - distanceFromEnd
         cv.contentOffset = CGPoint(x: 0, y: max(-cv.contentInset.top, newOffsetY))
     }
 
-    @objc private func dismissKeyboard() { view.endEditing(true) }
-    @objc private func fabTapped() { scrollToBottom(animated: true) }
-
-    // MARK: - Visibility Tracking
-
-    private func updateVisibleMessages() {
-        guard !messages.isEmpty else { return }
-        var ids: Set<String> = []
-        for cell in collectionView.visibleCells {
-            guard let indexPath = collectionView.indexPath(for: cell),
-                  indexPath.section < listItems.count,
-                  let msgItem = listItems[indexPath.section] as? MessageListItem else { continue }
-            ids.insert(msgItem.message.id)
-        }
-
-        let newIDs = ids.subtracting(visibleMessageIDs)
-        guard !newIDs.isEmpty else { return }
-        visibleMessageIDs = ids
-
-        pendingVisibleIDs.formUnion(newIDs)
-        visibilityDebounceTask?.cancel()
-        let task = DispatchWorkItem { [weak self] in
-            guard let self, !self.pendingVisibleIDs.isEmpty else { return }
-            let batch = Array(self.pendingVisibleIDs)
-            self.pendingVisibleIDs.removeAll()
-            self.delegate?.chatMessagesDidAppear(ids: batch)
-        }
-        visibilityDebounceTask = task
-        DispatchQueue.main.asyncAfter(deadline: .now() + visibilityDebounceInterval, execute: task)
-    }
-}
-
-// MARK: - ListAdapterDataSource
-
-extension ChatViewController: ListAdapterDataSource {
-    func objects(for listAdapter: ListAdapter) -> [ListDiffable] {
-        listItems
-    }
-
-    func listAdapter(_ listAdapter: ListAdapter, sectionControllerFor object: Any) -> ListSectionController {
-        if object is MessageListItem {
-            let sc = MessageSectionController()
-            sc.sectionDelegate = self
-            return sc
-        }
-        if object is DateSeparatorListItem {
-            let sc = DateSeparatorSectionController()
-            sc.themeProvider = self
-            return sc
-        }
-        if object is LoadingListItem {
-            return LoadingSectionController()
-        }
-        fatalError("Unknown list item type")
-    }
-
-    func emptyView(for listAdapter: ListAdapter) -> UIView? { nil }
-}
-
-// MARK: - MessageSectionDelegate
-
-extension ChatViewController: MessageSectionDelegate {
-    var currentTheme: ChatTheme { theme }
-
-    func resolveReply(for info: ReplyInfo) -> ReplyDisplayInfo? {
-        guard let original = messageIndex[info.replyToId] else { return nil }
-        return ReplyDisplayInfo(
-            senderName: original.senderName ?? "Unknown",
-            text: original.content.text ?? "",
-            hasImage: original.content.images != nil
-        )
-    }
-
-    func messageSectionDidTap(messageId: String) {
-        delegate?.chatDidTapMessage(id: messageId)
-    }
-
-    func messageSectionDidLongPress(messageId: String, cell: UICollectionViewCell) {
-        guard let msg = messageIndex[messageId] else { return }
-        showContextMenu(for: msg, from: cell)
-    }
-
-    func messageSectionDidTapReply(messageId: String) {
-        // Scroll to the original message and highlight it
-        scrollToMessage(id: messageId, position: "center", animated: true, highlight: true)
-        delegate?.chatDidTapReplyMessage(id: messageId)
-    }
-
-    func messageSectionDidTapVideo(messageId: String, url: String) {
-        delegate?.chatDidTapVideo(messageId: messageId, url: url)
-    }
-
-    func messageSectionDidTapFile(messageId: String, url: String, name: String) {
-        delegate?.chatDidTapFile(messageId: messageId, url: url, name: name)
-    }
-
-    func messageSectionDidTapPollOption(messageId: String, pollId: String, optionId: String) {
-        delegate?.chatDidTapPollOption(messageId: messageId, pollId: pollId, optionId: optionId)
-    }
-
-    func messageSectionDidTapPollDetail(messageId: String, pollId: String) {
-        delegate?.chatDidTapPollDetail(messageId: messageId, pollId: pollId)
-    }
-
-    func messageSectionDidTapVoice(messageId: String, url: String) {
-        VoicePlayer.shared.toggle(url: url)
-    }
-
-    // MARK: - Context Menu
-
-    private func showContextMenu(for msg: ChatMessage, from cell: UICollectionViewCell) {
-        let config = ContextMenuConfiguration(
-            id: msg.id,
-            sourceView: cell,
-            emojis: contextMenuEmojis,
-            actions: msg.actions.map {
-                ContextMenuAction(id: $0.id, title: $0.title,
-                                  systemImage: $0.systemImage, isDestructive: $0.isDestructive)
-            },
-            snapshotCornerRadius: ChatLayout.bubbleCornerRadius
-        )
-
-        let menuTheme: ContextMenuTheme = theme.isDark ? .dark : .light
-
-        ContextMenuViewController.present(
-            configuration: config,
-            theme: menuTheme,
-            from: self,
-            delegate: self
-        )
-    }
-}
-
-// MARK: - ContextMenuDelegate
-
-extension ChatViewController: ContextMenuDelegate {
-    func contextMenu(_ menu: ContextMenuViewController, didSelectEmoji emoji: String, forId id: String) {
-        menu.dismissMenu()
-        delegate?.chatDidSelectEmojiReaction(emoji: emoji, messageId: id)
-    }
-
-    func contextMenu(_ menu: ContextMenuViewController, didSelectAction action: ContextMenuAction, forId id: String) {
-        menu.dismissMenu()
-        delegate?.chatDidSelectAction(actionId: action.id, messageId: id)
-    }
-
-    func contextMenuDidDismiss(_ menu: ContextMenuViewController, id: String) {
-        // No-op
-    }
-}
-
-// MARK: - UIScrollViewDelegate
-
-extension ChatViewController: UIScrollViewDelegate {
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let now = CACurrentMediaTime()
-        if now - lastScrollEventTime >= scrollThrottleInterval {
-            lastScrollEventTime = now
-            delegate?.chatDidScroll(offset: scrollView.contentOffset)
-        }
-
-        let offset = scrollView.contentOffset.y
-        let contentH = scrollView.contentSize.height
-        let frameH = scrollView.bounds.height
-
-        // Reach top
-        if offset < topThreshold && hasMore && !isLoading && !waitingForNewMessages {
-            waitingForNewMessages = true
-            delegate?.chatDidReachTop(distance: offset)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.waitingForNewMessages = false
-            }
-        }
-
-        // Reach bottom
-        if contentH - offset - frameH < bottomThreshold && hasNewer && !isLoadingBottom && !waitingForNewerMessages {
-            waitingForNewerMessages = true
-            delegate?.chatDidReachBottom(distance: contentH - offset - frameH)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.waitingForNewerMessages = false
-            }
-        }
-
-        lastContentOffsetY = offset
-        updateFABVisibility(animated: true)
-        updateVisibleMessages()
-        updateFloatingDate()
-    }
-
-    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
-        isUserDragging = true
-    }
-
-    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
-        isUserDragging = false
-    }
-}
-
-// MARK: - ChatInputBarDelegate
-
-extension ChatViewController: ChatInputBarDelegate {
-    func inputBarDidSend(text: String, replyToId: String?) {
-        pendingScrollToBottom = true
-        delegate?.chatDidSendMessage(text: text, replyToId: replyToId)
-    }
-
-    func inputBarDidEdit(text: String, messageId: String) {
-        delegate?.chatDidEditMessage(text: text, messageId: messageId)
-    }
-
-    func inputBarDidCancelMode(type: String) {
-        delegate?.chatDidCancelInputAction(type: type)
-    }
-
-    func inputBarDidTapAttachment() {
-        delegate?.chatDidTapAttachment()
-    }
-
-    func inputBarDidStartRecording() {
-        voiceRecorder.startRecording()
-    }
-
-    func inputBarDidStopRecording() {
-        voiceRecorder.stopRecording()
-    }
-
-    func inputBarDidCancelRecording() {
-        voiceRecorder.cancelRecording()
-    }
-
-    func inputBarDidChangeText(_ text: String) {
-        delegate?.chatDidChangeInputText(text)
-    }
-}
-
-// MARK: - VoiceRecorderDelegate
-
-extension ChatViewController: VoiceRecorderDelegate {
-    func voiceRecorderDidStart() {
-        inputBar.showRecordingUI(duration: 0)
-    }
-
-    func voiceRecorderDidStop(fileURL: URL, duration: TimeInterval) {
-        inputBar.hideRecordingUI()
-        delegate?.chatDidCompleteVoiceRecording(fileURL: fileURL, duration: duration)
-    }
-
-    func voiceRecorderDidCancel() {
-        inputBar.hideRecordingUI()
-    }
-
-    func voiceRecorderDidFail(error: Error) {
-        inputBar.hideRecordingUI()
-    }
-
-    func voiceRecorderDidUpdateDuration(_ duration: TimeInterval) {
-        inputBar.showRecordingUI(duration: duration)
-    }
-
-    func voiceRecorderDidUpdateLevel(_ level: Float) {
-        // Could be used for visual feedback
-    }
-}
-
-// MARK: - VoicePlayerDelegate
-
-extension ChatViewController: VoicePlayerDelegate {
-    func voicePlayerDidChangeState(_ state: VoicePlayerState) {
-        // Visible voice cells update via their own delegate subscription
-    }
-}
-
-// MARK: - ListAdapterUpdaterDelegate
-
-extension ChatViewController: ListAdapterUpdaterDelegate {
-
-    /// Вызывается внутри completion block UICollectionView.performBatchUpdates —
-    /// layout уже пересчитан, contentSize актуален, но кадр ещё НЕ отрисован.
-    /// Это единственный момент где компенсация offset не вызовет мерцания.
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            didPerformBatchUpdates updates: ListBatchUpdateData,
-                            collectionView cv: UICollectionView) {
-        // Prepend — компенсация через anchor
-        if needsScrollCompensation, let anchorId = scrollAnchorId {
-            needsScrollCompensation = false
-            scrollAnchorId = nil
-
-            if let sectionIndex = listItems.firstIndex(where: {
-                ($0 as? MessageListItem)?.message.id == anchorId
-            }) {
-                let ip = IndexPath(item: 0, section: sectionIndex)
-                if let attrs = cv.layoutAttributesForItem(at: ip) {
-                    let target = attrs.frame.minY - cv.contentInset.top - scrollAnchorOffset
-                    cv.contentOffset = CGPoint(x: 0, y: max(-cv.contentInset.top, target))
-                }
-            }
-            scrollAnchorOffset = 0
-        }
-
-        // AppendFromLoad — восстанавливаем offset
-        if let saved = savedOffsetForAppend {
-            savedOffsetForAppend = nil
-            cv.contentOffset = saved
-        }
-    }
-
-    // MARK: - Required stubs
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willDiffFromObjects fromObjects: [any ListDiffable]?,
-                            toObjects: [any ListDiffable]?) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            didDiffWithResults listIndexSetResults: ListIndexSetResult?,
-                            onBackgroundThread: Bool) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willPerformBatchUpdatesWith cv: UICollectionView,
-                            fromObjects: [any ListDiffable]?,
-                            toObjects: [any ListDiffable]?,
-                            listIndexSetResult: ListIndexSetResult?,
-                            animated: Bool) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willInsert indexPaths: [IndexPath],
-                            collectionView cv: UICollectionView) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willDelete indexPaths: [IndexPath],
-                            collectionView cv: UICollectionView) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willMoveFrom fromIndexPath: IndexPath,
-                            to toIndexPath: IndexPath,
-                            collectionView cv: UICollectionView) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willReload indexPaths: [IndexPath],
-                            collectionView cv: UICollectionView) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willReloadSections sections: IndexSet,
-                            collectionView cv: UICollectionView) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willReloadDataWith cv: UICollectionView,
-                            isFallbackReload: Bool) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            didReloadDataWith cv: UICollectionView,
-                            isFallbackReload: Bool) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            collectionView cv: UICollectionView,
-                            willCrashWith exception: NSException,
-                            from fromObjects: [Any]?,
-                            to toObjects: [Any]?,
-                            diffResult: ListIndexSetResult,
-                            updates: ListBatchUpdateData) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            willCrashWith cv: UICollectionView,
-                            sectionControllerClass: AnyClass?) {}
-
-    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
-                            didFinishWithoutUpdatesWith cv: UICollectionView?) {}
-}
-
-// MARK: - KeyboardListenerDelegate (iOS < 15)
-
-extension ChatViewController: KeyboardListenerDelegate {
-    func keyboardWillChangeFrame(info: KeyboardInfo) {
-        guard #unavailable(iOS 15) else { return }
-        guard let window = view.window else { return }
-
-        let kbInView = view.convert(info.frameEnd, from: window.screen.coordinateSpace)
-        let kbHeight = max(0, view.bounds.height - kbInView.origin.y)
-        let safeBottom = view.safeAreaInsets.bottom
-        let newConst = -(max(kbHeight, safeBottom) - safeBottom)
-
-        guard inputBarKeyboardConstraint?.constant != newConst else { return }
-        inputBarKeyboardConstraint?.constant = newConst
-
-        let curve = UIView.AnimationOptions(rawValue: UInt(info.animationCurve.rawValue) << 16)
-        if info.animationDuration > 0 {
-            UIView.animate(withDuration: info.animationDuration, delay: 0,
-                           options: [curve, .beginFromCurrentState]) {
-                self.view.layoutIfNeeded()
-            }
-        } else {
-            view.layoutIfNeeded()
-        }
-    }
+    @objc func dismissKeyboard() { view.endEditing(true) }
+    @objc func fabTapped() { scrollToBottom(animated: true) }
 }

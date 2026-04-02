@@ -43,6 +43,12 @@
 		1A9476E22F7DCAF3001D82F5 /* ChatLayoutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A94769C2F7DCAF3001D82F5 /* ChatLayoutConstants.swift */; };
 		1A9476E32F7DCAF3001D82F5 /* RNChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476982F7DCAF3001D82F5 /* RNChatView.swift */; };
 		1A9476E42F7DCAF3001D82F5 /* ChatListItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476A82F7DCAF3001D82F5 /* ChatListItems.swift */; };
+		1A9476FD2F7E5C38001D82F5 /* ChatViewController+Scroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476FB2F7E5C38001D82F5 /* ChatViewController+Scroll.swift */; };
+		1A9476FE2F7E5C38001D82F5 /* ChatViewController+Updater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476FC2F7E5C38001D82F5 /* ChatViewController+Updater.swift */; };
+		1A9476FF2F7E5C38001D82F5 /* ChatViewController+Input.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476F82F7E5C38001D82F5 /* ChatViewController+Input.swift */; };
+		1A9477002F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476FA2F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift */; };
+		1A9477012F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476F72F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift */; };
+		1A9477022F7E5C38001D82F5 /* ChatViewController+Keyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476F92F7E5C38001D82F5 /* ChatViewController+Keyboard.swift */; };
 		1A9C412E2F5AE20500694F32 /* ContextMenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C412D2F5AE20400694F32 /* ContextMenuViewController.swift */; };
 		1A9C41312F5AE21F00694F32 /* ContextMenuTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C41302F5AE21E00694F32 /* ContextMenuTheme.swift */; };
 		1A9C41342F5AE23800694F32 /* ContextMenuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C41332F5AE23700694F32 /* ContextMenuModels.swift */; };
@@ -99,6 +105,12 @@
 		1A9476BF2F7DCAF3001D82F5 /* LoadingCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingCell.swift; sourceTree = "<group>"; };
 		1A9476C02F7DCAF3001D82F5 /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
 		1A9476C12F7DCAF3001D82F5 /* MessageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageCell.swift; sourceTree = "<group>"; };
+		1A9476F72F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+ContextMenu.swift"; sourceTree = "<group>"; };
+		1A9476F82F7E5C38001D82F5 /* ChatViewController+Input.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Input.swift"; sourceTree = "<group>"; };
+		1A9476F92F7E5C38001D82F5 /* ChatViewController+Keyboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Keyboard.swift"; sourceTree = "<group>"; };
+		1A9476FA2F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+ListAdapter.swift"; sourceTree = "<group>"; };
+		1A9476FB2F7E5C38001D82F5 /* ChatViewController+Scroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Scroll.swift"; sourceTree = "<group>"; };
+		1A9476FC2F7E5C38001D82F5 /* ChatViewController+Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Updater.swift"; sourceTree = "<group>"; };
 		1A9C412D2F5AE20400694F32 /* ContextMenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuViewController.swift; sourceTree = "<group>"; };
 		1A9C41302F5AE21E00694F32 /* ContextMenuTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuTheme.swift; sourceTree = "<group>"; };
 		1A9C41332F5AE23700694F32 /* ContextMenuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuModels.swift; sourceTree = "<group>"; };
@@ -185,6 +197,12 @@
 		1A9476A02F7DCAF3001D82F5 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				1A9476F72F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift */,
+				1A9476F82F7E5C38001D82F5 /* ChatViewController+Input.swift */,
+				1A9476F92F7E5C38001D82F5 /* ChatViewController+Keyboard.swift */,
+				1A9476FA2F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift */,
+				1A9476FB2F7E5C38001D82F5 /* ChatViewController+Scroll.swift */,
+				1A9476FC2F7E5C38001D82F5 /* ChatViewController+Updater.swift */,
 				1A94769E2F7DCAF3001D82F5 /* ChatViewController.swift */,
 				1A94769F2F7DCAF3001D82F5 /* ChatViewControllerDelegate.swift */,
 			);
@@ -617,6 +635,12 @@
 				1A9476D22F7DCAF3001D82F5 /* TextContentView.swift in Sources */,
 				1A9476D32F7DCAF3001D82F5 /* MessageCell.swift in Sources */,
 				1A9476D42F7DCAF3001D82F5 /* ImageContentView.swift in Sources */,
+				1A9476FD2F7E5C38001D82F5 /* ChatViewController+Scroll.swift in Sources */,
+				1A9476FE2F7E5C38001D82F5 /* ChatViewController+Updater.swift in Sources */,
+				1A9476FF2F7E5C38001D82F5 /* ChatViewController+Input.swift in Sources */,
+				1A9477002F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift in Sources */,
+				1A9477012F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift in Sources */,
+				1A9477022F7E5C38001D82F5 /* ChatViewController+Keyboard.swift in Sources */,
 				1A9476D52F7DCAF3001D82F5 /* ChatInputBar.swift in Sources */,
 				1A9476D62F7DCAF3001D82F5 /* MessageSectionController.swift in Sources */,
 				1A9476D72F7DCAF3001D82F5 /* ChatViewController.swift in Sources */,

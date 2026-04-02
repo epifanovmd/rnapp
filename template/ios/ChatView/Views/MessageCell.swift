@@ -15,7 +15,7 @@ final class MessageCell: UICollectionViewCell {
 
     // MARK: - Views
 
-    private let bubbleView = MessageBubbleView()
+    let bubbleView = MessageBubbleView()
     private var leadingConstraint: NSLayoutConstraint!
     private var trailingConstraint: NSLayoutConstraint!
 

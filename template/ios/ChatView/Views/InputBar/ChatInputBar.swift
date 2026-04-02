@@ -41,7 +41,7 @@ final class ChatInputBar: UIView {
     private let inputStack = UIStackView()
     private let attachButton = UIButton(type: .system)
     private let textViewContainer = UIView()
-    private let textView = UITextView()
+    let textView = UITextView()
     private let placeholderLabel = UILabel()
     private let sendButton = UIButton(type: .system)
     private let recordButton = UIButton(type: .system)
