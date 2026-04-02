@@ -153,6 +153,10 @@ export type NativeChatVoiceRecordingCompleteEventData = {
   duration: Double;
 };
 
+export type NativeChatInputTypingEventData = {
+  text: string;
+};
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface NativeChatViewProps extends ViewProps {
@@ -176,6 +180,7 @@ export interface NativeChatViewProps extends ViewProps {
   theme?: WithDefault<string, "light">;
   collectionInsetTop?: WithDefault<Double, 0>;
   collectionInsetBottom?: WithDefault<Double, 0>;
+  inputTypingThrottle?: WithDefault<Double, 500>;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;
@@ -194,6 +199,7 @@ export interface NativeChatViewProps extends ViewProps {
   onPollDetailPress?: DirectEventHandler<NativeChatPollDetailPressEventData>;
   onFilePress?: DirectEventHandler<NativeChatFilePressEventData>;
   onVoiceRecordingComplete?: DirectEventHandler<NativeChatVoiceRecordingCompleteEventData>;
+  onInputTyping?: DirectEventHandler<NativeChatInputTypingEventData>;
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

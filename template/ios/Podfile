@@ -42,6 +42,7 @@ target 'rnapp' do
   pod 'Firebase/Core', :modular_headers => true
   pod 'Firebase/Messaging', :modular_headers => true
   pod 'DifferenceKit', :modular_headers => true
+  pod 'IGListKit', '~> 5.0', :modular_headers => true
 
   use_react_native!(
     :path => config[:reactNativePath],

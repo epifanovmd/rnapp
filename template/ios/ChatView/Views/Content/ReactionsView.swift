@@ -1,0 +1,59 @@
+import UIKit
+
+final class ReactionsView: UIView {
+    private var chipViews: [UIView] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    func configure(reactions: [Reaction], theme: ChatTheme) {
+        chipViews.forEach { $0.removeFromSuperview() }
+        chipViews.removeAll()
+
+        var x: CGFloat = 0
+        for reaction in reactions {
+            let chip = makeChip(reaction: reaction, theme: theme)
+            chip.frame.origin = CGPoint(x: x, y: 0)
+            addSubview(chip)
+            chipViews.append(chip)
+            x += chip.bounds.width + ChatLayout.reactionChipSpacing
+        }
+
+        let totalW = max(0, x - ChatLayout.reactionChipSpacing)
+        invalidateIntrinsicContentSize()
+        frame.size = CGSize(width: totalW, height: ChatLayout.reactionChipHeight)
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let w = chipViews.reduce(CGFloat(0)) { $0 + $1.bounds.width + ChatLayout.reactionChipSpacing }
+        return CGSize(width: max(0, w - ChatLayout.reactionChipSpacing), height: ChatLayout.reactionChipHeight)
+    }
+
+    private func makeChip(reaction: Reaction, theme: ChatTheme) -> UIView {
+        let container = UIView()
+        container.layer.cornerRadius = ChatLayout.reactionChipHeight / 2
+
+        if reaction.isMine {
+            container.backgroundColor = theme.reactionMineBackground
+            container.layer.borderWidth = 1
+            container.layer.borderColor = theme.reactionMineBorder.cgColor
+        } else {
+            container.backgroundColor = theme.reactionBackground
+        }
+
+        let label = UILabel()
+        label.font = ChatLayout.reactionFont
+        label.text = "\(reaction.emoji) \(reaction.count)"
+        label.textColor = theme.reactionText
+        label.sizeToFit()
+
+        label.frame.origin = CGPoint(x: 8, y: (ChatLayout.reactionChipHeight - label.bounds.height) / 2)
+        container.addSubview(label)
+        container.frame.size = CGSize(width: label.bounds.width + 16, height: ChatLayout.reactionChipHeight)
+
+        return container
+    }
+}

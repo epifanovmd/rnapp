@@ -112,6 +112,9 @@ PODS:
   - hermes-engine (250829098.0.9):
     - hermes-engine/Pre-built (= 250829098.0.9)
   - hermes-engine/Pre-built (250829098.0.9)
+  - IGListDiffKit (5.2.0)
+  - IGListKit (5.2.0):
+    - IGListDiffKit (= 5.2.0)
   - JitsiWebRTC (124.0.2)
   - libwebp (1.5.0):
     - libwebp/demux (= 1.5.0)
@@ -2656,6 +2659,7 @@ DEPENDENCIES:
   - Firebase/Core
   - Firebase/Messaging
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - IGListKit (~> 5.0)
   - NitroMmkv (from `../node_modules/react-native-mmkv`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -2769,6 +2773,8 @@ SPEC REPOS:
     - GoogleAppMeasurement
     - GoogleDataTransport
     - GoogleUtilities
+    - IGListDiffKit
+    - IGListKit
     - JitsiWebRTC
     - libwebp
     - MMKVCore
@@ -2995,6 +3001,8 @@ SPEC CHECKSUMS:
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   hermes-engine: 05a3c02017a3ed5dd0c0c25851d1b62af348d8cf
+  IGListDiffKit: 33d814e2f318fe75080c527a71bafcc31b6b3abc
+  IGListKit: e43679ba92defb48928d3b27765ac87648f06f25
   JitsiWebRTC: b47805ab5668be38e7ee60e2258f49badfe8e1d0
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
@@ -3080,7 +3088,7 @@ SPEC CHECKSUMS:
   React-utils: 7ace4a70a287291541c646e3f02688ba439ed743
   React-webperformancenativemodule: 4b56d01c3a3f403231c3756ac7031db8ab64f504
   ReactAppDependencyProvider: e96e93b493d8d86eeaee3e590ba0be53f6abe46f
-  ReactCodegen: cdd5a7eb22cc8556a0a0a0e731474d351c07da0c
+  ReactCodegen: 3e11b22ef9d66601085504e54f180331e2cac0f4
   ReactCommon: 07572bf9e687c8a52fbe4a3641e9e3a1a477c78e
   ReactNativeDependencies: 75c044a54bda6075685d6cb224e1f989f35b643a
   RNBootSplash: c2b91c69f22508798d3d5b26eed5ab9a392e40a3
@@ -3102,6 +3110,6 @@ SPEC CHECKSUMS:
   SwiftUIIntrospect: fee9aa07293ee280373a591e1824e8ddc869ba5d
   Yoga: 846fbe6f595136be802ad81d05688ff748839764
 
-PODFILE CHECKSUM: 3ef46aaccd98d7050ecf7659fd89fbd2630b2f81
+PODFILE CHECKSUM: 5df8beb28b0f5531e2e57b50a1a671fa67402231
 
 COCOAPODS: 1.16.2

@@ -124,10 +124,10 @@ class MessageBubbleView(
             val chip = TextView(context).apply {
                 text = "${reaction.emoji} ${reaction.count}"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setPadding(C.dpToPx(6), C.dpToPx(3), C.dpToPx(6), C.dpToPx(3))
+                setPadding(context.dpToPx(6f), context.dpToPx(3f), context.dpToPx(6f), context.dpToPx(3f))
 
                 val bg = GradientDrawable().apply {
-                    cornerRadius = C.dpToPx(13).toFloat()
+                    cornerRadius = context.dpToPx(13f).toFloat()
                     if (reaction.isMine) {
                         setColor(adjustAlpha(
                             if (isMine) theme.outgoingReplyAccent else theme.incomingReplyAccent,
@@ -146,7 +146,7 @@ class MessageBubbleView(
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = C.dpToPx(4) }
+            ).apply { marginEnd = context.dpToPx(4f) }
             reactionsContainer.addView(chip, lp)
         }
     }
