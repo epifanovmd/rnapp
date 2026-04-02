@@ -13,6 +13,7 @@ final class ChatViewController: UIViewController {
     var topThreshold: CGFloat = 200
     var bottomThreshold: CGFloat = 200
     var isLoading = false { didSet { updateEmptyState() } }
+    var isLoadingTop = false
     var isLoadingBottom = false
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
     var showsSenderName = false
@@ -446,13 +447,15 @@ final class ChatViewController: UIViewController {
             return
         }
 
-        let shouldScrollAfter = isNewMessage && (wasAtBottom || pendingScrollToBottom)
+        // Скролл вниз: при отправке (pendingScrollToBottom) — всегда,
+        // при получении нового сообщения — только если были внизу
+        let shouldScroll = pendingScrollToBottom || (isNewMessage && wasAtBottom)
 
         adapter.performUpdates(animated: true) { [weak self] _ in
             guard let self else { return }
-            if shouldScrollAfter {
+            if shouldScroll {
                 self.pendingScrollToBottom = false
-                self.scrollToBottom(animated: true)
+                self.scrollToBottom(animated: !self.pendingScrollToBottom)
             }
             self.lastKnownMessageCount = newMessages.count
             self.updateEmptyState()
@@ -465,7 +468,7 @@ final class ChatViewController: UIViewController {
     private func rebuildListItems() {
         var items: [ListDiffable] = []
 
-        if hasMore && isLoading {
+        if isLoadingTop {
             items.append(LoadingListItem(position: .top))
         }
 
@@ -478,7 +481,7 @@ final class ChatViewController: UIViewController {
             items.append(MessageListItem(message: msg))
         }
 
-        if hasNewer && isLoadingBottom {
+        if isLoadingBottom {
             items.append(LoadingListItem(position: .bottom))
         }
 

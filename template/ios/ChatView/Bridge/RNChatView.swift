@@ -55,6 +55,10 @@ final class RNChatView: UIView {
         didSet { chatVC.isLoading = isLoading }
     }
 
+    @objc var isLoadingTop: Bool = false {
+        didSet { chatVC.isLoadingTop = isLoadingTop }
+    }
+
     @objc var isLoadingBottom: Bool = false {
         didSet { chatVC.isLoadingBottom = isLoadingBottom }
     }

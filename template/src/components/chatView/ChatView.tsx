@@ -154,6 +154,7 @@ export interface ChatViewProps extends ViewProps {
   topThreshold?: number;
   bottomThreshold?: number;
   isLoading?: boolean;
+  isLoadingTop?: boolean;
   isLoadingBottom?: boolean;
   theme?: ChatTheme;
   style?: ViewStyle;
@@ -243,6 +244,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     topThreshold = 200,
     bottomThreshold = 200,
     isLoading = false,
+    isLoadingTop = false,
     isLoadingBottom = false,
     theme = "light",
     style,
@@ -425,6 +427,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       topThreshold={topThreshold}
       bottomThreshold={bottomThreshold}
       isLoading={isLoading}
+      isLoadingTop={isLoadingTop}
       isLoadingBottom={isLoadingBottom}
       theme={theme}
       collectionInsetTop={collectionInsetTop}

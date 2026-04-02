@@ -296,9 +296,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [messages, currentUserId],
     );
 
-    console.log("nativeMessages", nativeMessages);
-    console.log("nativeMessages", nativeMessages);
-
     const memberCount = chat?.members.length;
     const chatDisplayName = chatStore.chatModel?.displayName ?? "";
     const isDirect = chat?.type === EChatType.Direct;
@@ -431,7 +428,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleReachTop = useCallback(
       (_: ChatReachTopEventData) => {
-        console.log("handleReachTop");
         messageStore.loadMoreMessages(chatId);
       },
       [messageStore, chatId],
@@ -720,6 +716,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           hasMore={messageStore.messagesHolder.hasMore}
           hasNewer={messageStore.messagesHolder.hasNewer}
           isLoading={messageStore.messagesHolder.isBusy}
+          isLoadingTop={messageStore.messagesHolder.isLoadingMore}
           isLoadingBottom={messageStore.messagesHolder.isLoadingNewer}
           theme={colorScheme === "dark" ? "dark" : "light"}
           topThreshold={200}

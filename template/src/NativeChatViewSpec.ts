@@ -178,6 +178,7 @@ export interface NativeChatViewProps extends ViewProps {
   topThreshold?: WithDefault<Double, 200>;
   bottomThreshold?: WithDefault<Double, 200>;
   isLoading?: WithDefault<boolean, false>;
+  isLoadingTop?: WithDefault<boolean, false>;
   isLoadingBottom?: WithDefault<boolean, false>;
   inputAction?: NativeChatInputAction | null;
   initialScrollId?: string;
