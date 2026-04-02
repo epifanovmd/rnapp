@@ -26,7 +26,11 @@ final class ChatViewController: UIViewController {
     }
 
     var collectionExtraInsetTop: CGFloat = 0 {
-        didSet { guard isViewLoaded else { return }; view.setNeedsLayout() }
+        didSet {
+            guard isViewLoaded else { return }
+            floatingDateTopConstraint?.constant = ChatLayout.current.sectionSpacing + collectionExtraInsetTop
+            view.setNeedsLayout()
+        }
     }
     var collectionExtraInsetBottom: CGFloat = 0 {
         didSet { guard isViewLoaded else { return }; view.setNeedsLayout() }
@@ -64,6 +68,7 @@ final class ChatViewController: UIViewController {
     // MARK: - Floating Date
 
     private let floatingDatePill = UIView()
+    private var floatingDateTopConstraint: NSLayoutConstraint?
     private let floatingDateLabel = UILabel()
     private var floatingDateHideTask: DispatchWorkItem?
     private var currentFloatingDate: String?
@@ -135,6 +140,11 @@ final class ChatViewController: UIViewController {
         updateCollectionInsets()
     }
 
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        updateCollectionInsets()
+    }
+
     // MARK: - Setup Collection View
 
     private func setupCollectionView() {
@@ -149,6 +159,7 @@ final class ChatViewController: UIViewController {
         collectionView.contentInsetAdjustmentBehavior = .never
         collectionView.alwaysBounceVertical = true
         collectionView.isPrefetchingEnabled = false
+        collectionView.clipsToBounds = true
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
 
@@ -322,9 +333,15 @@ final class ChatViewController: UIViewController {
         floatingDateLabel.translatesAutoresizingMaskIntoConstraints = false
         floatingDatePill.addSubview(floatingDateLabel)
 
+        let topC = floatingDatePill.topAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.topAnchor,
+            constant: ChatLayout.current.sectionSpacing + collectionExtraInsetTop
+        )
+        floatingDateTopConstraint = topC
+
         NSLayoutConstraint.activate([
             floatingDatePill.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            floatingDatePill.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: ChatLayout.current.sectionSpacing),
+            topC,
             floatingDateLabel.topAnchor.constraint(equalTo: floatingDatePill.topAnchor, constant: ChatLayout.current.dateSeparatorVPad),
             floatingDateLabel.bottomAnchor.constraint(equalTo: floatingDatePill.bottomAnchor, constant: -ChatLayout.current.dateSeparatorVPad),
             floatingDateLabel.leadingAnchor.constraint(equalTo: floatingDatePill.leadingAnchor, constant: ChatLayout.current.dateSeparatorHPad),
@@ -354,7 +371,7 @@ final class ChatViewController: UIViewController {
         guard !dateSections.isEmpty else { return }
 
         // Позиция pill в координатах view
-        let pillRestY = view.safeAreaLayoutGuide.layoutFrame.minY + spacing
+        let pillRestY = view.safeAreaLayoutGuide.layoutFrame.minY + spacing + collectionExtraInsetTop
         let pillH = floatingDatePill.bounds.height > 0
             ? floatingDatePill.bounds.height
             : ChatLayout.current.dateSeparatorFont.lineHeight + ChatLayout.current.dateSeparatorVPad * 2
@@ -724,17 +741,19 @@ final class ChatViewController: UIViewController {
         guard let cv = collectionView else { return }
         guard inputBar != nil, inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
-        // Top inset
-        let newTop = view.safeAreaInsets.top + collectionExtraInsetTop
+        let safeTop = view.safeAreaInsets.top
+
+        // Top inset: safe area + extra
+        let newTop = safeTop + collectionExtraInsetTop
         if abs(cv.contentInset.top - newTop) > 0.5 {
             cv.contentInset.top = newTop
-            cv.verticalScrollIndicatorInsets.top = view.safeAreaInsets.top
+            cv.verticalScrollIndicatorInsets.top = collectionExtraInsetTop
         }
 
-        // Bottom inset
+        // Bottom inset: inputBar zone + extra
         let inputBarZone = view.bounds.height - inputBar.frame.minY
         let newBottom = inputBarZone + ChatLayout.current.collectionBottomPadding + collectionExtraInsetBottom
-        let newIndicatorBottom = inputBarZone - view.safeAreaInsets.bottom
+        let newIndicatorBottom = max(0, inputBarZone - view.safeAreaInsets.bottom)
         let oldBottom = cv.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
 

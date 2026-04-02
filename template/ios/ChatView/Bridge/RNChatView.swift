@@ -131,9 +131,26 @@ final class RNChatView: UIView {
         ])
     }
 
+    private var parentViewController: UIViewController? {
+        var responder: UIResponder? = self
+        while let next = responder?.next {
+            if let vc = next as? UIViewController { return vc }
+            responder = next
+        }
+        return nil
+    }
+
     override func didMoveToWindow() {
         super.didMoveToWindow()
-        if window == nil { VoicePlayer.shared.stop() }
+        if let window {
+            // Добавляем chatVC как child для корректного проброса safe area
+            if chatVC.parent == nil, let parentVC = parentViewController {
+                parentVC.addChild(chatVC)
+                chatVC.didMove(toParent: parentVC)
+            }
+        } else {
+            VoicePlayer.shared.stop()
+        }
     }
 
     // MARK: - Commands
