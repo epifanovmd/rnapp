@@ -9,7 +9,7 @@ final class ChatViewController: UIViewController {
 
     var theme: ChatTheme = .light { didSet { applyTheme() } }
     var hasMore = false
-    var hasNewer = false
+    var hasNewer = false { didSet { if !hasNewer { isLoadingNewerActive = false } } }
     var topThreshold: CGFloat = 200
     var bottomThreshold: CGFloat = 200
     var isLoading = false { didSet { updateEmptyState() } }
@@ -91,6 +91,7 @@ final class ChatViewController: UIViewController {
     var waitingForNewerMessages = false
     var lastKnownMessageCount = 0
     var pendingScrollToBottom = false
+    var isLoadingNewerActive = false
 
     // MARK: - Scroll Compensation
 
@@ -330,12 +331,12 @@ final class ChatViewController: UIViewController {
             : ChatLayout.dateSeparatorFont.lineHeight + ChatLayout.dateSeparatorVPad * 2
         let pillBottom = pillRestY + pillH
 
-        // Текущая дата — последняя, чей низ ушёл выше верха pill (ячейка полностью за pill)
+        // Текущая дата — последняя, чей низ ушёл выше pill + spacing (полностью за экран + отступ)
         var currentDate: String?
         var nextInfo: DateInfo?
 
         for (i, info) in dateSections.enumerated() {
-            if info.maxY < pillRestY {
+            if info.maxY < pillRestY - spacing {
                 currentDate = info.groupDate
                 nextInfo = (i + 1 < dateSections.count) ? dateSections[i + 1] : nil
             }
@@ -349,26 +350,26 @@ final class ChatViewController: UIViewController {
 
         guard let groupDate = currentDate else { return }
 
-        // Обновляем текст
-        if groupDate != currentFloatingDate {
-            currentFloatingDate = groupDate
-            floatingDateLabel.text = DateHelper.shared.sectionTitle(from: groupDate)
-        }
-
-        // Выталкивание: начинается когда верх следующей даты на расстоянии spacing от pill bottom,
-        // т.е. ещё до соприкосновения. Pill сдвигается так чтобы сохранять зазор spacing.
+        // Выталкивание: начинается когда верх следующей даты на расстоянии spacing от pill bottom
         if let next = nextInfo {
-            let triggerY = pillBottom + spacing  // точка начала выталкивания
+            let triggerY = pillBottom + spacing
             if next.minY < triggerY {
-                // Сдвиг: pill bottom + offset + spacing = next.minY
-                // offset = next.minY - pillBottom - spacing
-                let pushOffset = next.minY - triggerY  // от 0 до -(pillH + spacing)
+                let pushOffset = next.minY - triggerY  // от 0 до -(pillH + 2*spacing)
                 floatingDatePill.transform = CGAffineTransform(translationX: 0, y: pushOffset)
             } else {
                 floatingDatePill.transform = .identity
             }
         } else {
             floatingDatePill.transform = .identity
+        }
+
+        // Обновляем текст — после push-off fade in как при начале скрола
+        let dateDidChange = groupDate != currentFloatingDate
+        if dateDidChange {
+            currentFloatingDate = groupDate
+            floatingDateLabel.text = DateHelper.shared.sectionTitle(from: groupDate)
+            floatingDatePill.transform = .identity
+            floatingDatePill.alpha = 0  // showFloatingDate() сделает fade-in
         }
 
         showFloatingDate()
@@ -467,7 +468,7 @@ final class ChatViewController: UIViewController {
         }
 
         if isAppendAtBottom {
-            let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingBottom)
+            let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingNewerActive)
 
             if wantScroll {
                 pendingScrollToBottom = false
@@ -483,6 +484,7 @@ final class ChatViewController: UIViewController {
             } else {
                 // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
                 savedOffsetForAppend = collectionView.contentOffset
+                isLoadingNewerActive = false
                 adapter.performUpdates(animated: false) { [weak self] _ in
                     guard let self else { return }
                     self.lastKnownMessageCount = newMessages.count
