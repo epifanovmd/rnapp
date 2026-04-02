@@ -1,4 +1,5 @@
 // ChatView.tsx
+// Platform-aware wrapper: iOS uses native RNChatView, Android uses ChatViewRN (React Native).
 
 import React, {
   forwardRef,
@@ -11,6 +12,7 @@ import {
   findNodeHandle,
   type HostComponent,
   type NativeSyntheticEvent,
+  Platform,
   requireNativeComponent,
   StyleSheet,
   UIManager,
@@ -187,6 +189,9 @@ export interface ChatViewProps extends ViewProps {
 const COMPONENT_NAME = "RNChatView";
 
 const NativeChatView = (() => {
+  if (Platform.OS === "android") {
+    return null;
+  }
   try {
     const Spec = require("../../NativeChatViewSpec").default;
 
@@ -199,7 +204,9 @@ const NativeChatView = (() => {
 // ─── Command dispatcher ───────────────────────────────────────────────────────
 
 function dispatchCommand(
-  nativeRef: React.RefObject<React.ComponentRef<typeof NativeChatView> | null>,
+  nativeRef: React.RefObject<React.ComponentRef<
+    HostComponent<NativeChatViewProps>
+  > | null>,
   commandName: keyof ChatViewCommands,
   args: unknown[],
 ): void {
@@ -268,7 +275,8 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     showFloatingDate = true,
   } = props;
 
-  const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
+  const nativeRef =
+    useRef<React.ComponentRef<HostComponent<NativeChatViewProps>>>(null);
 
   // ─── Per-message actions via callback ───────────────────────────────────
 
@@ -280,8 +288,6 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       actions: getActionsForMessage(msg),
     }));
   }, [messages, getActionsForMessage]);
-
-  // ─── Imperative API ──────────────────────────────────────────────────────
 
   useImperativeHandle(
     ref,
@@ -397,6 +403,8 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
     type: "none",
   };
+
+  if (!NativeChatView) return null;
 
   return (
     <NativeChatView
