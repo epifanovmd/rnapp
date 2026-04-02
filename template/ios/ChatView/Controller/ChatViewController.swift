@@ -293,7 +293,7 @@ final class ChatViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             floatingDatePill.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            floatingDatePill.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
+            floatingDatePill.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: ChatLayout.sectionSpacing),
             floatingDateLabel.topAnchor.constraint(equalTo: floatingDatePill.topAnchor, constant: ChatLayout.dateSeparatorVPad),
             floatingDateLabel.bottomAnchor.constraint(equalTo: floatingDatePill.bottomAnchor, constant: -ChatLayout.dateSeparatorVPad),
             floatingDateLabel.leadingAnchor.constraint(equalTo: floatingDatePill.leadingAnchor, constant: ChatLayout.dateSeparatorHPad),
@@ -376,13 +376,9 @@ final class ChatViewController: UIViewController {
             && oldFirstId != nil && oldFirstId != newMessages.first?.id
             && oldLastId == newMessages.last?.id
 
-        let isAppendFromLoad = !wasEmpty && grew
+        let isAppendAtBottom = !wasEmpty && grew
             && oldLastId != nil && oldLastId != newMessages.last?.id
             && oldFirstId == newMessages.first?.id
-
-        let isNewMessage = !wasEmpty && grew
-            && oldLastId != nil && oldLastId != newMessages.last?.id
-            && !isAppendFromLoad
 
         if isPrepend {
             let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
@@ -419,13 +415,28 @@ final class ChatViewController: UIViewController {
             return
         }
 
-        if isAppendFromLoad {
-            savedOffsetForAppend = collectionView.contentOffset
-            adapter.performUpdates(animated: false) { [weak self] _ in
-                guard let self else { return }
-                self.lastKnownMessageCount = newMessages.count
-                self.updateEmptyState()
-                self.updateFABVisibility(animated: false)
+        if isAppendAtBottom {
+            let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingBottom)
+
+            if wantScroll {
+                let animate = !pendingScrollToBottom
+                pendingScrollToBottom = false
+                adapter.performUpdates(animated: false) { [weak self] _ in
+                    guard let self else { return }
+                    self.scrollToBottom(animated: animate)
+                    self.lastKnownMessageCount = newMessages.count
+                    self.updateEmptyState()
+                    self.updateFABVisibility(animated: false)
+                }
+            } else {
+                // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
+                savedOffsetForAppend = collectionView.contentOffset
+                adapter.performUpdates(animated: false) { [weak self] _ in
+                    guard let self else { return }
+                    self.lastKnownMessageCount = newMessages.count
+                    self.updateEmptyState()
+                    self.updateFABVisibility(animated: false)
+                }
             }
             return
         }
@@ -447,16 +458,9 @@ final class ChatViewController: UIViewController {
             return
         }
 
-        // Скролл вниз: при отправке (pendingScrollToBottom) — всегда,
-        // при получении нового сообщения — только если были внизу
-        let shouldScroll = pendingScrollToBottom || (isNewMessage && wasAtBottom)
-
+        // Обновление без изменения кол-ва (редактирование, статус и т.д.)
         adapter.performUpdates(animated: true) { [weak self] _ in
             guard let self else { return }
-            if shouldScroll {
-                self.pendingScrollToBottom = false
-                self.scrollToBottom(animated: !self.pendingScrollToBottom)
-            }
             self.lastKnownMessageCount = newMessages.count
             self.updateEmptyState()
             self.updateFABVisibility(animated: true)
