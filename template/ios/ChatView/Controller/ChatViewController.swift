@@ -376,9 +376,9 @@ final class ChatViewController: UIViewController {
             && oldFirstId != nil && oldFirstId != newMessages.first?.id
             && oldLastId == newMessages.last?.id
 
+        // Новые сообщения добавлены в конец (новое сообщение или подгрузка снизу)
         let isAppendAtBottom = !wasEmpty && grew
             && oldLastId != nil && oldLastId != newMessages.last?.id
-            && oldFirstId == newMessages.first?.id
 
         if isPrepend {
             let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
@@ -419,11 +419,12 @@ final class ChatViewController: UIViewController {
             let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingBottom)
 
             if wantScroll {
-                let animate = !pendingScrollToBottom
                 pendingScrollToBottom = false
+                // animated: false — IGListKit делает performBatchUpdates без анимации (не reloadData),
+                // данные обновляются синхронно, после чего scrollToBottom получит корректный contentSize
                 adapter.performUpdates(animated: false) { [weak self] _ in
                     guard let self else { return }
-                    self.scrollToBottom(animated: animate)
+                    self.scrollToBottom(animated: true)
                     self.lastKnownMessageCount = newMessages.count
                     self.updateEmptyState()
                     self.updateFABVisibility(animated: false)
@@ -458,12 +459,18 @@ final class ChatViewController: UIViewController {
             return
         }
 
-        // Обновление без изменения кол-ва (редактирование, статус и т.д.)
-        adapter.performUpdates(animated: true) { [weak self] _ in
+        // Обновление контента (редактирование, статус, замена и т.д.)
+        let shouldScrollFallback = pendingScrollToBottom
+        if shouldScrollFallback { pendingScrollToBottom = false }
+
+        adapter.performUpdates(animated: !shouldScrollFallback) { [weak self] _ in
             guard let self else { return }
+            if shouldScrollFallback {
+                self.scrollToBottom(animated: true)
+            }
             self.lastKnownMessageCount = newMessages.count
             self.updateEmptyState()
-            self.updateFABVisibility(animated: true)
+            self.updateFABVisibility(animated: !shouldScrollFallback)
         }
     }
 
@@ -496,15 +503,13 @@ final class ChatViewController: UIViewController {
 
     func scrollToBottom(animated: Bool) {
         guard !messages.isEmpty else { return }
-        if collectionView.contentSize.height <= 0 { collectionView.layoutIfNeeded() }
+        collectionView.layoutIfNeeded()
         isProgrammaticScroll = true
         let maxY = collectionView.contentSize.height - collectionView.bounds.height + collectionView.contentInset.bottom
         if maxY > -collectionView.contentInset.top {
             collectionView.setContentOffset(CGPoint(x: 0, y: maxY), animated: animated)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-            self?.isProgrammaticScroll = false
-        }
+        if !animated { isProgrammaticScroll = false }
     }
 
     func scrollToMessage(id: String, position: String, animated: Bool, highlight: Bool) {
@@ -527,14 +532,13 @@ final class ChatViewController: UIViewController {
         collectionView.scrollToItem(at: IndexPath(item: 0, section: sectionIndex),
                                      at: scrollPos, animated: animated)
 
+        if !animated { isProgrammaticScroll = false }
+
         if highlight {
             pendingHighlightId = id
             DispatchQueue.main.asyncAfter(deadline: .now() + (animated ? 0.35 : 0.1)) { [weak self] in
                 self?.performHighlight()
             }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.isProgrammaticScroll = false
         }
     }
 
