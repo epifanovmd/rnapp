@@ -188,6 +188,7 @@ export interface NativeChatViewProps extends ViewProps {
   collectionInsetBottom?: WithDefault<Double, 0>;
   inputTypingThrottle?: WithDefault<Double, 500>;
   showSenderName?: WithDefault<boolean, false>;
+  showFloatingDate?: WithDefault<boolean, true>;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;

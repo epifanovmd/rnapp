@@ -88,6 +88,10 @@ final class RNChatView: UIView {
         didSet { chatVC.showsSenderName = showSenderName }
     }
 
+    @objc var showFloatingDate: Bool = true {
+        didSet { chatVC.showsFloatingDate = showFloatingDate }
+    }
+
     @objc var collectionInsetTop: NSNumber = 0 {
         didSet { chatVC.collectionExtraInsetTop = CGFloat(collectionInsetTop.doubleValue) }
     }

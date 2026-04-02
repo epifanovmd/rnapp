@@ -162,6 +162,7 @@ export interface ChatViewProps extends ViewProps {
   collectionInsetBottom?: number;
   inputTypingThrottle?: number;
   showSenderName?: boolean;
+  showFloatingDate?: boolean;
 
   onScroll?: (event: ChatScrollEventData) => void;
   onReachTop?: (event: ChatReachTopEventData) => void;
@@ -271,6 +272,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onReactionTap,
     inputTypingThrottle,
     showSenderName,
+    showFloatingDate = true,
   } = props;
 
   const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
@@ -453,6 +455,7 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onReactionTap={handleReactionTap}
       inputTypingThrottle={inputTypingThrottle}
       showSenderName={showSenderName}
+      showFloatingDate={showFloatingDate}
     />
   );
 });

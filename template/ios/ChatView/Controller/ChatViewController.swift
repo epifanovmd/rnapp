@@ -17,6 +17,9 @@ final class ChatViewController: UIViewController {
     var isLoadingBottom = false
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
     var showsSenderName = false
+    var showsFloatingDate = true
+    var unreadCount = 0 { didSet { updateFABBadge() } }
+    var unreadMessageIDs: Set<String> = []
 
     var emojiReactionsList: [String] = [] {
         didSet { contextMenuEmojis = emojiReactionsList.map { ContextMenuEmoji(emoji: $0) } }
@@ -54,6 +57,7 @@ final class ChatViewController: UIViewController {
     let fabButton = UIButton(type: .custom)
     var fabBlurView: UIVisualEffectView!
     let fabArrow = UIImageView()
+    let fabBadge = UILabel()
 
     // MARK: - Floating Date
 
@@ -251,6 +255,18 @@ final class ChatViewController: UIViewController {
 
         rebuildFABBlur()
 
+        // Badge
+        fabBadge.font = .monospacedDigitSystemFont(ofSize: 12, weight: .semibold)
+        fabBadge.textColor = .white
+        fabBadge.backgroundColor = UIColor.systemBlue
+        fabBadge.textAlignment = .center
+        fabBadge.layer.cornerRadius = 10
+        fabBadge.layer.masksToBounds = true
+        fabBadge.translatesAutoresizingMaskIntoConstraints = false
+        fabBadge.isHidden = true
+        fabBadge.isUserInteractionEnabled = false
+        view.addSubview(fabBadge)
+
         NSLayoutConstraint.activate([
             fabButton.widthAnchor.constraint(equalToConstant: size),
             fabButton.heightAnchor.constraint(equalToConstant: size),
@@ -260,6 +276,10 @@ final class ChatViewController: UIViewController {
             fabArrow.centerYAnchor.constraint(equalTo: fabButton.centerYAnchor),
             fabArrow.widthAnchor.constraint(equalToConstant: 18),
             fabArrow.heightAnchor.constraint(equalToConstant: 18),
+            fabBadge.centerXAnchor.constraint(equalTo: fabButton.centerXAnchor),
+            fabBadge.bottomAnchor.constraint(equalTo: fabButton.topAnchor, constant: 4),
+            fabBadge.heightAnchor.constraint(equalToConstant: 20),
+            fabBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 20),
         ])
     }
 
@@ -303,7 +323,7 @@ final class ChatViewController: UIViewController {
     }
 
     func updateFloatingDate() {
-        guard !messages.isEmpty else { hideFloatingDate(); return }
+        guard showsFloatingDate, !messages.isEmpty else { hideFloatingDate(); return }
 
         let spacing = ChatLayout.sectionSpacing
 
@@ -468,6 +488,7 @@ final class ChatViewController: UIViewController {
         }
 
         if isAppendAtBottom {
+            let wasLoadingNewer = isLoadingNewerActive
             let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingNewerActive)
             isLoadingNewerActive = false
 
@@ -481,6 +502,15 @@ final class ChatViewController: UIViewController {
                     self.updateFABVisibility(animated: false)
                 }
             } else {
+                // Счётчик непрочитанных — только для реальных новых сообщений, не подгрузки
+                if !wasLoadingNewer && !wasAtBottom {
+                    let delta = newMessages.count - oldCount
+                    if delta > 0 {
+                        let newIDs = newMessages.suffix(delta).map { $0.id }
+                        unreadMessageIDs.formUnion(newIDs)
+                        unreadCount = unreadMessageIDs.count
+                    }
+                }
                 // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
                 savedOffsetForAppend = collectionView.contentOffset
                 adapter.performUpdates(animated: false) { [weak self] _ in
@@ -630,10 +660,25 @@ final class ChatViewController: UIViewController {
         let alpha: CGFloat = shouldShow ? 1 : 0
         fabButton.isUserInteractionEnabled = shouldShow
         if animated {
-            UIView.animate(withDuration: 0.25) { self.fabButton.alpha = alpha }
+            UIView.animate(withDuration: 0.25) {
+                self.fabButton.alpha = alpha
+                self.fabBadge.alpha = alpha
+            }
         } else {
             fabButton.alpha = alpha
+            fabBadge.alpha = alpha
         }
+        if !shouldShow {
+            unreadMessageIDs.removeAll()
+            unreadCount = 0
+        }
+    }
+
+    func updateFABBadge() {
+        fabBadge.isHidden = unreadCount <= 0
+        guard unreadCount > 0 else { return }
+        let text = unreadCount > 99 ? "99+" : "\(unreadCount)"
+        fabBadge.text = "  \(text)  "
     }
 
     func updateEmptyState() {
@@ -673,5 +718,9 @@ final class ChatViewController: UIViewController {
     }
 
     @objc func dismissKeyboard() { view.endEditing(true) }
-    @objc func fabTapped() { scrollToBottom(animated: true) }
+    @objc func fabTapped() {
+        unreadMessageIDs.removeAll()
+        unreadCount = 0
+        scrollToBottom(animated: true)
+    }
 }

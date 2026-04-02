@@ -719,8 +719,8 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           isLoadingTop={messageStore.messagesHolder.isLoadingMore}
           isLoadingBottom={messageStore.messagesHolder.isLoadingNewer}
           theme={colorScheme === "dark" ? "dark" : "light"}
-          topThreshold={200}
-          bottomThreshold={200}
+          topThreshold={400}
+          bottomThreshold={400}
           scrollToBottomThreshold={150}
           collectionInsetTop={0}
           collectionInsetBottom={0}

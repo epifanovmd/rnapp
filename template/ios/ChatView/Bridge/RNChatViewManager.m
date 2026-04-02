@@ -21,6 +21,7 @@ RCT_EXPORT_VIEW_PROPERTY(collectionInsetTop, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(collectionInsetBottom, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(inputTypingThrottle, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(showSenderName, BOOL)
+RCT_EXPORT_VIEW_PROPERTY(showFloatingDate, BOOL)
 
 // MARK: - Events
 

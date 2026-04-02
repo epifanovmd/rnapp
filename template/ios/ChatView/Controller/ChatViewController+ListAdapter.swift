@@ -99,6 +99,13 @@ extension ChatViewController {
         guard !newIDs.isEmpty else { return }
         visibleMessageIDs = ids
 
+        // Декремент счётчика непрочитанных
+        let readUnread = newIDs.intersection(unreadMessageIDs)
+        if !readUnread.isEmpty {
+            unreadMessageIDs.subtract(readUnread)
+            unreadCount = unreadMessageIDs.count
+        }
+
         pendingVisibleIDs.formUnion(newIDs)
         visibilityDebounceTask?.cancel()
         let task = DispatchWorkItem { [weak self] in
