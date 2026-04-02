@@ -57,7 +57,7 @@ final class ChatViewController: UIViewController {
     let fabButton = UIButton(type: .custom)
     var fabBlurView: UIVisualEffectView!
     let fabArrow = UIImageView()
-    let fabBadge = UILabel()
+    let fabBadge = PaddedLabel(hPad: 6)
 
     // MARK: - Floating Date
 
@@ -77,6 +77,7 @@ final class ChatViewController: UIViewController {
     // MARK: - Constraints
 
     var inputBarKeyboardConstraint: NSLayoutConstraint?
+    private let inputBarBackground = UIView()
 
     // MARK: - Scroll State
 
@@ -207,6 +208,10 @@ final class ChatViewController: UIViewController {
     // MARK: - Setup Input Bar
 
     private func setupInputBar() {
+        // Фон под inputBar — продлевается до самого низа (за safe area)
+        inputBarBackground.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(inputBarBackground)
+
         inputBar = ChatInputBar()
         inputBar.delegate = self
         inputBar.translatesAutoresizingMaskIntoConstraints = false
@@ -216,6 +221,10 @@ final class ChatViewController: UIViewController {
             inputBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             inputBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             inputBar.heightAnchor.constraint(greaterThanOrEqualToConstant: ChatLayout.inputBarMinHeight),
+            inputBarBackground.topAnchor.constraint(equalTo: inputBar.topAnchor),
+            inputBarBackground.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            inputBarBackground.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            inputBarBackground.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
 
         if #available(iOS 15.0, *) {
@@ -276,8 +285,8 @@ final class ChatViewController: UIViewController {
             fabArrow.centerYAnchor.constraint(equalTo: fabButton.centerYAnchor),
             fabArrow.widthAnchor.constraint(equalToConstant: 18),
             fabArrow.heightAnchor.constraint(equalToConstant: 18),
-            fabBadge.centerXAnchor.constraint(equalTo: fabButton.centerXAnchor),
-            fabBadge.bottomAnchor.constraint(equalTo: fabButton.topAnchor, constant: 4),
+            fabBadge.centerXAnchor.constraint(equalTo: fabButton.leadingAnchor),
+            fabBadge.centerYAnchor.constraint(equalTo: fabButton.topAnchor),
             fabBadge.heightAnchor.constraint(equalToConstant: 20),
             fabBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 20),
         ])
@@ -351,21 +360,24 @@ final class ChatViewController: UIViewController {
             : ChatLayout.dateSeparatorFont.lineHeight + ChatLayout.dateSeparatorVPad * 2
         let pillBottom = pillRestY + pillH
 
-        // Текущая дата — последняя, чей низ ушёл выше pill + spacing (полностью за экран + отступ)
+        // Текущая дата — последняя, чей низ ушёл выше pill + spacing (ячейка полностью за pill)
         var currentDate: String?
+        var currentDatePassed = false
         var nextInfo: DateInfo?
 
         for (i, info) in dateSections.enumerated() {
             if info.maxY < pillRestY - spacing {
                 currentDate = info.groupDate
+                currentDatePassed = true
                 nextInfo = (i + 1 < dateSections.count) ? dateSections[i + 1] : nil
             }
         }
 
-        // Если ни одна дата ещё не прошла pill — берём первую видимую
-        if currentDate == nil {
-            currentDate = dateSections[0].groupDate
-            nextInfo = dateSections.count > 1 ? dateSections[1] : nil
+        // Если ни одна дата ещё не прошла pill — ячейка видна, pill не нужен
+        if !currentDatePassed {
+            currentFloatingDate = nil
+            hideFloatingDate()
+            return
         }
 
         guard let groupDate = currentDate else { return }
@@ -383,7 +395,7 @@ final class ChatViewController: UIViewController {
             floatingDatePill.transform = .identity
         }
 
-        // Обновляем текст — после push-off fade in как при начале скрола
+        // Обновляем текст — после push-off fade in
         let dateDidChange = groupDate != currentFloatingDate
         if dateDidChange {
             currentFloatingDate = groupDate
@@ -424,6 +436,7 @@ final class ChatViewController: UIViewController {
         fabArrow.tintColor = theme.fabArrowColor
         rebuildFABBlur()
         inputBar.applyTheme(theme)
+        inputBarBackground.backgroundColor = theme.inputBarBackground
         floatingDatePill.backgroundColor = theme.dateSeparatorBackground
         floatingDateLabel.textColor = theme.dateSeparatorText
         adapter.performUpdates(animated: false)
@@ -506,9 +519,11 @@ final class ChatViewController: UIViewController {
                 if !wasLoadingNewer && !wasAtBottom {
                     let delta = newMessages.count - oldCount
                     if delta > 0 {
-                        let newIDs = newMessages.suffix(delta).map { $0.id }
-                        unreadMessageIDs.formUnion(newIDs)
-                        unreadCount = unreadMessageIDs.count
+                        let newIDs = newMessages.suffix(delta).filter { !$0.isMine }.map { $0.id }
+                        if !newIDs.isEmpty {
+                            unreadMessageIDs.formUnion(newIDs)
+                            unreadCount = unreadMessageIDs.count
+                        }
                     }
                 }
                 // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
@@ -677,8 +692,7 @@ final class ChatViewController: UIViewController {
     func updateFABBadge() {
         fabBadge.isHidden = unreadCount <= 0
         guard unreadCount > 0 else { return }
-        let text = unreadCount > 99 ? "99+" : "\(unreadCount)"
-        fabBadge.text = "  \(text)  "
+        fabBadge.text = unreadCount > 99 ? "99+" : "\(unreadCount)"
     }
 
     func updateEmptyState() {
@@ -722,5 +736,27 @@ final class ChatViewController: UIViewController {
         unreadMessageIDs.removeAll()
         unreadCount = 0
         scrollToBottom(animated: true)
+    }
+}
+
+// MARK: - PaddedLabel
+
+final class PaddedLabel: UILabel {
+    private let hPad: CGFloat
+
+    init(hPad: CGFloat) {
+        self.hPad = hPad
+        super.init(frame: .zero)
+    }
+
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(width: size.width + hPad * 2, height: size.height)
+    }
+
+    override func drawText(in rect: CGRect) {
+        super.drawText(in: rect.insetBy(dx: hPad, dy: 0))
     }
 }

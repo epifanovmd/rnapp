@@ -442,12 +442,14 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleMessagesVisible = useCallback(
       ({ messageIds }: ChatMessagesVisibleEventData) => {
+        console.log("messageIds", messageIds);
         const firstId = messageIds[0];
 
         if (firstId) {
           const msg = messages.find(m => m.id === firstId);
 
           if (msg && msg.senderId !== currentUserId) {
+            console.log("msg", msg);
             messageStore.markAsRead(chatId, firstId);
           }
         }
