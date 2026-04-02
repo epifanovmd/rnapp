@@ -690,7 +690,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           emojiReactions={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
           inputAction={inputAction}
           hasMore={messageStore.messagesHolder.hasMore}
-          // hasMore={false}
           hasNewer={messageStore.messagesHolder.hasNewer}
           isLoading={messageStore.messagesHolder.isBusy}
           isLoadingTop={messageStore.messagesHolder.isLoadingMore}

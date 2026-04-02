@@ -14,6 +14,10 @@ final class MessageCell: UICollectionViewCell {
     var onVoiceTap: ((String) -> Void)?
     var onReactionTap: ((String) -> Void)?
 
+    // MARK: - State
+
+    private var currentTheme: ChatTheme = .light
+
     // MARK: - Views
 
     let bubbleView = MessageBubbleView()
@@ -37,9 +41,9 @@ final class MessageCell: UICollectionViewCell {
         contentView.addSubview(bubbleView)
 
         leadingConstraint = bubbleView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor,
-                                                                 constant: ChatLayout.cellHMargin)
+                                                                 constant: ChatLayout.current.cellHMargin)
         trailingConstraint = bubbleView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor,
-                                                                   constant: -ChatLayout.cellHMargin)
+                                                                   constant: -ChatLayout.current.cellHMargin)
 
         NSLayoutConstraint.activate([
             bubbleView.topAnchor.constraint(equalTo: contentView.topAnchor),
@@ -51,13 +55,14 @@ final class MessageCell: UICollectionViewCell {
         bubbleView.addGestureRecognizer(tap)
 
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
-        longPress.minimumPressDuration = 0.35
+        longPress.minimumPressDuration = ChatLayout.current.longPressDuration
         bubbleView.addGestureRecognizer(longPress)
     }
 
     // MARK: - Configure
 
     func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, maxWidth: CGFloat, showSenderName: Bool = false) {
+        currentTheme = theme
         let bw = MessageSizeCalculator.bubbleWidth(for: message, containerWidth: maxWidth, showSenderName: showSenderName)
 
         leadingConstraint.isActive = false
@@ -88,12 +93,13 @@ final class MessageCell: UICollectionViewCell {
 
     func playHighlight() {
         let overlay = UIView(frame: bubbleView.bounds)
-        overlay.backgroundColor = UIColor.systemYellow.withAlphaComponent(0.3)
-        overlay.layer.cornerRadius = ChatLayout.bubbleCornerRadius
+        overlay.backgroundColor = currentTheme.messageHighlightColor
+        overlay.layer.cornerRadius = ChatLayout.current.bubbleCornerRadius
         overlay.alpha = 0
         bubbleView.addSubview(overlay)
-        UIView.animate(withDuration: 0.2, animations: { overlay.alpha = 1 }) { _ in
-            UIView.animate(withDuration: 0.6, delay: 0.4, animations: { overlay.alpha = 0 }) { _ in
+        let L = ChatLayout.current
+        UIView.animate(withDuration: L.highlightAnimateIn, animations: { overlay.alpha = 1 }) { _ in
+            UIView.animate(withDuration: L.highlightAnimateOut, delay: L.highlightDelay, animations: { overlay.alpha = 0 }) { _ in
                 overlay.removeFromSuperview()
             }
         }

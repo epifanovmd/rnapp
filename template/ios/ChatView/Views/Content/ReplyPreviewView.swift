@@ -15,29 +15,29 @@ final class ReplyPreviewView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        layer.cornerRadius = ChatLayout.replyCornerRadius
+        layer.cornerRadius = ChatLayout.current.replyCornerRadius
         clipsToBounds = true
 
         accentBar.translatesAutoresizingMaskIntoConstraints = false
         addSubview(accentBar)
 
-        senderLabel.font = ChatLayout.replySenderFont
+        senderLabel.font = ChatLayout.current.replySenderFont
         senderLabel.numberOfLines = 1
         senderLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(senderLabel)
 
-        contentLabel.font = ChatLayout.replyFont
+        contentLabel.font = ChatLayout.current.replyFont
         contentLabel.numberOfLines = 1
         contentLabel.lineBreakMode = .byTruncatingTail
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(contentLabel)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: ChatLayout.replyHeight),
+            heightAnchor.constraint(equalToConstant: ChatLayout.current.replyHeight),
             accentBar.leadingAnchor.constraint(equalTo: leadingAnchor),
             accentBar.topAnchor.constraint(equalTo: topAnchor),
             accentBar.bottomAnchor.constraint(equalTo: bottomAnchor),
-            accentBar.widthAnchor.constraint(equalToConstant: ChatLayout.replyAccentWidth),
+            accentBar.widthAnchor.constraint(equalToConstant: ChatLayout.current.replyAccentWidth),
             senderLabel.leadingAnchor.constraint(equalTo: accentBar.trailingAnchor, constant: 8),
             senderLabel.topAnchor.constraint(equalTo: topAnchor, constant: 4),
             senderLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),

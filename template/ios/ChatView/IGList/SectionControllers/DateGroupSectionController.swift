@@ -27,7 +27,7 @@ final class DateGroupSectionController: ListBindingSectionController<DateGroupLi
         dataSource = self
         supplementaryViewSource = self
         inset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
-        minimumLineSpacing = ChatLayout.cellVSpacing
+        minimumLineSpacing = ChatLayout.current.cellVSpacing
     }
 
     // MARK: - ListBindingSectionControllerDataSource
@@ -104,7 +104,7 @@ final class DateGroupSectionController: ListBindingSectionController<DateGroupLi
             resolvedReply: vm.message.reply.flatMap { sectionDelegate?.resolveReply(for: $0) },
             showSenderName: showName
         )
-        return CGSize(width: width, height: max(height, ChatLayout.cellMinHeight))
+        return CGSize(width: width, height: max(height, ChatLayout.current.cellMinHeight))
     }
 
     // MARK: - ListSupplementaryViewSource
@@ -128,7 +128,7 @@ final class DateGroupSectionController: ListBindingSectionController<DateGroupLi
 
     func sizeForSupplementaryView(ofKind elementKind: String, at index: Int) -> CGSize {
         guard let ctx = collectionContext else { return .zero }
-        let h = ChatLayout.dateSeparatorFont.lineHeight + ChatLayout.dateSeparatorVPad * 2 + ChatLayout.sectionSpacing * 2
+        let h = ChatLayout.current.dateSeparatorFont.lineHeight + ChatLayout.current.dateSeparatorVPad * 2 + ChatLayout.current.sectionSpacing * 2
         return CGSize(width: ctx.containerSize.width, height: h)
     }
 

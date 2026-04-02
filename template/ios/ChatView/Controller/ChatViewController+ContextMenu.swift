@@ -18,7 +18,7 @@ extension ChatViewController {
                 ContextMenuAction(id: $0.id, title: $0.title,
                                   systemImage: $0.systemImage, isDestructive: $0.isDestructive)
             },
-            snapshotCornerRadius: ChatLayout.bubbleCornerRadius
+            snapshotCornerRadius: ChatLayout.current.bubbleCornerRadius
         )
 
         let menuTheme: ContextMenuTheme = theme.isDark ? .dark : .light

@@ -37,28 +37,28 @@ final class MessageBubbleView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        layer.cornerRadius = ChatLayout.bubbleCornerRadius
+        layer.cornerRadius = ChatLayout.current.bubbleCornerRadius
         layer.masksToBounds = true
 
         stack.axis = .vertical
-        stack.spacing = ChatLayout.bubbleSpacing
+        stack.spacing = ChatLayout.current.bubbleSpacing
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
 
-        senderLabel.font = ChatLayout.senderNameFont
+        senderLabel.font = ChatLayout.current.senderNameFont
         senderLabel.numberOfLines = 1
-        forwardedLabel.font = ChatLayout.forwardedFont
+        forwardedLabel.font = ChatLayout.current.forwardedFont
         forwardedLabel.numberOfLines = 1
-        editedLabel.font = ChatLayout.editedFont
+        editedLabel.font = ChatLayout.current.editedFont
         editedLabel.text = "edited"
-        timeLabel.font = ChatLayout.timeFont
+        timeLabel.font = ChatLayout.current.timeFont
 
         setupFooter()
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: ChatLayout.bubbleVPad),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: ChatLayout.bubbleHPad),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -ChatLayout.bubbleHPad),
+            stack.topAnchor.constraint(equalTo: topAnchor, constant: ChatLayout.current.bubbleVPad),
+            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: ChatLayout.current.bubbleHPad),
+            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -ChatLayout.current.bubbleHPad),
         ])
     }
 
@@ -73,10 +73,10 @@ final class MessageBubbleView: UIView {
         }
 
         NSLayoutConstraint.activate([
-            footerContainer.heightAnchor.constraint(equalToConstant: ChatLayout.footerHeight),
+            footerContainer.heightAnchor.constraint(equalToConstant: ChatLayout.current.footerHeight),
             statusView.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
-            statusView.widthAnchor.constraint(equalToConstant: ChatLayout.statusIconSize),
-            statusView.heightAnchor.constraint(equalToConstant: ChatLayout.statusIconSize),
+            statusView.widthAnchor.constraint(equalToConstant: ChatLayout.current.statusIconSize),
+            statusView.heightAnchor.constraint(equalToConstant: ChatLayout.current.statusIconSize),
             timeLabel.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
             editedLabel.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
         ])
@@ -84,13 +84,13 @@ final class MessageBubbleView: UIView {
         // Outgoing: [edited] [time] [status] ─── trailing
         footerTrailingGroup = [
             statusView.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
-            timeLabel.trailingAnchor.constraint(equalTo: statusView.leadingAnchor, constant: -ChatLayout.footerSpacing),
-            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.footerSpacing),
+            timeLabel.trailingAnchor.constraint(equalTo: statusView.leadingAnchor, constant: -ChatLayout.current.footerSpacing),
+            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.current.footerSpacing),
         ]
 
         // Incoming: leading ─── [edited] [time]
         footerLeadingGroup = [
-            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.footerSpacing),
+            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.current.footerSpacing),
             timeLabel.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
         ]
     }
@@ -118,7 +118,7 @@ final class MessageBubbleView: UIView {
             layer.cornerRadius = 0
         } else {
             backgroundColor = isMine ? theme.outgoingBubble : theme.incomingBubble
-            layer.cornerRadius = ChatLayout.bubbleCornerRadius
+            layer.cornerRadius = ChatLayout.current.bubbleCornerRadius
         }
 
         stack.arrangedSubviews.forEach { stack.removeArrangedSubview($0); $0.removeFromSuperview() }
@@ -145,7 +145,7 @@ final class MessageBubbleView: UIView {
         }
 
         // Content
-        let innerW = bubbleWidth - ChatLayout.bubbleHPad * 2
+        let innerW = bubbleWidth - ChatLayout.current.bubbleHPad * 2
         let newContent = createContentView(for: message, width: innerW, isMine: isMine, theme: theme)
         contentView = newContent
         stack.addArrangedSubview(newContent)
@@ -187,7 +187,7 @@ final class MessageBubbleView: UIView {
         } else if let files = content.files, !files.isEmpty {
             let filesStack = UIStackView()
             filesStack.axis = .vertical
-            filesStack.spacing = 2
+            filesStack.spacing = ChatLayout.current.fileRowSpacing
             for (index, file) in files.enumerated() {
                 let view = FileContentView()
                 view.configure(file: file, isMine: isMine, theme: theme)
@@ -202,7 +202,7 @@ final class MessageBubbleView: UIView {
             views.append(view)
         } else if let media = content.media, !media.isEmpty {
             let grid = MediaGridView()
-            grid.configure(media: media, width: width)
+            grid.configure(media: media, width: width, theme: theme)
             grid.onItemTap = { [weak self] index in self?.onMediaItemTap?(index) }
             views.append(grid)
         }
@@ -221,7 +221,7 @@ final class MessageBubbleView: UIView {
         if views.count > 1 {
             let container = UIStackView()
             container.axis = .vertical
-            container.spacing = 4
+            container.spacing = ChatLayout.current.mixedContentSpacing
             views.forEach { container.addArrangedSubview($0) }
             return container
         }

@@ -7,16 +7,16 @@ final class DateSeparatorSectionController: ListSectionController {
 
     override init() {
         super.init()
-        inset = UIEdgeInsets(top: ChatLayout.sectionSpacing, left: 0,
-                             bottom: ChatLayout.sectionSpacing, right: 0)
+        inset = UIEdgeInsets(top: ChatLayout.current.sectionSpacing, left: 0,
+                             bottom: ChatLayout.current.sectionSpacing, right: 0)
     }
 
     override func numberOfItems() -> Int { 1 }
 
     override func sizeForItem(at index: Int) -> CGSize {
         guard let ctx = collectionContext else { return .zero }
-        let height: CGFloat = ChatLayout.dateSeparatorFont.lineHeight
-            + ChatLayout.dateSeparatorVPad * 2
+        let height: CGFloat = ChatLayout.current.dateSeparatorFont.lineHeight
+            + ChatLayout.current.dateSeparatorVPad * 2
         return CGSize(width: ctx.containerSize.width, height: height)
     }
 

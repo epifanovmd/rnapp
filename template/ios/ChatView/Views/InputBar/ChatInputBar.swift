@@ -111,12 +111,12 @@ final class ChatInputBar: UIView {
         replyIconView.translatesAutoresizingMaskIntoConstraints = false
         replyPanel.addSubview(replyIconView)
 
-        replySenderLabel.font = ChatLayout.replySenderFont
+        replySenderLabel.font = ChatLayout.current.replySenderFont
         replySenderLabel.numberOfLines = 1
         replySenderLabel.translatesAutoresizingMaskIntoConstraints = false
         replyPanel.addSubview(replySenderLabel)
 
-        replyTextLabel.font = ChatLayout.replyFont
+        replyTextLabel.font = ChatLayout.current.replyFont
         replyTextLabel.numberOfLines = 1
         replyTextLabel.lineBreakMode = .byTruncatingTail
         replyTextLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -155,10 +155,10 @@ final class ChatInputBar: UIView {
     private func setupInputRow() {
         inputStack.axis = .horizontal
         inputStack.alignment = .bottom
-        inputStack.spacing = 6
+        inputStack.spacing = ChatLayout.current.inputStackSpacing
         inputStack.translatesAutoresizingMaskIntoConstraints = false
-        inputStack.layoutMargins = UIEdgeInsets(top: ChatLayout.inputBarVPad, left: ChatLayout.inputBarHPad,
-                                                 bottom: ChatLayout.inputBarVPad, right: ChatLayout.inputBarHPad)
+        inputStack.layoutMargins = UIEdgeInsets(top: ChatLayout.current.inputBarVPad, left: ChatLayout.current.inputBarHPad,
+                                                 bottom: ChatLayout.current.inputBarVPad, right: ChatLayout.current.inputBarHPad)
         inputStack.isLayoutMarginsRelativeArrangement = true
 
         let attachConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
@@ -166,28 +166,28 @@ final class ChatInputBar: UIView {
         attachButton.addTarget(self, action: #selector(attachTapped), for: .touchUpInside)
         attachButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            attachButton.widthAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
-            attachButton.heightAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
+            attachButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
+            attachButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
         ])
 
-        textViewContainer.layer.cornerRadius = ChatLayout.textViewCornerRadius
-        textViewContainer.layer.borderWidth = 0.5
+        textViewContainer.layer.cornerRadius = ChatLayout.current.textViewCornerRadius
+        textViewContainer.layer.borderWidth = ChatLayout.current.inputBorderWidth
         textViewContainer.translatesAutoresizingMaskIntoConstraints = false
 
-        textView.font = ChatLayout.textViewFont
+        textView.font = ChatLayout.current.textViewFont
         textView.isScrollEnabled = false
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        textView.textContainerInset = ChatLayout.current.textViewInsets
         textView.delegate = self
         textView.translatesAutoresizingMaskIntoConstraints = false
         textView.backgroundColor = .clear
         textViewContainer.addSubview(textView)
 
         placeholderLabel.text = "Message"
-        placeholderLabel.font = ChatLayout.textViewFont
+        placeholderLabel.font = ChatLayout.current.textViewFont
         placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
         textViewContainer.addSubview(placeholderLabel)
 
-        textViewHeightConstraint = textView.heightAnchor.constraint(equalToConstant: ChatLayout.textViewMinHeight)
+        textViewHeightConstraint = textView.heightAnchor.constraint(equalToConstant: ChatLayout.current.textViewMinHeight)
         textViewHeightConstraint.priority = .defaultHigh
 
         NSLayoutConstraint.activate([
@@ -206,8 +206,8 @@ final class ChatInputBar: UIView {
         sendButton.translatesAutoresizingMaskIntoConstraints = false
         sendButton.isHidden = true
         NSLayoutConstraint.activate([
-            sendButton.widthAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
-            sendButton.heightAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
+            sendButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
+            sendButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
         ])
 
         let recordConfig = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
@@ -215,8 +215,8 @@ final class ChatInputBar: UIView {
         recordButton.addTarget(self, action: #selector(recordTapped), for: .touchUpInside)
         recordButton.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.activate([
-            recordButton.widthAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
-            recordButton.heightAnchor.constraint(equalToConstant: ChatLayout.inputButtonSize),
+            recordButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
+            recordButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.inputButtonSize),
         ])
 
         inputStack.addArrangedSubview(attachButton)
@@ -233,25 +233,25 @@ final class ChatInputBar: UIView {
         recordingOverlay.translatesAutoresizingMaskIntoConstraints = false
         addSubview(recordingOverlay)
 
-        recordDot.backgroundColor = .systemRed
-        recordDot.layer.cornerRadius = ChatLayout.recordDotSize / 2
+        recordDot.backgroundColor = theme.voiceRecordingIndicator
+        recordDot.layer.cornerRadius = ChatLayout.current.recordDotSize / 2
         recordDot.translatesAutoresizingMaskIntoConstraints = false
         recordingOverlay.addSubview(recordDot)
 
-        recordTimerLabel.font = ChatLayout.recordTimerFont
+        recordTimerLabel.font = ChatLayout.current.recordTimerFont
         recordTimerLabel.text = "0:00"
         recordTimerLabel.translatesAutoresizingMaskIntoConstraints = false
         recordingOverlay.addSubview(recordTimerLabel)
 
         recordCancelLabel.text = "< Slide to cancel"
-        recordCancelLabel.font = .systemFont(ofSize: 14)
+        recordCancelLabel.font = ChatLayout.current.recordCancelFont
         recordCancelLabel.textAlignment = .center
         recordCancelLabel.translatesAutoresizingMaskIntoConstraints = false
         recordingOverlay.addSubview(recordCancelLabel)
 
         let stopConfig = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
         recordStopButton.setImage(UIImage(systemName: "stop.circle.fill", withConfiguration: stopConfig), for: .normal)
-        recordStopButton.tintColor = .systemRed
+        recordStopButton.tintColor = theme.voiceRecordingStopColor
         recordStopButton.addTarget(self, action: #selector(stopRecordTapped), for: .touchUpInside)
         recordStopButton.translatesAutoresizingMaskIntoConstraints = false
         recordingOverlay.addSubview(recordStopButton)
@@ -267,16 +267,16 @@ final class ChatInputBar: UIView {
             recordingOverlay.bottomAnchor.constraint(equalTo: bottomAnchor),
             recordDot.leadingAnchor.constraint(equalTo: recordingOverlay.leadingAnchor, constant: 16),
             recordDot.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
-            recordDot.widthAnchor.constraint(equalToConstant: ChatLayout.recordDotSize),
-            recordDot.heightAnchor.constraint(equalToConstant: ChatLayout.recordDotSize),
+            recordDot.widthAnchor.constraint(equalToConstant: ChatLayout.current.recordDotSize),
+            recordDot.heightAnchor.constraint(equalToConstant: ChatLayout.current.recordDotSize),
             recordTimerLabel.leadingAnchor.constraint(equalTo: recordDot.trailingAnchor, constant: 8),
             recordTimerLabel.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
             recordCancelLabel.centerXAnchor.constraint(equalTo: recordingOverlay.centerXAnchor),
             recordCancelLabel.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
             recordStopButton.trailingAnchor.constraint(equalTo: recordingOverlay.trailingAnchor, constant: -16),
             recordStopButton.centerYAnchor.constraint(equalTo: recordingOverlay.centerYAnchor),
-            recordStopButton.widthAnchor.constraint(equalToConstant: 36),
-            recordStopButton.heightAnchor.constraint(equalToConstant: 36),
+            recordStopButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.recordStopSize),
+            recordStopButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.recordStopSize),
         ])
     }
 
@@ -304,6 +304,9 @@ final class ChatInputBar: UIView {
         recordingOverlay.backgroundColor = theme.inputBarBackground
         recordTimerLabel.textColor = theme.inputBarText
         recordCancelLabel.textColor = theme.inputBarPlaceholder
+        recordDot.backgroundColor = theme.voiceRecordingIndicator
+        recordStopButton.tintColor = theme.voiceRecordingStopColor
+        textViewContainer.layer.borderColor = theme.inputBarBorder.cgColor
     }
 
     // MARK: - Mode Management
@@ -378,15 +381,15 @@ final class ChatInputBar: UIView {
     // MARK: - Private
 
     private func showReplyPanel(_ show: Bool) {
-        replyPanelHeight.constant = show ? ChatLayout.inputReplyPanelHeight : 0
+        replyPanelHeight.constant = show ? ChatLayout.current.inputReplyPanelHeight : 0
         UIView.animate(withDuration: 0.2) { self.layoutIfNeeded() }
     }
 
     private func updateTextViewHeight() {
         let size = textView.sizeThatFits(CGSize(width: textView.bounds.width, height: .greatestFiniteMagnitude))
-        let h = min(max(size.height, ChatLayout.textViewMinHeight), ChatLayout.textViewMaxHeight)
+        let h = min(max(size.height, ChatLayout.current.textViewMinHeight), ChatLayout.current.textViewMaxHeight)
         textViewHeightConstraint.constant = h
-        textView.isScrollEnabled = size.height > ChatLayout.textViewMaxHeight
+        textView.isScrollEnabled = size.height > ChatLayout.current.textViewMaxHeight
     }
 
     private func updateSendButtonVisibility() {
@@ -397,7 +400,7 @@ final class ChatInputBar: UIView {
 
     private func startDotAnimation() {
         UIView.animate(withDuration: 0.5, delay: 0, options: [.repeat, .autoreverse]) {
-            self.recordDot.alpha = 0.2
+            self.recordDot.alpha = ChatLayout.current.recordDotMinAlpha
         }
     }
 

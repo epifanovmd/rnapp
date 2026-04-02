@@ -18,17 +18,17 @@ final class PollContentView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        questionLabel.font = ChatLayout.pollQuestionFont
+        questionLabel.font = ChatLayout.current.pollQuestionFont
         questionLabel.numberOfLines = 0
         questionLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(questionLabel)
 
         optionsStack.axis = .vertical
-        optionsStack.spacing = ChatLayout.pollOptionSpacing
+        optionsStack.spacing = ChatLayout.current.pollOptionSpacing
         optionsStack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(optionsStack)
 
-        votesLabel.font = ChatLayout.pollVotesFont
+        votesLabel.font = ChatLayout.current.pollVotesFont
         votesLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(votesLabel)
 
@@ -94,19 +94,19 @@ private final class PollOptionRow: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
-        barBg.layer.cornerRadius = ChatLayout.pollBarCornerRadius
+        barBg.layer.cornerRadius = ChatLayout.current.pollBarCornerRadius
         barBg.translatesAutoresizingMaskIntoConstraints = false
         addSubview(barBg)
 
-        barFill.layer.cornerRadius = ChatLayout.pollBarCornerRadius
+        barFill.layer.cornerRadius = ChatLayout.current.pollBarCornerRadius
         barFill.translatesAutoresizingMaskIntoConstraints = false
         barBg.addSubview(barFill)
 
-        label.font = ChatLayout.pollOptionFont
+        label.font = ChatLayout.current.pollOptionFont
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
 
-        percentLabel.font = ChatLayout.pollVotesFont
+        percentLabel.font = ChatLayout.current.pollVotesFont
         percentLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(percentLabel)
 
@@ -116,7 +116,7 @@ private final class PollOptionRow: UIView {
         addSubview(checkmark)
 
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(equalToConstant: ChatLayout.pollBarHeight),
+            heightAnchor.constraint(equalToConstant: ChatLayout.current.pollBarHeight),
             barBg.topAnchor.constraint(equalTo: topAnchor),
             barBg.leadingAnchor.constraint(equalTo: leadingAnchor),
             barBg.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -147,7 +147,7 @@ private final class PollOptionRow: UIView {
         checkmark.tintColor = theme.pollSelectedCheck
 
         barBg.backgroundColor = theme.pollBarEmpty
-        barFill.backgroundColor = isSelected ? theme.pollBarFilled : theme.pollBarFilled.withAlphaComponent(0.3)
+        barFill.backgroundColor = isSelected ? theme.pollBarFilled : theme.pollBarFilled.withAlphaComponent(ChatLayout.current.pollUnselectedAlpha)
 
         fillWidthConstraint?.isActive = false
         let pct = max(0.02, option.percentage / 100)

@@ -25,19 +25,19 @@ final class VoiceContentView: UIView {
         waveformView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(waveformView)
 
-        durationLabel.font = ChatLayout.voiceDurationFont
+        durationLabel.font = ChatLayout.current.voiceDurationFont
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(durationLabel)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             playButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playButton.widthAnchor.constraint(equalToConstant: ChatLayout.voicePlaySize),
-            playButton.heightAnchor.constraint(equalToConstant: ChatLayout.voicePlaySize),
+            playButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.voicePlaySize),
+            playButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.voicePlaySize),
             waveformView.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
             waveformView.trailingAnchor.constraint(equalTo: trailingAnchor),
             waveformView.topAnchor.constraint(equalTo: topAnchor),
-            waveformView.heightAnchor.constraint(equalToConstant: ChatLayout.voiceWaveformHeight),
+            waveformView.heightAnchor.constraint(equalToConstant: ChatLayout.current.voiceWaveformHeight),
             durationLabel.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
             durationLabel.topAnchor.constraint(equalTo: waveformView.bottomAnchor, constant: 4),
             durationLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -131,8 +131,8 @@ final class WaveformView: UIView {
 
         guard bounds.width > 0 else { return }
 
-        let barW = ChatLayout.voiceBarWidth
-        let spacing = ChatLayout.voiceBarSpacing
+        let barW = ChatLayout.current.voiceBarWidth
+        let spacing = ChatLayout.current.voiceBarSpacing
         let totalW = barW + spacing
         let count = Int(bounds.width / totalW)
         guard count > 0 else { return }

@@ -21,28 +21,28 @@ final class FileContentView: UIView {
         iconView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(iconView)
 
-        nameLabel.font = ChatLayout.fileNameFont
+        nameLabel.font = ChatLayout.current.fileNameFont
         nameLabel.numberOfLines = 1
         nameLabel.lineBreakMode = .byTruncatingMiddle
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(nameLabel)
 
-        sizeLabel.font = ChatLayout.fileSizeFont
+        sizeLabel.font = ChatLayout.current.fileSizeFont
         sizeLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(sizeLabel)
 
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor),
             iconView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconView.widthAnchor.constraint(equalToConstant: ChatLayout.fileIconSize),
-            iconView.heightAnchor.constraint(equalToConstant: ChatLayout.fileIconSize),
+            iconView.widthAnchor.constraint(equalToConstant: ChatLayout.current.fileIconSize),
+            iconView.heightAnchor.constraint(equalToConstant: ChatLayout.current.fileIconSize),
             nameLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
             nameLabel.trailingAnchor.constraint(equalTo: trailingAnchor),
             nameLabel.topAnchor.constraint(equalTo: topAnchor, constant: 4),
             sizeLabel.leadingAnchor.constraint(equalTo: nameLabel.leadingAnchor),
             sizeLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
             sizeLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
-            heightAnchor.constraint(greaterThanOrEqualToConstant: ChatLayout.fileIconSize + 8),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: ChatLayout.current.fileIconSize + 8),
         ])
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(tapped))

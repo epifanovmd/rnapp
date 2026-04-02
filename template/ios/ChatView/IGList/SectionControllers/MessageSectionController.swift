@@ -20,8 +20,8 @@ final class MessageSectionController: ListSectionController {
 
     override init() {
         super.init()
-        inset = UIEdgeInsets(top: ChatLayout.cellVSpacing / 2, left: 0,
-                             bottom: ChatLayout.cellVSpacing / 2, right: 0)
+        inset = UIEdgeInsets(top: ChatLayout.current.cellVSpacing / 2, left: 0,
+                             bottom: ChatLayout.current.cellVSpacing / 2, right: 0)
     }
 
     override func numberOfItems() -> Int { 1 }
@@ -36,7 +36,7 @@ final class MessageSectionController: ListSectionController {
             resolvedReply: sectionDelegate?.resolveReply(for: item.message.reply ?? ReplyInfo(replyToId: "", senderName: nil, text: nil, hasImage: false)),
             showSenderName: showName
         )
-        return CGSize(width: width, height: max(height, ChatLayout.cellMinHeight))
+        return CGSize(width: width, height: max(height, ChatLayout.current.cellMinHeight))
     }
 
     override func cellForItem(at index: Int) -> UICollectionViewCell {

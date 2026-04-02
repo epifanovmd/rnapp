@@ -57,6 +57,7 @@ interface ChatMessage extends NativeChatMessage {
 }
 type ChatScrollPosition = "top" | "center" | "bottom";
 type ChatTheme = "light" | "dark";
+
 type ChatInputActionType = "reply" | "edit" | "none";
 type ChatInputAction = {
   type: ChatInputActionType;

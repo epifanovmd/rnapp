@@ -21,40 +21,40 @@ final class ReactionsView: UIView {
             chip.frame.origin = CGPoint(x: x, y: 0)
             addSubview(chip)
             chipViews.append(chip)
-            x += chip.bounds.width + ChatLayout.reactionChipSpacing
+            x += chip.bounds.width + ChatLayout.current.reactionChipSpacing
         }
 
-        let totalW = max(0, x - ChatLayout.reactionChipSpacing)
+        let totalW = max(0, x - ChatLayout.current.reactionChipSpacing)
         invalidateIntrinsicContentSize()
-        frame.size = CGSize(width: totalW, height: ChatLayout.reactionChipHeight)
+        frame.size = CGSize(width: totalW, height: ChatLayout.current.reactionChipHeight)
     }
 
     override var intrinsicContentSize: CGSize {
-        let w = chipViews.reduce(CGFloat(0)) { $0 + $1.bounds.width + ChatLayout.reactionChipSpacing }
-        return CGSize(width: max(0, w - ChatLayout.reactionChipSpacing), height: ChatLayout.reactionChipHeight)
+        let w = chipViews.reduce(CGFloat(0)) { $0 + $1.bounds.width + ChatLayout.current.reactionChipSpacing }
+        return CGSize(width: max(0, w - ChatLayout.current.reactionChipSpacing), height: ChatLayout.current.reactionChipHeight)
     }
 
     private func makeChip(reaction: Reaction, theme: ChatTheme) -> UIView {
         let container = UIView()
-        container.layer.cornerRadius = ChatLayout.reactionChipHeight / 2
+        container.layer.cornerRadius = ChatLayout.current.reactionChipHeight / 2
 
         if reaction.isMine {
             container.backgroundColor = theme.reactionMineBackground
-            container.layer.borderWidth = 1
+            container.layer.borderWidth = ChatLayout.current.reactionBorderWidth
             container.layer.borderColor = theme.reactionMineBorder.cgColor
         } else {
             container.backgroundColor = theme.reactionBackground
         }
 
         let label = UILabel()
-        label.font = ChatLayout.reactionFont
+        label.font = ChatLayout.current.reactionFont
         label.text = "\(reaction.emoji) \(reaction.count)"
         label.textColor = theme.reactionText
         label.sizeToFit()
 
-        label.frame.origin = CGPoint(x: 8, y: (ChatLayout.reactionChipHeight - label.bounds.height) / 2)
+        label.frame.origin = CGPoint(x: 8, y: (ChatLayout.current.reactionChipHeight - label.bounds.height) / 2)
         container.addSubview(label)
-        container.frame.size = CGSize(width: label.bounds.width + 16, height: ChatLayout.reactionChipHeight)
+        container.frame.size = CGSize(width: label.bounds.width + 16, height: ChatLayout.current.reactionChipHeight)
 
         let emoji = reaction.emoji
         let tap = UITapGestureRecognizer(target: self, action: #selector(chipTapped(_:)))

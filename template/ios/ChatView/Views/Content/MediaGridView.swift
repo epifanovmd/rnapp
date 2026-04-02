@@ -4,7 +4,7 @@ final class MediaGridView: UIView {
 
     var onItemTap: ((Int) -> Void)?
 
-    private let spacing: CGFloat = 2
+    private var spacing: CGFloat { ChatLayout.current.mediaGridSpacing }
     private let maxVisible = 4
     private var cellViews: [MediaCellView] = []
     private var heightConstraint: NSLayoutConstraint?
@@ -12,7 +12,7 @@ final class MediaGridView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         clipsToBounds = true
-        layer.cornerRadius = ChatLayout.imageCornerRadius
+        layer.cornerRadius = ChatLayout.current.imageCornerRadius
 
         isUserInteractionEnabled = true
     }
@@ -21,7 +21,7 @@ final class MediaGridView: UIView {
 
     // MARK: - Configure
 
-    func configure(media: [MediaItem], width: CGFloat) {
+    func configure(media: [MediaItem], width: CGFloat, theme: ChatTheme) {
         cellViews.forEach { $0.removeFromSuperview() }
         cellViews.removeAll()
 
@@ -41,7 +41,7 @@ final class MediaGridView: UIView {
         for i in 0..<visibleCount {
             let item = media[i]
             let cell = MediaCellView()
-            cell.configure(item: item)
+            cell.configure(item: item, theme: theme)
 
             // "+N" overlay on last cell if more items
             if i == visibleCount - 1 && count > maxVisible {
@@ -116,13 +116,13 @@ final class MediaGridView: UIView {
             let item = media[0]
             if let w = item.width, let h = item.height, w > 0 {
                 let ratio = h / w
-                return min(max(width * ratio, ChatLayout.imageMinHeight), ChatLayout.imageMaxHeight)
+                return min(max(width * ratio, ChatLayout.current.imageMinHeight), ChatLayout.current.imageMaxHeight)
             }
-            return ChatLayout.imageMinHeight
+            return ChatLayout.current.imageMinHeight
 
         default:
             // Grid: square-ish, capped
-            return min(width * 0.75, ChatLayout.imageMaxHeight)
+            return min(width * 0.75, ChatLayout.current.imageMaxHeight)
         }
     }
 
@@ -151,44 +151,36 @@ private final class MediaCellView: UIView {
     required init?(coder: NSCoder) { fatalError() }
 
     private func setup() {
+        let L = ChatLayout.current
         clipsToBounds = true
 
         imageView.contentMode = .scaleAspectFill
-        imageView.backgroundColor = UIColor(white: 0.9, alpha: 1)
         imageView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(imageView)
 
         // Play icon for video
-        let config = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
+        let config = UIImage.SymbolConfiguration(pointSize: L.mediaPlayIconSize, weight: .regular)
         playIcon.image = UIImage(systemName: "play.circle.fill", withConfiguration: config)
-        playIcon.tintColor = .white
-        playIcon.layer.shadowColor = UIColor.black.cgColor
-        playIcon.layer.shadowOpacity = 0.5
-        playIcon.layer.shadowRadius = 4
         playIcon.translatesAutoresizingMaskIntoConstraints = false
         playIcon.isHidden = true
         addSubview(playIcon)
 
         // Duration badge for video
-        durationBg.backgroundColor = UIColor.black.withAlphaComponent(0.5)
-        durationBg.layer.cornerRadius = 6
+        durationBg.layer.cornerRadius = L.mediaDurationCornerRadius
         durationBg.translatesAutoresizingMaskIntoConstraints = false
         durationBg.isHidden = true
         addSubview(durationBg)
 
-        durationLabel.font = ChatLayout.videoDurationFont
-        durationLabel.textColor = .white
+        durationLabel.font = L.mediaDurationFont
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
         durationBg.addSubview(durationLabel)
 
         // "+N" overlay
-        overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.55)
         overlayView.isHidden = true
         overlayView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(overlayView)
 
-        overlayLabel.font = .systemFont(ofSize: 28, weight: .semibold)
-        overlayLabel.textColor = .white
+        overlayLabel.font = L.mediaOverlayFont
         overlayLabel.textAlignment = .center
         overlayLabel.translatesAutoresizingMaskIntoConstraints = false
         overlayView.addSubview(overlayLabel)
@@ -201,11 +193,11 @@ private final class MediaCellView: UIView {
 
             playIcon.centerXAnchor.constraint(equalTo: centerXAnchor),
             playIcon.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playIcon.widthAnchor.constraint(equalToConstant: 36),
-            playIcon.heightAnchor.constraint(equalToConstant: 36),
+            playIcon.widthAnchor.constraint(equalToConstant: L.mediaPlayIconSize),
+            playIcon.heightAnchor.constraint(equalToConstant: L.mediaPlayIconSize),
 
-            durationBg.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-            durationBg.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -4),
+            durationBg.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -L.mediaDurationMargin),
+            durationBg.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -L.mediaDurationMargin),
             durationLabel.topAnchor.constraint(equalTo: durationBg.topAnchor, constant: 2),
             durationLabel.bottomAnchor.constraint(equalTo: durationBg.bottomAnchor, constant: -2),
             durationLabel.leadingAnchor.constraint(equalTo: durationBg.leadingAnchor, constant: 4),
@@ -220,7 +212,17 @@ private final class MediaCellView: UIView {
         ])
     }
 
-    func configure(item: MediaItem) {
+    func configure(item: MediaItem, theme: ChatTheme) {
+        imageView.backgroundColor = theme.mediaPlaceholderBackground
+        playIcon.tintColor = theme.mediaPlayIconColor
+        playIcon.layer.shadowColor = theme.mediaPlayShadowColor.cgColor
+        playIcon.layer.shadowOpacity = ChatLayout.current.mediaPlayShadowOpacity
+        playIcon.layer.shadowRadius = ChatLayout.current.mediaPlayShadowRadius
+        durationBg.backgroundColor = theme.mediaDurationBackground
+        durationLabel.textColor = theme.mediaDurationTextColor
+        overlayView.backgroundColor = theme.mediaOverlayBackground
+        overlayLabel.textColor = theme.mediaOverlayTextColor
+
         imageView.loadChatImage(url: item.thumbnailUrl)
 
         if item.isVideo {
