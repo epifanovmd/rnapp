@@ -90,6 +90,13 @@ final class ChatViewController: UIViewController {
     private var lastKnownMessageCount = 0
     private var pendingScrollToBottom = false
 
+    // MARK: - Scroll Compensation (для delegate)
+
+    private var scrollAnchorId: String?
+    private var scrollAnchorOffset: CGFloat = 0
+    private var needsScrollCompensation = false
+    private var savedOffsetForAppend: CGPoint?
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
@@ -141,9 +148,12 @@ final class ChatViewController: UIViewController {
 
     // MARK: - Setup Adapter
 
+    private var listUpdater: ListAdapterUpdater!
+
     private func setupAdapter() {
-        let updater = ListAdapterUpdater()
-        adapter = ListAdapter(updater: updater, viewController: self)
+        listUpdater = ListAdapterUpdater()
+        listUpdater.delegate = self
+        adapter = ListAdapter(updater: listUpdater, viewController: self)
         adapter.collectionView = collectionView
         adapter.dataSource = self
         adapter.scrollViewDelegate = self
@@ -379,10 +389,10 @@ final class ChatViewController: UIViewController {
             && !isAppendFromLoad
 
         // ── Prepend: подгрузка сверху ──
-        // Запоминаем anchor (верхний видимый элемент), обновляем через
-        // performUpdates(animated: false) внутри CATransaction без
-        // анимаций, компенсируем offset в completion до
-        // отрисовки кадра.
+        // 1. Снимаем snapshot видимой области и кладём поверх collectionView
+        // 2. Запоминаем anchor, ставим флаг
+        // 3. Delegate скомпенсирует offset в didPerformBatchUpdates
+        // 4. Убираем snapshot — пользователь видит только финальное состояние
 
         if isPrepend {
             let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
@@ -399,54 +409,44 @@ final class ChatViewController: UIViewController {
                 anchorOffset = topAttr.frame.minY - visibleTop
             }
 
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-
-            adapter.performUpdates(animated: false) { [weak self] _ in
-                guard let self else { return }
-
-                // Ищем anchor в обновлённом layout
-                if let sectionIndex = self.listItems.firstIndex(where: {
-                    ($0 as? MessageListItem)?.message.id == anchorId
-                }) {
-                    let ip = IndexPath(item: 0, section: sectionIndex)
-                    self.collectionView.layoutIfNeeded()
-                    if let attrs = self.collectionView.layoutAttributesForItem(at: ip) {
-                        let target = attrs.frame.minY - self.collectionView.contentInset.top - anchorOffset
-                        self.collectionView.contentOffset = CGPoint(
-                            x: 0,
-                            y: max(-self.collectionView.contentInset.top, target)
-                        )
-                    }
-                }
-
-                self.lastKnownMessageCount = newMessages.count
-                self.updateEmptyState()
-                self.updateFABVisibility(animated: false)
+            // Snapshot поверх коллекции — скрывает промежуточные кадры
+            let snapshot = collectionView.snapshotView(afterScreenUpdates: false)
+            if let snapshot {
+                snapshot.frame = collectionView.frame
+                view.insertSubview(snapshot, aboveSubview: collectionView)
             }
 
-            CATransaction.commit()
+            scrollAnchorId = anchorId
+            scrollAnchorOffset = anchorOffset
+            needsScrollCompensation = true
+
+            UIView.performWithoutAnimation {
+                self.adapter.performUpdates(animated: false) { [weak self] _ in
+                    guard let self else { return }
+                    // Убираем snapshot после компенсации (delegate уже отработал)
+                    snapshot?.removeFromSuperview()
+                    self.lastKnownMessageCount = newMessages.count
+                    self.updateEmptyState()
+                    self.updateFABVisibility(animated: false)
+                }
+            }
             return
         }
 
         // ── AppendFromLoad: подгрузка снизу ──
-        // Offset не меняем — новые элементы ниже viewport.
+        // Сохраняем offset, delegate восстановит его в didPerformBatchUpdates.
 
         if isAppendFromLoad {
-            let savedOffset = collectionView.contentOffset
+            savedOffsetForAppend = collectionView.contentOffset
 
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-
-            adapter.performUpdates(animated: false) { [weak self] _ in
-                guard let self else { return }
-                self.collectionView.contentOffset = savedOffset
-                self.lastKnownMessageCount = newMessages.count
-                self.updateEmptyState()
-                self.updateFABVisibility(animated: false)
+            UIView.performWithoutAnimation {
+                self.adapter.performUpdates(animated: false) { [weak self] _ in
+                    guard let self else { return }
+                    self.lastKnownMessageCount = newMessages.count
+                    self.updateEmptyState()
+                    self.updateFABVisibility(animated: false)
+                }
             }
-
-            CATransaction.commit()
             return
         }
 
@@ -917,6 +917,102 @@ extension ChatViewController: VoicePlayerDelegate {
     func voicePlayerDidChangeState(_ state: VoicePlayerState) {
         // Visible voice cells update via their own delegate subscription
     }
+}
+
+// MARK: - ListAdapterUpdaterDelegate
+
+extension ChatViewController: ListAdapterUpdaterDelegate {
+
+    /// Вызывается внутри completion block UICollectionView.performBatchUpdates —
+    /// layout уже пересчитан, contentSize актуален, но кадр ещё НЕ отрисован.
+    /// Это единственный момент где компенсация offset не вызовет мерцания.
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            didPerformBatchUpdates updates: ListBatchUpdateData,
+                            collectionView cv: UICollectionView) {
+        // Prepend — компенсация через anchor
+        if needsScrollCompensation, let anchorId = scrollAnchorId {
+            needsScrollCompensation = false
+            scrollAnchorId = nil
+
+            if let sectionIndex = listItems.firstIndex(where: {
+                ($0 as? MessageListItem)?.message.id == anchorId
+            }) {
+                let ip = IndexPath(item: 0, section: sectionIndex)
+                if let attrs = cv.layoutAttributesForItem(at: ip) {
+                    let target = attrs.frame.minY - cv.contentInset.top - scrollAnchorOffset
+                    cv.contentOffset = CGPoint(x: 0, y: max(-cv.contentInset.top, target))
+                }
+            }
+            scrollAnchorOffset = 0
+        }
+
+        // AppendFromLoad — восстанавливаем offset
+        if let saved = savedOffsetForAppend {
+            savedOffsetForAppend = nil
+            cv.contentOffset = saved
+        }
+    }
+
+    // MARK: - Required stubs
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willDiffFromObjects fromObjects: [any ListDiffable]?,
+                            toObjects: [any ListDiffable]?) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            didDiffWithResults listIndexSetResults: ListIndexSetResult?,
+                            onBackgroundThread: Bool) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willPerformBatchUpdatesWith cv: UICollectionView,
+                            fromObjects: [any ListDiffable]?,
+                            toObjects: [any ListDiffable]?,
+                            listIndexSetResult: ListIndexSetResult?,
+                            animated: Bool) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willInsert indexPaths: [IndexPath],
+                            collectionView cv: UICollectionView) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willDelete indexPaths: [IndexPath],
+                            collectionView cv: UICollectionView) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willMoveFrom fromIndexPath: IndexPath,
+                            to toIndexPath: IndexPath,
+                            collectionView cv: UICollectionView) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willReload indexPaths: [IndexPath],
+                            collectionView cv: UICollectionView) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willReloadSections sections: IndexSet,
+                            collectionView cv: UICollectionView) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willReloadDataWith cv: UICollectionView,
+                            isFallbackReload: Bool) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            didReloadDataWith cv: UICollectionView,
+                            isFallbackReload: Bool) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            collectionView cv: UICollectionView,
+                            willCrashWith exception: NSException,
+                            from fromObjects: [Any]?,
+                            to toObjects: [Any]?,
+                            diffResult: ListIndexSetResult,
+                            updates: ListBatchUpdateData) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            willCrashWith cv: UICollectionView,
+                            sectionControllerClass: AnyClass?) {}
+
+    func listAdapterUpdater(_ listAdapterUpdater: ListAdapterUpdater,
+                            didFinishWithoutUpdatesWith cv: UICollectionView?) {}
 }
 
 // MARK: - KeyboardListenerDelegate (iOS < 15)
