@@ -32,6 +32,7 @@ extension ChatViewController: ListAdapterDataSource {
 
 extension ChatViewController: MessageSectionDelegate {
     var currentTheme: ChatTheme { theme }
+    var showSenderName: Bool { showsSenderName }
 
     func resolveReply(for info: ReplyInfo) -> ReplyDisplayInfo? {
         guard let original = messageIndex[info.replyToId] else { return nil }
@@ -74,6 +75,10 @@ extension ChatViewController: MessageSectionDelegate {
 
     func messageSectionDidTapVoice(messageId: String, url: String) {
         VoicePlayer.shared.toggle(url: url)
+    }
+
+    func messageSectionDidTapReaction(messageId: String, emoji: String) {
+        delegate?.chatDidTapReaction(messageId: messageId, emoji: emoji)
     }
 }
 

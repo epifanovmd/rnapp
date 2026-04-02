@@ -12,6 +12,7 @@ final class MessageCell: UICollectionViewCell {
     var onPollOptionTap: ((String, String) -> Void)?
     var onPollDetailTap: ((String) -> Void)?
     var onVoiceTap: ((String) -> Void)?
+    var onReactionTap: ((String) -> Void)?
 
     // MARK: - Views
 
@@ -56,33 +57,31 @@ final class MessageCell: UICollectionViewCell {
 
     // MARK: - Configure
 
-    func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, maxWidth: CGFloat) {
-        let bw = MessageSizeCalculator.bubbleWidth(for: message, containerWidth: maxWidth)
+    func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, maxWidth: CGFloat, showSenderName: Bool = false) {
+        let bw = MessageSizeCalculator.bubbleWidth(for: message, containerWidth: maxWidth, showSenderName: showSenderName)
 
         leadingConstraint.isActive = false
         trailingConstraint.isActive = false
 
         if message.isMine {
             trailingConstraint.isActive = true
-            leadingConstraint.isActive = false
         } else {
             leadingConstraint.isActive = true
-            trailingConstraint.isActive = false
         }
 
-        bubbleView.widthAnchor.constraint(equalToConstant: bw).isActive = false
         for c in bubbleView.constraints where c.firstAttribute == .width { c.isActive = false }
         let wc = bubbleView.widthAnchor.constraint(equalToConstant: bw)
         wc.priority = .defaultHigh
         wc.isActive = true
 
-        bubbleView.configure(message: message, resolvedReply: resolvedReply, theme: theme, bubbleWidth: bw)
+        bubbleView.configure(message: message, resolvedReply: resolvedReply, theme: theme, bubbleWidth: bw, showSenderName: showSenderName)
         bubbleView.onReplyTap = onReplyTap
         bubbleView.onVideoTap = onVideoTap
         bubbleView.onFileTap = onFileTap
         bubbleView.onPollOptionTap = onPollOptionTap
         bubbleView.onPollDetailTap = onPollDetailTap
         bubbleView.onVoiceTap = onVoiceTap
+        bubbleView.onReactionTap = onReactionTap
     }
 
     // MARK: - Highlight
@@ -112,6 +111,7 @@ final class MessageCell: UICollectionViewCell {
         onPollOptionTap = nil
         onPollDetailTap = nil
         onVoiceTap = nil
+        onReactionTap = nil
         for c in bubbleView.constraints where c.firstAttribute == .width { c.isActive = false }
         bubbleView.prepareForReuse()
     }

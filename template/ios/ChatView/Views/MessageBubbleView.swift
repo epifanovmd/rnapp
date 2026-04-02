@@ -10,6 +10,7 @@ final class MessageBubbleView: UIView {
     var onPollOptionTap: ((String, String) -> Void)?
     var onPollDetailTap: ((String) -> Void)?
     var onVoiceTap: ((String) -> Void)?
+    var onReactionTap: ((String) -> Void)?
 
     // MARK: - Subviews
 
@@ -61,6 +62,9 @@ final class MessageBubbleView: UIView {
         ])
     }
 
+    private var footerTrailingGroup: [NSLayoutConstraint] = []
+    private var footerLeadingGroup: [NSLayoutConstraint] = []
+
     private func setupFooter() {
         footerContainer.translatesAutoresizingMaskIntoConstraints = false
         [editedLabel, timeLabel, statusView].forEach {
@@ -70,20 +74,40 @@ final class MessageBubbleView: UIView {
 
         NSLayoutConstraint.activate([
             footerContainer.heightAnchor.constraint(equalToConstant: ChatLayout.footerHeight),
-            statusView.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
             statusView.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
             statusView.widthAnchor.constraint(equalToConstant: ChatLayout.statusIconSize),
             statusView.heightAnchor.constraint(equalToConstant: ChatLayout.statusIconSize),
-            timeLabel.trailingAnchor.constraint(equalTo: statusView.leadingAnchor, constant: -ChatLayout.footerSpacing),
             timeLabel.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
-            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.footerSpacing),
             editedLabel.centerYAnchor.constraint(equalTo: footerContainer.centerYAnchor),
         ])
+
+        // Outgoing: [edited] [time] [status] ─── trailing
+        footerTrailingGroup = [
+            statusView.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
+            timeLabel.trailingAnchor.constraint(equalTo: statusView.leadingAnchor, constant: -ChatLayout.footerSpacing),
+            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.footerSpacing),
+        ]
+
+        // Incoming: leading ─── [edited] [time]
+        footerLeadingGroup = [
+            editedLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -ChatLayout.footerSpacing),
+            timeLabel.trailingAnchor.constraint(equalTo: footerContainer.trailingAnchor),
+        ]
+    }
+
+    private func applyFooterLayout(isMine: Bool) {
+        footerTrailingGroup.forEach { $0.isActive = false }
+        footerLeadingGroup.forEach { $0.isActive = false }
+        if isMine {
+            footerTrailingGroup.forEach { $0.isActive = true }
+        } else {
+            footerLeadingGroup.forEach { $0.isActive = true }
+        }
     }
 
     // MARK: - Configure
 
-    func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, bubbleWidth: CGFloat) {
+    func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, bubbleWidth: CGFloat, showSenderName: Bool = false) {
         let isMine = message.isMine
         isEmojiOnly = EmojiHelper.emojiOnlyCount(message.content.text) != nil
 
@@ -99,7 +123,7 @@ final class MessageBubbleView: UIView {
         stack.arrangedSubviews.forEach { stack.removeArrangedSubview($0); $0.removeFromSuperview() }
 
         // Sender Name
-        if let name = message.senderName, !isMine {
+        if showSenderName, let name = message.senderName, !isMine {
             senderLabel.text = name
             senderLabel.textColor = theme.incomingSenderName
             stack.addArrangedSubview(senderLabel)
@@ -128,6 +152,7 @@ final class MessageBubbleView: UIView {
         // Reactions
         if !message.reactions.isEmpty {
             reactionsView.configure(reactions: message.reactions, theme: theme)
+            reactionsView.onReactionTap = { [weak self] emoji in self?.onReactionTap?(emoji) }
             stack.addArrangedSubview(reactionsView)
         }
 
@@ -227,6 +252,9 @@ final class MessageBubbleView: UIView {
         editedLabel.isHidden = !message.isEdited
         editedLabel.textColor = isMine ? theme.outgoingEdited : theme.incomingEdited
         statusView.configure(status: message.status, isMine: isMine, theme: theme)
+
+        statusView.isHidden = !isMine
+        applyFooterLayout(isMine: isMine)
     }
 
     // MARK: - Reuse
@@ -240,5 +268,6 @@ final class MessageBubbleView: UIView {
         onPollOptionTap = nil
         onPollDetailTap = nil
         onVoiceTap = nil
+        onReactionTap = nil
     }
 }

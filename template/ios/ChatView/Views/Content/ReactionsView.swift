@@ -1,6 +1,8 @@
 import UIKit
 
 final class ReactionsView: UIView {
+    var onReactionTap: ((String) -> Void)?
+
     private var chipViews: [UIView] = []
 
     override init(frame: CGRect) {
@@ -54,6 +56,19 @@ final class ReactionsView: UIView {
         container.addSubview(label)
         container.frame.size = CGSize(width: label.bounds.width + 16, height: ChatLayout.reactionChipHeight)
 
+        let emoji = reaction.emoji
+        let tap = UITapGestureRecognizer(target: self, action: #selector(chipTapped(_:)))
+        container.tag = chipViews.count
+        container.addGestureRecognizer(tap)
+        container.isUserInteractionEnabled = true
+        container.accessibilityLabel = emoji
+
         return container
+    }
+
+    @objc private func chipTapped(_ gesture: UITapGestureRecognizer) {
+        guard let chip = gesture.view else { return }
+        let emoji = chip.accessibilityLabel ?? ""
+        onReactionTap?(emoji)
     }
 }

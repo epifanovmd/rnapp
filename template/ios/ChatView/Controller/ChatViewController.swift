@@ -15,6 +15,7 @@ final class ChatViewController: UIViewController {
     var isLoading = false { didSet { updateEmptyState() } }
     var isLoadingBottom = false
     var scrollToBottomThreshold: CGFloat = 150 { didSet { updateFABVisibility(animated: false) } }
+    var showsSenderName = false
 
     var emojiReactionsList: [String] = [] {
         didSet { contextMenuEmojis = emojiReactionsList.map { ContextMenuEmoji(emoji: $0) } }
@@ -592,7 +593,7 @@ final class ChatViewController: UIViewController {
 
         let inputBarZone = view.bounds.height - inputBar.frame.minY
         let newBottom = inputBarZone + ChatLayout.collectionBottomPadding + collectionExtraInsetBottom
-        let newIndicatorBottom = inputBarZone
+        let newIndicatorBottom = inputBarZone - view.safeAreaInsets.bottom
         let oldBottom = cv.contentInset.bottom
         guard abs(oldBottom - newBottom) > 0.5 else { return }
 

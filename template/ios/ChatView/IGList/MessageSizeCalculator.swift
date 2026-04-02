@@ -4,34 +4,42 @@ enum MessageSizeCalculator {
 
     // MARK: - Public
 
-    static func cellHeight(for msg: ChatMessage, maxWidth: CGFloat, resolvedReply: ReplyDisplayInfo?) -> CGFloat {
-        let bw = bubbleWidth(for: msg, containerWidth: maxWidth)
-        let bh = bubbleHeight(for: msg, bubbleWidth: bw, resolvedReply: resolvedReply)
+    static func cellHeight(for msg: ChatMessage, maxWidth: CGFloat, resolvedReply: ReplyDisplayInfo?, showSenderName: Bool = false) -> CGFloat {
+        let bw = bubbleWidth(for: msg, containerWidth: maxWidth, showSenderName: showSenderName)
+        let bh = bubbleHeight(for: msg, bubbleWidth: bw, resolvedReply: resolvedReply, showSenderName: showSenderName)
         return bh + ChatLayout.cellVSpacing
     }
 
     // MARK: - Bubble Width
 
-    static func bubbleWidth(for msg: ChatMessage, containerWidth: CGFloat) -> CGFloat {
+    static func bubbleWidth(for msg: ChatMessage, containerWidth: CGFloat, showSenderName: Bool = false) -> CGFloat {
         let maxW = containerWidth * ChatLayout.bubbleMaxWidthRatio
         if let count = EmojiHelper.emojiOnlyCount(msg.content.text) {
             let font = emojiFont(for: count)
             let tw = textWidth(msg.content.text!, font: font)
             return min(tw + ChatLayout.bubbleHPad * 2, maxW)
         }
+
+        // Минимальная ширина от sender name
+        var senderNameW: CGFloat = 0
+        if showSenderName, let name = msg.senderName, !msg.isMine {
+            senderNameW = textWidth(name, font: ChatLayout.senderNameFont) + ChatLayout.bubbleHPad * 2
+        }
+
         switch msg.content {
         case .image, .mixed, .video, .mixedTextVideo, .poll, .file, .voice:
             return maxW
         case .text(let p):
             let tw = textWidth(p.text, font: ChatLayout.messageFont)
             let minW = minFooterWidth(for: msg)
-            return min(max(tw + ChatLayout.bubbleHPad * 2, minW + ChatLayout.bubbleHPad * 2), maxW)
+            let contentW = max(tw + ChatLayout.bubbleHPad * 2, minW + ChatLayout.bubbleHPad * 2)
+            return min(max(contentW, senderNameW), maxW)
         }
     }
 
     // MARK: - Bubble Height
 
-    static func bubbleHeight(for msg: ChatMessage, bubbleWidth bw: CGFloat, resolvedReply: ReplyDisplayInfo?) -> CGFloat {
+    static func bubbleHeight(for msg: ChatMessage, bubbleWidth bw: CGFloat, resolvedReply: ReplyDisplayInfo?, showSenderName: Bool = false) -> CGFloat {
         if let count = EmojiHelper.emojiOnlyCount(msg.content.text) {
             let font = emojiFont(for: count)
             return textHeight(msg.content.text!, font: font, width: bw - ChatLayout.bubbleHPad * 2) + 8
@@ -40,7 +48,7 @@ enum MessageSizeCalculator {
         let innerW = bw - ChatLayout.bubbleHPad * 2
         var h: CGFloat = ChatLayout.bubbleVPad
 
-        if msg.senderName != nil && !msg.isMine {
+        if showSenderName, msg.senderName != nil, !msg.isMine {
             h += ChatLayout.senderNameFont.lineHeight + 2
         }
         if msg.forwardedFrom != nil {

@@ -29,6 +29,7 @@ import {
   NativeChatFilePressEventData as ChatFilePressEventData,
   NativeChatImageItem as ChatImageItem,
   NativeChatInputAction,
+  NativeChatInputTypingEventData as ChatInputTypingEventData,
   NativeChatMessage,
   NativeChatMessagePressEventData as ChatMessagePressEventData,
   NativeChatMessagesVisibleEventData as ChatMessagesVisibleEventData,
@@ -38,6 +39,7 @@ import {
   NativeChatPollOptionPressEventData as ChatPollOptionPressEventData,
   NativeChatReachBottomEventData as ChatReachBottomEventData,
   NativeChatReachTopEventData as ChatReachTopEventData,
+  NativeChatReactionTapEventData as ChatReactionTapEventData,
   NativeChatReplyMessagePressEventData as ChatReplyMessagePressEventData,
   NativeChatReplyRef as ChatReplyRef,
   NativeChatScrollEventData as ChatScrollEventData,
@@ -85,6 +87,7 @@ export type {
   ChatImageItem,
   ChatInputAction,
   ChatInputActionType,
+  ChatInputTypingEventData,
   ChatMessage,
   ChatMessagePressEventData,
   ChatMessagesVisibleEventData,
@@ -94,6 +97,7 @@ export type {
   ChatPollOptionPressEventData,
   ChatReachBottomEventData,
   ChatReachTopEventData,
+  ChatReactionTapEventData,
   ChatReplyMessagePressEventData,
   ChatReplyRef,
   ChatScrollEventData,
@@ -155,6 +159,8 @@ export interface ChatViewProps extends ViewProps {
   style?: ViewStyle;
   collectionInsetTop?: number;
   collectionInsetBottom?: number;
+  inputTypingThrottle?: number;
+  showSenderName?: boolean;
 
   onScroll?: (event: ChatScrollEventData) => void;
   onReachTop?: (event: ChatReachTopEventData) => void;
@@ -175,6 +181,8 @@ export interface ChatViewProps extends ViewProps {
   onVoiceRecordingComplete?: (
     event: ChatVoiceRecordingCompleteEventData,
   ) => void;
+  onInputTyping?: (event: ChatInputTypingEventData) => void;
+  onReactionTap?: (event: ChatReactionTapEventData) => void;
 }
 
 // ─── Native component ─────────────────────────────────────────────────────────
@@ -257,6 +265,10 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
     onPollDetailPress,
     onFilePress,
     onVoiceRecordingComplete,
+    onInputTyping,
+    onReactionTap,
+    inputTypingThrottle,
+    showSenderName,
   } = props;
 
   const nativeRef = useRef<React.ComponentRef<typeof NativeChatView>>(null);
@@ -384,6 +396,16 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onVoiceRecordingComplete?.(e.nativeEvent),
     [onVoiceRecordingComplete],
   );
+  const handleInputTyping = useCallback(
+    (e: NativeSyntheticEvent<ChatInputTypingEventData>) =>
+      onInputTyping?.(e.nativeEvent),
+    [onInputTyping],
+  );
+  const handleReactionTap = useCallback(
+    (e: NativeSyntheticEvent<ChatReactionTapEventData>) =>
+      onReactionTap?.(e.nativeEvent),
+    [onReactionTap],
+  );
 
   const nativeInputAction: NativeChatInputAction = inputAction ?? {
     type: "none",
@@ -424,6 +446,10 @@ export const ChatView = forwardRef<ChatView, ChatViewProps>((props, ref) => {
       onPollDetailPress={handlePollDetailPress}
       onFilePress={handleFilePress}
       onVoiceRecordingComplete={handleVoiceRecordingComplete}
+      onInputTyping={handleInputTyping}
+      onReactionTap={handleReactionTap}
+      inputTypingThrottle={inputTypingThrottle}
+      showSenderName={showSenderName}
     />
   );
 });

@@ -23,6 +23,7 @@ final class RNChatView: UIView {
     @objc var onFilePress: RCTDirectEventBlock?
     @objc var onVoiceRecordingComplete: RCTDirectEventBlock?
     @objc var onInputTyping: RCTDirectEventBlock?
+    @objc var onReactionTap: RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -77,6 +78,10 @@ final class RNChatView: UIView {
 
     @objc var theme: NSString = "light" {
         didSet { chatVC.theme = (theme == "dark") ? .dark : .light }
+    }
+
+    @objc var showSenderName: Bool = false {
+        didSet { chatVC.showsSenderName = showSenderName }
     }
 
     @objc var collectionInsetTop: NSNumber = 0 {
@@ -199,6 +204,10 @@ extension RNChatView: ChatViewControllerDelegate {
 
     func chatDidSelectEmojiReaction(emoji: String, messageId: String) {
         onEmojiReactionSelect?(["emoji": emoji, "messageId": messageId])
+    }
+
+    func chatDidTapReaction(messageId: String, emoji: String) {
+        onReactionTap?(["emoji": emoji, "messageId": messageId])
     }
 
     func chatDidSendMessage(text: String, replyToId: String?) {

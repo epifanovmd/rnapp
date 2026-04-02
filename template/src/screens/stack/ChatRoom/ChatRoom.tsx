@@ -24,6 +24,7 @@ import {
   type ChatPollOptionPressEventData,
   type ChatReachBottomEventData,
   type ChatReachTopEventData,
+  type ChatReactionTapEventData,
   type ChatReplyMessagePressEventData,
   type ChatSendMessageEventData,
   type ChatVideoPressEventData,
@@ -421,9 +422,12 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [],
     );
 
-    const handleTyping = useCallback(() => {
-      chatStore.sendTyping(chatId);
-    }, [chatStore, chatId]);
+    const handleTyping = useCallback(
+      (_?: { text: string }) => {
+        chatStore.sendTyping(chatId);
+      },
+      [chatStore, chatId],
+    );
 
     const handleReachTop = useCallback(
       (_: ChatReachTopEventData) => {
@@ -510,6 +514,14 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleEmojiReaction = useCallback(
       ({ emoji, messageId }: ChatEmojiReactionSelectData) => {
+        messageStore.addReaction(messageId, emoji);
+      },
+      [messageStore],
+    );
+
+    const handleReactionTap = useCallback(
+      ({ emoji, messageId }: ChatReactionTapEventData) => {
+        console.log("handleReactionTap", { emoji, messageId });
         messageStore.addReaction(messageId, emoji);
       },
       [messageStore],
@@ -731,6 +743,8 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           onFilePress={handleFilePress}
           onAttachmentPress={handleAttachmentPress}
           onVoiceRecordingComplete={handleVoiceRecordingComplete}
+          onInputTyping={handleTyping}
+          onReactionTap={handleReactionTap}
         />
 
         <AttachmentPickerSheet

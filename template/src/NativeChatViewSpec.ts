@@ -157,6 +157,11 @@ export type NativeChatInputTypingEventData = {
   text: string;
 };
 
+export type NativeChatReactionTapEventData = {
+  emoji: string;
+  messageId: string;
+};
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 export interface NativeChatViewProps extends ViewProps {
@@ -181,6 +186,7 @@ export interface NativeChatViewProps extends ViewProps {
   collectionInsetTop?: WithDefault<Double, 0>;
   collectionInsetBottom?: WithDefault<Double, 0>;
   inputTypingThrottle?: WithDefault<Double, 500>;
+  showSenderName?: WithDefault<boolean, false>;
 
   onScroll?: DirectEventHandler<NativeChatScrollEventData>;
   onReachTop?: DirectEventHandler<NativeChatReachTopEventData>;
@@ -200,6 +206,7 @@ export interface NativeChatViewProps extends ViewProps {
   onFilePress?: DirectEventHandler<NativeChatFilePressEventData>;
   onVoiceRecordingComplete?: DirectEventHandler<NativeChatVoiceRecordingCompleteEventData>;
   onInputTyping?: DirectEventHandler<NativeChatInputTypingEventData>;
+  onReactionTap?: DirectEventHandler<NativeChatReactionTapEventData>;
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

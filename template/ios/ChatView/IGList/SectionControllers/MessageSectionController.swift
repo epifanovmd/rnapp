@@ -10,8 +10,10 @@ protocol MessageSectionDelegate: AnyObject {
     func messageSectionDidTapPollOption(messageId: String, pollId: String, optionId: String)
     func messageSectionDidTapPollDetail(messageId: String, pollId: String)
     func messageSectionDidTapVoice(messageId: String, url: String)
+    func messageSectionDidTapReaction(messageId: String, emoji: String)
     func resolveReply(for info: ReplyInfo) -> ReplyDisplayInfo?
     var currentTheme: ChatTheme { get }
+    var showSenderName: Bool { get }
 }
 
 final class MessageSectionController: ListSectionController {
@@ -29,10 +31,12 @@ final class MessageSectionController: ListSectionController {
     override func sizeForItem(at index: Int) -> CGSize {
         guard let ctx = collectionContext else { return .zero }
         let width = ctx.containerSize.width
+        let showName = sectionDelegate?.showSenderName ?? false
         let height = MessageSizeCalculator.cellHeight(
             for: item.message,
             maxWidth: width,
-            resolvedReply: sectionDelegate?.resolveReply(for: item.message.reply ?? ReplyInfo(replyToId: "", senderName: nil, text: nil, hasImage: false))
+            resolvedReply: sectionDelegate?.resolveReply(for: item.message.reply ?? ReplyInfo(replyToId: "", senderName: nil, text: nil, hasImage: false)),
+            showSenderName: showName
         )
         return CGSize(width: width, height: max(height, ChatLayout.cellMinHeight))
     }
@@ -74,16 +78,22 @@ final class MessageSectionController: ListSectionController {
             guard let self else { return }
             self.sectionDelegate?.messageSectionDidTapVoice(messageId: self.item.message.id, url: url)
         }
+        cell.onReactionTap = { [weak self] emoji in
+            guard let self else { return }
+            self.sectionDelegate?.messageSectionDidTapReaction(messageId: self.item.message.id, emoji: emoji)
+        }
 
         let theme = sectionDelegate?.currentTheme ?? .light
         let reply = item.message.reply.flatMap { sectionDelegate?.resolveReply(for: $0) }
         let maxWidth = ctx.containerSize.width
+        let showName = sectionDelegate?.showSenderName ?? false
 
         cell.configure(
             message: item.message,
             resolvedReply: reply,
             theme: theme,
-            maxWidth: maxWidth
+            maxWidth: maxWidth,
+            showSenderName: showName
         )
 
         return cell

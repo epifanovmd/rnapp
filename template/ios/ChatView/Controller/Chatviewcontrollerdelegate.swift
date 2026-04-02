@@ -13,6 +13,7 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatDidTapMessage(id: String)
     func chatDidSelectAction(actionId: String, messageId: String)
     func chatDidSelectEmojiReaction(emoji: String, messageId: String)
+    func chatDidTapReaction(messageId: String, emoji: String)
     func chatDidTapReplyMessage(id: String)
 
     // MARK: - Media

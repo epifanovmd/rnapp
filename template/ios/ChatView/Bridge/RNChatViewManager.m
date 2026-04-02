@@ -19,6 +19,7 @@ RCT_EXPORT_VIEW_PROPERTY(theme, NSString)
 RCT_EXPORT_VIEW_PROPERTY(collectionInsetTop, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(collectionInsetBottom, NSNumber)
 RCT_EXPORT_VIEW_PROPERTY(inputTypingThrottle, NSNumber)
+RCT_EXPORT_VIEW_PROPERTY(showSenderName, BOOL)
 
 // MARK: - Events
 
@@ -40,6 +41,7 @@ RCT_EXPORT_VIEW_PROPERTY(onPollDetailPress, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onFilePress, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onVoiceRecordingComplete, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onInputTyping, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onReactionTap, RCTDirectEventBlock)
 
 // MARK: - Commands
 
