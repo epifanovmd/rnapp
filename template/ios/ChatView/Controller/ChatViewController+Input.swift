@@ -45,9 +45,3 @@ extension ChatViewController: VoiceRecorderDelegate {
     func voiceRecorderDidUpdateDuration(_ duration: TimeInterval) { inputBar.showRecordingUI(duration: duration) }
     func voiceRecorderDidUpdateLevel(_ level: Float) {}
 }
-
-// MARK: - VoicePlayerDelegate
-
-extension ChatViewController: VoicePlayerDelegate {
-    func voicePlayerDidChangeState(_ state: VoicePlayerState) {}
-}

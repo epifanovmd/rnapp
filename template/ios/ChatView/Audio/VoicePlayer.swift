@@ -1,7 +1,7 @@
 import AVFoundation
 import UIKit
 
-// MARK: - State
+// MARK: - Состояние плеера
 
 enum VoicePlayerState: Equatable {
     case idle
@@ -24,9 +24,9 @@ enum VoicePlayerState: Equatable {
     }
 }
 
-// MARK: - Delegate
+// MARK: - Протокол наблюдателя
 
-protocol VoicePlayerDelegate: AnyObject {
+protocol VoicePlayerObserver: AnyObject {
     func voicePlayerDidChangeState(_ state: VoicePlayerState)
 }
 
@@ -35,20 +35,41 @@ protocol VoicePlayerDelegate: AnyObject {
 final class VoicePlayer {
     static let shared = VoicePlayer()
 
-    weak var delegate: VoicePlayerDelegate?
     private(set) var state: VoicePlayerState = .idle {
-        didSet { delegate?.voicePlayerDidChangeState(state) }
+        didSet { notifyObservers() }
     }
 
     private var player: AVPlayer?
     private var timeObserver: Any?
     private var endObserver: NSObjectProtocol?
-    private var preloadedAssets: [String: AVPlayerItem] = [:]
+
+    private struct WeakObserver {
+        weak var value: VoicePlayerObserver?
+    }
+    private var observers: [WeakObserver] = []
 
     private init() {}
 
-    // MARK: - Public API
+    // MARK: - Наблюдатели
 
+    func addObserver(_ observer: VoicePlayerObserver) {
+        observers.removeAll { $0.value == nil }
+        guard !observers.contains(where: { $0.value === observer }) else { return }
+        observers.append(WeakObserver(value: observer))
+    }
+
+    func removeObserver(_ observer: VoicePlayerObserver) {
+        observers.removeAll { $0.value == nil || $0.value === observer }
+    }
+
+    private func notifyObservers() {
+        observers.removeAll { $0.value == nil }
+        for obs in observers { obs.value?.voicePlayerDidChangeState(state) }
+    }
+
+    // MARK: - Публичное API
+
+    /// Переключает воспроизведение: play/pause для текущего, stop + play для нового
     func toggle(url: String) {
         switch state {
         case .playing(let u, _, _) where u == url:
@@ -60,21 +81,16 @@ final class VoicePlayer {
         }
     }
 
+    /// Полная остановка и сброс
     func stop() {
         cleanup()
         state = .idle
     }
 
-    func preload(url: String) {
-        guard preloadedAssets[url] == nil, let assetURL = URL(string: url) else { return }
-        let asset = AVURLAsset(url: assetURL)
-        let item = AVPlayerItem(asset: asset)
-        preloadedAssets[url] = item
-    }
-
-    // MARK: - Private
+    // MARK: - Приватные методы
 
     private func play(url: String) {
+        // Остановить предыдущее воспроизведение
         cleanup()
         state = .loading(url: url)
 
@@ -87,16 +103,12 @@ final class VoicePlayer {
             return
         }
 
-        let item: AVPlayerItem
-        if let preloaded = preloadedAssets.removeValue(forKey: url) {
-            item = preloaded
-        } else if let assetURL = URL(string: url) {
-            item = AVPlayerItem(asset: AVURLAsset(url: assetURL))
-        } else {
+        guard let assetURL = URL(string: url) else {
             state = .idle
             return
         }
 
+        let item = AVPlayerItem(asset: AVURLAsset(url: assetURL))
         player = AVPlayer(playerItem: item)
         setupObservers(url: url)
         player?.play()

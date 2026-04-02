@@ -116,6 +116,6 @@ extension ChatViewController {
     private func thawInset() {
         isInsetFrozen = false
         frozenBottomInset = nil
-        updateCollectionBottomInset()
+        updateCollectionInsets()
     }
 }

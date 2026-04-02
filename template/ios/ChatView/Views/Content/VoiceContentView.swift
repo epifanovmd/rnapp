@@ -7,6 +7,9 @@ final class VoiceContentView: UIView {
     private let waveformView = WaveformView()
     private let durationLabel = UILabel()
     private var voiceURL: String?
+    private var voiceDuration: TimeInterval = 0
+    private var currentTheme: ChatTheme = .light
+    private var isMineMessage = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -15,8 +18,13 @@ final class VoiceContentView: UIView {
 
     required init?(coder: NSCoder) { fatalError() }
 
+    deinit {
+        VoicePlayer.shared.removeObserver(self)
+    }
+
     private func setup() {
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+        let L = ChatLayout.current
+        let config = UIImage.SymbolConfiguration(pointSize: L.voicePlayIconSize, weight: .medium)
         playButton.setImage(UIImage(systemName: "play.fill", withConfiguration: config), for: .normal)
         playButton.translatesAutoresizingMaskIntoConstraints = false
         playButton.addTarget(self, action: #selector(playTapped), for: .touchUpInside)
@@ -25,19 +33,19 @@ final class VoiceContentView: UIView {
         waveformView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(waveformView)
 
-        durationLabel.font = ChatLayout.current.voiceDurationFont
+        durationLabel.font = L.voiceDurationFont
         durationLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(durationLabel)
 
         NSLayoutConstraint.activate([
             playButton.leadingAnchor.constraint(equalTo: leadingAnchor),
             playButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            playButton.widthAnchor.constraint(equalToConstant: ChatLayout.current.voicePlaySize),
-            playButton.heightAnchor.constraint(equalToConstant: ChatLayout.current.voicePlaySize),
+            playButton.widthAnchor.constraint(equalToConstant: L.voicePlaySize),
+            playButton.heightAnchor.constraint(equalToConstant: L.voicePlaySize),
             waveformView.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
             waveformView.trailingAnchor.constraint(equalTo: trailingAnchor),
             waveformView.topAnchor.constraint(equalTo: topAnchor),
-            waveformView.heightAnchor.constraint(equalToConstant: ChatLayout.current.voiceWaveformHeight),
+            waveformView.heightAnchor.constraint(equalToConstant: L.voiceWaveformHeight),
             durationLabel.leadingAnchor.constraint(equalTo: playButton.trailingAnchor, constant: 8),
             durationLabel.topAnchor.constraint(equalTo: waveformView.bottomAnchor, constant: 4),
             durationLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -46,12 +54,11 @@ final class VoiceContentView: UIView {
 
     func configure(voice: VoicePayload, isMine: Bool, theme: ChatTheme) {
         voiceURL = voice.url
+        voiceDuration = voice.duration
+        currentTheme = theme
+        isMineMessage = isMine
 
-        let mins = Int(voice.duration) / 60
-        let secs = Int(voice.duration) % 60
-        durationLabel.text = String(format: "%d:%02d", mins, secs)
         durationLabel.textColor = isMine ? theme.outgoingTime : theme.incomingTime
-
         playButton.tintColor = isMine ? theme.outgoingText : theme.inputBarTint
 
         waveformView.configure(
@@ -61,14 +68,17 @@ final class VoiceContentView: UIView {
             progress: 0
         )
 
-        updatePlaybackState(theme: theme, isMine: isMine)
-        VoicePlayer.shared.delegate = self
+        VoicePlayer.shared.addObserver(self)
+        updateUI()
     }
 
-    func updatePlaybackState(theme: ChatTheme, isMine: Bool) {
+    // MARK: - Обновление UI
+
+    private func updateUI() {
         let state = VoicePlayer.shared.state
         let isMe = state.url == voiceURL
-        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+        let L = ChatLayout.current
+        let config = UIImage.SymbolConfiguration(pointSize: L.voicePlayIconSize, weight: .medium)
 
         if isMe && state.isPlaying {
             playButton.setImage(UIImage(systemName: "pause.fill", withConfiguration: config), for: .normal)
@@ -78,27 +88,30 @@ final class VoiceContentView: UIView {
 
         if isMe, case .playing(_, let progress, let currentTime) = state {
             waveformView.updateProgress(progress)
-            let mins = Int(currentTime) / 60
-            let secs = Int(currentTime) % 60
-            durationLabel.text = String(format: "%d:%02d", mins, secs)
+            durationLabel.text = formatTime(currentTime)
         } else if isMe, case .paused(_, let progress, let currentTime) = state {
             waveformView.updateProgress(progress)
-            let mins = Int(currentTime) / 60
-            let secs = Int(currentTime) % 60
-            durationLabel.text = String(format: "%d:%02d", mins, secs)
+            durationLabel.text = formatTime(currentTime)
         } else {
             waveformView.updateProgress(0)
+            durationLabel.text = formatTime(voiceDuration)
         }
+    }
+
+    private func formatTime(_ seconds: TimeInterval) -> String {
+        let mins = Int(seconds) / 60
+        let secs = Int(seconds) % 60
+        return String(format: "%d:%02d", mins, secs)
     }
 
     @objc private func playTapped() { onPlayTap?() }
 }
 
-// MARK: - VoicePlayerDelegate
+// MARK: - VoicePlayerObserver
 
-extension VoiceContentView: VoicePlayerDelegate {
+extension VoiceContentView: VoicePlayerObserver {
     func voicePlayerDidChangeState(_ state: VoicePlayerState) {
-        updatePlaybackState(theme: .light, isMine: false)
+        updateUI()
     }
 }
 

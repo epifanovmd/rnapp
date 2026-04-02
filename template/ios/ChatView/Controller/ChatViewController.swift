@@ -42,6 +42,8 @@ final class ChatViewController: UIViewController {
     private(set) var messages: [ChatMessage] = []
     var messageIndex: [String: ChatMessage] = [:]
     var listItems: [ListDiffable] = []
+    /// Кеш индексов DateSeparatorListItem в listItems — обновляется в rebuildListItems()
+    var cachedDateSeparators: [(index: Int, item: DateSeparatorListItem)] = []
 
     // MARK: - IGListKit
 
@@ -84,11 +86,11 @@ final class ChatViewController: UIViewController {
     var fabVisible = false
     var isProgrammaticScroll = false
     var lastScrollEventTime: CFTimeInterval = 0
-    let scrollThrottleInterval: CFTimeInterval = 1.0 / 30
+    var scrollThrottleInterval: CFTimeInterval { ChatLayout.current.scrollThrottleInterval }
     var visibleMessageIDs: Set<String> = []
     var pendingVisibleIDs: Set<String> = []
     var visibilityDebounceTask: DispatchWorkItem?
-    let visibilityDebounceInterval: TimeInterval = 0.3
+    var visibilityDebounceInterval: TimeInterval { ChatLayout.current.visibilityDebounceInterval }
     var pendingHighlightId: String?
     var lastContentOffsetY: CGFloat = 0
     var isUserDragging = false
@@ -126,12 +128,11 @@ final class ChatViewController: UIViewController {
         setupFloatingDate()
         applyTheme()
         voiceRecorder.delegate = self
-        VoicePlayer.shared.delegate = self
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
-        updateCollectionBottomInset()
+        updateCollectionInsets()
     }
 
     // MARK: - Setup Collection View
@@ -336,19 +337,18 @@ final class ChatViewController: UIViewController {
 
         let spacing = ChatLayout.current.sectionSpacing
 
-        // Собираем все date-separator секции с краями в координатах view
+        // Используем кешированные индексы разделителей дат
         struct DateInfo {
             let groupDate: String
-            let minY: CGFloat   // верх ячейки
-            let maxY: CGFloat   // низ ячейки
+            let minY: CGFloat
+            let maxY: CGFloat
         }
         var dateSections: [DateInfo] = []
 
-        for (index, item) in listItems.enumerated() {
-            guard let dateItem = item as? DateSeparatorListItem else { continue }
+        for (index, item) in cachedDateSeparators {
             guard let attrs = collectionView.layoutAttributesForItem(at: IndexPath(item: 0, section: index)) else { continue }
             let f = collectionView.convert(attrs.frame, to: view)
-            dateSections.append(DateInfo(groupDate: dateItem.groupDate, minY: f.minY, maxY: f.maxY))
+            dateSections.append(DateInfo(groupDate: item.groupDate, minY: f.minY, maxY: f.maxY))
         }
 
         guard !dateSections.isEmpty else { return }
@@ -464,119 +464,128 @@ final class ChatViewController: UIViewController {
             && oldFirstId != nil && oldFirstId != newMessages.first?.id
             && oldLastId == newMessages.last?.id
 
-        // Новые сообщения добавлены в конец (новое сообщение или подгрузка снизу)
         let isAppendAtBottom = !wasEmpty && grew
             && oldLastId != nil && oldLastId != newMessages.last?.id
 
         if isPrepend {
-            let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
-            var anchorId = oldFirstId ?? ""
-            var anchorOffset: CGFloat = 0
+            handlePrepend(oldFirstId: oldFirstId, count: newMessages.count)
+        } else if isAppendAtBottom {
+            handleAppend(wasAtBottom: wasAtBottom, oldCount: oldCount, newMessages: newMessages)
+        } else if wasEmpty && !newMessages.isEmpty {
+            handleInitialLoad(count: newMessages.count)
+        } else {
+            handleContentUpdate(count: newMessages.count)
+        }
+    }
 
-            let sorted = collectionView.indexPathsForVisibleItems
-                .compactMap { collectionView.layoutAttributesForItem(at: $0) }
-                .sorted { $0.frame.minY < $1.frame.minY }
+    // MARK: - Update Handlers
 
-            if let topAttr = sorted.first,
-               let item = adapter.object(atSection: topAttr.indexPath.section) as? MessageListItem {
-                anchorId = item.message.id
-                anchorOffset = topAttr.frame.minY - visibleTop
-            }
+    private func handlePrepend(oldFirstId: String?, count: Int) {
+        let visibleTop = collectionView.contentOffset.y + collectionView.contentInset.top
+        var anchorId = oldFirstId ?? ""
+        var anchorOffset: CGFloat = 0
 
-            let snapshot = collectionView.snapshotView(afterScreenUpdates: false)
-            if let snapshot {
-                snapshot.frame = collectionView.frame
-                view.insertSubview(snapshot, aboveSubview: collectionView)
-            }
+        let sorted = collectionView.indexPathsForVisibleItems
+            .compactMap { collectionView.layoutAttributesForItem(at: $0) }
+            .sorted { $0.frame.minY < $1.frame.minY }
 
-            scrollAnchorId = anchorId
-            scrollAnchorOffset = anchorOffset
-            needsScrollCompensation = true
+        if let topAttr = sorted.first,
+           let item = adapter.object(atSection: topAttr.indexPath.section) as? MessageListItem {
+            anchorId = item.message.id
+            anchorOffset = topAttr.frame.minY - visibleTop
+        }
 
+        let snapshot = collectionView.snapshotView(afterScreenUpdates: false)
+        if let snapshot {
+            snapshot.frame = collectionView.frame
+            view.insertSubview(snapshot, aboveSubview: collectionView)
+        }
+
+        scrollAnchorId = anchorId
+        scrollAnchorOffset = anchorOffset
+        needsScrollCompensation = true
+
+        adapter.performUpdates(animated: false) { [weak self] _ in
+            guard let self else { return }
+            snapshot?.removeFromSuperview()
+            self.finalizeUpdate(count: count, animated: false)
+        }
+    }
+
+    private func handleAppend(wasAtBottom: Bool, oldCount: Int, newMessages: [ChatMessage]) {
+        let wasLoadingNewer = isLoadingNewerActive
+        let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingNewerActive)
+        isLoadingNewerActive = false
+
+        if wantScroll {
+            pendingScrollToBottom = false
             adapter.performUpdates(animated: false) { [weak self] _ in
                 guard let self else { return }
-                snapshot?.removeFromSuperview()
-                self.lastKnownMessageCount = newMessages.count
-                self.updateEmptyState()
-                self.updateFABVisibility(animated: false)
-            }
-            return
-        }
-
-        if isAppendAtBottom {
-            let wasLoadingNewer = isLoadingNewerActive
-            let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingNewerActive)
-            isLoadingNewerActive = false
-
-            if wantScroll {
-                pendingScrollToBottom = false
-                adapter.performUpdates(animated: false) { [weak self] _ in
-                    guard let self else { return }
-                    self.scrollToBottom(animated: true)
-                    self.lastKnownMessageCount = newMessages.count
-                    self.updateEmptyState()
-                    self.updateFABVisibility(animated: false)
-                }
-            } else {
-                // Счётчик непрочитанных — только для реальных новых сообщений, не подгрузки
-                if !wasLoadingNewer && !wasAtBottom {
-                    let delta = newMessages.count - oldCount
-                    if delta > 0 {
-                        let newIDs = newMessages.suffix(delta).filter { !$0.isMine }.map { $0.id }
-                        if !newIDs.isEmpty {
-                            unreadMessageIDs.formUnion(newIDs)
-                            unreadCount = unreadMessageIDs.count
-                        }
-                    }
-                }
-                // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
-                savedOffsetForAppend = collectionView.contentOffset
-                adapter.performUpdates(animated: false) { [weak self] _ in
-                    guard let self else { return }
-                    self.lastKnownMessageCount = newMessages.count
-                    self.updateEmptyState()
-                    self.updateFABVisibility(animated: false)
-                }
-            }
-            return
-        }
-
-        if wasEmpty && !newMessages.isEmpty {
-            adapter.reloadData { [weak self] _ in
-                guard let self else { return }
-                if let scrollId = self.pendingScrollMessageId {
-                    self.scrollToMessage(id: scrollId, position: "center", animated: false, highlight: false)
-                    self.pendingScrollMessageId = nil
-                } else {
-                    self.scrollToBottom(animated: false)
-                }
-                self.isInitialScrollProtected = false
-                self.lastKnownMessageCount = newMessages.count
-                self.updateEmptyState()
-                self.updateFABVisibility(animated: false)
-            }
-            return
-        }
-
-        // Обновление контента (редактирование, статус, замена и т.д.)
-        let shouldScrollFallback = pendingScrollToBottom
-        if shouldScrollFallback { pendingScrollToBottom = false }
-
-        adapter.performUpdates(animated: !shouldScrollFallback) { [weak self] _ in
-            guard let self else { return }
-            if shouldScrollFallback {
                 self.scrollToBottom(animated: true)
+                self.finalizeUpdate(count: newMessages.count, animated: false)
             }
-            self.lastKnownMessageCount = newMessages.count
-            self.updateEmptyState()
-            self.updateFABVisibility(animated: !shouldScrollFallback)
+        } else {
+            if !wasLoadingNewer && !wasAtBottom {
+                trackNewUnread(newMessages: newMessages, oldCount: oldCount)
+            }
+            savedOffsetForAppend = collectionView.contentOffset
+            adapter.performUpdates(animated: false) { [weak self] _ in
+                guard let self else { return }
+                self.finalizeUpdate(count: newMessages.count, animated: false)
+            }
         }
+    }
+
+    private func handleInitialLoad(count: Int) {
+        adapter.reloadData { [weak self] _ in
+            guard let self else { return }
+            if let scrollId = self.pendingScrollMessageId {
+                self.scrollToMessage(id: scrollId, position: "center", animated: false, highlight: false)
+                self.pendingScrollMessageId = nil
+            } else {
+                self.scrollToBottom(animated: false)
+            }
+            self.isInitialScrollProtected = false
+            self.finalizeUpdate(count: count, animated: false)
+        }
+    }
+
+    private func handleContentUpdate(count: Int) {
+        let shouldScroll = pendingScrollToBottom
+        if shouldScroll { pendingScrollToBottom = false }
+
+        adapter.performUpdates(animated: !shouldScroll) { [weak self] _ in
+            guard let self else { return }
+            if shouldScroll { self.scrollToBottom(animated: true) }
+            self.finalizeUpdate(count: count, animated: !shouldScroll)
+        }
+    }
+
+    private func finalizeUpdate(count: Int, animated: Bool) {
+        lastKnownMessageCount = count
+        updateEmptyState()
+        updateFABVisibility(animated: animated)
+    }
+
+    private func trackNewUnread(newMessages: [ChatMessage], oldCount: Int) {
+        let delta = newMessages.count - oldCount
+        guard delta > 0 else { return }
+        let newIDs = newMessages.suffix(delta).filter { !$0.isMine }.map { $0.id }
+        guard !newIDs.isEmpty else { return }
+        unreadMessageIDs.formUnion(newIDs)
+        unreadCount = unreadMessageIDs.count
+    }
+
+    func clearUnread() {
+        unreadMessageIDs.removeAll()
+        unreadCount = 0
     }
 
     // MARK: - Build List Items
 
     private func rebuildListItems() {
         var items: [ListDiffable] = []
+        var dateSeps: [(index: Int, item: DateSeparatorListItem)] = []
 
         if isLoadingTop {
             items.append(LoadingListItem(position: .top))
@@ -586,7 +595,9 @@ final class ChatViewController: UIViewController {
         for msg in messages {
             if msg.groupDate != currentGroup {
                 currentGroup = msg.groupDate
-                items.append(DateSeparatorListItem(groupDate: msg.groupDate))
+                let sep = DateSeparatorListItem(groupDate: msg.groupDate)
+                dateSeps.append((index: items.count, item: sep))
+                items.append(sep)
             }
             items.append(MessageListItem(message: msg))
         }
@@ -596,6 +607,7 @@ final class ChatViewController: UIViewController {
         }
 
         listItems = items
+        cachedDateSeparators = dateSeps
     }
 
     // MARK: - Scroll
@@ -686,10 +698,7 @@ final class ChatViewController: UIViewController {
             fabButton.alpha = alpha
             fabBadge.alpha = alpha
         }
-        if !shouldShow {
-            unreadMessageIDs.removeAll()
-            unreadCount = 0
-        }
+        if !shouldShow { clearUnread() }
     }
 
     func updateFABBadge() {
@@ -710,11 +719,19 @@ final class ChatViewController: UIViewController {
         }
     }
 
-    func updateCollectionBottomInset() {
+    func updateCollectionInsets() {
         guard !isInsetFrozen else { return }
         guard let cv = collectionView else { return }
         guard inputBar != nil, inputBar.frame.height > 0, view.bounds.height > 0 else { return }
 
+        // Top inset
+        let newTop = view.safeAreaInsets.top + collectionExtraInsetTop
+        if abs(cv.contentInset.top - newTop) > 0.5 {
+            cv.contentInset.top = newTop
+            cv.verticalScrollIndicatorInsets.top = view.safeAreaInsets.top
+        }
+
+        // Bottom inset
         let inputBarZone = view.bounds.height - inputBar.frame.minY
         let newBottom = inputBarZone + ChatLayout.current.collectionBottomPadding + collectionExtraInsetBottom
         let newIndicatorBottom = inputBarZone - view.safeAreaInsets.bottom
@@ -736,8 +753,7 @@ final class ChatViewController: UIViewController {
 
     @objc func dismissKeyboard() { view.endEditing(true) }
     @objc func fabTapped() {
-        unreadMessageIDs.removeAll()
-        unreadCount = 0
+        clearUnread()
         scrollToBottom(animated: true)
     }
 }
