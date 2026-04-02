@@ -304,25 +304,73 @@ final class ChatViewController: UIViewController {
     func updateFloatingDate() {
         guard !messages.isEmpty else { hideFloatingDate(); return }
 
-        var topGroupDate: String?
-        let visibleRect = CGRect(origin: collectionView.contentOffset, size: collectionView.bounds.size)
+        let spacing = ChatLayout.sectionSpacing
+
+        // Собираем все date-separator секции с краями в координатах view
+        struct DateInfo {
+            let groupDate: String
+            let minY: CGFloat   // верх ячейки
+            let maxY: CGFloat   // низ ячейки
+        }
+        var dateSections: [DateInfo] = []
 
         for (index, item) in listItems.enumerated() {
+            guard let dateItem = item as? DateSeparatorListItem else { continue }
             guard let attrs = collectionView.layoutAttributesForItem(at: IndexPath(item: 0, section: index)) else { continue }
-            if attrs.frame.intersects(visibleRect) {
-                if let msgItem = item as? MessageListItem {
-                    topGroupDate = msgItem.message.groupDate; break
-                } else if let dateItem = item as? DateSeparatorListItem {
-                    topGroupDate = dateItem.groupDate; break
-                }
+            let f = collectionView.convert(attrs.frame, to: view)
+            dateSections.append(DateInfo(groupDate: dateItem.groupDate, minY: f.minY, maxY: f.maxY))
+        }
+
+        guard !dateSections.isEmpty else { return }
+
+        // Позиция pill в координатах view
+        let pillRestY = view.safeAreaLayoutGuide.layoutFrame.minY + spacing
+        let pillH = floatingDatePill.bounds.height > 0
+            ? floatingDatePill.bounds.height
+            : ChatLayout.dateSeparatorFont.lineHeight + ChatLayout.dateSeparatorVPad * 2
+        let pillBottom = pillRestY + pillH
+
+        // Текущая дата — последняя, чей низ ушёл выше верха pill (ячейка полностью за pill)
+        var currentDate: String?
+        var nextInfo: DateInfo?
+
+        for (i, info) in dateSections.enumerated() {
+            if info.maxY < pillRestY {
+                currentDate = info.groupDate
+                nextInfo = (i + 1 < dateSections.count) ? dateSections[i + 1] : nil
             }
         }
 
-        guard let groupDate = topGroupDate else { return }
+        // Если ни одна дата ещё не прошла pill — берём первую видимую
+        if currentDate == nil {
+            currentDate = dateSections[0].groupDate
+            nextInfo = dateSections.count > 1 ? dateSections[1] : nil
+        }
+
+        guard let groupDate = currentDate else { return }
+
+        // Обновляем текст
         if groupDate != currentFloatingDate {
             currentFloatingDate = groupDate
             floatingDateLabel.text = DateHelper.shared.sectionTitle(from: groupDate)
         }
+
+        // Выталкивание: начинается когда верх следующей даты на расстоянии spacing от pill bottom,
+        // т.е. ещё до соприкосновения. Pill сдвигается так чтобы сохранять зазор spacing.
+        if let next = nextInfo {
+            let triggerY = pillBottom + spacing  // точка начала выталкивания
+            if next.minY < triggerY {
+                // Сдвиг: pill bottom + offset + spacing = next.minY
+                // offset = next.minY - pillBottom - spacing
+                let pushOffset = next.minY - triggerY  // от 0 до -(pillH + spacing)
+                floatingDatePill.transform = CGAffineTransform(translationX: 0, y: pushOffset)
+            } else {
+                floatingDatePill.transform = .identity
+            }
+        } else {
+            floatingDatePill.transform = .identity
+        }
+
         showFloatingDate()
     }
 
@@ -340,7 +388,10 @@ final class ChatViewController: UIViewController {
 
     private func hideFloatingDate() {
         floatingDateHideTask?.cancel()
-        UIView.animate(withDuration: 0.2) { self.floatingDatePill.alpha = 0 }
+        UIView.animate(withDuration: 0.2) {
+            self.floatingDatePill.alpha = 0
+            self.floatingDatePill.transform = .identity
+        }
     }
 
     // MARK: - Theme
