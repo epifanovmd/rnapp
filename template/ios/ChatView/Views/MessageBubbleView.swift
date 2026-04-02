@@ -5,8 +5,8 @@ final class MessageBubbleView: UIView {
     // MARK: - Callbacks
 
     var onReplyTap: (() -> Void)?
-    var onVideoTap: ((String) -> Void)?
-    var onFileTap: ((String, String) -> Void)?
+    var onMediaItemTap: ((Int) -> Void)?
+    var onFileItemTap: ((Int) -> Void)?
     var onPollOptionTap: ((String, String) -> Void)?
     var onPollDetailTap: ((String) -> Void)?
     var onVoiceTap: ((String) -> Void)?
@@ -109,7 +109,8 @@ final class MessageBubbleView: UIView {
 
     func configure(message: ChatMessage, resolvedReply: ReplyDisplayInfo?, theme: ChatTheme, bubbleWidth: CGFloat, showSenderName: Bool = false) {
         let isMine = message.isMine
-        isEmojiOnly = EmojiHelper.emojiOnlyCount(message.content.text) != nil
+        let content = message.content
+        isEmojiOnly = !content.hasMedia && EmojiHelper.emojiOnlyCount(content.text) != nil
 
         // Background
         if isEmojiOnly {
@@ -166,55 +167,67 @@ final class MessageBubbleView: UIView {
     // MARK: - Content Factory
 
     private func createContentView(for msg: ChatMessage, width: CGFloat, isMine: Bool, theme: ChatTheme) -> UIView {
-        if let count = EmojiHelper.emojiOnlyCount(msg.content.text) {
-            return createEmojiView(text: msg.content.text!, count: count)
+        let content = msg.content
+
+        // Emoji-only (text without media, 1-3 emoji)
+        if !content.hasMedia, let count = EmojiHelper.emojiOnlyCount(content.text) {
+            return createEmojiView(text: content.text!, count: count)
         }
 
-        switch msg.content {
-        case .text(let p):
-            return createTextView(text: p.text, isMine: isMine, theme: theme, width: width)
+        // Build content stack: media on top, text on bottom (if both present)
+        var views: [UIView] = []
 
-        case .image(let p):
-            return createImageView(images: p.images, width: width)
-
-        case .mixed(let t, let p):
-            let container = UIStackView()
-            container.axis = .vertical
-            container.spacing = 4
-            container.addArrangedSubview(createImageView(images: p.images, width: width))
-            container.addArrangedSubview(createTextView(text: t.text, isMine: isMine, theme: theme, width: width))
-            return container
-
-        case .video(let v):
-            return createVideoView(video: v, width: width, theme: theme)
-
-        case .mixedTextVideo(let t, let v):
-            let container = UIStackView()
-            container.axis = .vertical
-            container.spacing = 4
-            container.addArrangedSubview(createVideoView(video: v, width: width, theme: theme))
-            container.addArrangedSubview(createTextView(text: t.text, isMine: isMine, theme: theme, width: width))
-            return container
-
-        case .voice(let v):
-            let view = VoiceContentView()
-            view.configure(voice: v, isMine: isMine, theme: theme)
-            view.onPlayTap = { [weak self] in self?.onVoiceTap?(v.url) }
-            return view
-
-        case .poll(let p):
+        // Media view (by priority: poll > file > voice > media grid)
+        if let poll = content.poll {
             let view = PollContentView()
-            view.configure(poll: p, isMine: isMine, theme: theme)
-            view.onOptionTap = { [weak self] optionId in self?.onPollOptionTap?(p.id, optionId) }
-            view.onDetailTap = { [weak self] in self?.onPollDetailTap?(p.id) }
-            return view
-
-        case .file(let f):
-            let view = FileContentView()
-            view.configure(file: f, isMine: isMine, theme: theme)
-            view.onTap = { [weak self] in self?.onFileTap?(f.url, f.name) }
-            return view
+            view.configure(poll: poll, isMine: isMine, theme: theme)
+            view.onOptionTap = { [weak self] optionId in self?.onPollOptionTap?(poll.id, optionId) }
+            view.onDetailTap = { [weak self] in self?.onPollDetailTap?(poll.id) }
+            views.append(view)
+        } else if let files = content.files, !files.isEmpty {
+            let filesStack = UIStackView()
+            filesStack.axis = .vertical
+            filesStack.spacing = 2
+            for (index, file) in files.enumerated() {
+                let view = FileContentView()
+                view.configure(file: file, isMine: isMine, theme: theme)
+                view.onTap = { [weak self] in self?.onFileItemTap?(index) }
+                filesStack.addArrangedSubview(view)
+            }
+            views.append(filesStack)
+        } else if let voice = content.voice {
+            let view = VoiceContentView()
+            view.configure(voice: voice, isMine: isMine, theme: theme)
+            view.onPlayTap = { [weak self] in self?.onVoiceTap?(voice.url) }
+            views.append(view)
+        } else if let media = content.media, !media.isEmpty {
+            let grid = MediaGridView()
+            grid.configure(media: media, width: width)
+            grid.onItemTap = { [weak self] index in self?.onMediaItemTap?(index) }
+            views.append(grid)
         }
+
+        // Text (caption or standalone)
+        if let text = content.text, !text.isEmpty {
+            views.append(createTextView(text: text, isMine: isMine, theme: theme, width: width))
+        }
+
+        // Single view — return directly
+        if views.count == 1 {
+            return views[0]
+        }
+
+        // Multiple views (media + text) — vertical stack
+        if views.count > 1 {
+            let container = UIStackView()
+            container.axis = .vertical
+            container.spacing = 4
+            views.forEach { container.addArrangedSubview($0) }
+            return container
+        }
+
+        // Fallback: empty text
+        return createTextView(text: "", isMine: isMine, theme: theme, width: width)
     }
 
     private func createEmojiView(text: String, count: Int) -> UILabel {
@@ -228,19 +241,6 @@ final class MessageBubbleView: UIView {
     private func createTextView(text: String, isMine: Bool, theme: ChatTheme, width: CGFloat) -> UIView {
         let view = TextContentView()
         view.configure(text: text, isMine: isMine, theme: theme)
-        return view
-    }
-
-    private func createImageView(images: [ImageItem], width: CGFloat) -> UIView {
-        let view = ImageContentView()
-        view.configure(images: images, width: width)
-        return view
-    }
-
-    private func createVideoView(video: VideoPayload, width: CGFloat, theme: ChatTheme) -> UIView {
-        let view = VideoContentView()
-        view.configure(video: video, width: width, theme: theme)
-        view.onTap = { [weak self] in self?.onVideoTap?(video.url) }
         return view
     }
 
@@ -263,8 +263,8 @@ final class MessageBubbleView: UIView {
         stack.arrangedSubviews.forEach { stack.removeArrangedSubview($0); $0.removeFromSuperview() }
         contentView = nil
         onReplyTap = nil
-        onVideoTap = nil
-        onFileTap = nil
+        onMediaItemTap = nil
+        onFileItemTap = nil
         onPollOptionTap = nil
         onPollDetailTap = nil
         onVoiceTap = nil

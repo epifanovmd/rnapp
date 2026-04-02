@@ -6,11 +6,55 @@ enum MessageStatus: String {
     case sending, sent, delivered, read
 }
 
-// MARK: - Content Payloads
+// MARK: - Media Item (unified image/video)
 
-struct TextPayload: Equatable, Hashable {
-    let text: String
+enum MediaItem: Equatable, Hashable {
+    case image(ImageItem)
+    case video(VideoItem)
+
+    var thumbnailUrl: String? {
+        switch self {
+        case .image(let i): return i.thumbnailUrl ?? i.url
+        case .video(let v): return v.thumbnailUrl
+        }
+    }
+
+    var width: CGFloat? {
+        switch self {
+        case .image(let i): return i.width
+        case .video(let v): return v.width
+        }
+    }
+
+    var height: CGFloat? {
+        switch self {
+        case .image(let i): return i.height
+        case .video(let v): return v.height
+        }
+    }
+
+    var isVideo: Bool {
+        if case .video = self { return true }
+        return false
+    }
+
+    var imageUrl: String? {
+        if case .image(let i) = self { return i.url }
+        return nil
+    }
+
+    var videoUrl: String? {
+        if case .video(let v) = self { return v.url }
+        return nil
+    }
+
+    var duration: TimeInterval? {
+        if case .video(let v) = self { return v.duration }
+        return nil
+    }
 }
+
+// MARK: - Content Payloads
 
 struct ImageItem: Equatable, Hashable {
     let url: String
@@ -19,11 +63,7 @@ struct ImageItem: Equatable, Hashable {
     let thumbnailUrl: String?
 }
 
-struct ImagePayload: Equatable, Hashable {
-    let images: [ImageItem]
-}
-
-struct VideoPayload: Equatable, Hashable {
+struct VideoItem: Equatable, Hashable {
     let url: String
     let thumbnailUrl: String?
     let width: CGFloat?
@@ -63,54 +103,15 @@ struct FilePayload: Equatable, Hashable {
 
 // MARK: - Message Content
 
-enum MessageContent: Equatable, Hashable {
-    case text(TextPayload)
-    case image(ImagePayload)
-    case mixed(TextPayload, ImagePayload)
-    case video(VideoPayload)
-    case mixedTextVideo(TextPayload, VideoPayload)
-    case voice(VoicePayload)
-    case poll(PollPayload)
-    case file(FilePayload)
+struct MessageContent: Equatable, Hashable {
+    let text: String?
+    let media: [MediaItem]?
+    let voice: VoicePayload?
+    let poll: PollPayload?
+    let files: [FilePayload]?
 
-    var text: String? {
-        switch self {
-        case .text(let p): return p.text
-        case .mixed(let t, _): return t.text
-        case .mixedTextVideo(let t, _): return t.text
-        default: return nil
-        }
-    }
-
-    var images: [ImageItem]? {
-        switch self {
-        case .image(let p): return p.images
-        case .mixed(_, let p): return p.images
-        default: return nil
-        }
-    }
-
-    var video: VideoPayload? {
-        switch self {
-        case .video(let v): return v
-        case .mixedTextVideo(_, let v): return v
-        default: return nil
-        }
-    }
-
-    var voice: VoicePayload? {
-        if case .voice(let v) = self { return v }
-        return nil
-    }
-
-    var poll: PollPayload? {
-        if case .poll(let p) = self { return p }
-        return nil
-    }
-
-    var file: FilePayload? {
-        if case .file(let f) = self { return f }
-        return nil
+    var hasMedia: Bool {
+        (media != nil && !(media!.isEmpty)) || voice != nil || poll != nil || (files != nil && !(files!.isEmpty))
     }
 }
 

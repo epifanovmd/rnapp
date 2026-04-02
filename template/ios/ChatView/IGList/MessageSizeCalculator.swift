@@ -14,35 +14,44 @@ enum MessageSizeCalculator {
 
     static func bubbleWidth(for msg: ChatMessage, containerWidth: CGFloat, showSenderName: Bool = false) -> CGFloat {
         let maxW = containerWidth * ChatLayout.bubbleMaxWidthRatio
-        if let count = EmojiHelper.emojiOnlyCount(msg.content.text) {
+        let content = msg.content
+
+        if !content.hasMedia, let count = EmojiHelper.emojiOnlyCount(content.text) {
             let font = emojiFont(for: count)
-            let tw = textWidth(msg.content.text!, font: font)
+            let tw = textWidth(content.text!, font: font)
             return min(tw + ChatLayout.bubbleHPad * 2, maxW)
         }
 
-        // Минимальная ширина от sender name
+        // Minimum width from sender name
         var senderNameW: CGFloat = 0
         if showSenderName, let name = msg.senderName, !msg.isMine {
             senderNameW = textWidth(name, font: ChatLayout.senderNameFont) + ChatLayout.bubbleHPad * 2
         }
 
-        switch msg.content {
-        case .image, .mixed, .video, .mixedTextVideo, .poll, .file, .voice:
+        // Any media → max width
+        if content.hasMedia {
             return maxW
-        case .text(let p):
-            let tw = textWidth(p.text, font: ChatLayout.messageFont)
+        }
+
+        // Text-only
+        if let text = content.text {
+            let tw = textWidth(text, font: ChatLayout.messageFont)
             let minW = minFooterWidth(for: msg)
             let contentW = max(tw + ChatLayout.bubbleHPad * 2, minW + ChatLayout.bubbleHPad * 2)
             return min(max(contentW, senderNameW), maxW)
         }
+
+        return max(ChatLayout.bubbleMinWidth, senderNameW)
     }
 
     // MARK: - Bubble Height
 
     static func bubbleHeight(for msg: ChatMessage, bubbleWidth bw: CGFloat, resolvedReply: ReplyDisplayInfo?, showSenderName: Bool = false) -> CGFloat {
-        if let count = EmojiHelper.emojiOnlyCount(msg.content.text) {
+        let content = msg.content
+
+        if !content.hasMedia, let count = EmojiHelper.emojiOnlyCount(content.text) {
             let font = emojiFont(for: count)
-            return textHeight(msg.content.text!, font: font, width: bw - ChatLayout.bubbleHPad * 2) + 8
+            return textHeight(content.text!, font: font, width: bw - ChatLayout.bubbleHPad * 2) + 8
         }
 
         let innerW = bw - ChatLayout.bubbleHPad * 2
@@ -58,7 +67,7 @@ enum MessageSizeCalculator {
             h += ChatLayout.replyHeight + 4
         }
 
-        h += contentHeight(for: msg.content, width: innerW)
+        h += contentHeight(for: content, width: innerW)
 
         if !msg.reactions.isEmpty {
             h += ChatLayout.reactionChipHeight + 4
@@ -71,43 +80,30 @@ enum MessageSizeCalculator {
     // MARK: - Content Height
 
     static func contentHeight(for content: MessageContent, width: CGFloat) -> CGFloat {
-        switch content {
-        case .text(let p):
-            return textHeight(p.text, font: ChatLayout.messageFont, width: width)
-        case .image(let p):
-            return imageHeight(p.images.first, width: width)
-        case .mixed(let t, let p):
-            return imageHeight(p.images.first, width: width) + 4
-                + textHeight(t.text, font: ChatLayout.messageFont, width: width)
-        case .video(let v):
-            return videoHeight(v, width: width)
-        case .mixedTextVideo(let t, let v):
-            return videoHeight(v, width: width) + 4
-                + textHeight(t.text, font: ChatLayout.messageFont, width: width)
-        case .voice:
-            return ChatLayout.voiceWaveformHeight + ChatLayout.voicePlaySize / 2 + 8
-        case .poll(let p):
-            return pollHeight(p, width: width)
-        case .file:
-            return ChatLayout.fileIconSize + 8
+        var h: CGFloat = 0
+
+        // Media height (by priority, matching bubble view)
+        if let poll = content.poll {
+            h += pollHeight(poll, width: width)
+        } else if let files = content.files, !files.isEmpty {
+            let fileRowH = ChatLayout.fileIconSize + 8
+            h += fileRowH * CGFloat(files.count) + 2 * CGFloat(max(0, files.count - 1))
+        } else if content.voice != nil {
+            h += ChatLayout.voiceWaveformHeight + ChatLayout.voicePlaySize / 2 + 8
+        } else if let media = content.media, !media.isEmpty {
+            h += MediaGridView.gridHeight(for: media, width: width)
         }
+
+        // Text height (caption or standalone)
+        if let text = content.text, !text.isEmpty {
+            if h > 0 { h += 4 }
+            h += textHeight(text, font: ChatLayout.messageFont, width: width)
+        }
+
+        return max(h, 0)
     }
 
     // MARK: - Helpers
-
-    static func imageHeight(_ item: ImageItem?, width: CGFloat) -> CGFloat {
-        guard let item, let w = item.width, let h = item.height, w > 0 else {
-            return ChatLayout.imageMinHeight
-        }
-        let ratio = h / w
-        return min(max(width * ratio, ChatLayout.imageMinHeight), ChatLayout.imageMaxHeight)
-    }
-
-    static func videoHeight(_ video: VideoPayload, width: CGFloat) -> CGFloat {
-        guard let w = video.width, let h = video.height, w > 0 else { return ChatLayout.imageMinHeight }
-        let ratio = h / w
-        return min(max(width * ratio, ChatLayout.imageMinHeight), ChatLayout.imageMaxHeight)
-    }
 
     static func pollHeight(_ poll: PollPayload, width: CGFloat) -> CGFloat {
         var h: CGFloat = textHeight(poll.question, font: ChatLayout.pollQuestionFont, width: width) + 8

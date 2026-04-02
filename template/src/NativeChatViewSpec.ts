@@ -108,7 +108,10 @@ export type NativeChatScrollEventData = { x: Double; y: Double };
 export type NativeChatReachTopEventData = { distanceFromTop: Double };
 export type NativeChatReachBottomEventData = { distanceFromBottom: Double };
 export type NativeChatMessagesVisibleEventData = { messageIds: string[] };
-export type NativeChatMessagePressEventData = { messageId: string };
+export type NativeChatMessagePressEventData = {
+  messageId: string;
+  attachmentIndex?: Double;
+};
 export type NativeChatActionPressEventData = {
   actionId: string;
   messageId: string;
@@ -128,10 +131,6 @@ export type NativeChatEditMessageEventData = {
 export type NativeChatCancelInputActionEventData = { type: string };
 export type NativeChatAttachmentPressEventData = {};
 export type NativeChatReplyMessagePressEventData = { messageId: string };
-export type NativeChatVideoPressEventData = {
-  messageId: string;
-  videoUrl: string;
-};
 export type NativeChatPollOptionPressEventData = {
   messageId: string;
   pollId: string;
@@ -140,12 +139,6 @@ export type NativeChatPollOptionPressEventData = {
 export type NativeChatPollDetailPressEventData = {
   messageId: string;
   pollId: string;
-};
-
-export type NativeChatFilePressEventData = {
-  messageId: string;
-  fileUrl: string;
-  fileName: string;
 };
 
 export type NativeChatVoiceRecordingCompleteEventData = {
@@ -202,10 +195,8 @@ export interface NativeChatViewProps extends ViewProps {
   onCancelInputAction?: DirectEventHandler<NativeChatCancelInputActionEventData>;
   onAttachmentPress?: DirectEventHandler<NativeChatAttachmentPressEventData>;
   onReplyMessagePress?: DirectEventHandler<NativeChatReplyMessagePressEventData>;
-  onVideoPress?: DirectEventHandler<NativeChatVideoPressEventData>;
   onPollOptionPress?: DirectEventHandler<NativeChatPollOptionPressEventData>;
   onPollDetailPress?: DirectEventHandler<NativeChatPollDetailPressEventData>;
-  onFilePress?: DirectEventHandler<NativeChatFilePressEventData>;
   onVoiceRecordingComplete?: DirectEventHandler<NativeChatVoiceRecordingCompleteEventData>;
   onInputTyping?: DirectEventHandler<NativeChatInputTypingEventData>;
   onReactionTap?: DirectEventHandler<NativeChatReactionTapEventData>;

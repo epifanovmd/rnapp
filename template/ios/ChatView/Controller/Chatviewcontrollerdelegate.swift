@@ -10,15 +10,13 @@ protocol ChatViewControllerDelegate: AnyObject {
     func chatMessagesDidAppear(ids: [String])
 
     // MARK: - Message Interactions
-    func chatDidTapMessage(id: String)
+    func chatDidTapMessage(id: String, attachmentIndex: Int?)
     func chatDidSelectAction(actionId: String, messageId: String)
     func chatDidSelectEmojiReaction(emoji: String, messageId: String)
     func chatDidTapReaction(messageId: String, emoji: String)
     func chatDidTapReplyMessage(id: String)
 
     // MARK: - Media
-    func chatDidTapVideo(messageId: String, url: String)
-    func chatDidTapFile(messageId: String, url: String, name: String)
     func chatDidTapPollOption(messageId: String, pollId: String, optionId: String)
     func chatDidTapPollDetail(messageId: String, pollId: String)
 

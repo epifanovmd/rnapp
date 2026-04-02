@@ -39,12 +39,12 @@ extension ChatViewController: MessageSectionDelegate {
         return ReplyDisplayInfo(
             senderName: original.senderName ?? "Unknown",
             text: original.content.text ?? "",
-            hasImage: original.content.images != nil
+            hasImage: original.content.media != nil
         )
     }
 
-    func messageSectionDidTap(messageId: String) {
-        delegate?.chatDidTapMessage(id: messageId)
+    func messageSectionDidTap(messageId: String, attachmentIndex: Int?) {
+        delegate?.chatDidTapMessage(id: messageId, attachmentIndex: attachmentIndex)
     }
 
     func messageSectionDidLongPress(messageId: String, cell: UICollectionViewCell) {
@@ -55,14 +55,6 @@ extension ChatViewController: MessageSectionDelegate {
     func messageSectionDidTapReply(messageId: String) {
         scrollToMessage(id: messageId, position: "center", animated: true, highlight: true)
         delegate?.chatDidTapReplyMessage(id: messageId)
-    }
-
-    func messageSectionDidTapVideo(messageId: String, url: String) {
-        delegate?.chatDidTapVideo(messageId: messageId, url: url)
-    }
-
-    func messageSectionDidTapFile(messageId: String, url: String, name: String) {
-        delegate?.chatDidTapFile(messageId: messageId, url: url, name: name)
     }
 
     func messageSectionDidTapPollOption(messageId: String, pollId: String, optionId: String) {
@@ -91,7 +83,8 @@ extension ChatViewController {
         for cell in collectionView.visibleCells {
             guard let indexPath = collectionView.indexPath(for: cell),
                   indexPath.section < listItems.count,
-                  let msgItem = listItems[indexPath.section] as? MessageListItem else { continue }
+                  let msgItem = listItems[indexPath.section] as? MessageListItem,
+                  msgItem.message.status != .read else { continue }
             ids.insert(msgItem.message.id)
         }
 

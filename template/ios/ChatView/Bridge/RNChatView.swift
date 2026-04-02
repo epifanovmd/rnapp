@@ -17,10 +17,8 @@ final class RNChatView: UIView {
     @objc var onCancelInputAction: RCTDirectEventBlock?
     @objc var onAttachmentPress: RCTDirectEventBlock?
     @objc var onReplyMessagePress: RCTDirectEventBlock?
-    @objc var onVideoPress: RCTDirectEventBlock?
     @objc var onPollOptionPress: RCTDirectEventBlock?
     @objc var onPollDetailPress: RCTDirectEventBlock?
-    @objc var onFilePress: RCTDirectEventBlock?
     @objc var onVoiceRecordingComplete: RCTDirectEventBlock?
     @objc var onInputTyping: RCTDirectEventBlock?
     @objc var onReactionTap: RCTDirectEventBlock?
@@ -171,7 +169,7 @@ final class RNChatView: UIView {
                 replyToId: id,
                 senderName: msg.senderName,
                 text: msg.content.text,
-                hasImage: msg.content.images != nil
+                hasImage: msg.content.media != nil
             )
             chatVC.beginReply(info: info)
         case "edit":
@@ -202,8 +200,10 @@ extension RNChatView: ChatViewControllerDelegate {
         onMessagesVisible?(["messageIds": ids])
     }
 
-    func chatDidTapMessage(id: String) {
-        onMessagePress?(["messageId": id])
+    func chatDidTapMessage(id: String, attachmentIndex: Int?) {
+        var data: [String: Any] = ["messageId": id]
+        if let idx = attachmentIndex { data["attachmentIndex"] = idx }
+        onMessagePress?(data)
     }
 
     func chatDidSelectAction(actionId: String, messageId: String) {
@@ -240,13 +240,7 @@ extension RNChatView: ChatViewControllerDelegate {
         onReplyMessagePress?(["messageId": id])
     }
 
-    func chatDidTapVideo(messageId: String, url: String) {
-        onVideoPress?(["messageId": messageId, "videoUrl": url])
-    }
 
-    func chatDidTapFile(messageId: String, url: String, name: String) {
-        onFilePress?(["messageId": messageId, "fileUrl": url, "fileName": name])
-    }
 
     func chatDidTapPollOption(messageId: String, pollId: String, optionId: String) {
         onPollOptionPress?(["messageId": messageId, "pollId": pollId, "optionId": optionId])
@@ -267,4 +261,5 @@ extension RNChatView: ChatViewControllerDelegate {
         lastTypingTime = now
         onInputTyping?(["text": text])
     }
+
 }

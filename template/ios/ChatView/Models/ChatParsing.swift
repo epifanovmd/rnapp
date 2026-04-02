@@ -40,30 +40,52 @@ extension ChatMessage {
     }
 
     private static func parseContent(dict: NSDictionary, text: String?) -> MessageContent {
-        if let pollDict = dict["poll"] as? NSDictionary {
-            return .poll(parsePoll(pollDict))
+        // Build unified media array from images + video
+        var media: [MediaItem] = []
+
+        if let imagesArr = dict["images"] as? [NSDictionary] {
+            for imgDict in imagesArr {
+                if let item = parseImageItem(imgDict) {
+                    media.append(.image(item))
+                }
+            }
         }
-        if let fileDict = dict["file"] as? NSDictionary {
-            return .file(parseFile(fileDict))
-        }
-        if let voiceDict = dict["voice"] as? NSDictionary {
-            return .voice(parseVoice(voiceDict))
-        }
+
         if let videoDict = dict["video"] as? NSDictionary {
-            let video = parseVideo(videoDict)
-            if let t = text, !t.isEmpty {
-                return .mixedTextVideo(TextPayload(text: t), video)
-            }
-            return .video(video)
+            media.append(.video(parseVideo(videoDict)))
         }
-        if let imagesArr = dict["images"] as? [NSDictionary], !imagesArr.isEmpty {
-            let images = ImagePayload(images: imagesArr.compactMap(parseImageItem))
-            if let t = text, !t.isEmpty {
-                return .mixed(TextPayload(text: t), images)
-            }
-            return .image(images)
+
+        let voice: VoicePayload?
+        if let voiceDict = dict["voice"] as? NSDictionary {
+            voice = parseVoice(voiceDict)
+        } else {
+            voice = nil
         }
-        return .text(TextPayload(text: text ?? ""))
+
+        let poll: PollPayload?
+        if let pollDict = dict["poll"] as? NSDictionary {
+            poll = parsePoll(pollDict)
+        } else {
+            poll = nil
+        }
+
+        // Files: support single "file" or array "files"
+        var files: [FilePayload] = []
+        if let filesArr = dict["files"] as? [NSDictionary] {
+            files = filesArr.compactMap { parseFile($0) }
+        } else if let fileDict = dict["file"] as? NSDictionary, let file = parseFile(fileDict) {
+            files = [file]
+        }
+
+        let finalText = (text?.isEmpty == false) ? text : nil
+
+        return MessageContent(
+            text: finalText,
+            media: media.isEmpty ? nil : media,
+            voice: voice,
+            poll: poll,
+            files: files.isEmpty ? nil : files
+        )
     }
 
     private static func parseImageItem(_ dict: NSDictionary) -> ImageItem? {
@@ -76,8 +98,8 @@ extension ChatMessage {
         )
     }
 
-    private static func parseVideo(_ dict: NSDictionary) -> VideoPayload {
-        VideoPayload(
+    private static func parseVideo(_ dict: NSDictionary) -> VideoItem {
+        VideoItem(
             url: dict["url"] as? String ?? "",
             thumbnailUrl: dict["thumbnailUrl"] as? String,
             width: (dict["width"] as? NSNumber)?.cgFloatValue,
@@ -115,9 +137,10 @@ extension ChatMessage {
         )
     }
 
-    private static func parseFile(_ dict: NSDictionary) -> FilePayload {
-        FilePayload(
-            url: dict["url"] as? String ?? "",
+    private static func parseFile(_ dict: NSDictionary) -> FilePayload? {
+        guard let url = dict["url"] as? String else { return nil }
+        return FilePayload(
+            url: url,
             name: dict["name"] as? String ?? "File",
             size: (dict["size"] as? NSNumber)?.int64Value ?? 0,
             mimeType: dict["mimeType"] as? String

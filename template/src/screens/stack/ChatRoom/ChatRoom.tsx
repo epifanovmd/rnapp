@@ -15,7 +15,6 @@ import {
   type ChatCancelInputActionEventData,
   type ChatEditMessageEventData,
   type ChatEmojiReactionSelectData,
-  type ChatFilePressEventData,
   type ChatInputAction,
   type ChatMessage,
   type ChatMessagePressEventData,
@@ -27,7 +26,6 @@ import {
   type ChatReactionTapEventData,
   type ChatReplyMessagePressEventData,
   type ChatSendMessageEventData,
-  type ChatVideoPressEventData,
   ChatView,
 } from "@components/chatView";
 import { ImageViewing } from "@components/imageViewing";
@@ -300,8 +298,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
     const chatDisplayName = chatStore.chatModel?.displayName ?? "";
     const isDirect = chat?.type === EChatType.Direct;
     const peer = isDirect ? chat?.peer : undefined;
-    const typingMap = messageStore.typingUsers;
-    const userIds = Array.from(typingMap.keys());
 
     const lastOnlineRaw = peer
       ? presenceStore.getLastOnline(peer.userId) ?? peer.profile?.lastOnline
@@ -428,6 +424,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
 
     const handleReachTop = useCallback(
       (_: ChatReachTopEventData) => {
+        console.log("handleReachTop");
         messageStore.loadMoreMessages(chatId);
       },
       [messageStore, chatId],
@@ -446,15 +443,10 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
         const firstId = messageIds[0];
 
         if (firstId) {
-          const msg = messages.find(m => m.id === firstId);
-
-          if (msg && msg.senderId !== currentUserId) {
-            console.log("msg", msg);
-            messageStore.markAsRead(chatId, firstId);
-          }
+          messageStore.markAsRead(chatId, firstId);
         }
       },
-      [messageStore, messages, currentUserId, chatId],
+      [messageStore, chatId],
     );
 
     const handleActionPress = useCallback(
@@ -552,15 +544,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
       [messageStore, messages, chatId],
     );
 
-    const handleVideoPress = useCallback(
-      ({ videoUrl }: ChatVideoPressEventData) => {
-        Linking.openURL(videoUrl).catch(() => {
-          Alert.alert("Error", "Cannot open video");
-        });
-      },
-      [],
-    );
-
     const handlePollOptionPress = useCallback(
       ({ pollId, optionId }: ChatPollOptionPressEventData) => {
         pollStore.vote(pollId, [optionId]);
@@ -571,15 +554,6 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
     const handlePollDetailPress = useCallback(
       ({ pollId }: ChatPollDetailPressEventData) => {
         setPollDetailId(pollId);
-      },
-      [],
-    );
-
-    const handleFilePress = useCallback(
-      ({ fileUrl }: ChatFilePressEventData) => {
-        Linking.openURL(fileUrl).catch(() => {
-          Alert.alert("Error", "Cannot open file");
-        });
       },
       [],
     );
@@ -716,6 +690,7 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           emojiReactions={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
           inputAction={inputAction}
           hasMore={messageStore.messagesHolder.hasMore}
+          // hasMore={false}
           hasNewer={messageStore.messagesHolder.hasNewer}
           isLoading={messageStore.messagesHolder.isBusy}
           isLoadingTop={messageStore.messagesHolder.isLoadingMore}
@@ -735,11 +710,9 @@ export const ChatRoom: FC<StackProps<"ChatRoom">> = observer(
           onActionPress={handleActionPress}
           onEmojiReactionSelect={handleEmojiReaction}
           onReplyMessagePress={handleReplyMessagePress}
-          onVideoPress={handleVideoPress}
           onPollOptionPress={handlePollOptionPress}
           onPollDetailPress={handlePollDetailPress}
           onMessagePress={handleMessagePress}
-          onFilePress={handleFilePress}
           onAttachmentPress={handleAttachmentPress}
           onVoiceRecordingComplete={handleVoiceRecordingComplete}
           onInputTyping={handleTyping}

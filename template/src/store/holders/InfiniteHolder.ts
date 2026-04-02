@@ -73,7 +73,7 @@ export class InfiniteHolder<
   loadMoreError: TError | null = null;
 
   /** Сервер сообщил, что есть ещё элементы. */
-  hasMore: boolean = true;
+  hasMore: boolean = false;
 
   /** Последние использованные аргументы — для refresh / продолжения loadMore. */
   lastArgs: TArgs | null = null;
@@ -149,7 +149,7 @@ export class InfiniteHolder<
     this.loadMoreStatus = MutationStatus.Idle;
     this.error = null;
     this.loadMoreError = null;
-    this.hasMore = true;
+    this.hasMore = false;
     this.lastArgs = null;
     this._currentOffset = 0;
   }

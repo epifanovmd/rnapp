@@ -7,8 +7,8 @@ final class MessageCell: UICollectionViewCell {
     var onTap: (() -> Void)?
     var onLongPress: ((UICollectionViewCell) -> Void)?
     var onReplyTap: (() -> Void)?
-    var onVideoTap: ((String) -> Void)?
-    var onFileTap: ((String, String) -> Void)?
+    var onMediaItemTap: ((Int) -> Void)?
+    var onFileItemTap: ((Int) -> Void)?
     var onPollOptionTap: ((String, String) -> Void)?
     var onPollDetailTap: ((String) -> Void)?
     var onVoiceTap: ((String) -> Void)?
@@ -76,8 +76,8 @@ final class MessageCell: UICollectionViewCell {
 
         bubbleView.configure(message: message, resolvedReply: resolvedReply, theme: theme, bubbleWidth: bw, showSenderName: showSenderName)
         bubbleView.onReplyTap = onReplyTap
-        bubbleView.onVideoTap = onVideoTap
-        bubbleView.onFileTap = onFileTap
+        bubbleView.onMediaItemTap = onMediaItemTap
+        bubbleView.onFileItemTap = onFileItemTap
         bubbleView.onPollOptionTap = onPollOptionTap
         bubbleView.onPollDetailTap = onPollDetailTap
         bubbleView.onVoiceTap = onVoiceTap
@@ -106,8 +106,8 @@ final class MessageCell: UICollectionViewCell {
         onTap = nil
         onLongPress = nil
         onReplyTap = nil
-        onVideoTap = nil
-        onFileTap = nil
+        onMediaItemTap = nil
+        onFileItemTap = nil
         onPollOptionTap = nil
         onPollDetailTap = nil
         onVoiceTap = nil

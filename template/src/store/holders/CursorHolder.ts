@@ -60,7 +60,7 @@ export class CursorHolder<
   // ─── Older direction (scroll up / load more) ──────────────────────────
 
   /** There are older items on the server. */
-  hasMore: boolean = true;
+  hasMore: boolean = false;
   /** Status of "load older" operation. */
   loadMoreStatus = MutationStatus.Idle;
   loadMoreError: TError | null = null;
@@ -226,7 +226,7 @@ export class CursorHolder<
     this.items = [];
     this.status = HolderStatus.Idle;
     this.error = null;
-    this.hasMore = true;
+    this.hasMore = false;
     this.hasNewer = false;
     this.loadMoreStatus = MutationStatus.Idle;
     this.loadMoreError = null;

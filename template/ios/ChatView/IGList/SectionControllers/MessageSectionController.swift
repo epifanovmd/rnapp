@@ -2,11 +2,9 @@ import IGListKit
 import UIKit
 
 protocol MessageSectionDelegate: AnyObject {
-    func messageSectionDidTap(messageId: String)
+    func messageSectionDidTap(messageId: String, attachmentIndex: Int?)
     func messageSectionDidLongPress(messageId: String, cell: UICollectionViewCell)
     func messageSectionDidTapReply(messageId: String)
-    func messageSectionDidTapVideo(messageId: String, url: String)
-    func messageSectionDidTapFile(messageId: String, url: String, name: String)
     func messageSectionDidTapPollOption(messageId: String, pollId: String, optionId: String)
     func messageSectionDidTapPollDetail(messageId: String, pollId: String)
     func messageSectionDidTapVoice(messageId: String, url: String)
@@ -48,7 +46,7 @@ final class MessageSectionController: ListSectionController {
         // Callbacks MUST be set BEFORE configure(), because configure() copies them to bubbleView
         cell.onTap = { [weak self] in
             guard let self else { return }
-            self.sectionDelegate?.messageSectionDidTap(messageId: self.item.message.id)
+            self.sectionDelegate?.messageSectionDidTap(messageId: self.item.message.id, attachmentIndex: nil)
         }
         cell.onLongPress = { [weak self] c in
             guard let self else { return }
@@ -58,13 +56,13 @@ final class MessageSectionController: ListSectionController {
             guard let self, let replyTo = self.item.message.reply?.replyToId else { return }
             self.sectionDelegate?.messageSectionDidTapReply(messageId: replyTo)
         }
-        cell.onVideoTap = { [weak self] url in
+        cell.onMediaItemTap = { [weak self] index in
             guard let self else { return }
-            self.sectionDelegate?.messageSectionDidTapVideo(messageId: self.item.message.id, url: url)
+            self.sectionDelegate?.messageSectionDidTap(messageId: self.item.message.id, attachmentIndex: index)
         }
-        cell.onFileTap = { [weak self] url, name in
+        cell.onFileItemTap = { [weak self] index in
             guard let self else { return }
-            self.sectionDelegate?.messageSectionDidTapFile(messageId: self.item.message.id, url: url, name: name)
+            self.sectionDelegate?.messageSectionDidTap(messageId: self.item.message.id, attachmentIndex: index)
         }
         cell.onPollOptionTap = { [weak self] pollId, optionId in
             guard let self else { return }
@@ -104,7 +102,7 @@ final class MessageSectionController: ListSectionController {
     }
 
     override func didSelectItem(at index: Int) {
-        sectionDelegate?.messageSectionDidTap(messageId: item.message.id)
+        sectionDelegate?.messageSectionDidTap(messageId: item.message.id, attachmentIndex: nil)
     }
 
     // MARK: - Highlight

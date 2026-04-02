@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -26,7 +26,6 @@
 		1A9476D12F7DCAF3001D82F5 /* RNChatViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A94769A2F7DCAF3001D82F5 /* RNChatViewManager.swift */; };
 		1A9476D22F7DCAF3001D82F5 /* TextContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476B82F7DCAF3001D82F5 /* TextContentView.swift */; };
 		1A9476D32F7DCAF3001D82F5 /* MessageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476C12F7DCAF3001D82F5 /* MessageCell.swift */; };
-		1A9476D42F7DCAF3001D82F5 /* ImageContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476B32F7DCAF3001D82F5 /* ImageContentView.swift */; };
 		1A9476D52F7DCAF3001D82F5 /* ChatInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476BC2F7DCAF3001D82F5 /* ChatInputBar.swift */; };
 		1A9476D62F7DCAF3001D82F5 /* MessageSectionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476A62F7DCAF3001D82F5 /* MessageSectionController.swift */; };
 		1A9476D72F7DCAF3001D82F5 /* ChatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A94769E2F7DCAF3001D82F5 /* ChatViewController.swift */; };
@@ -38,7 +37,6 @@
 		1A9476DD2F7DCAF3001D82F5 /* KeyboardListener.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476AB2F7DCAF3001D82F5 /* KeyboardListener.swift */; };
 		1A9476DE2F7DCAF3001D82F5 /* ReplyPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476B72F7DCAF3001D82F5 /* ReplyPreviewView.swift */; };
 		1A9476DF2F7DCAF3001D82F5 /* LoadingSectionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476A52F7DCAF3001D82F5 /* LoadingSectionController.swift */; };
-		1A9476E02F7DCAF3001D82F5 /* VideoContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476B92F7DCAF3001D82F5 /* VideoContentView.swift */; };
 		1A9476E12F7DCAF3001D82F5 /* VoiceContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476BA2F7DCAF3001D82F5 /* VoiceContentView.swift */; };
 		1A9476E22F7DCAF3001D82F5 /* ChatLayoutConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A94769C2F7DCAF3001D82F5 /* ChatLayoutConstants.swift */; };
 		1A9476E32F7DCAF3001D82F5 /* RNChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476982F7DCAF3001D82F5 /* RNChatView.swift */; };
@@ -49,6 +47,7 @@
 		1A9477002F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476FA2F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift */; };
 		1A9477012F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476F72F7E5C38001D82F5 /* ChatViewController+ContextMenu.swift */; };
 		1A9477022F7E5C38001D82F5 /* ChatViewController+Keyboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476F92F7E5C38001D82F5 /* ChatViewController+Keyboard.swift */; };
+		1A94772A2F7E940B001D82F5 /* MediaGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9477292F7E940B001D82F5 /* MediaGridView.swift */; };
 		1A9C412E2F5AE20500694F32 /* ContextMenuViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C412D2F5AE20400694F32 /* ContextMenuViewController.swift */; };
 		1A9C41312F5AE21F00694F32 /* ContextMenuTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C41302F5AE21E00694F32 /* ContextMenuTheme.swift */; };
 		1A9C41342F5AE23800694F32 /* ContextMenuModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C41332F5AE23700694F32 /* ContextMenuModels.swift */; };
@@ -92,13 +91,11 @@
 		1A9476AE2F7DCAF3001D82F5 /* ChatParsing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatParsing.swift; sourceTree = "<group>"; };
 		1A9476B02F7DCAF3001D82F5 /* ChatTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTheme.swift; sourceTree = "<group>"; };
 		1A9476B22F7DCAF3001D82F5 /* FileContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileContentView.swift; sourceTree = "<group>"; };
-		1A9476B32F7DCAF3001D82F5 /* ImageContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageContentView.swift; sourceTree = "<group>"; };
 		1A9476B42F7DCAF3001D82F5 /* MessageStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageStatusView.swift; sourceTree = "<group>"; };
 		1A9476B52F7DCAF3001D82F5 /* PollContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PollContentView.swift; sourceTree = "<group>"; };
 		1A9476B62F7DCAF3001D82F5 /* ReactionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReactionsView.swift; sourceTree = "<group>"; };
 		1A9476B72F7DCAF3001D82F5 /* ReplyPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyPreviewView.swift; sourceTree = "<group>"; };
 		1A9476B82F7DCAF3001D82F5 /* TextContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextContentView.swift; sourceTree = "<group>"; };
-		1A9476B92F7DCAF3001D82F5 /* VideoContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoContentView.swift; sourceTree = "<group>"; };
 		1A9476BA2F7DCAF3001D82F5 /* VoiceContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceContentView.swift; sourceTree = "<group>"; };
 		1A9476BC2F7DCAF3001D82F5 /* ChatInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputBar.swift; sourceTree = "<group>"; };
 		1A9476BE2F7DCAF3001D82F5 /* DateSeparatorCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateSeparatorCell.swift; sourceTree = "<group>"; };
@@ -111,6 +108,7 @@
 		1A9476FA2F7E5C38001D82F5 /* ChatViewController+ListAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+ListAdapter.swift"; sourceTree = "<group>"; };
 		1A9476FB2F7E5C38001D82F5 /* ChatViewController+Scroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Scroll.swift"; sourceTree = "<group>"; };
 		1A9476FC2F7E5C38001D82F5 /* ChatViewController+Updater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChatViewController+Updater.swift"; sourceTree = "<group>"; };
+		1A9477292F7E940B001D82F5 /* MediaGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGridView.swift; sourceTree = "<group>"; };
 		1A9C412D2F5AE20400694F32 /* ContextMenuViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuViewController.swift; sourceTree = "<group>"; };
 		1A9C41302F5AE21E00694F32 /* ContextMenuTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuTheme.swift; sourceTree = "<group>"; };
 		1A9C41332F5AE23700694F32 /* ContextMenuModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContextMenuModels.swift; sourceTree = "<group>"; };
@@ -266,14 +264,13 @@
 		1A9476BB2F7DCAF3001D82F5 /* Content */ = {
 			isa = PBXGroup;
 			children = (
+				1A9477292F7E940B001D82F5 /* MediaGridView.swift */,
 				1A9476B22F7DCAF3001D82F5 /* FileContentView.swift */,
-				1A9476B32F7DCAF3001D82F5 /* ImageContentView.swift */,
 				1A9476B42F7DCAF3001D82F5 /* MessageStatusView.swift */,
 				1A9476B52F7DCAF3001D82F5 /* PollContentView.swift */,
 				1A9476B62F7DCAF3001D82F5 /* ReactionsView.swift */,
 				1A9476B72F7DCAF3001D82F5 /* ReplyPreviewView.swift */,
 				1A9476B82F7DCAF3001D82F5 /* TextContentView.swift */,
-				1A9476B92F7DCAF3001D82F5 /* VideoContentView.swift */,
 				1A9476BA2F7DCAF3001D82F5 /* VoiceContentView.swift */,
 			);
 			path = Content;
@@ -634,7 +631,7 @@
 				1A9476D12F7DCAF3001D82F5 /* RNChatViewManager.swift in Sources */,
 				1A9476D22F7DCAF3001D82F5 /* TextContentView.swift in Sources */,
 				1A9476D32F7DCAF3001D82F5 /* MessageCell.swift in Sources */,
-				1A9476D42F7DCAF3001D82F5 /* ImageContentView.swift in Sources */,
+				1A94772A2F7E940B001D82F5 /* MediaGridView.swift in Sources */,
 				1A9476FD2F7E5C38001D82F5 /* ChatViewController+Scroll.swift in Sources */,
 				1A9476FE2F7E5C38001D82F5 /* ChatViewController+Updater.swift in Sources */,
 				1A9476FF2F7E5C38001D82F5 /* ChatViewController+Input.swift in Sources */,
@@ -652,7 +649,6 @@
 				1A9476DD2F7DCAF3001D82F5 /* KeyboardListener.swift in Sources */,
 				1A9476DE2F7DCAF3001D82F5 /* ReplyPreviewView.swift in Sources */,
 				1A9476DF2F7DCAF3001D82F5 /* LoadingSectionController.swift in Sources */,
-				1A9476E02F7DCAF3001D82F5 /* VideoContentView.swift in Sources */,
 				1A9476E12F7DCAF3001D82F5 /* VoiceContentView.swift in Sources */,
 				1A9476E22F7DCAF3001D82F5 /* ChatLayoutConstants.swift in Sources */,
 				1A9476E32F7DCAF3001D82F5 /* RNChatView.swift in Sources */,

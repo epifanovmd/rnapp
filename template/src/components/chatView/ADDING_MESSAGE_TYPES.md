@@ -15,24 +15,30 @@ Message rendering involves 6 layers that must stay in sync:
 | **Models + Parsing** | `ios/ChatView/Models/` | Data model, NSDictionary parser |
 | **Rendering** | `ios/ChatView/Views/`, `IGList/` | UI, size calculation |
 
-## Current Message Types
+## Content Model
 
-`MessageContent` is an enum with associated payloads:
+`MessageContent` is a **struct with optional fields**. Any combination of fields is valid — text can accompany any media type automatically:
 
+```swift
+struct MessageContent: Equatable, Hashable {
+    let text: String?       // text / caption for any media
+    let images: [ImageItem]?
+    let video: VideoPayload?
+    let voice: VoicePayload?
+    let poll: PollPayload?
+    let file: FilePayload?
+}
 ```
-text(TextPayload)              — plain text
-image(ImagePayload)            — one or more images
-mixed(TextPayload, Image...)   — images + caption text
-video(VideoPayload)            — single video
-mixedTextVideo(Text, Video)    — video + caption text
-voice(VoicePayload)            — voice message with waveform
-poll(PollPayload)              — poll with options
-file(FilePayload)              — file attachment
-```
 
-**Mixed types**: currently only `image+text` and `video+text` support captions. Other combinations (e.g. `file+text`) render as the primary type only.
+**Mixed messages work automatically**: if both `text` and any media field are set, the bubble renders media on top and text (caption) below. No special "mixed" types needed.
 
-**Emoji-only**: messages with 1-3 emoji characters get special rendering (large font, transparent bubble).
+**Rendering priority** (when multiple media fields are set): `poll > file > voice > video > image`. Only one media type renders per message.
+
+**Emoji-only**: messages with 1-3 emoji characters and no media get special rendering (large font, transparent bubble).
+
+## Size Calculation
+
+IGListKit recommends **manual size calculation** (not Auto Layout / self-sizing cells). All sizes are computed in `MessageSizeCalculator.swift`, which mirrors the rendering logic in `MessageBubbleView.swift`. These two files must stay in sync.
 
 ## Step-by-step: Adding a New Type
 
@@ -87,37 +93,59 @@ struct LocationPayload: Equatable, Hashable {
 }
 ```
 
-Add a case to `MessageContent`:
+Add the field to `MessageContent`:
 
 ```swift
-enum MessageContent: Equatable, Hashable {
-    // ... existing cases ...
-    case location(LocationPayload)
+struct MessageContent: Equatable, Hashable {
+    // ... existing fields ...
+    let location: LocationPayload?
+}
+```
 
-    // Add computed accessor:
-    var location: LocationPayload? {
-        if case .location(let l) = self { return l }
-        return nil
-    }
+Update `hasMedia` and `primaryMedia` computed properties:
+
+```swift
+var hasMedia: Bool {
+    images != nil || video != nil || voice != nil || poll != nil || file != nil || location != nil
+}
+
+var primaryMedia: MediaType? {
+    if let _ = poll { return .poll }
+    if let _ = file { return .file }
+    if let _ = voice { return .voice }
+    if let _ = video { return .video }
+    if let _ = images { return .image }
+    if let _ = location { return .location }
+    return nil
 }
 ```
 
 ### 4. Parser — `ChatParsing.swift`
 
-Add parsing in `parseContent()`. Order matters — types checked earlier take priority:
+Add parsing in `parseContent()`:
 
 ```swift
-private static func parseContent(dict: NSDictionary, text: String?) -> MessageContent {
-    // ... existing checks (poll, file, voice, video, images) ...
-
-    // Add before the final `return .text(...)`:
-    if let locDict = dict["location"] as? NSDictionary {
-        return .location(parseLocation(locDict))
-    }
-
-    return .text(TextPayload(text: text ?? ""))
+let location: LocationPayload?
+if let locDict = dict["location"] as? NSDictionary {
+    location = parseLocation(locDict)
+} else {
+    location = nil
 }
 
+return MessageContent(
+    text: finalText,
+    images: images,
+    video: video,
+    voice: voice,
+    poll: poll,
+    file: file,
+    location: location
+)
+```
+
+Add the parser method:
+
+```swift
 private static func parseLocation(_ dict: NSDictionary) -> LocationPayload {
     LocationPayload(
         latitude: dict["latitude"] as? Double ?? 0,
@@ -157,33 +185,30 @@ final class LocationContentView: UIView {
 
 ### 6. Bubble View — `MessageBubbleView.swift`
 
-Add a case in `createContentView()`:
+Add to the media priority chain in `createContentView()`:
 
 ```swift
-case .location(let l):
+// Before the existing image check:
+} else if let location = content.location {
     let view = LocationContentView()
-    view.configure(location: l, isMine: isMine, theme: theme, width: width)
-    return view
+    view.configure(location: location, isMine: isMine, theme: theme, width: width)
+    views.append(view)
+}
 ```
+
+Text caption is handled automatically — if `content.text` is set, it renders below the media.
 
 If you need callbacks (e.g. `onLocationTap`), add them to `MessageBubbleView`, `MessageCell`, section controller, delegate protocol, and bridge — same chain as existing callbacks like `onVideoTap`.
 
 ### 7. Size Calculator — `MessageSizeCalculator.swift`
 
-Add width and height calculations.
-
-**`bubbleWidth()`** — add the case to the rich-content group:
+Add to the media height chain in `contentHeight()`:
 
 ```swift
-case .image, .mixed, .video, .mixedTextVideo, .poll, .file, .voice, .location:
-    return maxW
-```
-
-**`contentHeight()`** — add a case:
-
-```swift
-case .location:
-    return locationHeight(width: width)
+// Before the existing image check:
+} else if content.location != nil {
+    h += locationHeight(width: width)
+}
 ```
 
 Add helper:
@@ -191,21 +216,13 @@ Add helper:
 ```swift
 static func locationHeight(width: CGFloat) -> CGFloat {
     let mapH = width * 0.6  // 3:5 aspect ratio
-    return mapH + ChatLayout.messageFont.lineHeight + 8
+    return mapH
 }
 ```
 
-> **Important**: `contentHeight()` and `createContentView()` must produce consistent results. If they diverge, cells will have wrong sizes.
+Text caption height is handled automatically.
 
-### 8. Mixed Support (optional)
-
-To support `location + text` caption, add a new enum case:
-
-```swift
-case mixedTextLocation(TextPayload, LocationPayload)
-```
-
-Then update: `parseContent()`, `createContentView()`, `contentHeight()`, `bubbleWidth()`, and computed accessors on `MessageContent`.
+> **Important**: `contentHeight()` media priority order must match `createContentView()` in `MessageBubbleView`. If they diverge, cells will have wrong sizes.
 
 ## Callback Chain (if your type is interactive)
 
@@ -228,12 +245,9 @@ For a tap callback like `onLocationTap`:
 - [ ] TS type in `NativeChatViewSpec.ts`
 - [ ] TS type/prop in `ChatView.tsx`
 - [ ] Swift payload struct in `ChatModels.swift` (must be `Equatable, Hashable`)
-- [ ] Enum case in `MessageContent`
-- [ ] Computed accessor on `MessageContent`
-- [ ] Parser in `ChatParsing.swift`
+- [ ] Field in `MessageContent` struct + update `hasMedia`/`primaryMedia`
+- [ ] Parser in `ChatParsing.swift` + pass to `MessageContent` init
 - [ ] Content view in `Views/Content/`
-- [ ] Case in `MessageBubbleView.createContentView()`
-- [ ] Case in `MessageSizeCalculator.bubbleWidth()`
-- [ ] Case in `MessageSizeCalculator.contentHeight()`
+- [ ] Media branch in `MessageBubbleView.createContentView()`
+- [ ] Media branch in `MessageSizeCalculator.contentHeight()`
 - [ ] Callback chain (if interactive)
-- [ ] Mixed case support (if caption text needed)
