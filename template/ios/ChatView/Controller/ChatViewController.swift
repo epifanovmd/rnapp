@@ -9,7 +9,7 @@ final class ChatViewController: UIViewController {
 
     var theme: ChatTheme = .light { didSet { applyTheme() } }
     var hasMore = false
-    var hasNewer = false { didSet { if !hasNewer { isLoadingNewerActive = false } } }
+    var hasNewer = false
     var topThreshold: CGFloat = 200
     var bottomThreshold: CGFloat = 200
     var isLoading = false { didSet { updateEmptyState() } }
@@ -469,11 +469,10 @@ final class ChatViewController: UIViewController {
 
         if isAppendAtBottom {
             let wantScroll = pendingScrollToBottom || (wasAtBottom && !isLoadingNewerActive)
+            isLoadingNewerActive = false
 
             if wantScroll {
                 pendingScrollToBottom = false
-                // animated: false — IGListKit делает performBatchUpdates без анимации (не reloadData),
-                // данные обновляются синхронно, после чего scrollToBottom получит корректный contentSize
                 adapter.performUpdates(animated: false) { [weak self] _ in
                     guard let self else { return }
                     self.scrollToBottom(animated: true)
@@ -484,7 +483,6 @@ final class ChatViewController: UIViewController {
             } else {
                 // Подгрузка снизу или пользователь прокрутил вверх — сохраняем позицию
                 savedOffsetForAppend = collectionView.contentOffset
-                isLoadingNewerActive = false
                 adapter.performUpdates(animated: false) { [weak self] _ in
                     guard let self else { return }
                     self.lastKnownMessageCount = newMessages.count
