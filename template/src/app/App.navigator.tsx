@@ -1,0 +1,92 @@
+import { IAuthStore } from "@entities/auth";
+import { useBiometric } from "@features/biometric";
+import { useLogger } from "@react-navigation/devtools";
+import {
+  NavigationContainer,
+  NavigationContainerRef,
+} from "@react-navigation/native";
+import { StackHeaderProps } from "@react-navigation/stack";
+import {
+  ScreenParamList,
+  StackNavigation,
+  StackScreenOption,
+} from "@shared/lib/navigation";
+import { Navbar, SwitchTheme } from "@shared/ui";
+import { observer } from "mobx-react-lite";
+import React, { forwardRef, useCallback, useMemo } from "react";
+import { View } from "react-native";
+import BootSplash from "react-native-bootsplash";
+import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
+
+import { linking } from "./App.linking";
+import { PRIVATE_SCREENS, PUBLIC_SCREENS } from "./App.screens";
+import { stackTransition } from "./common";
+import { useAppNavigationTheme } from "./hooks";
+
+interface IAppNavigatorProps {}
+
+const AppHeader = ({ route: { name }, options }: StackHeaderProps) => {
+  return (
+    <Navbar title={options.title ?? name} safeArea={true}>
+      <Navbar.BackButton />
+      <Navbar.Right>
+        <View style={{ margin: 12 }}>
+          <SwitchTheme marginLeft={"auto"} />
+        </View>
+      </Navbar.Right>
+    </Navbar>
+  );
+};
+
+const options: StackScreenOption = {
+  gestureEnabled: true,
+  cardOverlayEnabled: true,
+  cardStyleInterpolator: stackTransition,
+  // cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
+  headerShown: true,
+  header: AppHeader,
+};
+
+export const AppNavigator = observer(
+  forwardRef<NavigationContainerRef<ScreenParamList>, IAppNavigatorProps>(
+    (_props, ref) => {
+      const navigatorTheme = useAppNavigationTheme();
+      const authStore = IAuthStore.useInstance();
+      const { available, authorization } = useBiometric();
+
+      useLogger(ref as any);
+
+      const routes = useMemo(() => {
+        if (authStore.isAuthenticated) {
+          return { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS };
+        }
+
+        return PUBLIC_SCREENS;
+      }, [authStore.isAuthenticated]);
+
+      const onReady = useCallback(async () => {
+        await authStore.restore();
+
+        if (available && !authStore.isAuthenticated) {
+          await authorization();
+        }
+
+        setTimeout(() => {
+          trigger(HapticFeedbackTypes.impactLight);
+          BootSplash.hide({ fade: true });
+        }, 500);
+      }, [authorization, available, authStore]);
+
+      return (
+        <NavigationContainer
+          ref={ref}
+          linking={linking}
+          onReady={onReady}
+          theme={navigatorTheme}
+        >
+          <StackNavigation routes={routes} screenOptions={options} />
+        </NavigationContainer>
+      );
+    },
+  ),
+);

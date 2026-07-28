@@ -1,3 +1,33 @@
 {
-  "extends": "@tsconfig/react-native/tsconfig.json"
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "lib": ["ESNext", "DOM"],
+    // Позволяет tsc резолвить платформенные файлы (Metro делает это сам при сборке,
+    // но не при отдельном прогоне tsc) — иначе .ios/.android-модули не находятся.
+    "moduleSuffixes": [".ios", ".android", ".native", ""],
+    "allowImportingTsExtensions": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@app": ["./src/app"],
+      "@app/*": ["./src/app/*"],
+      "@pages": ["./src/pages"],
+      "@pages/*": ["./src/pages/*"],
+      "@widgets": ["./src/widgets"],
+      "@widgets/*": ["./src/widgets/*"],
+      "@features": ["./src/features"],
+      "@features/*": ["./src/features/*"],
+      "@entities": ["./src/entities"],
+      "@entities/*": ["./src/entities/*"],
+      "@shared": ["./src/shared"],
+      "@shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": ["./src/**/*"],
+  "exclude": ["**/node_modules", "**/Pods"]
 }

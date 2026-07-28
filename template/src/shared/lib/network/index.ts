@@ -1,0 +1,2 @@
+export { NetworkStatusService } from "./network.service";
+export { INetworkStatusService } from "./network.types";

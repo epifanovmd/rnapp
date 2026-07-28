@@ -1,0 +1,84 @@
+import { ChatRoom } from "@pages/chat";
+import { Settings } from "@pages/settings";
+import { Main, Playground } from "@pages/ui-kit-demo";
+import {
+  BottomTabHeaderProps,
+  BottomTabNavigationOptions,
+} from "@react-navigation/bottom-tabs";
+import {
+  AppNavigation,
+  AppTabScreens,
+  ScreenName,
+  StackProps,
+} from "@shared/lib/navigation";
+import { TransitionProvider, useTransition } from "@shared/lib/transition";
+import { Navbar } from "@shared/ui";
+import { TabBar } from "@widgets/app-shell";
+import {
+  HomeIcon,
+  ListIcon,
+  MessageSquareIcon,
+  SettingsIcon,
+} from "lucide-react-native";
+import React, { FC, memo } from "react";
+
+interface IProps extends StackProps {}
+
+const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
+  return <Navbar title={title} safeArea={true} />;
+};
+
+export const TAB_SCREENS: AppTabScreens = {
+  Chats: {
+    screen: ChatRoom,
+    options: {
+      tabBarIcon: ({ size, color }) => (
+        <MessageSquareIcon size={size} color={color} />
+      ),
+      headerShown: false,
+    },
+  },
+  Main: {
+    screen: Main,
+    options: {
+      tabBarIcon: ({ size, color }) => <HomeIcon size={size} color={color} />,
+      headerShown: false,
+    },
+  },
+  Playground: {
+    screen: Playground,
+    options: {
+      tabBarIcon: ({ size, color }) => <ListIcon size={size} color={color} />,
+      headerShown: false,
+    },
+  },
+  Settings: {
+    screen: Settings,
+    options: {
+      tabBarIcon: ({ size, color }) => (
+        <SettingsIcon size={size} color={color} />
+      ),
+      headerShown: false,
+    },
+  },
+};
+
+const screenOptions: BottomTabNavigationOptions = {
+  headerShown: true,
+  header: TabHeader,
+};
+
+export const TabScreens: FC<IProps> = memo(() => {
+  const context = useTransition();
+
+  return (
+    <TransitionProvider context={context}>
+      <AppNavigation
+        tabBar={props => <TabBar {...props} />}
+        routes={TAB_SCREENS}
+        screenOptions={screenOptions}
+        initialRouteName={"Chats"}
+      />
+    </TransitionProvider>
+  );
+});

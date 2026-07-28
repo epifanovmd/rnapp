@@ -1,0 +1,60 @@
+import { isString } from "@shared/lib/utils/type-guards";
+import React, { memo } from "react";
+import { ActivityIndicator } from "react-native";
+
+import { Icon } from "../icon/index";
+import { Text } from "../text/index";
+import { Touchable } from "../touchable/index";
+import { useButtonStyles } from "./hooks/index";
+import { IButtonProps } from "./types";
+
+const ButtonImpl = <T extends any = unknown>({
+  loading,
+  title,
+  style,
+  indicatorProps,
+  children,
+  type = "primaryFilled",
+  size,
+  color: customColor,
+  disabled,
+  leftIcon,
+  rightIcon,
+  ...rest
+}: IButtonProps<T>) => {
+  const { styles, color, hitSlop } = useButtonStyles(
+    type,
+    size,
+    disabled,
+    customColor,
+  );
+
+  return (
+    <Touchable
+      activeOpacity={0.7}
+      delayPressIn={100}
+      style={[styles, style]}
+      hitSlop={hitSlop}
+      {...rest}
+      disabled={disabled || loading}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={color} {...indicatorProps} />
+      ) : (
+        <>
+          {leftIcon && <Icon name={leftIcon} fill={color} />}
+          {isString(title ?? children) ? (
+            <Text lineBreakMode={"tail"} textStyle={"Body_S1"} color={color}>
+              {title ?? children}
+            </Text>
+          ) : (
+            (title ?? children)
+          )}
+          {rightIcon && <Icon name={rightIcon} fill={color} />}
+        </>
+      )}
+    </Touchable>
+  );
+};
+
+export const Button = memo(ButtonImpl) as typeof ButtonImpl;

@@ -1,0 +1,191 @@
+import type { ChatLastMessageDto, ChatMemberDto } from "@shared/api/gen/model";
+
+// ─── Payload-интерфейсы: Клиент → Сервер ─────────────────────────────────
+
+export interface ISocketChatRoomPayload {
+  chatId: string;
+}
+
+export interface ISocketTypingRoomsPayload {
+  chatIds: string[];
+}
+
+export interface ISocketMessageReadPayload {
+  chatId: string;
+  messageIds: string[];
+}
+
+export interface ISocketMessageDeliveredPayload {
+  chatId: string;
+  messageIds: string[];
+}
+
+export interface ISocketCallSignalPayload {
+  callId: string;
+  targetUserId: string;
+  sdp: unknown;
+}
+
+export interface ISocketCallIceCandidatePayload {
+  callId: string;
+  targetUserId: string;
+  candidate: unknown;
+}
+
+export interface ISocketCallHangupPayload {
+  callId: string;
+  targetUserId: string;
+}
+
+/** Ack response для критических socket событий */
+export interface ISocketAckResponse {
+  ok: boolean;
+  error?: string;
+}
+
+// ─── Payload-интерфейсы: Сервер → Клиент ─────────────────────────────────
+
+export interface ISocketAuthenticatedPayload {
+  userId: string;
+}
+
+export interface ISocketAuthErrorPayload {
+  message: string;
+}
+
+export interface ISocketMessageIdentifierPayload {
+  messageId: string;
+  chatId: string;
+  forAll: boolean;
+}
+
+export interface ISocketMessageReactionPayload {
+  messageId: string;
+  chatId: string;
+  userId: string;
+  emoji: string | null;
+}
+
+export interface ISocketMessageStatusPayload {
+  messageId: string;
+  chatId: string;
+  status: string;
+  /** ID пользователя, изменившего статус (для per-user tracking в группах) */
+  userId?: string;
+  /** Агрегированная информация о receipts (для отправителя в группах) */
+  receiptSummary?: {
+    delivered: number;
+    read: number;
+    total: number;
+  };
+}
+
+export interface ISocketChatTypingPayload {
+  chatId: string;
+  userId: string;
+}
+
+export interface ISocketChatUnreadPayload {
+  chatId: string;
+  unreadCount: number;
+}
+
+export interface ISocketChatMemberJoinedPayload {
+  chatId: string;
+  userId: string;
+  member?: ChatMemberDto;
+}
+
+export interface ISocketChatMemberPayload {
+  chatId: string;
+  userId: string;
+}
+
+export interface ISocketChatPinnedPayload {
+  chatId: string;
+  isPinned: boolean;
+}
+
+export interface ISocketChatSlowModePayload {
+  chatId: string;
+  seconds: number;
+}
+
+export interface ISocketChatMemberBannedPayload {
+  chatId: string;
+  userId: string;
+  bannedBy: string;
+  reason?: string;
+}
+
+export interface ISocketChatMemberRoleChangedPayload {
+  chatId: string;
+  userId: string;
+  role: string;
+}
+
+export interface ISocketChatLastMessagePayload {
+  chatId: string;
+  lastMessage: ChatLastMessageDto | null;
+}
+
+export interface ISocketCallEndedPayload {
+  callId: string;
+  endedBy: string;
+}
+
+export interface ISocketCallRelayPayload {
+  callId: string;
+  fromUserId: string;
+  sdp: unknown;
+}
+
+export interface ISocketCallIceCandidateRelayPayload {
+  callId: string;
+  fromUserId: string;
+  candidate: unknown;
+}
+
+export interface ISocketSyncAvailablePayload {
+  version: string;
+}
+
+export interface ISocketSessionPayload {
+  sessionId: string;
+}
+
+export interface ISocketContactRemovedPayload {
+  contactId: string;
+}
+
+export interface ISocketAuth2faChangedPayload {
+  enabled: boolean;
+}
+
+export interface ISocketUserEmailVerifiedPayload {
+  verified: boolean;
+}
+
+export interface ISocketUserPasswordChangedPayload {
+  userId: string;
+  method: "change" | "reset";
+}
+
+export interface ISocketUserPrivilegesChangedPayload {
+  roles: string[];
+  permissions: string[];
+}
+
+export interface ISocketUserUsernameChangedPayload {
+  userId: string;
+  username: string | null;
+}
+
+export interface ISocketUserPresencePayload {
+  userId: string;
+  lastOnline?: string | null;
+}
+
+export interface ISocketPresenceInitPayload {
+  onlineUserIds: string[];
+}

@@ -1,0 +1,18 @@
+import { useTheme } from "@shared/lib/theme";
+import React, { FC, memo } from "react";
+import { StatusBar as RNStatusBar, StatusBarProps } from "react-native";
+
+interface IProps extends StatusBarProps {}
+
+export const StatusBar: FC<IProps> = memo(props => {
+  const { colors, isLight } = useTheme();
+
+  return (
+    <RNStatusBar
+      barStyle={isLight ? "dark-content" : "light-content"}
+      translucent={false}
+      backgroundColor={colors.background}
+      {...props}
+    />
+  );
+});

@@ -1,0 +1,101 @@
+import {
+  createNavigationContainerRef,
+  StackActions,
+} from "@react-navigation/native";
+import { injectable } from "inversify";
+import { identity, pickBy } from "lodash";
+import { makeAutoObservable, runInAction } from "mobx";
+
+import { DebugVars } from "../../../../debugVars";
+import { ScreenName, ScreenParamList } from "./navigation.types";
+import { INavigationService } from "./navigation-service.types";
+
+export const navigationRef = createNavigationContainerRef<ScreenParamList>();
+
+const routesHistoryReduce = (arr: any[]) => {
+  return arr.reduce((acc, item) => {
+    acc.push(
+      pickBy(
+        {
+          screen: item.name,
+          params: item.params,
+        },
+        identity,
+      ),
+    );
+
+    if (item.state) {
+      return [
+        ...acc,
+        ...routesHistoryReduce([item.state.routes[item.state.index]]),
+      ];
+    }
+
+    return acc;
+  }, []) as {
+    screen: ScreenName;
+    params: ScreenParamList[ScreenName];
+  }[];
+};
+
+@injectable()
+export class NavigationService implements INavigationService {
+  history: { screen: ScreenName; params: ScreenParamList[ScreenName] }[] = [];
+  private _navigationRef = navigationRef;
+  private _currentScreenName?: ScreenName = undefined;
+
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  subscribe() {
+    return this._navigationRef.addListener("state", e => {
+      runInAction(() => {
+        this._currentScreenName =
+          this._navigationRef?.current?.getCurrentRoute()?.name as ScreenName;
+        this.history = routesHistoryReduce(e.data.state?.routes || []);
+      });
+
+      if (DebugVars.logNavHistory) {
+        console.log("Nav Current Screen", this._currentScreenName);
+        console.log("Nav History -> ", JSON.stringify(this.history));
+      }
+    });
+  }
+
+  public get currentScreenName() {
+    return this._currentScreenName;
+  }
+
+  get isReady() {
+    return this._navigationRef.isReady();
+  }
+
+  get canGoBack() {
+    return this.isReady && this._navigationRef.canGoBack();
+  }
+
+  goBack() {
+    if (this.canGoBack) {
+      this._navigationRef.goBack();
+    }
+  }
+
+  navigateTo: typeof navigationRef.navigate = (...args: any) => {
+    if (this.isReady) {
+      this._navigationRef.navigate(...args);
+    }
+  };
+
+  replaceTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
+    if (this.isReady) {
+      this._navigationRef.dispatch(StackActions.replace(name, params));
+    }
+  };
+
+  pushTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
+    if (this.isReady) {
+      this._navigationRef.dispatch(StackActions.push(name, params));
+    }
+  };
+}
