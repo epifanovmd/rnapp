@@ -5,23 +5,13 @@ import { ColorValue, StyleSheet, ViewStyle } from "react-native";
 import { TButtonSize, TButtonType } from "../types";
 
 const COLOR_MAP: Record<TButtonType, keyof TColorTheme> = {
-  primaryFilled: "buttonPrimaryText",
-  primaryOutline: "buttonPrimaryBackground",
-  secondaryFilled: "buttonSecondaryText",
-  secondaryOutline: "buttonSecondaryText",
-  dangerFilled: "buttonDangerText",
-  dangerOutline: "buttonDangerBackground",
-  text: "blue500",
-};
-
-const COLOR_MAP_DISABLED: Record<TButtonType, keyof TColorTheme> = {
-  primaryFilled: "buttonPrimaryDisabledText",
-  primaryOutline: "buttonPrimaryDisabledBackground",
-  secondaryFilled: "buttonSecondaryDisabledText",
-  secondaryOutline: "buttonSecondaryDisabledBackground",
-  dangerFilled: "buttonDangerDisabledText",
-  dangerOutline: "buttonDangerDisabledBackground",
-  text: "blue500",
+  primaryFilled: "primaryForeground",
+  primaryOutline: "primary",
+  secondaryFilled: "secondaryForeground",
+  secondaryOutline: "secondaryForeground",
+  dangerFilled: "dangerForeground",
+  dangerOutline: "danger",
+  text: "primary",
 };
 
 export const useButtonStyles = (
@@ -33,7 +23,6 @@ export const useButtonStyles = (
   const { colors } = useTheme();
 
   return useMemo(() => {
-    const colorMap = disabled ? COLOR_MAP_DISABLED : COLOR_MAP;
     const isTextType = type === "text";
     const sizeStyle = isTextType ? BUTTON_STYLES.textSize : BUTTON_STYLES[size];
     const hitSlop = { left: 8, right: 8, top: 8, bottom: 8 };
@@ -47,7 +36,7 @@ export const useButtonStyles = (
         ...sizeStyle,
         ...variantStyle,
       },
-      color: customColor ?? colorMap[type],
+      color: customColor ?? COLOR_MAP[type],
       hitSlop: isTextType ? hitSlop : undefined,
     };
   }, [disabled, type, size, colors, customColor]);
@@ -59,38 +48,26 @@ const getVariantStyle = (
   type: TButtonType,
   customColor?: ColorValue,
 ): ViewStyle => {
-  const baseColors = {
-    primary: disabled
-      ? colors.buttonPrimaryDisabledBackground
-      : colors.buttonPrimaryBackground,
-    secondary: disabled
-      ? colors.buttonSecondaryDisabledBackground
-      : colors.buttonSecondaryBackground,
-    danger: disabled
-      ? colors.buttonDangerDisabledBackground
-      : colors.buttonDangerBackground,
-  };
-
   const styles: Record<TButtonType, ViewStyle> = {
-    primaryFilled: { backgroundColor: baseColors.primary },
+    primaryFilled: { backgroundColor: colors.primary },
     primaryOutline: {
       borderWidth: 1,
-      borderColor: customColor ?? baseColors.primary,
+      borderColor: customColor ?? colors.primary,
     },
-    secondaryFilled: { backgroundColor: baseColors.secondary },
+    secondaryFilled: { backgroundColor: colors.secondary },
     secondaryOutline: {
       borderWidth: 1,
-      borderColor: customColor ?? baseColors.secondary,
+      borderColor: customColor ?? colors.secondary,
     },
-    dangerFilled: { backgroundColor: baseColors.danger },
+    dangerFilled: { backgroundColor: colors.danger },
     dangerOutline: {
       borderWidth: 1,
-      borderColor: customColor ?? baseColors.danger,
+      borderColor: customColor ?? colors.danger,
     },
     text: {},
   };
 
-  return styles[type];
+  return { ...styles[type], opacity: disabled ? 0.4 : 1 };
 };
 
 const BUTTON_STYLES = StyleSheet.create({
