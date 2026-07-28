@@ -30,20 +30,41 @@ const DEFAULT_PADDING: ChartPadding = {
 const DEFAULT_HEIGHT = 220;
 
 export interface ChartProps {
+  /** Серии данных для отрисовки; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
   series: IChartSeries[];
+  /** Фиксированная ширина (px); без неё ширина измеряется через `onLayout` (растягивается на родителя). */
   width?: number;
+  /** Высота графика (px). По умолчанию 220. */
   height?: number;
+  /** Отступы области построения (место под оси/подписи вокруг рабочей зоны). Мёржится поверх дефолта. */
   padding?: Partial<ChartPadding>;
+  /** Фиксированный домен оси X `[min, max]`; без него вычисляется из данных `series`. */
   xDomain?: [number, number];
+  /** Фиксированный домен оси Y `[min, max]`; без него вычисляется из данных `series`. */
   yDomain?: [number, number];
-  includeZero?: boolean;
+  /** Заставляет авто-домен Y включать 0, чтобы высота баров/области не искажала восприятие. */
+  beginAtZero?: boolean;
+  /** Доп. запас по краям авто-домена X, в долях от его размаха. */
   xPaddingRatio?: number;
+  /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
   yPaddingRatio?: number;
+  /** Меняет местами края, на которые проецируются min/max домена X (зеркалит график по горизонтали). */
   xReverse?: boolean;
+  /** Меняет местами края, на которые проецируются min/max домена Y (зеркалит график по вертикали). */
   yReverse?: boolean;
+  /** Включает жест pan (кроссхейр, тултип, события нажатия). `false` — статичный/read-only график. */
   interactive?: boolean;
+  /** Расстояние (px, в любом направлении), которое должен пройти палец до активации pan-жеста. */
   panActivationDistance?: number;
+  /** Горизонтальный диапазон (px) активации pan-жеста. По умолчанию `[-8, 8]` — этого вместе с `panFailOffsetY` достаточно, чтобы график не перехватывал вертикальный скролл родительского `ScrollView`. */
+  panActiveOffsetX?: number | [number, number];
+  /** Вертикальный диапазон (px), при выходе за который pan-жест сдаётся в пользу родительского `ScrollView`. По умолчанию `[-8, 8]`. */
+  panFailOffsetY?: number | [number, number];
+  /** Отслеживать второе одновременное касание (доступно в контексте как `touchX2`/`isSecondActive`) — для второго кроссхейра. */
+  twoFingerEnabled?: boolean;
+  /** Срабатывает при начале/окончании (первого) касания. */
   onActiveChange?: (active: boolean) => void;
+  /** Слои-компоненты — распределяются между Skia-канвасом и оверлеем по собственному `layerKind` каждого потомка. */
   children?: ReactNode;
 }
 
@@ -64,13 +85,16 @@ export const Chart: FC<ChartProps> = ({
   padding: paddingProp,
   xDomain,
   yDomain,
-  includeZero,
+  beginAtZero,
   xPaddingRatio,
   yPaddingRatio,
   xReverse,
   yReverse,
   interactive = true,
   panActivationDistance = 0,
+  panActiveOffsetX = [-8, 8],
+  panFailOffsetY = [-8, 8],
+  twoFingerEnabled = true,
   onActiveChange,
   children,
 }) => {
@@ -106,6 +130,9 @@ export const Chart: FC<ChartProps> = ({
   const interaction = useChartInteraction(dimensions, {
     enabled: interactive,
     minDistance: panActivationDistance,
+    activeOffsetX: panActiveOffsetX,
+    failOffsetY: panFailOffsetY,
+    twoFingerEnabled,
   });
 
   const interactionState = useMemo(
@@ -113,8 +140,18 @@ export const Chart: FC<ChartProps> = ({
       touchX: interaction.touchX,
       touchY: interaction.touchY,
       isActive: interaction.isActive,
+      touchX2: interaction.touchX2,
+      touchY2: interaction.touchY2,
+      isSecondActive: interaction.isSecondActive,
     }),
-    [interaction.touchX, interaction.touchY, interaction.isActive],
+    [
+      interaction.touchX,
+      interaction.touchY,
+      interaction.isActive,
+      interaction.touchX2,
+      interaction.touchY2,
+      interaction.isSecondActive,
+    ],
   );
 
   useAnimatedReaction(
@@ -145,7 +182,7 @@ export const Chart: FC<ChartProps> = ({
           dimensions={dimensions}
           xDomain={xDomain}
           yDomain={yDomain}
-          includeZero={includeZero}
+          beginAtZero={beginAtZero}
           xPaddingRatio={xPaddingRatio}
           yPaddingRatio={yPaddingRatio}
           xReverse={xReverse}

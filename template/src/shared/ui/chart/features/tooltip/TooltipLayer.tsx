@@ -19,14 +19,23 @@ import type { ActiveTooltipPoint } from "./types";
 export type TooltipSide = "top" | "bottom" | "left" | "right";
 
 export interface TooltipLayerProps {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** Отступ (px) между точкой привязки и краем тултипа. */
   offset?: number;
+  /** Цвета точек-маркеров в дефолтном контенте тултипа (по кругу); переопределяется `series.color`. */
   colors?: string[];
+  /** Цвет фона дефолтного контента (игнорируется, если задан `renderContent`). */
   backgroundColor?: string;
+  /** Цвет текста дефолтного контента (игнорируется, если задан `renderContent`). */
   textColor?: string;
+  /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца. */
   anchorToPoint?: boolean;
+  /** С какой стороны от точки привязки показывать тултип. */
   side?: TooltipSide;
+  /** Полностью заменяет дефолтный контент тултипа своим рендером. */
   renderContent?: (points: ActiveTooltipPoint[]) => ReactNode;
+  /** Срабатывает при показе/скрытии тултипа (по `isActive`). */
   onVisibilityChange?: (visible: boolean) => void;
 }
 

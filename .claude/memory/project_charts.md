@@ -9,8 +9,12 @@ type: project
 `pages/ui-kit-demo/stack/charts/Charts.tsx` (reached via a button on the Playground tab — see
 `project_screens.md`).
 
-**No comments in this module's source** — this file is the "why". If you read a piece of code here
-and the reasoning isn't obvious, it should be documented in this file, not as an inline comment.
+**No implementation comments in this module's source** — this file is the "why". If you read a piece
+of code here and the reasoning isn't obvious, it should be documented in this file, not as an inline
+comment. The one exception: every `*Props` interface has a one-line JSDoc (`/** ... */`, in Russian)
+above each prop — that's public API documentation (shows up on hover/autocomplete for consumers), not
+implementation commentary, so it doesn't fall under the no-comments rule. Keep new props documented
+the same way.
 
 ## Hard rule: the core must not depend on this app
 
@@ -54,8 +58,8 @@ GridLayer.layerKind = "skia";
 
 Works because `layerKind` is optional on the type, so a plain function satisfies it at assignment;
 the property is added by the following statement. **One component per file** — a layer's private
-subcomponents (e.g. `CrosshairLayer`'s `CrosshairSeriesIndicator`, `CrosshairXLabel`, `CrosshairYLabel`)
-get their own file in the same folder.
+subcomponents (e.g. `CrosshairLayer`'s `CrosshairLine`, `CrosshairSeriesIndicator`, `CrosshairXLabel`,
+`CrosshairYLabel`) get their own file in the same folder.
 
 ## Folder structure & exports
 
@@ -73,9 +77,9 @@ chart/
   scales/index.ts                → compute-baseline, compute-domain, createBandScale, createLinearScale
   layers/index.ts                → area, bar, line, scatter
   layers/{area,bar,line,scatter}/index.ts
-  features/index.ts              → active-point, axis, crosshair, grid, legend, markers,
-                                    reference-line, tooltip
-  features/{axis,grid,legend,reference-line,active-point}/index.ts
+  features/index.ts              → active-point, axis, crosshair, current-value-line, grid, legend,
+                                    markers, reference-line, tooltip, trend-indicator
+  features/{axis,grid,legend,reference-line,active-point,current-value-line,trend-indicator}/index.ts
   features/crosshair/index.ts    → only CrosshairLayer (subcomponents are private)
   features/markers/index.ts      → MarkerLayer, types
   features/tooltip/index.ts      → TooltipContent, TooltipLayer, types
@@ -110,10 +114,28 @@ subcomponent of another file in the same folder.
   per touch-down (rising edge of `isActive`) with the pixel position. The shared building block behind
   every press event (`BarLayer.onBarPress`, `MarkerLayer.onMarkerPress`, `ScatterLayer.onPointPress`) —
   each just hit-tests its own already-computed shapes against the reported `(x, y)`.
-- `interaction/useChartInteraction.ts` — the single `usePanGesture` per chart (see `ChartInteractionOptions`:
-  `enabled`, `minDistance`).
+- `interaction/useChartInteraction.ts` — the single `usePanGesture` per chart (`ChartInteractionOptions`:
+  `enabled`, `minDistance`, `activeOffsetX`/`failOffsetY`, `twoFingerEnabled`). Tracks up to two
+  simultaneous touches via `onTouchesDown`/`onTouchesMove`/`onTouchesUp` (not `onBegin`/`onUpdate`'s
+  centroid-based `x`/`y` — those can't distinguish two fingers), reading `event.allTouches` each time:
+  `allTouches[0]` → `touchX`/`touchY`/`isActive`, `allTouches[1]` (if `twoFingerEnabled`, default `true`)
+  → `touchX2`/`touchY2`/`isSecondActive`. `applyTouches` is a plain (non-hook-argument) worklet, so it
+  needs its own `"worklet";` directive even though the `onTouches*` callbacks that call it don't (those
+  are auto-workletized as direct `usePanGesture` config arguments). `maxPointers` is derived from
+  `twoFingerEnabled` (`2` vs `1`) so a single-finger-only chart never even recognizes a second touch.
+  `activeOffsetX`/`failOffsetY` (RNGH's directional activation range, passed straight through) are how
+  a chart nested in a vertically scrolling `ScrollView` avoids stealing the scroll: e.g.
+  `activeOffsetX={[-8, 8]}` + `failOffsetY={[-8, 8]}` means a mostly-vertical drag fails this pan (and
+  falls through to the ScrollView) while a mostly-horizontal drag activates it — `minDistance` (omni-
+  directional) and the offset props are alternative activation strategies, don't fight over both at once.
 - `resolve-series-color.ts` — `resolveSeriesColor(series, index, colors)`: a series' own `color` if
   set, else the next color in the cycle. Used by every layer that colors per-series.
+- `compute-trend.ts` — `computeTrend(data, compare?: "first"|"previous")`: `null` if `< 2` points, else
+  `{ change, percent, direction: "up"|"down"|"flat" }` (`"first"` compares last-vs-first point, i.e.
+  overall trend; `"previous"` compares last-vs-second-to-last, i.e. last-tick direction). Plus
+  `resolveTrendColor(direction, upColor, downColor, neutralColor)`. Shared by `TrendIndicator` (the
+  badge) and `LineLayer`/`AreaLayer`'s `colorByTrend` (coloring the chart itself) — one computation, two
+  presentations, so they never disagree about which way a series is trending.
 - `dash-pattern.ts` — `LineDashType` + `resolveDashIntervals(lineType, dashArray?)`, wraps Skia's
   `DashPathEffect`. Used by Grid, Line, Crosshair, ReferenceLine.
 - `with-opacity.ts` — `withOpacity(color, opacity)`, appends alpha to a `#rrggbb` hex color (`AreaLayer`'s
@@ -129,15 +151,19 @@ Skia drawing call.
 - `types.ts` — `ChartDatum` (`{x,y,label?,meta?}`), `IChartSeries`, `IScale`, `ChartLayerComponent`.
 - `chart-context.ts` — `ChartContext`/`useChartContext()`.
 - `ChartProvider.tsx` — computes scales from `xDomain`/`yDomain` (auto via `compute-domain.ts`,
-  honoring `xPaddingRatio`/`yPaddingRatio`/`includeZero`); `xReverse`/`yReverse` flip which end of the
+  honoring `xPaddingRatio`/`yPaddingRatio`/`beginAtZero`); `xReverse`/`yReverse` flip which end of the
   pixel range each domain end maps to.
 - `Chart.tsx` — root. Measures width via `onLayout` if not given (relies on RN's default
   `alignItems: "stretch"`), requires an explicit or defaulted `height`. Props: `series`, `width?`,
-  `height?`, `padding?`, `xDomain?`/`yDomain?`, `includeZero?`, `xPaddingRatio?`/`yPaddingRatio?`,
+  `height?`, `padding?`, `xDomain?`/`yDomain?`, `beginAtZero?`, `xPaddingRatio?`/`yPaddingRatio?`,
   `xReverse?`/`yReverse?`, `interactive?` (default `true`; `false` disables the pan gesture entirely —
-  a read-only/decorative chart), `panActivationDistance?` (raise it if nested in a horizontally
-  scrollable parent that should win small movements), `onActiveChange?: (active: boolean) => void`
-  (fires on touch start/stop).
+  a read-only/decorative chart), `panActiveOffsetX?`/`panFailOffsetY?` (default `[-8, 8]`/`[-8, 8]` —
+  directional pan activation so a chart nested in a vertical `ScrollView` doesn't steal the scroll out
+  of the box; see `useChartInteraction.ts` above), `panActivationDistance?` (omnidirectional
+  alternative — only takes effect if you explicitly clear both offset props to `undefined`), `twoFingerEnabled?` (default `true`; second simultaneous touch is
+  tracked and exposed via context as `touchX2`/`touchY2`/`isSecondActive` — `CrosshairLayer` uses it for
+  a second, independent crosshair), `onActiveChange?: (active: boolean) => void` (fires on touch
+  start/stop, first touch only).
 - `ChartCanvas.tsx` — `<Canvas>` renders its children through Skia's own, separate React reconciler, so
   a `ChartContext.Provider` from the host tree never reaches components mounted inside it. This bridge
   reads the context in the host tree and re-provides it as part of the element tree handed to
@@ -157,9 +183,20 @@ Skia drawing call.
 ## Standard chart types (`layers/`)
 
 - `line/LineLayer.tsx` (+ `build-line-path.ts`, shared by Area) — `curve: "linear"|"smooth"`, `colors`,
-  `strokeWidth`, `strokeCap`/`strokeJoin`, `lineType`/`dashArray`.
+  `strokeWidth`, `strokeCap`/`strokeJoin`, `lineType`/`dashArray`. `colorByTrend?` (default `false`)
+  colors each series by `computeTrend()` (`core/compute-trend.ts`) instead of `colors`/`series.color` —
+  `trendCompare?: "first"|"previous"` + `upColor`/`downColor`/`neutralColor`, same shape as
+  `TrendIndicator`'s props (and same defaults) for a consistent look between the two. Resolved once
+  per series inside the `paths` memo, not per-render. `showEndDot?` (default `false`) draws a `Circle`
+  at each series' own last data point (`endDotRadius`/`endDotColor` — defaults to that series' resolved
+  line color, so it stays in sync with `colorByTrend`/`endDotStrokeColor`/`endDotStrokeWidth`) —
+  independent of `current-value-line/CurrentValueLineLayer` (no dependency on that feature; this is
+  purely "mark the last point of this line", useful even without the tracking line/label/animation the
+  other feature adds). Endpoint pixel position is computed alongside the path in the same `paths` memo.
 - `area/AreaLayer.tsx` — baseline via `computeBaselineY` (or pinned via `baseline`), gradient fill by
-  default or flat via `gradient={false}`. `colors`, `opacity`.
+  default or flat via `gradient={false}`. `colors`, `opacity`. Same `colorByTrend?`/`trendCompare?`/
+  `upColor`/`downColor`/`neutralColor` as `LineLayer`, so a Line+Area combo can be colored by trend
+  together (see `ui-kit-demo`'s "Live — Price ticker" card).
 - `bar/BarLayer.tsx` — grouped bars on a band scale. `colors`, `cornerRadius`, `gapRatio`,
   `borderColor`/`borderWidth`, `onBarPress?: (info: { seriesId, datum, index }) => void` (hit-tests the
   same rects it renders, via `useOnTouchDown`).
@@ -178,13 +215,20 @@ series + `LineLayer` for another = combo chart).
   `padding`). Tick text via `matchFont({ fontFamily, fontSize })` + `font.measureText()` for
   centering/right-alignment. `formatLabel?`, `color`/`lineWidth`, `showAxisLine`, `labelColor`/
   `fontSize`/`fontFamily`, `showTicks`/`tickLength`.
-- `crosshair/CrosshairLayer.tsx` — shared vertical line + per-series horizontal line/marker/value chip,
-  crossing exactly at each series' own nearest point (each computed independently via its own
-  `CrosshairSeriesIndicator`, so correct even if series don't share x values). `color`/`colors`,
-  `lineType`/`dashArray`. `showXLabel`/`showYLabels` value chips at the axis edge —
-  `xLabelPosition`/`yLabelPosition` are **independent of `AxisLayer`'s own `position`** (draw the axis
-  left, the crosshair chip right). Positions driven by `useDerivedValue` (UI thread); label text via
-  `useAnimatedSyncedState` (see the pitfall note above).
+- `crosshair/CrosshairLayer.tsx` — thin wrapper rendering one or two `CrosshairLine` instances (private,
+  `CrosshairLine.tsx`) — the actual vertical line + per-series horizontal line/marker/value chip logic
+  lives there now, parameterized over which touch (`touchX`/`isActive` vs `touchX2`/`isSecondActive`)
+  and line `color` it's bound to, so the two-finger crosshair is zero extra logic, just a second
+  instance. Each line crosses exactly at each series' own nearest point (via `CrosshairSeriesIndicator`,
+  so correct even if series don't share x values). `color`/`colors`, `lineType`/`dashArray`.
+  `showXLabel`/`showYLabels` value chips at the axis edge — `xLabelPosition`/`yLabelPosition` are
+  **independent of `AxisLayer`'s own `position`** (draw the axis left, the crosshair chip right).
+  Positions driven by `useDerivedValue` (UI thread); label text via `useAnimatedSyncedState` (see the
+  pitfall note above). `showSecondTouch?` (default `true`) toggles the second line's rendering
+  independently of `Chart.twoFingerEnabled` (e.g. keep two-finger tracking on for some other feature but
+  hide the second crosshair here); `secondLineColor?` (default: same as `color`) distinguishes the two
+  lines visually — the second line only ever appears while `isSecondActive` is true, i.e. while two
+  fingers are actually down.
 - `markers/MarkerLayer.tsx` — static (non-touch-following) annotations: `markers: ChartMarker[]`, each
   with a `MarkerAnchor` (`markers/types.ts`) of kind `"series"` (nearest point on a series at domain
   x), `"domain"` (arbitrary `{x,y}` via scales) or `"pixel"` (raw canvas position, bypasses scales).
@@ -193,6 +237,33 @@ series + `LineLayer` for another = combo chart).
 - `reference-line/ReferenceLineLayer.tsx` — a static line at a fixed domain value (`axis: "x"|"y"`,
   `value`), optional `label`. Same `lineType`/`dashArray` as Grid/Line/Crosshair. For thresholds/
   targets/averages — pairs with `MarkerLayer` (point annotations) to cover line annotations too.
+- `current-value-line/CurrentValueLineLayer.tsx` — like `ReferenceLineLayer` but *data-driven*: always
+  tracks a series' **last** data point (`SeriesSelector` — `series[0]` by default), not a fixed value.
+  For "live price" style charts (`ui-kit-demo`'s "Live — Price ticker" card). The line's pixel Y is a
+  `useSharedValue` animated with `withTiming` on every render where the last value changed (`animate?`/
+  `animationDuration?`, default `true`/`250`) — so it glides to the new value instead of jumping,
+  matching the `Chip`/`Switch` value-driven-animation pattern elsewhere in `shared/ui`. `showLine?`,
+  `showLabel?` and `showDot?` (all independent, default `true`/`true`/`false`) — e.g. `showLine={false}`
+  gives a label-only chip with no horizontal line. The dot (`dotRadius`/`dotColor`/`dotStrokeColor`/
+  `dotStrokeWidth`) sits at the series' actual last point (`xScale.toRange(lastDatum.x)`, not just the
+  right edge — matters if the domain leaves empty space past the last point) and animates via its own
+  `animatedX` shared value the same way the line's Y does. Value chip (`labelPosition?: "left"|"right"`)
+  is a small self-contained `RoundedRect`+`Text`, not a
+  reuse of `crosshair/CrosshairYLabel` (that component stays crosshair-private — cross-feature imports of
+  another feature's private subcomponents aren't a thing here), but it positions and sizes itself
+  identically: same `LABEL_PADDING_X`/`LABEL_PADDING_Y`/`LABEL_GAP` constants, moved from
+  `crosshair/label-style.ts` to **`core/label-style.ts`** specifically so this and any future chip-style
+  label can share the exact look without depending on `features/crosshair`. Box sits *outside* the plot
+  edge (`edgeX ± LABEL_GAP`, same as Crosshair's Y-label — not flush against the inside edge), clamped to
+  `[0, canvasWidth - boxWidth]` so it never renders off-canvas.
+- `trend-indicator/TrendIndicator.tsx` — **overlay**, plain RN `View`/`Text` badge in a chart corner
+  (`position: "top-left"|"top-right"|"bottom-left"|"bottom-right"`, default `"top-right"`), not Skia —
+  shows % change of a series' last value vs. either its **first** point (`compare: "first"`, overall
+  trend, the default) or the point right before it (`compare: "previous"`, last-tick direction).
+  Colored green/red/neutral (`upColor`/`downColor`/`neutralColor`) with an optional arrow (`showArrow?`).
+  `formatValue?(change, percent)` fully replaces the default `"▲ +2.3%"`-style text. Pairs naturally with
+  `CurrentValueLineLayer` on a live chart — one shows *where* the price is, the other *which way* it's
+  been going.
 - `legend/Legend.tsx` — **not a `<Chart>` layer** (no `layerKind`, doesn't read `useChartContext()`) —
   a standalone component taking the same `series` array, rendered as a sibling of `<Chart>` wherever
   the consumer wants it. `colors`, `textColor`, `direction`, `onItemPress?: (series) => void`.

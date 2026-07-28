@@ -10,15 +10,25 @@ import {
 import { ChartDimensions, IChartSeries } from "./types";
 
 export interface ChartProviderProps {
+  /** Серии данных; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
   series: IChartSeries[];
+  /** Размеры канваса и отступы рабочей области — вычисляются `<Chart>` и прокидываются сюда. */
   dimensions: ChartDimensions;
+  /** Shared values жеста (`touchX`/`touchY`/`isActive` + второе касание) — прокидываются в контекст как есть. */
   interaction: ChartInteractionState;
+  /** Фиксированный домен оси X; без него вычисляется из данных `series`. */
   xDomain?: [number, number];
+  /** Фиксированный домен оси Y; без него вычисляется из данных `series`. */
   yDomain?: [number, number];
-  includeZero?: boolean;
+  /** Заставляет авто-домен Y включать 0. */
+  beginAtZero?: boolean;
+  /** Доп. запас по краям авто-домена X, в долях от его размаха. */
   xPaddingRatio?: number;
+  /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
   yPaddingRatio?: number;
+  /** Меняет местами края, на которые проецируются min/max домена X. */
   xReverse?: boolean;
+  /** Меняет местами края, на которые проецируются min/max домена Y. */
   yReverse?: boolean;
 }
 
@@ -28,7 +38,7 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
   interaction,
   xDomain,
   yDomain,
-  includeZero,
+  beginAtZero,
   xPaddingRatio,
   yPaddingRatio,
   xReverse = false,
@@ -44,8 +54,8 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
   const resolvedYDomain = useMemo(
     () =>
       yDomain ??
-      computeDomain(series, "y", { includeZero, paddingRatio: yPaddingRatio }),
-    [series, yDomain, includeZero, yPaddingRatio],
+      computeDomain(series, "y", { beginAtZero, paddingRatio: yPaddingRatio }),
+    [series, yDomain, beginAtZero, yPaddingRatio],
   );
 
   const xScale = useMemo(() => {

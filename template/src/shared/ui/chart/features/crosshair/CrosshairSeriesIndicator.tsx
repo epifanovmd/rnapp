@@ -4,9 +4,9 @@ import { SharedValue, useDerivedValue } from "react-native-reanimated";
 
 import { findNearestIndex } from "../../core/interaction/nearest-point";
 import { useAnimatedSyncedState } from "../../core/interaction/useAnimatedSyncedState";
+import type { SkFont } from "../../core/label-style";
 import type { IChartSeries, IScale } from "../../core/types";
 import { CrosshairYLabel } from "./CrosshairYLabel";
-import type { SkFont } from "./label-style";
 
 export interface CrosshairSeriesIndicatorProps {
   series: IChartSeries;

@@ -1,7 +1,9 @@
 import type { IChartSeries } from "./types";
 
 export interface SeriesSelector {
+  /** Отрисовать только одну серию с этим id (без него — все серии графика). */
   seriesId?: string;
+  /** Отрисовать только серии с этими id (без него — все серии графика). */
   seriesIds?: string[];
 }
 

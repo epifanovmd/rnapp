@@ -13,18 +13,28 @@ import type {
 } from "../../core/types";
 
 export interface ScatterPointPressInfo {
+  /** Серия, которой принадлежит нажатая точка. */
   series: IChartSeries;
+  /** Точка данных, по которой было нажатие. */
   datum: ChartDatum;
+  /** Индекс точки внутри данных серии. */
   index: number;
 }
 
 export interface ScatterLayerProps extends SeriesSelector {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** Радиус маркера (px). */
   radius?: number;
+  /** Цвета по сериям (по кругу, если серий больше); переопределяется собственным `series.color`. */
   colors?: string[];
+  /** Заливка кружка или только обводка. */
   style?: "fill" | "stroke";
+  /** Толщина обводки (px), учитывается при `style="stroke"`. */
   strokeWidth?: number;
+  /** Доп. радиус в px вокруг маркера, засчитываемый как попадание при нажатии. */
   hitSlop?: number;
+  /** Срабатывает при нажатии на точку (хит-тест по уже отрисованным маркерам). */
   onPointPress?: (info: ScatterPointPressInfo) => void;
 }
 

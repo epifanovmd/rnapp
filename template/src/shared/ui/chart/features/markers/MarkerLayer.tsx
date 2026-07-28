@@ -10,11 +10,17 @@ import { resolveMarkerPosition } from "./resolve-marker-position";
 import type { ChartMarker } from "./types";
 
 export interface MarkerLayerProps {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** Статичные (не следующие за пальцем) аннотации-маркеры. */
   markers: ChartMarker[];
+  /** Радиус маркера, если он не задан в самом `ChartMarker.radius`. */
   defaultRadius?: number;
+  /** Цвета по умолчанию (по кругу), если маркер не задаёт свой `color`. */
   colors?: string[];
+  /** Доп. радиус в px вокруг маркера, засчитываемый как попадание при нажатии. */
   hitSlop?: number;
+  /** Срабатывает при нажатии на маркер (хит-тест по уже отрисованным позициям). */
   onMarkerPress?: (marker: ChartMarker) => void;
 }
 

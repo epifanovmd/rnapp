@@ -1,7 +1,7 @@
 import type { ChartDatum, IChartSeries } from "../core/types";
 
 export interface ComputeDomainOptions {
-  includeZero?: boolean;
+  beginAtZero?: boolean;
   paddingRatio?: number;
 }
 
@@ -32,7 +32,7 @@ export const computeDomain = (
     return [0, 1];
   }
 
-  if (options.includeZero) {
+  if (options.beginAtZero) {
     min = Math.min(min, 0);
     max = Math.max(max, 0);
   }

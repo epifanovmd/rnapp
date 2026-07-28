@@ -13,16 +13,27 @@ import { LineDashType, resolveDashIntervals } from "../../core/dash-pattern";
 import type { ChartLayerComponent } from "../../core/types";
 
 export interface ReferenceLineLayerProps {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** По какой оси проведена статичная линия (`"x"` — вертикальная, `"y"` — горизонтальная). */
   axis: "x" | "y";
+  /** Доменное значение, на котором проводится линия. */
   value: number;
+  /** Цвет линии (и подписи, если `labelColor` не задан). */
   color?: string;
+  /** Толщина линии (px). */
   strokeWidth?: number;
+  /** Сплошная, пунктирная или точечная линия. */
   lineType?: LineDashType;
+  /** Свой паттерн штрихов (px); учитывается только если `lineType` не `"solid"`. */
   dashArray?: number[];
+  /** Текст подписи рядом с линией (без него подпись не рисуется). */
   label?: string;
+  /** Цвет текста подписи (по умолчанию — `color`). */
   labelColor?: string;
+  /** Размер шрифта подписи. */
   fontSize?: number;
+  /** Шрифт подписи. */
   fontFamily?: string;
 }
 

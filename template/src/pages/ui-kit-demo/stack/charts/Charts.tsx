@@ -9,20 +9,31 @@ import {
   BarLayer,
   Chart,
   CrosshairLayer,
+  CurrentValueLineLayer,
   GridLayer,
+  IChartSeries,
   Legend,
   LineLayer,
   MarkerLayer,
   ReferenceLineLayer,
   ScatterLayer,
   TooltipLayer,
+  TrendIndicator,
 } from "@shared/ui/chart";
 import { observer } from "mobx-react-lite";
-import React, { FC, PropsWithChildren, useState } from "react";
+import React, {
+  FC,
+  PropsWithChildren,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { StyleSheet, View } from "react-native";
 
 import {
+  createInitialLivePriceData,
   DAILY_ACTIVE_USERS,
+  nextLivePriceData,
   ORDER_VALUES,
   REVENUE_VS_EXPENSES,
   TEMPERATURE_TREND,
@@ -84,6 +95,29 @@ export const Charts: FC<IProps> = observer(() => {
   const [activePointLabel, setActivePointLabel] = useState(
     "Drag over the chart",
   );
+  const [livePriceData, setLivePriceData] = useState(
+    createInitialLivePriceData,
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLivePriceData(previous => nextLivePriceData(previous));
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const livePriceSeries: IChartSeries[] = useMemo(
+    () => [
+      {
+        id: "price",
+        label: "Price",
+        color: colors.blue500,
+        data: livePriceData,
+      },
+    ],
+    [livePriceData, colors.blue500],
+  );
 
   const seriesColors = [
     colors.blue500,
@@ -103,6 +137,55 @@ export const Charts: FC<IProps> = observer(() => {
             Standard chart types and features built on the Skia + Reanimated
             charting core (`@shared/ui/chart`).
           </Text>
+
+          <ChartCard
+            title={"Live — Price ticker"}
+            description={
+              "Simulated real-time price feed. Line/area colored by overall trend, dashed line + chip track the current price live, badge in the corner shows overall trend."
+            }
+          >
+            <Chart series={livePriceSeries} height={200} yPaddingRatio={0.2}>
+              <GridLayer color={colors.slate200} />
+              <AreaLayer
+                curve={"smooth"}
+                opacity={0.15}
+                colorByTrend
+                upColor={colors.green500}
+                downColor={colors.red500}
+                neutralColor={colors.textTertiary}
+              />
+              <LineLayer
+                curve={"smooth"}
+                strokeWidth={2}
+                colorByTrend
+                upColor={colors.green500}
+                downColor={colors.red500}
+                neutralColor={colors.textTertiary}
+                showEndDot
+                endDotRadius={5}
+                endDotStrokeColor={colors.onSurface}
+                endDotStrokeWidth={2}
+              />
+              <AxisLayer
+                orientation={"y"}
+                tickCount={4}
+                color={colors.slate400}
+                labelColor={colors.textTertiary}
+              />
+              <CurrentValueLineLayer
+                color={colors.blue500}
+                labelTextColor={colors.white}
+                labelPosition={"left"}
+              />
+              <TrendIndicator
+                upColor={colors.green500}
+                downColor={colors.red500}
+                neutralColor={colors.textTertiary}
+              />
+              <CrosshairLayer color={colors.slate400} />
+              <TooltipLayer />
+            </Chart>
+          </ChartCard>
 
           <ChartCard
             title={"Line — Daily active users"}
@@ -178,7 +261,7 @@ export const Charts: FC<IProps> = observer(() => {
             description={`Grouped bars, one band per week. Tap a bar. ${selectedBar}`}
           >
             <Legend series={WEEKLY_SALES} textColor={colors.textSecondary} />
-            <Chart series={WEEKLY_SALES} height={200} includeZero>
+            <Chart series={WEEKLY_SALES} height={200} beginAtZero>
               <GridLayer
                 showXLines={false}
                 lineType={"dashed"}
@@ -233,7 +316,7 @@ export const Charts: FC<IProps> = observer(() => {
 
           <ChartCard
             title={"Full-featured — Temperature trend"}
-            description={`Grid, axes, crosshair with value chips on the opposite edge from each axis, markers, active-point listener and tooltip together. ${activePointLabel} ${selectedMarker}`}
+            description={`Grid, axes, crosshair with value chips on the opposite edge from each axis, markers, active-point listener and tooltip together. Drag with two fingers for a second (orange) crosshair to compare points. ${activePointLabel} ${selectedMarker}`}
           >
             <Chart
               series={TEMPERATURE_TREND}
@@ -293,6 +376,7 @@ export const Charts: FC<IProps> = observer(() => {
                 showYLabels
                 yLabelPosition={"left"}
                 yLabelFormatter={value => `${value.toFixed(1)}°`}
+                secondLineColor={colors.orange500}
               />
               <ActivePointListener
                 onChange={points =>

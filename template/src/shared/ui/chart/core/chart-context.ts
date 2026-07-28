@@ -7,6 +7,9 @@ export interface ChartInteractionState {
   touchX: SharedValue<number>;
   touchY: SharedValue<number>;
   isActive: SharedValue<boolean>;
+  touchX2: SharedValue<number>;
+  touchY2: SharedValue<number>;
+  isSecondActive: SharedValue<boolean>;
 }
 
 export interface ChartContextValue {

@@ -1,45 +1,58 @@
-import {
-  DashPathEffect,
-  Group,
-  Line,
-  matchFont,
-  vec,
-} from "@shopify/react-native-skia";
+import { matchFont } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
-import { useDerivedValue } from "react-native-reanimated";
 
 import { useChartContext } from "../../core/chart-context";
 import { LineDashType, resolveDashIntervals } from "../../core/dash-pattern";
 import { DEFAULT_SERIES_COLORS } from "../../core/default-series-colors";
-import { findActiveIndex } from "../../core/interaction/nearest-point";
-import { useAnimatedSyncedState } from "../../core/interaction/useAnimatedSyncedState";
-import { resolveSeriesColor } from "../../core/resolve-series-color";
+import { defaultLabelFormatter } from "../../core/label-style";
 import type { ChartLayerComponent, IChartSeries } from "../../core/types";
-import { CrosshairSeriesIndicator } from "./CrosshairSeriesIndicator";
-import { CrosshairXLabel } from "./CrosshairXLabel";
-import { defaultLabelFormatter } from "./label-style";
+import { CrosshairLine } from "./CrosshairLine";
 
 export interface CrosshairLayerProps {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** Цвет вертикальной линии (и второй линии, если `secondLineColor` не задан). */
   color?: string;
+  /** Цвета маркеров/чипов по сериям (по кругу, если серий больше). */
   colors?: string[];
+  /** Толщина линий (px). */
   strokeWidth?: number;
+  /** Радиус маркера в активной точке каждой серии. */
   markerRadius?: number;
+  /** Рисовать маркеры (точки) на пересечении с каждой серией. */
   showMarkers?: boolean;
+  /** Рисовать вертикальную линию под пальцем. */
   showVerticalLine?: boolean;
+  /** Рисовать горизонтальную линию для каждой серии на уровне её активного значения. */
   showHorizontalLines?: boolean;
+  /** Сплошная, пунктирная или точечная линия. */
   lineType?: LineDashType;
+  /** Свой паттерн штрихов (px); учитывается только если `lineType` не `"solid"`. */
   dashArray?: number[];
+  /** Показывать чип со значением X у края графика. */
   showXLabel?: boolean;
+  /** С какой стороны рисовать чип X (независимо от `position` у `AxisLayer`). */
   xLabelPosition?: "top" | "bottom";
+  /** Форматирует значение X для чипа. */
   xLabelFormatter?: (value: number) => string;
+  /** Показывать чипы со значением Y для каждой серии. */
   showYLabels?: boolean;
+  /** С какой стороны рисовать чипы Y (независимо от `position` у `AxisLayer`). */
   yLabelPosition?: "left" | "right";
+  /** Форматирует значение Y для чипа конкретной серии. */
   yLabelFormatter?: (value: number, series: IChartSeries) => string;
+  /** Размер шрифта текста в чипах. */
   labelFontSize?: number;
+  /** Шрифт текста в чипах. */
   labelFontFamily?: string;
+  /** Цвет фона чипов. */
   labelBackground?: string;
+  /** Цвет текста в чипах. */
   labelTextColor?: string;
+  /** Рисовать вторую линию, пока активно второе касание (нужен `Chart.twoFingerEnabled`). */
+  showSecondTouch?: boolean;
+  /** Цвет второй линии/чипов (по умолчанию — как у первой, `color`). */
+  secondLineColor?: string;
 }
 
 export const CrosshairLayer: ChartLayerComponent<CrosshairLayerProps> = ({
@@ -63,10 +76,11 @@ export const CrosshairLayer: ChartLayerComponent<CrosshairLayerProps> = ({
   labelFontFamily = "System",
   labelBackground = "rgba(15, 23, 42, 0.92)",
   labelTextColor = "#FFFFFF",
+  showSecondTouch = true,
+  secondLineColor,
 }) => {
   const { series, xScale, yScale, dimensions, interaction } = useChartContext();
-  const { touchX, isActive } = interaction;
-  const referenceData = series[0]?.data ?? [];
+  const { touchX, isActive, touchX2, isSecondActive } = interaction;
   const intervals = resolveDashIntervals(lineType, dashArray);
 
   const font = useMemo(
@@ -74,110 +88,51 @@ export const CrosshairLayer: ChartLayerComponent<CrosshairLayerProps> = ({
     [labelFontFamily, labelFontSize],
   );
 
-  const snappedX = useDerivedValue(() => {
-    const index = findActiveIndex(
-      xScale,
-      referenceData,
-      touchX.value,
-      isActive.value,
-    );
-
-    return index >= 0 ? xScale.toRange(referenceData[index].x) : touchX.value;
-  }, [referenceData, xScale, touchX, isActive]);
-
-  const verticalP1 = useDerivedValue(
-    () => vec(snappedX.value, dimensions.padding.top),
-    [snappedX, dimensions],
-  );
-
-  const verticalP2 = useDerivedValue(
-    () => vec(snappedX.value, dimensions.height - dimensions.padding.bottom),
-    [snappedX, dimensions],
-  );
-
-  const opacity = useDerivedValue(() => (isActive.value ? 1 : 0), [isActive]);
-
-  const activeXIndex = useAnimatedSyncedState(
-    () => {
-      "worklet";
-
-      return findActiveIndex(
-        xScale,
-        referenceData,
-        touchX.value,
-        isActive.value,
-      );
-    },
-    [referenceData, xScale, touchX, isActive],
-    -1,
-  );
-
-  const xLabelText =
-    showXLabel && activeXIndex >= 0
-      ? xLabelFormatter(referenceData[activeXIndex].x)
-      : "";
-
   if (!visible || !font) {
     return null;
   }
 
-  const left = dimensions.padding.left;
-  const right = dimensions.width - dimensions.padding.right;
+  const sharedLineProps = {
+    series,
+    xScale,
+    yScale,
+    dimensions,
+    colors,
+    strokeWidth,
+    markerRadius,
+    showVerticalLine,
+    showMarkers,
+    showHorizontalLines,
+    dashIntervals: intervals,
+    showXLabel,
+    xLabelPosition,
+    xLabelFormatter,
+    showYLabels,
+    yLabelPosition,
+    yLabelFormatter,
+    font,
+    fontSize: labelFontSize,
+    labelBackground,
+    labelTextColor,
+  };
 
   return (
-    <Group opacity={opacity}>
-      {showVerticalLine && (
-        <Line
-          p1={verticalP1}
-          p2={verticalP2}
-          color={color}
-          strokeWidth={strokeWidth}
-        >
-          {intervals && <DashPathEffect intervals={intervals} />}
-        </Line>
-      )}
-      {series.map((item, index) => (
-        <CrosshairSeriesIndicator
-          key={item.id}
-          series={item}
-          color={resolveSeriesColor(item, index, colors)}
-          xScale={xScale}
-          yScale={yScale}
-          touchX={touchX}
-          radius={markerRadius}
-          strokeWidth={strokeWidth}
-          dashIntervals={intervals}
-          left={left}
-          right={right}
-          canvasWidth={dimensions.width}
-          showMarker={showMarkers}
-          showHorizontalLine={showHorizontalLines}
-          showLabel={showYLabels}
-          labelPosition={yLabelPosition}
-          labelFormatter={yLabelFormatter}
-          font={font}
-          fontSize={labelFontSize}
-          labelBackground={labelBackground}
-          labelTextColor={labelTextColor}
-        />
-      ))}
-      {showXLabel && xLabelText !== "" && (
-        <CrosshairXLabel
-          anchorX={snappedX}
-          edgeY={
-            xLabelPosition === "top"
-              ? dimensions.padding.top
-              : dimensions.height - dimensions.padding.bottom
-          }
-          position={xLabelPosition}
-          text={xLabelText}
-          font={font}
-          fontSize={labelFontSize}
-          background={labelBackground}
-          textColor={labelTextColor}
+    <>
+      <CrosshairLine
+        {...sharedLineProps}
+        touchX={touchX}
+        active={isActive}
+        color={color}
+      />
+      {showSecondTouch && (
+        <CrosshairLine
+          {...sharedLineProps}
+          touchX={touchX2}
+          active={isSecondActive}
+          color={secondLineColor ?? color}
         />
       )}
-    </Group>
+    </>
   );
 };
 

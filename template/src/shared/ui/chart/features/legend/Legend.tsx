@@ -6,10 +6,15 @@ import { resolveSeriesColor } from "../../core/resolve-series-color";
 import type { IChartSeries } from "../../core/types";
 
 export interface LegendProps {
+  /** Тот же массив серий, что и у `<Chart>` — легенда не читает контекст графика, это отдельный компонент. */
   series: IChartSeries[];
+  /** Цвета точек-маркеров по сериям (по кругу); переопределяется собственным `series.color`. */
   colors?: string[];
+  /** Цвет текста подписей. */
   textColor?: string;
+  /** Расположение элементов легенды. */
   direction?: "row" | "column";
+  /** Срабатывает при нажатии на элемент легенды (например, для скрытия/показа серии). */
   onItemPress?: (series: IChartSeries) => void;
 }
 

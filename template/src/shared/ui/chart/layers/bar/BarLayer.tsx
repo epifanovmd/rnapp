@@ -11,18 +11,28 @@ import { computeBaselineY } from "../../scales/compute-baseline";
 import { createBandScale } from "../../scales/createBandScale";
 
 export interface BarPressInfo {
+  /** id серии, которой принадлежит нажатый бар. */
   seriesId: string;
+  /** Точка данных, которой соответствует нажатый бар. */
   datum: ChartDatum;
+  /** Индекс точки внутри данных серии. */
   index: number;
 }
 
 export interface BarLayerProps extends SeriesSelector {
+  /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
+  /** Радиус скругления углов бара (px). */
   cornerRadius?: number;
+  /** Доля ширины полосы (band), оставляемая под зазор между группами баров (0–1). */
   gapRatio?: number;
+  /** Цвета по сериям (по кругу, если серий больше); переопределяется собственным `series.color`. */
   colors?: string[];
+  /** Цвет обводки бара. */
   borderColor?: string;
+  /** Толщина обводки бара (px). */
   borderWidth?: number;
+  /** Срабатывает при нажатии на бар (хит-тест по уже отрисованным прямоугольникам). */
   onBarPress?: (info: BarPressInfo) => void;
 }
 

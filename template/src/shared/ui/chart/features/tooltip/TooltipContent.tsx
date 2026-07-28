@@ -4,8 +4,11 @@ import { StyleSheet, Text, View } from "react-native";
 import type { ActiveTooltipPoint } from "./types";
 
 export interface TooltipContentProps {
+  /** Активные точки по каждой серии в текущем индексе. */
   points: ActiveTooltipPoint[];
+  /** Цвет фона карточки. */
   backgroundColor?: string;
+  /** Цвет текста значений. */
   textColor?: string;
 }
 

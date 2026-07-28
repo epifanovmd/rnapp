@@ -10,11 +10,14 @@ import type {
 } from "../../core/types";
 
 export interface ActivePoint {
+  /** Серия, которой принадлежит активная точка. */
   series: IChartSeries;
+  /** Ближайшая к касанию точка данных этой серии. */
   datum: ChartDatum;
 }
 
 export interface ActivePointListenerProps {
+  /** Срабатывает при смене активной точки по каждой серии; `null`, когда касание закончилось. Ничего не рендерит — headless-слой для подписки на данные без Crosshair/Tooltip. */
   onChange?: (points: ActivePoint[] | null) => void;
 }
 

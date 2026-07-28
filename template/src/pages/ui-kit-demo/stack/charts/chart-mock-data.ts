@@ -110,6 +110,36 @@ export const ORDER_VALUES: IChartSeries[] = [
   },
 ];
 
+const LIVE_PRICE_WINDOW = 30;
+
+export const createInitialLivePriceData = (): ChartDatum[] => {
+  const points: ChartDatum[] = [];
+  let price = 100;
+
+  for (let i = 0; i < LIVE_PRICE_WINDOW; i++) {
+    price = Math.max(1, price + (Math.random() - 0.5) * 2);
+    points.push({
+      x: i,
+      y: Math.round(price * 100) / 100,
+      label: `${i}s`,
+    });
+  }
+
+  return points;
+};
+
+export const nextLivePriceData = (data: ChartDatum[]): ChartDatum[] => {
+  const last = data[data.length - 1];
+  const price = Math.max(1, last.y + (Math.random() - 0.5) * 2);
+  const next: ChartDatum = {
+    x: last.x + 1,
+    y: Math.round(price * 100) / 100,
+    label: `${last.x + 1}s`,
+  };
+
+  return [...data.slice(1), next];
+};
+
 export const TEMPERATURE_TREND: IChartSeries[] = [
   {
     id: "temperature",

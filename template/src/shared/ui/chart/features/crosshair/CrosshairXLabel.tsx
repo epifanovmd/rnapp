@@ -7,7 +7,7 @@ import {
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
   SkFont,
-} from "./label-style";
+} from "../../core/label-style";
 
 export interface CrosshairXLabelProps {
   anchorX: SharedValue<number>;
