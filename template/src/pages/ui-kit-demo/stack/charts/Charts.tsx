@@ -93,7 +93,7 @@ export const Charts: FC<IProps> = observer(() => {
   ];
 
   return (
-    <Container edges={["top", "bottom"]}>
+    <Container edges={[]}>
       <ScrollView>
         <Content>
           <Text textStyle={"Title_L"} mb={4}>
@@ -303,7 +303,7 @@ export const Charts: FC<IProps> = observer(() => {
                   )
                 }
               />
-              <TooltipLayer />
+              <TooltipLayer anchorToPoint side={"bottom"} />
             </Chart>
           </ChartCard>
         </Content>

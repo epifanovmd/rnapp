@@ -205,7 +205,12 @@ series + `LineLayer` for another = combo chart).
   `useAnimatedSyncedState` synced on index change. `colors` (default content's per-series dots),
   `backgroundColor`/`textColor` (default content, ignored if `renderContent` given),
   `onVisibilityChange?: (visible: boolean) => void`. `renderContent?: (points) => ReactNode` fully
-  replaces content — untouched on charts that don't set it.
+  replaces content — untouched on charts that don't set it. `anchorToPoint?: boolean` (default
+  `false`, raw finger position): when `true`, an extra `useDerivedValue` re-anchors the tooltip to
+  the reference series' (`series[0]`) active data point in pixel space (`xScale.toRange`/
+  `yScale.toRange` at the active index) instead of `touchX`/`touchY` — for "snap to the line" UX.
+  `side?: "top" | "bottom" | "left" | "right"` (default `"top"`) picks which edge of the anchor the
+  box is offset toward, same `offset` prop controls the gap in both dimensions.
 
 ## Events — the pattern
 

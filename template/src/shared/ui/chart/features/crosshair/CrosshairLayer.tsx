@@ -149,6 +149,7 @@ export const CrosshairLayer: ChartLayerComponent<CrosshairLayerProps> = ({
           dashIntervals={intervals}
           left={left}
           right={right}
+          canvasWidth={dimensions.width}
           showMarker={showMarkers}
           showHorizontalLine={showHorizontalLines}
           showLabel={showYLabels}

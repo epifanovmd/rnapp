@@ -12,6 +12,7 @@ import {
 export interface CrosshairYLabelProps {
   anchorPoint: SharedValue<{ x: number; y: number }>;
   edgeX: number;
+  canvasWidth: number;
   position: "left" | "right";
   text: string;
   font: SkFont;
@@ -23,6 +24,7 @@ export interface CrosshairYLabelProps {
 export const CrosshairYLabel: FC<CrosshairYLabelProps> = ({
   anchorPoint,
   edgeX,
+  canvasWidth,
   position,
   text,
   font,
@@ -33,8 +35,12 @@ export const CrosshairYLabel: FC<CrosshairYLabelProps> = ({
   const metrics = useMemo(() => font.measureText(text), [font, text]);
   const boxWidth = metrics.width + LABEL_PADDING_X * 2;
   const boxHeight = fontSize + LABEL_PADDING_Y * 2;
-  const boxX =
+  const rawBoxX =
     position === "right" ? edgeX + LABEL_GAP : edgeX - boxWidth - LABEL_GAP;
+  const boxX = Math.min(
+    Math.max(rawBoxX, 0),
+    Math.max(canvasWidth - boxWidth, 0),
+  );
 
   const boxY = useDerivedValue(
     () => anchorPoint.value.y - boxHeight / 2,

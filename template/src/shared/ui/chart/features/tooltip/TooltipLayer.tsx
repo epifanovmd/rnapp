@@ -3,6 +3,7 @@ import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
+  useDerivedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -15,12 +16,16 @@ import type { ChartLayerComponent } from "../../core/types";
 import { TooltipContent } from "./TooltipContent";
 import type { ActiveTooltipPoint } from "./types";
 
+export type TooltipSide = "top" | "bottom" | "left" | "right";
+
 export interface TooltipLayerProps {
   visible?: boolean;
   offset?: number;
   colors?: string[];
   backgroundColor?: string;
   textColor?: string;
+  anchorToPoint?: boolean;
+  side?: TooltipSide;
   renderContent?: (points: ActiveTooltipPoint[]) => ReactNode;
   onVisibilityChange?: (visible: boolean) => void;
 }
@@ -31,12 +36,36 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   colors = DEFAULT_SERIES_COLORS,
   backgroundColor,
   textColor,
+  anchorToPoint = false,
+  side = "top",
   renderContent,
   onVisibilityChange,
 }) => {
-  const { series, xScale, dimensions, interaction } = useChartContext();
+  const { series, xScale, yScale, dimensions, interaction } = useChartContext();
   const { touchX, touchY, isActive } = interaction;
   const referenceData = series[0]?.data ?? [];
+
+  const anchorPoint = useDerivedValue(() => {
+    if (!anchorToPoint) {
+      return { x: touchX.value, y: touchY.value };
+    }
+
+    const index = findActiveIndex(
+      xScale,
+      referenceData,
+      touchX.value,
+      isActive.value,
+    );
+
+    if (index < 0) {
+      return { x: touchX.value, y: touchY.value };
+    }
+
+    return {
+      x: xScale.toRange(referenceData[index].x),
+      y: yScale.toRange(referenceData[index].y),
+    };
+  }, [anchorToPoint, referenceData, xScale, yScale, touchX, touchY, isActive]);
 
   const activeIndex = useAnimatedSyncedState(
     () => {
@@ -87,8 +116,21 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
       dimensions.height - dimensions.padding.bottom - contentSize.height,
     );
 
-    const rawLeft = touchX.value - contentSize.width / 2;
-    const rawTop = touchY.value - contentSize.height - offset;
+    const anchorX = anchorPoint.value.x;
+    const anchorY = anchorPoint.value.y;
+
+    let rawLeft = anchorX - contentSize.width / 2;
+    let rawTop = anchorY - contentSize.height / 2;
+
+    if (side === "top") {
+      rawTop = anchorY - contentSize.height - offset;
+    } else if (side === "bottom") {
+      rawTop = anchorY + offset;
+    } else if (side === "left") {
+      rawLeft = anchorX - contentSize.width - offset;
+    } else if (side === "right") {
+      rawLeft = anchorX + offset;
+    }
 
     return {
       opacity: isActive.value ? 1 : 0,

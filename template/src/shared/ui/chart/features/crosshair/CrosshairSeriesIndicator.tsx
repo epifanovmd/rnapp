@@ -19,6 +19,7 @@ export interface CrosshairSeriesIndicatorProps {
   dashIntervals?: number[];
   left: number;
   right: number;
+  canvasWidth: number;
   showMarker: boolean;
   showHorizontalLine: boolean;
   showLabel: boolean;
@@ -41,6 +42,7 @@ export const CrosshairSeriesIndicator: FC<CrosshairSeriesIndicatorProps> = ({
   dashIntervals,
   left,
   right,
+  canvasWidth,
   showMarker,
   showHorizontalLine,
   showLabel,
@@ -112,6 +114,7 @@ export const CrosshairSeriesIndicator: FC<CrosshairSeriesIndicatorProps> = ({
         <CrosshairYLabel
           anchorPoint={point}
           edgeX={labelPosition === "right" ? right : left}
+          canvasWidth={canvasWidth}
           position={labelPosition}
           text={labelText}
           font={font}
