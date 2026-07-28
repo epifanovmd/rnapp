@@ -6,7 +6,7 @@ import {
 } from "react-native-reanimated";
 import { EdgeInsets } from "react-native-safe-area-context";
 
-import { IS_IOS } from "../utils/index";
+import { IS_IOS } from "../utils";
 
 export const useProcessedMeasured = (
   measured: MeasuredDimensions | undefined,

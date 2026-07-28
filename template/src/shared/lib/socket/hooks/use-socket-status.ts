@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { ISocketTransport, SocketTransportState } from "../transport/index";
+import { ISocketTransport, SocketTransportState } from "../transport";
 
 export function useSocketStatus(): SocketTransportState {
   const transport = ISocketTransport.useInstance();

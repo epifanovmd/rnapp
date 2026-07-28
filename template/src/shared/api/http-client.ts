@@ -10,7 +10,7 @@ import axios, {
 import { injectable } from "inversify";
 
 import { ApiError } from "./api-error";
-import { ITokenSource } from "./contract/index";
+import { ITokenSource } from "./contract";
 import { ApiRequestConfig, ApiResponse, CancelablePromise } from "./http.types";
 import { QueryRace } from "./query-race";
 

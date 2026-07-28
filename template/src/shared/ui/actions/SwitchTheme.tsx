@@ -1,8 +1,8 @@
 import { useTheme } from "@shared/lib/theme";
 import React, { FC, memo, PropsWithChildren } from "react";
 
-import { FlexProps, Row } from "../flex-view/index";
-import { Switch } from "../index";
+import { Switch } from "..";
+import { FlexProps, Row } from "../flex-view";
 
 interface IProps extends FlexProps {}
 

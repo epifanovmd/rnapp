@@ -2,9 +2,9 @@ import * as React from "react";
 import { forwardRef, memo, PropsWithChildren } from "react";
 import { View, ViewProps } from "react-native";
 
-import { useFlexProps } from "./hooks/index";
+import { useFlexProps } from "./hooks";
 import { FlexProps } from "./types";
-import { createFlexViewComponent } from "./utils/index";
+import { createFlexViewComponent } from "./utils";
 
 export type FlexViewProps = PropsWithChildren<FlexProps & ViewProps>;
 

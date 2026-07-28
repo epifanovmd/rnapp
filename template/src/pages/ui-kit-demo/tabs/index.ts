@@ -1,2 +1,2 @@
-export * from "./main/index";
-export * from "./playground/index";
+export * from "./main";
+export * from "./playground";

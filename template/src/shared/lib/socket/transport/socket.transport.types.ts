@@ -5,7 +5,7 @@ import { Socket as SocketIO } from "socket.io-client";
 import {
   SocketClientToServerEvents,
   SocketServerToClientEvents,
-} from "../events/index";
+} from "../events";
 
 export type AppSocket = SocketIO<
   SocketServerToClientEvents,

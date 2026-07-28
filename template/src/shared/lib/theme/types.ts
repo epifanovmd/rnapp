@@ -1,4 +1,4 @@
-import { LIGHT_COLOR_THEME } from "./variants/index";
+import { LIGHT_COLOR_THEME } from "./variants";
 
 export type TColorTheme = typeof LIGHT_COLOR_THEME;
 

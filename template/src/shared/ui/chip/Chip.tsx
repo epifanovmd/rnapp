@@ -12,8 +12,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Icon, TIconName } from "../icon/index";
-import { Text } from "../text/index";
+import { Icon, TIconName } from "../icon";
+import { Text } from "../text";
 
 export interface IChipProps extends TouchableOpacityProps {
   text?: string;

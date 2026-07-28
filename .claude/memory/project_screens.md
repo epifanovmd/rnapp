@@ -10,11 +10,14 @@ type: project
 - **recovery-password** (`RecoveryPassword.tsx`) — password recovery
 
 ## Private screens — tab navigator (`MAIN` route, `src/app/app-tab-screens.tsx`)
-Order/keys of `TAB_SCREENS` (initial route: `Chats`):
-- **Chats** — `pages/chat` → re-exports `widgets/chat-room`'s `ChatRoom` (native chat demo, fully mocked)
+Order/keys of `TAB_SCREENS` (initial route: `Main`):
 - **Main** — `pages/ui-kit-demo/tabs/main/Main.tsx` — home/demo screen, hosts the native `ContextMenuView` demo
-- **Playground** — `pages/ui-kit-demo/tabs/playground/Playground.tsx` — dev/test scratch screen
+- **Playground** — `pages/ui-kit-demo/tabs/playground/Playground.tsx` — dev/test scratch screen, holds
+  buttons to every stack demo screen below (Components/Carousel/Chat/Charts/PdfView/WebView)
 - **Settings** — `pages/settings/Settings.tsx` — app settings, biometrics toggle, theme switch
+
+There is no "Chats" tab — the chat demo is a stack screen (see below), reached from Playground, not a
+tab bar root.
 
 ## Private screens — stack routes (`src/app/App.screens.ts`, `PRIVATE_SCREENS`)
 - **MAIN** — the tab navigator above (`headerShown: false`)
@@ -23,6 +26,11 @@ Order/keys of `TAB_SCREENS` (initial route: `Chats`):
   **Pickers**, **Elements**, **Ticket** (`ButtonsTab`, `NotificationsTab`, `ModalsTab` [+`CustomFilter`],
   `PickersTab`, `ElementsTab`, `TicketTab`)
 - **Carousel** — `pages/ui-kit-demo/stack/carousel/Carousel.tsx` (+ `SlideItem.tsx`)
+- **Chat** — `pages/chat` → re-exports `widgets/chat-room`'s `ChatRoom` (native chat demo, fully mocked),
+  `headerShown: false` (renders its own `Navbar`, now including `Navbar.BackButton` since it's pushed
+  from Playground rather than mounted as a tab root)
+- **Charts** — `pages/ui-kit-demo/stack/charts/Charts.tsx` — Skia + Reanimated charting core demo (see
+  `project_charts.md`); Line/Area/Bar chart cards with Grid/Axis/Crosshair/Tooltip
 - **PdfView** — `pages/ui-kit-demo/stack/pdf-view/PdfView.tsx` — modal presentation
   (`forModalPresentationIOS`, `gestureEnabled: false`, `headerShown: false`)
 - **WebView** — `pages/ui-kit-demo/stack/web-view/WebView.tsx` — same modal presentation as PdfView
@@ -40,12 +48,13 @@ App.navigator.tsx (routes chosen from IAuthStore.isAuthenticated)
 │   └── RecoveryPassword
 └── isAuthenticated → { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS }  (both merged)
     ├── MAIN (bottom TabNavigator, TabHeader = <Navbar>)
-    │   ├── Chats      (ChatRoom)
     │   ├── Main       (ui-kit-demo, has ContextMenuView native demo)
-    │   ├── Playground (ui-kit-demo)
+    │   ├── Playground (ui-kit-demo — links to Components/Carousel/Chat/Charts/PdfView/WebView)
     │   └── Settings
     ├── Components (internal Material Top Tabs: Buttons/Notifications/Modals/Pickers/Elements/Ticket)
     ├── Carousel
+    ├── Chat (ChatRoom, native chat demo)
+    ├── Charts (Skia + Reanimated charting core demo)
     ├── PdfView (modal)
     ├── WebView (modal)
     ├── SignIn / SignUp / RecoveryPassword (still addressable even while authenticated)

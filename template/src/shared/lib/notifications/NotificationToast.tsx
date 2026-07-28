@@ -24,7 +24,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { useTheme } from "../theme/index";
+import { useTheme } from "../theme";
 
 export interface NotificationToastOptions {
   icon?: React.JSX.Element;

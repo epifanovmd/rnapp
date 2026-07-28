@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 
 export interface ITouchableProps<T = unknown>
   extends

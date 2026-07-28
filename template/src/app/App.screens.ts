@@ -1,8 +1,10 @@
+import { ChatRoom } from "@pages/chat";
 import { RecoveryPassword } from "@pages/recovery-password";
 import { SignIn } from "@pages/sign-in";
 import { SignUp } from "@pages/sign-up";
 import {
   CarouselScreen,
+  Charts,
   Components,
   PdfView,
   WebView,
@@ -17,6 +19,8 @@ export const PRIVATE_SCREENS: StackScreens = {
 
   Components: { screen: Components, options: { headerShown: false } },
   Carousel: { screen: CarouselScreen },
+  Chat: { screen: ChatRoom, options: { headerShown: false } },
+  Charts: { screen: Charts },
   PdfView: {
     screen: PdfView,
     options: {

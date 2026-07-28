@@ -1,3 +1,3 @@
 export * from "./Button";
-export * from "./hooks/index";
+export * from "./hooks";
 export * from "./types";

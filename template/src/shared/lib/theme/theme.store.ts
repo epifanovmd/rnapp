@@ -1,11 +1,11 @@
 import { injectable } from "inversify";
 import { makeAutoObservable, observable } from "mobx";
 
-import { IStorageService } from "../storage/index";
+import { IStorageService } from "../storage";
 import { IColorSchemeProvider } from "./color-scheme.types";
 import { IThemeStore } from "./theme.types";
 import { ITheme, TColorTheme, TThemeName } from "./types";
-import { DARK_THEME, DEFAULT_LIGHT_THEME } from "./variants/index";
+import { DARK_THEME, DEFAULT_LIGHT_THEME } from "./variants";
 
 const THEME_STORAGE_KEY = "themeName";
 

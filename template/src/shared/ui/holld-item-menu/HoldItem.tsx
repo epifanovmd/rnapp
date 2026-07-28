@@ -20,15 +20,15 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { HoldMenuItemProp } from "./hold-menu/index";
-import { useHoldItemContext } from "./hooks/index";
+import { HoldMenuItemProp } from "./hold-menu";
+import { useHoldItemContext } from "./hooks";
 import { IHoldPosition } from "./types";
 import {
   CONTEXT_MENU_STATE,
   HOLD_ITEM_DURATION,
   HOLD_ITEM_SCALE_DOWN_DURATION,
   HOLD_ITEM_SCALE_DOWN_VALUE,
-} from "./utils/index";
+} from "./utils";
 
 export interface HoldItemProps<T = unknown> extends TouchableOpacityProps {
   data?: T;

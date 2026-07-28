@@ -1,4 +1,4 @@
 export * from "./FlexView";
-export * from "./hooks/index";
+export * from "./hooks";
 export * from "./types";
-export * from "./utils/index";
+export * from "./utils";

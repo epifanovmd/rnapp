@@ -2,8 +2,8 @@ import React, { memo } from "react";
 import { StyleSheet } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
-import { useHoldItemContext } from "../hooks/index";
-import { BORDER_DARK_COLOR, BORDER_LIGHT_COLOR } from "../utils/index";
+import { useHoldItemContext } from "../hooks";
+import { BORDER_DARK_COLOR, BORDER_LIGHT_COLOR } from "../utils";
 
 export const Separator = memo(() => {
   const { theme } = useHoldItemContext();

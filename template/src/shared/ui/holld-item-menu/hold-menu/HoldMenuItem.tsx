@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-import { useHoldItemContext } from "../hooks/index";
+import { useHoldItemContext } from "../hooks";
 import {
   BORDER_DARK_COLOR,
   BORDER_LIGHT_COLOR,
@@ -12,7 +12,7 @@ import {
   MENU_TEXT_LIGHT_COLOR,
   MENU_TITLE_COLOR,
   styleGuide,
-} from "../utils/index";
+} from "../utils";
 import { Separator } from "./Separator";
 import { HoldMenuItemProp } from "./types";
 

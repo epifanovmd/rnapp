@@ -5,8 +5,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Text } from "../text/index";
-import { ITouchableProps, Touchable } from "../touchable/index";
+import { Text } from "../text";
+import { ITouchableProps, Touchable } from "../touchable";
 
 export interface ITabItem<Value> {
   title?: string;

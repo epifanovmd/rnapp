@@ -36,7 +36,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { AnimatedRefreshing } from "../animated-refreshing/index";
+import { AnimatedRefreshing } from "../animated-refreshing";
 
 export interface RefreshingContainerProps extends PropsWithChildren {
   maxDistance?: number;

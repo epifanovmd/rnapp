@@ -1,6 +1,6 @@
 import { FC, PropsWithChildren } from "react";
 
-import { useTransitionContext } from "./hooks/index";
+import { useTransitionContext } from "./hooks";
 import { ITransitionContext } from "./transition.types";
 import { TransitionContext } from "./transition-context";
 

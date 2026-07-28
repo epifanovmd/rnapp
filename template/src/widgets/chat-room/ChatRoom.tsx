@@ -1,4 +1,4 @@
-import { AppScreenProps } from "@shared/lib/navigation";
+import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import { Col, Navbar, Text } from "@shared/ui";
 import { ImageViewing } from "@shared/ui/image-viewing";
@@ -14,11 +14,11 @@ import { useChatRoomMock } from "./useChatRoomMock";
 
 /**
  * Демо-экран нативного чата. Полностью на моках (см. useChatRoomMock) —
- * ни API, ни сокет не используются. Открывается напрямую из таб-бара
- * («Chats»), без списка диалогов — задача экрана только показать
- * возможности нативного ChatView-компонента.
+ * ни API, ни сокет не используются. Открывается как экран стека
+ * (`Chat`) кнопкой со страницы Playground, без списка диалогов — задача
+ * экрана только показать возможности нативного ChatView-компонента.
  */
-export const ChatRoom: FC<AppScreenProps> = observer(() => {
+export const ChatRoom: FC<StackProps> = observer(() => {
   const { isDark } = useTheme();
 
   const {
@@ -75,6 +75,7 @@ export const ChatRoom: FC<AppScreenProps> = observer(() => {
   return (
     <Col flex={1}>
       <Navbar title={chatDisplayName} safeArea>
+        <Navbar.BackButton />
         <Navbar.Title />
         <Navbar.Subtitle>
           <View style={styles.subtitleContainer}>

@@ -1,6 +1,6 @@
 import React, { FC, memo, PropsWithChildren } from "react";
 
-import { Col, FlexProps } from "../flex-view/index";
+import { Col, FlexProps } from "../flex-view";
 
 interface IProps extends FlexProps {}
 

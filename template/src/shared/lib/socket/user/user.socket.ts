@@ -1,7 +1,7 @@
 import { createDisposer } from "@shared/lib/di";
 import { injectable } from "inversify";
 
-import { ISocketTransport } from "../transport/index";
+import { ISocketTransport } from "../transport";
 import { IUserSocketService, UserSocketHandlers } from "./user.socket.types";
 
 @injectable()

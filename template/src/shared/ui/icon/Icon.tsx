@@ -2,7 +2,7 @@ import { useTheme } from "@shared/lib/theme";
 import { memo, PropsWithChildren } from "react";
 import { SvgProps } from "react-native-svg";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 import {
   BackIcon,
   CameraIcon,
@@ -16,7 +16,7 @@ import {
   ImageIcon,
   SaveIcon,
   SearchIcon,
-} from "./icons/index";
+} from "./icons";
 
 type TOmitFlexPropsKeys =
   "height" | "opacity" | "scale" | "translateY" | "translateX";

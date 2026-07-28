@@ -1,7 +1,7 @@
 import React from "react";
 import { MeasuredDimensions } from "react-native-reanimated";
 
-import { HoldMenuItemProp } from "./hold-menu/index";
+import { HoldMenuItemProp } from "./hold-menu";
 
 export interface IHoldItemValue<T> {
   data?: T;

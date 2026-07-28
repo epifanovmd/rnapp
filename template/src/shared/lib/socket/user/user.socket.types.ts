@@ -11,7 +11,7 @@ import {
   ISocketUserPasswordChangedPayload,
   ISocketUserPrivilegesChangedPayload,
   ISocketUserUsernameChangedPayload,
-} from "../events/index";
+} from "../events";
 
 export interface UserSocketHandlers {
   onProfileUpdated?: (data: PublicProfileDto) => void;

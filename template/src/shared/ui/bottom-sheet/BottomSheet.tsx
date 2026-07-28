@@ -4,11 +4,11 @@ import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
 import haptic from "react-native-haptic-feedback";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
+import { createSlot, useSlotProps } from "../../lib/slots";
 import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
 import { BottomSheetContent } from "./BottomSheetContent";
 import { BottomSheetFooter } from "./BottomSheetFooter";
-import { useBottomSheetStyles } from "./hooks/index";
+import { useBottomSheetStyles } from "./hooks";
 import { BottomSheetStyles } from "./styles";
 import {
   TBottomSheetContentProps,

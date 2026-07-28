@@ -2,10 +2,10 @@ import { isString } from "@shared/lib/utils/type-guards";
 import React, { memo } from "react";
 import { ActivityIndicator } from "react-native";
 
-import { Icon } from "../icon/index";
-import { Text } from "../text/index";
-import { Touchable } from "../touchable/index";
-import { useButtonStyles } from "./hooks/index";
+import { Icon } from "../icon";
+import { Text } from "../text";
+import { Touchable } from "../touchable";
+import { useButtonStyles } from "./hooks";
 import { IButtonProps } from "./types";
 
 const ButtonImpl = <T extends any = unknown>({

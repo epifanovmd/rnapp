@@ -4,7 +4,7 @@ import {
   ScrollViewProps as RNScrollViewProps,
 } from "react-native";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 
 export interface IScrollViewProps
   extends FlexProps, Omit<RNScrollViewProps, "style" | "centerContent"> {}

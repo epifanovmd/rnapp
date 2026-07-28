@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
+import { createSlot, useSlotProps } from "../../lib/slots";
 import { NavbarIcon } from "./NavbarIcon";
 import { INavbarSubTitleProps, NavbarSubTitle } from "./NavbarSubTitle";
 import { INavbarTitleProps, NavbarTitle } from "./NavbarTitle";

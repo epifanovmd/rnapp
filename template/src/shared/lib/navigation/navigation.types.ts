@@ -14,7 +14,6 @@ export enum TabScreenName {
   MAIN = "MAIN",
 
   Main = "Main",
-  Chats = "Chats",
   Playground = "Playground",
   Settings = "Settings",
 }
@@ -23,7 +22,6 @@ interface TabScreenParams {
   MAIN: undefined;
 
   Posts: undefined;
-  Chats: undefined;
   Playground: undefined;
   Settings: undefined;
 }
@@ -34,6 +32,8 @@ export enum StackScreenName {
   RecoveryPassword = "RecoveryPassword",
   Components = "Components",
   Carousel = "Carousel",
+  Chat = "Chat",
+  Charts = "Charts",
   PdfView = "PdfView",
   WebView = "WebView",
 }
@@ -46,6 +46,8 @@ interface StackScreenParams {
     initialRouteName: keyof typeof ComponentsScreenName;
   };
   Carousel: undefined;
+  Chat: undefined;
+  Charts: undefined;
   PdfView: IPdfViewProps;
   WebView: IWebViewProps;
 }

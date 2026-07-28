@@ -27,14 +27,14 @@ import Animated, {
 import { EdgeInsets } from "react-native-safe-area-context";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { Backdrop } from "./backdrop/index";
+import { Backdrop } from "./backdrop";
 import { HoldItemContext, IHoldItemContext } from "./hold-item-context";
-import { HoldMenu, IHoldMenuProps } from "./hold-menu/index";
+import { HoldMenu, IHoldMenuProps } from "./hold-menu";
 import {
   useDeviceOrientation,
   usePosition,
   useTransformContent,
-} from "./hooks/index";
+} from "./hooks";
 import { useProcessedMeasured } from "./hooks/useProcessedMeasured";
 import { IHoldItemValue } from "./types";
 import {
@@ -42,7 +42,7 @@ import {
   HOLD_ITEM_DURATION,
   SPRING_CONFIGURATION,
   TMenuPosition,
-} from "./utils/index";
+} from "./utils";
 
 export interface HoldItemProviderProps {
   style?: StyleProp<ViewStyle>;

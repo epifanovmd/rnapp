@@ -12,8 +12,8 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Text } from "../../shared/ui/text/index";
-import { Touchable } from "../../shared/ui/touchable/index";
+import { Text } from "../../shared/ui/text";
+import { Touchable } from "../../shared/ui/touchable";
 
 export const TabBar = memo<BottomTabBarProps>(
   ({

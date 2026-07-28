@@ -2,7 +2,7 @@ import React, { FC, memo, PropsWithChildren } from "react";
 import { ViewProps } from "react-native";
 import { Edges, SafeAreaView } from "react-native-safe-area-context";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 
 interface IProps extends FlexProps, ViewProps {
   edges?: Edges;

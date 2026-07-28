@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Icon } from "../icon/index";
+import { Icon } from "../icon";
 
 export interface CheckboxProps extends Omit<PressableProps, "onPress"> {
   isActive?: boolean;

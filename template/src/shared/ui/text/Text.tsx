@@ -6,7 +6,7 @@ import {
   TextStyle,
 } from "react-native";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 import { getTextStyle, TTextStyle } from "./text-styles";
 
 export interface ITextProps

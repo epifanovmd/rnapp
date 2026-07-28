@@ -1,9 +1,9 @@
 import React, { FC, memo, PropsWithChildren } from "react";
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
-import { Col, Row } from "../flex-view/index";
-import { ITextProps, Text } from "../text/index";
-import { ITouchableProps, Touchable } from "../touchable/index";
+import { createSlot, useSlotProps } from "../../lib/slots";
+import { Col, Row } from "../flex-view";
+import { ITextProps, Text } from "../text";
+import { ITouchableProps, Touchable } from "../touchable";
 
 export interface FieldProps extends ITouchableProps {
   label?: string;

@@ -24,7 +24,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { Icon, TIconName } from "../icon/index";
+import { Icon, TIconName } from "../icon";
 import { TextInput, TextInputProps } from "./Input";
 
 export interface IRNVITextFieldProps extends Omit<TextInputProps, "style"> {

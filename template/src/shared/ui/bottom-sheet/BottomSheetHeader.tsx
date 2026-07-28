@@ -10,9 +10,9 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { FlexProps, Row } from "../flex-view/index";
-import { Icon } from "../icon/index";
-import { Text } from "../text/index";
+import { FlexProps, Row } from "../flex-view";
+import { Icon } from "../icon";
+import { Text } from "../text";
 
 const hitSlop = { top: 16, right: 16, bottom: 16, left: 16 };
 

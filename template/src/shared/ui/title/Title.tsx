@@ -2,8 +2,8 @@ import { useRoute } from "@shared/lib/navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren } from "react";
 
-import { Col, FlexProps, Row, useFlexProps } from "../flex-view/index";
-import { ITextProps, Text } from "../text/index";
+import { Col, FlexProps, Row, useFlexProps } from "../flex-view";
+import { ITextProps, Text } from "../text";
 
 export interface ITitleProps extends FlexProps {
   title?: string;

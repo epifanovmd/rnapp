@@ -13,7 +13,7 @@ import { FlatListProps } from "react-native/Libraries/Lists/FlatList";
 import { LayoutChangeEvent } from "react-native/Libraries/Types/CoreEventTypes";
 import { FlatList, GestureHandlerRootView } from "react-native-gesture-handler";
 
-import { Col, FlexProps, Row } from "../flex-view/index";
+import { Col, FlexProps, Row } from "../flex-view";
 
 export interface ICarouselProps<T = any> extends Omit<
   FlatListProps<T>,

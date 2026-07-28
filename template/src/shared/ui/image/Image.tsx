@@ -2,7 +2,7 @@ import React, { FC, memo } from "react";
 import { ImageStyle } from "react-native";
 import FastImage, { FastImageProps } from "react-native-fast-image";
 
-import { FlexProps, useFlexProps } from "../flex-view/index";
+import { FlexProps, useFlexProps } from "../flex-view";
 
 export interface ImageProps
   extends FlexProps<ImageStyle>, Omit<FastImageProps, "style" | "source"> {

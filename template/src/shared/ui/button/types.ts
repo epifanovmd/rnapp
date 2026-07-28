@@ -7,8 +7,8 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { TIconName } from "../icon/index";
-import { ITouchableProps } from "../touchable/index";
+import { TIconName } from "../icon";
+import { ITouchableProps } from "../touchable";
 
 export type TButtonType =
   | "primaryFilled"

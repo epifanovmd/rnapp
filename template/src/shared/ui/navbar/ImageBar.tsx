@@ -10,7 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import absoluteFill = StyleSheet.absoluteFill;
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
+import { createSlot, useSlotProps } from "../../lib/slots";
 
 export interface IImageBarProps extends ViewProps {
   uri?: string;

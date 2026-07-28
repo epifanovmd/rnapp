@@ -7,12 +7,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useHoldItemContext } from "../hooks/index";
+import { useHoldItemContext } from "../hooks";
 import {
   CONTEXT_MENU_STATE,
   SPRING_CONFIGURATION,
   TMenuPosition,
-} from "../utils/index";
+} from "../utils";
 import { HoldMenuList } from "./HoldMenuList";
 import { HoldMenuItemProp } from "./types";
 

@@ -11,8 +11,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { useHoldItemContext } from "../hooks/index";
-import { CONTEXT_MENU_STATE } from "../utils/index";
+import { useHoldItemContext } from "../hooks";
+import { CONTEXT_MENU_STATE } from "../utils";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 

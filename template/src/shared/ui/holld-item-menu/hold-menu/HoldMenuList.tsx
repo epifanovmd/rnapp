@@ -14,13 +14,13 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { useHoldItemContext } from "../hooks/index";
+import { useHoldItemContext } from "../hooks";
 import {
   calculateMenuHeight,
   CONTEXT_MENU_STATE,
   IS_IOS,
   styleGuide,
-} from "../utils/index";
+} from "../utils";
 import { HoldMenuItem } from "./HoldMenuItem";
 import { HoldMenuItemProp } from "./types";
 

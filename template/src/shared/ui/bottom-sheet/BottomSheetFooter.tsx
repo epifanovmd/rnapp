@@ -1,9 +1,9 @@
 import React, { FC, memo } from "react";
 import { ViewProps } from "react-native";
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
-import { FlexProps, Row } from "../flex-view/index";
-import { Button, IButtonProps } from "../index";
+import { createSlot, useSlotProps } from "../../lib/slots";
+import { Button, IButtonProps } from "..";
+import { FlexProps, Row } from "../flex-view";
 
 export interface BottomSheetFooterProps extends FlexProps, ViewProps {}
 

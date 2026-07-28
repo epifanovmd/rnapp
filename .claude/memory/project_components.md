@@ -53,6 +53,16 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `flex-view/` — `FlexView.tsx`, CSS-like flex props for RN Views; `utils/createFlexViewComponent.tsx`
   (HOC), plus style converters (`flex-props-converter.ts`, `flex-props-map.ts`, `shadow-style.ts`,
   `style-map-generator.ts`)
+- `chart/` — Skia + Reanimated charting core (`Chart` root + pluggable layer components: `LineLayer`,
+  `AreaLayer`, `BarLayer`, `ScatterLayer`, `GridLayer`, `AxisLayer`, `CrosshairLayer`, `MarkerLayer`,
+  `ReferenceLineLayer`, `Legend`, `ActivePointListener`, `TooltipLayer`; touch-driven layers expose
+  press/change events — `onBarPress`, `onMarkerPress`, `onPointPress`, `onActiveChange`,
+  `onVisibilityChange`). Unlike every other piece of this kit, it deliberately does **not** depend on
+  `@shared/lib/theme` or any other `@shared/ui/*` component, and has **no shared theme object at all** —
+  every layer takes its own color/style props with literal defaults declared in that component; a
+  consumer bridges the app's real theme in per-prop, per-layer, at the call site. Also has no code
+  comments — the "why" lives in `project_charts.md`, which has the full architecture.
+  Demoed on `pages/ui-kit-demo/stack/charts/Charts.tsx` (reached via a Playground button).
 
 ## Chat (`src/widgets/chat-room/`)
 - `ChatRoom.tsx` — the chat screen widget. **Fully mocked** — no API/socket calls, state comes entirely

@@ -2,13 +2,13 @@ import { injectable } from "inversify";
 import { connect } from "socket.io-client";
 
 import { SOCKET_BASE_URL } from "../../../config/env";
-import { IAppStateService } from "../../app-state/index";
-import { INetworkStatusService } from "../../network/index";
-import { ITokenProvider } from "../contract/index";
+import { IAppStateService } from "../../app-state";
+import { INetworkStatusService } from "../../network";
+import { ITokenProvider } from "../contract";
 import {
   SocketClientToServerEvents,
   SocketServerToClientEvents,
-} from "../events/index";
+} from "../events";
 import { EmitQueue } from "./emit-queue";
 import { PersistentListeners } from "./persistent-listeners";
 import {

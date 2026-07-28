@@ -8,7 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots/index";
+import { createSlot, useSlotProps } from "../../lib/slots";
 
 export interface IHiddenNavbarProps extends ViewProps {
   safeArea?: boolean;

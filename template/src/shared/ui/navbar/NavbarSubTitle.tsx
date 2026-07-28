@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 
-import { ITextProps, Text } from "../index";
+import { ITextProps, Text } from "..";
 
 export interface INavbarSubTitleProps extends ITextProps {}
 

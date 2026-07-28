@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 
-import { useFlexProps } from "../hooks/index";
+import { useFlexProps } from "../hooks";
 import { FlexProps } from "../types";
 
 export const createFlexViewComponent = <P extends object>(

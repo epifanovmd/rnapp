@@ -1,3 +1,3 @@
 export * from "./data-model-base";
-export * from "./date/index";
+export * from "./date";
 export * from "./enum-model-base";

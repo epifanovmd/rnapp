@@ -3,6 +3,7 @@ export * from "./animated-refreshing";
 export * from "./bottom-sheet";
 export * from "./button";
 export * from "./carousel";
+export * from "./chart";
 export * from "./check-box";
 export * from "./chip";
 export * from "./collapsable";

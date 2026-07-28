@@ -3,7 +3,7 @@ import { SharedValue, useDerivedValue } from "react-native-reanimated";
 import { EdgeInsets } from "react-native-safe-area-context";
 
 import { IHoldPosition } from "../types";
-import { CONTEXT_MENU_STATE, IS_IOS } from "../utils/index";
+import { CONTEXT_MENU_STATE, IS_IOS } from "../utils";
 import { useDeviceOrientation } from "./useDeviceOrientation";
 
 export const useTransformContent = (

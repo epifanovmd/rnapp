@@ -7,7 +7,7 @@ import {
 } from "react-native-reanimated";
 
 import { IHoldPosition } from "../types";
-import { CONTEXT_MENU_STATE } from "../utils/index";
+import { CONTEXT_MENU_STATE } from "../utils";
 
 export const usePosition = (
   state: SharedValue<CONTEXT_MENU_STATE>,

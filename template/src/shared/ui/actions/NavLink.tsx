@@ -2,7 +2,7 @@ import { NavigationProp, useNavigation } from "@react-navigation/native";
 import { ScreenName } from "@shared/lib/navigation";
 import React, { FC, memo, useCallback } from "react";
 
-import { ITouchableProps, Touchable } from "../index";
+import { ITouchableProps, Touchable } from "..";
 
 export interface INavLinkProps extends ITouchableProps {
   to: ScreenName;

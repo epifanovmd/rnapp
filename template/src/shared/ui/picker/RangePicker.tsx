@@ -15,16 +15,16 @@ import {
   BottomSheet,
   TBottomSheetProps,
   useBottomSheetRef,
-} from "../bottom-sheet/index";
-import { Col, Row } from "../flex-view/index";
-import { ITouchableProps, Touchable } from "../touchable/index";
+} from "../bottom-sheet";
+import { Col, Row } from "../flex-view";
+import { ITouchableProps, Touchable } from "../touchable";
 import {
   Picker,
   PickerChangeItem,
   PickerColumn,
   PickerItem,
   PickerProps,
-} from "./shared/index";
+} from "./shared";
 
 export interface RangePickerProps<
   T extends string | number,

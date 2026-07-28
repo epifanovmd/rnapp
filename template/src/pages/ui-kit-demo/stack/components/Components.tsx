@@ -17,7 +17,7 @@ import {
   ModalsTab,
   NotificationsTab,
   PickersTab,
-} from "./tabs/index";
+} from "./tabs";
 import { TicketTab } from "./tabs/Ticket";
 
 const routes: TabScreens = {

@@ -1,4 +1,3 @@
-import { ChatRoom } from "@pages/chat";
 import { Settings } from "@pages/settings";
 import { Main, Playground } from "@pages/ui-kit-demo";
 import {
@@ -14,12 +13,7 @@ import {
 import { TransitionProvider, useTransition } from "@shared/lib/transition";
 import { Navbar } from "@shared/ui";
 import { TabBar } from "@widgets/app-shell";
-import {
-  HomeIcon,
-  ListIcon,
-  MessageSquareIcon,
-  SettingsIcon,
-} from "lucide-react-native";
+import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import React, { FC, memo } from "react";
 
 interface IProps extends StackProps {}
@@ -29,15 +23,6 @@ const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
 };
 
 export const TAB_SCREENS: AppTabScreens = {
-  Chats: {
-    screen: ChatRoom,
-    options: {
-      tabBarIcon: ({ size, color }) => (
-        <MessageSquareIcon size={size} color={color} />
-      ),
-      headerShown: false,
-    },
-  },
   Main: {
     screen: Main,
     options: {
@@ -77,7 +62,7 @@ export const TabScreens: FC<IProps> = memo(() => {
         tabBar={props => <TabBar {...props} />}
         routes={TAB_SCREENS}
         screenOptions={screenOptions}
-        initialRouteName={"Chats"}
+        initialRouteName={"Main"}
       />
     </TransitionProvider>
   );
