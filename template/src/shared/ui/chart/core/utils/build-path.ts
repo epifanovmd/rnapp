@@ -4,22 +4,17 @@ import type { PixelPoint } from "../types";
 
 export type CurveType = "linear" | "smooth";
 
-/**
- * Строит линию из точек — линейную (`linear`) или сглаженную (`smooth`) Catmull-Rom.
- */
-export const buildLinePathFromPoints = (
+/** Строит линейную или сглаженную Catmull-Rom линию в переданный builder. */
+const buildLineInBuilder = (
+  builder: ReturnType<typeof Skia.PathBuilder.Make>,
   points: PixelPoint[],
-  curve: CurveType = "linear",
-): SkPath => {
+  curve: CurveType,
+): void => {
   "worklet";
 
-  const path = Skia.Path.Make();
+  if (points.length === 0) return;
 
-  if (points.length === 0) {
-    return path;
-  }
-
-  path.moveTo(points[0].x, points[0].y);
+  builder.moveTo(points[0].x, points[0].y);
 
   if (curve === "smooth" && points.length > 2) {
     for (let index = 0; index < points.length - 1; index++) {
@@ -28,7 +23,7 @@ export const buildLinePathFromPoints = (
       const p2 = points[index + 1];
       const p3 = points[index + 2 < points.length ? index + 2 : index + 1];
 
-      path.cubicTo(
+      builder.cubicTo(
         p1.x + (p2.x - p0.x) / 6,
         p1.y + (p2.y - p0.y) / 6,
         p2.x - (p3.x - p1.x) / 6,
@@ -39,16 +34,29 @@ export const buildLinePathFromPoints = (
     }
   } else {
     for (let index = 1; index < points.length; index++) {
-      path.lineTo(points[index].x, points[index].y);
+      builder.lineTo(points[index].x, points[index].y);
     }
   }
+};
 
-  return path;
+/**
+ * Строит линию из точек — линейную (`linear`) или сглаженную (`smooth`) Catmull-Rom.
+ */
+export const buildLinePathFromPoints = (
+  points: PixelPoint[],
+  curve: CurveType = "linear",
+): SkPath => {
+  "worklet";
+
+  const builder = Skia.PathBuilder.Make();
+
+  buildLineInBuilder(builder, points, curve);
+
+  return builder.detach();
 };
 
 /**
  * Строит область (area path) — линию, замкнутую на `baselineY`.
- * Использует `buildLinePathFromPoints` для верхней границы.
  */
 export const buildAreaPathFromPoints = (
   points: PixelPoint[],
@@ -57,18 +65,17 @@ export const buildAreaPathFromPoints = (
 ): SkPath => {
   "worklet";
 
-  const path = buildLinePathFromPoints(points, curve);
+  const builder = Skia.PathBuilder.Make();
 
-  if (points.length === 0) {
-    return path;
+  buildLineInBuilder(builder, points, curve);
+
+  if (points.length > 0) {
+    const lastX = points[points.length - 1].x;
+
+    builder.lineTo(lastX, baselineY);
+    builder.lineTo(points[0].x, baselineY);
+    builder.close();
   }
 
-  const firstX = points[0].x;
-  const lastX = points[points.length - 1].x;
-
-  path.lineTo(lastX, baselineY);
-  path.lineTo(firstX, baselineY);
-  path.close();
-
-  return path;
+  return builder.detach();
 };

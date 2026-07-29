@@ -1,5 +1,5 @@
 import { Group, matchFont, RoundedRect } from "@shopify/react-native-skia";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -150,18 +150,14 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     [isActive, isSecondActive],
   );
 
-  const onVisibilityChangeRef = useRef(onVisibilityChange);
-
-  onVisibilityChangeRef.current = onVisibilityChange;
-
   useAnimatedReaction(
     () => isActive.value,
     (next, previous) => {
-      if (next !== previous && onVisibilityChangeRef.current) {
-        scheduleOnRN(onVisibilityChangeRef.current, next);
+      if (next !== previous && onVisibilityChange) {
+        scheduleOnRN(onVisibilityChange, next);
       }
     },
-    [isActive],
+    [isActive, onVisibilityChange],
   );
 
   if (!visible || !font) {

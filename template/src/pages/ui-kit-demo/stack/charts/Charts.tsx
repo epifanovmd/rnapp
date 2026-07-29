@@ -14,6 +14,7 @@ import {
   IChartSeries,
   LineLayer,
   MarkerLayer,
+  RangeLayer,
   TooltipLayer,
 } from "@shared/ui/chart";
 import { observer } from "mobx-react-lite";
@@ -357,6 +358,7 @@ export const Charts: FC<IProps> = observer(() => {
                 yLabelPosition={"right"}
                 secondLineColor={colors.orange500}
               />
+              <RangeLayer />
               <TooltipLayer
                 anchorToPoint
                 side={"bottom"}
