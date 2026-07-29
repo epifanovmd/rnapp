@@ -22,7 +22,8 @@ export interface SocketTransportState {
 
 export type SocketStatusListener = (state: SocketTransportState) => void;
 
-export const ISocketTransport = createInjectDecorator<ISocketTransport>();
+export const ISocketTransport =
+  createInjectDecorator<ISocketTransport>("ISocketTransport");
 
 export interface ISocketTransport extends SupportInitialize {
   readonly state: SocketTransportState;

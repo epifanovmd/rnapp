@@ -1,28 +1,26 @@
-import { Circle, DashPathEffect, Path } from "@shopify/react-native-skia";
-import React, { FC, useMemo } from "react";
+import React, { useMemo } from "react";
 
-import { useChartContext } from "../../core/chart-context";
+import { useChartSeries } from "../../core/context";
 import {
-  computeTrend,
-  resolveTrendColor,
+  DEFAULT_TREND_DOWN_COLOR,
+  DEFAULT_TREND_NEUTRAL_COLOR,
+  DEFAULT_TREND_UP_COLOR,
+  TrendColorMap,
   TrendCompareMode,
-} from "../../core/compute-trend";
-import { LineDashType, resolveDashIntervals } from "../../core/dash-pattern";
-import { DEFAULT_SERIES_COLORS } from "../../core/default-series-colors";
-import { resolveSeriesColor } from "../../core/resolve-series-color";
-import { selectSeries, SeriesSelector } from "../../core/select-series";
+} from "../../core/hooks/useTrendColor";
 import type { ChartLayerComponent } from "../../core/types";
-import { buildLinePath, CurveType } from "./build-line-path";
+import { CurveType } from "../../core/utils/build-path";
+import { DASH_PRESETS, LineDashType } from "../../core/utils/dash-pattern";
+import { selectSeries } from "../../core/utils/select-series";
+import { LineSeriesPath } from "./LineSeriesPath";
 
-export interface LineLayerProps extends SeriesSelector {
+export interface LineLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
   /** Прямые сегменты или сглаженная (catmull-rom) кривая. */
   curve?: CurveType;
   /** Толщина линии (px). */
   strokeWidth?: number;
-  /** Цвета по сериям (по кругу, если серий больше); переопределяется собственным `series.color`. Игнорируется при `colorByTrend`. */
-  colors?: string[];
   /** Форма концов линии. */
   strokeCap?: "butt" | "round" | "square";
   /** Форма соединения сегментов линии. */
@@ -41,23 +39,19 @@ export interface LineLayerProps extends SeriesSelector {
   endDotStrokeColor?: string;
   /** Толщина обводки точки на конце линии (px). */
   endDotStrokeWidth?: number;
-  /** Красить каждую линию по её тренду (рост/падение) вместо `colors`/`series.color`. */
+  /** Красить каждую линию по её тренду (рост/падение) вместо `series.color`. Цвет считается на UI-потоке (см. `useTrendColor`) — на live-графике не требует JS-рендера слоя. */
   colorByTrend?: boolean;
   /** С чем сравнивать при определении тренда: с первой точкой серии или с предыдущей. */
   trendCompare?: TrendCompareMode;
-  /** Цвет при росте (используется вместе с `colorByTrend`). */
-  upColor?: string;
-  /** Цвет при падении (используется вместе с `colorByTrend`). */
-  downColor?: string;
-  /** Цвет при отсутствии изменения (используется вместе с `colorByTrend`). */
-  neutralColor?: string;
+  /** Цвета для `up`/`down`/`flat` направлений тренда. */
+  trendColors?: Partial<TrendColorMap>;
+  seriesId?: string;
 }
 
 export const LineLayer: ChartLayerComponent<LineLayerProps> = ({
   visible = true,
   curve = "linear",
   strokeWidth = 2,
-  colors = DEFAULT_SERIES_COLORS,
   strokeCap = "round",
   strokeJoin = "round",
   lineType = "solid",
@@ -69,95 +63,47 @@ export const LineLayer: ChartLayerComponent<LineLayerProps> = ({
   endDotStrokeWidth = 2,
   colorByTrend = false,
   trendCompare = "previous",
-  upColor = "#10B981",
-  downColor = "#EF4444",
-  neutralColor = "#94A3B8",
-  ...selector
+  trendColors,
+  seriesId,
 }) => {
-  const { series, xScale, yScale } = useChartContext();
-  const resolvedSeries = selectSeries(series, selector);
-  const intervals = resolveDashIntervals(lineType, dashArray);
+  const { series, seriesShared, geometry } = useChartSeries();
+  const resolvedSeries = selectSeries(series, seriesId);
+  const intervals = dashArray ?? DASH_PRESETS[lineType];
 
-  const paths = useMemo(
-    () =>
-      resolvedSeries.map((item, index) => {
-        const lastDatum = item.data[item.data.length - 1];
-
-        return {
-          id: item.id,
-          color: colorByTrend
-            ? resolveTrendColor(
-                computeTrend(item.data, trendCompare)?.direction ?? "flat",
-                upColor,
-                downColor,
-                neutralColor,
-              )
-            : resolveSeriesColor(item, index, colors),
-          path: buildLinePath(item.data, xScale, yScale, curve),
-          endPoint: lastDatum
-            ? {
-                x: xScale.toRange(lastDatum.x),
-                y: yScale.toRange(lastDatum.y),
-              }
-            : null,
-        };
-      }),
-    [
-      resolvedSeries,
-      xScale,
-      yScale,
-      curve,
-      colors,
-      colorByTrend,
-      trendCompare,
-      upColor,
-      downColor,
-      neutralColor,
-    ],
+  const palette = useMemo<TrendColorMap>(
+    () => ({
+      up: DEFAULT_TREND_UP_COLOR,
+      down: DEFAULT_TREND_DOWN_COLOR,
+      flat: DEFAULT_TREND_NEUTRAL_COLOR,
+      ...trendColors,
+    }),
+    [trendColors],
   );
 
   if (!visible) {
     return null;
   }
 
-  return (
-    <>
-      {paths.map(item => (
-        <React.Fragment key={item.id}>
-          <Path
-            path={item.path}
-            style="stroke"
-            strokeWidth={strokeWidth}
-            strokeJoin={strokeJoin}
-            strokeCap={strokeCap}
-            color={item.color}
-          >
-            {intervals && <DashPathEffect intervals={intervals} />}
-          </Path>
-          {showEndDot && item.endPoint && (
-            <>
-              <Circle
-                cx={item.endPoint.x}
-                cy={item.endPoint.y}
-                r={endDotRadius}
-                color={endDotColor ?? item.color}
-              />
-              {endDotStrokeColor && (
-                <Circle
-                  cx={item.endPoint.x}
-                  cy={item.endPoint.y}
-                  r={endDotRadius}
-                  style="stroke"
-                  strokeWidth={endDotStrokeWidth}
-                  color={endDotStrokeColor}
-                />
-              )}
-            </>
-          )}
-        </React.Fragment>
-      ))}
-    </>
-  );
+  return resolvedSeries.map(item => (
+    <LineSeriesPath
+      key={item.id}
+      seriesId={item.id}
+      seriesShared={seriesShared}
+      geometry={geometry}
+      curve={curve}
+      color={item.color}
+      colorByTrend={colorByTrend}
+      trendCompare={trendCompare}
+      palette={palette}
+      strokeWidth={strokeWidth}
+      strokeCap={strokeCap}
+      strokeJoin={strokeJoin}
+      dashIntervals={intervals}
+      showEndDot={showEndDot && item.data.length > 0}
+      endDotRadius={endDotRadius}
+      endDotColor={endDotColor}
+      endDotStrokeColor={endDotStrokeColor}
+      endDotStrokeWidth={endDotStrokeWidth}
+    />
+  ));
 };
-
-LineLayer.layerKind = "skia";

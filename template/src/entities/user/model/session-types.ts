@@ -2,7 +2,8 @@ import { SessionDto } from "@shared/api/gen/model";
 import { createInjectDecorator } from "@shared/lib/di";
 import { CollectionHolder, MutationHolder } from "@shared/lib/holders";
 
-export const ISessionStore = createInjectDecorator<ISessionStore>();
+export const ISessionStore =
+  createInjectDecorator<ISessionStore>("ISessionStore");
 
 export interface ISessionStore {
   sessionsHolder: CollectionHolder<SessionDto>;

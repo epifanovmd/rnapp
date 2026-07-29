@@ -19,22 +19,6 @@ const MONTHS = [
 
 const RESOLUTION = 10;
 
-export const DAILY_ACTIVE_USERS: IChartSeries[] = [
-  {
-    id: "dau",
-    label: "Active users",
-    data: range(14 * RESOLUTION).map((i): ChartDatum => {
-      const day = i / RESOLUTION;
-
-      return {
-        x: i,
-        y: Math.round(130 + Math.sin(day / 2.2) * 35 + day * 5),
-        label: `Day ${Math.floor(day) + 1}`,
-      };
-    }),
-  },
-];
-
 export const REVENUE_VS_EXPENSES: IChartSeries[] = [
   {
     id: "revenue",
@@ -66,50 +50,6 @@ export const REVENUE_VS_EXPENSES: IChartSeries[] = [
   },
 ];
 
-export const WEEKLY_SALES: IChartSeries[] = [
-  {
-    id: "online",
-    label: "Online",
-    color: "#3B82F6",
-    data: range(6 * RESOLUTION).map((i): ChartDatum => {
-      const week = i / RESOLUTION;
-
-      return {
-        x: i,
-        y: Math.round(55 + Math.sin(week) * 20 + week * 4),
-        label: `W${Math.floor(week) + 1}`,
-      };
-    }),
-  },
-  {
-    id: "retail",
-    label: "Retail",
-    color: "#F59E0B",
-    data: range(6 * RESOLUTION).map((i): ChartDatum => {
-      const week = i / RESOLUTION;
-
-      return {
-        x: i,
-        y: Math.round(40 + Math.cos(week / 1.3) * 18 + week * 2),
-        label: `W${Math.floor(week) + 1}`,
-      };
-    }),
-  },
-];
-
-export const ORDER_VALUES: IChartSeries[] = [
-  {
-    id: "orders",
-    label: "Order value, $",
-    color: "#06B6D4",
-    data: range(20).map((i): ChartDatum => ({
-      x: i,
-      y: Math.round(40 + Math.sin(i * 1.3) * 25 + (i % 3) * 10),
-      label: `#${i + 1}`,
-    })),
-  },
-];
-
 const LIVE_PRICE_WINDOW = 30;
 
 export const createInitialLivePriceData = (): ChartDatum[] => {
@@ -137,22 +77,12 @@ export const nextLivePriceData = (data: ChartDatum[]): ChartDatum[] => {
     label: `${last.x + 1}s`,
   };
 
-  return [...data.slice(1), next];
+  // Скользящее окно фиксированной длины: реальный live-тикер не должен копить
+  // историю бесконечно — иначе домен/путь пересчитываются по всё большему
+  // числу точек на каждый тик.
+  const window = [...data, next];
+
+  return window.length > LIVE_PRICE_WINDOW
+    ? window.slice(window.length - LIVE_PRICE_WINDOW)
+    : window;
 };
-
-export const TEMPERATURE_TREND: IChartSeries[] = [
-  {
-    id: "temperature",
-    label: "Temp, °C",
-    color: "#8B5CF6",
-    data: range(24 * RESOLUTION).map((i): ChartDatum => {
-      const hour = i / RESOLUTION;
-
-      return {
-        x: i,
-        y: Math.round((18 + Math.sin((hour - 6) / 3.8) * 7) * 10) / 10,
-        label: `${Math.floor(hour)}:00`,
-      };
-    }),
-  },
-];

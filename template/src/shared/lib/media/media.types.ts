@@ -9,4 +9,5 @@ export interface IMediaService {
   stopStream(stream: MediaStream): void;
 }
 
-export const IMediaService = createInjectDecorator<IMediaService>();
+export const IMediaService =
+  createInjectDecorator<IMediaService>("IMediaService");

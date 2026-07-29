@@ -1,4 +1,4 @@
-import type { IScale } from "../core/types";
+import type { IScale } from "../core";
 
 export interface LinearScaleOptions {
   domain: [number, number];

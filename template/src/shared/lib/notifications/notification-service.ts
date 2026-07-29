@@ -1,6 +1,6 @@
+import { createRandomId } from "@shared/lib/utils";
 import { injectable } from "inversify";
 import type * as React from "react";
-import shortid from "shortid";
 
 import {
   INotificationService,
@@ -75,7 +75,7 @@ export class NotificationService implements INotificationService {
     message: React.ReactNode,
     { id, duration }: NotificationOptions = {},
   ): string {
-    const toastId = id ?? shortid();
+    const toastId = id ?? createRandomId();
 
     getNotificationActions()?.show(message as string | React.JSX.Element, {
       type,

@@ -3,7 +3,6 @@ import "reflect-metadata";
 import { inject, optional } from "inversify";
 import decorators from "inversify-inject-decorators";
 import { useRef } from "react";
-import shortid from "shortid";
 
 import { iocContainer } from "./container";
 
@@ -25,9 +24,18 @@ export interface IInjectDecorator<T> {
 
 const { lazyInject } = decorators(iocContainer);
 
-function createInjectDecorator<TInterface>(): IInjectDecorator<TInterface> {
-  const name: string = shortid();
-
+/**
+ * `name` — стабильный строковый идентификатор сервиса для Inversify-контейнера
+ * (обычно совпадает с именем интерфейса/константы, например `"IAuthStore"`).
+ * Раньше генерировался случайно (`shortid()`) при каждом вызове — из-за этого
+ * при hot reload модуль переисполнялся, идентификатор менялся, и уже
+ * забинженные в контейнере инстансы переставали совпадать с тем, что просят
+ * потребители. Явный литерал в коде такой проблемы не имеет — при hot reload
+ * он остаётся тем же самым.
+ */
+function createInjectDecorator<TInterface>(
+  name: string,
+): IInjectDecorator<TInterface> {
   function injectDecoratorFactory(options?: IIoCDecoratorOptions) {
     return function injectDecorator(
       target: any,

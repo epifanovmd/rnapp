@@ -4,7 +4,8 @@ import { createInjectDecorator } from "@shared/lib/di";
  * Абстракция над WebRTC-примитивами (peer connection / SDP / ICE).
  * За медиапотоками — см. IMediaService (отдельная ответственность).
  */
-export const IWebRTCService = createInjectDecorator<IWebRTCService>();
+export const IWebRTCService =
+  createInjectDecorator<IWebRTCService>("IWebRTCService");
 
 export interface IWebRTCService {
   createPeerConnection(config?: RTCConfiguration): RTCPeerConnection;

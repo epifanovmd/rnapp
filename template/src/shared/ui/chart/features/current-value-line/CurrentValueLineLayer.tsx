@@ -7,68 +7,39 @@ import {
   Text,
   vec,
 } from "@shopify/react-native-skia";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
+  useAnimatedReaction,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { useChartContext } from "../../core/chart-context";
-import { LineDashType, resolveDashIntervals } from "../../core/dash-pattern";
+import type { ChartLayerComponent } from "../../core";
 import {
+  DASH_PRESETS,
+  defaultLabelFormatter,
   LABEL_GAP,
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
-} from "../../core/label-style";
-import { selectSeries, SeriesSelector } from "../../core/select-series";
-import type { ChartLayerComponent } from "../../core/types";
+  selectSeries,
+  useChartGeometry,
+  useChartSeries,
+} from "../../core";
+import type { CurrentValueLineLayerProps } from "./types";
 
-export interface CurrentValueLineLayerProps extends SeriesSelector {
-  /** Скрывает весь слой без размонтирования. */
-  visible?: boolean;
-  /** Цвет линии (и фона лейбла, если `labelBackground` не задан). */
-  color?: string;
-  /** Рисовать горизонтальную линию через текущее значение. `false` — только чип-лейбл. */
-  showLine?: boolean;
-  /** Толщина линии (px). */
-  strokeWidth?: number;
-  /** Сплошная, пунктирная или точечная линия. */
-  lineType?: LineDashType;
-  /** Свой паттерн штрихов (px); учитывается только если `lineType` не `"solid"`. */
-  dashArray?: number[];
-  /** Рисовать точку в последней точке данных серии (на конце графика). */
-  showDot?: boolean;
-  /** Радиус точки (px). */
-  dotRadius?: number;
-  /** Цвет заливки точки (по умолчанию — `color`). */
-  dotColor?: string;
-  /** Цвет обводки точки (без него обводка не рисуется). */
-  dotStrokeColor?: string;
-  /** Толщина обводки точки (px). */
-  dotStrokeWidth?: number;
-  /** Показывать чип со значением у края графика. */
-  showLabel?: boolean;
-  /** С какой стороны рисовать чип со значением. */
-  labelPosition?: "left" | "right";
-  /** Форматирует последнее значение серии для чипа. */
-  formatLabel?: (value: number) => string;
-  /** Размер шрифта чипа. */
-  labelFontSize?: number;
-  /** Шрифт чипа. */
-  labelFontFamily?: string;
-  /** Цвет фона чипа (по умолчанию — `color`). */
-  labelBackground?: string;
-  /** Цвет текста чипа. */
-  labelTextColor?: string;
-  /** Плавно анимировать линию/чип при изменении последнего значения (например, при live-обновлении данных). */
-  animate?: boolean;
-  /** Длительность анимации перехода (мс). */
-  animationDuration?: number;
+interface LastPoint {
+  x: number;
+  y: number;
+  rawY: number;
 }
 
-const defaultFormatLabel = (value: number) =>
-  Number.isInteger(value) ? String(value) : value.toFixed(2);
+const arePointsEqual = (a: LastPoint | null, b: LastPoint | null): boolean => {
+  "worklet";
+
+  return a === b || (a !== null && b !== null && a.rawY === b.rawY);
+};
 
 export const CurrentValueLineLayer: ChartLayerComponent<
   CurrentValueLineLayerProps
@@ -86,21 +57,19 @@ export const CurrentValueLineLayer: ChartLayerComponent<
   dotStrokeWidth = 2,
   showLabel = true,
   labelPosition = "right",
-  formatLabel = defaultFormatLabel,
+  formatLabel = defaultLabelFormatter,
   labelFontSize = 11,
   labelFontFamily = "System",
   labelBackground,
   labelTextColor = "#FFFFFF",
   animate = true,
   animationDuration = 250,
-  ...selector
+  seriesId,
 }) => {
-  const { series, xScale, yScale, dimensions } = useChartContext();
-  const resolvedSeries = selectSeries(series, selector)[0] ?? series[0];
-  const data = resolvedSeries?.data ?? [];
-  const lastDatum = data[data.length - 1];
+  const { seriesShared } = useChartSeries();
+  const { xScale, yScale, dimensions } = useChartGeometry();
 
-  const intervals = resolveDashIntervals(lineType, dashArray);
+  const intervals = dashArray ?? DASH_PRESETS[lineType];
   const font = useMemo(
     () => matchFont({ fontFamily: labelFontFamily, fontSize: labelFontSize }),
     [labelFontFamily, labelFontSize],
@@ -108,21 +77,58 @@ export const CurrentValueLineLayer: ChartLayerComponent<
 
   const left = dimensions.padding.left;
   const right = dimensions.width - dimensions.padding.right;
-  const targetY = lastDatum ? yScale.toRange(lastDatum.y) : 0;
-  const targetX = lastDatum ? xScale.toRange(lastDatum.x) : right;
 
-  const animatedY = useSharedValue(targetY);
-  const animatedX = useSharedValue(targetX);
+  // Последняя точка серии считается на UI-потоке из `seriesShared` — компонент
+  // не обязан re-render'иться на каждый live-тик, чтобы просто подвинуть линию/точку.
+  const lastPointDerived = useDerivedValue<LastPoint | null>(() => {
+    const matched = selectSeries(seriesShared.value, seriesId);
+    const item = matched[0] ?? seriesShared.value[0];
+    const data = item?.data ?? [];
+    const last = data[data.length - 1];
 
-  useEffect(() => {
-    animatedY.value = animate
-      ? withTiming(targetY, { duration: animationDuration })
-      : targetY;
-    animatedX.value = animate
-      ? withTiming(targetX, { duration: animationDuration })
-      : targetX;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetY, targetX, animate, animationDuration]);
+    if (!last) {
+      return null;
+    }
+
+    return {
+      x: xScale.toRange(last.x),
+      y: yScale.toRange(last.y),
+      rawY: last.y,
+    };
+  }, [seriesShared, xScale, yScale, seriesId]);
+
+  const animatedY = useSharedValue(0);
+  const animatedX = useSharedValue(0);
+
+  // Мостик в JS только для текста чипа (форматирование/измерение шрифта) — и
+  // только когда значение реально изменилось, а не на любое обновление серий.
+  const [lastPoint, setLastPoint] = useState<LastPoint | null>(
+    () => lastPointDerived.value,
+  );
+
+  useAnimatedReaction(
+    () => lastPointDerived.value,
+    (next, previous) => {
+      if (!next) {
+        return;
+      }
+
+      // Анимация позиции
+      if (previous === null || !animate) {
+        animatedX.value = next.x;
+        animatedY.value = next.y;
+      } else {
+        animatedX.value = withTiming(next.x, { duration: animationDuration });
+        animatedY.value = withTiming(next.y, { duration: animationDuration });
+      }
+
+      // Мостик в JS для чипа — только при реальном изменении
+      if (previous === null || !arePointsEqual(next, previous)) {
+        scheduleOnRN(setLastPoint, next);
+      }
+    },
+    [lastPointDerived, animate, animationDuration],
+  );
 
   const p1 = useDerivedValue(
     () => vec(left, animatedY.value),
@@ -137,7 +143,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
     [animatedX, animatedY],
   );
 
-  const text = lastDatum ? formatLabel(lastDatum.y) : "";
+  const text = lastPoint ? formatLabel(lastPoint.rawY) : "";
   const metrics = font ? font.measureText(text) : { width: 0 };
   const boxWidth = metrics.width + LABEL_PADDING_X * 2;
   const boxHeight = labelFontSize + LABEL_PADDING_Y * 2;
@@ -157,7 +163,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
     [animatedY, labelFontSize],
   );
 
-  if (!visible || !lastDatum || !font) {
+  if (!visible || !lastPoint || !font) {
     return null;
   }
 
@@ -204,5 +210,3 @@ export const CurrentValueLineLayer: ChartLayerComponent<
     </>
   );
 };
-
-CurrentValueLineLayer.layerKind = "skia";

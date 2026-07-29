@@ -16,8 +16,8 @@ export interface IChartSeries {
   id: string;
   /** Название серии (для легенды/тултипа). */
   label?: string;
-  /** Свой цвет серии; если не задан — берётся из `colors` слоя по кругу. */
-  color?: string;
+  /** Цвет серии — задаётся явно, авто-палитры по индексу нет. */
+  color: string;
   /** Точки данных серии. */
   data: ChartDatum[];
 }
@@ -59,9 +59,19 @@ export interface ChartDimensions {
   plotHeight: number;
 }
 
-/** `"skia"` — рисуется внутри `<Canvas>`; `"overlay"` — обычный RN-View поверх канваса. */
-export type ChartLayerKind = "skia" | "overlay";
+/** Слой-компонент, рендерящийся внутри `<Chart>` (как `children`) или в `overlay`. */
+export type ChartLayerComponent<P = any> = FC<P>;
 
-export type ChartLayerComponent<P = any> = FC<P> & {
-  layerKind?: ChartLayerKind;
-};
+/** Пиксельная точка (после применения `xScale`/`yScale`). */
+export interface PixelPoint {
+  x: number;
+  y: number;
+}
+
+/** Активная (ближайшая к касанию) точка одной серии — см. `Chart.onChange`. */
+export interface ActivePoint {
+  /** Серия, которой принадлежит активная точка. */
+  series: IChartSeries;
+  /** Ближайшая к касанию точка данных этой серии. */
+  datum: ChartDatum;
+}

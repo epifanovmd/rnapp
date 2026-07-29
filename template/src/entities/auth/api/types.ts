@@ -5,7 +5,8 @@ export interface RefreshResponse {
   refreshToken: string;
 }
 
-export const IAuthTokenStorage = createInjectDecorator<IAuthTokenStorage>();
+export const IAuthTokenStorage =
+  createInjectDecorator<IAuthTokenStorage>("IAuthTokenStorage");
 
 export interface IAuthTokenStorage {
   readonly accessToken: string;
@@ -17,7 +18,9 @@ export interface IAuthTokenStorage {
   clear(): void;
 }
 
-export const IAuthSessionService = createInjectDecorator<IAuthSessionService>();
+export const IAuthSessionService = createInjectDecorator<IAuthSessionService>(
+  "IAuthSessionService",
+);
 
 export interface IAuthSessionService {
   readonly accessToken: string;

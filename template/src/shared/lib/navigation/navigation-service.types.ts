@@ -3,7 +3,8 @@ import { createInjectDecorator } from "@shared/lib/di";
 
 import { ScreenName, ScreenParamList } from "./navigation.types";
 
-export const INavigationService = createInjectDecorator<INavigationService>();
+export const INavigationService =
+  createInjectDecorator<INavigationService>("INavigationService");
 
 export interface INavigationService {
   readonly history: {

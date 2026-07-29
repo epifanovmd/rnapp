@@ -16,4 +16,5 @@ export interface IAuthJwtService {
   getExpiresIn(token: string, bufferSeconds?: number): number;
 }
 
-export const IAuthJwtService = createInjectDecorator<IAuthJwtService>();
+export const IAuthJwtService =
+  createInjectDecorator<IAuthJwtService>("IAuthJwtService");

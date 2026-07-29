@@ -10,4 +10,5 @@ export interface IAuthSessionGuard {
   signOut(): void;
 }
 
-export const IAuthSessionGuard = createInjectDecorator<IAuthSessionGuard>();
+export const IAuthSessionGuard =
+  createInjectDecorator<IAuthSessionGuard>("IAuthSessionGuard");

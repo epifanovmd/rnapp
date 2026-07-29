@@ -1,12 +1,4 @@
-import React, {
-  Children,
-  FC,
-  isValidElement,
-  ReactNode,
-  useCallback,
-  useMemo,
-  useState,
-} from "react";
+import React, { FC, ReactNode, useCallback, useMemo, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
 import { useAnimatedReaction } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -15,8 +7,8 @@ import { ChartCanvas } from "./ChartCanvas";
 import { ChartProvider } from "./ChartProvider";
 import { useChartInteraction } from "./interaction/useChartInteraction";
 import {
+  ActivePoint,
   ChartDimensions,
-  ChartLayerKind,
   ChartPadding,
   IChartSeries,
 } from "./types";
@@ -28,6 +20,13 @@ const DEFAULT_PADDING: ChartPadding = {
   left: 40,
 };
 const DEFAULT_HEIGHT = 220;
+
+// Модуль-скоуп, не инлайн-дефолт параметра: инлайн `= [-8, 8]` создавал бы новый
+// массив на каждый вызов `Chart`, из-за чего `useChartInteraction` не мог бы
+// мемоизировать конфиг `usePanGesture` (см. там же) даже когда потребитель
+// вообще не передаёт эти пропы.
+const DEFAULT_PAN_ACTIVE_OFFSET_X: [number, number] = [-8, 8];
+const DEFAULT_PAN_FAIL_OFFSET_Y: [number, number] = [-8, 8];
 
 export interface ChartProps {
   /** Серии данных для отрисовки; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
@@ -64,19 +63,11 @@ export interface ChartProps {
   twoFingerEnabled?: boolean;
   /** Срабатывает при начале/окончании (первого) касания. */
   onActiveChange?: (active: boolean) => void;
-  /** Слои-компоненты — распределяются между Skia-канвасом и оверлеем по собственному `layerKind` каждого потомка. */
+  /** Срабатывает при смене активной (первое касание) точки по каждой серии; `null`, когда касание закончилось. */
+  onChange?: (points: ActivePoint[] | null) => void;
+  /** Слои графика (Grid/Line/Area/Axis/Crosshair/Marker/Tooltip/...) — все рисуются внутри канваса. */
   children?: ReactNode;
 }
-
-const layerKindOf = (node: ReactNode): ChartLayerKind => {
-  if (!isValidElement(node)) {
-    return "skia";
-  }
-
-  const kind = (node.type as { layerKind?: ChartLayerKind }).layerKind;
-
-  return kind ?? "skia";
-};
 
 export const Chart: FC<ChartProps> = ({
   series,
@@ -92,10 +83,11 @@ export const Chart: FC<ChartProps> = ({
   yReverse,
   interactive = true,
   panActivationDistance = 0,
-  panActiveOffsetX = [-8, 8],
-  panFailOffsetY = [-8, 8],
+  panActiveOffsetX = DEFAULT_PAN_ACTIVE_OFFSET_X,
+  panFailOffsetY = DEFAULT_PAN_FAIL_OFFSET_Y,
   twoFingerEnabled = true,
   onActiveChange,
+  onChange,
   children,
 }) => {
   const [measuredWidth, setMeasuredWidth] = useState(widthProp ?? 0);
@@ -135,7 +127,7 @@ export const Chart: FC<ChartProps> = ({
     twoFingerEnabled,
   });
 
-  const interactionState = useMemo(
+  const baseInteractionState = useMemo(
     () => ({
       touchX: interaction.touchX,
       touchY: interaction.touchY,
@@ -164,14 +156,6 @@ export const Chart: FC<ChartProps> = ({
     [interaction.isActive, onActiveChange],
   );
 
-  const childArray = Children.toArray(children);
-  const skiaChildren = childArray.filter(
-    child => layerKindOf(child) === "skia",
-  );
-  const overlayChildren = childArray.filter(
-    child => layerKindOf(child) === "overlay",
-  );
-
   const ready = dimensions.width > 0 && dimensions.height > 0;
 
   return (
@@ -187,13 +171,10 @@ export const Chart: FC<ChartProps> = ({
           yPaddingRatio={yPaddingRatio}
           xReverse={xReverse}
           yReverse={yReverse}
-          interaction={interactionState}
+          interaction={baseInteractionState}
+          onChange={onChange}
         >
-          <ChartCanvas
-            gesture={interaction.gesture}
-            skiaChildren={skiaChildren}
-          />
-          {overlayChildren}
+          <ChartCanvas gesture={interaction.gesture}>{children}</ChartCanvas>
         </ChartProvider>
       )}
     </View>

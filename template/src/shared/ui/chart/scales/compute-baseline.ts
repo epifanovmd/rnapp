@@ -1,4 +1,4 @@
-import type { IScale } from "../core/types";
+import type { IScale } from "../core";
 
 export const computeBaselineY = (yScale: IScale, baseline?: number): number => {
   if (baseline !== undefined) {

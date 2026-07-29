@@ -1,3 +1,5 @@
+import type { DerivedValue } from "react-native-reanimated";
+
 export type MarkerAnchor =
   /** Ближайшая точка указанной серии в домен-координате x. */
   | { kind: "series"; seriesId: string; x: number }
@@ -11,12 +13,28 @@ export interface ChartMarker {
   id: string;
   /** Где разместить маркер. */
   anchor: MarkerAnchor;
-  /** Свой цвет маркера (по умолчанию — из `colors` слоя, по кругу). */
-  color?: string;
+  /** Цвет маркера — задаётся явно, авто-палитры по индексу нет. */
+  color: string;
   /** Свой радиус маркера (по умолчанию — `defaultRadius` слоя). */
   radius?: number;
   /** Заливка кружка или только обводка. */
   style?: "fill" | "stroke";
   /** Толщина обводки (px), учитывается при `style="stroke"`. */
   strokeWidth?: number;
+}
+
+export interface MarkerCircleProps {
+  marker: ChartMarker;
+  index: number;
+  positions: DerivedValue<({ x: number; y: number } | null)[]>;
+  defaultRadius: number;
+}
+
+export interface MarkerLayerProps {
+  /** Скрывает весь слой без размонтирования. */
+  visible?: boolean;
+  /** Статичные (не следующие за пальцем) аннотации-маркеры. */
+  markers: ChartMarker[];
+  /** Радиус маркера, если он не задан в самом `ChartMarker.radius`. */
+  defaultRadius?: number;
 }

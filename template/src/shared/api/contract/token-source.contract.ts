@@ -7,4 +7,4 @@ export interface ITokenSource {
   refreshToken(): Promise<void>;
 }
 
-export const ITokenSource = createInjectDecorator<ITokenSource>();
+export const ITokenSource = createInjectDecorator<ITokenSource>("ITokenSource");

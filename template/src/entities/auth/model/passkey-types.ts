@@ -10,7 +10,8 @@ import {
 import { ApiResponse } from "@shared/api/http.types";
 import { createInjectDecorator } from "@shared/lib/di";
 
-export const IPasskeyStore = createInjectDecorator<IPasskeyStore>();
+export const IPasskeyStore =
+  createInjectDecorator<IPasskeyStore>("IPasskeyStore");
 
 export interface IPasskeyStore {
   generateRegistrationOptions(): Promise<

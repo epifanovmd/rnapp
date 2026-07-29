@@ -1,21 +1,32 @@
-import React, { FC, PropsWithChildren, useMemo } from "react";
+import React, { FC, PropsWithChildren, useEffect, useMemo } from "react";
+import { useSharedValue } from "react-native-reanimated";
 
-import { computeDomain } from "../scales/compute-domain";
-import { createLinearScale } from "../scales/createLinearScale";
 import {
-  ChartContext,
-  ChartContextValue,
-  ChartInteractionState,
-} from "./chart-context";
-import { ChartDimensions, IChartSeries } from "./types";
+  ChartActiveIndicesContext,
+  ChartActiveIndicesState,
+  ChartGeometryContext,
+  ChartGeometryContextValue,
+  ChartGestureContext,
+  ChartGestureContextValue,
+  ChartSeriesContext,
+  ChartSeriesContextValue,
+} from "./context";
+import {
+  useActivePointChange,
+  useDomain,
+  useScale,
+  useSeriesGeometry,
+} from "./hooks";
+import { useActiveIndices } from "./interaction/useActiveIndices";
+import { ActivePoint, ChartDimensions, IChartSeries } from "./types";
 
 export interface ChartProviderProps {
   /** Серии данных; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
   series: IChartSeries[];
   /** Размеры канваса и отступы рабочей области — вычисляются `<Chart>` и прокидываются сюда. */
   dimensions: ChartDimensions;
-  /** Shared values жеста (`touchX`/`touchY`/`isActive` + второе касание) — прокидываются в контекст как есть. */
-  interaction: ChartInteractionState;
+  /** Базовые shared values жеста (`touchX`/`touchY`/`isActive` + второе касание) — прокидываются в контекст как есть. */
+  interaction: ChartGestureContextValue;
   /** Фиксированный домен оси X; без него вычисляется из данных `series`. */
   xDomain?: [number, number];
   /** Фиксированный домен оси Y; без него вычисляется из данных `series`. */
@@ -30,6 +41,8 @@ export interface ChartProviderProps {
   xReverse?: boolean;
   /** Меняет местами края, на которые проецируются min/max домена Y. */
   yReverse?: boolean;
+  /** Срабатывает при смене активной (первое касание) точки по каждой серии; `null`, когда касание закончилось. */
+  onChange?: (points: ActivePoint[] | null) => void;
 }
 
 export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
@@ -43,59 +56,94 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
   yPaddingRatio,
   xReverse = false,
   yReverse = false,
+  onChange,
   children,
 }) => {
-  const resolvedXDomain = useMemo(
-    () =>
-      xDomain ?? computeDomain(series, "x", { paddingRatio: xPaddingRatio }),
-    [series, xDomain, xPaddingRatio],
+  const resolvedXDomain = useDomain(
+    series,
+    "x",
+    { paddingRatio: xPaddingRatio },
+    xDomain,
+  );
+  const resolvedYDomain = useDomain(
+    series,
+    "y",
+    { beginAtZero, paddingRatio: yPaddingRatio },
+    yDomain,
   );
 
-  const resolvedYDomain = useMemo(
-    () =>
-      yDomain ??
-      computeDomain(series, "y", { beginAtZero, paddingRatio: yPaddingRatio }),
-    [series, yDomain, beginAtZero, yPaddingRatio],
+  const xScale = useScale(resolvedXDomain, dimensions, "x", xReverse);
+  const yScale = useScale(resolvedYDomain, dimensions, "y", yReverse);
+
+  const seriesShared = useSharedValue(series);
+
+  useEffect(() => {
+    seriesShared.value = series;
+  }, [series, seriesShared]);
+
+  const geometry = useSeriesGeometry(seriesShared, xScale, yScale);
+
+  const active1 = useActiveIndices(
+    seriesShared,
+    xScale,
+    interaction.touchX,
+    interaction.isActive,
+  );
+  const active2 = useActiveIndices(
+    seriesShared,
+    xScale,
+    interaction.touchX2,
+    interaction.isSecondActive,
   );
 
-  const xScale = useMemo(() => {
-    const left = dimensions.padding.left;
-    const right = dimensions.width - dimensions.padding.right;
+  useActivePointChange(active1.indices, series, onChange);
 
-    return createLinearScale({
-      domain: resolvedXDomain,
-      range: xReverse ? [right, left] : [left, right],
-    });
-  }, [
-    resolvedXDomain,
-    dimensions.width,
-    dimensions.padding.left,
-    dimensions.padding.right,
-    xReverse,
-  ]);
+  const geometryValue = useMemo<ChartGeometryContextValue>(
+    () => ({ dimensions, xScale, yScale }),
+    [dimensions, xScale, yScale],
+  );
 
-  const yScale = useMemo(() => {
-    const top = dimensions.padding.top;
-    const bottom = dimensions.height - dimensions.padding.bottom;
+  const seriesValue = useMemo<ChartSeriesContextValue>(
+    () => ({ series, seriesShared, geometry }),
+    [series, seriesShared, geometry],
+  );
 
-    return createLinearScale({
-      domain: resolvedYDomain,
-      range: yReverse ? [top, bottom] : [bottom, top],
-    });
-  }, [
-    resolvedYDomain,
-    dimensions.height,
-    dimensions.padding.top,
-    dimensions.padding.bottom,
-    yReverse,
-  ]);
+  const gestureValue = useMemo<ChartGestureContextValue>(
+    () => ({
+      touchX: interaction.touchX,
+      touchY: interaction.touchY,
+      isActive: interaction.isActive,
+      touchX2: interaction.touchX2,
+      touchY2: interaction.touchY2,
+      isSecondActive: interaction.isSecondActive,
+    }),
+    [
+      interaction.touchX,
+      interaction.touchY,
+      interaction.isActive,
+      interaction.touchX2,
+      interaction.touchY2,
+      interaction.isSecondActive,
+    ],
+  );
 
-  const value = useMemo<ChartContextValue>(
-    () => ({ dimensions, xScale, yScale, series, interaction }),
-    [dimensions, xScale, yScale, series, interaction],
+  const activeIndicesValue = useMemo<ChartActiveIndicesState>(
+    () => ({
+      activeIndices: active1.indices,
+      activeIndices2: active2.indices,
+    }),
+    [active1.indices, active2.indices],
   );
 
   return (
-    <ChartContext.Provider value={value}>{children}</ChartContext.Provider>
+    <ChartGeometryContext.Provider value={geometryValue}>
+      <ChartSeriesContext.Provider value={seriesValue}>
+        <ChartGestureContext.Provider value={gestureValue}>
+          <ChartActiveIndicesContext.Provider value={activeIndicesValue}>
+            {children}
+          </ChartActiveIndicesContext.Provider>
+        </ChartGestureContext.Provider>
+      </ChartSeriesContext.Provider>
+    </ChartGeometryContext.Provider>
   );
 };

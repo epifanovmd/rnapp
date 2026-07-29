@@ -9,6 +9,7 @@ export * from "./lambda-value";
 export * from "./noop";
 export * from "./pluralize";
 export * from "./pluralize-helper";
+export * from "./random-id";
 export * from "./regex";
 export * from "./string";
 export * from "./timeout-manager";

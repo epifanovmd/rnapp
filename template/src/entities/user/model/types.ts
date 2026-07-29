@@ -15,7 +15,7 @@ import { IEntityHolderResult, IHolderError } from "@shared/lib/holders";
 import { ProfileModel } from "./profile-model";
 import { UserModel } from "./user-model";
 
-export const IUserStore = createInjectDecorator<IUserStore>();
+export const IUserStore = createInjectDecorator<IUserStore>("IUserStore");
 
 /**
  * Доменный стор **текущего пользователя**: профиль, роли и эффективные
@@ -79,7 +79,8 @@ export interface IUserStore {
   deleteMyAccount(): Promise<void>;
 }
 
-export const IUserRealtime = createInjectDecorator<IUserRealtime>();
+export const IUserRealtime =
+  createInjectDecorator<IUserRealtime>("IUserRealtime");
 
 /**
  * Realtime-мост: подписывается на socket-события текущего пользователя и

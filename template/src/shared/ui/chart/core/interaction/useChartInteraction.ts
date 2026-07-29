@@ -1,4 +1,5 @@
-import { usePanGesture } from "react-native-gesture-handler";
+import { useCallback, useMemo } from "react";
+import { TouchData, usePanGesture } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
 
 import type { ChartDimensions } from "../types";
@@ -11,6 +12,8 @@ export interface ChartInteractionOptions {
   twoFingerEnabled?: boolean;
 }
 
+export type ChartGesture = ReturnType<typeof usePanGesture>;
+
 export interface ChartInteraction {
   touchX: ReturnType<typeof useSharedValue<number>>;
   touchY: ReturnType<typeof useSharedValue<number>>;
@@ -18,8 +21,10 @@ export interface ChartInteraction {
   touchX2: ReturnType<typeof useSharedValue<number>>;
   touchY2: ReturnType<typeof useSharedValue<number>>;
   isSecondActive: ReturnType<typeof useSharedValue<boolean>>;
-  gesture: ReturnType<typeof usePanGesture>;
+  gesture: ChartGesture;
 }
+
+const NO_TOUCH = -1;
 
 export const useChartInteraction = (
   dimensions: ChartDimensions,
@@ -40,36 +45,157 @@ export const useChartInteraction = (
   const touchY2 = useSharedValue(0);
   const isSecondActive = useSharedValue(false);
 
-  const { padding, width, height } = dimensions;
-  const minX = padding.left;
-  const maxX = Math.max(width - padding.right, minX);
-  const minY = padding.top;
-  const maxY = Math.max(height - padding.bottom, minY);
+  const primaryTouchId = useSharedValue(NO_TOUCH);
+  const secondaryTouchId = useSharedValue(NO_TOUCH);
 
-  const applyTouches = (touches: { x: number; y: number }[]) => {
+  const { padding, width, height } = dimensions;
+
+  const bounds = useMemo(() => {
+    const minX = padding.left;
+    const minY = padding.top;
+
+    return {
+      minX,
+      maxX: Math.max(width - padding.right, minX),
+      minY,
+      maxY: Math.max(height - padding.bottom, minY),
+    };
+  }, [padding.left, padding.right, padding.top, padding.bottom, width, height]);
+
+  const resetSlots = useCallback(() => {
     "worklet";
 
-    if (touches.length === 0) {
-      isActive.value = false;
-      isSecondActive.value = false;
+    primaryTouchId.value = NO_TOUCH;
+    secondaryTouchId.value = NO_TOUCH;
+    isActive.value = false;
+    isSecondActive.value = false;
+  }, [primaryTouchId, secondaryTouchId, isActive, isSecondActive]);
 
-      return;
-    }
+  const assignTouches = useCallback(
+    (addedTouches: TouchData[]) => {
+      "worklet";
 
-    const [first, second] = touches;
+      for (const touch of addedTouches) {
+        if (
+          touch.id === primaryTouchId.value ||
+          touch.id === secondaryTouchId.value
+        ) {
+          continue;
+        }
 
-    touchX.value = Math.min(Math.max(first.x, minX), maxX);
-    touchY.value = Math.min(Math.max(first.y, minY), maxY);
-    isActive.value = true;
+        if (primaryTouchId.value === NO_TOUCH) {
+          primaryTouchId.value = touch.id;
+        } else if (secondaryTouchId.value === NO_TOUCH) {
+          secondaryTouchId.value = touch.id;
+        }
+      }
+    },
+    [primaryTouchId, secondaryTouchId],
+  );
 
-    if (second) {
-      touchX2.value = Math.min(Math.max(second.x, minX), maxX);
-      touchY2.value = Math.min(Math.max(second.y, minY), maxY);
-      isSecondActive.value = true;
-    } else {
-      isSecondActive.value = false;
-    }
-  };
+  const releaseTouches = useCallback(
+    (removedTouches: TouchData[]) => {
+      "worklet";
+
+      for (const touch of removedTouches) {
+        if (touch.id === primaryTouchId.value) {
+          primaryTouchId.value = NO_TOUCH;
+        } else if (touch.id === secondaryTouchId.value) {
+          secondaryTouchId.value = NO_TOUCH;
+        }
+      }
+
+      if (
+        primaryTouchId.value === NO_TOUCH &&
+        secondaryTouchId.value !== NO_TOUCH
+      ) {
+        primaryTouchId.value = secondaryTouchId.value;
+        secondaryTouchId.value = NO_TOUCH;
+      }
+    },
+    [primaryTouchId, secondaryTouchId],
+  );
+
+  const applyPositions = useCallback(
+    (touches: TouchData[]) => {
+      "worklet";
+
+      const primaryTouch = touches.find(
+        touch => touch.id === primaryTouchId.value,
+      );
+      const secondaryTouch = touches.find(
+        touch => touch.id === secondaryTouchId.value,
+      );
+
+      if (primaryTouch) {
+        touchX.value = Math.min(
+          Math.max(primaryTouch.x, bounds.minX),
+          bounds.maxX,
+        );
+        touchY.value = Math.min(
+          Math.max(primaryTouch.y, bounds.minY),
+          bounds.maxY,
+        );
+        isActive.value = true;
+      } else {
+        isActive.value = false;
+      }
+
+      if (secondaryTouch) {
+        touchX2.value = Math.min(
+          Math.max(secondaryTouch.x, bounds.minX),
+          bounds.maxX,
+        );
+        touchY2.value = Math.min(
+          Math.max(secondaryTouch.y, bounds.minY),
+          bounds.maxY,
+        );
+        isSecondActive.value = true;
+      } else {
+        isSecondActive.value = false;
+      }
+    },
+    [
+      primaryTouchId,
+      secondaryTouchId,
+      touchX,
+      touchY,
+      touchX2,
+      touchY2,
+      isActive,
+      isSecondActive,
+      bounds,
+    ],
+  );
+
+  const onTouchesDown = useCallback(
+    (event: { changedTouches: TouchData[]; allTouches: TouchData[] }) => {
+      "worklet";
+
+      assignTouches(event.changedTouches);
+      applyPositions(event.allTouches);
+    },
+    [assignTouches, applyPositions],
+  );
+
+  const onTouchesMove = useCallback(
+    (event: { allTouches: TouchData[] }) => {
+      "worklet";
+
+      applyPositions(event.allTouches);
+    },
+    [applyPositions],
+  );
+
+  const onTouchesUp = useCallback(
+    (event: { changedTouches: TouchData[]; allTouches: TouchData[] }) => {
+      "worklet";
+
+      releaseTouches(event.changedTouches);
+      applyPositions(event.allTouches);
+    },
+    [releaseTouches, applyPositions],
+  );
 
   const useDirectionalOffsets =
     activeOffsetX !== undefined || failOffsetY !== undefined;
@@ -81,23 +207,11 @@ export const useChartInteraction = (
     minDistance: useDirectionalOffsets ? undefined : minDistance,
     activeOffsetX: useDirectionalOffsets ? activeOffsetX : undefined,
     failOffsetY: useDirectionalOffsets ? failOffsetY : undefined,
-    onTouchesDown: event => {
-      applyTouches(event.allTouches);
-    },
-    onTouchesMove: event => {
-      applyTouches(event.allTouches);
-    },
-    onTouchesUp: event => {
-      applyTouches(event.allTouches);
-    },
-    onTouchesCancel: () => {
-      isActive.value = false;
-      isSecondActive.value = false;
-    },
-    onFinalize: () => {
-      isActive.value = false;
-      isSecondActive.value = false;
-    },
+    onTouchesDown,
+    onTouchesMove,
+    onTouchesUp,
+    onTouchesCancel: resetSlots,
+    onFinalize: resetSlots,
   });
 
   return {

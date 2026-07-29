@@ -15,6 +15,8 @@ import { webrtcModule } from "@shared/lib/webrtc/webrtc.module";
 import { appDataModule } from "./app-data.module";
 
 export const registerContainerModules = (): void => {
+  iocContainer.unbindAll();
+
   iocContainer.load(
     apiModule,
     authModule,

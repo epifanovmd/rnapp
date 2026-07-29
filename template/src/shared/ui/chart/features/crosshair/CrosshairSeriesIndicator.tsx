@@ -1,128 +1,100 @@
 import { Circle, DashPathEffect, Line, vec } from "@shopify/react-native-skia";
-import React, { FC } from "react";
-import { SharedValue, useDerivedValue } from "react-native-reanimated";
+import React, { FC, useState } from "react";
+import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
-import { findNearestIndex } from "../../core/interaction/nearest-point";
-import { useAnimatedSyncedState } from "../../core/interaction/useAnimatedSyncedState";
-import type { SkFont } from "../../core/label-style";
-import type { IChartSeries, IScale } from "../../core/types";
 import { CrosshairYLabel } from "./CrosshairYLabel";
+import type { CrosshairSeriesIndicatorProps } from "./types";
 
-export interface CrosshairSeriesIndicatorProps {
-  series: IChartSeries;
-  color: string;
-  xScale: IScale;
-  yScale: IScale;
-  touchX: SharedValue<number>;
-  radius: number;
-  strokeWidth: number;
-  dashIntervals?: number[];
-  left: number;
-  right: number;
-  canvasWidth: number;
-  showMarker: boolean;
-  showHorizontalLine: boolean;
-  showLabel: boolean;
-  labelPosition: "left" | "right";
-  labelFormatter: (value: number, series: IChartSeries) => string;
-  font: SkFont;
-  fontSize: number;
-  labelBackground: string;
-  labelTextColor: string;
-}
+export const CrosshairSeriesIndicator = React.memo(
+  ({
+    series,
+    seriesIndex,
+    activeIndices,
+    geometry,
+    color,
+    radius,
+    strokeWidth,
+    dashIntervals,
+    left,
+    right,
+    canvasWidth,
+    showMarker,
+    showHorizontalLine,
+    showLabel,
+    labelPosition,
+    labelFormatter,
+    font,
+    fontSize,
+    labelBackground,
+    labelTextColor,
+  }: CrosshairSeriesIndicatorProps) => {
+    const point = useDerivedValue(() => {
+      const index = activeIndices.value[seriesIndex] ?? -1;
+      const points = geometry.value[series.id];
+      const target = index >= 0 ? points?.[index] : undefined;
 
-export const CrosshairSeriesIndicator: FC<CrosshairSeriesIndicatorProps> = ({
-  series,
-  color,
-  xScale,
-  yScale,
-  touchX,
-  radius,
-  strokeWidth,
-  dashIntervals,
-  left,
-  right,
-  canvasWidth,
-  showMarker,
-  showHorizontalLine,
-  showLabel,
-  labelPosition,
-  labelFormatter,
-  font,
-  fontSize,
-  labelBackground,
-  labelTextColor,
-}) => {
-  const point = useDerivedValue(() => {
-    if (series.data.length === 0) {
-      return vec(0, 0);
-    }
+      return target ? vec(target.x, target.y) : vec(0, 0);
+    }, [activeIndices, geometry, seriesIndex, series.id]);
 
-    const index = findNearestIndex(xScale, series.data, touchX.value);
-
-    if (index < 0) {
-      return vec(0, 0);
-    }
-
-    return vec(
-      xScale.toRange(series.data[index].x),
-      yScale.toRange(series.data[index].y),
+    const horizontalP1 = useDerivedValue(
+      () => vec(left, point.value.y),
+      [point, left],
     );
-  }, [series, xScale, yScale, touchX]);
 
-  const horizontalP1 = useDerivedValue(
-    () => vec(left, point.value.y),
-    [point, left],
-  );
+    const horizontalP2 = useDerivedValue(
+      () => vec(right, point.value.y),
+      [point, right],
+    );
 
-  const horizontalP2 = useDerivedValue(
-    () => vec(right, point.value.y),
-    [point, right],
-  );
+    // Y-лейблу нужен JS-текст только по своей серии — мирим напрямую из
+    // `activeIndices` по своему `seriesIndex`, локально для этого компонента.
+    const [activeIndexJS, setActiveIndexJS] = useState(
+      () => activeIndices.value[seriesIndex] ?? -1,
+    );
 
-  const activeIndex = useAnimatedSyncedState(
-    () => {
-      "worklet";
+    useAnimatedReaction(
+      () => activeIndices.value[seriesIndex] ?? -1,
+      (next, previous) => {
+        if (next !== previous) {
+          scheduleOnRN(setActiveIndexJS, next);
+        }
+      },
+      [activeIndices, seriesIndex],
+    );
 
-      return series.data.length === 0
-        ? -1
-        : findNearestIndex(xScale, series.data, touchX.value);
-    },
-    [series, xScale, touchX],
-    -1,
-  );
+    const labelText =
+      showLabel && activeIndexJS >= 0 && series.data[activeIndexJS]
+        ? labelFormatter(series.data[activeIndexJS].y, series)
+        : "";
 
-  const labelText =
-    showLabel && activeIndex >= 0
-      ? labelFormatter(series.data[activeIndex].y, series)
-      : "";
-
-  return (
-    <>
-      {showHorizontalLine && (
-        <Line
-          p1={horizontalP1}
-          p2={horizontalP2}
-          color={color}
-          strokeWidth={strokeWidth}
-        >
-          {dashIntervals && <DashPathEffect intervals={dashIntervals} />}
-        </Line>
-      )}
-      {showMarker && <Circle c={point} r={radius} color={color} />}
-      {showLabel && labelText !== "" && (
-        <CrosshairYLabel
-          anchorPoint={point}
-          edgeX={labelPosition === "right" ? right : left}
-          canvasWidth={canvasWidth}
-          position={labelPosition}
-          text={labelText}
-          font={font}
-          fontSize={fontSize}
-          background={labelBackground}
-          textColor={labelTextColor}
-        />
-      )}
-    </>
-  );
-};
+    return (
+      <>
+        {showHorizontalLine && (
+          <Line
+            p1={horizontalP1}
+            p2={horizontalP2}
+            color={color}
+            strokeWidth={strokeWidth}
+          >
+            {dashIntervals && <DashPathEffect intervals={dashIntervals} />}
+          </Line>
+        )}
+        {showMarker && <Circle c={point} r={radius} color={color} />}
+        {showLabel && labelText !== "" && (
+          <CrosshairYLabel
+            anchorPoint={point}
+            edgeX={labelPosition === "right" ? right : left}
+            canvasWidth={canvasWidth}
+            position={labelPosition}
+            text={labelText}
+            font={font}
+            fontSize={fontSize}
+            background={labelBackground}
+            textColor={labelTextColor}
+          />
+        )}
+      </>
+    );
+  },
+);

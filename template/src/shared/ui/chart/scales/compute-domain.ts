@@ -1,4 +1,4 @@
-import type { ChartDatum, IChartSeries } from "../core/types";
+import type { ChartDatum, IChartSeries } from "../core";
 
 export interface ComputeDomainOptions {
   beginAtZero?: boolean;

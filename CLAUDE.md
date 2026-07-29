@@ -20,8 +20,6 @@ the scaffolding tool, not the app itself).
 - `.claude/memory/project_patterns.md` — паттерны создания stores, компонентов, форм
 - `.claude/memory/project_build.md` — команды, multi-env, native build notes
 - `.claude/memory/project_aliases.md` — path aliases
-- `.claude/memory/project_charts.md` — Skia+Reanimated charting core (`shared/ui/chart`): слои, фичи,
-  как добавлять новые графики/фичи
 
 ## Stack
 

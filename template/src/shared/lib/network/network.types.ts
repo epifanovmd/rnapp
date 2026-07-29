@@ -5,7 +5,7 @@ import { createInjectDecorator } from "@shared/lib/di";
  * Web: navigator.onLine + window "online"/"offline". React Native: NetInfo.
  */
 export const INetworkStatusService =
-  createInjectDecorator<INetworkStatusService>();
+  createInjectDecorator<INetworkStatusService>("INetworkStatusService");
 
 export interface INetworkStatusService {
   readonly isOnline: boolean;

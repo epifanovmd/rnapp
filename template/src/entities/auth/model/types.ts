@@ -12,7 +12,7 @@ export enum AuthStatus {
   Unauthenticated = "unauthenticated",
 }
 
-export const IAuthStore = createInjectDecorator<IAuthStore>();
+export const IAuthStore = createInjectDecorator<IAuthStore>("IAuthStore");
 
 /**
  * Стор аутентификации и сессии. Доменные данные пользователя (профиль, роли,

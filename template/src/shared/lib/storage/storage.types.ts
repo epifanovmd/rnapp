@@ -11,4 +11,5 @@ export interface IStorageService {
   getAllKeys(): string[];
 }
 
-export const IStorageService = createInjectDecorator<IStorageService>();
+export const IStorageService =
+  createInjectDecorator<IStorageService>("IStorageService");

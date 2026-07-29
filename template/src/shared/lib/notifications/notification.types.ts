@@ -13,8 +13,9 @@ export interface PromiseMessages<T> {
   error: string | ((error: unknown) => string);
 }
 
-export const INotificationService =
-  createInjectDecorator<INotificationService>();
+export const INotificationService = createInjectDecorator<INotificationService>(
+  "INotificationService",
+);
 
 export interface INotificationService {
   success(message: React.ReactNode, options?: NotificationOptions): string;

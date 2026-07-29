@@ -2,28 +2,25 @@ import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import { Container, Content, ScrollView, Text } from "@shared/ui";
 import {
-  ActivePointListener,
-  ActiveTooltipPoint,
+  ActivePoint,
   AreaLayer,
-  AxisLayer,
-  BarLayer,
+  AxisLayerX,
+  AxisLayerY,
   Chart,
+  ChartMarker,
   CrosshairLayer,
   CurrentValueLineLayer,
   GridLayer,
   IChartSeries,
-  Legend,
   LineLayer,
   MarkerLayer,
-  ReferenceLineLayer,
-  ScatterLayer,
   TooltipLayer,
-  TrendIndicator,
 } from "@shared/ui/chart";
 import { observer } from "mobx-react-lite";
 import React, {
   FC,
   PropsWithChildren,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -32,23 +29,29 @@ import { StyleSheet, View } from "react-native";
 
 import {
   createInitialLivePriceData,
-  DAILY_ACTIVE_USERS,
-  nextLivePriceData,
-  ORDER_VALUES,
   REVENUE_VS_EXPENSES,
-  TEMPERATURE_TREND,
-  WEEKLY_SALES,
 } from "./chart-mock-data";
 
 interface IProps extends StackProps {}
 
-const peakTemperature = TEMPERATURE_TREND[0].data.reduce((best, datum) =>
+const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
   datum.y > best.y ? datum : best,
 );
 
-const averageOrderValue =
-  ORDER_VALUES[0].data.reduce((sum, datum) => sum + datum.y, 0) /
-  ORDER_VALUES[0].data.length;
+// Модуль-скоуп: не зависят от пропсов/состояния компонента, поэтому не нужно
+// пересоздавать их на каждый рендер через useCallback — уже стабильны сами по себе.
+const formatMonthLabel = (value: number) =>
+  REVENUE_VS_EXPENSES[0].data[Math.round(value)]?.label ?? "";
+
+const formatTooltipRow = (point: {
+  series: { label?: string };
+  datum: { y: number };
+}) => `${point.series.label}: ${point.datum.y}`;
+
+const formatActivePoints = (points: ActivePoint[] | null) =>
+  points
+    ? points.map(point => `${point.series.label}: ${point.datum.y}`).join(" · ")
+    : "Drag over the chart";
 
 const ChartCard: FC<
   PropsWithChildren<{ title: string; description?: string }>
@@ -68,30 +71,9 @@ const ChartCard: FC<
   );
 };
 
-const CustomTooltipContent: FC<{ points: ActiveTooltipPoint[] }> = ({
-  points,
-}) => {
-  const point = points[0];
-
-  if (!point) {
-    return null;
-  }
-
-  return (
-    <View style={[styles.customTooltip, { backgroundColor: point.color }]}>
-      <Text textStyle={"Body_S1"} color={"white"}>
-        {point.datum.label ?? point.datum.y}
-      </Text>
-    </View>
-  );
-};
-
 export const Charts: FC<IProps> = observer(() => {
   const { colors } = useTheme();
   const [touchStatus, setTouchStatus] = useState("Not touching");
-  const [selectedBar, setSelectedBar] = useState("No bar selected");
-  const [selectedOrder, setSelectedOrder] = useState("No point selected");
-  const [selectedMarker, setSelectedMarker] = useState("No marker selected");
   const [activePointLabel, setActivePointLabel] = useState(
     "Drag over the chart",
   );
@@ -100,11 +82,11 @@ export const Charts: FC<IProps> = observer(() => {
   );
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLivePriceData(previous => nextLivePriceData(previous));
-    }, 500);
-
-    return () => clearInterval(interval);
+    // const interval = setInterval(() => {
+    //   setLivePriceData(previous => nextLivePriceData(previous));
+    // }, 500);
+    //
+    // return () => clearInterval(interval);
   }, []);
 
   const livePriceSeries: IChartSeries[] = useMemo(
@@ -119,12 +101,45 @@ export const Charts: FC<IProps> = observer(() => {
     [livePriceData, colors.blue500],
   );
 
-  const seriesColors = [
-    colors.blue500,
-    colors.green500,
-    colors.orange500,
-    colors.red500,
-  ];
+  const trendColors = useMemo(
+    () => ({
+      up: colors.green500,
+      down: colors.red500,
+      flat: colors.textTertiary,
+    }),
+    [colors.green500, colors.red500, colors.textTertiary],
+  );
+
+  const revenueMarkers: ChartMarker[] = useMemo(
+    () => [
+      {
+        id: "peak",
+        anchor: { kind: "series", seriesId: "revenue", x: peakRevenue.x },
+        color: colors.red500,
+        radius: 6,
+      },
+      {
+        id: "note",
+        anchor: { kind: "pixel", x: 44, y: 28 },
+        color: colors.orange500,
+        radius: 5,
+        style: "stroke",
+        strokeWidth: 2,
+      },
+    ],
+    [colors.red500, colors.orange500],
+  );
+
+  const handleActiveChange = useCallback(
+    (active: boolean) => setTouchStatus(active ? "Touching" : "Not touching"),
+    [],
+  );
+
+  const handleActivePointsChange = useCallback(
+    (points: ActivePoint[] | null) =>
+      setActivePointLabel(formatActivePoints(points)),
+    [],
+  );
 
   return (
     <Container edges={[]}>
@@ -138,36 +153,26 @@ export const Charts: FC<IProps> = observer(() => {
             charting core (`@shared/ui/chart`).
           </Text>
 
-          <ChartCard
-            title={"Live — Price ticker"}
-            description={
-              "Simulated real-time price feed. Line/area colored by overall trend, dashed line + chip track the current price live, badge in the corner shows overall trend."
-            }
-          >
+          <ChartCard title={"Live — Price ticker"}>
             <Chart series={livePriceSeries} height={200} yPaddingRatio={0.2}>
               <GridLayer color={colors.slate200} />
               <AreaLayer
                 curve={"smooth"}
                 opacity={0.15}
                 colorByTrend
-                upColor={colors.green500}
-                downColor={colors.red500}
-                neutralColor={colors.textTertiary}
+                trendColors={trendColors}
               />
               <LineLayer
                 curve={"smooth"}
                 strokeWidth={2}
                 colorByTrend
-                upColor={colors.green500}
-                downColor={colors.red500}
-                neutralColor={colors.textTertiary}
+                trendColors={trendColors}
                 showEndDot
                 endDotRadius={5}
                 endDotStrokeColor={colors.onSurface}
                 endDotStrokeWidth={2}
               />
-              <AxisLayer
-                orientation={"y"}
+              <AxisLayerY
                 tickCount={4}
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
@@ -177,217 +182,66 @@ export const Charts: FC<IProps> = observer(() => {
                 labelTextColor={colors.white}
                 labelPosition={"left"}
               />
-              <TrendIndicator
-                upColor={colors.green500}
-                downColor={colors.red500}
-                neutralColor={colors.textTertiary}
-              />
               <CrosshairLayer color={colors.slate400} />
               <TooltipLayer />
             </Chart>
           </ChartCard>
 
-          <ChartCard
-            title={"Line — Daily active users"}
-            description={`Custom tooltip + onActiveChange event. ${touchStatus}`}
-          >
+          <ChartCard title={"Full-featured — Revenue vs expenses"}>
             <Chart
-              series={DAILY_ACTIVE_USERS}
-              height={200}
-              onActiveChange={active =>
-                setTouchStatus(active ? "Touching" : "Not touching")
-              }
+              series={REVENUE_VS_EXPENSES}
+              height={260}
+              padding={{ top: 40, left: 16, right: 56 }}
+              onActiveChange={handleActiveChange}
+              onChange={handleActivePointsChange}
             >
               <GridLayer color={colors.slate200} />
+              <AreaLayer curve={"smooth"} opacity={0.15} />
               <LineLayer
                 curve={"smooth"}
-                strokeWidth={1}
-                colors={seriesColors}
+                strokeWidth={2}
+                showEndDot
+                endDotRadius={5}
+                endDotStrokeColor={colors.onSurface}
+                endDotStrokeWidth={2}
               />
-              <AxisLayer
-                orientation={"y"}
-                tickCount={5}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
-              />
-              <CrosshairLayer color={colors.slate400} colors={seriesColors} />
-              <TooltipLayer
-                renderContent={points => (
-                  <CustomTooltipContent points={points} />
-                )}
-              />
-            </Chart>
-          </ChartCard>
-
-          <ChartCard
-            title={"Area + Line — Revenue vs expenses"}
-            description={"Two series; y-axis drawn on the right this time."}
-          >
-            <Legend
-              series={REVENUE_VS_EXPENSES}
-              textColor={colors.textSecondary}
-            />
-            <Chart
-              series={REVENUE_VS_EXPENSES}
-              height={220}
-              padding={{ left: 16, right: 48 }}
-            >
-              <GridLayer color={colors.slate200} />
-              <AreaLayer curve={"smooth"} />
-              <LineLayer curve={"smooth"} strokeWidth={2} />
-              <AxisLayer
-                orientation={"y"}
+              <AxisLayerY
                 tickCount={4}
                 position={"right"}
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
               />
-              <AxisLayer
-                orientation={"x"}
+              <AxisLayerX
                 tickCount={5}
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
-                formatLabel={value =>
-                  REVENUE_VS_EXPENSES[0].data[Math.round(value)]?.label ?? ""
-                }
+                formatLabel={formatMonthLabel}
               />
-              <CrosshairLayer color={colors.slate400} />
-              <TooltipLayer />
-            </Chart>
-          </ChartCard>
-
-          <ChartCard
-            title={"Bar — Weekly sales by channel"}
-            description={`Grouped bars, one band per week. Tap a bar. ${selectedBar}`}
-          >
-            <Legend series={WEEKLY_SALES} textColor={colors.textSecondary} />
-            <Chart series={WEEKLY_SALES} height={200} beginAtZero>
-              <GridLayer
-                showXLines={false}
-                lineType={"dashed"}
-                color={colors.slate200}
-              />
-              <BarLayer
-                borderColor={colors.onSurface}
-                borderWidth={1}
-                onBarPress={({ seriesId, datum }) =>
-                  setSelectedBar(`${seriesId}: ${datum.label} = ${datum.y}`)
-                }
-              />
-              <AxisLayer
-                orientation={"y"}
-                tickCount={4}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
-              />
-              <CrosshairLayer showMarkers={false} color={colors.slate400} />
-              <TooltipLayer />
-            </Chart>
-          </ChartCard>
-
-          <ChartCard
-            title={"Scatter + reference line — Order values"}
-            description={`Tap a point to select it. ${selectedOrder}`}
-          >
-            <Chart series={ORDER_VALUES} height={200} yPaddingRatio={0.15}>
-              <GridLayer color={colors.slate200} />
-              <ReferenceLineLayer
-                axis={"y"}
-                value={averageOrderValue}
-                color={colors.red500}
-                label={"avg"}
-                labelColor={colors.red500}
-              />
-              <ScatterLayer
-                radius={5}
-                onPointPress={({ datum }) =>
-                  setSelectedOrder(`${datum.label}: $${datum.y}`)
-                }
-              />
-              <AxisLayer
-                orientation={"y"}
-                tickCount={4}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
-              />
-              <TooltipLayer />
-            </Chart>
-          </ChartCard>
-
-          <ChartCard
-            title={"Full-featured — Temperature trend"}
-            description={`Grid, axes, crosshair with value chips on the opposite edge from each axis, markers, active-point listener and tooltip together. Drag with two fingers for a second (orange) crosshair to compare points. ${activePointLabel} ${selectedMarker}`}
-          >
-            <Chart
-              series={TEMPERATURE_TREND}
-              height={220}
-              padding={{ top: 40, right: 56 }}
-            >
-              <GridLayer color={colors.slate200} />
-              <AreaLayer curve={"smooth"} opacity={0.18} />
-              <LineLayer curve={"smooth"} strokeWidth={2.5} />
-              <AxisLayer
-                orientation={"y"}
-                tickCount={4}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
-                formatLabel={v => `${v}°`}
-              />
-              <AxisLayer
-                orientation={"x"}
-                tickCount={4}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
-                formatLabel={value =>
-                  TEMPERATURE_TREND[0].data[Math.round(value)]?.label ?? ""
-                }
-              />
-              <MarkerLayer
-                markers={[
-                  {
-                    id: "peak",
-                    anchor: {
-                      kind: "series",
-                      seriesId: "temperature",
-                      x: peakTemperature.x / 2,
-                    },
-                    color: colors.red500,
-                    radius: 6,
-                  },
-                  {
-                    id: "note",
-                    anchor: { kind: "pixel", x: 44, y: 28 },
-                    color: colors.orange500,
-                    radius: 5,
-                    style: "stroke",
-                    strokeWidth: 2,
-                  },
-                ]}
-                onMarkerPress={marker =>
-                  setSelectedMarker(`Marker: ${marker.id}`)
-                }
-              />
+              <MarkerLayer markers={revenueMarkers} />
               <CrosshairLayer
+                color={colors.slate400}
                 showXLabel
-                xLabelPosition={"bottom"}
-                xLabelFormatter={value =>
-                  TEMPERATURE_TREND[0].data[Math.round(value)]?.label ?? ""
-                }
+                xLabelPosition={"top"}
+                xLabelFormatter={formatMonthLabel}
                 showYLabels
                 yLabelPosition={"left"}
-                yLabelFormatter={value => `${value.toFixed(1)}°`}
                 secondLineColor={colors.orange500}
               />
-              <ActivePointListener
-                onChange={points =>
-                  setActivePointLabel(
-                    points
-                      ? `${points[0].datum.label}: ${points[0].datum.y.toFixed(1)}°`
-                      : "Drag over the chart",
-                  )
-                }
+              <CurrentValueLineLayer
+                seriesId="revenue"
+                color={colors.green500}
+                labelPosition="left"
               />
-              <TooltipLayer anchorToPoint side={"bottom"} />
+              <CurrentValueLineLayer
+                seriesId="expenses"
+                color={colors.red500}
+                labelPosition="left"
+              />
+              <TooltipLayer
+                anchorToPoint
+                side={"bottom"}
+                formatRow={formatTooltipRow}
+              />
             </Chart>
           </ChartCard>
         </Content>
@@ -401,10 +255,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 16,
-  },
-  customTooltip: {
-    borderRadius: 999,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
   },
 });

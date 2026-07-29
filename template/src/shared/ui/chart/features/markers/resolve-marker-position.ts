@@ -1,20 +1,27 @@
-import type { ChartDatum, IChartSeries, IScale } from "../../core/types";
+import type { ChartDatum, IChartSeries, IScale } from "../../core";
 import type { MarkerAnchor } from "./types";
 
 const findNearestIndexByDomainX = (data: ChartDatum[], x: number): number => {
-  let nearestIndex = -1;
-  let nearestDistance = Infinity;
+  "worklet";
 
-  for (let index = 0; index < data.length; index++) {
-    const distance = Math.abs(data[index].x - x);
+  let low = 0;
+  let high = data.length - 1;
 
-    if (distance < nearestDistance) {
-      nearestDistance = distance;
-      nearestIndex = index;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+
+    if (data[mid].x < x) {
+      low = mid + 1;
+    } else {
+      high = mid;
     }
   }
 
-  return nearestIndex;
+  if (low > 0 && Math.abs(data[low - 1].x - x) <= Math.abs(data[low].x - x)) {
+    return low - 1;
+  }
+
+  return low;
 };
 
 export const resolveMarkerPosition = (
@@ -23,6 +30,8 @@ export const resolveMarkerPosition = (
   xScale: IScale,
   yScale: IScale,
 ): { x: number; y: number } | null => {
+  "worklet";
+
   if (anchor.kind === "pixel") {
     return { x: anchor.x, y: anchor.y };
   }

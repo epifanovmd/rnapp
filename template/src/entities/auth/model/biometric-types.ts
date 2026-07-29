@@ -10,7 +10,8 @@ import { ApiResponse } from "@shared/api/http.types";
 import { createInjectDecorator } from "@shared/lib/di";
 import { CollectionHolder } from "@shared/lib/holders";
 
-export const IBiometricStore = createInjectDecorator<IBiometricStore>();
+export const IBiometricStore =
+  createInjectDecorator<IBiometricStore>("IBiometricStore");
 
 export interface IBiometricStore {
   readonly devicesHolder: CollectionHolder<IBiometricDeviceDto>;

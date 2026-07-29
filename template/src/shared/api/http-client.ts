@@ -14,7 +14,7 @@ import { ITokenSource } from "./contract";
 import { ApiRequestConfig, ApiResponse, CancelablePromise } from "./http.types";
 import { QueryRace } from "./query-race";
 
-export const IHttpClient = createInjectDecorator<IHttpClient>();
+export const IHttpClient = createInjectDecorator<IHttpClient>("IHttpClient");
 export interface IHttpClient {
   request<R = any, P = any>(
     config: ApiRequestConfig<P>,
