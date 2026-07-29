@@ -41,27 +41,97 @@ const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
 
 // Модуль-скоуп: не зависят от пропсов/состояния компонента, поэтому не нужно
 // пересоздавать их на каждый рендер через useCallback — уже стабильны сами по себе.
-const formatMonthLabel = (value: number) =>
-  REVENUE_VS_EXPENSES[0].data[Math.round(value)]?.label ?? "";
+const MONTHS_SHORT = [
+  "Янв",
+  "Фев",
+  "Мар",
+  "Апр",
+  "Май",
+  "Июн",
+  "Июл",
+  "Авг",
+  "Сен",
+  "Окт",
+  "Ноя",
+  "Дек",
+];
+
+const DAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
+const formatAxisLabel = (value: number, period: Period) => {
+  const d = new Date(value);
+
+  switch (period) {
+    case "day":
+      return `${String(d.getHours()).padStart(2, "0")}:00`;
+    case "week":
+      return `${DAYS_SHORT[d.getDay()]}, ${d.getDate()}.${d.getMonth() + 1}`;
+    case "month":
+      return `${d.getDate()}.${d.getMonth() + 1}`;
+    case "year":
+      return MONTHS_SHORT[d.getMonth()];
+  }
+};
 
 const formatTooltipRow = (point: {
   series: { label?: string };
   datum: { x: number; y: number; label?: string };
 }) => {
-  const label =
-    point.datum.label ?? `(${point.datum.x.toFixed(0)}, ${point.datum.y})`;
+  const label = point.datum.label
+    ? `${point.datum.y} (${point.datum.label})`
+    : `${point.datum.y}`;
+
   return `${point.series.label}: ${label}`;
+};
+
+const toDateStr = (ts: number) => {
+  const d = new Date(ts);
+
+  return `${d.getDate()}.${d.getMonth() + 1}.${d.getFullYear()}`;
 };
 
 const formatActivePoints = (points: ActivePoint[] | null) =>
   points
     ? points
-        .map(
-          point =>
-            `${point.series.label}: x=${point.datum.x.toFixed(0)}, y=${point.datum.y}${point.datum.label ? ` (${point.datum.label})` : ""}`,
-        )
+        .map(point => {
+          const label = point.datum.label
+            ? `${point.datum.y} (${point.datum.label})`
+            : `${point.datum.y}`;
+          const raw = `x=${toDateStr(point.datum.x)}, y=${point.datum.y}`;
+
+          return `${point.series.label}: ${label} [${raw}]`;
+        })
         .join(" · ")
     : "Drag over the chart";
+
+type Period = "day" | "week" | "month" | "year";
+
+const PERIODS: { key: Period; label: string }[] = [
+  { key: "day", label: "День" },
+  { key: "week", label: "Неделя" },
+  { key: "month", label: "Месяц" },
+  { key: "year", label: "Год" },
+];
+
+const LAST_DATE = new Date(2025, 11, 31).getTime();
+
+const filterByPeriod = (
+  series: IChartSeries[],
+  period: Period,
+): IChartSeries[] => {
+  const limits: Record<Period, number> = {
+    day: LAST_DATE - 86_400_000,
+    week: LAST_DATE - 7 * 86_400_000,
+    month: LAST_DATE - 30 * 86_400_000,
+    year: 0,
+  };
+  const from = limits[period];
+
+  return series.map(s => ({
+    ...s,
+    data: from > 0 ? s.data.filter(d => d.x >= from) : s.data,
+  }));
+};
 
 const ChartCard: FC<
   PropsWithChildren<{ title: string; description?: string }>
@@ -89,6 +159,17 @@ export const Charts: FC<IProps> = observer(() => {
   );
   const [livePriceData, setLivePriceData] = useState(
     createInitialLivePriceData,
+  );
+  const [period, setPeriod] = useState<Period>("year");
+
+  const filteredSeries = useMemo(
+    () => filterByPeriod(REVENUE_VS_EXPENSES, period),
+    [period],
+  );
+
+  const formatPeriodLabel = useCallback(
+    (value: number) => formatAxisLabel(value, period),
+    [period],
   );
 
   useEffect(() => {
@@ -197,10 +278,33 @@ export const Charts: FC<IProps> = observer(() => {
             </Chart>
           </ChartCard>
 
-          <ChartCard title={"Full-featured — Revenue vs expenses"}>
+          <ChartCard title={"Full-featured — Выручка и расходы"}>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+              {PERIODS.map(({ key, label }) => (
+                <View
+                  key={key}
+                  style={{
+                    paddingHorizontal: 16,
+                    paddingVertical: 6,
+                    borderRadius: 8,
+                    backgroundColor:
+                      period === key ? colors.blue500 : colors.slate200,
+                  }}
+                >
+                  <Text
+                    textStyle={"Body_S2"}
+                    color={period === key ? "white" : "textSecondary"}
+                    onPress={() => setPeriod(key)}
+                  >
+                    {label}
+                  </Text>
+                </View>
+              ))}
+            </View>
             <Chart
-              series={REVENUE_VS_EXPENSES}
+              series={filteredSeries}
               height={260}
+              yPaddingRatio={0.15}
               padding={{ top: 40, left: 16, right: 56 }}
               onActiveChange={handleActiveChange}
               onChange={handleActivePointsChange}
@@ -225,18 +329,9 @@ export const Charts: FC<IProps> = observer(() => {
                 tickCount={5}
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
-                formatLabel={formatMonthLabel}
+                formatLabel={formatPeriodLabel}
               />
               <MarkerLayer markers={revenueMarkers} />
-              <CrosshairLayer
-                color={colors.slate400}
-                showXLabel
-                xLabelPosition={"top"}
-                xLabelFormatter={formatMonthLabel}
-                showYLabels
-                yLabelPosition={"left"}
-                secondLineColor={colors.orange500}
-              />
               <CurrentValueLineLayer
                 seriesId="revenue"
                 color={colors.green500}
@@ -246,6 +341,15 @@ export const Charts: FC<IProps> = observer(() => {
                 seriesId="expenses"
                 color={colors.red500}
                 labelPosition="left"
+              />
+              <CrosshairLayer
+                color={colors.slate400}
+                showXLabel
+                xLabelPosition={"top"}
+                xLabelFormatter={formatPeriodLabel}
+                showYLabels
+                yLabelPosition={"right"}
+                secondLineColor={colors.orange500}
               />
               <TooltipLayer
                 anchorToPoint

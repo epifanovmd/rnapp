@@ -2,49 +2,81 @@ import type { ChartDatum, IChartSeries } from "@shared/ui/chart";
 
 const range = (count: number) => Array.from({ length: count }, (_, i) => i);
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+const RU_MONTHS = [
+  "Янв",
+  "Фев",
+  "Мар",
+  "Апр",
+  "Май",
+  "Июн",
+  "Июл",
+  "Авг",
+  "Сен",
+  "Окт",
+  "Ноя",
+  "Дек",
 ];
 
-const RESOLUTION = 10;
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
+const POINTS_PER_DAY = 8; // каждые 3 часа
+const DAYS = 365;
 
+const START_DATE = new Date(2025, 0, 1).getTime();
+
+const formatLabel = (ts: number) => {
+  const d = new Date(ts);
+
+  return `${d.getDate()} ${RU_MONTHS[d.getMonth()]}, ${String(d.getHours()).padStart(2, "0")}:00`;
+};
+
+/** Внутридневная дневная компонента: выше в середине дня, ниже утром/вечером. */
+const intradayPattern = (hour: number) =>
+  -Math.cos((hour / 24) * Math.PI * 2) * 12;
+
+/** Ежедневные данные выручки и расходов за 2025 год (8 точек в день). */
 export const REVENUE_VS_EXPENSES: IChartSeries[] = [
   {
     id: "revenue",
-    label: "Revenue",
+    label: "Выручка",
     color: "#10B981",
-    data: range(12 * RESOLUTION).map((i): ChartDatum => {
-      const month = i / RESOLUTION;
+    data: range(DAYS * POINTS_PER_DAY).map((i): ChartDatum => {
+      const day = Math.floor(i / POINTS_PER_DAY);
+      const hour = (i % POINTS_PER_DAY) * (24 / POINTS_PER_DAY);
 
       return {
-        x: i,
-        y: Math.round(320 + month * 16 + Math.sin(month / 1.5) * 35),
-        label: MONTHS[Math.floor(month) % 12],
+        x: START_DATE + day * DAY_MS + hour * HOUR_MS,
+        y: Math.round(
+          480 +
+            (day / 30) * 18 + // годовой рост
+            Math.sin(day / 30 / 1.8) * 40 + // сезонность
+            Math.sin(day / 7) * 8 + // недельные циклы
+            intradayPattern(hour) + // внутридневные колебания
+            (Math.random() - 0.5) * 20, // шум
+        ),
+        label: formatLabel(START_DATE + day * DAY_MS + hour * HOUR_MS),
       };
     }),
   },
   {
     id: "expenses",
-    label: "Expenses",
+    label: "Расходы",
     color: "#EF4444",
-    data: range(12 * RESOLUTION).map((i): ChartDatum => {
-      const month = i / RESOLUTION;
+    data: range(DAYS * POINTS_PER_DAY).map((i): ChartDatum => {
+      const day = Math.floor(i / POINTS_PER_DAY);
+      const hour = (i % POINTS_PER_DAY) * (24 / POINTS_PER_DAY);
 
       return {
-        x: i,
-        y: Math.round(230 + month * 9 + Math.cos(month / 1.7) * 25),
-        label: MONTHS[Math.floor(month) % 12],
+        x: START_DATE + day * DAY_MS + hour * HOUR_MS,
+        y: Math.round(
+          320 +
+            (day / 30) * 10 +
+            Math.cos(day / 30 / 2.2) * 35 +
+            Math.cos(day / 5) * 6 +
+            intradayPattern(hour + 3) + // смещено относительно выручки
+            (Math.random() - 0.5) * 12,
+        ),
+        label: formatLabel(START_DATE + day * DAY_MS + hour * HOUR_MS),
       };
     }),
   },

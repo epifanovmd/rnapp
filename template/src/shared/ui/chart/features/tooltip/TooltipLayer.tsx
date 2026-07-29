@@ -17,8 +17,13 @@ import type { ActiveTooltipPoint, TooltipLayerProps } from "./types";
 
 const DOT_RADIUS = 4;
 
-const defaultFormatRow = (point: ActiveTooltipPoint) =>
-  `${point.series.label ?? point.series.id}: ${point.datum.label ?? point.datum.y}`;
+const defaultFormatRow = (point: ActiveTooltipPoint) => {
+  const { x, y, label } = point.datum;
+
+  return label
+    ? `${point.series.label ?? point.series.id}: ${label} (x=${x}, y=${y})`
+    : `${point.series.label ?? point.series.id}: x=${x}, y=${y}`;
+};
 
 export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   visible = true,
