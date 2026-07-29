@@ -26,11 +26,8 @@ export interface UseTrendColorOptions {
   seriesShared: SharedValue<IChartSeries[]>;
   seriesId: string;
   compare: TrendCompareMode;
-  /** Включить расцветку по тренду. Если `false` — сразу вернётся `fallback`. */
   enabled: boolean;
-  /** Цвет, возвращаемый когда `enabled == false` или данных недостаточно. */
   fallback: string;
-  /** Цвета для каждого направления: `up`, `down`, `flat`. */
   palette: TrendColorMap;
 }
 

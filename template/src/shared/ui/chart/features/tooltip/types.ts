@@ -4,9 +4,7 @@ import type { ChartDatum, IChartSeries } from "../../core/types";
 import type { SkFont } from "../../core/utils/label-style";
 
 export interface ActiveTooltipPoint {
-  /** Серия, которой принадлежит точка. */
   series: IChartSeries;
-  /** Активная точка данных этой серии. */
   datum: ChartDatum;
   /** Разрешённый цвет точки (собственный `series.color` либо встроенная палитра по кругу). */
   color: string;
@@ -17,21 +15,17 @@ export type TooltipSide = "top" | "bottom" | "left" | "right";
 export interface TooltipLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** Отступ (px) между точкой привязки и краем тултипа. */
+  /** px. Отступ от точки привязки. */
   offset?: number;
-  /** Цвет фона тултипа. */
   backgroundColor?: string;
-  /** Цвет текста строк. */
   textColor?: string;
-  /** Размер шрифта. */
   fontSize?: number;
-  /** Шрифт (передаётся в `matchFont`). */
+  /** Передаётся в matchFont. */
   fontFamily?: string;
   /** Форматирует строку одной серии (по умолчанию — `"label: value"`). */
   formatRow?: (point: ActiveTooltipPoint) => string;
   /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца. */
   anchorToPoint?: boolean;
-  /** С какой стороны от точки привязки показывать тултип. */
   side?: TooltipSide;
   /** Срабатывает при показе/скрытии тултипа (по `isActive`). */
   onVisibilityChange?: (visible: boolean) => void;

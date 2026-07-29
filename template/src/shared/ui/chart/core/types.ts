@@ -1,4 +1,6 @@
-import type { FC } from "react";
+import type { FC, ReactNode } from "react";
+
+import type { ChartGestureContextValue } from "./context";
 
 export interface ChartDatum {
   /** Значение по оси X (доменные координаты, не пиксели). */
@@ -18,7 +20,6 @@ export interface IChartSeries {
   label?: string;
   /** Цвет серии — задаётся явно, авто-палитры по индексу нет. */
   color: string;
-  /** Точки данных серии. */
   data: ChartDatum[];
 }
 
@@ -36,22 +37,15 @@ export interface IScale {
 }
 
 export interface ChartPadding {
-  /** Отступ сверху (px). */
   top: number;
-  /** Отступ справа (px). */
   right: number;
-  /** Отступ снизу (px). */
   bottom: number;
-  /** Отступ слева (px). */
   left: number;
 }
 
 export interface ChartDimensions {
-  /** Полная ширина канваса (px). */
   width: number;
-  /** Полная высота канваса (px). */
   height: number;
-  /** Отступы вокруг рабочей области. */
   padding: ChartPadding;
   /** Ширина рабочей области за вычетом отступов (px). */
   plotWidth: number;
@@ -70,8 +64,63 @@ export interface PixelPoint {
 
 /** Активная (ближайшая к касанию) точка одной серии — см. `Chart.onChange`. */
 export interface ActivePoint {
-  /** Серия, которой принадлежит активная точка. */
   series: IChartSeries;
-  /** Ближайшая к касанию точка данных этой серии. */
+  /** Ближайшая точка данных. */
   datum: ChartDatum;
+}
+
+export interface ChartProps {
+  /** Серии данных для отрисовки; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
+  series: IChartSeries[];
+  /** Фиксированная ширина (px); без неё ширина измеряется через `onLayout` (растягивается на родителя). */
+  width?: number;
+  /** Высота графика (px). По умолчанию 220. */
+  height?: number;
+  /** Отступы вокруг рабочей зоны. Мёржится с дефолтом. */
+  padding?: Partial<ChartPadding>;
+  /** Фиксированный домен оси X `[min, max]`; без него вычисляется из данных `series`. */
+  xDomain?: [number, number];
+  /** Фиксированный домен оси Y `[min, max]`; без него вычисляется из данных `series`. */
+  yDomain?: [number, number];
+  /** Включать 0 в авто-домен Y. */
+  beginAtZero?: boolean;
+  /** Доп. запас по краям авто-домена X, в долях от его размаха. */
+  xPaddingRatio?: number;
+  /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
+  yPaddingRatio?: number;
+  /** Зеркалит график по горизонтали. */
+  xReverse?: boolean;
+  /** Зеркалит график по вертикали. */
+  yReverse?: boolean;
+  /** Включает жест pan (кроссхейр, тултип, события нажатия). `false` — статичный/read-only график. */
+  interactive?: boolean;
+  /** Минимальное смещение (px) для активации pan. */
+  panActivationDistance?: number;
+  /** Диапазон (px) активации pan по X; по умолчанию `[-8, 8]`. */
+  panActiveOffsetX?: number | [number, number];
+  /** Диапазон (px) сброса pan в пользу родительского скролла; по умолчанию `[-8, 8]`. */
+  panFailOffsetY?: number | [number, number];
+  /** Включить второе касание (для второго кроссхейра). */
+  twoFingerEnabled?: boolean;
+  /** Срабатывает при начале/окончании (первого) касания. */
+  onActiveChange?: (active: boolean) => void;
+  /** Вызывается при смене активной точки; `null` при завершении касания. */
+  onChange?: (points: ActivePoint[] | null) => void;
+  /** Слои графика (Grid, Line, Area, Axis и т.д.). */
+  children?: ReactNode;
+}
+
+/** Пропсы `<ChartProvider>`. */
+export interface ChartProviderProps {
+  series: IChartSeries[];
+  dimensions: ChartDimensions;
+  interaction: ChartGestureContextValue;
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+  beginAtZero?: boolean;
+  xPaddingRatio?: number;
+  yPaddingRatio?: number;
+  xReverse?: boolean;
+  yReverse?: boolean;
+  onChange?: (points: ActivePoint[] | null) => void;
 }

@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useCallback, useMemo, useState } from "react";
+import React, { FC, useCallback, useMemo, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
 import { useAnimatedReaction } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -6,12 +6,7 @@ import { scheduleOnRN } from "react-native-worklets";
 import { ChartCanvas } from "./ChartCanvas";
 import { ChartProvider } from "./ChartProvider";
 import { useChartInteraction } from "./interaction/useChartInteraction";
-import {
-  ActivePoint,
-  ChartDimensions,
-  ChartPadding,
-  IChartSeries,
-} from "./types";
+import { ChartDimensions, ChartPadding, ChartProps } from "./types";
 
 const DEFAULT_PADDING: ChartPadding = {
   top: 16,
@@ -21,54 +16,11 @@ const DEFAULT_PADDING: ChartPadding = {
 };
 const DEFAULT_HEIGHT = 220;
 
-// Модуль-скоуп, не инлайн-дефолт параметра: инлайн `= [-8, 8]` создавал бы новый
-// массив на каждый вызов `Chart`, из-за чего `useChartInteraction` не мог бы
-// мемоизировать конфиг `usePanGesture` (см. там же) даже когда потребитель
-// вообще не передаёт эти пропы.
+// Вынесены из дефолтов параметров — новый массив на каждый рендер сломал бы мемоизацию usePanGesture.
 const DEFAULT_PAN_ACTIVE_OFFSET_X: [number, number] = [-8, 8];
 const DEFAULT_PAN_FAIL_OFFSET_Y: [number, number] = [-8, 8];
 
-export interface ChartProps {
-  /** Серии данных для отрисовки; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
-  series: IChartSeries[];
-  /** Фиксированная ширина (px); без неё ширина измеряется через `onLayout` (растягивается на родителя). */
-  width?: number;
-  /** Высота графика (px). По умолчанию 220. */
-  height?: number;
-  /** Отступы области построения (место под оси/подписи вокруг рабочей зоны). Мёржится поверх дефолта. */
-  padding?: Partial<ChartPadding>;
-  /** Фиксированный домен оси X `[min, max]`; без него вычисляется из данных `series`. */
-  xDomain?: [number, number];
-  /** Фиксированный домен оси Y `[min, max]`; без него вычисляется из данных `series`. */
-  yDomain?: [number, number];
-  /** Заставляет авто-домен Y включать 0, чтобы высота баров/области не искажала восприятие. */
-  beginAtZero?: boolean;
-  /** Доп. запас по краям авто-домена X, в долях от его размаха. */
-  xPaddingRatio?: number;
-  /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
-  yPaddingRatio?: number;
-  /** Меняет местами края, на которые проецируются min/max домена X (зеркалит график по горизонтали). */
-  xReverse?: boolean;
-  /** Меняет местами края, на которые проецируются min/max домена Y (зеркалит график по вертикали). */
-  yReverse?: boolean;
-  /** Включает жест pan (кроссхейр, тултип, события нажатия). `false` — статичный/read-only график. */
-  interactive?: boolean;
-  /** Расстояние (px, в любом направлении), которое должен пройти палец до активации pan-жеста. */
-  panActivationDistance?: number;
-  /** Горизонтальный диапазон (px) активации pan-жеста. По умолчанию `[-8, 8]` — этого вместе с `panFailOffsetY` достаточно, чтобы график не перехватывал вертикальный скролл родительского `ScrollView`. */
-  panActiveOffsetX?: number | [number, number];
-  /** Вертикальный диапазон (px), при выходе за который pan-жест сдаётся в пользу родительского `ScrollView`. По умолчанию `[-8, 8]`. */
-  panFailOffsetY?: number | [number, number];
-  /** Отслеживать второе одновременное касание (доступно в контексте как `touchX2`/`isSecondActive`) — для второго кроссхейра. */
-  twoFingerEnabled?: boolean;
-  /** Срабатывает при начале/окончании (первого) касания. */
-  onActiveChange?: (active: boolean) => void;
-  /** Срабатывает при смене активной (первое касание) точки по каждой серии; `null`, когда касание закончилось. */
-  onChange?: (points: ActivePoint[] | null) => void;
-  /** Слои графика (Grid/Line/Area/Axis/Crosshair/Marker/Tooltip/...) — все рисуются внутри канваса. */
-  children?: ReactNode;
-}
-
+/** Главный компонент графика. Управляет layout, жестами и рендерингом слоёв через Sketch + Reanimated. */
 export const Chart: FC<ChartProps> = ({
   series,
   width: widthProp,

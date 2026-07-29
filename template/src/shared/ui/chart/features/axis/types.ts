@@ -6,20 +6,15 @@ export interface AxisLayerBaseProps {
   tickCount?: number;
   /** Форматирует значение деления в текст подписи (даты, проценты и т.п.). */
   formatLabel?: (value: number) => string;
-  /** Цвет линий делений. */
   color?: string;
-  /** Рисовать основную линию оси. */
   showAxisLine?: boolean;
-  /** Толщина линии оси (px). */
+  /** px */
   lineWidth?: number;
-  /** Цвет текста подписей. */
   labelColor?: string;
-  /** Размер шрифта подписей. */
   fontSize?: number;
-  /** Шрифт подписей (передаётся в `matchFont`). */
+  /** Передаётся в matchFont. */
   fontFamily?: string;
-  /** Рисовать засечки делений. */
   showTicks?: boolean;
-  /** Длина засечек (px). */
+  /** px */
   tickLength?: number;
 }

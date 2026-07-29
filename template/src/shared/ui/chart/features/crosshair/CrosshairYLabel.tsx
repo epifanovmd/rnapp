@@ -33,7 +33,9 @@ export const CrosshairYLabel = React.memo(
     );
 
     const textY = useDerivedValue(
-      () => anchorPoint.value.y + fontSize * 0.3,
+      () =>
+        anchorPoint.value.y +
+        fontSize * 0.3 /* Визуальное центрирование текста в чипе */,
       [anchorPoint, fontSize],
     );
 

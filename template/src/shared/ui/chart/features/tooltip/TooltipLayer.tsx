@@ -42,10 +42,7 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     [fontFamily, fontSize],
   );
 
-  // Читаем индекс активной точки напрямую из `activeIndices` (DerivedValue) —
-  // тултипу нужен только первый (скалярный) индекс, а не весь массив по
-  // сериям, поэтому мирим его в JS локально, тем же паттерном, что и
-  // Crosshair/`Chart.onChange`.
+  // activeIndex bridge в JS — тултипу нужен только первый (скалярный) индекс.
   const [activeIndex, setActiveIndex] = useState(
     () => activeIndices.value[0] ?? -1,
   );

@@ -3,6 +3,7 @@ import type { DerivedValue, SharedValue } from "react-native-reanimated";
 
 import type { IChartSeries, PixelPoint } from "../types";
 
+/** Серии данных и пиксельная геометрия ({ seriesId -> PixelPoint[] }). */
 export interface ChartSeriesContextValue {
   series: IChartSeries[];
   seriesShared: SharedValue<IChartSeries[]>;

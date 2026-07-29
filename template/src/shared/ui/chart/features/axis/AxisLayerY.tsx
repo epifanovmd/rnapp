@@ -5,7 +5,6 @@ import { defaultLabelFormatter, useChartGeometry } from "../../core";
 import type { AxisLayerBaseProps } from "./types";
 
 export interface AxisLayerYProps extends AxisLayerBaseProps {
-  /** С какой стороны рисовать: слева или справа. */
   position?: "left" | "right";
 }
 

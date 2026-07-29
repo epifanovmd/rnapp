@@ -1,6 +1,8 @@
+/** Типы линий для пунктирных пресетов. */
 export type LineDashType =
   "solid" | "dashed" | "dotted" | "dash-dot" | "long-dash" | "short-dash";
 
+/** Словарь пресетов: имя -> массив чередований [draw, gap, ...] или undefined (сплошная). */
 export const DASH_PRESETS: Record<LineDashType, number[] | undefined> = {
   solid: undefined,
   dashed: [6, 4],

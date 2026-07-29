@@ -1,6 +1,7 @@
 import type { ChartDatum, IChartSeries, IScale } from "../../core";
 import type { MarkerAnchor } from "./types";
 
+/** Бинарный поиск ближайшего по domain-X индекса в данных. */
 const findNearestIndexByDomainX = (data: ChartDatum[], x: number): number => {
   "worklet";
 
@@ -24,6 +25,7 @@ const findNearestIndexByDomainX = (data: ChartDatum[], x: number): number => {
   return low;
 };
 
+/** Разрешает MarkerAnchor в пиксельные координаты или null. */
 export const resolveMarkerPosition = (
   anchor: MarkerAnchor,
   series: IChartSeries[],

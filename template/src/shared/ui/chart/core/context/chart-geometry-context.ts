@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 
 import type { ChartDimensions, IScale } from "../types";
 
+/** Размеры канваса и шкалы X/Y. */
 export interface ChartGeometryContextValue {
   dimensions: ChartDimensions;
   xScale: IScale;
@@ -11,6 +12,7 @@ export interface ChartGeometryContextValue {
 export const ChartGeometryContext =
   createContext<ChartGeometryContextValue | null>(null);
 
+/** Хук доступа к геометрии графика. */
 export const useChartGeometry = (): ChartGeometryContextValue => {
   const context = useContext(ChartGeometryContext);
 

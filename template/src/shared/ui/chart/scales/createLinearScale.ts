@@ -5,6 +5,7 @@ export interface LinearScaleOptions {
   range: [number, number];
 }
 
+/** Создаёт линейную шкалу: domain -> range (с обратным отображением и тиками). */
 export const createLinearScale = ({
   domain,
   range,

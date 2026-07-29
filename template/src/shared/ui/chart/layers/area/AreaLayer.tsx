@@ -18,9 +18,9 @@ import { AreaSeriesPath } from "./AreaSeriesPath";
 export interface AreaLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** Прямые сегменты или сглаженная (catmull-rom) кривая. */
+  /** Тип кривой. */
   curve?: CurveType;
-  /** Непрозрачность заливки (0–1). */
+  /** 0–1 */
   opacity?: number;
   /** Заливка градиентом (к прозрачному) вместо сплошного цвета. */
   gradient?: boolean;
@@ -30,11 +30,13 @@ export interface AreaLayerProps {
   colorByTrend?: boolean;
   /** С чем сравнивать при определении тренда: с первой точкой серии или с предыдущей. */
   trendCompare?: TrendCompareMode;
-  /** Цвета для `up`/`down`/`flat` направлений тренда. */
+  /** Цвета трендов. */
   trendColors?: Partial<TrendColorMap>;
+  /** Фильтр по id серии (undefined — все серии). */
   seriesId?: string;
 }
 
+/** Слой заливки (area) под линиями графика. */
 export const AreaLayer: ChartLayerComponent<AreaLayerProps> = ({
   visible = true,
   curve = "linear",

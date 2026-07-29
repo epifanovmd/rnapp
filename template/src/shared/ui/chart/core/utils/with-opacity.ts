@@ -1,3 +1,4 @@
+/** Добавляет альфа-канал к hex-цвету (worklet). */
 export const withOpacity = (color: string, opacity: number): string => {
   "worklet";
 

@@ -21,6 +21,7 @@ export const CrosshairSeriesIndicator = React.memo(
     canvasWidth,
     showMarker,
     showHorizontalLine,
+    horizontalLineColor,
     showLabel,
     labelPosition,
     labelFormatter,
@@ -47,8 +48,7 @@ export const CrosshairSeriesIndicator = React.memo(
       [point, right],
     );
 
-    // Y-лейблу нужен JS-текст только по своей серии — мирим напрямую из
-    // `activeIndices` по своему `seriesIndex`, локально для этого компонента.
+    // activeIndex bridge в JS для текста Y-лейбла (своя серия).
     const [activeIndexJS, setActiveIndexJS] = useState(
       () => activeIndices.value[seriesIndex] ?? -1,
     );
@@ -68,13 +68,15 @@ export const CrosshairSeriesIndicator = React.memo(
         ? labelFormatter(series.data[activeIndexJS].y, series)
         : "";
 
+    const horizontalColor = horizontalLineColor ?? color;
+
     return (
       <>
         {showHorizontalLine && (
           <Line
             p1={horizontalP1}
             p2={horizontalP2}
-            color={color}
+            color={horizontalColor}
             strokeWidth={strokeWidth}
           >
             {dashIntervals && <DashPathEffect intervals={dashIntervals} />}

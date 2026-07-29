@@ -113,7 +113,6 @@ export const CurrentValueLineLayer: ChartLayerComponent<
         return;
       }
 
-      // Анимация позиции
       if (previous === null || !animate) {
         animatedX.value = next.x;
         animatedY.value = next.y;
@@ -121,8 +120,6 @@ export const CurrentValueLineLayer: ChartLayerComponent<
         animatedX.value = withTiming(next.x, { duration: animationDuration });
         animatedY.value = withTiming(next.y, { duration: animationDuration });
       }
-
-      // Мостик в JS для чипа — только при реальном изменении
       if (previous === null || !arePointsEqual(next, previous)) {
         scheduleOnRN(setLastPoint, next);
       }

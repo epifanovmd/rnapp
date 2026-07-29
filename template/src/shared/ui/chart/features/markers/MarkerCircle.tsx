@@ -4,7 +4,7 @@ import { useDerivedValue } from "react-native-reanimated";
 
 import type { MarkerCircleProps } from "./types";
 
-/** Позиция маркера пересчитывается на UI-потоке (см. `resolvedPositions` в `MarkerLayer`) — этот компонент только читает уже готовый пиксель по своему индексу. */
+/** Читает готовый пиксель из resolvedPositions по своему индексу. */
 export const MarkerCircle: React.FC<MarkerCircleProps> = ({
   marker,
   index,

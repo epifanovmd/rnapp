@@ -19,16 +19,22 @@ import {
 export interface AreaSeriesPathProps {
   seriesId: string;
   seriesShared: SharedValue<IChartSeries[]>;
+  /** Точки серии в пиксельных координатах. */
   geometry: DerivedValue<Record<string, PixelPoint[]>>;
   curve: CurveType;
+  /** Y-координата базовой линии (px). */
   baselineY: number;
   color: string;
+  /** Красить по тренду вместо `color`. */
   colorByTrend: boolean;
   trendCompare: TrendCompareMode;
+  /** Цвета для up/down/flat трендов. */
   palette: TrendColorMap;
   opacity: number;
   gradient: boolean;
+  /** Верхняя граница градиента (px). */
   gradientTop: number;
+  /** Нижняя граница градиента (px). */
   gradientBottom: number;
 }
 

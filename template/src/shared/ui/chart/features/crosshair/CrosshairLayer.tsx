@@ -21,6 +21,7 @@ export const CrosshairLayer = React.memo(
     showMarkers = true,
     showVerticalLine = true,
     showHorizontalLines = true,
+    horizontalLineColor,
     lineType = "solid",
     dashArray,
     showXLabel = false,
@@ -37,7 +38,7 @@ export const CrosshairLayer = React.memo(
     secondLineColor,
   }: CrosshairLayerProps) => {
     const { series, geometry } = useChartSeries();
-    const { xScale, dimensions } = useChartGeometry();
+    const { dimensions } = useChartGeometry();
     const { touchX, isActive, touchX2, isSecondActive } = useChartGesture();
     const { activeIndices, activeIndices2 } = useChartActiveIndices();
     const intervals = dashArray ?? DASH_PRESETS[lineType];
@@ -59,6 +60,7 @@ export const CrosshairLayer = React.memo(
         showVerticalLine,
         showMarkers,
         showHorizontalLines,
+        horizontalLineColor,
         dashIntervals: intervals,
         showXLabel,
         xLabelPosition,
@@ -80,6 +82,7 @@ export const CrosshairLayer = React.memo(
         showVerticalLine,
         showMarkers,
         showHorizontalLines,
+        horizontalLineColor,
         intervals,
         showXLabel,
         xLabelPosition,

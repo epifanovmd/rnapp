@@ -6,6 +6,7 @@ import {
 
 import type { IChartSeries, IScale, PixelPoint } from "../types";
 
+/** Вычисляет пиксельные координаты точек каждой серии через xScale/yScale (worklet). */
 export const useSeriesGeometry = (
   seriesShared: SharedValue<IChartSeries[]>,
   xScale: IScale,

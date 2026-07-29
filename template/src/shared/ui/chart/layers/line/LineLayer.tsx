@@ -17,37 +17,39 @@ import { LineSeriesPath } from "./LineSeriesPath";
 export interface LineLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** Прямые сегменты или сглаженная (catmull-rom) кривая. */
+  /** Тип кривой. */
   curve?: CurveType;
-  /** Толщина линии (px). */
+  /** px. */
   strokeWidth?: number;
-  /** Форма концов линии. */
+  /** Форма концов. */
   strokeCap?: "butt" | "round" | "square";
-  /** Форма соединения сегментов линии. */
+  /** Форма соединений. */
   strokeJoin?: "miter" | "round" | "bevel";
-  /** Сплошная, пунктирная или точечная линия. */
+  /** Сплошная/пунктирная/точечная. */
   lineType?: LineDashType;
   /** Свой паттерн штрихов (px); учитывается только если `lineType` не `"solid"`. */
   dashArray?: number[];
   /** Рисовать точку в последней точке данных каждой серии (на конце линии). */
   showEndDot?: boolean;
-  /** Радиус точки на конце линии (px). */
+  /** px. */
   endDotRadius?: number;
   /** Цвет заливки точки на конце линии (по умолчанию — цвет самой линии этой серии). */
   endDotColor?: string;
   /** Цвет обводки точки на конце линии (без него обводка не рисуется). */
   endDotStrokeColor?: string;
-  /** Толщина обводки точки на конце линии (px). */
+  /** px. */
   endDotStrokeWidth?: number;
   /** Красить каждую линию по её тренду (рост/падение) вместо `series.color`. Цвет считается на UI-потоке (см. `useTrendColor`) — на live-графике не требует JS-рендера слоя. */
   colorByTrend?: boolean;
   /** С чем сравнивать при определении тренда: с первой точкой серии или с предыдущей. */
   trendCompare?: TrendCompareMode;
-  /** Цвета для `up`/`down`/`flat` направлений тренда. */
+  /** Цвета трендов. */
   trendColors?: Partial<TrendColorMap>;
+  /** Фильтр по id серии (undefined — все серии). */
   seriesId?: string;
 }
 
+/** Слой линий для серий графика. */
 export const LineLayer: ChartLayerComponent<LineLayerProps> = ({
   visible = true,
   curve = "linear",

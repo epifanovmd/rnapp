@@ -13,35 +13,28 @@ export interface CrosshairLayerProps {
   strokeWidth?: number;
   /** Радиус маркера в активной точке каждой серии. */
   markerRadius?: number;
-  /** Рисовать маркеры (точки) на пересечении с каждой серией. */
   showMarkers?: boolean;
-  /** Рисовать вертикальную линию под пальцем. */
   showVerticalLine?: boolean;
-  /** Рисовать горизонтальную линию для каждой серии на уровне её активного значения. */
+  /** Горизонтальные линии на уровне активного значения каждой серии. */
   showHorizontalLines?: boolean;
-  /** Сплошная, пунктирная или точечная линия. */
+  /** Цвет горизонтальных линий (по умолчанию — `color`). */
+  horizontalLineColor?: string;
   lineType?: LineDashType;
   /** Свой паттерн штрихов (px); учитывается только если `lineType` не `"solid"`. */
   dashArray?: number[];
-  /** Показывать чип со значением X у края графика. */
   showXLabel?: boolean;
   /** С какой стороны рисовать чип X (независимо от `position` у `AxisLayer`). */
   xLabelPosition?: "top" | "bottom";
   /** Форматирует значение X для чипа. */
   xLabelFormatter?: (value: number) => string;
-  /** Показывать чипы со значением Y для каждой серии. */
   showYLabels?: boolean;
   /** С какой стороны рисовать чипы Y (независимо от `position` у `AxisLayer`). */
   yLabelPosition?: "left" | "right";
   /** Форматирует значение Y для чипа конкретной серии. */
   yLabelFormatter?: (value: number, series: IChartSeries) => string;
-  /** Размер шрифта текста в чипах. */
   labelFontSize?: number;
-  /** Шрифт текста в чипах. */
   labelFontFamily?: string;
-  /** Цвет фона чипов. */
   labelBackground?: string;
-  /** Цвет текста в чипах. */
   labelTextColor?: string;
   /** Рисовать вторую линию, пока активно второе касание (нужен `Chart.twoFingerEnabled`). */
   showSecondTouch?: boolean;
@@ -52,6 +45,7 @@ export interface CrosshairLayerProps {
 export interface CrosshairLineProps {
   series: IChartSeries[];
   dimensions: ChartDimensions;
+  /** { seriesId -> PixelPoint[] }. */
   geometry: DerivedValue<Record<string, PixelPoint[]>>;
   touchX: SharedValue<number>;
   active: SharedValue<boolean>;
@@ -62,6 +56,7 @@ export interface CrosshairLineProps {
   showVerticalLine: boolean;
   showMarkers: boolean;
   showHorizontalLines: boolean;
+  horizontalLineColor?: string;
   dashIntervals?: number[];
   showXLabel: boolean;
   xLabelPosition: "top" | "bottom";
@@ -89,6 +84,7 @@ export interface CrosshairSeriesIndicatorProps {
   canvasWidth: number;
   showMarker: boolean;
   showHorizontalLine: boolean;
+  horizontalLineColor?: string;
   showLabel: boolean;
   labelPosition: "left" | "right";
   labelFormatter: (value: number, series: IChartSeries) => string;

@@ -1,5 +1,6 @@
 import type { ChartDatum, IChartSeries } from "../core";
 
+/** Опции для computeDomain. */
 export interface ComputeDomainOptions {
   beginAtZero?: boolean;
   paddingRatio?: number;
@@ -10,6 +11,7 @@ const accessors: Record<"x" | "y", (datum: ChartDatum) => number> = {
   y: datum => datum.y,
 };
 
+/** Вычисляет домен оси X или Y из массива серий. */
 export const computeDomain = (
   series: IChartSeries[],
   axis: "x" | "y",

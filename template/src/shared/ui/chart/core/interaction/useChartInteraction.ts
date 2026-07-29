@@ -4,6 +4,7 @@ import { useSharedValue } from "react-native-reanimated";
 
 import type { ChartDimensions } from "../types";
 
+/** Опции useChartInteraction. */
 export interface ChartInteractionOptions {
   enabled?: boolean;
   minDistance?: number;
@@ -26,6 +27,7 @@ export interface ChartInteraction {
 
 const NO_TOUCH = -1;
 
+/** Хук жестов графика: pan, multi-touch, позиции касаний. */
 export const useChartInteraction = (
   dimensions: ChartDimensions,
   options: ChartInteractionOptions = {},

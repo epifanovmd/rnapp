@@ -6,10 +6,12 @@ import {
 
 import type { IChartSeries, IScale } from "../types";
 
+/** Результат useActiveIndices — производное значение с индексами. */
 export interface ActiveIndices {
   indices: DerivedValue<number[]>;
 }
 
+/** Возвращает индексы точек, ближайших к позиции касания, для каждой серии. */
 export const useActiveIndices = (
   seriesShared: SharedValue<IChartSeries[]>,
   xScale: IScale,

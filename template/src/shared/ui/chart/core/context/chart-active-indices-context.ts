@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import type { DerivedValue } from "react-native-reanimated";
 
+/** Индексы активных точек для каждого касания. */
 export interface ChartActiveIndicesState {
   activeIndices: DerivedValue<number[]>;
   activeIndices2: DerivedValue<number[]>;

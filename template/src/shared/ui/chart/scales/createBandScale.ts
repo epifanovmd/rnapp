@@ -1,3 +1,4 @@
+/** Band-шкала: дискретные индексы -> непрерывные позиции на экране. */
 export interface IBandScale {
   readonly range: [number, number];
   readonly bandwidth: number;
@@ -5,12 +6,14 @@ export interface IBandScale {
   center(index: number): number;
 }
 
+/** Опции для createBandScale. */
 export interface BandScaleOptions {
   count: number;
   range: [number, number];
   paddingRatio?: number;
 }
 
+/** Создаёт band-шкалу для категориальных данных с равномерной шириной полос. */
 export const createBandScale = ({
   count,
   range,

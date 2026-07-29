@@ -1,5 +1,6 @@
 import { useRef } from "react";
 
+/** Возвращает ту же ссылку на массив, если элементы не изменились. Полезно для мемоизации. */
 export const useStableArray = <T extends readonly unknown[]>(value: T): T => {
   const ref = useRef(value);
 

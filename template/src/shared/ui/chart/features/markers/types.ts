@@ -11,13 +11,11 @@ export type MarkerAnchor =
 export interface ChartMarker {
   /** Уникальный id маркера (используется как React key и передаётся в `onMarkerPress`). */
   id: string;
-  /** Где разместить маркер. */
   anchor: MarkerAnchor;
   /** Цвет маркера — задаётся явно, авто-палитры по индексу нет. */
   color: string;
   /** Свой радиус маркера (по умолчанию — `defaultRadius` слоя). */
   radius?: number;
-  /** Заливка кружка или только обводка. */
   style?: "fill" | "stroke";
   /** Толщина обводки (px), учитывается при `style="stroke"`. */
   strokeWidth?: number;
@@ -26,6 +24,7 @@ export interface ChartMarker {
 export interface MarkerCircleProps {
   marker: ChartMarker;
   index: number;
+  /** Массив пиксельных позиций (null — точка вне данных). */
   positions: DerivedValue<({ x: number; y: number } | null)[]>;
   defaultRadius: number;
 }

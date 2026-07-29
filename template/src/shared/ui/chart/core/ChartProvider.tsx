@@ -17,34 +17,10 @@ import {
   useScale,
   useSeriesGeometry,
 } from "./hooks";
-import { useActiveIndices } from "./interaction/useActiveIndices";
-import { ActivePoint, ChartDimensions, IChartSeries } from "./types";
+import { useActiveIndices } from "./interaction";
+import { ChartProviderProps } from "./types";
 
-export interface ChartProviderProps {
-  /** Серии данных; также определяют авто-домены x/y, если `xDomain`/`yDomain` не заданы. */
-  series: IChartSeries[];
-  /** Размеры канваса и отступы рабочей области — вычисляются `<Chart>` и прокидываются сюда. */
-  dimensions: ChartDimensions;
-  /** Базовые shared values жеста (`touchX`/`touchY`/`isActive` + второе касание) — прокидываются в контекст как есть. */
-  interaction: ChartGestureContextValue;
-  /** Фиксированный домен оси X; без него вычисляется из данных `series`. */
-  xDomain?: [number, number];
-  /** Фиксированный домен оси Y; без него вычисляется из данных `series`. */
-  yDomain?: [number, number];
-  /** Заставляет авто-домен Y включать 0. */
-  beginAtZero?: boolean;
-  /** Доп. запас по краям авто-домена X, в долях от его размаха. */
-  xPaddingRatio?: number;
-  /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
-  yPaddingRatio?: number;
-  /** Меняет местами края, на которые проецируются min/max домена X. */
-  xReverse?: boolean;
-  /** Меняет местами края, на которые проецируются min/max домена Y. */
-  yReverse?: boolean;
-  /** Срабатывает при смене активной (первое касание) точки по каждой серии; `null`, когда касание закончилось. */
-  onChange?: (points: ActivePoint[] | null) => void;
-}
-
+/** Контекст-провайдер графика: вычисляет домены, шкалы, геометрию и активные индексы. */
 export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
   series,
   dimensions,

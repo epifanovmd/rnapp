@@ -44,7 +44,12 @@ export const CrosshairXLabel = React.memo(
         />
         <Text
           x={textX}
-          y={boxY + boxHeight - LABEL_PADDING_Y - fontSize * 0.22}
+          y={
+            boxY +
+            boxHeight -
+            LABEL_PADDING_Y -
+            fontSize * 0.22 /* Визуальное центрирование текста в чипе */
+          }
           text={text}
           font={font}
           color={textColor}

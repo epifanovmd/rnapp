@@ -18,16 +18,21 @@ import {
 export interface LineSeriesPathProps {
   seriesId: string;
   seriesShared: SharedValue<IChartSeries[]>;
+  /** Точки серии в пиксельных координатах. */
   geometry: DerivedValue<Record<string, PixelPoint[]>>;
   curve: CurveType;
   color: string;
+  /** Красить по тренду вместо `color`. */
   colorByTrend: boolean;
   trendCompare: TrendCompareMode;
+  /** Цвета для up/down/flat трендов. */
   palette: TrendColorMap;
   strokeWidth: number;
   strokeCap: "butt" | "round" | "square";
   strokeJoin: "miter" | "round" | "bevel";
+  /** Паттерн штрихов (px). */
   dashIntervals?: number[];
+  /** Рисовать точку на конце линии. */
   showEndDot: boolean;
   endDotRadius: number;
   endDotColor?: string;

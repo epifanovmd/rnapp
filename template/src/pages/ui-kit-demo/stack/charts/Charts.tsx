@@ -29,6 +29,7 @@ import { StyleSheet, View } from "react-native";
 
 import {
   createInitialLivePriceData,
+  nextLivePriceData,
   REVENUE_VS_EXPENSES,
 } from "./chart-mock-data";
 
@@ -45,12 +46,21 @@ const formatMonthLabel = (value: number) =>
 
 const formatTooltipRow = (point: {
   series: { label?: string };
-  datum: { y: number };
-}) => `${point.series.label}: ${point.datum.y}`;
+  datum: { x: number; y: number; label?: string };
+}) => {
+  const label =
+    point.datum.label ?? `(${point.datum.x.toFixed(0)}, ${point.datum.y})`;
+  return `${point.series.label}: ${label}`;
+};
 
 const formatActivePoints = (points: ActivePoint[] | null) =>
   points
-    ? points.map(point => `${point.series.label}: ${point.datum.y}`).join(" · ")
+    ? points
+        .map(
+          point =>
+            `${point.series.label}: x=${point.datum.x.toFixed(0)}, y=${point.datum.y}${point.datum.label ? ` (${point.datum.label})` : ""}`,
+        )
+        .join(" · ")
     : "Drag over the chart";
 
 const ChartCard: FC<
@@ -82,11 +92,11 @@ export const Charts: FC<IProps> = observer(() => {
   );
 
   useEffect(() => {
-    // const interval = setInterval(() => {
-    //   setLivePriceData(previous => nextLivePriceData(previous));
-    // }, 500);
-    //
-    // return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      setLivePriceData(previous => nextLivePriceData(previous));
+    }, 500);
+
+    return () => clearInterval(interval);
   }, []);
 
   const livePriceSeries: IChartSeries[] = useMemo(
@@ -243,6 +253,14 @@ export const Charts: FC<IProps> = observer(() => {
                 formatRow={formatTooltipRow}
               />
             </Chart>
+            <View style={{ gap: 4, marginTop: 8 }}>
+              <Text textStyle={"Body_S2"} color={"textSecondary"}>
+                {touchStatus}
+              </Text>
+              <Text textStyle={"Body_S2"} color={"textSecondary"}>
+                {activePointLabel}
+              </Text>
+            </View>
           </ChartCard>
         </Content>
       </ScrollView>

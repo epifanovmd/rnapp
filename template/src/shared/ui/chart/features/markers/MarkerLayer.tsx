@@ -11,6 +11,7 @@ export const MarkerLayer = React.memo(
     const { seriesShared } = useChartSeries();
     const { xScale, yScale } = useChartGeometry();
 
+    // Все позиции разрешаются на UI-потоке — пересчёт без JS-бриджа.
     const resolvedPositions = useDerivedValue(() => {
       return markers.map(marker =>
         resolveMarkerPosition(

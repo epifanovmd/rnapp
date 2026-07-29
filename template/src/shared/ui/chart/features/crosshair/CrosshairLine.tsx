@@ -21,6 +21,7 @@ export const CrosshairLine = React.memo(
     showVerticalLine,
     showMarkers,
     showHorizontalLines,
+    horizontalLineColor,
     dashIntervals,
     showXLabel,
     xLabelPosition,
@@ -56,9 +57,7 @@ export const CrosshairLine = React.memo(
 
     const opacity = useDerivedValue(() => (active.value ? 1 : 0), [active]);
 
-    // X-лейблу нужен JS-текст только по первой серии — мирим напрямую из
-    // `activeIndices`, локально для этого компонента, а не через общий
-    // JS-зеркалированный массив на весь график.
+    // activeIndex bridge в JS для текста X-лейбла (только первая серия).
     const [activeIndex, setActiveIndex] = useState(
       () => activeIndices.value[0] ?? -1,
     );
@@ -109,6 +108,7 @@ export const CrosshairLine = React.memo(
             canvasWidth={dimensions.width}
             showMarker={showMarkers}
             showHorizontalLine={showHorizontalLines}
+            horizontalLineColor={horizontalLineColor}
             showLabel={showYLabels}
             labelPosition={yLabelPosition}
             labelFormatter={yLabelFormatter}

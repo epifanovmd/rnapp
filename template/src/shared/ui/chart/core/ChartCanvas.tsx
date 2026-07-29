@@ -13,22 +13,13 @@ import {
   useChartGesture,
   useChartSeries,
 } from "./context";
-import type { ChartGesture } from "./interaction/useChartInteraction";
+import type { ChartGesture } from "./interaction";
 
 export interface ChartCanvasProps extends PropsWithChildren {
-  /** Жест pan графика — принимается напрямую (не через контекст), нужен только `GestureDetector` здесь. */
+  /** Pan-жест из useChartInteraction. */
   gesture: ChartGesture;
 }
-
-/**
- * Skia `<Canvas>` использует свой собственный (не-DOM) реконсилер, поэтому обычные
- * React-контексты не пересекают эту границу сами по себе — их нужно явно
- * заново предоставить внутри дерева `<Canvas>`. Компонент сам перерисовывается на
- * любое изменение любого из контекстов (т.к. подписан на все, чтобы их
- * перепробросить), но это дёшево: если конкретное значение контекста не
- * изменилось, потребители внутри `<Canvas>` всё равно не перерисуются — React
- * сравнивает `value` у `Provider`, а не факт ре-рендера компонента.
- */
+/** Skia Canvas с gesture-детектором и пробросом контекстов внутрь. */
 export const ChartCanvas: FC<ChartCanvasProps> = ({ gesture, children }) => {
   const geometry = useChartGeometry();
   const series = useChartSeries();
