@@ -104,8 +104,11 @@ export interface ChartProps {
   twoFingerEnabled?: boolean;
   /** Срабатывает при начале/окончании (первого) касания. */
   onActiveChange?: (active: boolean) => void;
-  /** Вызывается при смене активной точки; `null` при завершении касания. */
-  onChange?: (points: ActivePoint[] | null) => void;
+  /** Вызывается при смене активных точек; первый аргумент — первое касание, второй — второе. */
+  onChange?: (
+    primary: ActivePoint[] | null,
+    secondary: ActivePoint[] | null,
+  ) => void;
   /** Слои графика (Grid, Line, Area, Axis и т.д.). */
   children?: ReactNode;
 }
@@ -122,5 +125,8 @@ export interface ChartProviderProps {
   yPaddingRatio?: number;
   xReverse?: boolean;
   yReverse?: boolean;
-  onChange?: (points: ActivePoint[] | null) => void;
+  onChange?: (
+    primary: ActivePoint[] | null,
+    secondary: ActivePoint[] | null,
+  ) => void;
 }

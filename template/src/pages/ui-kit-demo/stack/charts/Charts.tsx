@@ -227,8 +227,14 @@ export const Charts: FC<IProps> = observer(() => {
   );
 
   const handleActivePointsChange = useCallback(
-    (points: ActivePoint[] | null) =>
-      setActivePointLabel(formatActivePoints(points)),
+    (primary: ActivePoint[] | null, secondary: ActivePoint[] | null) => {
+      const primaryLabel = formatActivePoints(primary);
+      const secondaryLabel = secondary ? formatActivePoints(secondary) : null;
+
+      setActivePointLabel(
+        secondaryLabel ? `${primaryLabel}  |  ${secondaryLabel}` : primaryLabel,
+      );
+    },
     [],
   );
 

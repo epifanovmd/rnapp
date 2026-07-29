@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DerivedValue, useAnimatedReaction } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -29,11 +29,16 @@ export const useActivePointChange = (
     () => activeIndices.value[0] ?? -1,
   );
 
+  const stableSetIndex = useCallback(
+    (value: number) => setActiveIndex(prev => (prev === value ? prev : value)),
+    [],
+  );
+
   useAnimatedReaction(
     () => activeIndices.value[0] ?? -1,
     (next, previous) => {
       if (next !== previous) {
-        scheduleOnRN(setActiveIndex, next);
+        scheduleOnRN(stableSetIndex, next);
       }
     },
     [activeIndices],

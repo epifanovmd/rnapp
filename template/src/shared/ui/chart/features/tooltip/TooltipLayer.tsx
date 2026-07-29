@@ -39,7 +39,7 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
 }) => {
   const { series, geometry } = useChartSeries();
   const { dimensions } = useChartGeometry();
-  const { touchX, touchY, isActive } = useChartGesture();
+  const { touchX, touchY, isActive, isSecondActive } = useChartGesture();
   const { activeIndices } = useChartActiveIndices();
 
   const font = useMemo(
@@ -144,7 +144,11 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     return Math.min(Math.max(rawTop, minTop), maxTop);
   }, [anchorPoint, boxHeight, side, offset, dimensions]);
 
-  const opacity = useDerivedValue(() => (isActive.value ? 1 : 0), [isActive]);
+  // Прячем тултип при двух касаниях — каждый палец управляет своим кроссхейром.
+  const opacity = useDerivedValue(
+    () => (isActive.value && !isSecondActive.value ? 1 : 0),
+    [isActive, isSecondActive],
+  );
 
   const onVisibilityChangeRef = useRef(onVisibilityChange);
 

@@ -1,5 +1,14 @@
-import React, { FC, PropsWithChildren, useEffect, useMemo } from "react";
-import { useSharedValue } from "react-native-reanimated";
+import React, {
+  FC,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import {
   ChartActiveIndicesContext,
@@ -11,14 +20,9 @@ import {
   ChartSeriesContext,
   ChartSeriesContextValue,
 } from "./context";
-import {
-  useActivePointChange,
-  useDomain,
-  useScale,
-  useSeriesGeometry,
-} from "./hooks";
+import { useDomain, useScale, useSeriesGeometry } from "./hooks";
 import { useActiveIndices } from "./interaction";
-import { ChartProviderProps } from "./types";
+import { ActivePoint, ChartProviderProps } from "./types";
 
 /** Контекст-провайдер графика: вычисляет домены, шкалы, геометрию и активные индексы. */
 export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
@@ -72,7 +76,61 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
     interaction.isSecondActive,
   );
 
-  useActivePointChange(active1.indices, series, onChange);
+  // Отслеживание активных точек для обоих касаний.
+  const [primaryIndex, setPrimaryIndex] = useState(
+    () => active1.indices.value[0] ?? -1,
+  );
+  const [secondaryIndex, setSecondaryIndex] = useState(
+    () => active2.indices.value[0] ?? -1,
+  );
+
+  const stableSetPrimary = useCallback(
+    (v: number) => setPrimaryIndex(prev => (prev === v ? prev : v)),
+    [],
+  );
+  const stableSetSecondary = useCallback(
+    (v: number) => setSecondaryIndex(prev => (prev === v ? prev : v)),
+    [],
+  );
+
+  useAnimatedReaction(
+    () => active1.indices.value[0] ?? -1,
+    (next, prev) => {
+      if (next !== prev) scheduleOnRN(stableSetPrimary, next);
+    },
+    [active1.indices],
+  );
+  useAnimatedReaction(
+    () => active2.indices.value[0] ?? -1,
+    (next, prev) => {
+      if (next !== prev) scheduleOnRN(stableSetSecondary, next);
+    },
+    [active2.indices],
+  );
+
+  const buildPoints = useCallback(
+    (index: number): ActivePoint[] | null => {
+      if (index < 0) return null;
+
+      const items = series.filter(item => item.data[index] !== undefined);
+
+      return items.length > 0
+        ? items.map(item => ({ series: item, datum: item.data[index] }))
+        : null;
+    },
+    [series],
+  );
+
+  const onChangeRef = useRef(onChange);
+
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    onChangeRef.current?.(
+      buildPoints(primaryIndex),
+      buildPoints(secondaryIndex),
+    );
+  }, [primaryIndex, secondaryIndex, buildPoints]);
 
   const geometryValue = useMemo<ChartGeometryContextValue>(
     () => ({ dimensions, xScale, yScale }),
