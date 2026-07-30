@@ -7,9 +7,9 @@ import { resolveMarkerPosition } from "./resolve-marker-position";
 import type { MarkerLayerProps } from "./types";
 
 export const MarkerLayer = React.memo(
-  ({ visible = true, markers, defaultRadius = 5 }: MarkerLayerProps) => {
+  ({ visible = true, markers, defaultRadius = 4 }: MarkerLayerProps) => {
     const { seriesShared } = useChartSeries();
-    const { xScale, yScale } = useChartGeometry();
+    const { xScale, yScale, dimensions } = useChartGeometry();
 
     // Все позиции разрешаются на UI-потоке — пересчёт без JS-бриджа.
     const resolvedPositions = useDerivedValue(() => {
@@ -19,9 +19,10 @@ export const MarkerLayer = React.memo(
           seriesShared.value,
           xScale,
           yScale,
+          dimensions.padding,
         ),
       );
-    }, [markers, seriesShared, xScale, yScale]);
+    }, [markers, seriesShared, xScale, yScale, dimensions.padding]);
 
     if (!visible) {
       return null;

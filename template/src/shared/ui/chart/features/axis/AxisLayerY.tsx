@@ -1,4 +1,12 @@
-import { Group, Line, matchFont, Text, vec } from "@shopify/react-native-skia";
+import {
+  Group,
+  Line,
+  matchFont,
+  Rect,
+  RoundedRect,
+  Text,
+  vec,
+} from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 
 import { defaultLabelFormatter, useChartGeometry } from "../../core";
@@ -12,6 +20,7 @@ export const AxisLayerY = React.memo(
   ({
     visible = true,
     position = "left",
+    labelSide = "out",
     tickCount = 5,
     formatLabel = defaultLabelFormatter,
     color = "#94A3B8",
@@ -20,8 +29,10 @@ export const AxisLayerY = React.memo(
     labelColor = "#64748B",
     fontSize = 11,
     fontFamily = "System",
-    showTicks = false,
+    showTicks = true,
     tickLength = 4,
+    labelBackground,
+    background,
   }: AxisLayerYProps) => {
     const { yScale, dimensions } = useChartGeometry();
     const font = useMemo(
@@ -29,18 +40,50 @@ export const AxisLayerY = React.memo(
       [fontFamily, fontSize],
     );
 
-    if (!visible || !font) {
-      return null;
-    }
+    if (!visible || !font) return null;
 
     const isRight = position === "right";
-    const axisX = isRight
-      ? dimensions.width - dimensions.padding.right
-      : dimensions.padding.left;
-    const tickEndX = isRight ? axisX + tickLength : axisX - tickLength;
+    const pad = isRight ? dimensions.padding.right : dimensions.padding.left;
+    const axisX = isRight ? dimensions.width - pad : pad;
+    const isOut = labelSide === "out";
+
+    const tickEndX = isRight
+      ? isOut
+        ? axisX + tickLength
+        : axisX - tickLength
+      : isOut
+        ? axisX - tickLength
+        : axisX + tickLength;
+
+    const ticks = yScale.ticks(tickCount);
+    const tickLabels = ticks.map(tick => formatLabel(tick));
+    const labelWidths = tickLabels.map(text => font.measureText(text).width);
+    const maxLabelWidth = labelWidths.reduce((a, b) => Math.max(a, b), 0);
+    const bgW = maxLabelWidth + 16;
+
+    const bgX = isRight
+      ? isOut
+        ? axisX
+        : axisX - bgW
+      : isOut
+        ? axisX - bgW
+        : axisX;
 
     return (
       <Group>
+        {background && (
+          <Rect
+            x={bgX}
+            y={dimensions.padding.top}
+            width={bgW}
+            height={
+              dimensions.height -
+              dimensions.padding.top -
+              dimensions.padding.bottom
+            }
+            color={background}
+          />
+        )}
         {showAxisLine && (
           <Line
             p1={vec(axisX, dimensions.padding.top)}
@@ -49,11 +92,18 @@ export const AxisLayerY = React.memo(
             strokeWidth={lineWidth}
           />
         )}
-        {yScale.ticks(tickCount).map((tick, index) => {
-          const label = formatLabel(tick);
-          const textWidth = font.measureText(label).width;
+        {ticks.map((tick, index) => {
+          const label = tickLabels[index];
+          const textWidth = labelWidths[index];
           const y = yScale.toRange(tick);
-          const x = isRight ? axisX + 8 : axisX - textWidth - 8;
+
+          const x = isRight
+            ? isOut
+              ? axisX + 8
+              : axisX - textWidth - 6
+            : isOut
+              ? axisX - textWidth - 8
+              : axisX + 6;
 
           return (
             <Group key={index}>
@@ -63,6 +113,24 @@ export const AxisLayerY = React.memo(
                   p2={vec(tickEndX, y)}
                   color={color}
                   strokeWidth={lineWidth}
+                />
+              )}
+              {labelBackground && (
+                <RoundedRect
+                  x={
+                    isRight
+                      ? isOut
+                        ? axisX + 4
+                        : axisX - textWidth - 10
+                      : isOut
+                        ? axisX - textWidth - 12
+                        : axisX + 2
+                  }
+                  y={y - fontSize / 2 - 3}
+                  width={textWidth + 8}
+                  height={fontSize + 6}
+                  r={3}
+                  color={labelBackground}
                 />
               )}
               <Text

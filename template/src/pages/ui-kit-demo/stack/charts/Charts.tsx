@@ -206,15 +206,15 @@ export const Charts: FC<IProps> = observer(() => {
     () => [
       {
         id: "peak",
-        anchor: { kind: "series", seriesId: "revenue", x: peakRevenue.x },
+        anchor: { kind: "series", seriesId: "revenue", x: peakRevenue.x / 2 },
         color: colors.red500,
-        radius: 6,
+        radius: 4,
       },
       {
         id: "note",
-        anchor: { kind: "pixel", x: 44, y: 28 },
+        anchor: { kind: "pixel", x: 44, y: 0 },
         color: colors.orange500,
-        radius: 5,
+        radius: 4,
         style: "stroke",
         strokeWidth: 2,
       },
@@ -252,7 +252,22 @@ export const Charts: FC<IProps> = observer(() => {
           </Text>
 
           <ChartCard title={"Live — Price ticker"}>
-            <Chart series={livePriceSeries} height={200} yPaddingRatio={0.2}>
+            <Chart
+              series={livePriceSeries}
+              height={300}
+              yPaddingRatio={0.2}
+              padding={{ left: 44, bottom: 36 }}
+            >
+              <AxisLayerY
+                tickCount={4}
+                color={colors.slate400}
+                labelColor={colors.textTertiary}
+              />
+              <AxisLayerX
+                tickCount={4}
+                color={colors.slate400}
+                labelColor={colors.textTertiary}
+              />
               <GridLayer color={colors.slate200} />
               <AreaLayer
                 curve={"smooth"}
@@ -269,11 +284,6 @@ export const Charts: FC<IProps> = observer(() => {
                 endDotRadius={5}
                 endDotStrokeColor={colors.onSurface}
                 endDotStrokeWidth={2}
-              />
-              <AxisLayerY
-                tickCount={4}
-                color={colors.slate400}
-                labelColor={colors.textTertiary}
               />
               <CurrentValueLineLayer
                 color={colors.blue500}
@@ -312,7 +322,7 @@ export const Charts: FC<IProps> = observer(() => {
               series={filteredSeries}
               height={260}
               yPaddingRatio={0.15}
-              padding={{ top: 40, left: 16, right: 56 }}
+              padding={{ left: 56, bottom: 36, top: 36 }}
               onActiveChange={handleActiveChange}
               onChange={handleActivePointsChange}
             >
@@ -328,7 +338,6 @@ export const Charts: FC<IProps> = observer(() => {
               />
               <AxisLayerY
                 tickCount={4}
-                position={"right"}
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
               />
@@ -337,6 +346,7 @@ export const Charts: FC<IProps> = observer(() => {
                 color={colors.slate400}
                 labelColor={colors.textTertiary}
                 formatLabel={formatPeriodLabel}
+                // labelSide={"in"}
               />
               <MarkerLayer markers={revenueMarkers} />
               <CurrentValueLineLayer
@@ -355,7 +365,7 @@ export const Charts: FC<IProps> = observer(() => {
                 xLabelPosition={"top"}
                 xLabelFormatter={formatPeriodLabel}
                 showYLabels
-                yLabelPosition={"right"}
+                // yLabelPosition={"right"}
                 secondLineColor={colors.orange500}
               />
               <RangeLayer />

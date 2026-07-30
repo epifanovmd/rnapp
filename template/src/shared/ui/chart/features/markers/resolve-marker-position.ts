@@ -1,4 +1,9 @@
-import type { ChartDatum, IChartSeries, IScale } from "../../core";
+import type {
+  ChartDatum,
+  ChartPadding,
+  IChartSeries,
+  IScale,
+} from "../../core";
 import type { MarkerAnchor } from "./types";
 
 /** Бинарный поиск ближайшего по domain-X индекса в данных. */
@@ -31,11 +36,12 @@ export const resolveMarkerPosition = (
   series: IChartSeries[],
   xScale: IScale,
   yScale: IScale,
+  padding: ChartPadding,
 ): { x: number; y: number } | null => {
   "worklet";
 
   if (anchor.kind === "pixel") {
-    return { x: anchor.x, y: anchor.y };
+    return { x: padding.left + anchor.x, y: padding.top + anchor.y };
   }
 
   if (anchor.kind === "domain") {

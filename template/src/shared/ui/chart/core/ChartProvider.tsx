@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
@@ -84,28 +83,28 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
     () => active2.indices.value[0] ?? -1,
   );
 
-  const stableSetPrimary = useCallback(
-    (v: number) => setPrimaryIndex(prev => (prev === v ? prev : v)),
-    [],
-  );
-  const stableSetSecondary = useCallback(
-    (v: number) => setSecondaryIndex(prev => (prev === v ? prev : v)),
-    [],
-  );
+  const lastPrimarySV = useSharedValue(-2);
+  const lastSecondarySV = useSharedValue(-2);
 
   useAnimatedReaction(
     () => active1.indices.value[0] ?? -1,
-    (next, prev) => {
-      if (next !== prev) scheduleOnRN(stableSetPrimary, next);
+    next => {
+      if (next !== lastPrimarySV.value) {
+        lastPrimarySV.value = next;
+        scheduleOnRN(setPrimaryIndex, next);
+      }
     },
-    [active1.indices],
+    [active1.indices, lastPrimarySV],
   );
   useAnimatedReaction(
     () => active2.indices.value[0] ?? -1,
-    (next, prev) => {
-      if (next !== prev) scheduleOnRN(stableSetSecondary, next);
+    next => {
+      if (next !== lastSecondarySV.value) {
+        lastSecondarySV.value = next;
+        scheduleOnRN(setSecondaryIndex, next);
+      }
     },
-    [active2.indices],
+    [active2.indices, lastSecondarySV],
   );
 
   const buildPoints = useCallback(
@@ -121,16 +120,11 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
     [series],
   );
 
-  const onChangeRef = useRef(onChange);
-
-  onChangeRef.current = onChange;
-
   useEffect(() => {
-    onChangeRef.current?.(
-      buildPoints(primaryIndex),
-      buildPoints(secondaryIndex),
-    );
-  }, [primaryIndex, secondaryIndex, buildPoints]);
+    if (!onChange) return;
+
+    onChange(buildPoints(primaryIndex), buildPoints(secondaryIndex));
+  }, [primaryIndex, secondaryIndex, buildPoints, onChange]);
 
   const geometryValue = useMemo<ChartGeometryContextValue>(
     () => ({ dimensions, xScale, yScale }),

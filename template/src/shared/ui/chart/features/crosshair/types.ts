@@ -32,6 +32,10 @@ export interface CrosshairLayerProps {
   yLabelPosition?: "left" | "right";
   /** Форматирует значение Y для чипа конкретной серии. */
   yLabelFormatter?: (value: number, series: IChartSeries) => string;
+  /** Направление подписи X: наружу (в padding) или внутрь графика. */
+  labelSideX?: "in" | "out";
+  /** Направление подписи Y: наружу (в padding) или внутрь графика. */
+  labelSideY?: "in" | "out";
   labelFontSize?: number;
   labelFontFamily?: string;
   labelBackground?: string;
@@ -64,6 +68,8 @@ export interface CrosshairLineProps {
   showYLabels: boolean;
   yLabelPosition: "left" | "right";
   yLabelFormatter: (value: number, series: IChartSeries) => string;
+  labelSideX?: "in" | "out";
+  labelSideY?: "in" | "out";
   font: SkFont;
   fontSize: number;
   labelBackground: string;
@@ -82,9 +88,11 @@ export interface CrosshairSeriesIndicatorProps {
   left: number;
   right: number;
   canvasWidth: number;
+  canvasHeight: number;
   showMarker: boolean;
   showHorizontalLine: boolean;
   horizontalLineColor?: string;
+  labelSide?: "in" | "out";
   showLabel: boolean;
   labelPosition: "left" | "right";
   labelFormatter: (value: number, series: IChartSeries) => string;
@@ -98,6 +106,9 @@ export interface CrosshairXLabelProps {
   anchorX: SharedValue<number>;
   edgeY: number;
   position: "top" | "bottom";
+  labelSide?: "in" | "out";
+  canvasWidth: number;
+  canvasHeight: number;
   text: string;
   font: SkFont;
   fontSize: number;
@@ -109,7 +120,9 @@ export interface CrosshairYLabelProps {
   anchorPoint: SharedValue<{ x: number; y: number }>;
   edgeX: number;
   canvasWidth: number;
+  canvasHeight: number;
   position: "left" | "right";
+  labelSide?: "in" | "out";
   text: string;
   font: SkFont;
   fontSize: number;

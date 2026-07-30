@@ -9,10 +9,10 @@ import { useChartInteraction } from "./interaction/useChartInteraction";
 import { ChartDimensions, ChartPadding, ChartProps } from "./types";
 
 const DEFAULT_PADDING: ChartPadding = {
-  top: 16,
+  top: 36,
   right: 16,
-  bottom: 24,
-  left: 40,
+  bottom: 36,
+  left: 16,
 };
 const DEFAULT_HEIGHT = 220;
 

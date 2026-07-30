@@ -19,9 +19,11 @@ export const CrosshairSeriesIndicator = React.memo(
     left,
     right,
     canvasWidth,
+    canvasHeight,
     showMarker,
     showHorizontalLine,
     horizontalLineColor,
+    labelSide,
     showLabel,
     labelPosition,
     labelFormatter,
@@ -88,7 +90,9 @@ export const CrosshairSeriesIndicator = React.memo(
             anchorPoint={point}
             edgeX={labelPosition === "right" ? right : left}
             canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
             position={labelPosition}
+            labelSide={labelSide}
             text={labelText}
             font={font}
             fontSize={fontSize}

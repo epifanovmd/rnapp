@@ -57,6 +57,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
   dotStrokeWidth = 2,
   showLabel = true,
   labelPosition = "right",
+  labelSide,
   formatLabel = defaultLabelFormatter,
   labelFontSize = 11,
   labelFontFamily = "System",
@@ -144,8 +145,15 @@ export const CurrentValueLineLayer: ChartLayerComponent<
   const metrics = font ? font.measureText(text) : { width: 0 };
   const boxWidth = metrics.width + LABEL_PADDING_X * 2;
   const boxHeight = labelFontSize + LABEL_PADDING_Y * 2;
+  const isIn = labelSide === "in";
   const rawBoxX =
-    labelPosition === "right" ? right + LABEL_GAP : left - boxWidth - LABEL_GAP;
+    labelPosition === "right"
+      ? isIn
+        ? right - boxWidth - LABEL_GAP
+        : right + LABEL_GAP
+      : isIn
+        ? left + LABEL_GAP
+        : left - boxWidth - LABEL_GAP;
   const boxX = Math.min(
     Math.max(rawBoxX, 0),
     Math.max(dimensions.width - boxWidth, 0),

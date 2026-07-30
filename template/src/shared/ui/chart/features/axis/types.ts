@@ -17,4 +17,10 @@ export interface AxisLayerBaseProps {
   showTicks?: boolean;
   /** px */
   tickLength?: number;
+  /** С какой стороны от оси рисовать подписи: внутрь графика или наружу. */
+  labelSide?: "in" | "out";
+  /** Цвет фона подписи (без него — без фона). */
+  labelBackground?: string;
+  /** Цвет фона оси (прозрачный по умолчанию). */
+  background?: string;
 }

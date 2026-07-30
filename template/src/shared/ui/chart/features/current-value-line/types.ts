@@ -23,6 +23,8 @@ export interface CurrentValueLineLayerProps {
   dotStrokeWidth?: number;
   showLabel?: boolean;
   labelPosition?: "left" | "right";
+  /** Направление подписи: наружу (в padding) или внутрь графика. */
+  labelSide?: "in" | "out";
   /** Форматирует последнее значение серии для чипа. */
   formatLabel?: (value: number) => string;
   labelFontSize?: number;

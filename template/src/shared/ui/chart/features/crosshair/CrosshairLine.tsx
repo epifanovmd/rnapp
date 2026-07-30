@@ -22,6 +22,8 @@ export const CrosshairLine = React.memo(
     showMarkers,
     showHorizontalLines,
     horizontalLineColor,
+    labelSideX,
+    labelSideY,
     dashIntervals,
     showXLabel,
     xLabelPosition,
@@ -106,9 +108,11 @@ export const CrosshairLine = React.memo(
             left={left}
             right={right}
             canvasWidth={dimensions.width}
+            canvasHeight={dimensions.height}
             showMarker={showMarkers}
             showHorizontalLine={showHorizontalLines}
             horizontalLineColor={horizontalLineColor}
+            labelSide={labelSideY}
             showLabel={showYLabels}
             labelPosition={yLabelPosition}
             labelFormatter={yLabelFormatter}
@@ -127,6 +131,9 @@ export const CrosshairLine = React.memo(
                 : dimensions.height - dimensions.padding.bottom
             }
             position={xLabelPosition}
+            labelSide={labelSideX}
+            canvasWidth={dimensions.width}
+            canvasHeight={dimensions.height}
             text={xLabelText}
             font={font}
             fontSize={fontSize}
