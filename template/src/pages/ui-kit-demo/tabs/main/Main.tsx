@@ -16,8 +16,6 @@ import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 import { View } from "react-native";
 
-import ContextMenuView from "./ContextMenuView";
-
 export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const context = useTransition();
   const { colors } = useTheme();
@@ -52,42 +50,21 @@ export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
           }}
           ItemSeparatorComponent={() => <Col height={8} />}
           renderItem={({ index }) => (
-            <ContextMenuView
-              menuId={`${index}`}
-              emojis={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
-              actions={[
-                {
-                  id: "reply",
-                  title: "Reply",
-                  systemImage: "arrowshape.turn.up.left",
-                },
-                { id: "copy", title: "Copy", systemImage: "doc.on.doc" },
-                { id: "delete", title: "Delete", isDestructive: true },
-              ]}
-              theme="dark"
-              onEmojiSelect={({ emoji, menuId }) => {
-                console.log("emoji", emoji);
-              }}
-              onActionSelect={({ actionId, menuId }) => {
-                console.log("actionId", actionId);
-              }}
+            <Touchable
+              bg={colors.onSurface}
+              radius={16}
+              pa={8}
+              height={120}
+              key={index}
             >
-              <Touchable
-                bg={colors.onSurface}
-                radius={16}
-                pa={8}
-                height={120}
-                key={index}
-              >
-                <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
-                <Text textStyle={"Body_M1"} color={"textSecondary"}>
-                  {"Текст"}
-                </Text>
-                <Text textStyle={"Body_M1"} color={"textSecondary"}>
-                  {"Текст"}
-                </Text>
-              </Touchable>
-            </ContextMenuView>
+              <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
+              <Text textStyle={"Body_M1"} color={"textSecondary"}>
+                {"Текст"}
+              </Text>
+              <Text textStyle={"Body_M1"} color={"textSecondary"}>
+                {"Текст"}
+              </Text>
+            </Touchable>
           )}
         />
       </Content>

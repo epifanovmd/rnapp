@@ -39,9 +39,19 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `picker/` — `DatePicker`, `RangePicker`, `TimePicker`, `YearRangePicker`, built on `picker/shared/`
   (`NativePicker.tsx` wraps the native WheelPicker; `Picker.tsx`, `PickerColumn.tsx`, `PickerItem.tsx`)
 - `carousel/Carousel.tsx` — Reanimated-based carousel
-- `holld-item-menu/` — `HoldItem`/`HoldItemProvider`, long-press context menu implemented in pure
-  JS/Reanimated (distinct from the native `ContextMenuView` — see `project_native.md`); submodules
-  `backdrop/`, `hold-menu/` (HoldMenu, HoldMenuItem, HoldMenuList, Separator), `hooks/`, `utils/`
+- `context-menu-view/` — long-press context menu (emoji reactions + action list), two interchangeable
+  implementations with an identical props/events contract (`types.ts`, derived from the codegen spec).
+  Structure: `native/` (`NativeContextMenuView.tsx` wrapping native `RNContextMenuView` (iOS only) +
+  `NativeContextMenuViewSpec.ts` codegen spec); `ContextMenuView.tsx` (root — the single public entry
+  point: resolves per platform, iOS → NativeContextMenuView, elsewhere → JsContextMenuView);
+  `JsContextMenuView.tsx` (cross-platform JS port on Reanimated + Gesture Handler — deliberately thin
+  per-item: just a View + long-press gesture, safe for large lists); `context-menu-controller.ts` (singleton present/finish store — mirrors the native
+  single-presented-VC model); `menu/` (`ContextMenuHost` — the single overlay render point, mounted once
+  in App.tsx as `<ContextMenuView.Host />` (Dialog.Host pattern); `ContextMenuOverlay` = fullscreen Modal
+  with backdrop/scroll canvas, `ContextMenuEmojiPanel`, `ContextMenuActionsView`, `ContextMenuBackdrop`,
+  `SfSymbolIcon` — SVG stand-ins for SF Symbols); `utils/` (pure layout engine `context-menu-layout.ts`,
+  theme port `context-menu-theme.ts`); `hooks/useContextMenuAnimator.ts`. See `project_native.md` for the native
+  side. The former `holld-item-menu/` (HoldItem) component was removed in favour of this one
 - `image-viewing/` — gallery viewer: `ImageViewing.tsx`, double-tap-to-zoom, pan responder, platform
   image item (`ImageItem.ios.tsx`/`ImageItem.android.tsx`/`ImageItem.d.ts`)
 - `collapsable/Collapsable.tsx` — collapsible section

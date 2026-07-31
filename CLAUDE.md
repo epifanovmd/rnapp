@@ -145,7 +145,7 @@ const authStore = IAuthStore.useInstance(); // hook-style, memoized via useRef
 `TabNavigation.tsx`, `TopTabNavigation.tsx`, `AppNavigation.tsx`) plus a `NavigationService` IoC singleton
 (route history, `navigateTo`/`pushTo`/`replaceTo`/`goBack`). Screens are registered as plain manifests:
 `src/app/App.screens.ts` exports `PUBLIC_SCREENS` (SignIn/SignUp/RecoveryPassword) and `PRIVATE_SCREENS`
-(MAIN tab navigator + Components/Carousel/Chat/Charts/PdfView/WebView demo stack screens);
+(MAIN tab navigator + Components/Carousel/Chat/Charts/ContextMenu/PdfView/WebView demo stack screens);
 `src/app/app-tab-screens.tsx` exports `TAB_SCREENS` (Main/Playground/Settings) rendered inside the `MAIN`
 route. The chat demo (`ChatRoom`, `src/pages/chat`) and the chart demo (`Charts`, `src/pages/ui-kit-demo`)
 are both stack screens reached via buttons on the Playground tab, not tabs themselves. `App.navigator.tsx`
@@ -191,10 +191,17 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
 - **InputBar** (iOS only, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
   Not previously documented anywhere in this repo's memory files.
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
-  `IOSChatView`. A code comment in `src/pages/ui-kit-demo/tabs/main/ContextMenuView.tsx` claims an Android
-  native implementation "реализован и работает" — **this is stale/inaccurate**: no Kotlin/Java source for
-  it exists anywhere under `android/`, and `MainApplication.kt` registers only one custom package. Treat
-  ContextMenu as iOS-only until a human confirms otherwise.
+  `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
+  No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public
+  entry point `ContextMenuView.tsx` picks the implementation per platform (iOS → the native wrapper
+  `native/NativeContextMenuView.tsx`, elsewhere → `JsContextMenuView.tsx`, a full JS re-implementation on
+  Reanimated + Gesture Handler, 1:1 port of the pod's layout/theme/animations; submodules `menu/`,
+  `hooks/`, `utils/`; per-item the component is just a View + long-press gesture — the overlay renders
+  once via `<ContextMenuView.Host />` in App.tsx, driven by a singleton `context-menu-controller.ts`, so
+  it is safe in large lists). Only `ContextMenuView` is exported publicly; the demo screen deep-imports
+  both concrete implementations directly as a testing exception.
+  Both share one props/events contract (`types.ts`). Demo: `ContextMenu` stack screen
+  (`pages/ui-kit-demo/stack/context-menu/`) with a temporary native-vs-JS switch for iOS comparison.
 - **Picker / WheelPicker** — exists on **both** platforms (not Android-only as previously documented):
   iOS as plain Objective-C (`ios/Picker/`: `Picker.h/.m`, `PickerLabel.h/.m`, `RnWheelPicker.h/.m`, 6
   files, old-style RCTViewManager, no Swift); Android as Java (`android/app/src/main/java/com/rnapp/rnwheelpicker/`,
@@ -204,7 +211,7 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
 
 JS-side codegen specs (Fabric): `src/widgets/chat-room/native/NativeChatViewSpec.ts`,
 `src/widgets/chat-room/native/NativeInputBarSpec.ts`,
-`src/pages/ui-kit-demo/tabs/main/NativeContextMenuViewSpec.ts`. On Android, `ChatView.tsx`/`InputBar.tsx`
+`src/shared/ui/context-menu-view/native/NativeContextMenuViewSpec.ts`. On Android, `ChatView.tsx`/`InputBar.tsx`
 JS wrappers explicitly return `null` (`Platform.OS === "android"` short-circuit) since no Android
 implementation is registered. See `project_native.md` for full detail and what's unverified.
 

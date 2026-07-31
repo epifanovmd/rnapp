@@ -6,6 +6,7 @@ import {
   CarouselScreen,
   Charts,
   Components,
+  ContextMenu,
   PdfView,
   WebView,
 } from "@pages/ui-kit-demo";
@@ -21,6 +22,7 @@ export const PRIVATE_SCREENS: StackScreens = {
   Carousel: { screen: CarouselScreen },
   Chat: { screen: ChatRoom, options: { headerShown: false } },
   Charts: { screen: Charts },
+  ContextMenu: { screen: ContextMenu },
   PdfView: {
     screen: PdfView,
     options: {

@@ -13,7 +13,7 @@ other directly (`eslint-plugin-boundaries`, `eslint.boundaries.mjs`).
 ```
 template/src/
 ├── app/                     # композиционный корень
-│   ├── App.tsx              # Root: providers (Theme, SafeArea, BottomSheet, Keyboard, HoldItem, Dialog)
+│   ├── App.tsx              # Root: providers (Theme, SafeArea, BottomSheet, Keyboard, Dialog.Host, ContextMenuView.Host)
 │   ├── App.navigator.tsx    # NavigationContainer + auth state → routes = PUBLIC or PRIVATE+PUBLIC
 │   ├── App.screens.ts       # PUBLIC_SCREENS (SignIn, SignUp, RecoveryPassword) + PRIVATE_SCREENS
 │   ├── app-tab-screens.tsx  # TAB_SCREENS манифест (Chats, Main, Playground, Settings)
@@ -27,8 +27,8 @@ template/src/
 │   ├── sign-in/, sign-up/, recovery-password/    # SignIn.tsx, SignUp.tsx, RecoveryPassword.tsx
 │   ├── chat/                # реэкспорт ChatRoom из widgets/chat-room
 │   ├── settings/            # Settings.tsx
-│   └── ui-kit-demo/          # демо/плейграунд: stack/{carousel,components,pdf-view,web-view},
-│                              #   tabs/{main,playground} (Main.tsx имеет ContextMenuView demo)
+│   └── ui-kit-demo/          # демо/плейграунд: stack/{carousel,charts,components,context-menu,pdf-view,web-view},
+│                              #   tabs/{main,playground}
 ├── widgets/                 # крупные самостоятельные блоки UI
 │   ├── chat-room/           # ChatRoom.tsx (мок-данные, useChatRoomMock), native/ (ChatView, InputBar),
 │   │                          #   AttachmentPickerSheet, PollDetailModal
@@ -114,9 +114,9 @@ the component tree renders.
 
 Screen manifests are plain objects, not decorators:
 - `src/app/App.screens.ts` — `PUBLIC_SCREENS` (SignIn, SignUp, RecoveryPassword) and `PRIVATE_SCREENS`
-  (`MAIN` → the tab navigator, plus demo stack screens Components/Carousel/PdfView/WebView).
-- `src/app/app-tab-screens.tsx` — `TAB_SCREENS` rendered inside `MAIN`: Chats (ChatRoom widget), Main
-  (ui-kit-demo, has the ContextMenuView native demo), Playground (ui-kit-demo), Settings.
+  (`MAIN` → the tab navigator, plus demo stack screens Components/Carousel/Chat/Charts/ContextMenu/PdfView/WebView).
+- `src/app/app-tab-screens.tsx` — `TAB_SCREENS` rendered inside `MAIN`: Main (ui-kit-demo),
+  Playground (ui-kit-demo), Settings.
 
 `App.navigator.tsx` chooses the active route set from `IAuthStore.isAuthenticated`: unauthenticated →
 `PUBLIC_SCREENS` only; authenticated → `{...PRIVATE_SCREENS, ...PUBLIC_SCREENS}` (both merged, so public

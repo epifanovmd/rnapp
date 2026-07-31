@@ -70,6 +70,12 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
             title={"Charts"}
             onPress={() => navigation.navigate("Charts")}
           />
+
+          <Button
+            mt={8}
+            title={"Context menu"}
+            onPress={() => navigation.navigate("ContextMenu")}
+          />
         </Content>
       </ScrollView>
     </Container>

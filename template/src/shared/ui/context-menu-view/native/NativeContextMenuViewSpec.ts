@@ -1,6 +1,3 @@
-// NativeContextMenuViewSpec.ts
-// Codegen spec для кастомного контекстного меню.
-
 import type { HostComponent, ViewProps } from "react-native";
 import { codegenNativeComponent } from "react-native";
 import type {
@@ -9,16 +6,16 @@ import type {
   WithDefault,
 } from "react-native/Libraries/Types/CodegenTypes";
 
-// ─── Domain types ─────────────────────────────────────────────────────────────
-
 export type NativeContextMenuAction = {
+  /** Идентификатор действия — возвращается в onActionSelect как actionId. */
   id: string;
+  /** Заголовок пункта меню. */
   title: string;
+  /** Имя SF Symbol для иконки. */
   systemImage?: string;
+  /** Красный (деструктивный) стиль пункта. */
   isDestructive?: boolean;
 };
-
-// ─── Event payloads ───────────────────────────────────────────────────────────
 
 export type NativeContextMenuEmojiSelectData = {
   emoji: string;
@@ -38,8 +35,6 @@ export type NativeContextMenuWillShowData = {
   menuId: string;
 };
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 export interface NativeContextMenuViewProps extends ViewProps {
   menuId?: string;
   emojis?: string[];
@@ -47,7 +42,6 @@ export interface NativeContextMenuViewProps extends ViewProps {
   theme?: WithDefault<string, "light">;
   minimumPressDuration?: WithDefault<Double, 0.35>;
 
-  // Events
   onEmojiSelect?: DirectEventHandler<NativeContextMenuEmojiSelectData>;
   onActionSelect?: DirectEventHandler<NativeContextMenuActionSelectData>;
   onDismiss?: DirectEventHandler<NativeContextMenuDismissData>;

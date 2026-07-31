@@ -11,9 +11,9 @@ type: project
 
 ## Private screens — tab navigator (`MAIN` route, `src/app/app-tab-screens.tsx`)
 Order/keys of `TAB_SCREENS` (initial route: `Main`):
-- **Main** — `pages/ui-kit-demo/tabs/main/Main.tsx` — home/demo screen, hosts the native `ContextMenuView` demo
+- **Main** — `pages/ui-kit-demo/tabs/main/Main.tsx` — home/demo screen (image header + refreshable card list)
 - **Playground** — `pages/ui-kit-demo/tabs/playground/Playground.tsx` — dev/test scratch screen, holds
-  buttons to every stack demo screen below (Components/Carousel/Chat/Charts/PdfView/WebView)
+  buttons to every stack demo screen below (Components/Carousel/Chat/Charts/ContextMenu/PdfView/WebView)
 - **Settings** — `pages/settings/Settings.tsx` — app settings, biometrics toggle, theme switch
 
 There is no "Chats" tab — the chat demo is a stack screen (see below), reached from Playground, not a
@@ -48,13 +48,14 @@ App.navigator.tsx (routes chosen from IAuthStore.isAuthenticated)
 │   └── RecoveryPassword
 └── isAuthenticated → { ...PRIVATE_SCREENS, ...PUBLIC_SCREENS }  (both merged)
     ├── MAIN (bottom TabNavigator, TabHeader = <Navbar>)
-    │   ├── Main       (ui-kit-demo, has ContextMenuView native demo)
-    │   ├── Playground (ui-kit-demo — links to Components/Carousel/Chat/Charts/PdfView/WebView)
+    │   ├── Main       (ui-kit-demo)
+    │   ├── Playground (ui-kit-demo — links to Components/Carousel/Chat/Charts/ContextMenu/PdfView/WebView)
     │   └── Settings
     ├── Components (internal Material Top Tabs: Buttons/Notifications/Modals/Pickers/Elements/Ticket)
     ├── Carousel
     ├── Chat (ChatRoom, native chat demo)
     ├── Charts (Skia + Reanimated charting core demo)
+    ├── ContextMenu (context menu demo: native RNContextMenuView vs JS ContextMenuView, toggle on page)
     ├── PdfView (modal)
     ├── WebView (modal)
     ├── SignIn / SignUp / RecoveryPassword (still addressable even while authenticated)

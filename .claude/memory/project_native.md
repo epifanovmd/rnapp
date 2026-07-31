@@ -44,15 +44,28 @@ returns `null` when `Platform.OS === "android"`.
 mentioned in any prior version of this repo's documentation. **No Android implementation** —
 `src/widgets/chat-room/native/InputBar.tsx` returns `null` on Android (per its own header comment).
 
-### ContextMenu — iOS only (despite a stale in-repo comment claiming otherwise)
+### ContextMenu — native bridge iOS only, plus a JS behavioural port
 `ios/ContextMenu/Bridge/` — 3 files: `RNContextMenuView.swift` (156 lines), `RNContextMenuViewManager.swift`
-(12 lines), `RNContextMenuViewManager.m` (22 lines). Also imports `IOSChatView`.
-`src/pages/ui-kit-demo/tabs/main/ContextMenuView.tsx` contains a comment saying "Android: нативный
-компонент реализован и работает" (Android: native component is implemented and works) — **this claim did
-not check out**: no Kotlin/Java file anywhere under `android/` references `RNContextMenuView` or a
-`ContextMenuViewManager`/`ContextMenuViewPackage`, and `MainApplication.kt` registers only
-`RnWheelPickerPackage()`. Treat ContextMenu as iOS-only. A human should confirm whether an Android
-implementation exists in a separate/unmerged location, or whether that comment is simply aspirational.
+(12 lines), `RNContextMenuViewManager.m` (22 lines). Also imports `IOSChatView` (the actual menu UI —
+`ContextMenuViewController`, `ContextMenuLayoutEngine`, `ContextMenuAnimator`, panels, themes — lives in
+the external pod, sibling repo `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
+No Android native implementation exists (`MainApplication.kt` registers only `RnWheelPickerPackage()`).
+JS side lives in `src/shared/ui/context-menu-view/`:
+- `native/` — `NativeContextMenuView.tsx` (wrapper over the native `RNContextMenuView`; renders plain
+  children on non-iOS platforms) + `NativeContextMenuViewSpec.ts` (codegen spec);
+- `ContextMenuView.tsx` (root; the single public entry point — resolves the implementation per
+  platform: iOS → NativeContextMenuView, elsewhere → JsContextMenuView) + `JsContextMenuView.tsx`
+  (thin per-item — View + long-press gesture only) +
+  `context-menu-controller.ts` (singleton presenter, mirrors the one-presented-VC native model) + `menu/`
+  (`ContextMenuHost` — single overlay render point, mounted once in App.tsx as `<ContextMenuView.Host />`;
+  `ContextMenuOverlay`, `ContextMenuBackdrop`, `ContextMenuEmojiPanel`, `ContextMenuActionsView`,
+  `SfSymbolIcon`) + `hooks/useContextMenuAnimator.ts` + `utils/` (`context-menu-layout.ts`,
+  `context-menu-theme.ts`) — a full cross-platform JS re-implementation (Reanimated + Gesture Handler)
+  that ports the native pod's layout engine, themes and spring animations 1:1. Both components share the
+  exact same props/events contract (`types.ts`, derived from the codegen spec types).
+The demo screen `pages/ui-kit-demo/stack/context-menu/ContextMenu.tsx` (`ContextMenu` stack route) has a
+temporary switch to compare native vs JS implementations side by side on iOS — it deep-imports both
+concrete implementations directly (a testing-only exception; regular code must use `ContextMenuView`).
 
 ### Picker / WheelPicker — the only module implemented on both platforms
 `ios/Picker/` — 6 Objective-C files, old-style (non-Fabric) `RCTViewManager`: `Picker.h`/`Picker.m`
@@ -127,25 +140,26 @@ implementation; there is no corresponding Kotlin `ViewManager`/`Package` to regi
 
 - `src/widgets/chat-room/native/NativeChatViewSpec.ts` — codegen spec for ChatView (iOS only at runtime).
 - `src/widgets/chat-room/native/NativeInputBarSpec.ts` — codegen spec for InputBar (iOS only at runtime).
-- `src/pages/ui-kit-demo/tabs/main/NativeContextMenuViewSpec.ts` — codegen spec for ContextMenu, used
-  only by the demo screen `ContextMenuView` (iOS only at runtime, see caveat above).
+- `src/shared/ui/context-menu-view/native/NativeContextMenuViewSpec.ts` — codegen spec for ContextMenu,
+  used by `NativeContextMenuView.tsx` in the same folder (iOS only at runtime).
 
 All three use `codegenNativeComponent`/`codegenNativeCommands` from `react-native`. Filenames are fixed
 by RN codegen convention (TurboModule/Fabric) — do not rename. `package.json`'s `codegenConfig` declares
 a single umbrella spec name `"RNChatViewSpec"` with `jsSrcsDir: "src"` (scans the whole `src/` tree, so
 spec files can live inside any slice without breaking codegen — that's why `NativeContextMenuViewSpec.ts`
-lives under `pages/` rather than `widgets/`).
+lives under `shared/ui/context-menu-view/native/`).
 
 The `.tsx` JS wrappers (`ChatView.tsx`, `InputBar.tsx` in `src/widgets/chat-room/native/`,
-`ContextMenuView.tsx` in `src/pages/ui-kit-demo/tabs/main/`) all try `require(...).default` (the codegen'd
-Fabric component) first and fall back to `requireNativeComponent` — this is a defensive fallback, not
-evidence of a legacy (non-Fabric) implementation existing anywhere.
+`NativeContextMenuView.tsx` in `src/shared/ui/context-menu-view/native/`) all try `require(...).default` (the
+codegen'd Fabric component) first and fall back to `requireNativeComponent` — this is a defensive
+fallback, not evidence of a legacy (non-Fabric) implementation existing anywhere.
 
 ## Not verified / needs a human
 
 - Contents of the external `IOSChatView` pod (sibling repo `rn-chat-view`) — out of scope for this repo's
   documentation; assume it can change independently of this repo.
-- Whether ContextMenu actually has (or ever had) a working Android implementation somewhere outside this
-  checkout, given the stale in-repo comment claiming so.
+- (resolved) ContextMenu has no Android native implementation; the stale in-repo comment claiming one
+  was removed together with the old demo wrapper. Android is covered by the JS implementation
+  (`shared/ui/context-menu-view/ContextMenuView.tsx`).
 - The `ios:Stg-Release` npm script typo (`'rnapp.stagingReleasse'`) — confirm whether this is a known bug
   or intentional before "fixing" it.
