@@ -78,11 +78,11 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `ChatRoom.tsx` — the chat screen widget. **Fully mocked** — no API/socket calls, state comes entirely
   from `useChatRoomMock.ts` (541 lines: message list, typing indicator, scroll/unread logic, reactions,
   polls, image viewer state, attachment sheet). `chat-mock-data.ts` (160 lines) supplies the seed data.
-- `native/` — platform-aware native wrappers:
-  - `ChatView.tsx` — iOS renders the native `RNChatView`; Android returns `null` (see `project_native.md`)
-  - `InputBar.tsx` — same pattern, iOS-only
-  - `NativeChatViewSpec.ts`, `NativeInputBarSpec.ts` — Fabric codegen specs
-  - `map-message-to-native.ts` — converts JS chat message model → native prop shape
+- `native/map-message-to-native.ts` — converts JS chat message model → `ChatMessage` prop shape.
+  The ChatView/InputBar components themselves live in `shared/ui/chat-view` and `shared/ui/input-bar`
+  (single entry points; iOS → native `RNChatView`/`RNInputBar`, elsewhere → full RN ports `JsChatView`
+  on FlashList / `JsInputBar`). `ChatRoom.tsx` has a temporary native-vs-JS switch (deep imports of
+  both implementations as a testing exception) for iOS side-by-side comparison.
 - `AttachmentPickerSheet.tsx`, `PollDetailModal.tsx` — supporting UI for the chat screen
 
 ## App shell (`src/widgets/app-shell/`)

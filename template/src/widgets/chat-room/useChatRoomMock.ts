@@ -3,15 +3,6 @@ import {
   EMessageType,
   MessageDto,
 } from "@shared/api/gen/model";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Clipboard } from "react-native";
-
-import {
-  createMockMessages,
-  MOCK_CURRENT_USER_ID,
-  MOCK_PEER,
-  nextMockId,
-} from "./chat-mock-data";
 import {
   type ChatAction,
   type ChatActionPressEventData,
@@ -33,7 +24,16 @@ import {
   ChatView,
   type ChatVisibleMessagesChangeEventData,
   ChatVoiceRecordingCompleteEventData,
-} from "./native";
+} from "@shared/ui/chat-view";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Clipboard } from "react-native";
+
+import {
+  createMockMessages,
+  MOCK_CURRENT_USER_ID,
+  MOCK_PEER,
+  nextMockId,
+} from "./chat-mock-data";
 
 /** Каждые ~14с на 2.5с показываем "печатает..." — просто чтобы показать индикатор. */
 const TYPING_SIMULATION_INTERVAL_MS = 14_000;

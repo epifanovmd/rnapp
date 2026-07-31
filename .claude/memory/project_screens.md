@@ -26,7 +26,8 @@ tab bar root.
   **Pickers**, **Elements**, **Ticket** (`ButtonsTab`, `NotificationsTab`, `ModalsTab` [+`CustomFilter`],
   `PickersTab`, `ElementsTab`, `TicketTab`)
 - **Carousel** — `pages/ui-kit-demo/stack/carousel/Carousel.tsx` (+ `SlideItem.tsx`)
-- **Chat** — `pages/chat` → re-exports `widgets/chat-room`'s `ChatRoom` (native chat demo, fully mocked),
+- **Chat** — `pages/chat` → re-exports `widgets/chat-room`'s `ChatRoom` (chat demo, fully mocked;
+  has a temporary switch between the native `RNChatView` (iOS) and the RN `JsChatView` port),
   `headerShown: false` (renders its own `Navbar`, now including `Navbar.BackButton` since it's pushed
   from Playground rather than mounted as a tab root)
 - **Charts** — `pages/ui-kit-demo/stack/charts/Charts.tsx` — Skia + Reanimated charting core demo (see

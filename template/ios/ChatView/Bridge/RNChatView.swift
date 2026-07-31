@@ -387,6 +387,10 @@ final class RNChatView: UIView {
         if let v = cg("voiceBarSpacing") { chatVC.layout.voiceBarSpacing = v }
         if let v = cg("voicePlaySize") { chatVC.layout.voicePlaySize = v }
         if let v = cg("voicePlayIconSize") { chatVC.layout.voicePlayIconSize = v }
+        if let v = cg("voiceWaveformWidth") { chatVC.layout.voiceWaveformWidth = v }
+        if let v = cg("voiceWaveformTrailingInset") { chatVC.layout.voiceWaveformTrailingInset = v }
+        if let v = cg("voiceContentSpacing") { chatVC.layout.voiceContentSpacing = v }
+        if let v = cg("voiceBarMinHeight") { chatVC.layout.voiceBarMinHeight = v }
 
         // Poll
         if let v = cg("pollBarHeight") { chatVC.layout.pollBarHeight = v }

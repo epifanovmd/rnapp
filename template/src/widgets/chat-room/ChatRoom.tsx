@@ -1,13 +1,16 @@
 import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
-import { Col, Navbar, Text } from "@shared/ui";
+import { Col, Navbar, Row, Switch, Text } from "@shared/ui";
+// Тестовое исключение: демо-переключатель нативной и RN-реализаций —
+// обычный код должен импортировать ChatView из @shared/ui.
+import { JsChatView } from "@shared/ui/chat-view/JsChatView";
+import { NativeChatView } from "@shared/ui/chat-view/native";
 import { ImageViewing } from "@shared/ui/image-viewing";
 import { observer } from "mobx-react-lite";
-import React, { FC, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { FC, useMemo, useState } from "react";
+import { Platform, StyleSheet, View } from "react-native";
 
 import { AttachmentPickerSheet } from "./AttachmentPickerSheet";
-import { ChatView } from "./native/ChatView";
 import { mapMessageToNative } from "./native/map-message-to-native";
 import { PollDetailModal } from "./PollDetailModal";
 import { useChatRoomMock } from "./useChatRoomMock";
@@ -20,6 +23,10 @@ import { useChatRoomMock } from "./useChatRoomMock";
  */
 export const ChatRoom: FC<StackProps> = observer(() => {
   const { isDark } = useTheme();
+
+  const [useNative, setUseNative] = useState(Platform.OS === "ios");
+
+  const Chat = useNative ? NativeChatView : JsChatView;
 
   const {
     chatDisplayName,
@@ -96,7 +103,32 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         </Navbar.Subtitle>
       </Navbar>
 
-      <ChatView
+      <Row
+        ph={16}
+        pv={6}
+        alignItems={"center"}
+        justifyContent={"space-between"}
+      >
+        <Col flexShrink={1} pr={12}>
+          <Text textStyle={"Body_M1"}>
+            {"Нативная реализация (RNChatView)"}
+          </Text>
+          <Text textStyle={"Caption_M2"} color={"textSecondary"}>
+            {Platform.OS === "ios"
+              ? useNative
+                ? "Сейчас: нативная (iOS)"
+                : "Сейчас: React Native (FlashList)"
+              : "На этой платформе доступна только React Native-реализация"}
+          </Text>
+        </Col>
+        <Switch
+          isActive={useNative}
+          disabled={Platform.OS !== "ios"}
+          onChange={setUseNative}
+        />
+      </Row>
+
+      <Chat
         ref={chatRef}
         style={styles.chat}
         messages={nativeMessages}

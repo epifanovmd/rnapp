@@ -1,12 +1,12 @@
 import {
   EMessageStatus,
+  EMessageType,
   MessageAttachmentDto,
   MessageDto,
   PollDto,
 } from "@shared/api/gen/model";
 import { formatFullName, toAbsoluteUrl } from "@shared/lib/utils";
-
-import { type ChatMessage } from "./ChatView";
+import { type ChatMessage } from "@shared/ui/chat-view";
 
 const mapStatus = (status: string): ChatMessage["status"] => {
   switch (status) {
@@ -66,7 +66,12 @@ export const mapMessageToNative = (
   msg: MessageDtoWithLocalId,
   currentUserId?: string,
 ): ChatMessage => {
-  const ownership = msg.senderId === currentUserId ? "mine" : "theirs";
+  const ownership: ChatMessage["ownership"] =
+    msg.type === EMessageType.system
+      ? "system"
+      : msg.senderId === currentUserId
+        ? "mine"
+        : "theirs";
 
   const imageAttachments = findAllAttachmentsByType(msg.attachments, "image/");
   const videoAttachment = findAllAttachmentsByType(

@@ -325,6 +325,14 @@ export type NativeChatLayoutConfig = {
   voicePlaySize?: Double;
   /** Размер иконки воспроизведения голосового */
   voicePlayIconSize?: Double;
+  /** Предпочтительная ширина волны (задаёт ширину пузыря голосового) */
+  voiceWaveformWidth?: Double;
+  /** Отступ волны от правого края контента */
+  voiceWaveformTrailingInset?: Double;
+  /** Расстояние между кнопкой воспроизведения и волной */
+  voiceContentSpacing?: Double;
+  /** Минимальная высота столбика волны */
+  voiceBarMinHeight?: Double;
 
   // ─── Опрос ────────────────────────────────────────────────────────────────
   /** Высота полосы варианта опроса */

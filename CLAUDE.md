@@ -184,12 +184,26 @@ events (`socket/user/`, `socket/events/`).
 **Important:** older documentation in this repo claimed a large ChatView/ContextMenu implementation
 living entirely inside this repo, and WheelPicker as Android-only. Neither is accurate. Verified state:
 
-- **ChatView** (iOS only, `ios/ChatView/Bridge/`, 3 files: `RNChatView.swift`, `RNChatViewManager.swift`,
+- **ChatView** (iOS native, `ios/ChatView/Bridge/`, 3 files: `RNChatView.swift`, `RNChatViewManager.swift`,
   `RNChatViewManager.m`) — a thin RCTViewManager bridge. The real chat UI implementation (cells, layout,
   diffing, etc.) lives in an **external CocoaPod** `IOSChatView`, pulled from a sibling repo via
   `Podfile`: `pod 'IOSChatView', :path => '../../../rn-chat-view'` — i.e. it is NOT part of this repo.
-- **InputBar** (iOS only, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
-  Not previously documented anywhere in this repo's memory files.
+  JS side lives in `src/shared/ui/chat-view/`: the public entry point `ChatView.tsx` picks the
+  implementation per platform (iOS → `native/NativeChatView.tsx`, elsewhere → `JsChatView.tsx` — a full
+  React Native port of the pod's `ChatViewController` on `@shopify/flash-list`: `model/` pure logic
+  (theme/layout/features 1:1, row building, message diff with localId pending→real keys, date helper,
+  unread manager, voice player/recorder abstractions with simulated backends), `components/` (bubble,
+  content views for text/links, media grid, voice, poll, files, reactions, reply, thread, footer, FAB,
+  floating date, empty state, disintegration burst), pagination/visibility (throttle+debounce)/scroll
+  anchor/commands in `JsChatView.tsx`; per-item context menu reuses `shared/ui/context-menu-view`).
+  One props/events contract (`types.ts`, aliased from the codegen spec). The chat demo (`ChatRoom`
+  widget) has a temporary native-vs-JS switch for iOS comparison (deep imports as a testing exception).
+- **InputBar** (iOS native, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
+  JS side lives in `src/shared/ui/input-bar/`: entry point `InputBar.tsx` (iOS → `native/NativeInputBar.tsx`,
+  elsewhere → `JsInputBar.tsx`). The core `ChatInputBar.tsx` (port of the pod's `InputBarView`: growing
+  text field, reply/edit panel, attach button, morphing mic/send button, voice-recording gesture with
+  slide-to-cancel/lock) lives in the same folder and is shared by both `JsInputBar` and the integrated
+  input bar inside `JsChatView` (mirroring how both native bridges reuse the pod's `InputBarView`).
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
   `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public
@@ -209,11 +223,11 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   `events/ItemSelectedEvent.java`, `wheelpicker/{IWheelPicker,WheelPicker}.java`). This is the only custom
   native package registered in `MainApplication.kt` (`RnWheelPickerPackage()`).
 
-JS-side codegen specs (Fabric): `src/widgets/chat-room/native/NativeChatViewSpec.ts`,
-`src/widgets/chat-room/native/NativeInputBarSpec.ts`,
-`src/shared/ui/context-menu-view/native/NativeContextMenuViewSpec.ts`. On Android, `ChatView.tsx`/`InputBar.tsx`
-JS wrappers explicitly return `null` (`Platform.OS === "android"` short-circuit) since no Android
-implementation is registered. See `project_native.md` for full detail and what's unverified.
+JS-side codegen specs (Fabric): `src/shared/ui/chat-view/native/NativeChatViewSpec.ts`,
+`src/shared/ui/input-bar/native/NativeInputBarSpec.ts`,
+`src/shared/ui/context-menu-view/native/NativeContextMenuViewSpec.ts`. On Android there is no native
+chat implementation — the JS ports (`JsChatView`/`JsInputBar`/`JsContextMenuView`) are used instead.
+See `project_native.md` for full detail and what's unverified.
 
 ## Naming & boundary conventions
 

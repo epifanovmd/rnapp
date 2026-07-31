@@ -138,8 +138,8 @@ implementation; there is no corresponding Kotlin `ViewManager`/`Package` to regi
 
 ## JS Specs (Fabric codegen)
 
-- `src/widgets/chat-room/native/NativeChatViewSpec.ts` — codegen spec for ChatView (iOS only at runtime).
-- `src/widgets/chat-room/native/NativeInputBarSpec.ts` — codegen spec for InputBar (iOS only at runtime).
+- `src/shared/ui/chat-view/native/NativeChatViewSpec.ts` — codegen spec for ChatView (iOS only at runtime).
+- `src/shared/ui/input-bar/native/NativeInputBarSpec.ts` — codegen spec for InputBar (iOS only at runtime).
 - `src/shared/ui/context-menu-view/native/NativeContextMenuViewSpec.ts` — codegen spec for ContextMenu,
   used by `NativeContextMenuView.tsx` in the same folder (iOS only at runtime).
 
@@ -149,10 +149,19 @@ a single umbrella spec name `"RNChatViewSpec"` with `jsSrcsDir: "src"` (scans th
 spec files can live inside any slice without breaking codegen — that's why `NativeContextMenuViewSpec.ts`
 lives under `shared/ui/context-menu-view/native/`).
 
-The `.tsx` JS wrappers (`ChatView.tsx`, `InputBar.tsx` in `src/widgets/chat-room/native/`,
-`NativeContextMenuView.tsx` in `src/shared/ui/context-menu-view/native/`) all try `require(...).default` (the
-codegen'd Fabric component) first and fall back to `requireNativeComponent` — this is a defensive
-fallback, not evidence of a legacy (non-Fabric) implementation existing anywhere.
+The `.tsx` JS wrappers (`NativeChatView.tsx` in `src/shared/ui/chat-view/native/`, `NativeInputBar.tsx`
+in `src/shared/ui/input-bar/native/`, `NativeContextMenuView.tsx` in
+`src/shared/ui/context-menu-view/native/`) all try `require(...).default` (the codegen'd Fabric
+component) first and fall back to `requireNativeComponent` — this is a defensive fallback, not evidence
+of a legacy (non-Fabric) implementation existing anywhere.
+
+On non-iOS platforms all three components resolve to full React Native ports via single public entry
+points: `ChatView` (`src/shared/ui/chat-view/ChatView.tsx` → `JsChatView.tsx` on `@shopify/flash-list`),
+`InputBar` (`src/shared/ui/input-bar/InputBar.tsx` → `JsInputBar.tsx`, core `ChatInputBar.tsx` shared
+with `JsChatView`), `ContextMenuView` (see `project_components.md`). Audio capture/playback in the JS
+ports is abstracted (`chat-voice-player.ts` / `chat-voice-recorder.ts` in `chat-view/model/`) with
+simulated default backends — real backends can be injected via `setChatVoicePlayerBackend` /
+`setChatVoiceRecorderBackend` (no audio native module exists in this project).
 
 ## Not verified / needs a human
 
