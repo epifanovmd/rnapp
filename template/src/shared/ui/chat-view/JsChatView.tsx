@@ -23,11 +23,12 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
-  useAnimatedKeyboard,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -304,19 +305,44 @@ export const JsChatView = memo(
     // числе при интерактивном закрытии свайпом), а не прыгает после анимации.
 
     const safeArea = useSafeAreaInsets();
-
-    // isNavigationBarTranslucentAndroid убирает вмешательство Reanimated в
-    // нижний отступ окна: он не двигает корень под нав-бар и не вычитает его
-    // из высоты клавиатуры. Нижняя зона считается одинаково на обеих
-    // платформах — из safe area, как keyboardLayoutGuide на iOS.
-    const keyboard = useAnimatedKeyboard({
-      isNavigationBarTranslucentAndroid: true,
-    });
-
     const safeAreaBottom = safeArea.bottom;
 
+    const keyboardHeight = useSharedValue(0);
+
+    // Нижняя зона считается одинаково на обеих платформах — из safe area, как
+    // keyboardLayoutGuide на iOS. Чтобы высота клавиатуры мерялась от низа
+    // окна (а не от нав-бара), у KeyboardProvider выставлен
+    // navigationBarTranslucent — без него нав-бар вычитается и зона схлопнется.
+    useKeyboardHandler(
+      {
+        // onStart приходит с destination-значениями: целевой высотой и
+        // длительностью. Поэтому отступ трогается в том же кадре, что и
+        // клавиатура, и с её же длительностью, а не догоняет её.
+        onStart: e => {
+          "worklet";
+          keyboardHeight.value = withTiming(e.height, { duration: e.duration });
+        },
+        // Дальше ведём покадрово: нативная часть отдаёт позицию с упреждением
+        // на задержку рендера, поэтому прямое присваивание точнее анимации.
+        onMove: e => {
+          "worklet";
+          keyboardHeight.value = e.height;
+        },
+        // Протаскивание клавиатуры вниз пальцем по списку.
+        onInteractive: e => {
+          "worklet";
+          keyboardHeight.value = e.height;
+        },
+        onEnd: e => {
+          "worklet";
+          keyboardHeight.value = e.height;
+        },
+      },
+      [],
+    );
+
     const bottomInset = useDerivedValue(
-      () => Math.max(keyboard.height.value, safeAreaBottom),
+      () => Math.max(keyboardHeight.value, safeAreaBottom),
       [safeAreaBottom],
     );
 

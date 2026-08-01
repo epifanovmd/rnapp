@@ -42,7 +42,7 @@ export const App: FC = observer(() => {
             <AppNotifications>
               <Dialog.Host />
               <ContextMenuView.Host />
-              <KeyboardProvider>
+              <KeyboardProvider navigationBarTranslucent>
                 <AppNavigator ref={navigationRef} />
               </KeyboardProvider>
             </AppNotifications>
