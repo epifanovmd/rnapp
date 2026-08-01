@@ -5,13 +5,13 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useKeyboardInset } from "../../lib/hooks/use-keyboard-inset";
+import { useKeyboardOverlay } from "../../lib/hooks/use-keyboard-overlay";
 
 /**
  * Самодостаточная обёртка InputBar с привязкой к клавиатуре.
  *
  * - Без внешнего управления: сама отслеживает клавиатуру через
- *   `useKeyboardInset` и прижимает панель к верхней границе клавиатуры
+ *   `useKeyboardOverlay` и прижимает панель к верхней границе клавиатуры
  *   (или к safe area, когда клавиатура скрыта).
  * - С внешним управлением: если передан `bottomInset` (SharedValue),
  *   использует его — клавиатура отслеживается извне. Это позволяет чату
@@ -35,7 +35,7 @@ export interface IKeyboardInputBarProps {
 
 export const KeyboardInputBar = forwardRef<View, IKeyboardInputBarProps>(
   ({ children, bottomInset: externalInset, style }, ref) => {
-    const { bottomInset: internalInset } = useKeyboardInset();
+    const { overlay: internalInset } = useKeyboardOverlay();
     const effectiveInset = externalInset ?? internalInset;
 
     const animatedStyle = useAnimatedStyle(() => ({

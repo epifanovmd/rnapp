@@ -1,4 +1,4 @@
-import { useKeyboardInset } from "@shared/lib/hooks/use-keyboard-inset";
+import { useKeyboardOverlay } from "@shared/lib/hooks/use-keyboard-overlay";
 import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
@@ -51,9 +51,9 @@ export const InputBarPage: FC<StackProps> = observer(() => {
   // Как в чате: скролл во всю высоту экрана и неподвижен, а зону панели ввода
   // с клавиатурой держит распорка в конце контента (см.
   // useKeyboardScrollCompensation). Высота панели — измеренная, из
-  // onHeightChange, safe area приходит из bottomInset.
+  // onHeightChange, safe area приходит из overlay.
 
-  const { bottomInset } = useKeyboardInset();
+  const { overlay } = useKeyboardOverlay();
 
   // До первого onHeightChange — минимальная высота панели из её же лейаута
   // (не магическое число): нативная вьюха с нулевым фреймом стоит ниже
@@ -69,8 +69,8 @@ export const InputBarPage: FC<StackProps> = observer(() => {
 
   // Нижняя зона для компенсации скролла: клавиатура (или safe area, когда она
   // скрыта) плюс измеренная высота панели.
-  const bottomZone = useDerivedValue(
-    () => bottomInset.value + inputBarHeight,
+  const bottomOverlay = useDerivedValue(
+    () => overlay.value + inputBarHeight,
     [inputBarHeight],
   );
 
@@ -118,7 +118,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
     <Container edges={[]}>
       <KeyboardScrollView
         style={ss.scroll}
-        zone={bottomZone}
+        bottomOverlay={bottomOverlay}
         keyboardShouldPersistTaps={"handled"}
       >
         {/* Порт тапа по коллекции с view.endEditing(true): штатный
@@ -231,7 +231,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
         </Pressable>
       </KeyboardScrollView>
 
-      <KeyboardInputBar bottomInset={bottomInset}>
+      <KeyboardInputBar bottomInset={overlay}>
         <Bar
           theme={theme}
           style={barStyle}

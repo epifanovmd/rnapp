@@ -32,7 +32,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { mergeRefs } from "../../lib/hooks/merge-refs";
-import { useKeyboardInset } from "../../lib/hooks/use-keyboard-inset";
+import { useKeyboardOverlay } from "../../lib/hooks/use-keyboard-overlay";
 import { useKeyboardScrollCompensation } from "../../lib/hooks/use-keyboard-scroll-compensation";
 import {
   IInputBarViewDelegate,
@@ -291,15 +291,15 @@ export const JsChatView = memo(
     const keyboardWasVisibleRef = useRef(false);
     const thawTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { bottomInset: keyboardInset, keyboardHeight } = useKeyboardInset();
+    const { overlay: keyboardOverlay, keyboardHeight } = useKeyboardOverlay();
 
     // Заморозка держит всю нижнюю зону разом — список, панель ввода и FAB
     // считаются от одного значения, поэтому при скрытии клавиатуры под меню
     // на экране не двигается вообще ничего.
-    const bottomInset = useDerivedValue(() =>
+    const overlay = useDerivedValue(() =>
       frozenBottomInset.value >= 0
         ? frozenBottomInset.value
-        : keyboardInset.value,
+        : keyboardOverlay.value,
     );
 
     // Порт freeze(): запоминаем зону и то, была ли открыта клавиатура. Именно
@@ -311,12 +311,12 @@ export const JsChatView = memo(
       const wasVisible = keyboardHeight.value > 0;
 
       keyboardWasVisibleRef.current = wasVisible;
-      frozenBottomInset.value = bottomInset.value;
+      frozenBottomInset.value = overlay.value;
 
       if (wasVisible) {
         inputBarRef.current?.blur();
       }
-    }, [frozenBottomInset, keyboardHeight, bottomInset]);
+    }, [frozenBottomInset, keyboardHeight, overlay]);
 
     // Порт restore(): клавиатуру возвращаем, а зону отпускаем только когда она
     // полностью открыта (thaw по keyboardDidShow) — иначе будет прыжок.
@@ -415,13 +415,13 @@ export const JsChatView = memo(
     // низ видимой области. Список при этом неподвижен и во всю высоту — зону
     // держит распорка в конце контента, а скролл компенсируется на ту же
     // дельту (см. useKeyboardScrollCompensation). Заморозка на время
-    // контекстного меню приходит сама собой: `bottomInset` в этот момент
+    // контекстного меню приходит сама собой: `overlay` в этот момент
     // не меняется, значит не меняется и зона.
 
     const inputBarHeightSV = useSharedValue(layout.inputBarMinHeight);
 
-    const bottomZone = useDerivedValue(
-      () => bottomInset.value + inputBarHeightSV.value,
+    const bottomOverlay = useDerivedValue(
+      () => overlay.value + inputBarHeightSV.value,
     );
 
     const {
@@ -429,7 +429,7 @@ export const JsChatView = memo(
       spacerStyle: compensationSpacerStyle,
       onLayout: onCompensationLayout,
       onContentSizeChange: onCompensationContentSize,
-    } = useKeyboardScrollCompensation(bottomZone);
+    } = useKeyboardScrollCompensation(bottomOverlay);
 
     const handleContentSizeChange = useCallback(
       (width: number, height: number) => {
@@ -1431,7 +1431,7 @@ export const JsChatView = memo(
           </View>
 
           {features.showInputBar && (
-            <KeyboardInputBar bottomInset={bottomInset}>
+            <KeyboardInputBar bottomInset={overlay}>
               <InputBarContext.Provider value={inputBarContextValue}>
                 <InputBarView
                   ref={inputBarRef}
@@ -1445,7 +1445,7 @@ export const JsChatView = memo(
 
           <ChatFab
             store={overlayStore}
-            bottomInset={bottomInset}
+            bottomInset={overlay}
             inputBarHeight={inputBarHeightSV}
             onPress={() => propsRef.current.onFabPress?.({})}
           />

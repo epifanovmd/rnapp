@@ -210,16 +210,17 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   the host must apply that height to the view's style; the pod's bar is pinned to the bridge's bottom at
   priority 999 so a stale RN height never squashes its internal layout.
 - **Keyboard compensation** (both JS ports) is a 1:1 port of `updateCollectionInsets`, implemented in
-  `shared/lib/hooks/use-keyboard-scroll-compensation.ts`: the list/scroll viewport is never translated or
-  shrunk. The whole bottom zone (input bar + keyboard, or safe area when it's down) is a **spacer at the
-  end of the content**, and every change of it is compensated by an equal `scrollTo` on the UI thread, so
-  distance-from-end is preserved. The hook's only state is "the zone we have already applied", which
-  makes it self-healing — skipped events (freeze during a context menu, bar resize, rotation) reconcile
-  in one correct step instead of double-applying. Freezing has no flag: whoever owns the zone shared
-  value just stops updating it. Translating the list container instead (an earlier approach) hides the
-  top of the content behind the clip bounds — don't reintroduce it, and don't hardcode bottom paddings.
-  The input bar overlay rides the keyboard via `KeyboardInputBar` (port of `keyboardLayoutGuide`).
-  See `project_native.md`.
+  two hooks in `shared/lib/hooks/`:
+  - `useKeyboardOverlay()` → `overlay` = `max(keyboardHeight, safeAreaBottom)`, плюс raw `keyboardHeight`
+    для продвинутых сценариев (freeze/thaw панели). Единственный источник правды, принимает
+    опциональный замороженный оверлей для контекстного меню.
+  - `useKeyboardScrollCompensation(bottomOverlay)` — принимает суммарное перекрытие снизу (оверлей +
+    высота панели ввода), компенсирует распоркой в конце контента + эквивалентным `scrollTo` на
+    UI-потоке. Состояние — «сколько уже применили», поэтому самовосстанавливается после любых
+    пропущенных событий. Заморозка без флага: владелец оверлея просто перестаёт его обновлять.
+  Translating the list container instead (an earlier approach) hides the top of the content behind the
+  clip bounds — don't reintroduce it, and don't hardcode bottom paddings. The input bar overlay rides
+  the keyboard via `KeyboardInputBar` (port of `keyboardLayoutGuide`). See `project_native.md`.
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
   `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public

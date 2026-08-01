@@ -202,25 +202,13 @@ The RN ports mirror that exactly, and this is load-bearing: any approach that tr
 list container instead pushes the top of the content above the clip bounds, making the first messages
 permanently unreachable.
 
-Implementation: **`shared/lib/hooks/use-keyboard-scroll-compensation.ts`** (own hook — see "Why not
-`KeyboardChatScrollView`" below).
+**`useKeyboardOverlay`** (single source: `max(keyboard, safeArea)` + raw `keyboardHeight` for freeze/thaw) + **`useKeyboardScrollCompensation`** (takes total `bottomOverlay`, compensates by spacer + `scrollTo`). Both in `shared/lib/hooks/`.
 
 - The zone (`max(keyboardHeight, safeAreaBottom) + measured input-bar height`) is a **spacer view at the
-  end of the scroll content**, not a `contentInset`: Android has no `contentInset`, and being part of
-  the content size is what keeps native `scrollToEnd`, FlashList's MVCP autoscroll and every
-  "am-I-at-the-bottom" calculation correct without keyboard-specific corrections.
-- Every change of the zone is mirrored by an equal `scrollTo` on the UI thread, clamped to the scroll
-  range and skipped entirely when the content is shorter than the viewport (port of the
-  `maxOffsetY > minOffsetY` guard).
-- The hook's only state is `appliedZone` — what is already reflected in both the spacer and the scroll
-  position. Deltas are computed against reality, never against a remembered keyboard height, so any
-  number of skipped events reconciles in one correct step.
-- **Freezing needs no flag**: the owner of the zone shared value simply stops updating it. In the chat
-  that is `bottomInset`, which already freezes for the input bar and the FAB (`KeyboardFreezeManager`
-  port), so bar / FAB / list freeze and thaw as one.
-- The input bar itself is an absolutely-positioned overlay translated by the same `bottomInset`
-  (`shared/ui/input-bar/KeyboardInputBar.tsx`, port of `keyboardLayoutGuide` +
-  `followsUndockedKeyboard`).
+  end of the scroll content**. The hook `useKeyboardScrollCompensation(bottomOverlay)` accepts the total
+  occluded height as its only parameter — how it gets assembled is the caller's decision (usually
+  `useDerivedValue(() => overlay.value + inputBarHeight.value)`, where `overlay` comes from
+  `useKeyboardOverlay`).
 - Hosts: `JsChatView` uses the hook directly (spacer → `ListFooterComponent`, `scrollRef` merged into
   FlashList's `renderScrollComponent`); `shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` is a
   thin `Animated.ScrollView` wrapper over the same hook for ordinary screens.

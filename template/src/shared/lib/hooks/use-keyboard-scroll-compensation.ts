@@ -13,45 +13,49 @@ import Animated, {
 } from "react-native-reanimated";
 
 /**
- * Компенсация нижней зоны скролла — порт `updateCollectionInsets`
+ * Компенсация перекрытия скролла снизу — порт `updateCollectionInsets`
  * из `ChatViewController` (IOSChatView).
  *
- * Нативный эталон никогда не двигает саму коллекцию: она во весь экран, а
- * зону, которую снизу перекрывают панель ввода и клавиатура, компенсирует
- * `contentInset.bottom` + коррекция `contentOffset` на ту же дельту, так что
- * расстояние до конца контента сохраняется. Верх при этом всегда достижим —
- * сдвигается содержимое скролла, а не вьюха.
+ * Нативный эталон никогда не двигает коллекцию; зону, которую снизу
+ * перекрывают панель ввода и клавиатура, он компенсирует внутри скролла
+ * (`contentInset.bottom` + коррекция `contentOffset`), не трогая саму вьюху.
+ * Сдвигать вьюху нельзя: верх контента уедет за границу и станет недостижим.
  *
- * Здесь то же самое, но на кросс-платформенных примитивах: зона живёт в
- * распорке в конце контента (`spacerStyle`), а не в `contentInset` — на
- * Android его нет, а распорка одинаково работает везде и, в отличие от
- * инсета, входит в размер контента. Благодаря этому нативные `scrollToEnd`,
- * автоскролл `maintainVisibleContentPosition` и любые расчёты «внизу ли
- * скролл» продолжают работать без поправок на клавиатуру.
+ * Здесь тот же принцип, но на кросс-платформенных примитивах: перекрытие
+ * живёт **распоркой в конце контента**, а не в `contentInset`. На Android
+ * инсета нет, а распорка одинаково работает везде и — в отличие от инсета —
+ * входит в размер контента, поэтому нативные `scrollToEnd`, автоскролл MVCP
+ * и любые расчёты «внизу ли скролл» корректны без поправок.
  *
- * ## Состояние — «сколько применили», а не «какая была клавиатура»
+ * ## Принцип работы
  *
- * Единственная переменная — `appliedZone`: зона, которая уже отражена и в
- * распорке, и в позиции скролла. Любое изменение считается дельтой от неё,
- * поэтому логика самовосстанавливается: сколько бы событий ни было пропущено
- * (заморозка на время контекстного меню, смена высоты панели, поворот),
- * следующий пересчёт приведёт скролл ровно к целевому состоянию и ни разу не
- * применит одну и ту же дельту дважды.
+ * Единственное состояние — `appliedOverlay`: сколько перекрытия уже
+ * учтено **и в распорке, и в позиции скролла**. Каждое изменение `bottomOverlay`
+ * считается дельтой от этого значения: распорка меняется, а скролл двигается
+ * на ту же дельту, так что расстояние до конца контента сохраняется.
+ *
+ * Модель самовосстанавливается: поскольку дельта считается от реально
+ * применённого значения, а не от запомненной высоты клавиатуры, любое
+ * количество пропущенных событий (заморозка, поворот, смена панели)
+ * схлопывается в один корректный шаг.
  *
  * ## Заморозка
  *
- * Отдельного флага нет: замораживает тот, кто владеет `zone` — достаточно
- * перестать её обновлять (в чате это общий `bottomInset`, от которого живут
- * ещё панель ввода и FAB). Пока значение не меняется, хук не трогает ни
- * распорку, ни скролл; когда владелец отпускает зону, разница отыгрывается
- * одним корректным шагом.
+ * Отдельного флага нет: замораживает тот, кто управляет `bottomOverlay`,
+ * — достаточно перестать обновлять shared value. В чате это тот же
+ * `frozenOverlay`, от которого живут панель ввода и FAB, поэтому бар,
+ * FAB и скролл замирают и оттаивают как одно целое.
  *
  * ## Использование
  *
  * ```tsx
- * const zone = useDerivedValue(() => bottomInset.value + inputBarHeight.value);
+ * const overlay = useKeyboardOverlay();
+ * const inputBarHeight = useSharedValue(0);
+ * const bottomOverlay = useDerivedValue(
+ *   () => overlay.value + inputBarHeight.value,
+ * );
  * const { scrollRef, spacerStyle, onLayout, onContentSizeChange } =
- *   useKeyboardScrollCompensation(zone);
+ *   useKeyboardScrollCompensation(bottomOverlay);
  *
  * <Animated.ScrollView ref={scrollRef} onLayout={onLayout}
  *   onContentSizeChange={onContentSizeChange}>
@@ -59,64 +63,59 @@ import Animated, {
  *   <Animated.View style={spacerStyle} />
  * </Animated.ScrollView>
  * ```
- * Для FlashList распорка уходит в `ListFooterComponent`, а `scrollRef` — на
- * скролл из `renderScrollComponent`.
+ *
+ * В чате (FlashList) распорка уходит в `ListFooterComponent`, а `scrollRef`
+ * подмешивается в `renderScrollComponent`.
  */
 
 export interface IKeyboardScrollCompensation {
-  /** Ref для самого скролла: нужен и для чтения offset, и для `scrollTo`. */
   scrollRef: AnimatedRef<Animated.ScrollView>;
-  /** Стиль распорки в конце контента (её высота и есть нижняя зона). */
   spacerStyle: AnimatedStyle<{ height: number }>;
-  /** Повесить на `onLayout` скролла — высота видимой области. */
   onLayout: (e: LayoutChangeEvent) => void;
-  /** Повесить на `onContentSizeChange` скролла. */
   onContentSizeChange: (width: number, height: number) => void;
 }
 
 export function useKeyboardScrollCompensation(
-  zone: SharedValue<number>,
+  bottomOverlay: SharedValue<number>,
 ): IKeyboardScrollCompensation {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollY = useScrollViewOffset(scrollRef);
 
-  const appliedZone = useSharedValue(0);
+  const appliedOverlay = useSharedValue(0);
   const contentHeight = useSharedValue(0);
   const viewportHeight = useSharedValue(0);
 
   useAnimatedReaction(
-    () => zone.value,
+    () => bottomOverlay.value,
     target => {
-      const applied = appliedZone.value;
+      const applied = appliedOverlay.value;
       const delta = target - applied;
 
-      // Полкадра туда-сюда не считаем: иначе на каждый кадр анимации
-      // клавиатуры будет лишний scrollTo с нулевым эффектом.
       if (Math.abs(delta) < 0.5) return;
 
-      // Распорку двигаем всегда — это и есть нижний инсет.
-      appliedZone.value = target;
+      // Распорка меняется первой — она и есть «нижний инсет».
+      appliedOverlay.value = target;
 
-      // Ожидаемая высота контента после коммита распорки: сам коммит придёт
-      // кадром позже, а решение о скролле нужно принять сейчас.
+      // Ожидаемая высота контента после коммита распорки — коммит
+      // отстаёт на кадр, а решение о скролле нужно сейчас.
       const contentEnd = contentHeight.value - applied + target;
       const maxOffset = contentEnd - viewportHeight.value;
 
-      // Порт guard `maxOffsetY > minOffsetY`: контент короче видимой области —
-      // держим его прижатым к верху, скролл не трогаем.
+      // Контент короче видимой области — держим прижатым к верху.
       if (maxOffset <= 0) return;
 
       const next = Math.min(Math.max(scrollY.value + delta, 0), maxOffset);
 
-      // Пишем сами, не дожидаясь события скролла: во время анимации реакция
-      // отрабатывает каждый кадр, и база для следующей дельты должна быть
-      // уже актуальной.
+      // Пишем позицию сами: во время анимации реакция на каждый кадр,
+      // и база для следующей дельты должна быть актуальной.
       scrollY.value = next;
       scrollTo(scrollRef, 0, next, false);
     },
   );
 
-  const spacerStyle = useAnimatedStyle(() => ({ height: appliedZone.value }));
+  const spacerStyle = useAnimatedStyle(() => ({
+    height: appliedOverlay.value,
+  }));
 
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
@@ -132,12 +131,9 @@ export function useKeyboardScrollCompensation(
     [contentHeight],
   );
 
-  // Идентичность держим стабильной: у FlashList `renderScrollComponent`
-  // пересоздаёт компонент скролла (`Animated.createAnimatedComponent`), а
-  // новый тип компонента для React — это перемонтирование ScrollView с
-  // потерей позиции. Всё внутри и так стабильно (useAnimatedRef,
-  // useAnimatedStyle и useCallback от shared values), поэтому объект
-  // создаётся один раз.
+  // Идентичность обязана быть стабильной: FlashList пересобирает компонент
+  // скролла через `Animated.createAnimatedComponent` при каждом изменении
+  // `renderScrollComponent`, а новый тип — это ремоунт с потерей позиции.
   return useMemo(
     () => ({ scrollRef, spacerStyle, onLayout, onContentSizeChange }),
     [scrollRef, spacerStyle, onLayout, onContentSizeChange],

@@ -5,22 +5,20 @@ import { LayoutChangeEvent, ScrollViewProps } from "react-native";
 import Animated, { SharedValue } from "react-native-reanimated";
 
 /**
- * Скролл с компенсацией нижней зоны — обёртка над
- * `useKeyboardScrollCompensation` для обычных экранов (в чате хук
- * используется напрямую: там распорка уходит в `ListFooterComponent`).
+ * `Animated.ScrollView` с компенсацией перекрытия снизу — для экранов,
+ * у которых внизу стоит панель ввода (демо InputBar и подобные).
  *
- * Вьюпорт остаётся на месте и во всю высоту, а зону, которую снизу
- * перекрывают панель ввода и клавиатура, держит распорка в конце контента.
- * Подробности алгоритма и заморозки — в доке хука.
+ * В чате этот же хук используется напрямую: там распорка идёт в
+ * `ListFooterComponent` FlashList, а `scrollRef` — в `renderScrollComponent`.
+ *
+ * @param bottomOverlay — суммарная высота того, что перекрывает скролл снизу:
+ *   `max(клавиатура, safeArea) + высота панели ввода`. Меняется на UI-потоке,
+ *   компенсация (распорка + scrollTo) происходит там же.
  */
 
 export interface IKeyboardScrollViewProps extends ScrollViewProps {
-  /**
-   * Нижняя зона: панель ввода + клавиатура (или safe area, когда та скрыта).
-   * Заморозка делается на стороне владельца — достаточно перестать обновлять
-   * это значение.
-   */
-  zone: SharedValue<number>;
+  /** Суммарная высота перекрытия снизу — shared value с UI-потока. */
+  bottomOverlay: SharedValue<number>;
 }
 
 export const KeyboardScrollView = forwardRef<
@@ -28,10 +26,16 @@ export const KeyboardScrollView = forwardRef<
   IKeyboardScrollViewProps
 >(
   (
-    { zone, children, onLayout: onLayoutProp, onContentSizeChange, ...rest },
+    {
+      bottomOverlay,
+      children,
+      onLayout: onLayoutProp,
+      onContentSizeChange,
+      ...rest
+    },
     ref,
   ) => {
-    const compensation = useKeyboardScrollCompensation(zone);
+    const compensation = useKeyboardScrollCompensation(bottomOverlay);
 
     const handleLayout = useCallback(
       (e: LayoutChangeEvent) => {
