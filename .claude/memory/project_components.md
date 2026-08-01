@@ -35,11 +35,11 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `check-box/CheckBox.tsx`, `chip/Chip.tsx`, `switch/Switch.tsx`, `tabs/{Tab,Tabs}.tsx`
 - `field/Field.tsx` — compound form-field wrapper
 - `scroll-view/ScrollView.tsx` — enhanced ScrollView
-- `keyboard-scroll-view/KeyboardScrollView.tsx` — `Animated.ScrollView` с компенсацией перекрытия
-  снизу: проп `bottomOverlay` (shared value с суммарной высотой панели + клавиатуры/safe area),
-  распорка в конце контента + эквивалентный `scrollTo` на UI-потоке. Тонкая обёртка над
-  `use-keyboard-scroll-compensation.ts`; `JsChatView` использует хук напрямую. Подробнее в
-  `project_native.md`
+- `keyboard-scroll-view/KeyboardScrollView.tsx` — скролл с компенсацией перекрытия снизу: пропы
+  `barHeight` (shared value с живой высотой плавающей панели), `extraPadding`, `freeze`. Тонкая
+  обёртка над `KeyboardChatScrollView` + `useScrollBottomInset` из `shared/lib/keyboard` — та же
+  связка, что использует `ChatList`, поэтому чат и обычные экраны не расходятся в поведении.
+  Подробнее в `project_native.md`
 - `image/Image.tsx` — `react-native-fast-image` wrapper
 - `picker/` — `DatePicker`, `RangePicker`, `TimePicker`, `YearRangePicker`, built on `picker/shared/`
   (`NativePicker.tsx` wraps the native WheelPicker; `Picker.tsx`, `PickerColumn.tsx`, `PickerItem.tsx`)
@@ -86,7 +86,7 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `native/map-message-to-native.ts` — converts JS chat message model → `ChatMessage` prop shape.
   The ChatView/InputBar components themselves live in `shared/ui/chat-view` and `shared/ui/input-bar`
   (single entry points; iOS → native `RNChatView`/`RNInputBar`, elsewhere → full RN ports `JsChatView`
-  on FlashList / `JsInputBar`). `ChatRoom.tsx` has a temporary native-vs-JS switch (deep imports of
+  on `@legendapp/list` / `JsInputBar`). `ChatRoom.tsx` has a temporary native-vs-JS switch (deep imports of
   both implementations as a testing exception) for iOS side-by-side comparison.
 - `AttachmentPickerSheet.tsx`, `PollDetailModal.tsx` — supporting UI for the chat screen
 

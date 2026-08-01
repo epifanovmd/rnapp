@@ -1,0 +1,86 @@
+import { useMemo, useRef } from "react";
+
+import { IChatCellDelegate } from "../components/chat-view-context";
+import { ChatViewProps } from "../types";
+import { IChatCommands } from "./useChatCommands";
+
+/**
+ * Маршрутизация действий ячеек — порт `ChatViewController+MessageActions`
+ * и `ChatViewController+ContextMenu`.
+ *
+ * Делегат отдаётся ячейкам через ref, чтобы они оставались мемоизированными:
+ * пересоздание делегата не должно перерисовывать тысячи строк.
+ */
+
+export interface IChatCellDelegateOptions {
+  props: React.RefObject<ChatViewProps>;
+  commands: IChatCommands;
+  /** Заморозить нижнюю зону перед показом меню. Порт `keyboardFreezeManager.freeze`. */
+  freezeKeyboard: () => void;
+  /** Отпустить зону после закрытия меню. Порт `keyboardFreezeManager.restore`. */
+  restoreKeyboard: () => void;
+}
+
+export const useChatCellDelegate = ({
+  props,
+  commands,
+  freezeKeyboard,
+  restoreKeyboard,
+}: IChatCellDelegateOptions): React.RefObject<IChatCellDelegate> => {
+  const delegate = useMemo<IChatCellDelegate>(
+    () => ({
+      onTapMessage: (messageId, attachmentIndex) =>
+        props.current.onMessagePress?.(
+          attachmentIndex != null
+            ? { messageId, attachmentIndex }
+            : { messageId },
+        ),
+
+      // Выбор эмодзи/действия закрывает меню без onDismiss, поэтому зону
+      // размораживаем здесь же (restore идемпотентен).
+      onEmojiSelect: (emoji, messageId) => {
+        restoreKeyboard();
+        props.current.onEmojiReactionSelect?.({ emoji, messageId });
+      },
+      onActionSelect: (actionId, messageId) => {
+        restoreKeyboard();
+        props.current.onActionPress?.({ actionId, messageId });
+      },
+
+      // Порт messageSectionDidTapReply: тап по цитате уводит к оригиналу.
+      onReplyTap: replyToId => {
+        commands.scrollToMessage(replyToId, {
+          position: "center",
+          animated: true,
+          highlight: true,
+        });
+        props.current.onReplyMessagePress?.({ messageId: replyToId });
+      },
+
+      onReactionTap: (messageId, emoji) =>
+        props.current.onReactionTap?.({ emoji, messageId }),
+      onThreadTap: (messageId, threadId) =>
+        props.current.onThreadTap?.({ messageId, threadId }),
+      onLinkTap: (url, messageId) =>
+        props.current.onLinkTap?.({ url, messageId }),
+      onPhoneNumberTap: (phoneNumber, messageId) =>
+        props.current.onPhoneNumberTap?.({ phoneNumber, messageId }),
+      onPollOptionTap: (messageId, pollId, optionId) =>
+        props.current.onPollOptionPress?.({ messageId, pollId, optionId }),
+      onPollDetailTap: (messageId, pollId) =>
+        props.current.onPollDetailPress?.({ messageId, pollId }),
+
+      // Клавиатуру убирает сам freeze — вместе с фиксацией зоны, чтобы меню
+      // успело снять снапшот пузыря по неподвижному лейауту.
+      onContextMenuWillShow: () => freezeKeyboard(),
+      onContextMenuDismiss: () => restoreKeyboard(),
+    }),
+    [props, commands, freezeKeyboard, restoreKeyboard],
+  );
+
+  const ref = useRef(delegate);
+
+  ref.current = delegate;
+
+  return ref;
+};

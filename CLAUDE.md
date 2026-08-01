@@ -25,7 +25,8 @@ the scaffolding tool, not the app itself).
 
 React Native 0.86 + React 19.2 + TypeScript 5.9 + MobX 6 + React Navigation 7 + Socket.IO client 4 +
 Axios + Zod 4 + react-hook-form 7 + Inversify 8 (IoC) + `@shopify/react-native-skia` (charting) +
-`react-native-reanimated`/`react-native-gesture-handler` (chart interactions). Node >= 22.11. New
+`react-native-reanimated`/`react-native-gesture-handler` (chart interactions) + `@legendapp/list` v3
+(chat virtualization) + `react-native-keyboard-controller` (keyboard insets). Node >= 22.11. New
 Architecture (Fabric/TurboModules) is enabled (`fabricEnabled` on Android, codegen specs for custom
 native views).
 
@@ -82,7 +83,8 @@ template/src/
     api/      ←   HttpClient (axios) + orval-generated client in api/gen/ (never edit by hand)
     config/   ←   env.ts (react-native-config wrapper)
     lib/      ←   di, holders, navigation, theme, socket, storage, notifications, network,
-                  app-state, webrtc, media, transition, slots, models, utils, hooks, contracts
+                  app-state, webrtc, media, transition, slots, models, utils, hooks, keyboard,
+                  contracts
 ```
 
 Slices within the same layer never import each other directly (`entities/auth` cannot see
@@ -190,12 +192,33 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   `Podfile`: `pod 'IOSChatView', :path => '../../../rn-chat-view'` — i.e. it is NOT part of this repo.
   JS side lives in `src/shared/ui/chat-view/`: the public entry point `ChatView.tsx` picks the
   implementation per platform (iOS → `native/NativeChatView.tsx`, elsewhere → `JsChatView.tsx` — a full
-  React Native port of the pod's `ChatViewController` on `@shopify/flash-list`: `model/` pure logic
-  (theme/layout/features 1:1, row building, message diff with localId pending→real keys, date helper,
-  unread manager, voice player/recorder abstractions with simulated backends), `components/` (bubble,
-  content views for text/links, media grid, voice, poll, files, reactions, reply, thread, footer, FAB,
-  floating date, empty state, disintegration burst), pagination/visibility (throttle+debounce)/scroll
-  anchor/commands in `JsChatView.tsx`; per-item context menu reuses `shared/ui/context-menu-view`).
+  React Native port of the pod's `ChatViewController` on **`@legendapp/list`**). The port is decomposed
+  the same way as `input-bar` and `context-menu-view`, and `JsChatView.tsx` itself is only composition:
+  - `model/` — pure logic, no React and no list dependency: theme/layout/features 1:1, row building,
+    message diff (localId pending→real keys), `chat-update-plan.ts` (port of the `MessageUpdateHandler`
+    router: initial/clear/prepend/append/content/structural), `scroll-anchor.ts` (port of
+    `ScrollAnchor` + `restoreScrollAnchor`/`restoreBestAnchor` math), `chat-geometry.ts`
+    (`IChatGeometry` — the narrow interface all logic depends on instead of the list library),
+    `visibility-tracker.ts` (hysteresis + throttle/debounce port of `collectVisibleMessageIDs`),
+    `floating-date.ts` (port of `FloatingDateManager`'s math), date helper, unread manager, voice
+    player/recorder abstractions with simulated backends.
+  - `hooks/` — one hook per responsibility: `useChatGeometry` (the **only** file that knows about
+    LegendList — adapts `getState()` to `IChatGeometry`), `useChatData`, `useChatMessageUpdates`,
+    `useChatScroll`, `useChatScrollAnchor`, `useChatCommands` (the only place that moves the list),
+    `useChatPagination`, `useChatVisibility`, `useChatFloatingDate`, `useChatOverlays`,
+    `useChatDisintegration`, `useChatInitialScroll`, `useChatInputBar`, `useChatCellDelegate`,
+    `useChatConfig`.
+  - `components/` — rendering only: `ChatList.tsx` (the LegendList wrapper), `ChatRowView.tsx` (row
+    dispatcher), plus bubble, content views for text/links, media grid, voice, poll, files, reactions,
+    reply, thread, footer, FAB, floating date, empty state, disintegration burst. Per-item context menu
+    reuses `shared/ui/context-menu-view`.
+
+  Native parity comes from `ChatList.tsx`: `AnimatedLegendList` (the `@legendapp/list/reanimated`
+  build — it exposes `refScrollView` and `sharedValues.scrollOffset`, which the compensation needs),
+  `alignItemsAtEnd`, `maintainVisibleContentPosition: { data, size }` (port of `applyPrepend`'s
+  `newTotalH - oldTotalH` compensation and `applyContentOnly`'s size stabilization), and the bottom
+  spacer driven by `use-scroll-compensation.ts`. `recycleItems` is deliberately **off**: chat cells
+  hold internal state (voice playback, highlight, disintegration hide).
   One props/events contract (`types.ts`, aliased from the codegen spec). The chat demo (`ChatRoom`
   widget) has a temporary native-vs-JS switch for iOS comparison (deep imports as a testing exception).
 - **InputBar** (iOS native, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
@@ -209,18 +232,29 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   `onHeightChange` (on every layout **and** on every content change — mode, text growth, recording) and
   the host must apply that height to the view's style; the pod's bar is pinned to the bridge's bottom at
   priority 999 so a stale RN height never squashes its internal layout.
-- **Keyboard compensation** (both JS ports) is a 1:1 port of `updateCollectionInsets`, implemented in
-  two hooks in `shared/lib/hooks/`:
-  - `useKeyboardOverlay()` → `overlay` = `max(keyboardHeight, safeAreaBottom)`, плюс raw `keyboardHeight`
-    для продвинутых сценариев (freeze/thaw панели). Единственный источник правды, принимает
-    опциональный замороженный оверлей для контекстного меню.
-  - `useKeyboardScrollCompensation(bottomOverlay)` — принимает суммарное перекрытие снизу (оверлей +
-    высота панели ввода), компенсирует распоркой в конце контента + эквивалентным `scrollTo` на
-    UI-потоке. Состояние — «сколько уже применили», поэтому самовосстанавливается после любых
-    пропущенных событий. Заморозка без флага: владелец оверлея просто перестаёт его обновлять.
-  Translating the list container instead (an earlier approach) hides the top of the content behind the
-  clip bounds — don't reintroduce it, and don't hardcode bottom paddings. The input bar overlay rides
-  the keyboard via `KeyboardInputBar` (port of `keyboardLayoutGuide`). See `project_native.md`.
+- **Keyboard compensation** is a 1:1 port of `updateCollectionInsets` + `KeyboardFreezeManager`, and it
+  lives in its own reusable module **`shared/lib/keyboard/`** — it knows nothing about chat, so any
+  screen with a floating bottom bar over scrollable content uses it (chat, `KeyboardScrollView`, the
+  ui-kit-demo InputBar page). One hook per responsibility:
+  - `use-keyboard-height.ts` — raw keyboard height as a shared value (per-frame, incl. interactive
+    swipe-dismiss) + a JS-readable `isVisible()`. The only low-level source of truth.
+  - `use-keyboard-overlay.ts` — `overlay` = `max(keyboardHeight, safeAreaBottom)`, composed with the
+    freeze controller; also re-exports `useBottomInset` (`overlay + barHeight`, for the FAB).
+  - `use-keyboard-freeze.ts` — port of `KeyboardFreezeManager`: `freeze()`/`restore()`, remembers
+    whether the keyboard was open, re-focuses the field, and thaws only once the keyboard is back at
+    its previous height (with a fallback timer). Exposes `isFrozen` for the list.
+  - `use-scroll-compensation.ts` — **the single source of shift.** One `bottomInset` shared value
+    (`overlay + barHeight + own padding`) drives both the bar's `translateY` and the list's zone in the
+    same UI-thread frame, mirroring the reference where the inset is derived from `inputBar.frame.minY`
+    rather than from the keyboard separately. The zone is a spacer at the end of the content (counts
+    toward content size, so `scrollToEnd`/autoscroll stay correct) and the scroll moves by the same
+    delta. Do **not** hand this to `KeyboardChatScrollView`: it subscribes to the keyboard itself and
+    becomes a second driver — that is exactly what made the list lag visibly behind the input bar.
+  - `KeyboardFloatingView.tsx` — port of `keyboardLayoutGuide` + `followsUndockedKeyboard`;
+    `KeyboardInputBar` in `input-bar/` is now a thin alias of it.
+
+  Translating the list container instead (an even earlier approach) hides the top of the content behind
+  the clip bounds — don't reintroduce it, and don't hardcode bottom paddings. See `project_native.md`.
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
   `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public

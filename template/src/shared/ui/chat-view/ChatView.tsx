@@ -7,7 +7,7 @@ import { ChatViewProps, IChatViewRef } from "./types";
 
 /**
  * Единственная публичная точка входа ChatView: iOS — нативный RNChatView
- * (IOSChatView pod), остальные платформы — реализация на FlashList.
+ * (IOSChatView pod), остальные платформы — реализация на @legendapp/list.
  */
 export const ChatView = forwardRef<IChatViewRef, ChatViewProps>((props, ref) =>
   Platform.OS === "ios" ? (

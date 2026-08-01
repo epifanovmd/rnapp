@@ -1,72 +1,22 @@
-import React, { forwardRef, useMemo } from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
-import Animated, {
-  SharedValue,
-  useAnimatedStyle,
-} from "react-native-reanimated";
-
-import { useKeyboardOverlay } from "../../lib/hooks/use-keyboard-overlay";
+import {
+  IKeyboardFloatingViewProps,
+  KeyboardFloatingView,
+} from "@shared/lib/keyboard";
+import React, { forwardRef } from "react";
+import { View } from "react-native";
 
 /**
- * Самодостаточная обёртка InputBar с привязкой к клавиатуре.
+ * Панель ввода, приклеенная к клавиатуре.
  *
- * - Без внешнего управления: сама отслеживает клавиатуру через
- *   `useKeyboardOverlay` и прижимает панель к верхней границе клавиатуры
- *   (или к safe area, когда клавиатура скрыта).
- * - С внешним управлением: если передан `bottomInset` (SharedValue),
- *   использует его — клавиатура отслеживается извне. Это позволяет чату
- *   подменять зону при открытии контекстного меню (freeze/thaw).
- *
- * Порт keyboardLayoutGuide + followsUndockedKeyboard из пода.
+ * Тонкая обёртка над `KeyboardFloatingView` из `shared/lib/keyboard`:
+ * само поведение (порт `keyboardLayoutGuide` + `followsUndockedKeyboard`)
+ * общее для любых плавающих панелей и живёт в модуле клавиатуры, а здесь
+ * остаётся привычное имя в пространстве `input-bar`.
  */
-
-export interface IKeyboardInputBarProps {
-  /** Контент — InputBar, JsInputBar или InputBarView. */
-  children: React.ReactNode;
-  /**
-   * Внешнее управление нижней зоной. Если передано — используется это
-   * значение, а встроенное отслеживание клавиатуры отключается.
-   * Если не передано — компонент сам отслеживает клавиатуру.
-   */
-  bottomInset?: SharedValue<number>;
-  /** Стиль контейнера. */
-  style?: ViewStyle;
-}
+export type IKeyboardInputBarProps = IKeyboardFloatingViewProps;
 
 export const KeyboardInputBar = forwardRef<View, IKeyboardInputBarProps>(
-  ({ children, bottomInset: externalInset, style }, ref) => {
-    const { overlay: internalInset } = useKeyboardOverlay();
-    const effectiveInset = externalInset ?? internalInset;
-
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: -effectiveInset.value }],
-    }));
-
-    const containerStyle = useMemo<ViewStyle>(
-      () => ({
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-      }),
-      [],
-    );
-
-    return (
-      <Animated.View
-        ref={ref}
-        style={[ss.container, containerStyle, style, animatedStyle]}
-      >
-        {children}
-      </Animated.View>
-    );
-  },
+  (props, ref) => <KeyboardFloatingView ref={ref} {...props} />,
 );
 
 KeyboardInputBar.displayName = "KeyboardInputBar";
-
-const ss = StyleSheet.create({
-  container: {
-    backgroundColor: "transparent",
-  },
-});

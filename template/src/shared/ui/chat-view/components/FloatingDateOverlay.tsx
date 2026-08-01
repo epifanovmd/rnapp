@@ -26,6 +26,8 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
     const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
     const opacity = useSharedValue(0);
+    // Порт container.transform: следующий разделитель выталкивает плашку.
+    const push = useSharedValue(0);
 
     const visible =
       features.showFloatingDate &&
@@ -46,7 +48,16 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
       layout.floatingDateHideDuration,
     ]);
 
-    const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+    // Сдвиг следует за скроллом покадрово — анимировать его нельзя,
+    // иначе плашка будет отставать от подпирающего разделителя.
+    useEffect(() => {
+      push.value = state.floatingDatePush;
+    }, [state.floatingDatePush, push]);
+
+    const style = useAnimatedStyle(() => ({
+      opacity: opacity.value,
+      transform: [{ translateY: push.value }],
+    }));
 
     if (!features.showFloatingDate || state.floatingDateTitle == null) {
       return null;

@@ -31,6 +31,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@gorhom/portal": "^1.0.14",
     "@hookform/resolvers": "^5.5.5",
+    "@legendapp/list": "^3.3.3",
     "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "^3.1.1",
     "@react-native-community/blur": "^4.4.1",

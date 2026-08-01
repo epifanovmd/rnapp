@@ -242,6 +242,15 @@ export interface IChatViewLayout {
   // Скролл
   scrollThrottleInterval: number;
   paginationDebounceInterval: number;
+
+  // Виртуализация
+  /**
+   * Ожидаемая высота строки — подсказка списку только для первого кадра.
+   * Дальше используются реальные измерения, поэтому точность не критична.
+   */
+  estimatedRowHeight: number;
+  /** Насколько за пределы экрана предрендерить строки (px). */
+  drawDistance: number;
 }
 
 export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
@@ -443,6 +452,9 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
 
   scrollThrottleInterval: 1 / 30,
   paginationDebounceInterval: 0.5,
+
+  estimatedRowHeight: 72,
+  drawDistance: 500,
 };
 
 /** Числовые ключи NativeChatLayoutConfig, совпадающие с IChatViewLayout по имени. */
@@ -539,6 +551,8 @@ const NUMERIC_KEYS = [
   "emptyStatePadding",
   "scrollThrottleInterval",
   "paginationDebounceInterval",
+  "estimatedRowHeight",
+  "drawDistance",
 ] as const;
 
 export const resolveChatLayout = (

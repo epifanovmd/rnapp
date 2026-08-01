@@ -183,7 +183,7 @@ component) first and fall back to `requireNativeComponent` — this is a defensi
 of a legacy (non-Fabric) implementation existing anywhere.
 
 On non-iOS platforms all three components resolve to full React Native ports via single public entry
-points: `ChatView` (`src/shared/ui/chat-view/ChatView.tsx` → `JsChatView.tsx` on `@shopify/flash-list`),
+points: `ChatView` (`src/shared/ui/chat-view/ChatView.tsx` → `JsChatView.tsx` on `@legendapp/list`),
 `InputBar` (`src/shared/ui/input-bar/InputBar.tsx` → `JsInputBar.tsx`, core `ChatInputBar.tsx` shared
 with `JsChatView`), `ContextMenuView` (see `project_components.md`). Audio capture/playback in the JS
 ports is abstracted (`chat-voice-player.ts` / `chat-voice-recorder.ts` in `chat-view/model/`) with
@@ -202,24 +202,105 @@ The RN ports mirror that exactly, and this is load-bearing: any approach that tr
 list container instead pushes the top of the content above the clip bounds, making the first messages
 permanently unreachable.
 
-**`useKeyboardOverlay`** (single source: `max(keyboard, safeArea)` + raw `keyboardHeight` for freeze/thaw) + **`useKeyboardScrollCompensation`** (takes total `bottomOverlay`, compensates by spacer + `scrollTo`). Both in `shared/lib/hooks/`.
+The compensation lives in its own module, **`shared/lib/keyboard/`** — it knows nothing about chat and
+is used by every screen with a floating bottom bar (`JsChatView`, `shared/ui/keyboard-scroll-view/
+KeyboardScrollView.tsx`, the ui-kit-demo InputBar page).
 
-- The zone (`max(keyboardHeight, safeAreaBottom) + measured input-bar height`) is a **spacer view at the
-  end of the scroll content**. The hook `useKeyboardScrollCompensation(bottomOverlay)` accepts the total
-  occluded height as its only parameter — how it gets assembled is the caller's decision (usually
-  `useDerivedValue(() => overlay.value + inputBarHeight.value)`, where `overlay` comes from
-  `useKeyboardOverlay`).
-- Hosts: `JsChatView` uses the hook directly (spacer → `ListFooterComponent`, `scrollRef` merged into
-  FlashList's `renderScrollComponent`); `shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` is a
-  thin `Animated.ScrollView` wrapper over the same hook for ordinary screens.
+### Single source of shift (the load-bearing property)
 
-**Why not `KeyboardChatScrollView`** (react-native-keyboard-controller), which we used first: its
-`useFrozenPadding` resets the stored padding to the *live* keyboard height the moment `freeze` flips
-back to `false`. Unfreezing before the keyboard has returned (context menu closing) therefore zeroed the
-bookkeeping while the scroll offset still carried the old shift, and the next `onStart` applied the full
-keyboard height a second time — the chat ended up shifted higher than before the keyboard ever opened.
-The lib's model is "padding == current keyboard height"; ours is "what we actually applied", which does
-not have that failure mode.
+The reference's key property is not the formula but that there is exactly **one** driver: the bar hangs
+on `keyboardLayoutGuide`, and the collection inset is derived from `inputBar.frame.minY` — the list
+follows the *bar*, not the keyboard separately. They cannot drift apart by construction.
+
+The port keeps that: one `bottomInset` shared value (`overlay + barHeight + chat padding`) drives both
+the bar's `translateY` (`KeyboardFloatingView`) and the list's zone, read in the same UI-thread frame.
+
+- Zone lives as a **spacer at the end of the content** (`ListFooterComponent`), not as `contentInset`:
+  Android has no inset, and a spacer counts toward content size, so `scrollToEnd`, autoscroll and every
+  "are we at the bottom" computation stay correct without corrections.
+- The only state is `appliedInset` — how much is already reflected **both** in the spacer and in the
+  scroll position. Each change is a delta from it, the scroll moves by the same delta, distance-to-end
+  is preserved. Self-healing: any number of missed events collapses into one correct step.
+- The hook reads the real position itself via `useScrollViewOffset(scrollRef)`, so the delta is always
+  computed from where the scroll actually is. It is deliberately **not** supplied from outside: an
+  earlier version had `ChatList` feed it through `sharedValues.scrollOffset`, which left plain
+  `KeyboardScrollView` consumers with no writer at all and a base that went stale after any manual
+  scroll. Consumers now only hand over `scrollRef`.
+
+**`KeyboardChatScrollView` was tried and rejected (twice, for different reasons).** Most recently: it
+subscribes to the keyboard itself and drives the position with its own computation — a second source of
+motion. In `onStart` it sets `padding` straight to the full keyboard height while catching the scroll
+position up separately, so with the bar riding native progress per frame **the list visibly lagged
+behind the bar**. Earlier its `useFrozenPadding` also reset stored padding to the live keyboard height
+on `freeze → false`. Both classes of bug disappear once we own the single driver — so use
+`AnimatedLegendList` from `@legendapp/list/reanimated`, not `KeyboardAwareLegendList`.
+
+### Interactive dismiss
+
+`keyboardDismissMode="interactive"` (iOS) is a port of the reference's `.interactive`. Two things make
+it work, and both are easy to drop by accident:
+
+1. `use-keyboard-height.ts` handles `onInteractive` per frame just like `onMove`, so the bar and the
+   zone track the finger and stop when it stops.
+2. **`updateCollectionInsets` returns early while `isUserDragging`** — it updates the inset but leaves
+   `contentOffset` alone. `use-scroll-compensation.ts` ports that guard: the spacer still grows/shrinks,
+   but no `scrollTo` is issued while the finger is down. Without it the compensation fights the gesture
+   (the content is already following the finger) and the list scrolls down on its own during dismissal.
+   That is why `onScrollBeginDrag`/`onScrollEndDrag` from the hook are **required** wiring, not optional.
+
+**Verified working by the user — do not regress either half.**
+
+### Spacer vs `contentInset`: range readiness
+
+The spacer has one cost `contentInset` does not: height is a **layout** property, so the native
+`contentSize` updates a frame later. The input bar has no such cost — it rides a `translateY`
+transform, which Reanimated writes straight to the view on the UI thread. At the very bottom that
+asymmetry is visible: `scrollTo` keeps hitting a range that has not grown yet, so the content appears
+to chase the bar. Scrolled up it is invisible, because the clamp never binds.
+
+Fix: the spacer grows by the **target**, not the current value. `onStart` reports the final keyboard
+height before the animation begins (`useKeyboardHeight.targetHeight` →
+`useKeyboardOverlay.overlayTarget` → `useScrollCompensation(bottomInset, reservedInset)`), so the range
+is ready by the first frame of motion and nothing gets clamped. The position still animates per frame
+off `bottomInset`; the reserve sits below the fold and is not visible. On interactive dismiss the
+target simply tracks the current height — a gesture has no destination.
+
+Both consumers must pass the reserve: `JsChatView` and `KeyboardScrollView` (`overlayTarget` prop).
+
+### Spacer vs `contentInset`: the at-the-bottom residue
+
+The zone is a spacer, and that has one consequence worth knowing. The reference's `contentInset.bottom`
+widens the scrollable range **immediately**; a spacer's height goes through layout, so the native
+`contentSize` lags a frame. At the very bottom the compensation asks for the maximum offset every
+frame, and the native scroll view clamps it to a `contentSize` that has not grown yet — the last
+message ended up slightly lower than it should. Scrolled up, the upper clamp never bites, so it was
+only visible at the bottom.
+
+`maintainScrollAtEnd={{ on: { footerLayout: true } }}` was tried for this and **must not be used**: it
+drives the scroll from layout commits, which is a second source of motion, and the whole shift started
+lagging behind the keyboard again — the same class of bug as `KeyboardChatScrollView`.
+
+`pendingEndPin` remains as a safety net for any commit that still lands late. When the primary reaction clamps at
+the end it arms a one-shot flag; the `contentHeight` reaction then re-sends the end offset once the
+range has actually grown. It only ever *increases* the offset toward the end, is disarmed by the next
+frame or by `onScrollBeginDrag`, and never leads the motion — so it cannot lag and cannot hijack cases
+like prepend, where `maintainVisibleContentPosition` owns the position.
+
+### Freeze
+
+No separate flag reaches the list: freezing is a value substitution (`frozenOverlay` replaces the live
+overlay), so the bar, the FAB and the list's zone freeze and thaw as one. `use-keyboard-freeze.ts` is
+the port of `KeyboardFreezeManager`; `restore()` deliberately does **not** unfreeze synchronously —
+see the long comment in that file, plus a `600 ms` fallback timer.
+
+Hooks: `use-keyboard-height.ts` (raw height + JS-readable `isVisible()`), `use-keyboard-overlay.ts`
+(`overlay = max(keyboard, safeArea)` composed with freeze, plus `useBottomInset` / `useBarHeight`),
+`use-keyboard-freeze.ts`, `use-scroll-compensation.ts`, `KeyboardFloatingView.tsx` (port of
+`keyboardLayoutGuide` + `followsUndockedKeyboard`; `input-bar/KeyboardInputBar.tsx` is a thin alias).
+
+**Constraints for future changes:** do not reintroduce a second keyboard subscription for the list; do
+not translate/shrink the list container (it pushes the top of the content past the clip bounds and the
+first messages become unreachable); do not hardcode bottom paddings.
 
 ## Not verified / needs a human
 

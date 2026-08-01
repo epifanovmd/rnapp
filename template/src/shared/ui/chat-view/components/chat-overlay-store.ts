@@ -16,6 +16,8 @@ export interface IChatOverlayState {
   unreadCount: number;
   floatingDateTitle: string | null;
   floatingDateVisible: boolean;
+  /** Сдвиг плашки вверх, когда её подпирает следующий разделитель. */
+  floatingDatePush: number;
   emptyVisible: boolean;
   emptyLoading: boolean;
   emptyText: string | null;
@@ -29,6 +31,7 @@ const INITIAL_STATE: IChatOverlayState = {
   unreadCount: 0,
   floatingDateTitle: null,
   floatingDateVisible: false,
+  floatingDatePush: 0,
   emptyVisible: false,
   emptyLoading: false,
   emptyText: null,

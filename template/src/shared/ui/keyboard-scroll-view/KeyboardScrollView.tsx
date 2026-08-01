@@ -1,24 +1,49 @@
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
-import { useKeyboardScrollCompensation } from "@shared/lib/hooks/use-keyboard-scroll-compensation";
-import React, { forwardRef, useCallback } from "react";
-import { LayoutChangeEvent, ScrollViewProps } from "react-native";
+import {
+  useBottomInset,
+  useKeyboardOverlay,
+  useScrollCompensation,
+} from "@shared/lib/keyboard";
+import React, { forwardRef } from "react";
+import { Platform, ScrollViewProps } from "react-native";
 import Animated, { SharedValue } from "react-native-reanimated";
 
 /**
- * `Animated.ScrollView` с компенсацией перекрытия снизу — для экранов,
- * у которых внизу стоит панель ввода (демо InputBar и подобные).
+ * Скролл с компенсацией перекрытия снизу — для экранов, у которых внизу
+ * стоит плавающая панель ввода.
  *
- * В чате этот же хук используется напрямую: там распорка идёт в
- * `ListFooterComponent` FlashList, а `scrollRef` — в `renderScrollComponent`.
+ * Использует ту же связку, что и чат (`ChatList`): единственный источник
+ * сдвига — `bottomInset`, от которого одновременно живут распорка в конце
+ * контента, позиция скролла и `translateY` панели. Логика — в
+ * `shared/lib/keyboard`, здесь только подключение, поэтому чат и обычные
+ * экраны не расходятся в поведении.
  *
- * @param bottomOverlay — суммарная высота того, что перекрывает скролл снизу:
- *   `max(клавиатура, safeArea) + высота панели ввода`. Меняется на UI-потоке,
- *   компенсация (распорка + scrollTo) происходит там же.
+ * ```tsx
+ * const { overlay } = useKeyboardOverlay();
+ * const barHeight = useBarHeight();
+ *
+ * <KeyboardScrollView barHeight={barHeight}>{content}</KeyboardScrollView>
+ * <KeyboardFloatingView overlay={overlay}>
+ *   <InputBar onHeightChange={h => (barHeight.value = h)} />
+ * </KeyboardFloatingView>
+ * ```
  */
 
 export interface IKeyboardScrollViewProps extends ScrollViewProps {
-  /** Суммарная высота перекрытия снизу — shared value с UI-потока. */
-  bottomOverlay: SharedValue<number>;
+  /** Живая высота плавающей панели над скроллом. */
+  barHeight: SharedValue<number>;
+  /** Собственные отступы контента снизу. */
+  extraPadding?: number;
+  /**
+   * Внешняя нижняя зона. Передают, когда ей управляют снаружи (например,
+   * чтобы заморозить всё разом под оверлеем); иначе хук считает её сам.
+   */
+  overlay?: SharedValue<number>;
+  /**
+   * Целевая зона к внешнему `overlay` (`useKeyboardOverlay().overlayTarget`).
+   * Передают вместе с ним: без неё у самого низа контент отстаёт на кадр.
+   */
+  overlayTarget?: SharedValue<number>;
 }
 
 export const KeyboardScrollView = forwardRef<
@@ -27,37 +52,60 @@ export const KeyboardScrollView = forwardRef<
 >(
   (
     {
-      bottomOverlay,
+      barHeight,
+      extraPadding = 0,
+      overlay: externalOverlay,
+      overlayTarget: externalOverlayTarget,
       children,
-      onLayout: onLayoutProp,
+      onLayout,
       onContentSizeChange,
+      onScrollBeginDrag,
+      onScrollEndDrag,
       ...rest
     },
     ref,
   ) => {
-    const compensation = useKeyboardScrollCompensation(bottomOverlay);
-
-    const handleLayout = useCallback(
-      (e: LayoutChangeEvent) => {
-        compensation.onLayout(e);
-        onLayoutProp?.(e);
-      },
-      [compensation, onLayoutProp],
+    // Внутренняя подписка нужна только для самостоятельного режима. Когда
+    // `overlay` передан снаружи, она ничего не ведёт: значение, которое она
+    // пишет, никто не читает — источником сдвига остаётся внешнее.
+    const { overlay: internalOverlay, overlayTarget: internalTarget } =
+      useKeyboardOverlay();
+    const bottomInset = useBottomInset(
+      externalOverlay ?? internalOverlay,
+      barHeight,
+      extraPadding,
     );
-
-    const handleContentSizeChange = useCallback(
-      (width: number, height: number) => {
-        compensation.onContentSizeChange(width, height);
-        onContentSizeChange?.(width, height);
-      },
-      [compensation, onContentSizeChange],
+    // Резерв под целевую зону — см. «Готовность диапазона» в хуке.
+    const reservedInset = useBottomInset(
+      externalOverlayTarget ?? internalTarget,
+      barHeight,
+      extraPadding,
     );
+    const compensation = useScrollCompensation(bottomInset, reservedInset);
 
     return (
       <Animated.ScrollView
         ref={mergeRefs([ref, compensation.scrollRef])}
-        onLayout={handleLayout}
-        onContentSizeChange={handleContentSizeChange}
+        // Как в чате (порт keyboardDismissMode = .interactive): контент и
+        // панель едут за пальцем покадрово. Перекрывается пропом.
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        onLayout={event => {
+          compensation.onLayout(event);
+          onLayout?.(event);
+        }}
+        onContentSizeChange={(width, height) => {
+          compensation.onContentSizeChange(width, height);
+          onContentSizeChange?.(width, height);
+        }}
+        onScrollBeginDrag={event => {
+          compensation.onScrollBeginDrag();
+          onScrollBeginDrag?.(event);
+        }}
+        onScrollEndDrag={event => {
+          compensation.onScrollEndDrag();
+          onScrollEndDrag?.(event);
+        }}
+        scrollEventThrottle={16}
         {...rest}
       >
         {children}

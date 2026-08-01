@@ -125,7 +125,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
             {Platform.OS === "ios"
               ? useNative
                 ? "Сейчас: нативная (iOS)"
-                : "Сейчас: React Native (FlashList)"
+                : "Сейчас: React Native (@legendapp/list)"
               : "На этой платформе доступна только React Native-реализация"}
           </Text>
         </Col>
