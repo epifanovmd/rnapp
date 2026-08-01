@@ -8,6 +8,7 @@ import {
   findNodeHandle,
   type HostComponent,
   type NativeSyntheticEvent,
+  requireNativeComponent,
   StyleSheet,
   UIManager,
 } from "react-native";
@@ -30,8 +31,15 @@ import type { NativeInputBarCommands } from "./NativeInputBarSpec";
 
 const COMPONENT_NAME = "RNInputBar";
 
-const RNInputBar = require("./NativeInputBarSpec")
-  .default as HostComponent<NativeInputBarProps>;
+const RNInputBar = (() => {
+  try {
+    const spec = require("./NativeInputBarSpec").default;
+
+    return spec as HostComponent<NativeInputBarProps>;
+  } catch {
+    return requireNativeComponent<NativeInputBarProps>(COMPONENT_NAME);
+  }
+})();
 
 function dispatchCommand(
   nativeRef: React.RefObject<React.ComponentRef<

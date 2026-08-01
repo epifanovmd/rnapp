@@ -7,6 +7,7 @@ import {
   Charts,
   Components,
   ContextMenu,
+  InputBar,
   PdfView,
   WebView,
 } from "@pages/ui-kit-demo";
@@ -23,6 +24,7 @@ export const PRIVATE_SCREENS: StackScreens = {
   Chat: { screen: ChatRoom, options: { headerShown: false } },
   Charts: { screen: Charts },
   ContextMenu: { screen: ContextMenu },
+  InputBar: { screen: InputBar },
   PdfView: {
     screen: PdfView,
     options: {

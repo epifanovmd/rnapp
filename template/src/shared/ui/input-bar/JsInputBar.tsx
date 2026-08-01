@@ -8,21 +8,17 @@ import React, {
 import { View } from "react-native";
 
 import {
-  ChatCellStore,
-  ChatViewContext,
-  IChatCellDelegate,
-} from "../chat-view/components/chat-view-context";
+  IInputBarViewDelegate,
+  IInputBarViewRef,
+  InputBarView,
+} from "./InputBarView";
 import {
-  CHAT_DEFAULT_FEATURES,
-  CHAT_DEFAULT_LAYOUT,
-  resolveChatTheme,
-} from "../chat-view/model";
-import {
-  ChatInputBar,
-  IChatInputBarDelegate,
-  IChatInputBarRef,
-} from "./ChatInputBar";
-import { ChatInputMode } from "./input-bar-types";
+  INPUT_BAR_DEFAULT_FEATURES,
+  INPUT_BAR_DEFAULT_LAYOUT,
+  InputBarContext,
+  resolveInputBarTheme,
+} from "./model/input-bar-context";
+import { InputBarMode } from "./model/input-bar-types";
 import { IInputBarRef, InputBarProps } from "./types";
 
 /**
@@ -37,36 +33,26 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
 
     propsRef.current = props;
 
-    const resolvedTheme = useMemo(() => resolveChatTheme(theme), [theme]);
+    const resolvedTheme = useMemo(() => resolveInputBarTheme(theme), [theme]);
     const layout = useMemo(() => {
-      if (!placeholder) return CHAT_DEFAULT_LAYOUT;
+      if (!placeholder) return INPUT_BAR_DEFAULT_LAYOUT;
 
-      return { ...CHAT_DEFAULT_LAYOUT, inputPlaceholderText: placeholder };
+      return {
+        ...INPUT_BAR_DEFAULT_LAYOUT,
+        inputPlaceholderText: placeholder,
+      };
     }, [placeholder]);
-
-    const cellStoreRef = useRef<ChatCellStore | null>(null);
-
-    if (!cellStoreRef.current) {
-      cellStoreRef.current = new ChatCellStore();
-    }
-
-    const delegateStub = useRef<IChatCellDelegate>(
-      null as unknown as IChatCellDelegate,
-    );
 
     const contextValue = useMemo(
       () => ({
         theme: resolvedTheme,
         layout,
-        features: CHAT_DEFAULT_FEATURES,
-        listWidth: 0,
-        delegate: delegateStub,
-        cellStore: cellStoreRef.current!,
+        features: INPUT_BAR_DEFAULT_FEATURES,
       }),
       [resolvedTheme, layout],
     );
 
-    const mode: ChatInputMode = useMemo(() => {
+    const mode: InputBarMode = useMemo(() => {
       if (inputAction?.type === "reply") {
         return {
           type: "reply",
@@ -87,7 +73,7 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
       return { type: "normal" };
     }, [inputAction]);
 
-    const delegate: IChatInputBarDelegate = useMemo(
+    const delegate: IInputBarViewDelegate = useMemo(
       () => ({
         onSend: (text, replyToId) =>
           propsRef.current.onSendMessage?.({ text, replyToId }),
@@ -104,7 +90,7 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
       [],
     );
 
-    const barRef = useRef<IChatInputBarRef>(null);
+    const barRef = useRef<IInputBarViewRef>(null);
 
     useImperativeHandle(ref, () => ({
       clearInput: () => barRef.current?.clearInput(),
@@ -118,16 +104,16 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
     );
 
     return (
-      <ChatViewContext.Provider value={contextValue}>
+      <InputBarContext.Provider value={contextValue}>
         <View style={style}>
-          <ChatInputBar
+          <InputBarView
             ref={barRef}
             mode={mode}
             delegate={delegate}
             onHeightChange={handleHeightChange}
           />
         </View>
-      </ChatViewContext.Provider>
+      </InputBarContext.Provider>
     );
   },
 );

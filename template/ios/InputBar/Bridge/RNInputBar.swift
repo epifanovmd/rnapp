@@ -115,12 +115,23 @@ final class RNInputBar: UIView {
 
     // MARK: - Intrinsic Size
 
+    /// InputBarView из пода не переопределяет intrinsicContentSize —
+    /// возвращает UIViewNoIntrinsicMetric. Считаем сами по внутренним
+    /// констрейнтам — иначе RN даст вьюхе нулевую высоту.
     override var intrinsicContentSize: CGSize {
-        inputBar.intrinsicContentSize
+        let width = bounds.width > 0 ? bounds.width : UIScreen.main.bounds.width
+        let height = inputBar.systemLayoutSizeFitting(
+            CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        return CGSize(width: UIView.noIntrinsicMetric, height: max(height, 1))
     }
 
-    /// RN задаёт размер сам, поэтому собственная высота панели уходит наверх
-    /// событием — хост выставляет её в стиле.
+    /// Нативная панель сама управляет своей высотой через Auto Layout.
+    /// Когда контент меняется (reply-панель, рост текста), сообщаем RN
+    /// и инвалидируем intrinsic-размер — Yoga пересчитывает лейаут.
     private var lastReportedHeight: CGFloat = 0
 
     override func layoutSubviews() {
@@ -135,6 +146,12 @@ final class RNInputBar: UIView {
         guard height > 0, abs(height - lastReportedHeight) > 0.5 else { return }
         lastReportedHeight = height
         onHeightChange?(["height": height])
+
+        // invalidateIntrinsicContentSize внутри layoutSubviews вызовет
+        // рекурсию — откладываем на следующий цикл runloop.
+        DispatchQueue.main.async { [weak self] in
+            self?.invalidateIntrinsicContentSize()
+        }
     }
 }
 

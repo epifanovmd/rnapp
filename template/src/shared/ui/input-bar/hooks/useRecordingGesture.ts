@@ -1,0 +1,145 @@
+import { useCallback, useRef } from "react";
+import { usePanGesture } from "react-native-gesture-handler";
+import {
+  Easing,
+  useSharedValue,
+  withRepeat,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
+
+import { useInputBarContext } from "../model/input-bar-context";
+import { RecordingState } from "../model/input-bar-types";
+
+/**
+ * Pan-жест записи + shared values для drag-анимации микрофона.
+ * Зависит от useRecordingController (получает действия и состояние).
+ */
+export function useRecordingGesture(
+  hasText: boolean,
+  recordingState: RecordingState,
+  isLocked: boolean,
+  startRecording: () => void,
+  finishRecording: () => void,
+  cancelRecording: () => void,
+  lockRecording: () => void,
+) {
+  const { layout, features } = useInputBarContext();
+
+  const recordingStateRef = useRef(recordingState);
+
+  recordingStateRef.current = recordingState;
+
+  // ─── Shared values жеста ─────────────────────────────────────────────────
+
+  const micTranslateX = useSharedValue(0);
+  const micTranslateY = useSharedValue(0);
+  const micGestureScale = useSharedValue(1);
+  const slideAlpha = useSharedValue(1);
+  const lockScale = useSharedValue(1);
+  const pulseScale = useSharedValue(1);
+
+  const resetGestureValues = useCallback(() => {
+    micTranslateX.value = withSpring(0, { duration: 200, dampingRatio: 0.7 });
+    micTranslateY.value = withSpring(0, { duration: 200, dampingRatio: 0.7 });
+    micGestureScale.value = withSpring(1, { duration: 200, dampingRatio: 0.7 });
+    slideAlpha.value = 1;
+    lockScale.value = 1;
+  }, [micTranslateX, micTranslateY, micGestureScale, slideAlpha, lockScale]);
+
+  // Оборачиваем finish/cancel с reset + pulse.
+  const finish = useCallback(() => {
+    resetGestureValues();
+    pulseScale.value = 1;
+    finishRecording();
+  }, [resetGestureValues, pulseScale, finishRecording]);
+
+  const cancel = useCallback(() => {
+    resetGestureValues();
+    pulseScale.value = 1;
+    cancelRecording();
+  }, [resetGestureValues, pulseScale, cancelRecording]);
+
+  const lock = useCallback(() => {
+    resetGestureValues();
+    pulseScale.value = withRepeat(
+      withTiming(layout.recordPulseMaxScale / layout.recordPulseBaseScale, {
+        duration: layout.recordPulseDuration * 1000,
+        easing: Easing.inOut(Easing.ease),
+      }),
+      -1,
+      true,
+    );
+    lockRecording();
+  }, [resetGestureValues, pulseScale, layout, lockRecording]);
+
+  // ─── Drag ────────────────────────────────────────────────────────────────
+
+  const handleDrag = useCallback(
+    (dx: number, dy: number) => {
+      if (recordingStateRef.current !== "recording") return;
+
+      if (Math.abs(dx) > Math.abs(dy) && dx < 0) {
+        const progress = Math.min(
+          1,
+          Math.abs(dx) / layout.recordCancelThreshold,
+        );
+
+        micTranslateX.value = Math.min(0, dx) * 0.8;
+        micTranslateY.value = 0;
+        micGestureScale.value = 1 - progress * 0.3;
+        slideAlpha.value = 1 - progress;
+        if (progress >= 1) cancel();
+      } else if (dy < 0) {
+        const progress = Math.min(1, Math.abs(dy) / layout.recordLockThreshold);
+
+        micTranslateX.value = 0;
+        micTranslateY.value = Math.min(0, dy) * 0.8;
+        lockScale.value = 1 + progress * 0.2;
+        if (progress >= 1) lock();
+      } else {
+        micTranslateX.value = 0;
+        micTranslateY.value = 0;
+        micGestureScale.value = 1;
+        slideAlpha.value = 1;
+        lockScale.value = 1;
+      }
+    },
+    [
+      layout,
+      micTranslateX,
+      micTranslateY,
+      micGestureScale,
+      slideAlpha,
+      lockScale,
+      cancel,
+      lock,
+    ],
+  );
+
+  const handleRelease = useCallback(() => {
+    if (recordingStateRef.current !== "recording") return;
+    finish();
+  }, [finish]);
+
+  const voiceEnabled = features.showVoiceRecording;
+
+  const recordGesture = usePanGesture({
+    enabled: voiceEnabled && !hasText && !isLocked,
+    disableReanimated: true,
+    activateAfterLongPress: layout.recordMinPressDuration * 1000,
+    onActivate: () => startRecording(),
+    onUpdate: e => handleDrag(e.translationX, e.translationY),
+    onDeactivate: () => handleRelease(),
+  });
+
+  return {
+    recordGesture,
+    micTranslateX,
+    micTranslateY,
+    micGestureScale,
+    slideAlpha,
+    lockScale,
+    pulseScale,
+  };
+}

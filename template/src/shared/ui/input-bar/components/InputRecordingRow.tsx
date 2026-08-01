@@ -1,59 +1,34 @@
-import React, { FC, memo, useEffect } from "react";
+import React, { FC, memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  cancelAnimation,
-  Easing,
   SharedValue,
   useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
 } from "react-native-reanimated";
 
-import { useChatViewContext } from "../chat-view/components/chat-view-context";
-import { ChatIcon } from "../chat-view/components/ChatIcon";
-import { chatTextBase, formatRecordTimer } from "../chat-view/model";
+import { useRecordingRowAnimation } from "../hooks/useRecordingRowAnimation";
+import { formatRecordTimer } from "../model/format";
+import { useInputBarContext } from "../model/input-bar-context";
+import { inputTextBase } from "../model/text-style";
+import { InputIcon } from "./InputIcon";
 
 /**
  * Порт InputBarRecordingRow: мигающая красная точка, таймер «m:ss,cc»,
- * подсказка «‹ Отмена» с покачиванием (тап по ней отменяет запись).
+ * подсказка «‹ Отмена» с покачиванием.
  */
 
 interface IInputRecordingRowProps {
   duration: number;
-  /** Прозрачность подсказки «Отмена» — управляется жестом перетаскивания. */
   slideAlpha: SharedValue<number>;
-  /** Скрыта ли подсказка (locked-режим). */
   slideHidden: boolean;
   onCancelTap: () => void;
 }
 
 export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
   ({ duration, slideAlpha, slideHidden, onCancelTap }) => {
-    const { theme, layout } = useChatViewContext();
+    const { theme, layout } = useInputBarContext();
 
-    const dotAlpha = useSharedValue(1);
-    const slideShift = useSharedValue(0);
+    const { dotStyle, slideShift } = useRecordingRowAnimation();
 
-    useEffect(() => {
-      dotAlpha.value = withRepeat(
-        withTiming(layout.recordDotMinAlpha, { duration: 500 }),
-        -1,
-        true,
-      );
-      slideShift.value = withRepeat(
-        withTiming(-8, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        -1,
-        true,
-      );
-
-      return () => {
-        cancelAnimation(dotAlpha);
-        cancelAnimation(slideShift);
-      };
-    }, [dotAlpha, slideShift, layout.recordDotMinAlpha]);
-
-    const dotStyle = useAnimatedStyle(() => ({ opacity: dotAlpha.value }));
     const slideStyle = useAnimatedStyle(() => ({
       opacity: slideHidden ? 0 : slideAlpha.value,
       transform: [{ translateX: slideShift.value }],
@@ -75,7 +50,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
         />
         <Text
           style={[
-            chatTextBase,
+            inputTextBase,
             {
               marginLeft: layout.recordTimerLeading,
               fontSize: layout.recordTimerFont.fontSize,
@@ -96,7 +71,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
           ]}
         >
           <Pressable style={ss.slideInner} onPress={onCancelTap}>
-            <ChatIcon
+            <InputIcon
               name="chevron.left"
               size={14}
               color={theme.inputPlaceholder}
@@ -104,7 +79,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
             />
             <Text
               style={[
-                chatTextBase,
+                inputTextBase,
                 ss.cancelText,
                 {
                   fontSize: layout.recordCancelFont.fontSize,
@@ -125,19 +100,16 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
 InputRecordingRow.displayName = "InputRecordingRow";
 
 const ss = StyleSheet.create({
-  cancelText: {
-    marginLeft: 3,
-  },
+  cancelText: { marginLeft: 3 },
   row: {
     flexDirection: "row",
     alignItems: "center",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
-  slideWrap: {
-    flex: 1,
-    alignItems: "center",
-  },
-  slideInner: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
+  slideWrap: { flex: 1, alignItems: "center" },
+  slideInner: { flexDirection: "row", alignItems: "center" },
 });

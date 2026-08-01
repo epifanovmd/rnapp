@@ -5,7 +5,6 @@ export * from "./chat-rows";
 export * from "./chat-text-style";
 export * from "./chat-theme";
 export * from "./chat-voice-player";
-export * from "./chat-voice-recorder";
 export * from "./date-helper";
 export * from "./emoji-helper";
 export * from "./format";

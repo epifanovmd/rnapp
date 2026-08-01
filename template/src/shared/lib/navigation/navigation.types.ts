@@ -35,6 +35,7 @@ export enum StackScreenName {
   Chat = "Chat",
   Charts = "Charts",
   ContextMenu = "ContextMenu",
+  InputBar = "InputBar",
   PdfView = "PdfView",
   WebView = "WebView",
 }
@@ -50,6 +51,7 @@ interface StackScreenParams {
   Chat: undefined;
   Charts: undefined;
   ContextMenu: undefined;
+  InputBar: undefined;
   PdfView: IPdfViewProps;
   WebView: IWebViewProps;
 }

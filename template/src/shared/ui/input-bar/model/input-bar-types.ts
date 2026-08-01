@@ -1,5 +1,5 @@
 /** Порт InputBarMode. */
-export type ChatInputMode =
+export type InputBarMode =
   | { type: "normal" }
   | {
       type: "reply";
@@ -11,4 +11,4 @@ export type ChatInputMode =
   | { type: "edit"; messageId: string; text: string };
 
 /** Порт RecordingState. */
-export type ChatRecordingState = "idle" | "recording" | "locked";
+export type RecordingState = "idle" | "recording" | "locked";

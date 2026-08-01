@@ -22,7 +22,6 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import { useKeyboardHandler } from "react-native-keyboard-controller";
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
@@ -31,12 +30,20 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useKeyboardInset } from "../../lib/hooks/use-keyboard-inset";
+import { useKeyboardScrollCompensation } from "../../lib/hooks/use-keyboard-scroll-compensation";
 import {
-  ChatInputBar,
-  IChatInputBarDelegate,
-  IChatInputBarRef,
-} from "../input-bar/ChatInputBar";
-import { ChatInputMode } from "../input-bar/input-bar-types";
+  IInputBarViewDelegate,
+  IInputBarViewRef,
+  InputBarView,
+} from "../input-bar/InputBarView";
+import { KeyboardInputBar } from "../input-bar/KeyboardInputBar";
+import {
+  INPUT_BAR_DEFAULT_FEATURES,
+  INPUT_BAR_DEFAULT_LAYOUT,
+  InputBarContext,
+} from "../input-bar/model/input-bar-context";
+import { InputBarMode } from "../input-bar/model/input-bar-types";
 import { ChatOverlayStore } from "./components/chat-overlay-store";
 import {
   ChatCellStore,
@@ -239,7 +246,7 @@ export const JsChatView = memo(
 
     const listRef = useRef<FlashListRef<ChatRow>>(null);
     const rootRef = useRef<View>(null);
-    const inputBarRef = useRef<IChatInputBarRef>(null);
+    const inputBarRef = useRef<IInputBarViewRef>(null);
 
     const cellStoreRef = useRef<ChatCellStore | null>(null);
 
@@ -310,8 +317,6 @@ export const JsChatView = memo(
     const safeArea = useSafeAreaInsets();
     const safeAreaBottom = safeArea.bottom;
 
-    const keyboardHeight = useSharedValue(0);
-
     // Порт KeyboardFreezeManager: пока открыто контекстное меню, нижняя зона
     // списка держится на запомненном значении (-1 — не заморожена). Меню
     // снимает снапшот пузыря в его текущей позиции, поэтому уезжающая
@@ -322,62 +327,16 @@ export const JsChatView = memo(
     const keyboardWasVisibleRef = useRef(false);
     const thawTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Нижняя зона считается одинаково на обеих платформах — из safe area, как
-    // keyboardLayoutGuide на iOS. Чтобы высота клавиатуры мерялась от низа
-    // окна (а не от нав-бара), у KeyboardProvider выставлен
-    // navigationBarTranslucent — без него нав-бар вычитается и зона схлопнется.
-    useKeyboardHandler(
-      {
-        // onStart приходит с destination-значениями: целевой высотой и
-        // длительностью. Поэтому отступ трогается в том же кадре, что и
-        // клавиатура, и с её же длительностью, а не догоняет её.
-        onStart: e => {
-          "worklet";
-          keyboardHeight.value = withTiming(e.height, { duration: e.duration });
-        },
-        // Дальше ведём покадрово: нативная часть отдаёт позицию с упреждением
-        // на задержку рендера, поэтому прямое присваивание точнее анимации.
-        onMove: e => {
-          "worklet";
-          keyboardHeight.value = e.height;
-        },
-        // Протаскивание клавиатуры вниз пальцем по списку.
-        onInteractive: e => {
-          "worklet";
-          keyboardHeight.value = e.height;
-        },
-        onEnd: e => {
-          "worklet";
-          keyboardHeight.value = e.height;
-
-          // Порт thaw() по keyboardDidShow: меню закрыто, клавиатура вернулась
-          // на место — только теперь отпускаем замороженную зону.
-          if (restoreKeyboardOnThaw.value && e.progress === 1) {
-            restoreKeyboardOnThaw.value = false;
-            frozenBottomInset.value = -1;
-          }
-        },
-      },
-      [],
-    );
+    const { bottomInset: keyboardInset, keyboardHeight } = useKeyboardInset();
 
     // Заморозка держит всю нижнюю зону разом — список, панель ввода и FAB
     // считаются от одного значения, поэтому при скрытии клавиатуры под меню
-    // на экране не двигается вообще ничего. Морозить только список нельзя:
-    // панель уедет за клавиатурой и между ними появится дыра.
-    const bottomInset = useDerivedValue(
-      () =>
-        frozenBottomInset.value >= 0
-          ? frozenBottomInset.value
-          : Math.max(keyboardHeight.value, safeAreaBottom),
-      [safeAreaBottom],
+    // на экране не двигается вообще ничего.
+    const bottomInset = useDerivedValue(() =>
+      frozenBottomInset.value >= 0
+        ? frozenBottomInset.value
+        : keyboardInset.value,
     );
-
-    // Панель ввода прижата к нижней зоне, список сдвигается ровно на неё же —
-    // оба стиля считаются из одних shared values, поэтому едут кадр в кадр.
-    const inputBarAnimatedStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: -bottomInset.value }],
-    }));
 
     // Порт freeze(): запоминаем зону и то, была ли открыта клавиатура. Именно
     // blur, а не Keyboard.dismiss: последний прячет клавиатуру, не снимая
@@ -455,21 +414,15 @@ export const JsChatView = memo(
       layout.inputBarMinHeight,
     );
 
-    const listHeightSV = useSharedValue(0);
-    const contentHeightSV = useSharedValue(0);
     const inputBarHeightSV = useSharedValue(0);
-    const footerPaddingSV = useSharedValue(0);
 
-    const listShift = useDerivedValue(() => {
-      const zone = bottomInset.value + inputBarHeightSV.value;
-      // Конец сообщений в координатах контента (без нижнего отступа).
-      const contentEnd = contentHeightSV.value - footerPaddingSV.value;
-      const visibleHeight = listHeightSV.value - zone;
-
-      // Контент короче видимой области — не поднимаем, иначе обрежется верх
-      // (порт guard-а `maxOffsetY > minOffsetY`).
-      return Math.min(zone, Math.max(0, contentEnd - visibleHeight));
-    });
+    const {
+      listShift,
+      listExtension: _hookExtension,
+      onContainerLayout,
+      onContentSizeChange: hookOnContentSizeChange,
+      setFooterPadding,
+    } = useKeyboardScrollCompensation(bottomInset, inputBarHeightSV);
 
     const listAnimatedStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: -listShift.value }],
@@ -477,10 +430,10 @@ export const JsChatView = memo(
 
     const handleContentSizeChange = useCallback(
       (_width: number, height: number) => {
-        contentHeightSV.value = height;
+        hookOnContentSizeChange(_width, height);
         contentHeightRef.current = height;
       },
-      [contentHeightSV],
+      [hookOnContentSizeChange],
     );
 
     // ─── FAB ─────────────────────────────────────────────────────────────────
@@ -1157,7 +1110,7 @@ export const JsChatView = memo(
 
     // Порт applyInputAction: панель ввода получает уже разрешённые данные
     // цитируемого/редактируемого сообщения.
-    const inputMode = useMemo<ChatInputMode>(() => {
+    const inputMode = useMemo<InputBarMode>(() => {
       if (
         !inputAction ||
         inputAction.type === "none" ||
@@ -1189,7 +1142,7 @@ export const JsChatView = memo(
 
     // Порт ChatViewController+Input: панель ввода прокручивает чат вниз при
     // отправке, схлопывает FAB и ставит воспроизведение на паузу при записи.
-    const inputBarDelegate = useMemo<IChatInputBarDelegate>(
+    const inputBarDelegate = useMemo<IInputBarViewDelegate>(
       () => ({
         onSend: (text, replyToId) => {
           pendingScrollToBottomRef.current = true;
@@ -1253,6 +1206,19 @@ export const JsChatView = memo(
         cellStore,
       }),
       [theme, layout, features, listSize.width, cellStore],
+    );
+
+    // InputBar имеет собственный контекст, независимый от ChatViewContext.
+    // Ключи тем и лейаута совпадают 1:1 (inputBackground, inputButtonSize…),
+    // поэтому маппинг тривиален: передаём те же объекты, только в контексте
+    // InputBar читаются лишь input-специфичные ключи.
+    const inputBarContextValue = useMemo(
+      () => ({
+        theme,
+        layout,
+        features: INPUT_BAR_DEFAULT_FEATURES,
+      }),
+      [theme, layout],
     );
 
     // ─── Рендер строк ────────────────────────────────────────────────────────
@@ -1328,7 +1294,7 @@ export const JsChatView = memo(
       (e: { nativeEvent: { layout: { width: number; height: number } } }) => {
         const { width, height } = e.nativeEvent.layout;
 
-        listHeightSV.value = height;
+        onContainerLayout(height);
         if (viewportHeightRef.current === 0) {
           viewportHeightRef.current = height;
         }
@@ -1338,7 +1304,7 @@ export const JsChatView = memo(
             : { width, height },
         );
       },
-      [listHeightSV],
+      [onContainerLayout],
     );
 
     const maintainVisibleContentPosition = useMemo(
@@ -1373,13 +1339,14 @@ export const JsChatView = memo(
     );
 
     useEffect(() => {
-      footerPaddingSV.value =
-        listExtension + layout.collectionBottomPadding + collectionInsetBottom;
+      setFooterPadding(
+        listExtension + layout.collectionBottomPadding + collectionInsetBottom,
+      );
     }, [
       listExtension,
       layout.collectionBottomPadding,
       collectionInsetBottom,
-      footerPaddingSV,
+      setFooterPadding,
     ]);
 
     const extraData = useMemo(
@@ -1445,14 +1412,16 @@ export const JsChatView = memo(
           </View>
 
           {features.showInputBar && (
-            <Animated.View style={[ss.inputBar, inputBarAnimatedStyle]}>
-              <ChatInputBar
-                ref={inputBarRef}
-                mode={inputMode}
-                delegate={inputBarDelegate}
-                onHeightChange={handleInputBarHeight}
-              />
-            </Animated.View>
+            <KeyboardInputBar bottomInset={bottomInset}>
+              <InputBarContext.Provider value={inputBarContextValue}>
+                <InputBarView
+                  ref={inputBarRef}
+                  mode={inputMode}
+                  delegate={inputBarDelegate}
+                  onHeightChange={handleInputBarHeight}
+                />
+              </InputBarContext.Provider>
+            </KeyboardInputBar>
           )}
 
           <ChatFab
@@ -1483,12 +1452,6 @@ const ss = StyleSheet.create({
     left: 0,
     right: 0,
     top: 0,
-  },
-  inputBar: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   listWrap: {
     flex: 1,

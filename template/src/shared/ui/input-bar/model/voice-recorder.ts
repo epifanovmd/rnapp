@@ -2,31 +2,31 @@
  * Порт VoiceRecorder (запись голоса из InputBar). Захват микрофона
  * абстрагирован: в проекте нет нативного аудио-модуля, по умолчанию —
  * симуляция (таймер + синтетическая волна). Реальный бэкенд подключается
- * через `setChatVoiceRecorderBackend`.
+ * через `setVoiceRecorderBackend`.
  */
 
-export interface IChatVoiceRecorderResult {
+export interface IVoiceRecorderResult {
   fileUrl: string;
   duration: number;
   waveform: number[];
 }
 
-export interface IChatVoiceRecorderDelegate {
+export interface IVoiceRecorderDelegate {
   onStart?: () => void;
   onUpdateDuration?: (duration: number) => void;
   onUpdateLevel?: (level: number) => void;
-  onStop?: (result: IChatVoiceRecorderResult) => void;
+  onStop?: (result: IVoiceRecorderResult) => void;
   onCancel?: () => void;
   onFail?: (error: Error) => void;
 }
 
-export interface IChatVoiceRecorderBackend {
+export interface IVoiceRecorderBackend {
   start(onLevel: (level: number) => void): Promise<void>;
-  stop(): Promise<IChatVoiceRecorderResult>;
+  stop(): Promise<IVoiceRecorderResult>;
   cancel(): void;
 }
 
-class SimulatedVoiceRecorderBackend implements IChatVoiceRecorderBackend {
+class SimulatedVoiceRecorderBackend implements IVoiceRecorderBackend {
   private _timer: ReturnType<typeof setInterval> | null = null;
   private _startedAt = 0;
   private _samples: number[] = [];
@@ -48,7 +48,7 @@ class SimulatedVoiceRecorderBackend implements IChatVoiceRecorderBackend {
     return Promise.resolve();
   }
 
-  stop(): Promise<IChatVoiceRecorderResult> {
+  stop(): Promise<IVoiceRecorderResult> {
     this.stopTimer();
 
     return Promise.resolve({
@@ -71,11 +71,10 @@ class SimulatedVoiceRecorderBackend implements IChatVoiceRecorderBackend {
   }
 }
 
-export class ChatVoiceRecorder {
-  delegate: IChatVoiceRecorderDelegate = {};
+export class VoiceRecorder {
+  delegate: IVoiceRecorderDelegate = {};
 
-  private _backend: IChatVoiceRecorderBackend =
-    new SimulatedVoiceRecorderBackend();
+  private _backend: IVoiceRecorderBackend = new SimulatedVoiceRecorderBackend();
   private _durationTimer: ReturnType<typeof setInterval> | null = null;
   private _startedAt = 0;
   private _isRecording = false;
@@ -84,7 +83,7 @@ export class ChatVoiceRecorder {
     return this._isRecording;
   }
 
-  setBackend(backend: IChatVoiceRecorderBackend) {
+  setBackend(backend: IVoiceRecorderBackend) {
     this._backend = backend;
   }
 
@@ -130,16 +129,14 @@ export class ChatVoiceRecorder {
   }
 }
 
-let defaultRecorderBackend: IChatVoiceRecorderBackend | null = null;
+let defaultRecorderBackend: IVoiceRecorderBackend | null = null;
 
-export const setChatVoiceRecorderBackend = (
-  backend: IChatVoiceRecorderBackend,
-) => {
+export const setVoiceRecorderBackend = (backend: IVoiceRecorderBackend) => {
   defaultRecorderBackend = backend;
 };
 
-export const createChatVoiceRecorder = (): ChatVoiceRecorder => {
-  const recorder = new ChatVoiceRecorder();
+export const createVoiceRecorder = (): VoiceRecorder => {
+  const recorder = new VoiceRecorder();
 
   if (defaultRecorderBackend) {
     recorder.setBackend(defaultRecorderBackend);

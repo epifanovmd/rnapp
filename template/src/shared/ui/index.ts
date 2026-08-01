@@ -16,6 +16,7 @@ export * from "./image";
 export * from "./image-viewing";
 export * from "./input";
 export * from "./input-bar";
+export * from "./keyboard-spacer";
 export * from "./layouts";
 export * from "./navbar";
 export * from "./picker";
