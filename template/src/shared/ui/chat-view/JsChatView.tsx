@@ -197,6 +197,7 @@ export const JsChatView = memo(
       data: dataRef,
       scroll,
       cellStore,
+      getBottomInset: keyboard.getContentInset,
     });
 
     const handleAnchorChange = useCallback(

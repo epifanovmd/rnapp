@@ -25,6 +25,7 @@ import {
   ChatView,
   type ChatVisibleMessagesChangeEventData,
   ChatVoiceRecordingCompleteEventData,
+  type IChatScrollAnchor,
 } from "@shared/ui/chat-view";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Clipboard } from "react-native";
@@ -82,6 +83,29 @@ export const useChatRoomMock = () => {
       return mapped;
     });
   }, [messages]);
+
+  // ── Начальная позиция: демо открывается с середины переписки ─────────────
+
+  // Якорь берётся один раз на первом рендере: чат читает его только в момент
+  // монтирования (`useChatInitialScroll`). Среднее сообщение в исходном
+  // массиве ≈ середина по времени, поэтому чат стартует с середины списка,
+  // а не с конца (как в реальном мессенджере с восстановлением позиции).
+  const initialScrollAnchorRef = useRef<IChatScrollAnchor | undefined>(
+    undefined,
+  );
+
+  if (initialScrollAnchorRef.current === undefined && messages.length > 0) {
+    const mid = messages[Math.floor(messages.length / 2)];
+
+    // Восстановление якоря идёт как в эталоне (нативная реализация):
+    // выравнивание по низу — среднее сообщение оказывается у нижнего края
+    // вьюпорта, сверху видна более ранняя часть переписки.
+    initialScrollAnchorRef.current = {
+      messageId: mid.id,
+      offset: 0,
+      wasAtBottom: false,
+    };
+  }
 
   // ── Типинг-индикатор для демонстрации (просто таймер, не сокет) ─────────
 
@@ -523,6 +547,7 @@ export const useChatRoomMock = () => {
     // Data
     messages,
     nativeMessages,
+    initialScrollAnchor: initialScrollAnchorRef.current,
     currentUserId: MOCK_CURRENT_USER_ID,
     chatRef,
 

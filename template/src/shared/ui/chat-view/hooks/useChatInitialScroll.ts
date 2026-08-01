@@ -58,7 +58,13 @@ export const useChatInitialScroll = ({
 
     if (index == null) return undefined;
 
-    return { index, viewPosition: 1, viewOffset: -initial.offset };
+    // Восстановление якоря — выравнивание по низу (viewPosition 1), как в
+    // эталоне: `contentOffset.y = cellBottom + offset - bounds.height`.
+    return {
+      index,
+      viewPosition: 1,
+      viewOffset: -initial.offset,
+    };
     // Только первый рендер: строки последующих обновлений здесь не нужны.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

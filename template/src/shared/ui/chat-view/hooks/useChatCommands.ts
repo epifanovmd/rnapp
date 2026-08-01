@@ -30,6 +30,13 @@ export interface IChatCommandsOptions {
   data: RefObject<IChatData>;
   scroll: IChatScrollController;
   cellStore: ChatCellStore;
+  /**
+   * Перекрытие контента снизу (клавиатура + панель + отступы) числом, из JS.
+   * Нужно `scrollToMessage`, чтобы центрировать сообщение по **видимой**
+   * области, а не по всему вьюпорту: при открытой клавиатуре видимый центр
+   * выше, и без поправки сообщение уходит под клавиатуру.
+   */
+  getBottomInset: () => number;
 }
 
 export interface IChatCommands {
@@ -66,6 +73,7 @@ export const useChatCommands = ({
   data,
   scroll,
   cellStore,
+  getBottomInset,
 }: IChatCommandsOptions): IChatCommands => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -112,10 +120,21 @@ export const useChatCommands = ({
       if (index == null) return;
 
       beginProgrammatic(animated);
+
+      const viewPosition = viewPositionOf(position);
+
+      // Порт центрирования по видимой области: LegendList центрирует элемент
+      // в полном вьюпорте, но при открытой клавиатуре видимая область короче
+      // на нижнее перекрытие. Отрицательный `viewOffset` добавляет к смещению
+      // `viewPosition * bottomInset` — ровно столько, чтобы видимый центр
+      // совпал с центром области над клавиатурой (вывод в
+      // calculateOffsetWithOffsetPosition: offset -= viewOffset, и центрирование
+      // идёт по viewport - trailingInset).
       listRef.current?.scrollToIndex({
         index,
         animated,
-        viewPosition: viewPositionOf(position),
+        viewPosition,
+        viewOffset: -viewPosition * getBottomInset(),
       });
 
       if (!highlight) return;
@@ -126,7 +145,7 @@ export const useChatCommands = ({
         animated ? HIGHLIGHT_DELAY_ANIMATED : HIGHLIGHT_DELAY_INSTANT,
       );
     },
-    [data, beginProgrammatic, listRef, cellStore],
+    [data, beginProgrammatic, listRef, cellStore, getBottomInset],
   );
 
   const scrollToOffset = useCallback(

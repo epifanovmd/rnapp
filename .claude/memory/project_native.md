@@ -238,6 +238,22 @@ the bar's `translateY` (`KeyboardFloatingView`) and the list's zone, read in the
   `KeyboardScrollView` consumers with no writer at all and a base that went stale after any manual
   scroll. Consumers now only hand over `scrollRef`.
 
+**JS-читаемые значения для решений из JS-обработчика.** Все shared values нижней зоны живут на
+UI-потоке, читать их из JS нельзя. Для случаев, где решение принимается из JS (центрирование
+`scrollToMessage` при открытой клавиатуре), добавлены синхронные геттеры: `useKeyboardHeight`
+отдаёт `getHeight()` (зеркало в ref, обновляется на событиях клавиатуры через `scheduleOnRN`), а
+`useKeyboardInset` — `getContentInset()` (`max(height, safeArea) + barHeight + extraPadding`,
+`barHeight` тоже зеркалится в ref в `setBarHeight`).
+
+**`scrollToMessage` центрирует по видимой области, а не по вьюпорту.** LegendList центрирует элемент
+в полном вьюпорте, но при открытой клавиатуре видимая область короче на нижнее перекрытие. Хак
+через штатный `viewOffset`: `viewOffset = -viewPosition * getContentInset()` — из
+`calculateOffsetWithOffsetPosition` (`offset -= viewOffset`) выходит ровно
+`offset = top - viewPosition * (viewport - bottomInset - itemSize)`, т.е. видимый центр совпадает с
+центром области над клавиатурой. Отрицательный `viewOffset` лишь расширяет внутренний кламп LegendList
+на `viewPosition * bottomInset`, а нативный скролл всё равно упирается в `contentSize - viewport`, так
+что сообщение у самого низа просто прижимается к нижней границе, не уходя под клавиатуру.
+
 **`KeyboardChatScrollView` was tried and rejected (twice, for different reasons).** Most recently: it
 subscribes to the keyboard itself and drives the position with its own computation — a second source of
 motion. In `onStart` it sets `padding` straight to the full keyboard height while catching the scroll

@@ -34,15 +34,27 @@ export interface IKeyboardHeight {
    * из JS-обработчика нельзя: он живёт на другом потоке.
    */
   isVisible: () => boolean;
+  /**
+   * Текущая высота клавиатуры — синхронное чтение из JS. Тот же запрет на
+   * `height.value`, поэтому высота зеркалится в ref на событиях клавиатуры
+   * (старт/конец/драг). Требуется потребителям, которые принимают решение
+   * из JS-обработчика (например, центрирование скролла по видимой области).
+   */
+  getHeight: () => number;
 }
 
 export const useKeyboardHeight = (): IKeyboardHeight => {
   const height = useSharedValue(0);
   const targetHeight = useSharedValue(0);
   const isVisibleRef = useRef(false);
+  const heightRef = useRef(0);
 
   const setVisible = useCallback((visible: boolean) => {
     isVisibleRef.current = visible;
+  }, []);
+
+  const setHeight = useCallback((h: number) => {
+    heightRef.current = h;
   }, []);
 
   useKeyboardHandler(
@@ -54,6 +66,7 @@ export const useKeyboardHeight = (): IKeyboardHeight => {
         targetHeight.value = e.height;
         height.value = withTiming(e.height, { duration: e.duration });
         scheduleOnRN(setVisible, e.height > 0);
+        scheduleOnRN(setHeight, e.height);
       },
       onMove: e => {
         "worklet";
@@ -65,18 +78,21 @@ export const useKeyboardHeight = (): IKeyboardHeight => {
         // или повести обратно, поэтому цель — это текущее положение.
         targetHeight.value = e.height;
         height.value = e.height;
+        scheduleOnRN(setHeight, e.height);
       },
       onEnd: e => {
         "worklet";
         targetHeight.value = e.height;
         height.value = e.height;
         scheduleOnRN(setVisible, e.height > 0);
+        scheduleOnRN(setHeight, e.height);
       },
     },
-    [setVisible],
+    [setVisible, setHeight],
   );
 
   const isVisible = useCallback(() => isVisibleRef.current, []);
+  const getHeight = useCallback(() => heightRef.current, []);
 
-  return { height, targetHeight, isVisible };
+  return { height, targetHeight, isVisible, getHeight };
 };

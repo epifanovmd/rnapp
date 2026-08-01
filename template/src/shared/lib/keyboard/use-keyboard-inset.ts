@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { ViewStyle } from "react-native";
 import {
   AnimatedStyle,
@@ -119,6 +119,11 @@ export interface IKeyboardInset {
 
   /** Открыта ли клавиатура — синхронное чтение из JS. */
   isKeyboardVisible: () => boolean;
+  /**
+   * Суммарное перекрытие контента снизу числом — синхронное чтение из JS.
+   * Для центрирования скролла по видимой области (над клавиатурой и панелью).
+   */
+  getContentInset: () => number;
 }
 
 export const useKeyboardInset = (
@@ -129,6 +134,9 @@ export const useKeyboardInset = (
   const safeAreaBottom = useSafeAreaInsets().bottom;
   const keyboard = useKeyboardHeight();
   const barHeight = useSharedValue(initialBarHeight);
+  // JS-зеркало высоты панели: `barHeight` живёт на UI-потоке, а для
+  // `getContentInset` нужно синхронное чтение из JS-обработчика.
+  const barHeightRef = useRef(initialBarHeight);
 
   // Нижняя граница экрана — на ней стоит панель. Порт keyboardLayoutGuide
   // + followsUndockedKeyboard. Значение всегда живое.
@@ -186,9 +194,18 @@ export const useKeyboardInset = (
 
   const setBarHeight = useCallback(
     (height: number) => {
+      barHeightRef.current = height;
       barHeight.value = height;
     },
     [barHeight],
+  );
+
+  const getContentInset = useCallback(
+    () =>
+      Math.max(keyboard.getHeight(), safeAreaBottom) +
+      barHeightRef.current +
+      extraPadding,
+    [keyboard, safeAreaBottom, extraPadding],
   );
 
   return useMemo(
@@ -203,6 +220,7 @@ export const useKeyboardInset = (
       freeze,
       restore,
       isKeyboardVisible: keyboard.isVisible,
+      getContentInset,
     }),
     [
       barStyle,
@@ -215,6 +233,7 @@ export const useKeyboardInset = (
       freeze,
       restore,
       keyboard.isVisible,
+      getContentInset,
     ],
   );
 };

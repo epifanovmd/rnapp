@@ -23,14 +23,15 @@ import { IResolvedReply } from "./ReplyPreview";
 
 /**
  * Порт MessageCell: выравнивание пузыря по ownership, аватар (последнее
- * сообщение группы), контекстное меню по долгому нажатию (ContextMenuView —
- * на iOS нативное, на Android JS-порт), подсветка scrollToMessage.
+ * сообщение группы, прижатое к низу — как в iOS), контекстное меню по
+ * долгому нажатию (ContextMenuView — на iOS нативное, на Android JS-порт),
+ * подсветка scrollToMessage.
  */
 
 interface IMessageCellProps {
   message: IParsedChatMessage;
   resolvedReply?: IResolvedReply;
-  /** Ячейка — последняя в группе подряд идущих сообщений отправителя. */
+  /** Строка — последняя в группе подряд идущих сообщений отправителя. */
   avatarAnchor: boolean;
 }
 
@@ -135,7 +136,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
       minHeight: layout.cellMinHeight,
       paddingTop: layout.cellVSpacing / 2 + extraSpacing,
       paddingBottom: layout.cellVSpacing / 2 + extraSpacing,
-      paddingLeft: layout.cellHMargin + avatarSpace,
+      paddingLeft: layout.cellHMargin,
       paddingRight: layout.cellHMargin,
       flexDirection: "row",
       justifyContent:
@@ -186,10 +187,30 @@ export const MessageCell: FC<IMessageCellProps> = memo(
       opacity: isBubbleHidden ? 0 : 1,
     };
 
+    // Аватар позиционируется «как в iOS»: колонка всегда резервирует место
+    // для сообщений пира (пузыри выравниваются по левому краю), а сам аватар
+    // рисуется только под последним сообщением группы (avatarAnchor) и прижат
+    // к низу ячейки через `alignSelf: flex-end` — обычный поток, без absolute:
+    // absolute-аватар в анимируемом списке не следовал за скроллом.
+    // Зазор аватар→пузырь = avatarSpace - avatarSize = avatarLeadingMargin +
+    // avatarBubbleSpacing (6 + 2 = 8px), как в iMessage.
+    const avatarSlotStyle: ViewStyle = {
+      width: avatarSpace,
+      alignSelf: "flex-end",
+    };
+
     return (
       <View style={cellStyle}>
-        {showAvatar && avatarAnchor && message.senderName != null && (
-          <AvatarSlot message={message} />
+        {showAvatar && (
+          <View style={avatarSlotStyle}>
+            {avatarAnchor && message.senderName != null && (
+              <ChatAvatar
+                name={message.senderName}
+                url={message.senderAvatarUrl}
+                size={layout.avatarSize}
+              />
+            )}
+          </View>
         )}
         <View ref={registerBubble} collapsable={false} style={bubbleWrapStyle}>
           {menuEnabled ? (
@@ -221,31 +242,3 @@ export const MessageCell: FC<IMessageCellProps> = memo(
 );
 
 MessageCell.displayName = "MessageCell";
-
-const AvatarSlot: FC<{ message: IParsedChatMessage }> = memo(({ message }) => {
-  const { layout } = useChatViewContext();
-
-  return (
-    <View
-      style={[
-        avatarSlotStyle,
-        {
-          left: layout.avatarLeadingMargin,
-          bottom: layout.cellVSpacing / 2,
-          width: layout.avatarSize,
-          height: layout.avatarSize,
-        },
-      ]}
-    >
-      <ChatAvatar
-        name={message.senderName ?? ""}
-        url={message.senderAvatarUrl}
-        size={layout.avatarSize}
-      />
-    </View>
-  );
-});
-
-AvatarSlot.displayName = "AvatarSlot";
-
-const avatarSlotStyle: ViewStyle = { position: "absolute" };

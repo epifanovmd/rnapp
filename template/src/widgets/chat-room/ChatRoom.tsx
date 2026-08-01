@@ -37,14 +37,13 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     subtitle,
     messages,
     nativeMessages,
-    currentUserId,
+    initialScrollAnchor,
     chatRef,
     inputAction,
     showAttachmentPicker,
     pollDetailId,
     imageViewerIndex,
     imageViewerImages,
-    isGroupChat,
     isReturningToLatest,
     hasMore,
     hasNewer,
@@ -77,9 +76,35 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     handleScrollAnchorChanged,
   } = useChatRoomMock();
 
+  // Все фичи чата включены — демо показывает возможности компонента целиком.
+  // `emojiReactions` передаётся отдельным пропом ниже.
   const chatFeatures = useMemo(
-    () => ({ disintegrationEnabled: true, showAvatars: isGroupChat }),
-    [isGroupChat],
+    () =>
+      ({
+        senderNameMode: "always",
+        showMessageStatus: true,
+        showTimestamp: true,
+        showEditedMark: true,
+        showReactions: true,
+        showReplyPreview: true,
+        showForwardedMark: true,
+        showThreadIndicator: true,
+        showAvatars: true,
+        linkDetectionEnabled: true,
+        showFab: true,
+        showFloatingDate: true,
+        showDateSeparators: true,
+        showTopLoadingIndicator: true,
+        showBottomLoadingIndicator: true,
+        showEmptyState: true,
+        showInputBar: true,
+        showAttachButton: true,
+        showVoiceRecording: true,
+        contextMenuEnabled: true,
+        autoScrollOnNewMessage: true,
+        disintegrationEnabled: true,
+      }) as const,
+    [],
   );
 
   return (
@@ -135,6 +160,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         ref={chatRef}
         style={styles.chat}
         messages={nativeMessages}
+        initialScrollAnchor={initialScrollAnchor}
         getActionsForMessage={getActionsForMessage}
         emojiReactions={EMOJI_REACTIONS}
         inputAction={inputAction}
