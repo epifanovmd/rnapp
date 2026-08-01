@@ -80,13 +80,14 @@ export class ChatVisibilityTracker {
     const { enterThreshold, exitThreshold, unreadThreshold } =
       this._options.getThresholds();
 
-    const sorted = [...items].sort((a, b) => a.index - b.index);
-
+    // Элементы приходят от `recompute` уже в порядке возрастания индекса —
+    // дополнительная сортировка здесь обходилась бы лишним массивом и
+    // сотнями сравнений на каждый кадр скролла.
     const visibleIds: string[] = [];
     const nextActive = new Set<string>();
     const newUnread = new Set<string>();
 
-    for (const { message, visibleFraction } of sorted) {
+    for (const { message, visibleFraction } of items) {
       const wasActive = this._activeIds.has(message.id);
       const isActive = wasActive
         ? visibleFraction >= exitThreshold

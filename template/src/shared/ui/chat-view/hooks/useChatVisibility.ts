@@ -92,6 +92,8 @@ export const useChatVisibility = ({
 
     if (end < start) return;
 
+    // Массив собирается уже отсортированным по индексу — трекер это
+    // использует и не сортирует повторно.
     const items: IVisibleItem[] = [];
 
     for (let index = start; index <= end; index++) {

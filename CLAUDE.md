@@ -202,6 +202,14 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
     `visibility-tracker.ts` (hysteresis + throttle/debounce port of `collectVisibleMessageIDs`),
     `floating-date.ts` (port of `FloatingDateManager`'s math), date helper, unread manager, voice
     player/recorder abstractions with simulated backends.
+  - **Обновление данных построено на сохранении идентичности**: `ChatMessageParser`
+    (`model/chat-message-parser.ts`) кеширует `parseChatMessage` по входному сообщению, а
+    `ChatRowsBuilder` (`model/chat-rows.ts`) переиспользует строку, пока не изменились её входы
+    (само сообщение, сосед для аватара, оригинал цитаты). `ChatRow` несёт уже выведенные данные —
+    `key`, `resolvedReply`, `avatarAnchor`, `hidden` — и список перерисовывает ровно те контейнеры,
+    чьи строки реально изменились (`itemsAreEqual` в `ChatList.tsx`, `renderItem` стабилен и не
+    замыкается на массив). Требование к хосту: `messages` обязан сохранять идентичность неизменённых
+    элементов (демо кеширует `mapMessageToNative` по DTO).
   - `hooks/` — one hook per responsibility: `useChatGeometry` (the **only** file that knows about
     LegendList — adapts `getState()` to `IChatGeometry`), `useChatData`, `useChatMessageUpdates`,
     `useChatScroll`, `useChatScrollAnchor`, `useChatCommands` (the only place that moves the list),
@@ -209,9 +217,12 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
     `useChatDisintegration`, `useChatInitialScroll`, `useChatInputBar`, `useChatCellDelegate`,
     `useChatConfig`.
   - `components/` — rendering only: `ChatList.tsx` (the LegendList wrapper), `ChatRowView.tsx` (row
-    dispatcher), plus bubble, content views for text/links, media grid, voice, poll, files, reactions,
-    reply, thread, footer, FAB, floating date, empty state, disintegration burst. Per-item context menu
-    reuses `shared/ui/context-menu-view`.
+    dispatcher, takes **only the row** — производные данные уже в ней), plus bubble, content views for
+    text/links, media grid, voice, poll, files, reactions, reply, thread, footer, FAB, floating date,
+    empty state, disintegration burst. Per-item context menu reuses `shared/ui/context-menu-view`.
+    Оверлеи подписываются на **отдельные поля** стора через `useOverlayValue` (а не на весь снимок:
+    видимость FAB, плашка даты и empty state обновляются независимо на каждом кадре скролла);
+    покадровый сдвиг плашки даты живёт в shared value стора (`store.floatingDatePush`).
 
   Native parity comes from `ChatList.tsx`: `AnimatedLegendList` (the `@legendapp/list/reanimated`
   build — it exposes `refScrollView` and `sharedValues.scrollOffset`, which the compensation needs),

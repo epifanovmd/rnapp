@@ -1,10 +1,4 @@
-import React, {
-  FC,
-  memo,
-  useEffect,
-  useMemo,
-  useSyncExternalStore,
-} from "react";
+import React, { FC, memo, useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
   Easing,
@@ -14,7 +8,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { ChatOverlayStore, IDisintegrationBurst } from "./chat-overlay-store";
+import {
+  ChatOverlayStore,
+  IChatOverlayState,
+  IDisintegrationBurst,
+} from "./chat-overlay-store";
+import { useOverlayValue } from "./useOverlayValue";
 
 /**
  * Порт DisintegrationAnimator (CAEmitterLayer → Reanimated): пузырь
@@ -155,15 +154,19 @@ interface IDisintegrationOverlayProps {
   store: ChatOverlayStore;
 }
 
+// Массив пересоздаётся только в addBurst/removeBurst, поэтому годится как
+// снимок: остальные обновления стора (FAB, плашка даты) оверлей не трогают.
+const selectBursts = (state: IChatOverlayState) => state.bursts;
+
 export const DisintegrationOverlay: FC<IDisintegrationOverlayProps> = memo(
   ({ store }) => {
-    const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    const bursts = useOverlayValue(store, selectBursts);
 
-    if (state.bursts.length === 0) return null;
+    if (bursts.length === 0) return null;
 
     return (
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        {state.bursts.map(burst => (
+        {bursts.map(burst => (
           <Burst
             key={burst.key}
             burst={burst}

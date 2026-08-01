@@ -1,4 +1,4 @@
-import React, { FC, memo, useEffect, useSyncExternalStore } from "react";
+import React, { FC, memo, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -7,8 +7,9 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { chatTextBase } from "../model";
-import { ChatOverlayStore } from "./chat-overlay-store";
+import { ChatOverlayStore, IChatOverlayState } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
+import { useOverlayValue } from "./useOverlayValue";
 
 /**
  * Порт FloatingDateManager: плашка текущей даты вверху при скролле,
@@ -20,19 +21,18 @@ interface IFloatingDateOverlayProps {
   topInset: number;
 }
 
+const selectVisible = (state: IChatOverlayState) => state.floatingDateVisible;
+const selectTitle = (state: IChatOverlayState) => state.floatingDateTitle;
+
 export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
   ({ store, topInset }) => {
     const { theme, layout, features } = useChatViewContext();
-    const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    const isShown = useOverlayValue(store, selectVisible);
+    const title = useOverlayValue(store, selectTitle);
 
     const opacity = useSharedValue(0);
-    // Порт container.transform: следующий разделитель выталкивает плашку.
-    const push = useSharedValue(0);
 
-    const visible =
-      features.showFloatingDate &&
-      state.floatingDateVisible &&
-      state.floatingDateTitle != null;
+    const visible = features.showFloatingDate && isShown && title != null;
 
     useEffect(() => {
       opacity.value = withTiming(visible ? 1 : 0, {
@@ -48,18 +48,18 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
       layout.floatingDateHideDuration,
     ]);
 
-    // Сдвиг следует за скроллом покадрово — анимировать его нельзя,
-    // иначе плашка будет отставать от подпирающего разделителя.
-    useEffect(() => {
-      push.value = state.floatingDatePush;
-    }, [state.floatingDatePush, push]);
+    // Порт container.transform: следующий разделитель выталкивает плашку.
+    // Сдвиг считается на каждом кадре скролла и приходит shared value —
+    // анимировать или проводить через состояние его нельзя, иначе плашка
+    // отстанет от подпирающего разделителя.
+    const push = store.floatingDatePush;
 
     const style = useAnimatedStyle(() => ({
       opacity: opacity.value,
       transform: [{ translateY: push.value }],
     }));
 
-    if (!features.showFloatingDate || state.floatingDateTitle == null) {
+    if (!features.showFloatingDate || title == null) {
       return null;
     }
 
@@ -86,7 +86,7 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
               },
             ]}
           >
-            {state.floatingDateTitle}
+            {title}
           </Text>
         </View>
       </Animated.View>

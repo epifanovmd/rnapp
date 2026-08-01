@@ -4,7 +4,7 @@ import type {
   ViewToken,
 } from "@legendapp/list/react-native";
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
-import React, { forwardRef, memo, useCallback, useMemo } from "react";
+import React, { forwardRef, memo, useMemo } from "react";
 import {
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import Animated, { AnimatedRef, AnimatedStyle } from "react-native-reanimated";
 
-import { ChatRow, chatRowKey, IParsedChatMessage } from "../model";
+import { ChatRow, chatRowKey } from "../model";
 import { ChatRowView } from "./ChatRowView";
 
 /**
@@ -46,9 +46,6 @@ import { ChatRowView } from "./ChatRowView";
 
 export interface IChatListProps {
   rows: ChatRow[];
-  messageIndex: Map<string, IParsedChatMessage>;
-  firstSeparatorIndex: number;
-  hideFirstSeparator: boolean;
 
   /** Скролл-ref компенсации: на него уходит `scrollTo` с UI-потока. */
   scrollRef: AnimatedRef<Animated.ScrollView>;
@@ -86,6 +83,23 @@ const keyExtractor = (row: ChatRow) => chatRowKey(row);
 const getItemType = (row: ChatRow) => row.type;
 
 /**
+ * `renderItem` обязан быть стабильным и не иметь замыканий на данные:
+ * список зовёт его лениво и только для тех контейнеров, чей элемент
+ * изменился. Замыкание на «все строки» означало бы, что неперерисованный
+ * контейнер продолжает показывать результат старого замыкания.
+ */
+const renderItem = ({ item }: LegendListRenderItemProps<ChatRow>) => (
+  <ChatRowView row={item} />
+);
+
+/**
+ * Порт сравнения строк при обновлении данных: строки неизменных сообщений
+ * приходят тем же объектом (`ChatRowsBuilder`), и список пропускает их
+ * контейнеры вместо полного пересчёта.
+ */
+const itemsAreEqual = (previous: ChatRow, next: ChatRow) => previous === next;
+
+/**
  * Виртуализация переиспользует контейнеры, но не сами React-элементы:
  * `recycleItems` выключен намеренно. Ячейки чата держат внутреннее
  * состояние (проигрывание голоса, подсветка, скрытие под распад), и
@@ -98,9 +112,6 @@ export const ChatList = memo(
     (
       {
         rows,
-        messageIndex,
-        firstSeparatorIndex,
-        hideFirstSeparator,
         scrollRef,
         bottomSpacerStyle,
         contentPaddingTop,
@@ -120,23 +131,6 @@ export const ChatList = memo(
       },
       ref,
     ) => {
-      const renderItem = useCallback(
-        ({
-          item,
-          index,
-        }: LegendListRenderItemProps<ChatRow, string | undefined>) => (
-          <ChatRowView
-            row={item}
-            index={index}
-            rows={rows}
-            messageIndex={messageIndex}
-            hideFirstSeparator={hideFirstSeparator}
-            firstSeparatorIndex={firstSeparatorIndex}
-          />
-        ),
-        [rows, messageIndex, hideFirstSeparator, firstSeparatorIndex],
-      );
-
       const contentContainerStyle = useMemo(
         () => ({ paddingTop: contentPaddingTop }),
         [contentPaddingTop],
@@ -167,6 +161,7 @@ export const ChatList = memo(
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           getItemType={getItemType}
+          itemsAreEqual={itemsAreEqual}
           extraData={extraData}
           recycleItems={RECYCLE_ITEMS}
           estimatedItemSize={estimatedItemSize}

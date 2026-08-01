@@ -33,6 +33,19 @@ export interface IChatMessageBody {
 }
 
 /**
+ * Цитата в том виде, в каком её показывает ячейка: имя и текст берутся из
+ * оригинального сообщения, а не из сырого `ReplyRef`. Порт `resolvedReply(for:)`.
+ *
+ * Живёт в модели, а не рядом с `ReplyPreview`: разрешением цитаты занимается
+ * построение строк, компоненты его только отрисовывают.
+ */
+export interface IResolvedReply {
+  senderName: string;
+  text: string;
+  hasImage: boolean;
+}
+
+/**
  * Внутренняя модель сообщения — порт ChatMessage (Swift) + ChatParsing.
  */
 export interface IParsedChatMessage {
@@ -55,6 +68,9 @@ export interface IParsedChatMessage {
   raw: ChatMessage;
 }
 
+/** Общий пустой список действий — чтобы не плодить массивы на сообщение. */
+const EMPTY_ACTIONS: ChatAction[] = [];
+
 const OWNERSHIPS: ChatMessageOwnership[] = [
   "mine",
   "theirs",
@@ -66,8 +82,15 @@ const STATUSES: ChatMessageStatus[] = ["sending", "sent", "delivered", "read"];
 /**
  * Порт ChatMessage.from(dict:) + parseContent: приоритет медиа
  * poll > files > voice > images(+video).
+ *
+ * `actions` передаются отдельным аргументом, а не подмешиваются в `msg`
+ * копией объекта: копия ломала бы идентичность входного сообщения, а на
+ * ней держится весь кеш разбора (см. `ChatMessageParser`).
  */
-export const parseChatMessage = (msg: ChatMessage): IParsedChatMessage => {
+export const parseChatMessage = (
+  msg: ChatMessage,
+  actions?: ChatAction[],
+): IParsedChatMessage => {
   const text = msg.text && msg.text.length > 0 ? msg.text : undefined;
 
   let media: ChatMediaContent | undefined;
@@ -132,7 +155,7 @@ export const parseChatMessage = (msg: ChatMessage): IParsedChatMessage => {
     reactions: msg.reactions ?? [],
     thread: msg.thread,
     isEdited: msg.isEdited ?? false,
-    actions: msg.actions ?? [],
+    actions: actions ?? msg.actions ?? EMPTY_ACTIONS,
     raw: msg,
   };
 };

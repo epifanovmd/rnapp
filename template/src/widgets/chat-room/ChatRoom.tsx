@@ -11,7 +11,6 @@ import React, { FC, useMemo, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
 import { AttachmentPickerSheet } from "./AttachmentPickerSheet";
-import { mapMessageToNative } from "./native/map-message-to-native";
 import { PollDetailModal } from "./PollDetailModal";
 import { useChatRoomMock } from "./useChatRoomMock";
 
@@ -37,6 +36,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     isRefreshing,
     subtitle,
     messages,
+    nativeMessages,
     currentUserId,
     chatRef,
     inputAction,
@@ -80,11 +80,6 @@ export const ChatRoom: FC<StackProps> = observer(() => {
   const chatFeatures = useMemo(
     () => ({ disintegrationEnabled: true, showAvatars: isGroupChat }),
     [isGroupChat],
-  );
-
-  const nativeMessages = useMemo(
-    () => messages.map(m => mapMessageToNative(m, currentUserId)),
-    [messages, currentUserId],
   );
 
   return (

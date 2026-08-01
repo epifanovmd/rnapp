@@ -242,11 +242,11 @@ export const JsChatView = memo(
       playDisintegration,
     });
 
-    const data = useChatData(
-      displayed,
-      features.showDateSeparators,
-      isLoadingBottom && features.showBottomLoadingIndicator,
-    );
+    const data = useChatData(displayed, {
+      showDateSeparators: features.showDateSeparators,
+      showBottomLoading: isLoadingBottom && features.showBottomLoadingIndicator,
+      hideFirstSeparator: isLoadingTop,
+    });
 
     dataRef.current = data;
 
@@ -573,9 +573,6 @@ export const JsChatView = memo(
             <ChatList
               ref={listRef}
               rows={data.rows}
-              messageIndex={data.messageIndex}
-              firstSeparatorIndex={data.dateSeparators[0]?.rowIndex ?? -1}
-              hideFirstSeparator={isLoadingTop}
               scrollRef={compensation.scrollRef}
               bottomSpacerStyle={compensation.spacerStyle}
               contentPaddingTop={

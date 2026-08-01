@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import {
-  buildChatRows,
+  ChatMessageParser,
   ChatRow,
+  ChatRowsBuilder,
   IChatViewFeatures,
   IParsedChatMessage,
-  parseChatMessage,
 } from "../model";
 import { IDateSeparatorPosition } from "../model/floating-date";
 import { ChatAction, ChatMessage } from "../types";
@@ -17,9 +17,11 @@ import { ChatAction, ChatMessage } from "../types";
  * SRP: хук отвечает только за преобразование входных сообщений в строки и
  * индексы. Никакого скролла, никаких эффектов.
  *
- * Все результаты дублируются в ref: обработчики скролла и видимости живут
- * в стабильных колбэках и должны читать актуальные данные, не пересоздаваясь
- * на каждое обновление списка.
+ * Ключевое свойство обоих преобразований — **сохранение идентичности**:
+ * объекты, чьи входные данные не изменились, возвращаются те же самые.
+ * От этого напрямую зависит стоимость обновления: список перерисовывает
+ * ровно те контейнеры, чьи элементы стали другими (см. `ChatMessageParser`
+ * и `ChatRowsBuilder`).
  */
 
 export interface IChatDataInput {
@@ -42,25 +44,38 @@ export interface IChatData {
   dateSeparators: IDateSeparatorPosition[];
 }
 
+export interface IChatDataOptions {
+  showDateSeparators: boolean;
+  showBottomLoading: boolean;
+  hideFirstSeparator: boolean;
+}
+
 /** Построение строк и индексов по готовому списку сообщений. */
 export const buildChatData = (
+  builder: ChatRowsBuilder,
   parsed: IParsedChatMessage[],
-  showDateSeparators: boolean,
-  showBottomLoading: boolean,
-): IChatData => {
-  const rows = buildChatRows({
-    messages: parsed,
+  {
     showDateSeparators,
     showBottomLoading,
-  });
-
+    hideFirstSeparator,
+  }: IChatDataOptions,
+): IChatData => {
   const messageIndex = new Map<string, IParsedChatMessage>();
-  const rowIndexById = new Map<string, number>();
-  const dateSeparators: IDateSeparatorPosition[] = [];
 
   for (const message of parsed) {
     messageIndex.set(message.id, message);
   }
+
+  const rows = builder.build({
+    messages: parsed,
+    messageIndex,
+    showDateSeparators,
+    showBottomLoading,
+    hideFirstSeparator,
+  });
+
+  const rowIndexById = new Map<string, number>();
+  const dateSeparators: IDateSeparatorPosition[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -82,16 +97,18 @@ export const useParsedMessages = ({
 }: Pick<
   IChatDataInput,
   "messages" | "getActionsForMessage"
->): IParsedChatMessage[] =>
-  useMemo(() => {
-    const source = getActionsForMessage
-      ? messages.map(msg => ({ ...msg, actions: getActionsForMessage(msg) }))
-      : messages;
+>): IParsedChatMessage[] => {
+  const parserRef = useRef<ChatMessageParser | null>(null);
 
-    return source
-      .map(parseChatMessage)
-      .sort((a, b) => a.timestamp - b.timestamp);
-  }, [messages, getActionsForMessage]);
+  parserRef.current ??= new ChatMessageParser();
+
+  const parser = parserRef.current;
+
+  return useMemo(
+    () => parser.parse(messages, getActionsForMessage),
+    [parser, messages, getActionsForMessage],
+  );
+};
 
 /**
  * Строки и индексы для уже отображаемых сообщений. Отображаемые отстают от
@@ -103,13 +120,42 @@ export const useParsedMessages = ({
  */
 export const useChatData = (
   displayed: IParsedChatMessage[],
-  showDateSeparators: boolean,
-  showBottomLoading: boolean,
-): IChatData =>
-  useMemo(
-    () => buildChatData(displayed, showDateSeparators, showBottomLoading),
-    [displayed, showDateSeparators, showBottomLoading],
+  {
+    showDateSeparators,
+    showBottomLoading,
+    hideFirstSeparator,
+  }: IChatDataOptions,
+): IChatData => {
+  const builderRef = useRef<ChatRowsBuilder | null>(null);
+
+  builderRef.current ??= new ChatRowsBuilder();
+
+  const builder = builderRef.current;
+
+  return useMemo(
+    () =>
+      buildChatData(builder, displayed, {
+        showDateSeparators,
+        showBottomLoading,
+        hideFirstSeparator,
+      }),
+    [
+      builder,
+      displayed,
+      showDateSeparators,
+      showBottomLoading,
+      hideFirstSeparator,
+    ],
   );
+};
 
 /** Пустой снимок для инициализации ref до первого расчёта. */
-export const EMPTY_CHAT_DATA: IChatData = buildChatData([], false, false);
+export const EMPTY_CHAT_DATA: IChatData = buildChatData(
+  new ChatRowsBuilder(),
+  [],
+  {
+    showDateSeparators: false,
+    showBottomLoading: false,
+    hideFirstSeparator: false,
+  },
+);

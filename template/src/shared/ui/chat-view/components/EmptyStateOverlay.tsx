@@ -1,4 +1,4 @@
-import React, { FC, memo, useSyncExternalStore } from "react";
+import React, { FC, memo } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -8,8 +8,9 @@ import {
 } from "react-native";
 
 import { chatTextBase } from "../model";
-import { ChatOverlayStore } from "./chat-overlay-store";
+import { ChatOverlayStore, IChatOverlayState } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
+import { useOverlayValue } from "./useOverlayValue";
 
 /**
  * Порт EmptyStateManager: заглушка пустого состояния (текст или спиннер
@@ -22,16 +23,22 @@ interface IEmptyStateOverlayProps {
   store: ChatOverlayStore;
 }
 
+const selectVisible = (state: IChatOverlayState) => state.emptyVisible;
+const selectLoading = (state: IChatOverlayState) => state.emptyLoading;
+const selectText = (state: IChatOverlayState) => state.emptyText;
+
 export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
   ({ store }) => {
     const { theme, layout, features } = useChatViewContext();
-    const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    const visible = useOverlayValue(store, selectVisible);
+    const loading = useOverlayValue(store, selectLoading);
+    const text = useOverlayValue(store, selectText);
 
-    if (!features.showEmptyState || !state.emptyVisible) return null;
+    if (!features.showEmptyState || !visible) return null;
 
     return (
       <Pressable style={ss.wrap} onPress={() => Keyboard.dismiss()}>
-        {state.emptyLoading ? (
+        {loading ? (
           <ActivityIndicator size="large" />
         ) : (
           <Text
@@ -46,7 +53,7 @@ export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
               },
             ]}
           >
-            {state.emptyText ?? DEFAULT_EMPTY_TEXT}
+            {text ?? DEFAULT_EMPTY_TEXT}
           </Text>
         )}
       </Pressable>

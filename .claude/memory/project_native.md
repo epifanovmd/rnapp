@@ -190,6 +190,17 @@ ports is abstracted (`chat-voice-player.ts` / `chat-voice-recorder.ts` in `chat-
 simulated default backends — real backends can be injected via `setChatVoicePlayerBackend` /
 `setChatVoiceRecorderBackend` (no audio native module exists in this project).
 
+**Обновление списка на тысячи сообщений (задержка после голосования/удаления):** всё держится на
+сохранении идентичности. `ChatMessageParser` (`model/chat-message-parser.ts`) кеширует
+`parseChatMessage` по входному `ChatMessage` (объект переиспользуется, пока не изменился сам вход),
+`ChatRowsBuilder` (`model/chat-rows.ts`) переиспользует `ChatRow`, пока не изменились её входы, а
+`ChatList.tsx` передаёт списку `itemsAreEqual` и стабильный `renderItem` без замыканий — `LegendList`
+перерисовывает ровно те контейнеры, чьи строки реально изменились. Обязательное требование к хосту:
+`messages` должен сохранять идентичность неизменённых элементов — демо кеширует `mapMessageToNative`
+по DTO (`useChatRoomMock.nativeMessages`). Оверлеи (`components/chat-overlay-store.ts`) читают поля по
+одному через `useOverlayValue`, покадровый сдвиг плашки даты — shared value стора, так что кадр
+скролла не вызывает ни одного ре-рендера корня.
+
 ### Keyboard compensation in the JS ports (port of `updateCollectionInsets`)
 
 The native reference never moves the list: `collectionView` is pinned to all four edges of the

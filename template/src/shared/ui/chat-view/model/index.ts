@@ -2,6 +2,7 @@ export * from "./chat-features";
 export * from "./chat-geometry";
 export * from "./chat-layout";
 export * from "./chat-message";
+export * from "./chat-message-parser";
 export * from "./chat-rows";
 export * from "./chat-text-style";
 export * from "./chat-theme";

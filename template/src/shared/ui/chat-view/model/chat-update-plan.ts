@@ -67,8 +67,18 @@ export const planChatUpdate = (
   next: IParsedChatMessage[],
 ): IChatUpdatePlan => {
   const pendingMapping = buildPendingMapping(old, next);
+
+  // Быстрый путь: длины равны и ids на тех же местах — удалений быть не может
+  // (типичные обновления: реакция, голос в опросе, смена статуса). Считаем
+  // `deletedMessageIds` только когда структура реально изменилась — на
+  // тысяче сообщений это минус три прохода по массиву на каждое обновление.
+  const sameIdsInOrder =
+    old.length === next.length &&
+    old.every((message, i) => message.id === next[i].id);
   const deletedIds =
-    old.length > 0 ? deletedMessageIds(old, next) : new Set<string>();
+    !sameIdsInOrder && old.length > 0
+      ? deletedMessageIds(old, next)
+      : new Set<string>();
 
   if (old.length === 0) {
     return {

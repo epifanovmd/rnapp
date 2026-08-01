@@ -16,7 +16,18 @@ import {
  * только то, что расчётом быть не может: таймер автоскрытия и запись в
  * стор оверлеев. Стор внешний, поэтому обновление плашки на каждом кадре
  * скролла не перерисовывает ни чат, ни список.
+ *
+ * Единственная величина, которая действительно меняется каждый кадр —
+ * сдвиг плашки — уходит в shared value стора и React не касается вовсе.
+ * В состояние пишутся только видимость и заголовок, а `store.set`
+ * гасит повторы, так что обычный кадр скролла не даёт ни одного ре-рендера.
  */
+
+/**
+ * Как часто перевзводится таймер автоскрытия. Взводить его на каждом кадре
+ * — это 60 таймеров в секунду ради того же самого эффекта.
+ */
+const HIDE_TIMER_REARM_MS = 100;
 
 export interface IChatFloatingDateOptions {
   readGeometry: () => IChatGeometry;
@@ -40,6 +51,7 @@ export const useChatFloatingDate = ({
 }: IChatFloatingDateOptions) => {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentDateRef = useRef<string | null>(null);
+  const lastRearmAtRef = useRef(0);
 
   useEffect(
     () => () => {
@@ -71,9 +83,12 @@ export const useChatFloatingDate = ({
       spacing: layout.sectionSpacing,
     });
 
+    // Сдвиг меняется каждый кадр — пишем напрямую в shared value.
+    store.floatingDatePush.value = pushOffset;
+
     if (!groupDate) {
       currentDateRef.current = null;
-      store.set({ floatingDateVisible: false, floatingDatePush: 0 });
+      store.set({ floatingDateVisible: false });
 
       return;
     }
@@ -83,13 +98,23 @@ export const useChatFloatingDate = ({
       store.set({ floatingDateTitle: getSectionTitle(groupDate) });
     }
 
-    store.set({ floatingDateVisible: true, floatingDatePush: pushOffset });
+    store.set({ floatingDateVisible: true });
 
-    // Порт show(): плашка гаснет сама через floatingDateHideDelay.
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => {
-      store.set({ floatingDateVisible: false });
-    }, layout.floatingDateHideDelay * 1000);
+    // Порт show(): плашка гаснет сама через floatingDateHideDelay. Таймер
+    // не взводится заново на каждом кадре скролла — только не чаще чем
+    // раз в HIDE_TIMER_REARM_MS: эффект тот же, а 60 таймеров в секунду
+    // чистить не нужно.
+    const now = Date.now();
+
+    if (now - lastRearmAtRef.current >= HIDE_TIMER_REARM_MS) {
+      lastRearmAtRef.current = now;
+
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = setTimeout(() => {
+        hideTimerRef.current = null;
+        store.set({ floatingDateVisible: false });
+      }, layout.floatingDateHideDelay * 1000);
+    }
   }, [
     isEnabled,
     hasMessages,

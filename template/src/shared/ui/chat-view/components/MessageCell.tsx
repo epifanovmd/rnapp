@@ -150,6 +150,29 @@ export const MessageCell: FC<IMessageCellProps> = memo(
       features.contextMenuEnabled &&
       (features.emojiReactions.length > 0 || message.actions.length > 0);
 
+    // Делегат живёт в ref и не меняется — обработчики стабильны, и меню
+    // не пересоздаётся на каждый рендер ячейки.
+    const handleMenuWillShow = useCallback(
+      ({ menuId }: { menuId: string }) =>
+        delegate.current?.onContextMenuWillShow(menuId),
+      [delegate],
+    );
+    const handleMenuEmojiSelect = useCallback(
+      ({ emoji, menuId }: { emoji: string; menuId: string }) =>
+        delegate.current?.onEmojiSelect(emoji, menuId),
+      [delegate],
+    );
+    const handleMenuActionSelect = useCallback(
+      ({ actionId, menuId }: { actionId: string; menuId: string }) =>
+        delegate.current?.onActionSelect(actionId, menuId),
+      [delegate],
+    );
+    const handleMenuDismiss = useCallback(
+      ({ menuId }: { menuId: string }) =>
+        delegate.current?.onContextMenuDismiss(menuId),
+      [delegate],
+    );
+
     const bubble = (
       <MessageBubble
         message={message}
@@ -176,18 +199,10 @@ export const MessageCell: FC<IMessageCellProps> = memo(
               actions={message.actions}
               theme={theme.isDark ? "dark" : "light"}
               minimumPressDuration={layout.longPressDuration}
-              onWillShow={({ menuId }) =>
-                delegate.current?.onContextMenuWillShow(menuId)
-              }
-              onEmojiSelect={({ emoji, menuId }) =>
-                delegate.current?.onEmojiSelect(emoji, menuId)
-              }
-              onActionSelect={({ actionId, menuId }) =>
-                delegate.current?.onActionSelect(actionId, menuId)
-              }
-              onDismiss={({ menuId }) =>
-                delegate.current?.onContextMenuDismiss(menuId)
-              }
+              onWillShow={handleMenuWillShow}
+              onEmojiSelect={handleMenuEmojiSelect}
+              onActionSelect={handleMenuActionSelect}
+              onDismiss={handleMenuDismiss}
             >
               {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
                   поэтому контекст с темой едет вместе с children. */}

@@ -36,6 +36,10 @@ export interface IResolveFloatingDateInput {
   spacing: number;
 }
 
+/**
+ * Функция вызывается на каждом кадре скролла, поэтому написана без единой
+ * аллокации: один проход, две переменные, никаких промежуточных массивов.
+ */
 export const resolveFloatingDate = ({
   geometry,
   separators,
@@ -45,9 +49,13 @@ export const resolveFloatingDate = ({
 }: IResolveFloatingDateInput): IFloatingDateResult => {
   if (separators.length === 0) return HIDDEN;
 
-  // Координаты разделителей на экране: список неподвижен и совпадает с
-  // корнем, поэтому достаточно вычесть позицию скролла.
-  const onScreen: { groupDate: string; minY: number; maxY: number }[] = [];
+  const restLimit = pillRestY - spacing;
+  const triggerY = pillRestY + pillHeight + spacing;
+
+  // Последний разделитель, ушедший выше позиции покоя плашки, и первый
+  // разделитель после него: он-то её и выталкивает.
+  let foundDate: string | null = null;
+  let nextMinY: number | null = null;
 
   for (const separator of separators) {
     const top = geometry.rowTop(separator.rowIndex);
@@ -55,34 +63,32 @@ export const resolveFloatingDate = ({
 
     if (top == null || height == null) continue;
 
+    // Координаты на экране: список неподвижен и совпадает с корнем,
+    // поэтому достаточно вычесть позицию скролла.
     const minY = top - geometry.scrollY;
 
-    onScreen.push({
-      groupDate: separator.groupDate,
-      minY,
-      maxY: minY + height,
-    });
-  }
-
-  if (onScreen.length === 0) return HIDDEN;
-
-  // Последний разделитель, ушедший выше позиции покоя плашки.
-  let foundIndex = -1;
-
-  for (let i = 0; i < onScreen.length; i++) {
-    if (onScreen[i].maxY < pillRestY - spacing) {
-      foundIndex = i;
+    if (minY + height < restLimit) {
+      foundDate = separator.groupDate;
+      // Прошлый кандидат на «подпирающий» больше не актуален: найден
+      // разделитель ещё ниже него.
+      nextMinY = null;
+      continue;
     }
+
+    if (foundDate != null && nextMinY == null) {
+      nextMinY = minY;
+    }
+    // Разделители идут по возрастанию позиции — ниже ничего интересного нет.
+    if (minY > triggerY) break;
   }
 
-  if (foundIndex < 0) return HIDDEN;
-
-  const next = onScreen[foundIndex + 1];
-  const triggerY = pillRestY + pillHeight + spacing;
+  if (foundDate == null) return HIDDEN;
 
   return {
-    groupDate: onScreen[foundIndex].groupDate,
+    groupDate: foundDate,
     pushOffset:
-      next && next.minY < triggerY ? Math.min(0, next.minY - triggerY) : 0,
+      nextMinY != null && nextMinY < triggerY
+        ? Math.min(0, nextMinY - triggerY)
+        : 0,
   };
 };

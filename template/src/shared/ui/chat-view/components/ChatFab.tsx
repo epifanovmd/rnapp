@@ -1,4 +1,4 @@
-import React, { FC, memo, useEffect, useSyncExternalStore } from "react";
+import React, { FC, memo, useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -12,9 +12,10 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 
 import { chatTextBase } from "../model";
-import { ChatOverlayStore } from "./chat-overlay-store";
+import { ChatOverlayStore, IChatOverlayState } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
+import { useOverlayValue } from "./useOverlayValue";
 
 /**
  * Порт FABManager + fabView/fabBadgeView: круглая кнопка скролла вниз
@@ -32,10 +33,21 @@ interface IChatFabProps {
   onPress: () => void;
 }
 
+const selectFabVisible = (state: IChatOverlayState) => state.fabVisible;
+const selectFabExpanded = (state: IChatOverlayState) => state.fabExpanded;
+const selectFabLoading = (state: IChatOverlayState) => state.fabLoading;
+const selectUnreadCount = (state: IChatOverlayState) => state.unreadCount;
+
 export const ChatFab: FC<IChatFabProps> = memo(
   ({ store, bottomInset, inputBarHeight, onPress }) => {
     const { theme, layout, features } = useChatViewContext();
-    const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
+    // Поля читаются по одному: видимость FAB пересчитывается на каждом кадре
+    // скролла, и подписка на весь снимок стора тянула бы за собой ре-рендер
+    // на любое изменение плашки даты или пустого состояния.
+    const fabVisible = useOverlayValue(store, selectFabVisible);
+    const fabExpanded = useOverlayValue(store, selectFabExpanded);
+    const fabLoading = useOverlayValue(store, selectFabLoading);
+    const unreadCount = useOverlayValue(store, selectUnreadCount);
 
     const size = layout.inputButtonSize;
     const aboveMicOffset = layout.inputBarVPad + size + layout.fabMargin;
@@ -46,9 +58,9 @@ export const ChatFab: FC<IChatFabProps> = memo(
     const spin = useSharedValue(0);
     // Порт setExpanded: переключение между compact- и expanded-констрейнтом
     // анимируется 0.25s, а сами привязки считаются от живой геометрии панели.
-    const expandedProgress = useSharedValue(state.fabExpanded ? 1 : 0);
+    const expandedProgress = useSharedValue(fabExpanded ? 1 : 0);
 
-    const visible = state.fabVisible || state.fabLoading;
+    const visible = fabVisible || fabLoading;
 
     useEffect(() => {
       opacity.value = withTiming(visible ? 1 : 0, {
@@ -57,14 +69,14 @@ export const ChatFab: FC<IChatFabProps> = memo(
     }, [visible, opacity, layout.fabAnimationDuration]);
 
     useEffect(() => {
-      expandedProgress.value = withTiming(state.fabExpanded ? 1 : 0, {
+      expandedProgress.value = withTiming(fabExpanded ? 1 : 0, {
         duration: 250,
         easing: Easing.inOut(Easing.ease),
       });
-    }, [state.fabExpanded, expandedProgress]);
+    }, [fabExpanded, expandedProgress]);
 
     useEffect(() => {
-      if (state.fabLoading) {
+      if (fabLoading) {
         spin.value = 0;
         spin.value = withRepeat(
           withTiming(360, { duration: 800, easing: Easing.linear }),
@@ -74,7 +86,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
         cancelAnimation(spin);
         spin.value = 0;
       }
-    }, [state.fabLoading, spin]);
+    }, [fabLoading, spin]);
 
     const containerStyle = useAnimatedStyle(() => {
       // compact: от нижнего края панели; expanded: от её верхнего края.
@@ -94,15 +106,15 @@ export const ChatFab: FC<IChatFabProps> = memo(
       transform: [{ rotate: `${spin.value}deg` }],
     }));
 
-    const arrowStyle = { opacity: state.fabLoading ? 0.3 : 1 };
+    const arrowStyle = { opacity: fabLoading ? 0.3 : 1 };
 
-    if (!features.showFab && !state.fabLoading) return null;
+    if (!features.showFab && !fabLoading) return null;
 
-    const showBadge = state.unreadCount > 0 && state.fabVisible;
+    const showBadge = unreadCount > 0 && fabVisible;
 
     return (
       <Animated.View
-        pointerEvents={visible && !state.fabLoading ? "auto" : "none"}
+        pointerEvents={visible && !fabLoading ? "auto" : "none"}
         style={[
           ss.container,
           { right: layout.inputBarHPad, width: size },
@@ -136,7 +148,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
             />
           </View>
 
-          {state.fabLoading && (
+          {fabLoading && (
             <Animated.View
               pointerEvents="none"
               style={[StyleSheet.absoluteFill, ringStyle]}
@@ -180,7 +192,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
                 },
               ]}
             >
-              {state.unreadCount > 99 ? "99+" : `${state.unreadCount}`}
+              {unreadCount > 99 ? "99+" : `${unreadCount}`}
             </Text>
           </View>
         )}

@@ -1,6 +1,14 @@
+import { makeMutable, SharedValue } from "react-native-reanimated";
+
 /**
  * Внешний стор оверлеев (FAB, плавающая дата, empty state, распад) —
  * позволяет обновлять их при скролле без ре-рендера корня и списка.
+ *
+ * Подписываться на стор целиком нельзя: значения обновляются на каждом кадре
+ * скролла, и общий снимок перерисовывал бы все четыре оверлея сразу.
+ * Потребители читают отдельные поля через `useOverlayValue`, а величины,
+ * меняющиеся покадрово (сдвиг плашки даты), живут в shared value и до React
+ * вообще не доходят.
  */
 
 export interface IDisintegrationBurst {
@@ -16,8 +24,6 @@ export interface IChatOverlayState {
   unreadCount: number;
   floatingDateTitle: string | null;
   floatingDateVisible: boolean;
-  /** Сдвиг плашки вверх, когда её подпирает следующий разделитель. */
-  floatingDatePush: number;
   emptyVisible: boolean;
   emptyLoading: boolean;
   emptyText: string | null;
@@ -31,7 +37,6 @@ const INITIAL_STATE: IChatOverlayState = {
   unreadCount: 0,
   floatingDateTitle: null,
   floatingDateVisible: false,
-  floatingDatePush: 0,
   emptyVisible: false,
   emptyLoading: false,
   emptyText: null,
@@ -41,6 +46,13 @@ const INITIAL_STATE: IChatOverlayState = {
 export class ChatOverlayStore {
   private _state: IChatOverlayState = INITIAL_STATE;
   private readonly _listeners = new Set<() => void>();
+
+  /**
+   * Сдвиг плашки даты вверх, когда её подпирает следующий разделитель.
+   * Считается на каждом кадре скролла, поэтому не состояние, а shared value:
+   * плашка следует за разделителем на UI-потоке и без единого ре-рендера.
+   */
+  readonly floatingDatePush: SharedValue<number> = makeMutable(0);
 
   get state(): IChatOverlayState {
     return this._state;

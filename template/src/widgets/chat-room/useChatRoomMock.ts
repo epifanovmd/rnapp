@@ -11,6 +11,7 @@ import {
   type ChatEditMessageEventData,
   type ChatEmojiReactionSelectData,
   type ChatInputAction,
+  type ChatMessage,
   type ChatMessagePressEventData,
   type ChatPollDetailPressEventData,
   type ChatPollOptionPressEventData,
@@ -25,7 +26,7 @@ import {
   type ChatVisibleMessagesChangeEventData,
   ChatVoiceRecordingCompleteEventData,
 } from "@shared/ui/chat-view";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Clipboard } from "react-native";
 
 import {
@@ -34,6 +35,7 @@ import {
   MOCK_PEER,
   nextMockId,
 } from "./chat-mock-data";
+import { mapMessageToNative } from "./native/map-message-to-native";
 
 /** Каждые ~14с на 2.5с показываем "печатает..." — просто чтобы показать индикатор. */
 const TYPING_SIMULATION_INTERVAL_MS = 14_000;
@@ -57,6 +59,29 @@ export const useChatRoomMock = () => {
     [],
   );
   const [isPeerTyping, setIsPeerTyping] = useState(false);
+
+  // ── Нативные сообщения с сохранением идентичности ───────────────────────
+
+  // `setMessages` пересоздаёт только изменённый DTO (`.map`/`.filter`), и по
+  // этой идентичности кешируется результат `mapMessageToNative`. Иначе на
+  // голос в опросе или удаление одного сообщения заново мапились бы все
+  // тысяча сообщений, и чат перерисовал бы каждую ячейку.
+  const nativeMessagesCacheRef = useRef(new Map<MessageDto, ChatMessage>());
+
+  const nativeMessages = useMemo(() => {
+    const cache = nativeMessagesCacheRef.current;
+
+    return messages.map(message => {
+      let mapped = cache.get(message);
+
+      if (!mapped) {
+        mapped = mapMessageToNative(message, MOCK_CURRENT_USER_ID);
+        cache.set(message, mapped);
+      }
+
+      return mapped;
+    });
+  }, [messages]);
 
   // ── Типинг-индикатор для демонстрации (просто таймер, не сокет) ─────────
 
@@ -497,6 +522,7 @@ export const useChatRoomMock = () => {
 
     // Data
     messages,
+    nativeMessages,
     currentUserId: MOCK_CURRENT_USER_ID,
     chatRef,
 
