@@ -16,7 +16,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Keyboard,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -73,6 +72,10 @@ import { ChatViewProps, IChatViewRef } from "./types";
 type ViewabilityPairs = NonNullable<
   FlashListProps<ChatRow>["viewabilityConfigCallbackPairs"]
 >;
+
+/** Сколько ждём возврата клавиатуры после закрытия меню, прежде чем
+ *  разморозить нижнюю зону принудительно. */
+const THAW_FALLBACK_DELAY = 600;
 
 /**
  * React Native-реализация ChatView — порт ChatViewController (IOSChatView)
@@ -309,6 +312,16 @@ export const JsChatView = memo(
 
     const keyboardHeight = useSharedValue(0);
 
+    // Порт KeyboardFreezeManager: пока открыто контекстное меню, нижняя зона
+    // списка держится на запомненном значении (-1 — не заморожена). Меню
+    // снимает снапшот пузыря в его текущей позиции, поэтому уезжающая
+    // клавиатура не должна двигать контент — иначе при закрытии меню пузырь
+    // прилетит мимо своей ячейки.
+    const frozenBottomInset = useSharedValue(-1);
+    const restoreKeyboardOnThaw = useSharedValue(false);
+    const keyboardWasVisibleRef = useRef(false);
+    const thawTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     // Нижняя зона считается одинаково на обеих платформах — из safe area, как
     // keyboardLayoutGuide на iOS. Чтобы высота клавиатуры мерялась от низа
     // окна (а не от нав-бара), у KeyboardProvider выставлен
@@ -336,13 +349,27 @@ export const JsChatView = memo(
         onEnd: e => {
           "worklet";
           keyboardHeight.value = e.height;
+
+          // Порт thaw() по keyboardDidShow: меню закрыто, клавиатура вернулась
+          // на место — только теперь отпускаем замороженную зону.
+          if (restoreKeyboardOnThaw.value && e.progress === 1) {
+            restoreKeyboardOnThaw.value = false;
+            frozenBottomInset.value = -1;
+          }
         },
       },
       [],
     );
 
+    // Заморозка держит всю нижнюю зону разом — список, панель ввода и FAB
+    // считаются от одного значения, поэтому при скрытии клавиатуры под меню
+    // на экране не двигается вообще ничего. Морозить только список нельзя:
+    // панель уедет за клавиатурой и между ними появится дыра.
     const bottomInset = useDerivedValue(
-      () => Math.max(keyboardHeight.value, safeAreaBottom),
+      () =>
+        frozenBottomInset.value >= 0
+          ? frozenBottomInset.value
+          : Math.max(keyboardHeight.value, safeAreaBottom),
       [safeAreaBottom],
     );
 
@@ -351,6 +378,72 @@ export const JsChatView = memo(
     const inputBarAnimatedStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: -bottomInset.value }],
     }));
+
+    // Порт freeze(): запоминаем зону и то, была ли открыта клавиатура. Именно
+    // blur, а не Keyboard.dismiss: последний прячет клавиатуру, не снимая
+    // фокус, и тогда обратный focus() на Android ничего не делает.
+    const freezeBottomInset = useCallback(() => {
+      if (frozenBottomInset.value >= 0) return;
+
+      const wasVisible = keyboardHeight.value > 0;
+
+      keyboardWasVisibleRef.current = wasVisible;
+      frozenBottomInset.value = bottomInset.value;
+
+      if (wasVisible) {
+        inputBarRef.current?.blur();
+      }
+    }, [frozenBottomInset, keyboardHeight, bottomInset]);
+
+    // Порт restore(): клавиатуру возвращаем, а зону отпускаем только когда она
+    // полностью открыта (thaw по keyboardDidShow) — иначе будет прыжок.
+    const restoreBottomInset = useCallback(() => {
+      if (frozenBottomInset.value < 0) return;
+
+      const wasVisible = keyboardWasVisibleRef.current;
+
+      keyboardWasVisibleRef.current = false;
+
+      if (!wasVisible) {
+        // Зона заморожена на safe area — живое значение такое же, прыжка нет.
+        frozenBottomInset.value = -1;
+
+        return;
+      }
+
+      restoreKeyboardOnThaw.value = true;
+      inputBarRef.current?.focus();
+
+      // Страховка: если клавиатуру вернуть не удалось (фокус перехватила
+      // модалка, действие увело с экрана), зона не должна остаться замороженной
+      // навсегда — отпускаем её плавно, чтобы не было скачка.
+      if (thawTimeoutRef.current) clearTimeout(thawTimeoutRef.current);
+      thawTimeoutRef.current = setTimeout(() => {
+        if (!restoreKeyboardOnThaw.value) return;
+
+        restoreKeyboardOnThaw.value = false;
+        frozenBottomInset.value = withTiming(
+          Math.max(keyboardHeight.value, safeAreaBottom),
+          { duration: 200 },
+          finished => {
+            "worklet";
+            if (finished) frozenBottomInset.value = -1;
+          },
+        );
+      }, THAW_FALLBACK_DELAY);
+    }, [
+      frozenBottomInset,
+      restoreKeyboardOnThaw,
+      keyboardHeight,
+      safeAreaBottom,
+    ]);
+
+    useEffect(
+      () => () => {
+        if (thawTimeoutRef.current) clearTimeout(thawTimeoutRef.current);
+      },
+      [],
+    );
 
     // ─── Компенсация нижней зоны ─────────────────────────────────────────────
     // Порт updateCollectionInsets: панель ввода и клавиатура съедают низ
@@ -1014,10 +1107,16 @@ export const JsChatView = memo(
               ? { messageId, attachmentIndex }
               : { messageId },
           ),
-        onEmojiSelect: (emoji, messageId) =>
-          propsRef.current.onEmojiReactionSelect?.({ emoji, messageId }),
-        onActionSelect: (actionId, messageId) =>
-          propsRef.current.onActionPress?.({ actionId, messageId }),
+        // Выбор эмодзи/действия закрывает меню без onDismiss, поэтому зону
+        // размораживаем здесь же (restore идемпотентен).
+        onEmojiSelect: (emoji, messageId) => {
+          restoreBottomInset();
+          propsRef.current.onEmojiReactionSelect?.({ emoji, messageId });
+        },
+        onActionSelect: (actionId, messageId) => {
+          restoreBottomInset();
+          propsRef.current.onActionPress?.({ actionId, messageId });
+        },
         onReplyTap: replyToId => {
           scrollToMessage(replyToId, {
             position: "center",
@@ -1039,10 +1138,15 @@ export const JsChatView = memo(
         onPollDetailTap: (messageId, pollId) =>
           propsRef.current.onPollDetailPress?.({ messageId, pollId }),
         onContextMenuWillShow: () => {
-          Keyboard.dismiss();
+          // Клавиатуру убирает сам freeze — вместе с фиксацией зоны, чтобы
+          // меню успело снять снапшот пузыря по неподвижному layout.
+          freezeBottomInset();
+        },
+        onContextMenuDismiss: () => {
+          restoreBottomInset();
         },
       }),
-      [scrollToMessage],
+      [scrollToMessage, freezeBottomInset, restoreBottomInset],
     );
 
     const cellDelegateRef = useRef(cellDelegate);

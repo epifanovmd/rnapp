@@ -26,6 +26,7 @@ export interface IChatCellDelegate {
   onPollOptionTap(messageId: string, pollId: string, optionId: string): void;
   onPollDetailTap(messageId: string, pollId: string): void;
   onContextMenuWillShow(messageId: string): void;
+  onContextMenuDismiss(messageId: string): void;
 }
 
 /**

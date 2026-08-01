@@ -14,6 +14,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { ContextMenuView } from "../../context-menu-view";
+import { JsContextMenuView } from "../../context-menu-view/JsContextMenuView";
 import { IParsedChatMessage, messageAlignment } from "../model";
 import { ChatViewContext, useChatViewContext } from "./chat-view-context";
 import { ChatAvatar } from "./ChatAvatar";
@@ -169,7 +170,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
         )}
         <View ref={registerBubble} collapsable={false} style={bubbleWrapStyle}>
           {menuEnabled ? (
-            <ContextMenuView
+            <JsContextMenuView
               menuId={message.id}
               emojis={features.emojiReactions}
               actions={message.actions}
@@ -184,13 +185,16 @@ export const MessageCell: FC<IMessageCellProps> = memo(
               onActionSelect={({ actionId, menuId }) =>
                 delegate.current?.onActionSelect(actionId, menuId)
               }
+              onDismiss={({ menuId }) =>
+                delegate.current?.onContextMenuDismiss(menuId)
+              }
             >
               {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
                   поэтому контекст с темой едет вместе с children. */}
               <ChatViewContext.Provider value={chatContext}>
                 {bubble}
               </ChatViewContext.Provider>
-            </ContextMenuView>
+            </JsContextMenuView>
           ) : (
             bubble
           )}
