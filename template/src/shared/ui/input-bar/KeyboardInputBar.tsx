@@ -1,22 +1,46 @@
-import {
-  IKeyboardFloatingViewProps,
-  KeyboardFloatingView,
-} from "@shared/lib/keyboard";
 import React, { forwardRef } from "react";
-import { View } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
+import Animated, { AnimatedStyle } from "react-native-reanimated";
 
 /**
- * Панель ввода, приклеенная к клавиатуре.
+ * Плавающая панель ввода, прижатая к верхней границе клавиатуры.
  *
- * Тонкая обёртка над `KeyboardFloatingView` из `shared/lib/keyboard`:
- * само поведение (порт `keyboardLayoutGuide` + `followsUndockedKeyboard`)
- * общее для любых плавающих панелей и живёт в модуле клавиатуры, а здесь
- * остаётся привычное имя в пространстве `input-bar`.
+ * Порт `keyboardLayoutGuide` + `followsUndockedKeyboard`, но без
+ * собственной подписки на клавиатуру: движение задаёт `style`, который
+ * отдаёт `useKeyboardInset().barStyle`. Своя подписка была бы вторым
+ * источником сдвига — панель и контент поехали бы по разным значениям.
+ *
+ * ```tsx
+ * const kb = useKeyboardInset();
+ *
+ * <KeyboardInputBar style={kb.barStyle}>
+ *   <InputBar onHeightChange={kb.setBarHeight} />
+ * </KeyboardInputBar>
+ * ```
  */
-export type IKeyboardInputBarProps = IKeyboardFloatingViewProps;
+
+export interface IKeyboardInputBarProps {
+  children: React.ReactNode;
+  /** Анимированный стиль движения — `useKeyboardInset().barStyle`. */
+  style?: AnimatedStyle<ViewStyle>;
+}
 
 export const KeyboardInputBar = forwardRef<View, IKeyboardInputBarProps>(
-  (props, ref) => <KeyboardFloatingView ref={ref} {...props} />,
+  ({ children, style }, ref) => (
+    <Animated.View ref={ref} style={[ss.container, style]}>
+      {children}
+    </Animated.View>
+  ),
 );
 
 KeyboardInputBar.displayName = "KeyboardInputBar";
+
+const ss = StyleSheet.create({
+  container: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "transparent",
+  },
+});

@@ -71,11 +71,8 @@ import Animated, {
  * ## Использование
  *
  * ```tsx
- * const { overlay } = useKeyboardOverlay();
- * const barHeight = useBarHeight();
- * const bottomInset = useBottomInset(overlay, barHeight);
- * const { scrollRef, spacerStyle, onLayout, onContentSizeChange } =
- *   useScrollCompensation(bottomInset);
+ * const kb = useKeyboardInset();
+ * // kb.scroll — это и есть результат этого хука.
  * ```
  */
 
@@ -98,8 +95,8 @@ export interface IScrollCompensation {
 export const useScrollCompensation = (
   bottomInset: SharedValue<number>,
   /**
-   * Зона, к которой идёт движение (`useKeyboardOverlay().overlayTarget` плюс
-   * панель). Под неё распорка резервирует место сразу, ещё до анимации.
+   * Зона, к которой идёт движение (целевая высота клавиатуры плюс панель).
+   * Под неё распорка резервирует место сразу, ещё до анимации.
    * Без неё компенсация работает, но у самого низа отстаёт на кадр — см.
    * «Готовность диапазона» выше.
    */

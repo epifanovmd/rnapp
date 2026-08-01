@@ -286,17 +286,39 @@ range has actually grown. It only ever *increases* the offset toward the end, is
 frame or by `onScrollBeginDrag`, and never leads the motion — so it cannot lag and cannot hijack cases
 like prepend, where `maintainVisibleContentPosition` owns the position.
 
-### Freeze
+### Freeze: only the content inset
 
-No separate flag reaches the list: freezing is a value substitution (`frozenOverlay` replaces the live
-overlay), so the bar, the FAB and the list's zone freeze and thaw as one. `use-keyboard-freeze.ts` is
-the port of `KeyboardFreezeManager`; `restore()` deliberately does **not** unfreeze synchronously —
-see the long comment in that file, plus a `600 ms` fallback timer.
+`useKeyboardInset.freeze()` / `.restore()` hold **only the content inset** (`contentInset`, `scroll`).
+`barOffset` / `barStyle` stay live, so the input bar rides the keyboard down as usual.
 
-Hooks: `use-keyboard-height.ts` (raw height + JS-readable `isVisible()`), `use-keyboard-overlay.ts`
-(`overlay = max(keyboard, safeArea)` composed with freeze, plus `useBottomInset` / `useBarHeight`),
-`use-keyboard-freeze.ts`, `use-scroll-compensation.ts`, `KeyboardFloatingView.tsx` (port of
-`keyboardLayoutGuide` + `followsUndockedKeyboard`; `input-bar/KeyboardInputBar.tsx` is a thin alias).
+That is the reference: `updateCollectionInsets` bails out on `isInsetFrozen`, holding the collection's
+inset, while the bar's constraint on `keyboardLayoutGuide.topAnchor` is never touched. The context menu
+snapshots the bubble, so the thing that must not move is the *content*; the bar is not in the snapshot,
+and stopping it mid-screen reads as a stuck view. An earlier version froze the shared overlay and thus
+both — wrong, do not go back to it.
+
+`restore()` deliberately does **not** unfreeze synchronously: it flags intent and refocuses, and the
+thaw happens from a reaction once the live inset has caught up with the frozen one (plus a `600 ms`
+fallback). The mechanic itself is keyboard-agnostic and lives in
+`shared/lib/hooks/use-freezable-value.ts` (`useFreezableValue`) — it freezes any shared value and waits
+for the live one to catch up; `useKeyboardInset` only chooses *which* value to freeze.
+
+**One hook per screen: `useKeyboardInset`.** It owns the whole chain and hands each concern out as its
+own value, so everything is wired explicitly: `barStyle` / `barOffset` → the floating bar and the FAB,
+`contentInset` → whatever sits above the zone, `scroll` → the scroll view, `freeze()` / `restore()` →
+the context menu. Exactly one instance per screen — a second one means a second keyboard subscription
+and the bar drifting away from the content.
+
+Both wrappers are purely presentational and create nothing: `input-bar/KeyboardInputBar.tsx` (absolute
+bottom + the passed `barStyle`) and `shared/ui/keyboard-scroll-view` (takes `scroll={kb.scroll}`).
+
+Underlying hooks, each an independently reusable responsibility: `use-keyboard-height.ts` (raw height
++ target height + JS-readable `isVisible()`) and `use-scroll-compensation.ts` (spacer + scroll delta).
+The freeze mechanic is not keyboard-specific and lives outside the module, in
+`shared/lib/hooks/use-freezable-value.ts`. The zone arithmetic
+(`max(keyboard, safeArea) + barHeight + padding`) lives inline in `use-keyboard-inset.ts` — it is glue
+for the facade, not a separate concern, and keeping it there makes the whole calculation readable in
+one place.
 
 **Constraints for future changes:** do not reintroduce a second keyboard subscription for the list; do
 not translate/shrink the list container (it pushes the top of the content past the clip bounds and the

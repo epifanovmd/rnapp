@@ -1,4 +1,4 @@
-import { useBarHeight, useKeyboardOverlay } from "@shared/lib/keyboard";
+import { useKeyboardInset } from "@shared/lib/keyboard";
 import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
@@ -47,31 +47,27 @@ export const InputBarPage: FC<StackProps> = observer(() => {
   const theme = isDark ? "dark" : "light";
 
   // ─── Компенсация клавиатуры ────────────────────────────────────────────
-  // Ровно та же связка, что в чате, и главное в ней — **единый источник
-  // сдвига**: один `overlay` уходит и в скролл, и в панель, поэтому они
-  // читают одно значение в одном кадре UI-потока и не могут разъехаться.
-  //
-  // `KeyboardScrollView` умеет подписаться на клавиатуру сам, но тогда
-  // подписок стало бы две (своя у панели, своя у скролла) — именно из-за
-  // этого список в чате визуально отставал от панели. Поэтому `overlay`
-  // создаётся здесь и передаётся обоим.
+  // Один хук на весь экран: он же двигает панель (`barStyle`), он же держит
+  // отступ контента и компенсирует скролл (`scroll`). Две подписки на
+  // клавиатуру дали бы два источника сдвига — панель поехала бы отдельно
+  // от контента.
 
-  const { overlay, overlayTarget } = useKeyboardOverlay();
+  const kb = useKeyboardInset({
+    initialBarHeight: INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight,
+  });
 
-  // До первого onHeightChange — минимальная высота панели из её же лейаута
-  // (не магическое число): нативная вьюха с нулевым фреймом стоит ниже
-  // экрана и не успела бы себя показать.
-  const barHeight = useBarHeight(INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight);
+  // Нативной панели нужна явная высота в стиле (см. ниже), поэтому замер
+  // дублируется в состояние. Хуку хватает shared value.
   const [inputBarHeight, setInputBarHeight] = useState(
     INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight,
   );
 
   const handleHeightChange = useCallback(
     ({ height }: { height: number }) => {
-      barHeight.value = height;
+      kb.setBarHeight(height);
       setInputBarHeight(height);
     },
-    [barHeight],
+    [kb],
   );
 
   // Нативная панель под Fabric не участвует в измерении Yoga (intrinsicContentSize
@@ -118,9 +114,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
     <Container edges={[]}>
       <KeyboardScrollView
         style={ss.scroll}
-        overlay={overlay}
-        overlayTarget={overlayTarget}
-        barHeight={barHeight}
+        scroll={kb.scroll}
         keyboardShouldPersistTaps={"handled"}
       >
         {/* Порт тапа по коллекции с view.endEditing(true): штатный
@@ -233,7 +227,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
         </Pressable>
       </KeyboardScrollView>
 
-      <KeyboardInputBar overlay={overlay}>
+      <KeyboardInputBar style={kb.barStyle}>
         <Bar
           theme={theme}
           style={barStyle}

@@ -235,14 +235,27 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
 - **Keyboard compensation** is a 1:1 port of `updateCollectionInsets` + `KeyboardFreezeManager`, and it
   lives in its own reusable module **`shared/lib/keyboard/`** — it knows nothing about chat, so any
   screen with a floating bottom bar over scrollable content uses it (chat, `KeyboardScrollView`, the
-  ui-kit-demo InputBar page). One hook per responsibility:
+  ui-kit-demo InputBar page).
+
+  **One hook per screen: `use-keyboard-inset.ts` (`useKeyboardInset`).** It assembles everything and
+  hands each concern out as its own value: `barStyle`/`barOffset` (the floating bar, always live),
+  `contentInset` + `scroll` (the content, freezable), `freeze()`/`restore()` (the context menu),
+  `setBarHeight`. Exactly one instance per screen — a second one is a second keyboard subscription and
+  the bar drifts from the content. **Freeze holds only the content inset**, never the bar: that is the
+  reference (`updateCollectionInsets` bails on `isInsetFrozen`; the bar's `keyboardLayoutGuide`
+  constraint is untouched). The wrappers `KeyboardInputBar` and `KeyboardScrollView` are presentational
+  and create nothing.
+
+  Underneath, one hook per responsibility:
   - `use-keyboard-height.ts` — raw keyboard height as a shared value (per-frame, incl. interactive
     swipe-dismiss) + a JS-readable `isVisible()`. The only low-level source of truth.
   - `use-keyboard-overlay.ts` — `overlay` = `max(keyboardHeight, safeAreaBottom)`, composed with the
     freeze controller; also re-exports `useBottomInset` (`overlay + barHeight`, for the FAB).
-  - `use-keyboard-freeze.ts` — port of `KeyboardFreezeManager`: `freeze()`/`restore()`, remembers
-    whether the keyboard was open, re-focuses the field, and thaws only once the keyboard is back at
-    its previous height (with a fallback timer). Exposes `isFrozen` for the list.
+  - Freeze is the port of `KeyboardFreezeManager`, but the mechanic is not keyboard-specific and lives
+    in `shared/lib/hooks/use-freezable-value.ts` (`useFreezableValue`): it freezes any shared value,
+    remembers whether the source was active, asks it back, and thaws only once the live value has
+    caught up (with a fallback timer). `useKeyboardInset` only picks *which* value to freeze — the
+    content inset, never the bar.
   - `use-scroll-compensation.ts` — **the single source of shift.** One `bottomInset` shared value
     (`overlay + barHeight + own padding`) drives both the bar's `translateY` and the list's zone in the
     same UI-thread frame, mirroring the reference where the inset is derived from `inputBar.frame.minY`

@@ -18,14 +18,9 @@ import {
   View,
 } from "react-native";
 
-import {
-  KeyboardFloatingView,
-  useBarHeight,
-  useBottomInset,
-  useKeyboardOverlay,
-  useScrollCompensation,
-} from "../../lib/keyboard";
+import { useKeyboardInset } from "../../lib/keyboard";
 import { IInputBarViewRef, InputBarView } from "../input-bar/InputBarView";
+import { KeyboardInputBar } from "../input-bar/KeyboardInputBar";
 import {
   INPUT_BAR_DEFAULT_FEATURES,
   InputBarContext,
@@ -165,28 +160,17 @@ export const JsChatView = memo(
       [],
     );
 
-    const { overlay, overlayTarget, freeze, restore } = useKeyboardOverlay({
+    // Единый источник сдвига: и панель, и отступ контента считаются от
+    // одной высоты клавиатуры. Заморозка под контекстным меню держит
+    // только отступ контента — панель уезжает с клавиатурой, как в эталоне.
+    const keyboard = useKeyboardInset({
+      extraPadding: layout.collectionBottomPadding + collectionInsetBottom,
+      initialBarHeight: layout.inputBarMinHeight,
       onBlur: handleKeyboardBlur,
       onRefocus: handleKeyboardRefocus,
     });
 
-    const barHeight = useBarHeight(layout.inputBarMinHeight);
-
-    // Единый источник сдвига: одно значение двигает и панель (translateY),
-    // и нижнюю зону списка. Заморозка под контекстным меню приходит сама
-    // собой — `overlay` в этот момент просто перестаёт меняться.
-    const chatBottomPadding =
-      layout.collectionBottomPadding + collectionInsetBottom;
-
-    const bottomInset = useBottomInset(overlay, barHeight, chatBottomPadding);
-    // Резерв под целевую зону: распорка вырастает до начала анимации,
-    // поэтому у самого низа scrollTo не упирается в старый contentSize.
-    const reservedInset = useBottomInset(
-      overlayTarget,
-      barHeight,
-      chatBottomPadding,
-    );
-    const compensation = useScrollCompensation(bottomInset, reservedInset);
+    const { barHeight, freeze, restore, scroll: compensation } = keyboard;
 
     // ─── Скролл, якорь, команды ──────────────────────────────────────────
 
@@ -627,7 +611,7 @@ export const JsChatView = memo(
           </View>
 
           {features.showInputBar && (
-            <KeyboardFloatingView overlay={overlay}>
+            <KeyboardInputBar style={keyboard.barStyle}>
               <InputBarContext.Provider value={inputBarContext}>
                 <InputBarView
                   ref={inputBarRef}
@@ -636,12 +620,12 @@ export const JsChatView = memo(
                   onHeightChange={inputBar.onHeightChange}
                 />
               </InputBarContext.Provider>
-            </KeyboardFloatingView>
+            </KeyboardInputBar>
           )}
 
           <ChatFab
             store={overlayStore}
-            bottomInset={overlay}
+            bottomInset={keyboard.barOffset}
             inputBarHeight={barHeight}
             onPress={handleFabPress}
           />
