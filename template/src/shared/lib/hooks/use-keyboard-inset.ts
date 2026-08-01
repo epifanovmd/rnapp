@@ -1,4 +1,3 @@
-import { useCallback, useRef } from "react";
 import { useKeyboardHandler } from "react-native-keyboard-controller";
 import {
   useDerivedValue,
@@ -6,7 +5,6 @@ import {
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { scheduleOnRN } from "react-native-worklets";
 
 /**
  * Общий хук отслеживания клавиатуры — используется и в чате, и на демо-странице.
@@ -18,9 +16,6 @@ import { scheduleOnRN } from "react-native-worklets";
  *   скрыта, панель/отступ всё равно держатся над home indicator.
  * - Если передан `externalInset`, используется он вместо внутреннего
  *   расчёта — чату это позволяет делать freeze/thaw при контекстном меню.
- * - `keyboardHeightRef` — та же высота, но на JS-потоке: обновляется только на
- *   старте и в конце анимации (не покадрово), поэтому её можно читать в
- *   обычных расчётах (расстояние до конца списка) без ре-рендеров.
  */
 export function useKeyboardInset(
   externalInset?: Readonly<ReturnType<typeof useSharedValue<number>>>,
@@ -29,18 +24,12 @@ export function useKeyboardInset(
   const safeAreaBottom = safeArea.bottom;
 
   const keyboardHeight = useSharedValue(0);
-  const keyboardHeightRef = useRef(0);
-
-  const syncKeyboardHeight = useCallback((height: number) => {
-    keyboardHeightRef.current = height;
-  }, []);
 
   useKeyboardHandler(
     {
       onStart: e => {
         "worklet";
         keyboardHeight.value = withTiming(e.height, { duration: e.duration });
-        scheduleOnRN(syncKeyboardHeight, e.height);
       },
       onMove: e => {
         "worklet";
@@ -53,10 +42,9 @@ export function useKeyboardInset(
       onEnd: e => {
         "worklet";
         keyboardHeight.value = e.height;
-        scheduleOnRN(syncKeyboardHeight, e.height);
       },
     },
-    [syncKeyboardHeight],
+    [],
   );
 
   const internalInset = useDerivedValue(
@@ -66,5 +54,5 @@ export function useKeyboardInset(
 
   const bottomInset = externalInset ?? internalInset;
 
-  return { bottomInset, keyboardHeight, keyboardHeightRef };
+  return { bottomInset, keyboardHeight };
 }

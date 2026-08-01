@@ -15,6 +15,9 @@ import { mapMessageToNative } from "./native/map-message-to-native";
 import { PollDetailModal } from "./PollDetailModal";
 import { useChatRoomMock } from "./useChatRoomMock";
 
+/** Инлайновые литералы в пропах ломают memo на ChatView — держим стабильными. */
+const EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
+
 /**
  * Демо-экран нативного чата. Полностью на моках (см. useChatRoomMock) —
  * ни API, ни сокет не используются. Открывается как экран стека
@@ -73,6 +76,11 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     handleFabPress,
     handleScrollAnchorChanged,
   } = useChatRoomMock();
+
+  const chatFeatures = useMemo(
+    () => ({ disintegrationEnabled: true, showAvatars: isGroupChat }),
+    [isGroupChat],
+  );
 
   const nativeMessages = useMemo(
     () => messages.map(m => mapMessageToNative(m, currentUserId)),
@@ -133,7 +141,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         style={styles.chat}
         messages={nativeMessages}
         getActionsForMessage={getActionsForMessage}
-        emojiReactions={["❤️", "👍", "😂", "😮", "😢", "🙏"]}
+        emojiReactions={EMOJI_REACTIONS}
         inputAction={inputAction}
         hasMore={hasMore}
         hasNewer={hasNewer}
@@ -143,7 +151,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         isLoadingFab={isReturningToLatest}
         theme={isDark ? "dark" : "light"}
         topThreshold={400}
-        features={{ disintegrationEnabled: true, showAvatars: isGroupChat }}
+        features={chatFeatures}
         showSenderName={false}
         bottomThreshold={400}
         scrollToBottomThreshold={150}

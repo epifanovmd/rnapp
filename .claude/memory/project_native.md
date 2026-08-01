@@ -202,25 +202,36 @@ The RN ports mirror that exactly, and this is load-bearing: any approach that tr
 list container instead pushes the top of the content above the clip bounds, making the first messages
 permanently unreachable.
 
-- Constant part of the zone (safe-area bottom + **measured** input-bar height + chat paddings) →
-  `contentContainerStyle.paddingBottom` of the FlashList/ScrollView. It must be part of the content
-  size, because `scrollToEnd`, MVCP autoscroll and the anchor math all read content size.
-- Keyboard part (`keyboardHeight - safeAreaBottom`) → animated `contentInset.bottom` (iOS) /
-  `contentInsetBottom` on the `ClippingScrollView` decorator (Android) **plus** a synchronous
-  `contentOffset`/`scrollTo` correction, all on the UI thread. Implemented by
-  `shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` — a thin wrapper over
-  `KeyboardChatScrollView` (react-native-keyboard-controller), used directly as a ScrollView and as
-  FlashList's `renderScrollComponent` in `JsChatView`.
-- The input bar itself is an absolutely-positioned overlay translated by `max(keyboardHeight,
-  safeAreaBottom)` (`shared/ui/input-bar/KeyboardInputBar.tsx`, port of `keyboardLayoutGuide` +
-  `followsUndockedKeyboard`); the FAB reads the same shared value, so bar/FAB/list stay in lockstep.
-- `KeyboardFreezeManager` is ported by two things at once: the frozen `bottomInset` shared value (bar +
-  FAB) and the `freeze` shared value passed to `KeyboardScrollView` (list ignores keyboard events while
-  the context menu is open).
-- Both platforms account for the inset in `scrollToEnd` natively (iOS adds `contentInset.bottom`,
-  Android adds `scrollView.paddingBottom`), so FlashList's autoscroll still lands on the true bottom
-  with the keyboard open. `JsChatView.distanceFromBottom()` adds the keyboard inset by hand, since it
-  is not part of `contentSize`.
+Implementation: **`shared/lib/hooks/use-keyboard-scroll-compensation.ts`** (own hook — see "Why not
+`KeyboardChatScrollView`" below).
+
+- The zone (`max(keyboardHeight, safeAreaBottom) + measured input-bar height`) is a **spacer view at the
+  end of the scroll content**, not a `contentInset`: Android has no `contentInset`, and being part of
+  the content size is what keeps native `scrollToEnd`, FlashList's MVCP autoscroll and every
+  "am-I-at-the-bottom" calculation correct without keyboard-specific corrections.
+- Every change of the zone is mirrored by an equal `scrollTo` on the UI thread, clamped to the scroll
+  range and skipped entirely when the content is shorter than the viewport (port of the
+  `maxOffsetY > minOffsetY` guard).
+- The hook's only state is `appliedZone` — what is already reflected in both the spacer and the scroll
+  position. Deltas are computed against reality, never against a remembered keyboard height, so any
+  number of skipped events reconciles in one correct step.
+- **Freezing needs no flag**: the owner of the zone shared value simply stops updating it. In the chat
+  that is `bottomInset`, which already freezes for the input bar and the FAB (`KeyboardFreezeManager`
+  port), so bar / FAB / list freeze and thaw as one.
+- The input bar itself is an absolutely-positioned overlay translated by the same `bottomInset`
+  (`shared/ui/input-bar/KeyboardInputBar.tsx`, port of `keyboardLayoutGuide` +
+  `followsUndockedKeyboard`).
+- Hosts: `JsChatView` uses the hook directly (spacer → `ListFooterComponent`, `scrollRef` merged into
+  FlashList's `renderScrollComponent`); `shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` is a
+  thin `Animated.ScrollView` wrapper over the same hook for ordinary screens.
+
+**Why not `KeyboardChatScrollView`** (react-native-keyboard-controller), which we used first: its
+`useFrozenPadding` resets the stored padding to the *live* keyboard height the moment `freeze` flips
+back to `false`. Unfreezing before the keyboard has returned (context menu closing) therefore zeroed the
+bookkeeping while the scroll offset still carried the old shift, and the next `onStart` applied the full
+keyboard height a second time — the chat ended up shifted higher than before the keyboard ever opened.
+The lib's model is "padding == current keyboard height"; ours is "what we actually applied", which does
+not have that failure mode.
 
 ## Not verified / needs a human
 

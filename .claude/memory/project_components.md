@@ -35,10 +35,10 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
 - `check-box/CheckBox.tsx`, `chip/Chip.tsx`, `switch/Switch.tsx`, `tabs/{Tab,Tabs}.tsx`
 - `field/Field.tsx` — compound form-field wrapper
 - `scroll-view/ScrollView.tsx` — enhanced ScrollView
-- `keyboard-scroll-view/KeyboardScrollView.tsx` — scroll with keyboard compensation done the native way
-  (animated `contentInset.bottom` + `contentOffset` correction, viewport never moves). Wrapper over
-  `KeyboardChatScrollView` from `react-native-keyboard-controller`; used both standalone and as
-  FlashList's `renderScrollComponent` in `JsChatView`. Details in `project_native.md`
+- `keyboard-scroll-view/KeyboardScrollView.tsx` — `Animated.ScrollView` with keyboard compensation done
+  the native way (spacer at the end of the content + equal `scrollTo`, viewport never moves). Thin
+  wrapper over `shared/lib/hooks/use-keyboard-scroll-compensation.ts`, which `JsChatView` uses directly.
+  Details in `project_native.md`
 - `image/Image.tsx` — `react-native-fast-image` wrapper
 - `picker/` — `DatePicker`, `RangePicker`, `TimePicker`, `YearRangePicker`, built on `picker/shared/`
   (`NativePicker.tsx` wraps the native WheelPicker; `Picker.tsx`, `PickerColumn.tsx`, `PickerItem.tsx`)

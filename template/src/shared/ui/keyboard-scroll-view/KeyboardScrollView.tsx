@@ -1,84 +1,66 @@
-import React, { forwardRef } from "react";
-import { ScrollViewProps } from "react-native";
-import { KeyboardChatScrollView } from "react-native-keyboard-controller";
-import Reanimated, { SharedValue } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { useKeyboardScrollCompensation } from "@shared/lib/hooks/use-keyboard-scroll-compensation";
+import React, { forwardRef, useCallback } from "react";
+import { LayoutChangeEvent, ScrollViewProps } from "react-native";
+import Animated, { SharedValue } from "react-native-reanimated";
 
 /**
- * Скролл с компенсацией клавиатуры — порт `updateCollectionInsets`
- * из `ChatViewController` (IOSChatView).
+ * Скролл с компенсацией нижней зоны — обёртка над
+ * `useKeyboardScrollCompensation` для обычных экранов (в чате хук
+ * используется напрямую: там распорка уходит в `ListFooterComponent`).
  *
- * Нативный эталон работает так: коллекция всегда занимает всю высоту экрана и
- * никогда не двигается; панель ввода прижата к `keyboardLayoutGuide`, а зона,
- * которую она вместе с клавиатурой перекрывает снизу, компенсируется
- * **contentInset.bottom** + коррекцией `contentOffset` (расстояние до конца
- * контента сохраняется). Именно поэтому в нативе верх списка всегда доступен:
- * сдвигается содержимое скролла, а не сама вьюха.
- *
- * Здесь то же самое: `KeyboardChatScrollView` покадрово на UI-потоке ведёт
- * `contentInset.bottom` (iOS) / нижний паддинг скролла (Android) и синхронно
- * правит `contentOffset`. Никаких `translateY` контейнера — верх контента
- * не уезжает за границу экрана.
- *
- * Постоянная часть нижней зоны (панель ввода + safe area) остаётся обычным
- * `contentContainerStyle.paddingBottom` хоста: она меняется редко и должна
- * учитываться в размере контента (от неё зависит `scrollToEnd`, автоскролл
- * и `maintainVisibleContentPosition`). Клавиатура же добавляет к ней только
- * разницу `keyboardHeight - bottomOffset` — за это отвечает проп `offset`.
- *
- * Использование:
- * ```tsx
- * <KeyboardScrollView
- *   contentContainerStyle={{ paddingBottom: safeAreaBottom + inputBarHeight }}
- * >
- *   {content}
- * </KeyboardScrollView>
- * ```
- * Для FlashList — тот же компонент в `renderScrollComponent`.
+ * Вьюпорт остаётся на месте и во всю высоту, а зону, которую снизу
+ * перекрывают панель ввода и клавиатура, держит распорка в конце контента.
+ * Подробности алгоритма и заморозки — в доке хука.
  */
-
-export type KeyboardLiftBehavior =
-  "always" | "whenAtEnd" | "persistent" | "never";
 
 export interface IKeyboardScrollViewProps extends ScrollViewProps {
   /**
-   * Расстояние от нижнего края скролла до низа экрана, которое уже учтено в
-   * `contentContainerStyle.paddingBottom`. Клавиатура добавит только
-   * `keyboardHeight - bottomOffset`. По умолчанию — нижний safe area inset.
+   * Нижняя зона: панель ввода + клавиатура (или safe area, когда та скрыта).
+   * Заморозка делается на стороне владельца — достаточно перестать обновлять
+   * это значение.
    */
-  bottomOffset?: number;
-  /**
-   * Когда контент поднимается вслед за клавиатурой. `always` — как в нативном
-   * чате (порт `updateCollectionInsets`, которому всё равно, где скролл).
-   */
-  liftBehavior?: KeyboardLiftBehavior;
-  /**
-   * Заморозка: пока `true`, события клавиатуры игнорируются — ни отступ, ни
-   * позиция скролла не меняются. Порт `KeyboardFreezeManager`: контекстное меню
-   * снимает снапшот ячейки и на время показа ничего не должно двигаться.
-   */
-  freeze?: SharedValue<boolean>;
+  zone: SharedValue<number>;
 }
 
 export const KeyboardScrollView = forwardRef<
-  Reanimated.ScrollView,
+  Animated.ScrollView,
   IKeyboardScrollViewProps
->(({ bottomOffset, liftBehavior = "always", freeze, ...rest }, ref) => {
-  const safeArea = useSafeAreaInsets();
+>(
+  (
+    { zone, children, onLayout: onLayoutProp, onContentSizeChange, ...rest },
+    ref,
+  ) => {
+    const compensation = useKeyboardScrollCompensation(zone);
 
-  return (
-    <KeyboardChatScrollView
-      ref={ref}
-      offset={bottomOffset ?? safeArea.bottom}
-      keyboardLiftBehavior={liftBehavior}
-      freeze={freeze}
-      // Порт `contentInsetAdjustmentBehavior = .never`: единственный источник
-      // нижнего отступа — расчёт ниже, системные подгонки только мешают.
-      automaticallyAdjustContentInsets={false}
-      contentInsetAdjustmentBehavior={"never"}
-      {...rest}
-    />
-  );
-});
+    const handleLayout = useCallback(
+      (e: LayoutChangeEvent) => {
+        compensation.onLayout(e);
+        onLayoutProp?.(e);
+      },
+      [compensation, onLayoutProp],
+    );
+
+    const handleContentSizeChange = useCallback(
+      (width: number, height: number) => {
+        compensation.onContentSizeChange(width, height);
+        onContentSizeChange?.(width, height);
+      },
+      [compensation, onContentSizeChange],
+    );
+
+    return (
+      <Animated.ScrollView
+        ref={mergeRefs([ref, compensation.scrollRef])}
+        onLayout={handleLayout}
+        onContentSizeChange={handleContentSizeChange}
+        {...rest}
+      >
+        {children}
+        <Animated.View style={compensation.spacerStyle} />
+      </Animated.ScrollView>
+    );
+  },
+);
 
 KeyboardScrollView.displayName = "KeyboardScrollView";

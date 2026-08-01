@@ -19,8 +19,8 @@ import {
 import { JsInputBar } from "@shared/ui/input-bar/JsInputBar";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useMemo, useState } from "react";
-import { Platform, StyleSheet } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Keyboard, Platform, Pressable, StyleSheet } from "react-native";
+import { useDerivedValue } from "react-native-reanimated";
 
 type EventEntry = { time: string; text: string };
 
@@ -32,7 +32,6 @@ const now = () => {
 
 export const InputBarPage: FC<StackProps> = observer(() => {
   const { isDark } = useTheme();
-  const safeArea = useSafeAreaInsets();
 
   const [useNative, setUseNative] = useState(Platform.OS === "ios");
   const [events, setEvents] = useState<EventEntry[]>([]);
@@ -49,9 +48,10 @@ export const InputBarPage: FC<StackProps> = observer(() => {
   const theme = isDark ? "dark" : "light";
 
   // ─── Компенсация клавиатуры ────────────────────────────────────────────
-  // Как в чате: скролл занимает всю высоту экрана и не двигается, зону панели
-  // ввода отдаёт нижним отступом контента (высота панели — измеренная, из
-  // onHeightChange), а клавиатуру компенсирует contentInset скролла.
+  // Как в чате: скролл во всю высоту экрана и неподвижен, а зону панели ввода
+  // с клавиатурой держит распорка в конце контента (см.
+  // useKeyboardScrollCompensation). Высота панели — измеренная, из
+  // onHeightChange, safe area приходит из bottomInset.
 
   const { bottomInset } = useKeyboardInset();
 
@@ -67,9 +67,11 @@ export const InputBarPage: FC<StackProps> = observer(() => {
     [],
   );
 
-  const scrollContentStyle = useMemo(
-    () => ({ paddingBottom: safeArea.bottom + inputBarHeight }),
-    [safeArea.bottom, inputBarHeight],
+  // Нижняя зона для компенсации скролла: клавиатура (или safe area, когда она
+  // скрыта) плюс измеренная высота панели.
+  const bottomZone = useDerivedValue(
+    () => bottomInset.value + inputBarHeight,
+    [inputBarHeight],
   );
 
   // Нативная панель под Fabric не участвует в измерении Yoga (intrinsicContentSize
@@ -112,114 +114,121 @@ export const InputBarPage: FC<StackProps> = observer(() => {
 
   return (
     // Верхний safe area уже съел хедер (AppHeader с safeArea), нижний —
-    // paddingBottom контента; экрану добирать нечего.
+    // распорка в конце контента; экрану добирать нечего.
     <Container edges={[]}>
       <KeyboardScrollView
         style={ss.scroll}
-        contentContainerStyle={scrollContentStyle}
+        zone={bottomZone}
         keyboardShouldPersistTaps={"handled"}
       >
-        <Content>
-          <Row mt={8} alignItems={"center"} justifyContent={"space-between"}>
-            <Col flexShrink={1} pr={12}>
-              <Text textStyle={"Body_M1"}>
-                {useNative
-                  ? "Нативная реализация (RNInputBar)"
-                  : "JS-реализация (InputBarView)"}
-              </Text>
-              <Text textStyle={"Caption_M2"} color={"textSecondary"}>
-                {Platform.OS === "ios"
-                  ? useNative
-                    ? "Сейчас: нативная (iOS)"
-                    : "Сейчас: JS-порт"
-                  : "Сейчас: JS-порт"}
-              </Text>
-            </Col>
-            {Platform.OS === "ios" && (
-              <Switch
-                isActive={useNative}
-                onChange={v => {
-                  setUseNative(v);
-                  log(v ? "Переключено на нативную" : "Переключено на JS");
-                }}
-              />
-            )}
-          </Row>
+        {/* Порт тапа по коллекции с view.endEditing(true): штатный
+            keyboardShouldPersistTaps умеет гасить только RN-инпуты, а фокус
+            нативной панели держит UITextView пода — RN про него не знает.
+            Keyboard.dismiss() уходит в endEditing по всему окну и снимает
+            фокус в обеих реализациях. */}
+        <Pressable onPress={Keyboard.dismiss}>
+          <Content>
+            <Row mt={8} alignItems={"center"} justifyContent={"space-between"}>
+              <Col flexShrink={1} pr={12}>
+                <Text textStyle={"Body_M1"}>
+                  {useNative
+                    ? "Нативная реализация (RNInputBar)"
+                    : "JS-реализация (InputBarView)"}
+                </Text>
+                <Text textStyle={"Caption_M2"} color={"textSecondary"}>
+                  {Platform.OS === "ios"
+                    ? useNative
+                      ? "Сейчас: нативная (iOS)"
+                      : "Сейчас: JS-порт"
+                    : "Сейчас: JS-порт"}
+                </Text>
+              </Col>
+              {Platform.OS === "ios" && (
+                <Switch
+                  isActive={useNative}
+                  onChange={v => {
+                    setUseNative(v);
+                    log(v ? "Переключено на нативную" : "Переключено на JS");
+                  }}
+                />
+              )}
+            </Row>
 
-          {/* Режимы */}
-          <Text textStyle={"Title_S1"} mt={16}>
-            {"Режимы"}
-          </Text>
-          <Row mt={8} gap={8} flexWrap={"wrap"}>
-            <Text textStyle={"Body_M1"} color={"primary"} onPress={setNormal}>
-              {"Обычный"}
+            {/* Режимы */}
+            <Text textStyle={"Title_S1"} mt={16}>
+              {"Режимы"}
             </Text>
-            <Text textStyle={"Body_M1"} color={"primary"} onPress={setReply}>
-              {"Ответ"}
+            <Row mt={8} gap={8} flexWrap={"wrap"}>
+              <Text textStyle={"Body_M1"} color={"primary"} onPress={setNormal}>
+                {"Обычный"}
+              </Text>
+              <Text textStyle={"Body_M1"} color={"primary"} onPress={setReply}>
+                {"Ответ"}
+              </Text>
+              <Text
+                textStyle={"Body_M1"}
+                color={"primary"}
+                onPress={setReplyWithImage}
+              >
+                {"Ответ (фото)"}
+              </Text>
+              <Text textStyle={"Body_M1"} color={"primary"} onPress={setEdit}>
+                {"Редактирование"}
+              </Text>
+            </Row>
+            {inputAction?.type === "edit" && (
+              <Row mt={8} alignItems={"center"} gap={8}>
+                <Text textStyle={"Body_M2"}>{"Текст:"}</Text>
+                <Text
+                  textStyle={"Body_M1"}
+                  color={"primary"}
+                  onPress={() => {
+                    const next = editingText + " (изм.)";
+
+                    setEditingText(next);
+                    setInputAction({
+                      type: "edit",
+                      messageId: "msg-3",
+                      text: next,
+                    });
+                  }}
+                >
+                  {"изменить"}
+                </Text>
+              </Row>
+            )}
+
+            {/* События */}
+            <Text textStyle={"Title_S1"} mt={16}>
+              {"События"}
             </Text>
             <Text
               textStyle={"Body_M1"}
               color={"primary"}
-              onPress={setReplyWithImage}
+              mt={4}
+              onPress={() => {
+                setEvents([]);
+              }}
             >
-              {"Ответ (фото)"}
+              {"Очистить"}
             </Text>
-            <Text textStyle={"Body_M1"} color={"primary"} onPress={setEdit}>
-              {"Редактирование"}
-            </Text>
-          </Row>
-          {inputAction?.type === "edit" && (
-            <Row mt={8} alignItems={"center"} gap={8}>
-              <Text textStyle={"Body_M2"}>{"Текст:"}</Text>
-              <Text
-                textStyle={"Body_M1"}
-                color={"primary"}
-                onPress={() => {
-                  const next = editingText + " (изм.)";
-
-                  setEditingText(next);
-                  setInputAction({
-                    type: "edit",
-                    messageId: "msg-3",
-                    text: next,
-                  });
-                }}
-              >
-                {"изменить"}
-              </Text>
-            </Row>
-          )}
-
-          {/* События */}
-          <Text textStyle={"Title_S1"} mt={16}>
-            {"События"}
-          </Text>
-          <Text
-            textStyle={"Body_M1"}
-            color={"primary"}
-            mt={4}
-            onPress={() => {
-              setEvents([]);
-            }}
-          >
-            {"Очистить"}
-          </Text>
-          <Content mt={8}>
-            {events.length === 0 && (
-              <Text textStyle={"Body_M2"} color={"textSecondary"}>
-                {"Событий пока нет"}
-              </Text>
-            )}
-            {events.map((e, i) => (
-              <Row key={i} gap={8}>
-                <Text textStyle={"Caption_M2"} color={"textSecondary"}>
-                  {e.time}
+            <Content mt={8}>
+              {events.length === 0 && (
+                <Text textStyle={"Body_M2"} color={"textSecondary"}>
+                  {"Событий пока нет"}
                 </Text>
-                <Text textStyle={"Caption_M2"}>{e.text}</Text>
-              </Row>
-            ))}
+              )}
+              {events.map((e, i) => (
+                <Row key={i} gap={8}>
+                  <Text textStyle={"Caption_M2"} color={"textSecondary"}>
+                    {e.time}
+                  </Text>
+                  <Text textStyle={"Caption_M2"}>{e.text}</Text>
+                </Row>
+              ))}
+            </Content>
           </Content>
-        </Content>
+        </Pressable>
       </KeyboardScrollView>
 
       <KeyboardInputBar bottomInset={bottomInset}>
