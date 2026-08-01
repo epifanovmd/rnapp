@@ -180,7 +180,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - NitroModules (0.36.1):
+  - NitroModules (0.36.5):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -1878,7 +1878,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - react-native-skia (2.10.0):
+  - react-native-skia (2.10.1):
     - hermes-engine
     - RCTRequired
     - RCTTypeSafety
@@ -3053,7 +3053,7 @@ SPEC CHECKSUMS:
   MMKVCore: 3d16ce9f7d411e135020915fde98a056859a1efa
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   NitroMmkv: 38b271a19e7e152025a6893160c98326872ea05f
-  NitroModules: 587af3c2bc93f5c9f9b39aec315eb29509a7c537
+  NitroModules: e0ac5f9a04e23cb2f378b51810ebc07ed63aeae9
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCTDeprecation: 2a74a2c57675e64419bd89078efde81f7c1de90b
   RCTRequired: 30451112e6fef4e6f31b4e7eee0845156e35e4b0
@@ -3101,7 +3101,7 @@ SPEC CHECKSUMS:
   react-native-pager-view: b346a4b45b0b36bff7e5761a68b53d78353d158b
   react-native-pdf: f29a4ee7729e0593d7f07ea54ff0fed47e2911d8
   react-native-safe-area-context: 0bbcdfba5c4a1b3203276f1ed9128e3239fdf199
-  react-native-skia: 2e1a16e364e3e93a50e4c52e8691797b42a4151a
+  react-native-skia: eef75b9c1fb7618fd941791b1e54f80db44e7ba0
   react-native-webrtc: da75ba1f85a36981cbcb3fdae7dfbab7ad63c040
   react-native-webview: 8ea93f5c9c986e9ce9888953759aa3db77eaa379
   React-NativeModulesApple: a092d89b58f635ebfab88048b0eda9fb516819fd
@@ -3136,7 +3136,7 @@ SPEC CHECKSUMS:
   React-viewtransitionnativemodule: 6c82bccff3c5649a27134b660bfe7106f741b1f8
   React-webperformancenativemodule: f07a77f0b2407765f3b4e1e71bcb421093ccd35f
   ReactAppDependencyProvider: dcdd0e1b9559a6d8d8aea05286f4ed085091978e
-  ReactCodegen: 05ed502daf08b3be374e5efbbdade485e0487ce2
+  ReactCodegen: 873ef47fdf9cea3d86af27a88c4e8331b11140e4
   ReactCommon: d5c1bb4427bf51c443de5926aac332c89ddd9363
   ReactNativeDependencies: fa0a54b3f5319ae0e3b9aff32bfee7a424b88e66
   RNBootSplash: 896e77f6b01c459249d3259c052ac97a2403a576
