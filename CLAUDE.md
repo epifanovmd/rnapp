@@ -204,8 +204,20 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   text field, reply/edit panel, attach button, morphing mic/send button, voice-recording gesture with
   slide-to-cancel/lock) lives in the same folder and is shared by both `JsInputBar` and the integrated
   input bar inside `JsChatView` (mirroring how both native bridges reuse the pod's `InputBarView`).
-  The native view also reports its own height via `onHeightChange` (RN assigns the size, so a standalone
-  native `InputBar` needs the host to apply it).
+  The native view does **not** self-size: under Fabric a legacy-interop view never gets asked for
+  `intrinsicContentSize`, so Yoga gives it height 0. It reports its Auto Layout height via
+  `onHeightChange` (on every layout **and** on every content change — mode, text growth, recording) and
+  the host must apply that height to the view's style; the pod's bar is pinned to the bridge's bottom at
+  priority 999 so a stale RN height never squashes its internal layout.
+- **Keyboard compensation** (both JS ports) is a 1:1 port of `updateCollectionInsets`: the list/scroll
+  viewport is never translated or shrunk. The constant part of the bottom zone (safe area + *measured*
+  input-bar height + chat padding) lives in `contentContainerStyle.paddingBottom`; the keyboard adds
+  `keyboardHeight - safeAreaBottom` as an animated `contentInset.bottom` with a synchronous
+  `contentOffset` correction (`shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` over
+  `KeyboardChatScrollView`, used directly and as FlashList's `renderScrollComponent`). Translating the
+  list container instead (an earlier approach) hides the top of the content behind the clip bounds —
+  don't reintroduce it, and don't hardcode bottom paddings. The input bar overlay rides the keyboard via
+  `KeyboardInputBar` (port of `keyboardLayoutGuide`). See `project_native.md`.
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
   `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public

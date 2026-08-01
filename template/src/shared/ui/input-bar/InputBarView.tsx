@@ -95,6 +95,8 @@ export const InputBarView = memo(
       const {
         recordingState,
         recordDuration,
+        rowVisible,
+        rowOpacity,
         isRecording,
         isLocked,
         showCancelTrash,
@@ -228,6 +230,11 @@ export const InputBarView = memo(
         layout.textViewMaxHeight,
       );
 
+      // Порт recordingRow.fadeOut: строка гаснет отдельно от смены состояния.
+      const recordingRowStyle = useAnimatedStyle(() => ({
+        opacity: rowOpacity.value,
+      }));
+
       const micButtonStyle = useAnimatedStyle(() => ({
         opacity: micAlpha.value,
         transform: [
@@ -338,7 +345,9 @@ export const InputBarView = memo(
                     paddingRight: layout.textViewInsetRight,
                     fontSize: layout.textViewFont.fontSize,
                     color: theme.inputText,
-                    opacity: isRecording ? 0 : 1,
+                    // Поле возвращается не в момент остановки записи, а когда
+                    // строка записи полностью ушла — как в поде.
+                    opacity: rowVisible ? 0 : 1,
                   },
                 ]}
                 selectionColor={theme.inputTint}
@@ -347,13 +356,18 @@ export const InputBarView = memo(
                   setContentHeight(e.nativeEvent.contentSize.height)
                 }
               />
-              {isRecording && (
-                <InputRecordingRow
-                  duration={recordDuration}
-                  slideAlpha={slideAlpha}
-                  slideHidden={isLocked}
-                  onCancelTap={cancelRecording}
-                />
+              {rowVisible && (
+                <Animated.View
+                  pointerEvents={isRecording ? "box-none" : "none"}
+                  style={[ss.recordingRow, recordingRowStyle]}
+                >
+                  <InputRecordingRow
+                    duration={recordDuration}
+                    slideAlpha={slideAlpha}
+                    slideHidden={isLocked}
+                    onCancelTap={cancelRecording}
+                  />
+                </Animated.View>
               )}
 
               {!isRecording && (
@@ -440,5 +454,6 @@ const ss = StyleSheet.create({
   stack: { flexDirection: "row", alignItems: "flex-end" },
   mainContainer: { flex: 1, overflow: "visible" },
   internalSend: { position: "absolute" },
+  recordingRow: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
   hiddenButton: { display: "none" },
 });

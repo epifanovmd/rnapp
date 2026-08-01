@@ -8,6 +8,9 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
+/** Насколько ниже своего места стартует капсула замка (порт animateIn). */
+const BADGE_ENTER_SHIFT = 20;
+
 /**
  * Анимация появления/скрытия бейджа блокировки записи.
  */
@@ -16,27 +19,29 @@ export function useLockBadgeAnimation(
   scale: SharedValue<number>,
 ) {
   const badgeOpacity = useSharedValue(0);
-  const badgeScale = useSharedValue(0.8);
+  const badgeShift = useSharedValue(BADGE_ENTER_SHIFT);
 
+  // Порт animateIn/animateOut: капсула выезжает снизу (translateY 20 → 0)
+  // пружиной с задержкой 0.1 с, а уходит просто по прозрачности.
   useEffect(() => {
     if (visible) {
       badgeOpacity.value = withDelay(
-        80,
-        withSpring(1, { duration: 220, dampingRatio: 0.65 }),
+        100,
+        withSpring(1, { duration: 300, dampingRatio: 0.7 }),
       );
-      badgeScale.value = withDelay(
-        80,
-        withSpring(1, { duration: 220, dampingRatio: 0.65 }),
+      badgeShift.value = withDelay(
+        100,
+        withSpring(0, { duration: 300, dampingRatio: 0.7 }),
       );
     } else {
-      badgeOpacity.value = withTiming(0, { duration: 150 });
-      badgeScale.value = withTiming(0.8, { duration: 150 });
+      badgeOpacity.value = withTiming(0, { duration: 200 });
+      badgeShift.value = BADGE_ENTER_SHIFT;
     }
-  }, [visible, badgeOpacity, badgeScale]);
+  }, [visible, badgeOpacity, badgeShift]);
 
   const badgeStyle = useAnimatedStyle(() => ({
     opacity: badgeOpacity.value,
-    transform: [{ scale: badgeScale.value * scale.value }],
+    transform: [{ translateY: badgeShift.value }, { scale: scale.value }],
   }));
 
   return { badgeStyle };

@@ -16,14 +16,15 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
+  ScrollViewProps,
   StyleSheet,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
+import {
   useDerivedValue,
   useSharedValue,
   withTiming,
@@ -31,7 +32,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useKeyboardInset } from "../../lib/hooks/use-keyboard-inset";
-import { useKeyboardScrollCompensation } from "../../lib/hooks/use-keyboard-scroll-compensation";
 import {
   IInputBarViewDelegate,
   IInputBarViewRef,
@@ -44,6 +44,7 @@ import {
   InputBarContext,
 } from "../input-bar/model/input-bar-context";
 import { InputBarMode } from "../input-bar/model/input-bar-types";
+import { KeyboardScrollView } from "../keyboard-scroll-view";
 import { ChatOverlayStore } from "./components/chat-overlay-store";
 import {
   ChatCellStore,
@@ -270,44 +271,6 @@ export const JsChatView = memo(
 
     const unreadManager = unreadManagerRef.current;
 
-    // ─── Состояние скролла (refs — без ре-рендеров) ──────────────────────────
-
-    const [listSize, setListSize] = useState({ width: 0, height: 0 });
-    const listSizeRef = useRef(listSize);
-
-    listSizeRef.current = listSize;
-
-    const scrollYRef = useRef(0);
-    const contentHeightRef = useRef(0);
-    const viewportHeightRef = useRef(0);
-    const scrollDirectionRef = useRef<"up" | "down" | "none">("none");
-    const isUserDraggingRef = useRef(false);
-    const isProgrammaticScrollRef = useRef(false);
-    const isInitialScrollProtectedRef = useRef(true);
-    const pendingScrollToBottomRef = useRef(false);
-    const isLoadingNewerActiveRef = useRef(false);
-    const lastScrollEventTimeRef = useRef(0);
-    const anchorThrottleTimeRef = useRef(0);
-    const lastTypingTimeRef = useRef(0);
-
-    // Вьюпорт списка больше корня: он продлён под панель ввода.
-    const distanceFromBottom = useCallback(() => {
-      return Math.max(
-        0,
-        contentHeightRef.current -
-          scrollYRef.current -
-          viewportHeightRef.current,
-      );
-    }, []);
-
-    const isNearBottom = useCallback(() => {
-      if (contentHeightRef.current <= 0) return true;
-
-      return (
-        distanceFromBottom() <= featuresRef.current.scrollToBottomThreshold
-      );
-    }, [distanceFromBottom]);
-
     // ─── Клавиатура и safe area ──────────────────────────────────────────────
     // Порт keyboardLayoutGuide (+followsUndockedKeyboard): панель ввода
     // прижата к клавиатуре, а при скрытой — к нижней safe area. Высота берётся
@@ -327,7 +290,15 @@ export const JsChatView = memo(
     const keyboardWasVisibleRef = useRef(false);
     const thawTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { bottomInset: keyboardInset, keyboardHeight } = useKeyboardInset();
+    // Та же заморозка для скролла: пока меню открыто, список не реагирует на
+    // уходящую клавиатуру (contentInset и offset остаются как были).
+    const freezeKeyboardScroll = useSharedValue(false);
+
+    const {
+      bottomInset: keyboardInset,
+      keyboardHeight,
+      keyboardHeightRef,
+    } = useKeyboardInset();
 
     // Заморозка держит всю нижнюю зону разом — список, панель ввода и FAB
     // считаются от одного значения, поэтому при скрытии клавиатуры под меню
@@ -348,11 +319,12 @@ export const JsChatView = memo(
 
       keyboardWasVisibleRef.current = wasVisible;
       frozenBottomInset.value = bottomInset.value;
+      freezeKeyboardScroll.value = true;
 
       if (wasVisible) {
         inputBarRef.current?.blur();
       }
-    }, [frozenBottomInset, keyboardHeight, bottomInset]);
+    }, [frozenBottomInset, keyboardHeight, bottomInset, freezeKeyboardScroll]);
 
     // Порт restore(): клавиатуру возвращаем, а зону отпускаем только когда она
     // полностью открыта (thaw по keyboardDidShow) — иначе будет прыжок.
@@ -366,11 +338,16 @@ export const JsChatView = memo(
       if (!wasVisible) {
         // Зона заморожена на safe area — живое значение такое же, прыжка нет.
         frozenBottomInset.value = -1;
+        freezeKeyboardScroll.value = false;
 
         return;
       }
 
       restoreKeyboardOnThaw.value = true;
+      // Скролл размораживаем сразу: возвращающаяся клавиатура должна поднять
+      // контент вместе с собой. Прыжка нет — inset остался на старом значении,
+      // а первое же событие клавиатуры пересчитает offset от него.
+      freezeKeyboardScroll.value = false;
       inputBarRef.current?.focus();
 
       // Страховка: если клавиатуру вернуть не удалось (фокус перехватила
@@ -395,6 +372,7 @@ export const JsChatView = memo(
       restoreKeyboardOnThaw,
       keyboardHeight,
       safeAreaBottom,
+      freezeKeyboardScroll,
     ]);
 
     useEffect(
@@ -404,11 +382,61 @@ export const JsChatView = memo(
       [],
     );
 
-    // ─── Компенсация нижней зоны ─────────────────────────────────────────────
+    // ─── Состояние скролла (refs — без ре-рендеров) ──────────────────────────
+
+    const [listSize, setListSize] = useState({ width: 0, height: 0 });
+    const listSizeRef = useRef(listSize);
+
+    listSizeRef.current = listSize;
+
+    const scrollYRef = useRef(0);
+    const contentHeightRef = useRef(0);
+    const viewportHeightRef = useRef(0);
+    const scrollDirectionRef = useRef<"up" | "down" | "none">("none");
+    const isUserDraggingRef = useRef(false);
+    const isProgrammaticScrollRef = useRef(false);
+    const isInitialScrollProtectedRef = useRef(true);
+    const pendingScrollToBottomRef = useRef(false);
+    const isLoadingNewerActiveRef = useRef(false);
+    const lastScrollEventTimeRef = useRef(0);
+    const anchorThrottleTimeRef = useRef(0);
+    const lastTypingTimeRef = useRef(0);
+
+    // Постоянная часть нижней зоны (панель ввода + safe area) лежит в
+    // paddingBottom контента, поэтому она уже учтена в contentHeight.
+    // Клавиатура добавляет сверх этого contentInset.bottom, которого в
+    // contentHeight нет, — добавляем вручную, иначе «внизу ли скролл» будет
+    // считаться с ошибкой на высоту клавиатуры (FAB, автоскролл, якорь).
+    // Порт distanceFromBottom(): `... - bounds.height + contentInset.bottom`.
+    const distanceFromBottom = useCallback(() => {
+      const keyboardContentInset = Math.max(
+        0,
+        keyboardHeightRef.current - safeAreaBottom,
+      );
+
+      return Math.max(
+        0,
+        contentHeightRef.current -
+          scrollYRef.current -
+          viewportHeightRef.current +
+          keyboardContentInset,
+      );
+    }, [keyboardHeightRef, safeAreaBottom]);
+
+    const isNearBottom = useCallback(() => {
+      if (contentHeightRef.current <= 0) return true;
+
+      return (
+        distanceFromBottom() <= featuresRef.current.scrollToBottomThreshold
+      );
+    }, [distanceFromBottom]);
+
+    // ─── Нижняя зона ─────────────────────────────────────────────────────────
     // Порт updateCollectionInsets: панель ввода и клавиатура съедают низ
-    // видимой области. Вместо коррекции offset (она в RN не может идти
-    // покадрово и потому дёргается) список сдвигается тем же shared value, что
-    // и панель, — расстояние от конца сохраняется само собой.
+    // видимой области. Постоянная часть (панель + safe area) уходит в
+    // paddingBottom контента, клавиатура — в contentInset.bottom скролла
+    // (KeyboardScrollView). Сам список при этом не двигается: сдвигается
+    // содержимое, поэтому верх чата всегда доступен.
 
     const [inputBarHeight, setInputBarHeight] = useState(
       layout.inputBarMinHeight,
@@ -416,24 +444,11 @@ export const JsChatView = memo(
 
     const inputBarHeightSV = useSharedValue(0);
 
-    const {
-      listShift,
-      listExtension: _hookExtension,
-      onContainerLayout,
-      onContentSizeChange: hookOnContentSizeChange,
-      setFooterPadding,
-    } = useKeyboardScrollCompensation(bottomInset, inputBarHeightSV);
-
-    const listAnimatedStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: -listShift.value }],
-    }));
-
     const handleContentSizeChange = useCallback(
       (_width: number, height: number) => {
-        hookOnContentSizeChange(_width, height);
         contentHeightRef.current = height;
       },
-      [hookOnContentSizeChange],
+      [],
     );
 
     // ─── FAB ─────────────────────────────────────────────────────────────────
@@ -508,8 +523,9 @@ export const JsChatView = memo(
       const L = layoutRef.current;
       const pillRestY = L.sectionSpacing;
       const spacing = L.sectionSpacing;
-      // Список сдвинут вверх на нижнюю зону — учитываем это в экранных координатах.
-      const scrollY = scrollYRef.current + listShift.value;
+      // Список неподвижен и совпадает с корнем — экранные координаты
+      // получаются простым вычитанием позиции скролла.
+      const scrollY = scrollYRef.current;
 
       let foundDate: string | null = null;
 
@@ -543,7 +559,7 @@ export const JsChatView = memo(
       floatingHideTimer.current = setTimeout(() => {
         overlayStore.set({ floatingDateVisible: false });
       }, L.floatingDateHideDelay * 1000);
-    }, [overlayStore, listShift]);
+    }, [overlayStore]);
 
     useEffect(
       () => () => {
@@ -1294,7 +1310,6 @@ export const JsChatView = memo(
       (e: { nativeEvent: { layout: { width: number; height: number } } }) => {
         const { width, height } = e.nativeEvent.layout;
 
-        onContainerLayout(height);
         if (viewportHeightRef.current === 0) {
           viewportHeightRef.current = height;
         }
@@ -1304,8 +1319,14 @@ export const JsChatView = memo(
             : { width, height },
         );
       },
-      [onContainerLayout],
+      [],
     );
+
+    // onLayout самого скролла: KeyboardScrollView берёт отсюда высоту вьюпорта
+    // для расчёта отступа до первого события скролла.
+    const handleListLayout = useCallback((e: LayoutChangeEvent) => {
+      viewportHeightRef.current = e.nativeEvent.layout.height;
+    }, []);
 
     const maintainVisibleContentPosition = useMemo(
       () => ({
@@ -1316,38 +1337,41 @@ export const JsChatView = memo(
       [features.autoScrollOnNewMessage],
     );
 
-    // Порт полноэкранной коллекции: список продлён под панель ввода, поэтому
-    // сообщения видно за её прозрачным фоном. Продление постоянное (панель +
-    // safe area) — при открытии клавиатуры панель уезжает вверх вместе со
-    // сдвигом списка, и низ всё равно остаётся перекрытым.
-    const listExtension = safeAreaBottom + inputBarHeight;
-
-    const listWrapStyle = useMemo(
-      () => ({ bottom: -listExtension }),
-      [listExtension],
-    );
-
+    // Порт полноэкранной коллекции: список занимает всю высоту чата, а зону
+    // панели ввода отдаёт нижним отступом контента — сообщения проходят за её
+    // прозрачным фоном, но конец списка всегда останавливается над панелью.
+    // Всё измеряется: safe area из контекста, высота панели — из её onLayout.
+    // Порт `contentInset.bottom = inputBarZone + collectionBottomPadding`.
     const contentContainerStyle = useMemo(
       () => ({
         paddingTop: layout.collectionTopPadding + collectionInsetTop,
         paddingBottom:
-          listExtension +
+          safeAreaBottom +
+          inputBarHeight +
           layout.collectionBottomPadding +
           collectionInsetBottom,
       }),
-      [layout, collectionInsetTop, collectionInsetBottom, listExtension],
+      [
+        layout,
+        collectionInsetTop,
+        collectionInsetBottom,
+        safeAreaBottom,
+        inputBarHeight,
+      ],
     );
 
-    useEffect(() => {
-      setFooterPadding(
-        listExtension + layout.collectionBottomPadding + collectionInsetBottom,
-      );
-    }, [
-      listExtension,
-      layout.collectionBottomPadding,
-      collectionInsetBottom,
-      setFooterPadding,
-    ]);
+    // Клавиатура добавляет к этой зоне только разницу с safe area — её ведёт
+    // KeyboardScrollView через contentInset.bottom + коррекцию contentOffset.
+    const renderScrollComponent = useCallback(
+      (scrollProps: ScrollViewProps) => (
+        <KeyboardScrollView
+          {...scrollProps}
+          bottomOffset={safeAreaBottom}
+          freeze={freezeKeyboardScroll}
+        />
+      ),
+      [safeAreaBottom, freezeKeyboardScroll],
+    );
 
     const extraData = useMemo(
       () => ({ theme, layout, features, isLoadingTop, width: listSize.width }),
@@ -1364,37 +1388,33 @@ export const JsChatView = memo(
         >
           <View style={ss.listWrap}>
             {listSize.width > 0 && (
-              <Animated.View
-                style={[ss.listShift, listWrapStyle, listAnimatedStyle]}
-              >
-                <FlashList
-                  ref={listRef}
-                  data={rows}
-                  renderItem={renderItem}
-                  keyExtractor={keyExtractor}
-                  getItemType={getItemType}
-                  extraData={extraData}
-                  drawDistance={500}
-                  maintainVisibleContentPosition={
-                    maintainVisibleContentPosition
-                  }
-                  initialScrollIndex={initialScrollIndex}
-                  contentContainerStyle={contentContainerStyle}
-                  showsVerticalScrollIndicator
-                  keyboardDismissMode={
-                    Platform.OS === "ios" ? "interactive" : "on-drag"
-                  }
-                  keyboardShouldPersistTaps="handled"
-                  scrollEventThrottle={16}
-                  viewabilityConfigCallbackPairs={viewabilityPairs.current}
-                  onLoad={handleLoad}
-                  onScroll={handleScroll}
-                  onScrollBeginDrag={handleScrollBeginDrag}
-                  onScrollEndDrag={handleScrollEndDrag}
-                  onMomentumScrollEnd={handleMomentumScrollEnd}
-                  onContentSizeChange={handleContentSizeChange}
-                />
-              </Animated.View>
+              <FlashList
+                ref={listRef}
+                data={rows}
+                renderItem={renderItem}
+                keyExtractor={keyExtractor}
+                getItemType={getItemType}
+                extraData={extraData}
+                drawDistance={500}
+                maintainVisibleContentPosition={maintainVisibleContentPosition}
+                initialScrollIndex={initialScrollIndex}
+                contentContainerStyle={contentContainerStyle}
+                renderScrollComponent={renderScrollComponent}
+                showsVerticalScrollIndicator
+                keyboardDismissMode={
+                  Platform.OS === "ios" ? "interactive" : "on-drag"
+                }
+                keyboardShouldPersistTaps="handled"
+                scrollEventThrottle={16}
+                viewabilityConfigCallbackPairs={viewabilityPairs.current}
+                onLoad={handleLoad}
+                onScroll={handleScroll}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onScrollEndDrag={handleScrollEndDrag}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
+                onLayout={handleListLayout}
+                onContentSizeChange={handleContentSizeChange}
+              />
             )}
 
             {isLoadingTop && features.showTopLoadingIndicator && (
@@ -1444,14 +1464,9 @@ const ss = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "transparent",
-    // Список сдвигается вверх на нижнюю зону — верх подрезаем по границе чата.
+    // Оверлеи (пустое состояние, плавающая дата, распад) не должны вылезать
+    // за границы чата.
     overflow: "hidden",
-  },
-  listShift: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
   },
   listWrap: {
     flex: 1,

@@ -44,6 +44,33 @@ returns `null` when `Platform.OS === "android"`.
 mentioned in any prior version of this repo's documentation. **No Android implementation** —
 `src/widgets/chat-room/native/InputBar.tsx` returns `null` on Android (per its own header comment).
 
+**Sizing:** the bridge view does not self-size. Under Fabric a legacy-interop view is never asked for
+`intrinsicContentSize` (the old override was removed — it did nothing here), so Yoga gives it height 0
+and the host must apply the height the view reports through `onHeightChange`. `RNInputBar.swift`
+recomputes that height with `systemLayoutSizeFitting` in `layoutSubviews` **and** re-reports it after
+every content change that doesn't touch the RN frame — `applyInputAction` (reply/edit/normal),
+`clearInput`, and the delegate callbacks for text change, send, cancel and recording state — via
+`scheduleHeightReport()` (one main-queue hop; the pod sets its constraint constants synchronously and
+only animates applying them, so no `layoutIfNeeded` is needed — and calling it would cut the pod's
+animation short).
+
+The report is deliberately **asymmetric**: growth is sent immediately (an undersized frame clips the bar
+out of hit-testing), shrinking is deferred by `shrinkReportDelay` (0.3 s > the pod's own 0.25/0.2 s
+panel animations). An RN commit changes the frame without animation, so shrinking the frame mid-animation
+re-lays the pod out into its final geometry with a visible jerk; an oversized frame, by contrast, is
+invisible because the bar hugs its bottom edge. Any new growth cancels a pending shrink, and the deferred
+report re-measures before firing.
+
+The pod's `InputBarView` is anchored **bottom-required / top-`.defaultLow`**
+inside the bridge view, which is what makes the unavoidable one-frame lag of the RN frame invisible: the
+bar keeps its own natural height (the loose top pin is weaker than the pod's internal `.defaultHigh`
+constraints) and expands *upward* from the bottom edge, exactly like the frame itself (anchored to the
+keyboard). Pinned to the top instead, it visibly dropped below the keyboard for a frame and snapped back
+once JS applied the new height; pinned bottom-required with a required top pin, Auto Layout squashed the
+pod's layout (reply panel overlapping the text field). Host side: the ui-kit demo
+(`pages/ui-kit-demo/stack/input-bar/InputBar.tsx`) applies `height` only for the native bar — the JS bar
+measures itself — starting from `INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight` until the first report.
+
 ### ContextMenu — native bridge iOS only, plus a JS behavioural port
 `ios/ContextMenu/Bridge/` — 3 files: `RNContextMenuView.swift` (156 lines), `RNContextMenuViewManager.swift`
 (12 lines), `RNContextMenuViewManager.m` (22 lines). Also imports `IOSChatView` (the actual menu UI —
@@ -162,6 +189,38 @@ with `JsChatView`), `ContextMenuView` (see `project_components.md`). Audio captu
 ports is abstracted (`chat-voice-player.ts` / `chat-voice-recorder.ts` in `chat-view/model/`) with
 simulated default backends — real backends can be injected via `setChatVoicePlayerBackend` /
 `setChatVoiceRecorderBackend` (no audio native module exists in this project).
+
+### Keyboard compensation in the JS ports (port of `updateCollectionInsets`)
+
+The native reference never moves the list: `collectionView` is pinned to all four edges of the
+controller's view, the input bar hangs on `view.keyboardLayoutGuide.topAnchor`, and the zone the bar +
+keyboard occlude is compensated **inside the scroll content** — `contentInset.bottom = (view.height -
+inputBar.frame.minY) + collectionBottomPadding`, with `contentOffset` corrected by the same delta so
+`distanceFromEnd` is preserved (and left alone when the content is shorter than the viewport).
+
+The RN ports mirror that exactly, and this is load-bearing: any approach that translates/shrinks the
+list container instead pushes the top of the content above the clip bounds, making the first messages
+permanently unreachable.
+
+- Constant part of the zone (safe-area bottom + **measured** input-bar height + chat paddings) →
+  `contentContainerStyle.paddingBottom` of the FlashList/ScrollView. It must be part of the content
+  size, because `scrollToEnd`, MVCP autoscroll and the anchor math all read content size.
+- Keyboard part (`keyboardHeight - safeAreaBottom`) → animated `contentInset.bottom` (iOS) /
+  `contentInsetBottom` on the `ClippingScrollView` decorator (Android) **plus** a synchronous
+  `contentOffset`/`scrollTo` correction, all on the UI thread. Implemented by
+  `shared/ui/keyboard-scroll-view/KeyboardScrollView.tsx` — a thin wrapper over
+  `KeyboardChatScrollView` (react-native-keyboard-controller), used directly as a ScrollView and as
+  FlashList's `renderScrollComponent` in `JsChatView`.
+- The input bar itself is an absolutely-positioned overlay translated by `max(keyboardHeight,
+  safeAreaBottom)` (`shared/ui/input-bar/KeyboardInputBar.tsx`, port of `keyboardLayoutGuide` +
+  `followsUndockedKeyboard`); the FAB reads the same shared value, so bar/FAB/list stay in lockstep.
+- `KeyboardFreezeManager` is ported by two things at once: the frozen `bottomInset` shared value (bar +
+  FAB) and the `freeze` shared value passed to `KeyboardScrollView` (list ignores keyboard events while
+  the context menu is open).
+- Both platforms account for the inset in `scrollToEnd` natively (iOS adds `contentInset.bottom`,
+  Android adds `scrollView.paddingBottom`), so FlashList's autoscroll still lands on the true bottom
+  with the keyboard open. `JsChatView.distanceFromBottom()` adds the keyboard inset by hand, since it
+  is not part of `contentSize`.
 
 ## Not verified / needs a human
 

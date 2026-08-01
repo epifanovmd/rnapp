@@ -5,14 +5,36 @@ import {
   useSharedValue,
   withDelay,
   withRepeat,
+  withSequence,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useInputBarContext } from "../model/input-bar-context";
 import { IInputBarViewDelegate } from "../model/input-bar-delegate";
 import { RecordingState } from "../model/input-bar-types";
 import { createVoiceRecorder, VoiceRecorder } from "../model/voice-recorder";
+
+// ─── Тайминги возврата панели (порт performCancel/handleRelease) ─────────────
+// Под разыгрывает возврат последовательно, и именно из-за этого он выглядит
+// плавным: строка записи гаснет → микрофон возвращается пружиной → и только
+// потом слева появляется кнопка. Значения — 1:1 из InputBarView+Recording.
+
+/** `recordingRow.fadeOut` — гашение строки записи. */
+const ROW_FADE_DURATION = 150;
+/** Пружина возврата микрофона в исходное положение после отпускания. */
+const MIC_RESTORE_DURATION = 200;
+/** `restoreInputBar` — пружина появления левой кнопки. */
+const LEFT_BUTTON_ENTER_DURATION = 250;
+/** Пауза, которую корзина стоит на месте, прежде чем смениться на скрепку. */
+const TRASH_HOLD_DURATION = 300;
+/** `restoreLeftButtonToClip` — сжатие до 0.6 перед сменой иконки. */
+const CLIP_SQUEEZE_DURATION = 150;
+/** `restoreLeftButtonToClip` — пружина обратно в полный размер. */
+const CLIP_SPRING_DURATION = 200;
+/** Масштаб, до которого кнопка сжимается в момент смены иконки. */
+const CLIP_SQUEEZE_SCALE = 0.6;
 
 /**
  * Машина состояний записи голоса: жизненный цикл рекордера, переходы
@@ -27,6 +49,29 @@ export function useRecordingController(
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [recordDuration, setRecordDuration] = useState(0);
   const [showCancelTrash, setShowCancelTrash] = useState(false);
+  // Строка записи живёт дольше самого состояния записи: под гасит её отдельной
+  // анимацией и возвращает текстовое поле только после этого.
+  const [rowVisible, setRowVisible] = useState(false);
+  const rowOpacity = useSharedValue(1);
+  const rowHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const hideRecordingRow = useCallback(
+    (delay: number, fade: boolean) => {
+      if (fade) {
+        rowOpacity.value = withTiming(0, { duration: ROW_FADE_DURATION });
+      }
+      if (rowHideTimer.current) clearTimeout(rowHideTimer.current);
+      rowHideTimer.current = setTimeout(() => setRowVisible(false), delay);
+    },
+    [rowOpacity],
+  );
+
+  useEffect(
+    () => () => {
+      if (rowHideTimer.current) clearTimeout(rowHideTimer.current);
+    },
+    [],
+  );
 
   const recordingStateRef = useRef(recordingState);
 
@@ -65,50 +110,150 @@ export function useRecordingController(
     setRecordingState("recording");
     setRecordDuration(0);
     setShowCancelTrash(false);
+    if (rowHideTimer.current) clearTimeout(rowHideTimer.current);
+    setRowVisible(true);
+    rowOpacity.value = 1;
     trigger(HapticFeedbackTypes.impactLight);
     leftButtonScale.value = withTiming(0.01, { duration: 250 });
     leftButtonOpacity.value = withTiming(0, { duration: 250 });
     leftButtonWidth.value = withTiming(0, { duration: 250 });
     recorderRef.current?.startRecording();
     delegateRef.current.onRecordingStateChanged(true);
-  }, [delegateRef, leftButtonScale, leftButtonOpacity, leftButtonWidth]);
+  }, [
+    delegateRef,
+    leftButtonScale,
+    leftButtonOpacity,
+    leftButtonWidth,
+    rowOpacity,
+  ]);
+
+  /** Порт restoreInputBar: место под кнопку и её проявление. */
+  const restoreLeftButtonBox = useCallback(
+    (delay: number) => {
+      leftButtonOpacity.value = withDelay(
+        delay,
+        withTiming(1, { duration: LEFT_BUTTON_ENTER_DURATION }),
+      );
+      leftButtonWidth.value = withDelay(
+        delay,
+        withSpring(1, {
+          duration: LEFT_BUTTON_ENTER_DURATION,
+          dampingRatio: 0.65,
+        }),
+      );
+    },
+    [leftButtonOpacity, leftButtonWidth],
+  );
+
+  const enterScale = useCallback(
+    () =>
+      withSpring(1, {
+        duration: LEFT_BUTTON_ENTER_DURATION,
+        dampingRatio: 0.65,
+      }),
+    [],
+  );
+
+  /**
+   * Порт restoreLeftButtonToClip: кнопка сжимается до 0.6, ровно в нижней
+   * точке корзина меняется на скрепку, и пружина возвращает полный размер.
+   * Иконку переключаем из колбэка сжатия, а не по таймеру — тогда подмена
+   * всегда попадает в момент, когда кнопка меньше всего заметна.
+   */
+  const squeezeScale = useCallback(
+    () =>
+      withTiming(
+        CLIP_SQUEEZE_SCALE,
+        { duration: CLIP_SQUEEZE_DURATION, easing: Easing.in(Easing.ease) },
+        finished => {
+          "worklet";
+          if (finished) scheduleOnRN(setShowCancelTrash, false);
+        },
+      ),
+    [],
+  );
+
+  const springBackScale = useCallback(
+    () => withSpring(1, { duration: CLIP_SPRING_DURATION, dampingRatio: 0.7 }),
+    [],
+  );
 
   const finishRecording = useCallback(() => {
+    const wasLocked = recordingStateRef.current === "locked";
+    // Из обычной записи под сперва возвращает микрофон пружиной и только потом
+    // выпускает левую кнопку; из закреплённой — сразу, микрофон уже на месте.
+    const delay = wasLocked ? 0 : MIC_RESTORE_DURATION;
+
     setRecordingState("idle");
     setShowCancelTrash(false);
-    leftButtonScale.value = withSpring(1, {
-      duration: 250,
-      dampingRatio: 0.65,
-    });
-    leftButtonOpacity.value = withTiming(1, { duration: 250 });
-    leftButtonWidth.value = withSpring(1, {
-      duration: 250,
-      dampingRatio: 0.65,
-    });
+    // Отпускание строку не гасит — под просто убирает её в момент возврата.
+    hideRecordingRow(delay, false);
+    // Из закреплённой записи кнопка стоит на месте с корзиной — прячем её,
+    // чтобы она выехала уже со скрепкой, как в поде.
+    if (wasLocked) {
+      leftButtonScale.value = 0.01;
+      leftButtonOpacity.value = 0;
+    }
+    restoreLeftButtonBox(delay);
+    leftButtonScale.value = withDelay(delay, enterScale());
     recorderRef.current?.stopRecording();
     delegateRef.current.onRecordingStateChanged(false);
-  }, [delegateRef, leftButtonScale, leftButtonOpacity, leftButtonWidth]);
+  }, [
+    delegateRef,
+    hideRecordingRow,
+    restoreLeftButtonBox,
+    enterScale,
+    leftButtonScale,
+    leftButtonOpacity,
+  ]);
 
   const cancelRecording = useCallback(() => {
+    const wasLocked = recordingStateRef.current === "locked";
+
     setRecordingState("idle");
     setShowCancelTrash(true);
     trigger(HapticFeedbackTypes.notificationError);
-    leftButtonScale.value = withSpring(1, {
-      duration: 250,
-      dampingRatio: 0.65,
-    });
-    leftButtonOpacity.value = withTiming(1, { duration: 250 });
-    leftButtonWidth.value = withSpring(1, {
-      duration: 250,
-      dampingRatio: 0.65,
-    });
-    setTimeout(() => {
-      setShowCancelTrash(false);
-    }, 300);
+    // Отмена — единственный путь, где под гасит строку записи анимацией.
+    hideRecordingRow(
+      wasLocked ? ROW_FADE_DURATION : ROW_FADE_DURATION + MIC_RESTORE_DURATION,
+      true,
+    );
+
+    if (wasLocked) {
+      // Кнопка уже на месте и уже с корзиной — остаётся только морф в скрепку
+      // после гашения строки записи.
+      leftButtonScale.value = withDelay(
+        ROW_FADE_DURATION,
+        withSequence(squeezeScale(), springBackScale()),
+      );
+    } else {
+      // Свайпом: строка гаснет, микрофон возвращается пружиной, затем выезжает
+      // корзина, держится TRASH_HOLD_DURATION и морфится в скрепку.
+      const enterDelay = ROW_FADE_DURATION + MIC_RESTORE_DURATION;
+
+      restoreLeftButtonBox(enterDelay);
+      leftButtonScale.value = withDelay(
+        enterDelay,
+        withSequence(
+          enterScale(),
+          withDelay(TRASH_HOLD_DURATION, squeezeScale()),
+          springBackScale(),
+        ),
+      );
+    }
+
     recorderRef.current?.cancelRecording();
     delegateRef.current.onVoiceRecordingCancelled?.();
     delegateRef.current.onRecordingStateChanged(false);
-  }, [delegateRef, leftButtonScale, leftButtonOpacity, leftButtonWidth]);
+  }, [
+    delegateRef,
+    hideRecordingRow,
+    restoreLeftButtonBox,
+    enterScale,
+    squeezeScale,
+    springBackScale,
+    leftButtonScale,
+  ]);
 
   const lockRecording = useCallback(() => {
     setRecordingState("locked");
@@ -128,6 +273,9 @@ export function useRecordingController(
   return {
     recordingState,
     recordDuration,
+    /** Строка записи ещё на экране (в т.ч. пока догорает её анимация). */
+    rowVisible,
+    rowOpacity,
     isRecording: recordingState !== "idle",
     isLocked: recordingState === "locked",
     showCancelTrash,

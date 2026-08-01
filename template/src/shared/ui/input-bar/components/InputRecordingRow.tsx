@@ -29,9 +29,14 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
 
     const { dotStyle, slideShift } = useRecordingRowAnimation();
 
+    // Порт констрейнта slideContainer.centerX == row.centerX + offset:
+    // подсказка центрируется по всей строке, а не по остатку места справа от
+    // таймера — иначе она уезжает вправо примерно на половину его ширины.
+    const slideOffset = layout.recordSlideHintOffset;
+
     const slideStyle = useAnimatedStyle(() => ({
       opacity: slideHidden ? 0 : slideAlpha.value,
-      transform: [{ translateX: slideShift.value }],
+      transform: [{ translateX: slideOffset + slideShift.value }],
     }));
 
     return (
@@ -64,11 +69,8 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
         </Text>
 
         <Animated.View
-          style={[
-            ss.slideWrap,
-            { marginLeft: layout.recordSlideHintOffset },
-            slideStyle,
-          ]}
+          pointerEvents={"box-none"}
+          style={[ss.slideWrap, slideStyle]}
         >
           <Pressable style={ss.slideInner} onPress={onCancelTap}>
             <InputIcon
@@ -110,6 +112,14 @@ const ss = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  slideWrap: { flex: 1, alignItems: "center" },
+  slideWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   slideInner: { flexDirection: "row", alignItems: "center" },
 });

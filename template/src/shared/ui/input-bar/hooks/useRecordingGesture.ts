@@ -1,6 +1,7 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePanGesture } from "react-native-gesture-handler";
 import {
+  cancelAnimation,
   Easing,
   useSharedValue,
   withRepeat,
@@ -47,31 +48,49 @@ export function useRecordingGesture(
     lockScale.value = 1;
   }, [micTranslateX, micTranslateY, micGestureScale, slideAlpha, lockScale]);
 
-  // Оборачиваем finish/cancel с reset + pulse.
+  // Оборачиваем finish/cancel/lock с reset значений жеста.
   const finish = useCallback(() => {
     resetGestureValues();
-    pulseScale.value = 1;
     finishRecording();
-  }, [resetGestureValues, pulseScale, finishRecording]);
+  }, [resetGestureValues, finishRecording]);
 
   const cancel = useCallback(() => {
     resetGestureValues();
-    pulseScale.value = 1;
     cancelRecording();
-  }, [resetGestureValues, pulseScale, cancelRecording]);
+  }, [resetGestureValues, cancelRecording]);
 
   const lock = useCallback(() => {
     resetGestureValues();
-    pulseScale.value = withRepeat(
-      withTiming(layout.recordPulseMaxScale / layout.recordPulseBaseScale, {
-        duration: layout.recordPulseDuration * 1000,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1,
-      true,
-    );
     lockRecording();
-  }, [resetGestureValues, pulseScale, layout, lockRecording]);
+  }, [resetGestureValues, lockRecording]);
+
+  // ─── Пульсация ───────────────────────────────────────────────────────────
+  // Порт start/stopSendButtonPulse: в поде пульсация живёт ровно столько,
+  // сколько длится состояние locked. Поэтому она производная от состояния, а
+  // не побочный эффект конкретного пути: закреплённую запись останавливают
+  // мимо жеста (корзина в левой кнопке, крестик в строке записи, отправка),
+  // и при императивном сбросе withRepeat оставался бы крутиться навсегда.
+  useEffect(() => {
+    if (isLocked) {
+      // Порт startSendButtonPulse: кнопка сначала встаёт в базовый масштаб
+      // (1.15) и уже от него качается к максимуму (1.28) — поэтому в
+      // закреплённой записи она заметно крупнее обычной.
+      pulseScale.value = layout.recordPulseBaseScale;
+      pulseScale.value = withRepeat(
+        withTiming(layout.recordPulseMaxScale, {
+          duration: layout.recordPulseDuration * 1000,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        -1,
+        true,
+      );
+
+      return;
+    }
+
+    cancelAnimation(pulseScale);
+    pulseScale.value = withTiming(1, { duration: 150 });
+  }, [isLocked, pulseScale, layout]);
 
   // ─── Drag ────────────────────────────────────────────────────────────────
 

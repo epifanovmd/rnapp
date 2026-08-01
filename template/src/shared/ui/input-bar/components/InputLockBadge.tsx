@@ -29,21 +29,17 @@ export const InputLockBadge: FC<IInputLockBadgeProps> = memo(
           ss.wrap,
           {
             bottom: layout.inputButtonSize + layout.recordLockBottomMargin,
+            // Капсула, а не круг: в поде высота на 14 больше ширины, шеврон
+            // прижат к верху, замок центрирован со смещением вниз.
             width: layout.recordLockContainerSize,
-            height: layout.recordLockContainerSize,
+            height: layout.recordLockContainerSize + LOCK_EXTRA_HEIGHT,
             borderRadius: layout.recordLockContainerSize / 2,
             backgroundColor: theme.inputLockBackground,
           },
           badgeStyle,
         ]}
       >
-        <View
-          style={{
-            marginTop:
-              layout.recordLockChevronTopPad +
-              layout.recordLockIconCenterOffset,
-          }}
-        >
+        <View style={[ss.chevron, { top: layout.recordLockChevronTopPad }]}>
           <InputIcon
             name="chevron.up"
             size={layout.recordLockChevronSize}
@@ -51,10 +47,9 @@ export const InputLockBadge: FC<IInputLockBadgeProps> = memo(
           />
         </View>
         <View
-          style={[
-            ss.lockIcon,
-            { marginTop: layout.recordLockIconCenterOffset },
-          ]}
+          style={{
+            transform: [{ translateY: layout.recordLockIconCenterOffset }],
+          }}
         >
           <InputIcon
             name="lock.fill"
@@ -69,11 +64,16 @@ export const InputLockBadge: FC<IInputLockBadgeProps> = memo(
 
 InputLockBadge.displayName = "InputLockBadge";
 
+/** Насколько капсула выше своей ширины (порт `recordLockContainerSize + 14`). */
+const LOCK_EXTRA_HEIGHT = 14;
+
 const ss = StyleSheet.create({
   wrap: {
     alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
     position: "absolute",
     alignSelf: "center",
   },
-  lockIcon: {},
+  chevron: { position: "absolute" },
 });

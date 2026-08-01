@@ -29,6 +29,16 @@ interface IInputIconProps {
   strokeWidth?: number;
 }
 
+/**
+ * Размеры иконок в поде задаются через `SymbolConfiguration(pointSize:)`, а
+ * pointSize у SF Symbols — это размер шрифта символа, а не его бокса: глиф
+ * рисуется примерно в 1.2 раза крупнее. Наши глифы, наоборот, занимают лишь
+ * ~3/4 viewBox 24×24, поэтому при том же числовом размере выглядят заметно
+ * мельче нативных. Коэффициент выравнивает оптический размер — единственная
+ * ручка, если иконки покажутся крупными/мелкими относительно эталона.
+ */
+const SF_POINT_SIZE_SCALE = 1.5;
+
 interface IGlyph {
   paths: { d: string; fill?: boolean; stroke?: boolean }[];
   circle?: { fill?: boolean };
@@ -87,9 +97,10 @@ export const InputIcon: FC<IInputIconProps> = memo(
   ({ name, size, color, strokeWidth = 2 }) => {
     const glyph = GLYPHS[name];
     const innerColor = glyph.circle?.fill ? "#FFFFFF" : color;
+    const box = size * SF_POINT_SIZE_SCALE;
 
     return (
-      <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Svg width={box} height={box} viewBox="0 0 24 24">
         {glyph.circle && (
           <Circle
             cx={12}

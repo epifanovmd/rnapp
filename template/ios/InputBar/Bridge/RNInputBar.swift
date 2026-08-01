@@ -55,8 +55,23 @@ final class RNInputBar: UIView {
         inputBar.translatesAutoresizingMaskIntoConstraints = false
         addSubview(inputBar)
 
+        // Панель растёт вверх от нижнего края, как в чате: снизу — required-пин,
+        // сверху — .defaultLow. Высоту RN-фрейма задаёт хост по onHeightChange,
+        // и она по определению отстаёт от контента на кадр; если бы панель была
+        // прибита к верху, на этот кадр она уезжала бы вниз (за клавиатуру), а
+        // потом дёргалась обратно. С нижним якорем лаг не виден: панель сразу
+        // раскрывается вверх в своей натуральной высоте (RN-вью не клипует
+        // содержимое), а фрейм молча догоняет следующим кадром.
+        //
+        // Верхний пин слабее внутренних констрейнтов пода (.defaultHigh), чтобы
+        // слишком большой фрейм не растягивал панель — она всегда своей высоты
+        // и всегда прижата к низу.
+        let top = inputBar.topAnchor.constraint(equalTo: topAnchor)
+
+        top.priority = .defaultLow
+
         NSLayoutConstraint.activate([
-            inputBar.topAnchor.constraint(equalTo: topAnchor),
+            top,
             inputBar.leadingAnchor.constraint(equalTo: leadingAnchor),
             inputBar.trailingAnchor.constraint(equalTo: trailingAnchor),
             inputBar.bottomAnchor.constraint(equalTo: bottomAnchor),
@@ -76,6 +91,7 @@ final class RNInputBar: UIView {
 
     func clearInput() {
         inputBar.clearInput()
+        scheduleHeightReport()
     }
 
     func focus() {
@@ -89,6 +105,8 @@ final class RNInputBar: UIView {
     // MARK: - Input Action
 
     private func applyInputAction() {
+        defer { scheduleHeightReport() }
+
         guard let dict = inputAction else {
             inputBar.cancelMode()
             return
@@ -113,45 +131,87 @@ final class RNInputBar: UIView {
         }
     }
 
-    // MARK: - Intrinsic Size
+    // MARK: - Высота
 
-    /// InputBarView из пода не переопределяет intrinsicContentSize —
-    /// возвращает UIViewNoIntrinsicMetric. Считаем сами по внутренним
-    /// констрейнтам — иначе RN даст вьюхе нулевую высоту.
-    override var intrinsicContentSize: CGSize {
+    /// Панель управляет своей высотой через Auto Layout, но под Fabric RN-вью
+    /// в измерении Yoga не участвует (intrinsicContentSize никто не спросит) —
+    /// высоту фрейма задаёт хост по `onHeightChange`. Поэтому пересчитываем её
+    /// сами и сообщаем наверх.
+    private var lastReportedHeight: CGFloat = 0
+    private var pendingShrinkReport: DispatchWorkItem?
+
+    /// Под анимирует изменение своей высоты сам (панель ответа: 0.25 с на показ,
+    /// 0.2 с на скрытие). Ждём чуть дольше, прежде чем отдать RN уменьшение.
+    private static let shrinkReportDelay: TimeInterval = 0.3
+
+    private func measuredHeight() -> CGFloat {
         let width = bounds.width > 0 ? bounds.width : UIScreen.main.bounds.width
-        let height = inputBar.systemLayoutSizeFitting(
+
+        return inputBar.systemLayoutSizeFitting(
             CGSize(width: width, height: UIView.layoutFittingCompressedSize.height),
             withHorizontalFittingPriority: .required,
             verticalFittingPriority: .fittingSizeLevel
         ).height
-
-        return CGSize(width: UIView.noIntrinsicMetric, height: max(height, 1))
     }
 
-    /// Нативная панель сама управляет своей высотой через Auto Layout.
-    /// Когда контент меняется (reply-панель, рост текста), сообщаем RN
-    /// и инвалидируем intrinsic-размер — Yoga пересчитывает лейаут.
-    private var lastReportedHeight: CGFloat = 0
+    private func applyHeight(_ height: CGFloat) {
+        lastReportedHeight = height
+        onHeightChange?(["height": height])
+    }
+
+    /// Отчёт асимметричный, потому что асимметричны последствия:
+    /// - рост отдаём сразу — маленький фрейм обрезает панель от тапов;
+    /// - уменьшение откладываем до конца собственной анимации пода. RN-коммит
+    ///   меняет фрейм без анимации, и если сделать это посреди анимации, под
+    ///   переложится в конечную геометрию рывком. Пока фрейм больше нужного,
+    ///   не видно ничего: панель прижата к его нижнему краю.
+    private func reportHeight() {
+        let height = measuredHeight()
+
+        guard height > 0, abs(height - lastReportedHeight) > 0.5 else { return }
+
+        pendingShrinkReport?.cancel()
+        pendingShrinkReport = nil
+
+        guard height < lastReportedHeight else {
+            applyHeight(height)
+            return
+        }
+
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+
+            self.pendingShrinkReport = nil
+
+            let current = self.measuredHeight()
+
+            guard current > 0, abs(current - self.lastReportedHeight) > 0.5 else { return }
+
+            self.applyHeight(current)
+        }
+
+        pendingShrinkReport = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.shrinkReportDelay, execute: work)
+    }
+
+    /// Контент меняется внутри пода (панель ответа, рост текста, строка записи),
+    /// фрейм RN-вью при этом не трогается — значит `layoutSubviews` сам не
+    /// вызовется и высота осталась бы от прошлого состояния. Констрейнты под
+    /// проставляет синхронно (анимирует только их применение), поэтому хватает
+    /// одного тика — без `layoutIfNeeded`, который оборвал бы анимацию.
+    private func scheduleHeightReport() {
+        DispatchQueue.main.async { [weak self] in
+            self?.reportHeight()
+        }
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        reportHeight()
+    }
 
-        let height = inputBar.systemLayoutSizeFitting(
-            CGSize(width: bounds.width, height: UIView.layoutFittingCompressedSize.height),
-            withHorizontalFittingPriority: .required,
-            verticalFittingPriority: .fittingSizeLevel
-        ).height
-
-        guard height > 0, abs(height - lastReportedHeight) > 0.5 else { return }
-        lastReportedHeight = height
-        onHeightChange?(["height": height])
-
-        // invalidateIntrinsicContentSize внутри layoutSubviews вызовет
-        // рекурсию — откладываем на следующий цикл runloop.
-        DispatchQueue.main.async { [weak self] in
-            self?.invalidateIntrinsicContentSize()
-        }
+    deinit {
+        pendingShrinkReport?.cancel()
     }
 }
 
@@ -162,6 +222,7 @@ extension RNInputBar: InputBarDelegate {
         var data: [String: Any] = ["text": text]
         if let id = replyToId { data["replyToId"] = id }
         onSendMessage?(data)
+        scheduleHeightReport()
     }
 
     func inputBarDidEdit(text: String, messageId: String) {
@@ -170,6 +231,7 @@ extension RNInputBar: InputBarDelegate {
 
     func inputBarDidCancelMode(type: String) {
         onCancelInputAction?(["type": type])
+        scheduleHeightReport()
     }
 
     func inputBarDidTapAttachment() {
@@ -186,9 +248,12 @@ extension RNInputBar: InputBarDelegate {
 
     func inputBarDidChangeText(_ text: String) {
         onInputTyping?(["text": text])
+        // Многострочный ввод растит поле — высота панели меняется вместе с ним.
+        scheduleHeightReport()
     }
 
     func inputBarRecordingStateChanged(isRecording: Bool) {
         onRecordingStateChange?(["isRecording": isRecording])
+        scheduleHeightReport()
     }
 }
