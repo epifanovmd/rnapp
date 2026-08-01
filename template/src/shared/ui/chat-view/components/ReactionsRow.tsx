@@ -1,6 +1,7 @@
 import React, { FC, memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { chatTextBase } from "../model";
 import { ChatMessage } from "../types";
 import { useChatViewContext } from "./chat-view-context";
 
@@ -49,11 +50,14 @@ export const ReactionsRow: FC<IReactionsRowProps> = memo(
               }
             >
               <Text
-                style={{
-                  fontSize: layout.reactionFont.fontSize,
-                  fontWeight: layout.reactionFont.fontWeight,
-                  color: theme.reactionText,
-                }}
+                style={[
+                  chatTextBase,
+                  {
+                    fontSize: layout.reactionFont.fontSize,
+                    fontWeight: layout.reactionFont.fontWeight,
+                    color: theme.reactionText,
+                  },
+                ]}
               >
                 {`${reaction.emoji} ${reaction.count}`}
               </Text>

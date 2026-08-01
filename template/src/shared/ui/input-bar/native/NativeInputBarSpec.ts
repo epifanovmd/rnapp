@@ -7,6 +7,7 @@ import { codegenNativeCommands } from "react-native";
 import { codegenNativeComponent } from "react-native";
 import type {
   DirectEventHandler,
+  Double,
   WithDefault,
 } from "react-native/Libraries/Types/CodegenTypes";
 
@@ -38,9 +39,19 @@ export type NativeInputBarCancelInputActionEventData = {
 
 export type NativeInputBarAttachmentPressEventData = {};
 
-export type NativeInputBarVoiceRecordingStartEventData = {};
-export type NativeInputBarVoiceRecordingEndEventData = {};
-export type NativeInputBarVoiceRecordingCancelEventData = {};
+export type NativeInputBarVoiceRecordingCompleteEventData = {
+  /** file:// путь к записанному аудиофайлу */
+  fileUrl: string;
+  /** Длительность записи в секундах */
+  duration: Double;
+  /** Значения амплитуды для волновой формы */
+  waveform?: Double[];
+};
+
+/** Собственная высота панели — RN задаёт размер, поэтому нужен обратный канал. */
+export type NativeInputBarHeightChangeEventData = {
+  height: Double;
+};
 
 export type NativeInputBarInputTypingEventData = {
   text: string;
@@ -61,11 +72,10 @@ export interface NativeInputBarProps extends ViewProps {
   onEditMessage?: DirectEventHandler<NativeInputBarEditMessageEventData>;
   onCancelInputAction?: DirectEventHandler<NativeInputBarCancelInputActionEventData>;
   onAttachmentPress?: DirectEventHandler<NativeInputBarAttachmentPressEventData>;
-  onVoiceRecordingStart?: DirectEventHandler<NativeInputBarVoiceRecordingStartEventData>;
-  onVoiceRecordingEnd?: DirectEventHandler<NativeInputBarVoiceRecordingEndEventData>;
-  onVoiceRecordingCancel?: DirectEventHandler<NativeInputBarVoiceRecordingCancelEventData>;
+  onVoiceRecordingComplete?: DirectEventHandler<NativeInputBarVoiceRecordingCompleteEventData>;
   onInputTyping?: DirectEventHandler<NativeInputBarInputTypingEventData>;
   onRecordingStateChange?: DirectEventHandler<NativeInputBarRecordingStateChangeEventData>;
+  onHeightChange?: DirectEventHandler<NativeInputBarHeightChangeEventData>;
 }
 
 // ─── Commands ─────────────────────────────────────────────────────────────────

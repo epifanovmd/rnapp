@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { formatFileSize } from "../../model";
+import { chatTextBase, formatFileSize } from "../../model";
 import { ChatFileItem, ChatMessageOwnership } from "../../types";
 import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon, ChatIconName } from "../ChatIcon";
@@ -78,16 +78,20 @@ export const FileContent: FC<IFileContentProps> = memo(
           <Text
             numberOfLines={1}
             ellipsizeMode="middle"
-            style={{
-              fontSize: layout.fileNameFont.fontSize,
-              fontWeight: layout.fileNameFont.fontWeight,
-              color: isOutgoing ? theme.outgoingText : theme.incomingText,
-            }}
+            style={[
+              chatTextBase,
+              {
+                fontSize: layout.fileNameFont.fontSize,
+                fontWeight: layout.fileNameFont.fontWeight,
+                color: isOutgoing ? theme.outgoingText : theme.incomingText,
+              },
+            ]}
           >
             {file.name}
           </Text>
           <Text
             style={[
+              chatTextBase,
               ss.size,
               {
                 fontSize: layout.fileSizeFont.fontSize,

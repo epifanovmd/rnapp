@@ -5,13 +5,12 @@ import type {
   NativeInputBarAttachmentPressEventData,
   NativeInputBarCancelInputActionEventData,
   NativeInputBarEditMessageEventData,
+  NativeInputBarHeightChangeEventData,
   NativeInputBarInputTypingEventData,
   NativeInputBarProps,
   NativeInputBarRecordingStateChangeEventData,
   NativeInputBarSendMessageEventData,
-  NativeInputBarVoiceRecordingCancelEventData,
-  NativeInputBarVoiceRecordingEndEventData,
-  NativeInputBarVoiceRecordingStartEventData,
+  NativeInputBarVoiceRecordingCompleteEventData,
 } from "./native/NativeInputBarSpec";
 
 // ─── Доменные типы (эталон — codegen-спек RNInputBar) ────────────────────────
@@ -35,15 +34,12 @@ export type InputBarCancelInputActionEventData =
   NativeInputBarCancelInputActionEventData;
 export type InputBarAttachmentPressEventData =
   NativeInputBarAttachmentPressEventData;
-export type InputBarVoiceRecordingStartEventData =
-  NativeInputBarVoiceRecordingStartEventData;
-export type InputBarVoiceRecordingEndEventData =
-  NativeInputBarVoiceRecordingEndEventData;
-export type InputBarVoiceRecordingCancelEventData =
-  NativeInputBarVoiceRecordingCancelEventData;
+export type InputBarVoiceRecordingCompleteEventData =
+  NativeInputBarVoiceRecordingCompleteEventData;
 export type InputBarInputTypingEventData = NativeInputBarInputTypingEventData;
 export type InputBarRecordingStateChangeEventData =
   NativeInputBarRecordingStateChangeEventData;
+export type InputBarHeightChangeEventData = NativeInputBarHeightChangeEventData;
 
 // ─── Императивный интерфейс ──────────────────────────────────────────────────
 
@@ -75,13 +71,9 @@ export interface InputBarProps extends ViewProps {
   onCancelInputAction?: (event: InputBarCancelInputActionEventData) => void;
   /** Нажатие на кнопку вложений. */
   onAttachmentPress?: (event: InputBarAttachmentPressEventData) => void;
-  /** Началась запись голосового. */
-  onVoiceRecordingStart?: (event: InputBarVoiceRecordingStartEventData) => void;
-  /** Запись завершена (отправка). */
-  onVoiceRecordingEnd?: (event: InputBarVoiceRecordingEndEventData) => void;
-  /** Запись отменена. */
-  onVoiceRecordingCancel?: (
-    event: InputBarVoiceRecordingCancelEventData,
+  /** Запись голосового завершена — файл, длительность, волна. */
+  onVoiceRecordingComplete?: (
+    event: InputBarVoiceRecordingCompleteEventData,
   ) => void;
   /** Набор текста. */
   onInputTyping?: (event: InputBarInputTypingEventData) => void;
@@ -89,4 +81,6 @@ export interface InputBarProps extends ViewProps {
   onRecordingStateChange?: (
     event: InputBarRecordingStateChangeEventData,
   ) => void;
+  /** Собственная высота панели изменилась (RN задаёт размер сам). */
+  onHeightChange?: (event: InputBarHeightChangeEventData) => void;
 }

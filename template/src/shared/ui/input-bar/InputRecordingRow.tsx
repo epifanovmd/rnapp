@@ -12,16 +12,16 @@ import Animated, {
 
 import { useChatViewContext } from "../chat-view/components/chat-view-context";
 import { ChatIcon } from "../chat-view/components/ChatIcon";
-import { formatRecordTimer } from "../chat-view/model";
+import { chatTextBase, formatRecordTimer } from "../chat-view/model";
 
 /**
- * Порт InputBarRecordingRow: мигающая красная точка, таймер "m:ss,cc",
- * подсказка «< Отмена» с покачиванием (тап по ней отменяет запись).
+ * Порт InputBarRecordingRow: мигающая красная точка, таймер «m:ss,cc»,
+ * подсказка «‹ Отмена» с покачиванием (тап по ней отменяет запись).
  */
 
 interface IInputRecordingRowProps {
   duration: number;
-  /** Прозрачность подсказки «Отмена» (управляется жестом перетаскивания). */
+  /** Прозрачность подсказки «Отмена» — управляется жестом перетаскивания. */
   slideAlpha: SharedValue<number>;
   /** Скрыта ли подсказка (locked-режим). */
   slideHidden: boolean;
@@ -74,13 +74,16 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
           ]}
         />
         <Text
-          style={{
-            marginLeft: layout.recordTimerLeading,
-            fontSize: layout.recordTimerFont.fontSize,
-            fontWeight: layout.recordTimerFont.fontWeight,
-            fontVariant: ["tabular-nums"],
-            color: theme.inputText,
-          }}
+          style={[
+            chatTextBase,
+            {
+              marginLeft: layout.recordTimerLeading,
+              fontSize: layout.recordTimerFont.fontSize,
+              fontWeight: layout.recordTimerFont.fontWeight,
+              fontVariant: ["tabular-nums"],
+              color: theme.inputText,
+            },
+          ]}
         >
           {formatRecordTimer(duration)}
         </Text>
@@ -101,6 +104,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
             />
             <Text
               style={[
+                chatTextBase,
                 ss.cancelText,
                 {
                   fontSize: layout.recordCancelFont.fontSize,

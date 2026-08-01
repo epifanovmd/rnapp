@@ -17,11 +17,10 @@ RCT_EXPORT_VIEW_PROPERTY(onSendMessage, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onEditMessage, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onCancelInputAction, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onAttachmentPress, RCTDirectEventBlock)
-RCT_EXPORT_VIEW_PROPERTY(onVoiceRecordingStart, RCTDirectEventBlock)
-RCT_EXPORT_VIEW_PROPERTY(onVoiceRecordingEnd, RCTDirectEventBlock)
-RCT_EXPORT_VIEW_PROPERTY(onVoiceRecordingCancel, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onVoiceRecordingComplete, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onInputTyping, RCTDirectEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(onRecordingStateChange, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onHeightChange, RCTDirectEventBlock)
 
 // MARK: - Commands
 

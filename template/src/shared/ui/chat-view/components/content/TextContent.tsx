@@ -1,7 +1,7 @@
 import React, { FC, memo, useMemo } from "react";
 import { Text, TextStyle } from "react-native";
 
-import { IChatViewLayout, IChatViewTheme } from "../../model";
+import { chatTextBase, IChatViewLayout, IChatViewTheme } from "../../model";
 import { ChatMessageOwnership } from "../../types";
 import { useChatViewContext } from "../chat-view-context";
 
@@ -110,18 +110,18 @@ export const TextContent: FC<ITextContentProps> = memo(
     };
 
     if (segments.length === 1 && !segments[0].url) {
-      return <Text style={baseStyle}>{text}</Text>;
+      return <Text style={[chatTextBase, baseStyle]}>{text}</Text>;
     }
 
     const linkColor = linkColorFor(ownership, theme);
 
     return (
-      <Text style={baseStyle}>
+      <Text style={[chatTextBase, baseStyle]}>
         {segments.map((segment, i) =>
           segment.url ? (
             <Text
               key={i}
-              style={linkStyle(linkColor)}
+              style={[chatTextBase, linkStyle(linkColor)]}
               suppressHighlighting
               onPress={() => {
                 const url = segment.url!;

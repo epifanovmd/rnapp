@@ -13,6 +13,7 @@ final class RNInputBar: UIView {
     @objc var onVoiceRecordingComplete: RCTDirectEventBlock?
     @objc var onInputTyping: RCTDirectEventBlock?
     @objc var onRecordingStateChange: RCTDirectEventBlock?
+    @objc var onHeightChange: RCTDirectEventBlock?
 
     // MARK: - Props
 
@@ -116,6 +117,24 @@ final class RNInputBar: UIView {
 
     override var intrinsicContentSize: CGSize {
         inputBar.intrinsicContentSize
+    }
+
+    /// RN задаёт размер сам, поэтому собственная высота панели уходит наверх
+    /// событием — хост выставляет её в стиле.
+    private var lastReportedHeight: CGFloat = 0
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        let height = inputBar.systemLayoutSizeFitting(
+            CGSize(width: bounds.width, height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        ).height
+
+        guard height > 0, abs(height - lastReportedHeight) > 0.5 else { return }
+        lastReportedHeight = height
+        onHeightChange?(["height": height])
     }
 }
 

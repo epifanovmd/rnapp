@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -10,6 +11,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
+import { chatTextBase } from "../model";
 import { ChatOverlayStore } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
@@ -23,13 +25,15 @@ import { ChatIcon } from "./ChatIcon";
 
 interface IChatFabProps {
   store: ChatOverlayStore;
-  /** Нижний отступ контента (safe area / клавиатура) — FAB держится над ним. */
-  bottomInset: number;
+  /** Нижний отступ контента (клавиатура / safe area) — панель стоит на нём. */
+  bottomInset: SharedValue<number>;
+  /** Текущая высота панели ввода. */
+  inputBarHeight: SharedValue<number>;
   onPress: () => void;
 }
 
 export const ChatFab: FC<IChatFabProps> = memo(
-  ({ store, bottomInset, onPress }) => {
+  ({ store, bottomInset, inputBarHeight, onPress }) => {
     const { theme, layout, features } = useChatViewContext();
     const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
@@ -38,15 +42,11 @@ export const ChatFab: FC<IChatFabProps> = memo(
     const singleLineHeight = 2 * layout.inputBarVPad + layout.textViewMinHeight;
     const expandedGap = aboveMicOffset - singleLineHeight;
 
-    // Порт compact/expanded constraint: отсчёт от нижнего края панели ввода,
-    // которая сама поднята на bottomInset (safe area / клавиатура).
-    const bottomTarget =
-      bottomInset +
-      (state.fabExpanded ? state.inputBarHeight + expandedGap : aboveMicOffset);
-
     const opacity = useSharedValue(0);
-    const bottom = useSharedValue(bottomTarget);
     const spin = useSharedValue(0);
+    // Порт setExpanded: переключение между compact- и expanded-констрейнтом
+    // анимируется 0.25s, а сами привязки считаются от живой геометрии панели.
+    const expandedProgress = useSharedValue(state.fabExpanded ? 1 : 0);
 
     const visible = state.fabVisible || state.fabLoading;
 
@@ -57,11 +57,11 @@ export const ChatFab: FC<IChatFabProps> = memo(
     }, [visible, opacity, layout.fabAnimationDuration]);
 
     useEffect(() => {
-      bottom.value = withTiming(bottomTarget, {
+      expandedProgress.value = withTiming(state.fabExpanded ? 1 : 0, {
         duration: 250,
         easing: Easing.inOut(Easing.ease),
       });
-    }, [bottomTarget, bottom]);
+    }, [state.fabExpanded, expandedProgress]);
 
     useEffect(() => {
       if (state.fabLoading) {
@@ -76,10 +76,19 @@ export const ChatFab: FC<IChatFabProps> = memo(
       }
     }, [state.fabLoading, spin]);
 
-    const containerStyle = useAnimatedStyle(() => ({
-      opacity: opacity.value,
-      bottom: bottom.value,
-    }));
+    const containerStyle = useAnimatedStyle(() => {
+      // compact: от нижнего края панели; expanded: от её верхнего края.
+      const compact = aboveMicOffset;
+      const expanded = inputBarHeight.value + expandedGap;
+
+      return {
+        opacity: opacity.value,
+        bottom:
+          bottomInset.value +
+          compact +
+          (expanded - compact) * expandedProgress.value,
+      };
+    });
 
     const ringStyle = useAnimatedStyle(() => ({
       transform: [{ rotate: `${spin.value}deg` }],
@@ -161,12 +170,15 @@ export const ChatFab: FC<IChatFabProps> = memo(
             ]}
           >
             <Text
-              style={{
-                fontSize: layout.fabBadgeFont.fontSize,
-                fontWeight: layout.fabBadgeFont.fontWeight,
-                fontVariant: ["tabular-nums"],
-                color: theme.fabBadgeTextColor,
-              }}
+              style={[
+                chatTextBase,
+                {
+                  fontSize: layout.fabBadgeFont.fontSize,
+                  fontWeight: layout.fabBadgeFont.fontWeight,
+                  fontVariant: ["tabular-nums"],
+                  color: theme.fabBadgeTextColor,
+                },
+              ]}
             >
               {state.unreadCount > 99 ? "99+" : `${state.unreadCount}`}
             </Text>

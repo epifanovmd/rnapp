@@ -15,7 +15,7 @@ import Animated, {
 
 import { ContextMenuView } from "../../context-menu-view";
 import { IParsedChatMessage, messageAlignment } from "../model";
-import { useChatViewContext } from "./chat-view-context";
+import { ChatViewContext, useChatViewContext } from "./chat-view-context";
 import { ChatAvatar } from "./ChatAvatar";
 import { MessageBubble } from "./MessageBubble";
 import { IResolvedReply } from "./ReplyPreview";
@@ -94,8 +94,9 @@ HighlightOverlay.displayName = "HighlightOverlay";
 
 export const MessageCell: FC<IMessageCellProps> = memo(
   ({ message, resolvedReply, avatarAnchor }) => {
+    const chatContext = useChatViewContext();
     const { theme, layout, features, listWidth, delegate, cellStore } =
-      useChatViewContext();
+      chatContext;
 
     const alignment = messageAlignment(message.ownership);
     const showAvatar = features.showAvatars && message.ownership === "theirs";
@@ -184,7 +185,11 @@ export const MessageCell: FC<IMessageCellProps> = memo(
                 delegate.current?.onActionSelect(actionId, menuId)
               }
             >
-              {bubble}
+              {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
+                  поэтому контекст с темой едет вместе с children. */}
+              <ChatViewContext.Provider value={chatContext}>
+                {bubble}
+              </ChatViewContext.Provider>
             </ContextMenuView>
           ) : (
             bubble

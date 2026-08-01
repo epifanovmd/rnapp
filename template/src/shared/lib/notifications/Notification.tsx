@@ -7,14 +7,16 @@ import React, {
   useState,
 } from "react";
 import {
-  SafeAreaView,
   StyleProp,
   StyleSheet,
   useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import {
   NotificationToast,
@@ -22,6 +24,8 @@ import {
   NotificationToastProps,
   NotificationToastRef,
 } from "./NotificationToast";
+
+const TOP_EDGE = ["top"] as const;
 
 export interface NotificationActions {
   show: (
@@ -115,22 +119,25 @@ export const Notification = memo(
       hide,
     }));
 
-    const SafeAreOrView = useMemo(
-      () => (safeArea ? SafeAreaView : View),
-      [safeArea],
+    const content = useMemo(
+      () =>
+        !!toast && (
+          <NotificationToast
+            ref={toastRef}
+            {...toast}
+            style={[safeArea ? undefined : { paddingTop: top }, toast.style]}
+          />
+        ),
+      [toast, safeArea, top],
     );
 
     return (
       <View style={[styles.container, { width }, containerStyle]}>
-        <SafeAreOrView>
-          {!!toast && (
-            <NotificationToast
-              ref={toastRef}
-              {...toast}
-              style={[safeArea ? undefined : { paddingTop: top }, toast.style]}
-            />
-          )}
-        </SafeAreOrView>
+        {safeArea ? (
+          <SafeAreaView edges={TOP_EDGE}>{content}</SafeAreaView>
+        ) : (
+          <View>{content}</View>
+        )}
       </View>
     );
   }),

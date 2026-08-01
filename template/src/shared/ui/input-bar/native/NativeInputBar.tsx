@@ -8,8 +8,6 @@ import {
   findNodeHandle,
   type HostComponent,
   type NativeSyntheticEvent,
-  Platform,
-  requireNativeComponent,
   StyleSheet,
   UIManager,
 } from "react-native";
@@ -19,13 +17,12 @@ import type {
   InputBarAttachmentPressEventData,
   InputBarCancelInputActionEventData,
   InputBarEditMessageEventData,
+  InputBarHeightChangeEventData,
   InputBarInputTypingEventData,
   InputBarProps,
   InputBarRecordingStateChangeEventData,
   InputBarSendMessageEventData,
-  InputBarVoiceRecordingCancelEventData,
-  InputBarVoiceRecordingEndEventData,
-  InputBarVoiceRecordingStartEventData,
+  InputBarVoiceRecordingCompleteEventData,
   NativeInputBarAction,
   NativeInputBarProps,
 } from "../types";
@@ -33,18 +30,8 @@ import type { NativeInputBarCommands } from "./NativeInputBarSpec";
 
 const COMPONENT_NAME = "RNInputBar";
 
-const RNInputBar = (() => {
-  if (Platform.OS === "android") {
-    return null;
-  }
-  try {
-    const Spec = require("./NativeInputBarSpec").default;
-
-    return Spec as HostComponent<NativeInputBarProps>;
-  } catch {
-    return requireNativeComponent<NativeInputBarProps>(COMPONENT_NAME);
-  }
-})();
+const RNInputBar = require("./NativeInputBarSpec")
+  .default as HostComponent<NativeInputBarProps>;
 
 function dispatchCommand(
   nativeRef: React.RefObject<React.ComponentRef<
@@ -53,17 +40,14 @@ function dispatchCommand(
   commandName: keyof NativeInputBarCommands,
   args: unknown[],
 ): void {
-  try {
-    const { Commands } = require("./NativeInputBarSpec");
+  const { Commands } = require("./NativeInputBarSpec");
 
-    if (Commands?.[commandName] && nativeRef.current) {
-      Commands[commandName](nativeRef.current, ...args);
+  if (Commands?.[commandName] && nativeRef.current) {
+    Commands[commandName](nativeRef.current, ...args);
 
-      return;
-    }
-  } catch {
-    /* fall through */
+    return;
   }
+
   const node = findNodeHandle(nativeRef.current);
 
   if (node) {
@@ -76,8 +60,8 @@ function dispatchCommand(
 }
 
 /**
- * iOS-обёртка над нативным RNInputBar (InputBarView из IOSChatView pod).
- * Реализация-эталон; используется через публичную точку входа InputBar.
+ * Обёртка над нативной панелью ввода: на iOS это InputBarView из пода
+ * IOSChatView, на Android — Kotlin-порт того же компонента.
  */
 export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
   (props, ref) => {
@@ -90,11 +74,10 @@ export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
       onEditMessage,
       onCancelInputAction,
       onAttachmentPress,
-      onVoiceRecordingStart,
-      onVoiceRecordingEnd,
-      onVoiceRecordingCancel,
+      onVoiceRecordingComplete,
       onInputTyping,
       onRecordingStateChange,
+      onHeightChange,
     } = props;
 
     const nativeRef =
@@ -136,20 +119,10 @@ export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
         onAttachmentPress?.(e.nativeEvent),
       [onAttachmentPress],
     );
-    const handleVoiceRecordingStart = useCallback(
-      (e: NativeSyntheticEvent<InputBarVoiceRecordingStartEventData>) =>
-        onVoiceRecordingStart?.(e.nativeEvent),
-      [onVoiceRecordingStart],
-    );
-    const handleVoiceRecordingEnd = useCallback(
-      (e: NativeSyntheticEvent<InputBarVoiceRecordingEndEventData>) =>
-        onVoiceRecordingEnd?.(e.nativeEvent),
-      [onVoiceRecordingEnd],
-    );
-    const handleVoiceRecordingCancel = useCallback(
-      (e: NativeSyntheticEvent<InputBarVoiceRecordingCancelEventData>) =>
-        onVoiceRecordingCancel?.(e.nativeEvent),
-      [onVoiceRecordingCancel],
+    const handleVoiceRecordingComplete = useCallback(
+      (e: NativeSyntheticEvent<InputBarVoiceRecordingCompleteEventData>) =>
+        onVoiceRecordingComplete?.(e.nativeEvent),
+      [onVoiceRecordingComplete],
     );
     const handleInputTyping = useCallback(
       (e: NativeSyntheticEvent<InputBarInputTypingEventData>) =>
@@ -161,12 +134,15 @@ export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
         onRecordingStateChange?.(e.nativeEvent),
       [onRecordingStateChange],
     );
+    const handleHeightChange = useCallback(
+      (e: NativeSyntheticEvent<InputBarHeightChangeEventData>) =>
+        onHeightChange?.(e.nativeEvent),
+      [onHeightChange],
+    );
 
     const nativeInputAction: NativeInputBarAction = inputAction ?? {
       type: "none",
     };
-
-    if (!RNInputBar) return null;
 
     return (
       <RNInputBar
@@ -179,11 +155,10 @@ export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
         onEditMessage={handleEditMessage}
         onCancelInputAction={handleCancelInputAction}
         onAttachmentPress={handleAttachmentPress}
-        onVoiceRecordingStart={handleVoiceRecordingStart}
-        onVoiceRecordingEnd={handleVoiceRecordingEnd}
-        onVoiceRecordingCancel={handleVoiceRecordingCancel}
+        onVoiceRecordingComplete={handleVoiceRecordingComplete}
         onInputTyping={handleInputTyping}
         onRecordingStateChange={handleRecordingStateChange}
+        onHeightChange={handleHeightChange}
       />
     );
   },

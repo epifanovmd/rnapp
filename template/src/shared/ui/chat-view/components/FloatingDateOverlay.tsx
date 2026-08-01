@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { chatTextBase } from "../model";
 import { ChatOverlayStore } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
 
@@ -65,11 +66,14 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
           }}
         >
           <Text
-            style={{
-              fontSize: layout.dateSeparatorFont.fontSize,
-              fontWeight: layout.dateSeparatorFont.fontWeight,
-              color: theme.dateSeparatorText,
-            }}
+            style={[
+              chatTextBase,
+              {
+                fontSize: layout.dateSeparatorFont.fontSize,
+                fontWeight: layout.dateSeparatorFont.fontWeight,
+                color: theme.dateSeparatorText,
+              },
+            ]}
           >
             {state.floatingDateTitle}
           </Text>

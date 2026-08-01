@@ -6,6 +6,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
+import { chatTextBase } from "../../model";
 import { ChatMessageOwnership, ChatPoll, ChatPollOption } from "../../types";
 import { useChatViewContext } from "../chat-view-context";
 
@@ -28,7 +29,7 @@ const PollOptionRow: FC<IPollOptionRowProps> = memo(
     const { theme, layout } = useChatViewContext();
     const isOutgoing = ownership === "mine";
 
-    const percentage = Math.max(0.02, option.percentage / 100);
+    const percentage = Math.max(0.02, option.percentage);
     const fill = useSharedValue(percentage);
     const isFirstRender = useRef(true);
 
@@ -94,6 +95,7 @@ const PollOptionRow: FC<IPollOptionRowProps> = memo(
           <Text
             numberOfLines={1}
             style={[
+              chatTextBase,
               ss.optionLabel,
               {
                 marginLeft: layout.pollBarHPad,
@@ -107,6 +109,7 @@ const PollOptionRow: FC<IPollOptionRowProps> = memo(
           </Text>
           <Text
             style={[
+              chatTextBase,
               ss.percent,
               {
                 marginRight: layout.pollBarHPad,
@@ -117,7 +120,7 @@ const PollOptionRow: FC<IPollOptionRowProps> = memo(
               },
             ]}
           >
-            {`${Math.round(option.percentage)}%`}
+            {`${Math.round(option.percentage * 100)}%`}
           </Text>
         </View>
       </Pressable>
@@ -171,16 +174,20 @@ export const PollContent: FC<IPollContentProps> = memo(
     return (
       <View>
         <Text
-          style={{
-            fontSize: layout.pollQuestionFont.fontSize,
-            fontWeight: layout.pollQuestionFont.fontWeight,
-            color: isOutgoing ? theme.outgoingText : theme.incomingText,
-          }}
+          style={[
+            chatTextBase,
+            {
+              fontSize: layout.pollQuestionFont.fontSize,
+              fontWeight: layout.pollQuestionFont.fontWeight,
+              color: isOutgoing ? theme.outgoingText : theme.incomingText,
+            },
+          ]}
         >
           {poll.question}
         </Text>
         <Text
           style={[
+            chatTextBase,
             ss.subtitle,
             {
               fontSize: layout.pollSubtitleFont.fontSize,
@@ -219,24 +226,30 @@ export const PollContent: FC<IPollContentProps> = memo(
 
         <View style={ss.footer}>
           <Text
-            style={{
-              fontSize: layout.pollVotesFont.fontSize,
-              fontWeight: layout.pollVotesFont.fontWeight,
-              color: isOutgoing ? theme.outgoingTime : theme.incomingTime,
-            }}
+            style={[
+              chatTextBase,
+              {
+                fontSize: layout.pollVotesFont.fontSize,
+                fontWeight: layout.pollVotesFont.fontWeight,
+                color: isOutgoing ? theme.outgoingTime : theme.incomingTime,
+              },
+            ]}
           >
             {`${poll.totalVotes} голосов`}
           </Text>
           {!poll.isAnonymous && (
             <Text
               suppressHighlighting
-              style={{
-                fontSize: layout.pollVotesFont.fontSize,
-                fontWeight: layout.pollVotesFont.fontWeight,
-                color: isOutgoing
-                  ? theme.outgoingStatusRead
-                  : theme.voiceWaveformActive,
-              }}
+              style={[
+                chatTextBase,
+                {
+                  fontSize: layout.pollVotesFont.fontSize,
+                  fontWeight: layout.pollVotesFont.fontWeight,
+                  color: isOutgoing
+                    ? theme.outgoingStatusRead
+                    : theme.voiceWaveformActive,
+                },
+              ]}
               onPress={() =>
                 delegate.current?.onPollDetailTap(messageId, poll.id)
               }

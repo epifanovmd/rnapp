@@ -95,17 +95,11 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
           propsRef.current.onEditMessage?.({ text, messageId }),
         onCancelMode: type => propsRef.current.onCancelInputAction?.({ type }),
         onTapAttachment: () => propsRef.current.onAttachmentPress?.({}),
-        onVoiceRecordingComplete: () =>
-          propsRef.current.onVoiceRecordingEnd?.({}),
-        onVoiceRecordingCancelled: () =>
-          propsRef.current.onVoiceRecordingCancel?.({}),
+        onVoiceRecordingComplete: result =>
+          propsRef.current.onVoiceRecordingComplete?.(result),
         onChangeText: text => propsRef.current.onInputTyping?.({ text }),
-        onRecordingStateChanged: isRecording => {
-          if (isRecording) {
-            propsRef.current.onVoiceRecordingStart?.({});
-          }
-          propsRef.current.onRecordingStateChange?.({ isRecording });
-        },
+        onRecordingStateChanged: isRecording =>
+          propsRef.current.onRecordingStateChange?.({ isRecording }),
       }),
       [],
     );
@@ -118,7 +112,10 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
       blur: () => barRef.current?.blur(),
     }));
 
-    const handleHeightChange = useCallback(() => {}, []);
+    const handleHeightChange = useCallback(
+      (height: number) => propsRef.current.onHeightChange?.({ height }),
+      [],
+    );
 
     return (
       <ChatViewContext.Provider value={contextValue}>

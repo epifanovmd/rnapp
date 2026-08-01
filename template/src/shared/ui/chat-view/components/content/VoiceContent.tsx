@@ -22,6 +22,7 @@ import {
 } from "react-native-gesture-handler";
 
 import {
+  chatTextBase,
   chatVoicePlayer,
   ChatVoicePlayerState,
   formatChatDuration,
@@ -196,7 +197,7 @@ export const VoiceContent: FC<IVoiceContentProps> = memo(
           />
           {isLoading && (
             <View style={ss.loadingDim} pointerEvents="none">
-              <Text style={ss.loadingDots}>•••</Text>
+              <Text style={[chatTextBase, ss.loadingDots]}>•••</Text>
             </View>
           )}
         </Pressable>
@@ -242,6 +243,7 @@ export const VoiceContent: FC<IVoiceContentProps> = memo(
           </GestureDetector>
           <Text
             style={[
+              chatTextBase,
               ss.duration,
               {
                 fontSize: layout.voiceDurationFont.fontSize,

@@ -2,6 +2,8 @@ import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
+import { chatTextBase } from "../model";
+
 /**
  * Порт avatarView: круглая аватарка с фоллбэком на инициал
  * (детерминированный цвет из hash имени).
@@ -38,7 +40,7 @@ export const ChatAvatar: FC<IChatAvatarProps> = memo(({ name, url, size }) => {
         },
       ]}
     >
-      <Text style={[ss.initial, { fontSize: size * 0.42 }]}>
+      <Text style={[chatTextBase, ss.initial, { fontSize: size * 0.42 }]}>
         {name.slice(0, 1).toUpperCase()}
       </Text>
       {!!url && (

@@ -1,6 +1,7 @@
 import React, { FC, memo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { chatTextBase } from "../model";
 import { ChatMessageOwnership, ChatReplyRef } from "../types";
 import { useChatViewContext } from "./chat-view-context";
 
@@ -64,26 +65,32 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
         <View style={ss.textWrap}>
           <Text
             numberOfLines={1}
-            style={{
-              fontSize: layout.replySenderFont.fontSize,
-              fontWeight: layout.replySenderFont.fontWeight,
-              color: isOutgoing
-                ? theme.outgoingReplySender
-                : theme.incomingReplySender,
-            }}
+            style={[
+              chatTextBase,
+              {
+                fontSize: layout.replySenderFont.fontSize,
+                fontWeight: layout.replySenderFont.fontWeight,
+                color: isOutgoing
+                  ? theme.outgoingReplySender
+                  : theme.incomingReplySender,
+              },
+            ]}
           >
             {sender}
           </Text>
           <Text
             numberOfLines={1}
-            style={{
-              marginTop: ss.contentGap.marginTop,
-              fontSize: layout.replyFont.fontSize,
-              fontWeight: layout.replyFont.fontWeight,
-              color: isOutgoing
-                ? theme.outgoingReplyText
-                : theme.incomingReplyText,
-            }}
+            style={[
+              chatTextBase,
+              {
+                marginTop: ss.contentGap.marginTop,
+                fontSize: layout.replyFont.fontSize,
+                fontWeight: layout.replyFont.fontWeight,
+                color: isOutgoing
+                  ? theme.outgoingReplyText
+                  : theme.incomingReplyText,
+              },
+            ]}
           >
             {content}
           </Text>
@@ -103,8 +110,10 @@ const ss = StyleSheet.create({
   contentGap: {
     marginTop: 1,
   },
+  // flexShrink, а не flex: цитата должна отдавать собственную ширину наружу —
+  // от неё зависит ширина пузыря (порт replyW из bubbleWidth).
   textWrap: {
-    flex: 1,
+    flexShrink: 1,
     paddingHorizontal: 8,
     paddingTop: 4,
   },

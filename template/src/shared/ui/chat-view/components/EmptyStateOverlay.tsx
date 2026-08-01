@@ -7,6 +7,7 @@ import {
   Text,
 } from "react-native";
 
+import { chatTextBase } from "../model";
 import { ChatOverlayStore } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
 
@@ -35,6 +36,7 @@ export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
         ) : (
           <Text
             style={[
+              chatTextBase,
               ss.text,
               {
                 paddingHorizontal: layout.emptyStatePadding,

@@ -1,14 +1,16 @@
 import React from "react";
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type Props = {
   onRequestClose: () => void;
 };
 
 const HIT_SLOP = { top: 16, left: 16, bottom: 16, right: 16 };
+const TOP_EDGE = ["top"] as const;
 
 export const ImageDefaultHeader = ({ onRequestClose }: Props) => (
-  <SafeAreaView style={styles.root}>
+  <SafeAreaView edges={TOP_EDGE} style={styles.root}>
     <TouchableOpacity
       style={styles.closeButton}
       onPress={onRequestClose}

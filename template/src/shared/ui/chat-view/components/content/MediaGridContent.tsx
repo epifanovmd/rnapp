@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
 import {
+  chatTextBase,
   formatChatDuration,
   IChatMediaItem,
   IChatViewLayout,
@@ -191,12 +192,15 @@ export const MediaGridContent: FC<IMediaGridContentProps> = memo(
                   ]}
                 >
                   <Text
-                    style={{
-                      fontSize: layout.mediaDurationFont.fontSize,
-                      fontWeight: layout.mediaDurationFont.fontWeight,
-                      fontVariant: ["tabular-nums"],
-                      color: theme.mediaDurationTextColor,
-                    }}
+                    style={[
+                      chatTextBase,
+                      {
+                        fontSize: layout.mediaDurationFont.fontSize,
+                        fontWeight: layout.mediaDurationFont.fontWeight,
+                        fontVariant: ["tabular-nums"],
+                        color: theme.mediaDurationTextColor,
+                      },
+                    ]}
                   >
                     {formatChatDuration(item.duration)}
                   </Text>
@@ -211,11 +215,14 @@ export const MediaGridContent: FC<IMediaGridContentProps> = memo(
                   ]}
                 >
                   <Text
-                    style={{
-                      fontSize: layout.mediaOverlayFont.fontSize,
-                      fontWeight: layout.mediaOverlayFont.fontWeight,
-                      color: theme.mediaOverlayTextColor,
-                    }}
+                    style={[
+                      chatTextBase,
+                      {
+                        fontSize: layout.mediaOverlayFont.fontSize,
+                        fontWeight: layout.mediaOverlayFont.fontWeight,
+                        color: theme.mediaOverlayTextColor,
+                      },
+                    ]}
                   >
                     {`+${count - MAX_VISIBLE}`}
                   </Text>

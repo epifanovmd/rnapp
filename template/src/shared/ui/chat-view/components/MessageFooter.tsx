@@ -1,7 +1,12 @@
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { getTimeString, IChatViewTheme, IParsedChatMessage } from "../model";
+import {
+  chatTextBase,
+  getTimeString,
+  IChatViewTheme,
+  IParsedChatMessage,
+} from "../model";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon, ChatIconName } from "./ChatIcon";
 
@@ -69,22 +74,28 @@ export const MessageFooter: FC<IMessageFooterProps> = memo(({ message }) => {
     >
       {showEdited && (
         <Text
-          style={{
-            fontSize: layout.editedFont.fontSize,
-            fontWeight: layout.editedFont.fontWeight,
-            color: editedColorFor(message, theme),
-          }}
+          style={[
+            chatTextBase,
+            {
+              fontSize: layout.editedFont.fontSize,
+              fontWeight: layout.editedFont.fontWeight,
+              color: editedColorFor(message, theme),
+            },
+          ]}
         >
           {"изм."}
         </Text>
       )}
       {features.showTimestamp && (
         <Text
-          style={{
-            fontSize: layout.timeFont.fontSize,
-            fontWeight: layout.timeFont.fontWeight,
-            color: timeColorFor(message, theme),
-          }}
+          style={[
+            chatTextBase,
+            {
+              fontSize: layout.timeFont.fontSize,
+              fontWeight: layout.timeFont.fontWeight,
+              color: timeColorFor(message, theme),
+            },
+          ]}
         >
           {getTimeString(message.timestamp)}
         </Text>

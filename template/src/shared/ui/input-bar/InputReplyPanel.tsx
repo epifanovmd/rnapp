@@ -9,6 +9,7 @@ import Animated, {
 
 import { useChatViewContext } from "../chat-view/components/chat-view-context";
 import { ChatIcon } from "../chat-view/components/ChatIcon";
+import { chatTextBase } from "../chat-view/model";
 import { ChatInputMode } from "./input-bar-types";
 
 /**
@@ -27,11 +28,9 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
 
     const isVisible = mode.type !== "normal";
     const height = useSharedValue(0);
-    const lastContent = useRef<{
-      sender: string;
-      text: string;
-      isEdit: boolean;
-    }>({ sender: "", text: "", isEdit: false });
+    // Содержимое замораживается на время анимации скрытия — иначе панель
+    // схлопывается уже пустой.
+    const lastContent = useRef({ sender: "", text: "", isEdit: false });
 
     if (mode.type === "reply") {
       lastContent.current = {
@@ -57,12 +56,11 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
       });
     }, [targetHeight, height]);
 
+    const panelHeight = layout.inputReplyPanelHeight;
+
     const wrapStyle = useAnimatedStyle(() => ({
       height: height.value,
-      opacity:
-        targetHeight > 0
-          ? Math.min(1, height.value / Math.max(targetHeight, 1))
-          : height.value / Math.max(layout.inputReplyPanelHeight, 1),
+      opacity: Math.min(1, height.value / Math.max(panelHeight, 1)),
     }));
 
     const content = lastContent.current;
@@ -91,17 +89,21 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
           <View style={[ss.texts, { marginLeft: sp / 2 }]}>
             <Text
               numberOfLines={1}
-              style={{
-                fontSize: layout.inputReplySenderFont.fontSize,
-                fontWeight: layout.inputReplySenderFont.fontWeight,
-                color: theme.inputReplySender,
-              }}
+              style={[
+                chatTextBase,
+                {
+                  fontSize: layout.inputReplySenderFont.fontSize,
+                  fontWeight: layout.inputReplySenderFont.fontWeight,
+                  color: theme.inputReplySender,
+                },
+              ]}
             >
               {content.sender}
             </Text>
             <Text
               numberOfLines={1}
               style={[
+                chatTextBase,
                 ss.replyText,
                 {
                   fontSize: layout.inputReplyTextFont.fontSize,

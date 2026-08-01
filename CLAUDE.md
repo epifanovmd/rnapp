@@ -204,6 +204,8 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   text field, reply/edit panel, attach button, morphing mic/send button, voice-recording gesture with
   slide-to-cancel/lock) lives in the same folder and is shared by both `JsInputBar` and the integrated
   input bar inside `JsChatView` (mirroring how both native bridges reuse the pod's `InputBarView`).
+  The native view also reports its own height via `onHeightChange` (RN assigns the size, so a standalone
+  native `InputBar` needs the host to apply it).
 - **ContextMenu** (iOS only, `ios/ContextMenu/Bridge/`, 3 files) — same bridge pattern, also imports
   `IOSChatView` (the actual menu UI lives in the external pod: `rn-chat-view/Sources/IOSChatView/ContextMenu/`).
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public

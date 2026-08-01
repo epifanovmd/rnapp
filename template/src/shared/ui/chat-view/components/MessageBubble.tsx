@@ -50,7 +50,7 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
     const { theme, layout, features, delegate } = useChatViewContext();
 
     const body = message.body;
-    const isEmojiOnly = !body.media && emojiOnlyCount(body.text) !== null;
+    const emojiCount = body.media ? null : emojiOnlyCount(body.text);
     const isForwarded =
       features.showForwardedMark && message.forwardedFrom != null;
     const hasReply = features.showReplyPreview && message.reply != null;
@@ -60,6 +60,11 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
         ? message.ownership === "mine" || message.ownership === "theirs"
         : features.senderNameMode === "incomingOnly" &&
           message.ownership === "theirs");
+
+    // Порт isBubblelessEmoji: крупное эмодзи без фона пузыря — только когда
+    // рядом нет имени отправителя, цитаты и заголовка пересылки.
+    const isEmojiOnly =
+      emojiCount !== null && !isForwarded && !hasReply && !showName;
 
     const forwardedInset = isForwarded
       ? layout.forwardedAccentWidth + layout.forwardedContentInset
@@ -84,13 +89,9 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
 
     const contentChildren: ReactNode[] = [];
 
-    if (isEmojiOnly) {
+    if (emojiCount !== null) {
       contentChildren.push(
-        <EmojiContent
-          key="emoji"
-          text={body.text!}
-          emojiCount={emojiOnlyCount(body.text)!}
-        />,
+        <EmojiContent key="emoji" text={body.text!} emojiCount={emojiCount} />,
       );
     } else {
       if (body.media) {
@@ -273,4 +274,6 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
 MessageBubble.displayName = "MessageBubble";
 
 const rowStyle: ViewStyle = { flexDirection: "row", alignItems: "stretch" };
-const forwardedColumnStyle: ViewStyle = { flex: 1 };
+// Именно flexShrink, а не flex: последний обнуляет flex-basis, колонка перестаёт
+// давать собственную ширину и пузырь схлопывается до bubbleMinWidth.
+const forwardedColumnStyle: ViewStyle = { flexShrink: 1 };

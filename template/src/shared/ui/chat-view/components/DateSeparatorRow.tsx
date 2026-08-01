@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { getSectionTitle } from "../model";
+import { chatTextBase, getSectionTitle } from "../model";
 import { useChatViewContext } from "./chat-view-context";
 
 /**
@@ -35,11 +35,14 @@ export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
           }}
         >
           <Text
-            style={{
-              fontSize: layout.dateSeparatorFont.fontSize,
-              fontWeight: layout.dateSeparatorFont.fontWeight,
-              color: theme.dateSeparatorText,
-            }}
+            style={[
+              chatTextBase,
+              {
+                fontSize: layout.dateSeparatorFont.fontSize,
+                fontWeight: layout.dateSeparatorFont.fontWeight,
+                color: theme.dateSeparatorText,
+              },
+            ]}
           >
             {getSectionTitle(groupDate)}
           </Text>

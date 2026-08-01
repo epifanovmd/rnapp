@@ -23,6 +23,12 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -262,6 +268,7 @@ export const JsChatView = memo(
 
     const scrollYRef = useRef(0);
     const contentHeightRef = useRef(0);
+    const viewportHeightRef = useRef(0);
     const scrollDirectionRef = useRef<"up" | "down" | "none">("none");
     const isUserDraggingRef = useRef(false);
     const isProgrammaticScrollRef = useRef(false);
@@ -272,12 +279,13 @@ export const JsChatView = memo(
     const anchorThrottleTimeRef = useRef(0);
     const lastTypingTimeRef = useRef(0);
 
+    // Вьюпорт списка больше корня: он продлён под панель ввода.
     const distanceFromBottom = useCallback(() => {
       return Math.max(
         0,
         contentHeightRef.current -
           scrollYRef.current -
-          listSizeRef.current.height,
+          viewportHeightRef.current,
       );
     }, []);
 
@@ -288,6 +296,73 @@ export const JsChatView = memo(
         distanceFromBottom() <= featuresRef.current.scrollToBottomThreshold
       );
     }, [distanceFromBottom]);
+
+    // ─── Клавиатура и safe area ──────────────────────────────────────────────
+    // Порт keyboardLayoutGuide (+followsUndockedKeyboard): панель ввода
+    // прижата к клавиатуре, а при скрытой — к нижней safe area. Высота берётся
+    // покадрово на UI-потоке, поэтому панель едет вместе с клавиатурой (в том
+    // числе при интерактивном закрытии свайпом), а не прыгает после анимации.
+
+    const safeArea = useSafeAreaInsets();
+
+    // isNavigationBarTranslucentAndroid убирает вмешательство Reanimated в
+    // нижний отступ окна: он не двигает корень под нав-бар и не вычитает его
+    // из высоты клавиатуры. Нижняя зона считается одинаково на обеих
+    // платформах — из safe area, как keyboardLayoutGuide на iOS.
+    const keyboard = useAnimatedKeyboard({
+      isNavigationBarTranslucentAndroid: true,
+    });
+
+    const safeAreaBottom = safeArea.bottom;
+
+    const bottomInset = useDerivedValue(
+      () => Math.max(keyboard.height.value, safeAreaBottom),
+      [safeAreaBottom],
+    );
+
+    // Панель ввода прижата к нижней зоне, список сдвигается ровно на неё же —
+    // оба стиля считаются из одних shared values, поэтому едут кадр в кадр.
+    const inputBarAnimatedStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: -bottomInset.value }],
+    }));
+
+    // ─── Компенсация нижней зоны ─────────────────────────────────────────────
+    // Порт updateCollectionInsets: панель ввода и клавиатура съедают низ
+    // видимой области. Вместо коррекции offset (она в RN не может идти
+    // покадрово и потому дёргается) список сдвигается тем же shared value, что
+    // и панель, — расстояние от конца сохраняется само собой.
+
+    const [inputBarHeight, setInputBarHeight] = useState(
+      layout.inputBarMinHeight,
+    );
+
+    const listHeightSV = useSharedValue(0);
+    const contentHeightSV = useSharedValue(0);
+    const inputBarHeightSV = useSharedValue(0);
+    const footerPaddingSV = useSharedValue(0);
+
+    const listShift = useDerivedValue(() => {
+      const zone = bottomInset.value + inputBarHeightSV.value;
+      // Конец сообщений в координатах контента (без нижнего отступа).
+      const contentEnd = contentHeightSV.value - footerPaddingSV.value;
+      const visibleHeight = listHeightSV.value - zone;
+
+      // Контент короче видимой области — не поднимаем, иначе обрежется верх
+      // (порт guard-а `maxOffsetY > minOffsetY`).
+      return Math.min(zone, Math.max(0, contentEnd - visibleHeight));
+    });
+
+    const listAnimatedStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: -listShift.value }],
+    }));
+
+    const handleContentSizeChange = useCallback(
+      (_width: number, height: number) => {
+        contentHeightSV.value = height;
+        contentHeightRef.current = height;
+      },
+      [contentHeightSV],
+    );
 
     // ─── FAB ─────────────────────────────────────────────────────────────────
 
@@ -361,7 +436,8 @@ export const JsChatView = memo(
       const L = layoutRef.current;
       const pillRestY = L.sectionSpacing;
       const spacing = L.sectionSpacing;
-      const scrollY = scrollYRef.current;
+      // Список сдвинут вверх на нижнюю зону — учитываем это в экранных координатах.
+      const scrollY = scrollYRef.current + listShift.value;
 
       let foundDate: string | null = null;
 
@@ -395,7 +471,7 @@ export const JsChatView = memo(
       floatingHideTimer.current = setTimeout(() => {
         overlayStore.set({ floatingDateVisible: false });
       }, L.floatingDateHideDelay * 1000);
-    }, [overlayStore]);
+    }, [overlayStore, listShift]);
 
     useEffect(
       () => () => {
@@ -496,6 +572,7 @@ export const JsChatView = memo(
         }
         scrollYRef.current = y;
         contentHeightRef.current = contentSize.height;
+        viewportHeightRef.current = layoutMeasurement.height;
 
         const now = Date.now();
         const throttleMs = layoutRef.current.scrollThrottleInterval * 1000;
@@ -948,6 +1025,8 @@ export const JsChatView = memo(
 
     // ─── Панель ввода ────────────────────────────────────────────────────────
 
+    // Порт applyInputAction: панель ввода получает уже разрешённые данные
+    // цитируемого/редактируемого сообщения.
     const inputMode = useMemo<ChatInputMode>(() => {
       if (
         !inputAction ||
@@ -978,6 +1057,8 @@ export const JsChatView = memo(
       };
     }, [inputAction, messageIndex]);
 
+    // Порт ChatViewController+Input: панель ввода прокручивает чат вниз при
+    // отправке, схлопывает FAB и ставит воспроизведение на паузу при записи.
     const inputBarDelegate = useMemo<IChatInputBarDelegate>(
       () => ({
         onSend: (text, replyToId) => {
@@ -998,10 +1079,8 @@ export const JsChatView = memo(
           propsRef.current.onVoiceRecordingComplete?.(result);
         },
         onChangeText: text => {
-          const hasText = text.trim().length > 0;
-
           if (featuresRef.current.showVoiceRecording) {
-            overlayStore.set({ fabExpanded: hasText });
+            overlayStore.set({ fabExpanded: text.trim().length > 0 });
           }
 
           const throttleMs = propsRef.current.inputTypingThrottle ?? 500;
@@ -1025,43 +1104,12 @@ export const JsChatView = memo(
     );
 
     const handleInputBarHeight = useCallback(
-      (height: number) => overlayStore.set({ inputBarHeight: height }),
-      [overlayStore],
+      (height: number) => {
+        inputBarHeightSV.value = height;
+        setInputBarHeight(height);
+      },
+      [inputBarHeightSV],
     );
-
-    // ─── Клавиатура и safe area ──────────────────────────────────────────────
-    // Порт keyboardLayoutGuide: панель ввода прижата к клавиатуре, а при
-    // скрытой клавиатуре — к нижней safe area. На Android высоту клавиатуры
-    // обрабатывает adjustResize, поэтому отслеживается только видимость.
-
-    const safeArea = useSafeAreaInsets();
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-    useEffect(() => {
-      const showEvent =
-        Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-      const hideEvent =
-        Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-      const showSub = Keyboard.addListener(showEvent, e =>
-        setKeyboardHeight(e.endCoordinates.height),
-      );
-      const hideSub = Keyboard.addListener(hideEvent, () =>
-        setKeyboardHeight(0),
-      );
-
-      return () => {
-        showSub.remove();
-        hideSub.remove();
-      };
-    }, []);
-
-    const rootBottomPad =
-      keyboardHeight > 0
-        ? Platform.OS === "ios"
-          ? keyboardHeight
-          : 0
-        : safeArea.bottom;
 
     // ─── Контекст ────────────────────────────────────────────────────────────
 
@@ -1150,13 +1198,17 @@ export const JsChatView = memo(
       (e: { nativeEvent: { layout: { width: number; height: number } } }) => {
         const { width, height } = e.nativeEvent.layout;
 
+        listHeightSV.value = height;
+        if (viewportHeightRef.current === 0) {
+          viewportHeightRef.current = height;
+        }
         setListSize(prev =>
           prev.width === width && prev.height === height
             ? prev
             : { width, height },
         );
       },
-      [],
+      [listHeightSV],
     );
 
     const maintainVisibleContentPosition = useMemo(
@@ -1168,13 +1220,37 @@ export const JsChatView = memo(
       [features.autoScrollOnNewMessage],
     );
 
+    // Порт полноэкранной коллекции: список продлён под панель ввода, поэтому
+    // сообщения видно за её прозрачным фоном. Продление постоянное (панель +
+    // safe area) — при открытии клавиатуры панель уезжает вверх вместе со
+    // сдвигом списка, и низ всё равно остаётся перекрытым.
+    const listExtension = safeAreaBottom + inputBarHeight;
+
+    const listWrapStyle = useMemo(
+      () => ({ bottom: -listExtension }),
+      [listExtension],
+    );
+
     const contentContainerStyle = useMemo(
       () => ({
         paddingTop: layout.collectionTopPadding + collectionInsetTop,
-        paddingBottom: layout.collectionBottomPadding + collectionInsetBottom,
+        paddingBottom:
+          listExtension +
+          layout.collectionBottomPadding +
+          collectionInsetBottom,
       }),
-      [layout, collectionInsetTop, collectionInsetBottom],
+      [layout, collectionInsetTop, collectionInsetBottom, listExtension],
     );
+
+    useEffect(() => {
+      footerPaddingSV.value =
+        listExtension + layout.collectionBottomPadding + collectionInsetBottom;
+    }, [
+      listExtension,
+      layout.collectionBottomPadding,
+      collectionInsetBottom,
+      footerPaddingSV,
+    ]);
 
     const extraData = useMemo(
       () => ({ theme, layout, features, isLoadingTop, width: listSize.width }),
@@ -1189,14 +1265,11 @@ export const JsChatView = memo(
           style={[ss.root, style]}
           onLayout={handleRootLayout}
         >
-          <View
-            style={[
-              ss.content,
-              rootBottomPad > 0 ? { paddingBottom: rootBottomPad } : null,
-            ]}
-          >
-            <View style={ss.listWrap}>
-              {listSize.width > 0 && (
+          <View style={ss.listWrap}>
+            {listSize.width > 0 && (
+              <Animated.View
+                style={[ss.listShift, listWrapStyle, listAnimatedStyle]}
+              >
                 <FlashList
                   ref={listRef}
                   data={rows}
@@ -1222,36 +1295,40 @@ export const JsChatView = memo(
                   onScrollBeginDrag={handleScrollBeginDrag}
                   onScrollEndDrag={handleScrollEndDrag}
                   onMomentumScrollEnd={handleMomentumScrollEnd}
+                  onContentSizeChange={handleContentSizeChange}
                 />
-              )}
+              </Animated.View>
+            )}
 
-              {isLoadingTop && features.showTopLoadingIndicator && (
-                <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
-                  <ActivityIndicator size="small" />
-                </View>
-              )}
+            {isLoadingTop && features.showTopLoadingIndicator && (
+              <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
+                <ActivityIndicator size="small" />
+              </View>
+            )}
 
-              <EmptyStateOverlay store={overlayStore} />
-              <FloatingDateOverlay
-                store={overlayStore}
-                topInset={collectionInsetTop}
-              />
-              <DisintegrationOverlay store={overlayStore} />
-            </View>
+            <EmptyStateOverlay store={overlayStore} />
+            <FloatingDateOverlay
+              store={overlayStore}
+              topInset={collectionInsetTop}
+            />
+            <DisintegrationOverlay store={overlayStore} />
+          </View>
 
-            {features.showInputBar && (
+          {features.showInputBar && (
+            <Animated.View style={[ss.inputBar, inputBarAnimatedStyle]}>
               <ChatInputBar
                 ref={inputBarRef}
                 mode={inputMode}
                 delegate={inputBarDelegate}
                 onHeightChange={handleInputBarHeight}
               />
-            )}
-          </View>
+            </Animated.View>
+          )}
 
           <ChatFab
             store={overlayStore}
-            bottomInset={rootBottomPad}
+            bottomInset={bottomInset}
+            inputBarHeight={inputBarHeightSV}
             onPress={() => propsRef.current.onFabPress?.({})}
           />
         </View>
@@ -1268,9 +1345,20 @@ const ss = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: "transparent",
+    // Список сдвигается вверх на нижнюю зону — верх подрезаем по границе чата.
+    overflow: "hidden",
   },
-  content: {
-    flex: 1,
+  listShift: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+  },
+  inputBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   listWrap: {
     flex: 1,

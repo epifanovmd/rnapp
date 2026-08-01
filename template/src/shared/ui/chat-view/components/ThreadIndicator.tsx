@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 
-import { threadReplyCountLabel } from "../model";
+import { chatTextBase, threadReplyCountLabel } from "../model";
 import { ChatThreadInfo } from "../types";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
@@ -36,27 +36,34 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
           color={theme.threadBarIcon}
         />
         <Text
-          style={{
-            fontSize: layout.threadBarFont.fontSize,
-            fontWeight: layout.threadBarFont.fontWeight,
-            color: theme.threadBarText,
-          }}
+          style={[
+            chatTextBase,
+            {
+              fontSize: layout.threadBarFont.fontSize,
+              fontWeight: layout.threadBarFont.fontWeight,
+              color: theme.threadBarText,
+            },
+          ]}
         >
           {threadReplyCountLabel(thread.replyCount)}
         </Text>
         {!!thread.lastReplierName && (
           <>
             <Text
-              style={{
-                fontSize: layout.threadBarFont.fontSize,
-                color: withAlpha(theme.threadBarText, 0.5),
-              }}
+              style={[
+                chatTextBase,
+                {
+                  fontSize: layout.threadBarFont.fontSize,
+                  color: withAlpha(theme.threadBarText, 0.5),
+                },
+              ]}
             >
               {"·"}
             </Text>
             <Text
               numberOfLines={1}
               style={[
+                chatTextBase,
                 ss.replier,
                 {
                   fontSize: layout.threadBarFont.fontSize,

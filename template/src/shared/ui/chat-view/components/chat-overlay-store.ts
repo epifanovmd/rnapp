@@ -14,7 +14,6 @@ export interface IChatOverlayState {
   fabExpanded: boolean;
   fabLoading: boolean;
   unreadCount: number;
-  inputBarHeight: number;
   floatingDateTitle: string | null;
   floatingDateVisible: boolean;
   emptyVisible: boolean;
@@ -28,7 +27,6 @@ const INITIAL_STATE: IChatOverlayState = {
   fabExpanded: false,
   fabLoading: false,
   unreadCount: 0,
-  inputBarHeight: 0,
   floatingDateTitle: null,
   floatingDateVisible: false,
   emptyVisible: false,

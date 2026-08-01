@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
 import { StyleSheet, Text } from "react-native";
 
-import { IChatFont } from "../../model";
+import { chatTextBase, IChatFont } from "../../model";
 import { useChatViewContext } from "../chat-view-context";
 
 /**
@@ -30,6 +30,7 @@ export const EmojiContent: FC<IEmojiContentProps> = memo(
     return (
       <Text
         style={[
+          chatTextBase,
           ss.text,
           {
             fontSize: emojiFont.fontSize,

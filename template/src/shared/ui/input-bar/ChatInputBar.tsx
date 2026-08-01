@@ -29,6 +29,7 @@ import Animated, {
 import { useChatViewContext } from "../chat-view/components/chat-view-context";
 import { ChatIcon, ChatIconName } from "../chat-view/components/ChatIcon";
 import {
+  chatTextBase,
   ChatVoiceRecorder,
   createChatVoiceRecorder,
   IChatVoiceRecorderResult,
@@ -100,7 +101,7 @@ export const ChatInputBar = memo(
       const isRecording = recordingState !== "idle";
       const isLocked = recordingState === "locked";
 
-      // ─── Рекордер ────────────────────────────────────────────────────────────
+      // ─── Рекордер ──────────────────────────────────────────────────────────
 
       const recorderRef = useRef<ChatVoiceRecorder | null>(null);
 
@@ -122,7 +123,7 @@ export const ChatInputBar = memo(
         };
       }, []);
 
-      // ─── Режим reply/edit ────────────────────────────────────────────────────
+      // ─── Режим reply/edit ──────────────────────────────────────────────────
 
       const prevModeType = useRef<ChatInputMode["type"]>("normal");
 
@@ -140,7 +141,7 @@ export const ChatInputBar = memo(
         prevModeType.current = mode.type;
       }, [mode]);
 
-      // ─── Анимации кнопок mic/send ────────────────────────────────────────────
+      // ─── Анимации кнопок mic/send ──────────────────────────────────────────
 
       const voiceEnabled = features.showVoiceRecording;
       const showMic = voiceEnabled && !hasText;
@@ -180,7 +181,7 @@ export const ChatInputBar = memo(
         }
       }, [showInternalSend, sendScale, sendAlpha]);
 
-      // ─── Жест записи ─────────────────────────────────────────────────────────
+      // ─── Жест записи ───────────────────────────────────────────────────────
 
       const micTranslateX = useSharedValue(0);
       const micTranslateY = useSharedValue(0);
@@ -308,7 +309,7 @@ export const ChatInputBar = memo(
         onDeactivate: () => handleRelease(),
       });
 
-      // ─── Отправка ────────────────────────────────────────────────────────────
+      // ─── Отправка ──────────────────────────────────────────────────────────
 
       const handleSend = useCallback(() => {
         const value = textRef.current.trim();
@@ -390,7 +391,7 @@ export const ChatInputBar = memo(
         [],
       );
 
-      // ─── Стили ───────────────────────────────────────────────────────────────
+      // ─── Стили ─────────────────────────────────────────────────────────────
 
       const inputHeight = Math.min(
         Math.max(contentHeight, layout.textViewMinHeight),
@@ -491,6 +492,7 @@ export const ChatInputBar = memo(
                   placeholder={layout.inputPlaceholderText}
                   placeholderTextColor={theme.inputPlaceholder}
                   style={[
+                    chatTextBase,
                     ss.textInput,
                     {
                       height: inputHeight,

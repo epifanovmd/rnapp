@@ -49,7 +49,7 @@ const mapPollToNative = (poll: PollDto) => {
       id: o.id,
       text: o.text,
       votes: o.voterCount,
-      percentage: totalVotes > 0 ? (o.voterCount / totalVotes) * 100 : 0,
+      percentage: totalVotes > 0 ? o.voterCount / totalVotes : 0,
     })),
     totalVotes,
     selectedOptionIds:
