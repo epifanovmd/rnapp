@@ -1,67 +1,67 @@
 import { useMemo, useRef } from "react";
 
-import { IChatViewFeatures } from "../config";
+import { IChatFeatures } from "../config";
 import {
   buildChatData,
   ChatMessageParser,
   ChatRowsBuilder,
   IChatData,
-  IParsedChatMessage,
 } from "../data";
 import { ChatAction, ChatMessage } from "../types";
 
 /**
- * React-обёртки над слоем данных: разбор входных сообщений и построение строк.
+ * Входные сообщения → строки списка.
  *
- * Оба преобразования сохраняют идентичность неизменённых объектов — от этого
- * напрямую зависит стоимость обновления списка (см. `ChatMessageParser` и
- * `ChatRowsBuilder`).
+ * Оба преобразования сохраняют идентичность неизменённых объектов, и от этого
+ * напрямую зависит стоимость обновления списка: разобранное сообщение
+ * переиспользуется, пока не изменилось входное (сравнение по ссылке), а строка —
+ * пока не изменились сообщение, оригинал его цитаты и настройки. Поменялось одно
+ * сообщение — перерисовалась одна ячейка.
+ *
+ * Отсюда требование к хосту: он тоже обязан сохранять идентичность неизменённых
+ * элементов `messages`.
  */
-
-/** Разбор входных сообщений. Отдельно от строк — меняется реже. */
-export const useParsedMessages = (
-  messages: ChatMessage[],
-  getActionsForMessage?: (message: ChatMessage) => ChatAction[],
-): IParsedChatMessage[] => {
-  const parserRef = useRef<ChatMessageParser | null>(null);
-
-  parserRef.current ??= new ChatMessageParser();
-
-  const parser = parserRef.current;
-
-  return useMemo(
-    () => parser.parse(messages, getActionsForMessage),
-    [parser, messages, getActionsForMessage],
-  );
-};
-
 export interface IChatDataOptions {
-  features: IChatViewFeatures;
+  messages: ChatMessage[];
+  getActionsForMessage?: (message: ChatMessage) => ChatAction[];
+  features: IChatFeatures;
   showBottomLoading: boolean;
   hideFirstSeparator: boolean;
 }
 
-/**
- * Строки и индексы для отображаемых сообщений. Отображаемые отстают от входных
- * на время эффекта распада, поэтому вход здесь — именно они.
- */
-export const useChatData = (
-  displayed: IParsedChatMessage[],
-  { features, showBottomLoading, hideFirstSeparator }: IChatDataOptions,
-): IChatData => {
-  const builderRef = useRef<ChatRowsBuilder | null>(null);
+export const useChatData = ({
+  messages,
+  getActionsForMessage,
+  features,
+  showBottomLoading,
+  hideFirstSeparator,
+}: IChatDataOptions): IChatData => {
+  const toolsRef = useRef<{
+    parser: ChatMessageParser;
+    builder: ChatRowsBuilder;
+  } | null>(null);
 
-  builderRef.current ??= new ChatRowsBuilder();
+  toolsRef.current ??= {
+    parser: new ChatMessageParser(),
+    builder: new ChatRowsBuilder(),
+  };
 
-  const builder = builderRef.current;
+  const { parser, builder } = toolsRef.current;
+
+  // Разбор отдельным мемо: он зависит только от входных сообщений и меняется
+  // реже, чем настройки показа.
+  const parsed = useMemo(
+    () => parser.parse(messages, getActionsForMessage),
+    [parser, messages, getActionsForMessage],
+  );
 
   return useMemo(
     () =>
-      buildChatData(builder, displayed, {
+      buildChatData(builder, parsed, {
         features,
         showBottomLoading,
         hideFirstSeparator,
       }),
-    [builder, displayed, features, showBottomLoading, hideFirstSeparator],
+    [builder, parsed, features, showBottomLoading, hideFirstSeparator],
   );
 };

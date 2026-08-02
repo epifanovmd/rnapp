@@ -1,4 +1,4 @@
-import { IChatViewLayout } from "../../../config";
+import { IChatLayout } from "../../../config";
 import { IChatMediaItem } from "../../../data";
 
 /** Раскладка сетки вложений: высоты и фреймы ячеек. */
@@ -17,7 +17,7 @@ export interface IMediaGridFrame {
 export const mediaGridHeight = (
   media: IChatMediaItem[],
   width: number,
-  layout: IChatViewLayout,
+  layout: IChatLayout,
 ): number => {
   if (media.length === 0) return 0;
 

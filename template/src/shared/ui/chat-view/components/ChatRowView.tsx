@@ -8,16 +8,17 @@ import { MessageCell } from "./message-cell";
 /**
  * Диспетчер строки.
  *
- * Принимает **только строку**: цитата, показ имени и режим крупных эмодзи уже
- * посчитаны в `ChatRowsBuilder`. Поэтому `memo` здесь реально работает — строка
- * неизменного сообщения приходит тем же объектом.
+ * Принимает **только строку и её индекс**: цитата, показ имени и режим крупных
+ * эмодзи уже посчитаны в `ChatRowsBuilder`. Поэтому `memo` здесь реально
+ * работает — строка неизменного сообщения приходит тем же объектом.
  */
-
 export interface IChatRowViewProps {
   row: ChatRow;
+  /** Нужен разделителю дат, чтобы понять, прилип ли он сейчас к кромке. */
+  index: number;
 }
 
-export const ChatRowView: FC<IChatRowViewProps> = memo(({ row }) => {
+export const ChatRowView: FC<IChatRowViewProps> = memo(({ row, index }) => {
   switch (row.type) {
     case "message":
       return (
@@ -25,12 +26,19 @@ export const ChatRowView: FC<IChatRowViewProps> = memo(({ row }) => {
           message={row.message}
           resolvedReply={row.resolvedReply}
           showSenderName={row.showSenderName}
+          showAvatar={row.showAvatar}
           bubbleless={row.bubbleless}
         />
       );
 
     case "dateSeparator":
-      return <DateSeparatorRow groupDate={row.groupDate} hidden={row.hidden} />;
+      return (
+        <DateSeparatorRow
+          groupDate={row.groupDate}
+          hidden={row.hidden}
+          index={index}
+        />
+      );
 
     case "loading":
       return <LoadingRow />;

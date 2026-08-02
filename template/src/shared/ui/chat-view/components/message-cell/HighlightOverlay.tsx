@@ -17,25 +17,20 @@ import Animated, {
 import { useChatViewContext } from "../chat-view-context";
 
 /**
- * Вспышка поверх пузыря после `scrollToMessage(highlight: true)`.
+ * Вспышка поверх пузыря после `scrollToMessage({ highlight: true })`.
  */
-
 interface IHighlightOverlayProps {
   messageId: string;
 }
 
 export const HighlightOverlay: FC<IHighlightOverlayProps> = memo(
   ({ messageId }) => {
-    const { theme, layout, cellStore } = useChatViewContext();
+    const { theme, layout, highlight } = useChatViewContext();
 
     // Токен меняется на каждый вызов подсветки — повтор того же id сработает.
     const token = useSyncExternalStore(
-      cellStore.subscribe,
-      useCallback(
-        () =>
-          cellStore.highlightId === messageId ? cellStore.highlightToken : 0,
-        [cellStore, messageId],
-      ),
+      highlight.subscribe,
+      useCallback(() => highlight.tokenOf(messageId), [highlight, messageId]),
     );
 
     const opacity = useSharedValue(0);
@@ -54,12 +49,12 @@ export const HighlightOverlay: FC<IHighlightOverlayProps> = memo(
       );
 
       const timeout = setTimeout(
-        () => cellStore.clearHighlight(messageId),
+        () => highlight.clear(messageId),
         inMs + delayMs + outMs,
       );
 
       return () => clearTimeout(timeout);
-    }, [token, opacity, layout, cellStore, messageId]);
+    }, [token, opacity, layout, highlight, messageId]);
 
     const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
 

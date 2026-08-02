@@ -163,23 +163,39 @@ export interface ChatViewProps extends ViewProps {
   /** Формирует actions контекстного меню для каждого сообщения. */
   getActionsForMessage?: (message: ChatMessage) => ChatAction[];
 
-  /** Эмодзи для панели контекстного меню: ["❤️", "👍", "😂"]. */
+  /**
+   * Эмодзи для панели контекстного меню: ["❤️", "👍", "😂"].
+   *
+   * @deprecated Дубль `features.emojiReactions` — задавайте там.
+   */
   emojiReactions?: string[];
 
   /** Текущее действие панели ввода (ответ/редактирование). */
   inputAction?: ChatInputAction | null;
   /** Pixel-accurate якорь для начального восстановления скролла. */
   initialScrollAnchor?: IChatScrollAnchor;
-  /** Расстояние от низа, при котором считается «рядом с низом». */
+  /**
+   * Расстояние от низа, при котором считается «рядом с низом».
+   *
+   * @deprecated Дубль `features.scrollToBottomThreshold` — задавайте там.
+   */
   scrollToBottomThreshold?: number;
   /** Есть ли более старые сообщения для подгрузки сверху. */
   hasMore?: boolean;
   /** Есть ли более новые сообщения для подгрузки снизу (detached mode). */
   hasNewer?: boolean;
 
-  /** Порог от верха для вызова загрузки старых сообщений (px). */
+  /**
+   * Порог от верха для вызова загрузки старых сообщений (px).
+   *
+   * @deprecated Дубль `features.topLoadThreshold` — задавайте там.
+   */
   topThreshold?: number;
-  /** Порог от низа для вызова загрузки новых сообщений (px). */
+  /**
+   * Порог от низа для вызова загрузки новых сообщений (px).
+   *
+   * @deprecated Дубль `features.bottomLoadThreshold` — задавайте там.
+   */
   bottomThreshold?: number;
   /** Идёт ли начальная загрузка (спиннер в пустом состоянии). */
   isLoading?: boolean;
@@ -200,9 +216,25 @@ export interface ChatViewProps extends ViewProps {
   collectionInsetBottom?: number;
   /** Троттлинг событий набора текста (мс). */
   inputTypingThrottle?: number;
-  /** Показывать имя отправителя (входящие). */
+  /**
+   * Показывать имя отправителя (входящие).
+   *
+   * Дублирует `features.senderNameMode` и пишет то же поле. **Не задавать
+   * вместе с `features`**: JS применяет `features` последним, а на iOS оба
+   * пропа попадают в один diff (`folly::dynamic::object`), порядок обхода
+   * которого не определён, — и победитель будет случайным.
+   *
+   * Вдобавок дубль неполный: булево значение покрывает только `"never"` и
+   * `"incomingOnly"`, а `"always"` через него недостижим.
+   *
+   * @deprecated Используйте `features.senderNameMode`.
+   */
   showSenderName?: boolean;
-  /** Показывать плавающую дату при скролле. */
+  /**
+   * Показывать плавающую дату при скролле.
+   *
+   * @deprecated Дубль `features.showFloatingDate` — задавайте там.
+   */
   showFloatingDate?: boolean;
   /** Количество непрочитанных (-1 = внутреннее управление). */
   unreadCount?: number;

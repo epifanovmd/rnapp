@@ -165,7 +165,6 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         theme={isDark ? "dark" : "light"}
         topThreshold={400}
         features={chatFeatures}
-        showSenderName={false}
         bottomThreshold={400}
         scrollToBottomThreshold={150}
         collectionInsetTop={0}

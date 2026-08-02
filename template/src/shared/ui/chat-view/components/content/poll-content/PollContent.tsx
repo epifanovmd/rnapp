@@ -10,6 +10,16 @@ import { PollOptionRow } from "./PollOptionRow";
  * (последнее скрыто у анонимных).
  */
 
+/**
+ * Анонимность отсутствующего поля.
+ *
+ * Нативный разбор читает его как `dict["isAnonymous"] as? Bool ?? true`, поэтому
+ * пропущенное поле там означает «анонимный». Повторяем этот дефолт, иначе один и
+ * тот же опрос выглядит на платформах по-разному: подзаголовок и видимость
+ * ссылки «Результаты» зависят именно от него.
+ */
+const isPollAnonymous = (poll: ChatPoll): boolean => poll.isAnonymous ?? true;
+
 /** Закрытый опрос перекрывает остальные признаки подзаголовка. */
 const pollSubtitle = (poll: ChatPoll): string => {
   if (poll.isClosed) return "Опрос завершён";
@@ -17,7 +27,7 @@ const pollSubtitle = (poll: ChatPoll): string => {
   const parts = ["Опрос"];
 
   if (poll.isMultipleChoice) parts.push("множественный выбор");
-  if (poll.isAnonymous) parts.push("анонимный");
+  if (isPollAnonymous(poll)) parts.push("анонимный");
 
   return parts.join(" · ");
 };
@@ -72,7 +82,7 @@ export const PollContent: FC<IPollContentProps> = memo(
 
         <View style={ss.footer}>
           <Text style={s.pollVotes}>{`${poll.totalVotes} голосов`}</Text>
-          {!poll.isAnonymous && (
+          {!isPollAnonymous(poll) && (
             <Text
               suppressHighlighting
               style={s.pollResults}

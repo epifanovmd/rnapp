@@ -1,112 +1,48 @@
-import { CHAT_DEFAULT_FEATURES, IChatViewFeatures } from "../config";
+import { CHAT_DEFAULT_FEATURES, IChatFeatures } from "../config";
 import { IParsedChatMessage } from "./chat-message";
 import { ChatRow, ChatRowsBuilder } from "./chat-rows";
 
 /**
- * Производные данные списка: строки, индексы, разделители дат и группы аватаров.
+ * Производные данные списка: строки и индексы.
  *
- * Всё, что список и логика скролла знают о сообщениях, собирается здесь и
- * только здесь. Ключевое свойство — сохранение идентичности: объекты, чьи входы
- * не изменились, возвращаются те же самые, поэтому список перерисовывает ровно
- * изменившиеся строки.
+ * Всё, что список знает о сообщениях, собирается здесь и только здесь. Ключевое
+ * свойство — сохранение идентичности: объекты, чьи входы не изменились,
+ * возвращаются те же самые, поэтому список перерисовывает ровно изменившиеся
+ * строки.
  */
-
-/** Позиция разделителя дат в списке строк. */
-export interface IDateSeparatorPosition {
-  rowIndex: number;
-  groupDate: string;
-}
-
-/** Группа подряд идущих сообщений одного отправителя — под неё рисуется аватар. */
-export interface IChatAvatarGroup {
-  key: string;
-  firstIndex: number;
-  lastIndex: number;
-  senderName: string;
-  senderAvatarUrl?: string;
-}
-
 export interface IChatData {
   /** Разобранные и отсортированные по времени сообщения. */
-  parsed: IParsedChatMessage[];
+  messages: IParsedChatMessage[];
   /** Строки списка: сообщения + разделители дат + индикатор загрузки. */
   rows: ChatRow[];
+  /** Индексы разделителей дат — для `stickyHeaderIndices` списка. */
+  stickyIndices: number[];
   /** ID → сообщение. */
   messageIndex: Map<string, IParsedChatMessage>;
   /** ID сообщения → индекс строки. */
   rowIndexById: Map<string, number>;
-  /** Позиции разделителей дат. */
-  dateSeparators: IDateSeparatorPosition[];
-  /** Группы аватаров в индексах строк. */
-  avatarGroups: IChatAvatarGroup[];
 }
 
-export interface IChatDataOptions {
-  features: IChatViewFeatures;
+export interface IBuildChatDataOptions {
+  features: IChatFeatures;
   showBottomLoading: boolean;
   hideFirstSeparator: boolean;
 }
 
-/** Группы подряд идущих входящих сообщений одного отправителя. */
-const computeAvatarGroups = (rows: ChatRow[]): IChatAvatarGroup[] => {
-  const groups: IChatAvatarGroup[] = [];
-  let i = 0;
-
-  while (i < rows.length) {
-    const row = rows[i];
-
-    if (
-      row.type !== "message" ||
-      row.message.ownership !== "theirs" ||
-      row.message.senderName == null
-    ) {
-      i += 1;
-      continue;
-    }
-
-    const senderName = row.message.senderName;
-    let last = i;
-
-    while (last + 1 < rows.length) {
-      const next = rows[last + 1];
-
-      if (
-        next.type !== "message" ||
-        next.message.ownership !== "theirs" ||
-        next.message.senderName !== senderName
-      ) {
-        break;
-      }
-      last += 1;
-    }
-
-    groups.push({
-      key: row.key,
-      firstIndex: i,
-      lastIndex: last,
-      senderName,
-      senderAvatarUrl: row.message.senderAvatarUrl,
-    });
-    i = last + 1;
-  }
-
-  return groups;
-};
-
 /** Собрать строки и индексы по готовому списку сообщений. */
 export const buildChatData = (
   builder: ChatRowsBuilder,
-  parsed: IParsedChatMessage[],
-  { features, showBottomLoading, hideFirstSeparator }: IChatDataOptions,
+  messages: IParsedChatMessage[],
+  { features, showBottomLoading, hideFirstSeparator }: IBuildChatDataOptions,
 ): IChatData => {
   const messageIndex = new Map<string, IParsedChatMessage>();
 
-  for (const message of parsed) {
+  for (const message of messages) {
     messageIndex.set(message.id, message);
   }
 
-  const rows = builder.build({
-    messages: parsed,
+  const { rows, stickyIndices } = builder.build({
+    messages,
     messageIndex,
     features,
     showBottomLoading,
@@ -114,26 +50,14 @@ export const buildChatData = (
   });
 
   const rowIndexById = new Map<string, number>();
-  const dateSeparators: IDateSeparatorPosition[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
 
-    if (row.type === "message") {
-      rowIndexById.set(row.message.id, i);
-    } else if (row.type === "dateSeparator") {
-      dateSeparators.push({ rowIndex: i, groupDate: row.groupDate });
-    }
+    if (row.type === "message") rowIndexById.set(row.message.id, i);
   }
 
-  return {
-    parsed,
-    rows,
-    messageIndex,
-    rowIndexById,
-    dateSeparators,
-    avatarGroups: features.showAvatars ? computeAvatarGroups(rows) : [],
-  };
+  return { messages, rows, stickyIndices, messageIndex, rowIndexById };
 };
 
 /** Пустой снимок для инициализации ссылки на данные до первого расчёта. */

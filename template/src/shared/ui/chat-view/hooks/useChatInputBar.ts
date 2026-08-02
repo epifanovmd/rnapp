@@ -1,30 +1,35 @@
-import { useCallback, useMemo, useRef } from "react";
-import { SharedValue } from "react-native-reanimated";
+import { RefObject, useCallback, useMemo, useRef } from "react";
+import { SharedValue, withTiming } from "react-native-reanimated";
 
 import { IInputBarViewDelegate, InputBarMode } from "../../input-bar";
-import { IChatViewFeatures } from "../config";
+import { IChatFeatures } from "../config";
 import { IParsedChatMessage } from "../data";
 import { chatVoicePlayer } from "../services";
 import { ChatInputAction, ChatViewProps } from "../types";
-import { IChatOverlaysController } from "./useChatOverlays";
-import { IChatScrollController } from "./useChatScroll";
+import { IChatCommands } from "./useChatCommands";
 
 /**
  * Панель ввода.
  *
  * Две обязанности: превратить `inputAction` в режим панели с разрешёнными
- * данными сообщения и развести события панели по чату (отправка ставит
- * отложенный скролл вниз, запись голоса ставит плеер на паузу).
+ * данными сообщения и развести события панели по чату.
  */
+
+/** Плавность расхождения FAB, когда панель ввода растёт под текст. */
+const FAB_EXPAND_MS = 250;
 
 export interface IChatInputBarOptions {
   inputAction: ChatInputAction | null | undefined;
   messageIndex: Map<string, IParsedChatMessage>;
-  props: React.RefObject<ChatViewProps>;
-  scroll: IChatScrollController;
-  overlays: IChatOverlaysController;
-  getFeatures: () => IChatViewFeatures;
+  props: RefObject<ChatViewProps>;
+  commands: IChatCommands;
+  features: IChatFeatures;
+  /** Высота панели: входит в нижнюю зону, применяется на UI-потоке. */
   barHeight: SharedValue<number>;
+  /** 0..1 — расхождение FAB вверх, чтобы освободить место выросшей панели. */
+  fabExpanded: SharedValue<number>;
+  /** 1 — FAB спрятан на время записи голоса. */
+  fabHiddenForRecording: SharedValue<number>;
 }
 
 export interface IChatInputBar {
@@ -67,10 +72,11 @@ export const useChatInputBar = ({
   inputAction,
   messageIndex,
   props,
-  scroll,
-  overlays,
-  getFeatures,
+  commands,
+  features,
   barHeight,
+  fabExpanded,
+  fabHiddenForRecording,
 }: IChatInputBarOptions): IChatInputBar => {
   const lastTypingAtRef = useRef(0);
 
@@ -82,9 +88,10 @@ export const useChatInputBar = ({
   const delegate = useMemo<IInputBarViewDelegate>(
     () => ({
       onSend: (text, replyToId) => {
-        // Своё сообщение всегда доезжает до низа.
-        scroll.state.current.pendingScrollToBottom = true;
-        overlays.setFabExpanded(false);
+        // Своё сообщение всегда доезжает до низа. Кадр нужен, чтобы список
+        // успел закоммитить новую строку.
+        requestAnimationFrame(() => commands.scrollToBottom(true));
+        fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
         props.current.onSendMessage?.({ text, replyToId });
       },
       onEdit: (text, messageId) =>
@@ -94,14 +101,16 @@ export const useChatInputBar = ({
       },
       onTapAttachment: () => props.current.onAttachmentPress?.({}),
       onVoiceRecordingComplete: result => {
-        scroll.state.current.pendingScrollToBottom = true;
+        requestAnimationFrame(() => commands.scrollToBottom(true));
         props.current.onVoiceRecordingComplete?.(result);
       },
       onChangeText: text => {
-        // FAB расходится, освобождая место под выросшую панель, только
-        // когда в поле есть текст.
-        if (getFeatures().showVoiceRecording) {
-          overlays.setFabExpanded(text.trim().length > 0);
+        // FAB расходится, освобождая место под выросшую панель, только когда
+        // в поле есть текст.
+        if (features.showVoiceRecording) {
+          fabExpanded.value = withTiming(text.trim().length > 0 ? 1 : 0, {
+            duration: FAB_EXPAND_MS,
+          });
         }
 
         const throttleMs = props.current.inputTypingThrottle ?? 500;
@@ -114,10 +123,10 @@ export const useChatInputBar = ({
       },
       onRecordingStateChanged: isRecording => {
         if (isRecording) chatVoicePlayer.pauseIfPlaying();
-        overlays.setFabHiddenForRecording(isRecording);
+        fabHiddenForRecording.value = isRecording ? 1 : 0;
       },
     }),
-    [scroll, overlays, props, getFeatures],
+    [commands, props, features, fabExpanded, fabHiddenForRecording],
   );
 
   // Высота панели живёт только в shared value: она входит в нижнюю зону,

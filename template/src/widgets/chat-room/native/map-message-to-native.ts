@@ -56,6 +56,9 @@ const mapPollToNative = (poll: PollDto) => {
       poll.userVotedOptionIds?.length > 0 ? poll.userVotedOptionIds : undefined,
     isMultipleChoice: poll.isMultipleChoice,
     isClosed: poll.isClosed,
+    // Пропускать нельзя: у отсутствующего поля разные дефолты на платформах —
+    // нативный разбор читает его как `?? true`, JS как `false`.
+    isAnonymous: poll.isAnonymous,
   };
 };
 

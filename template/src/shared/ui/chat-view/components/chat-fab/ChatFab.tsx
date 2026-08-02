@@ -1,88 +1,83 @@
-import React, { FC, memo, useEffect, useMemo } from "react";
+import React, { FC, memo, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
-  Easing,
   SharedValue,
   useAnimatedStyle,
-  useSharedValue,
   withTiming,
 } from "react-native-reanimated";
 
-import { ChatOverlayStore, IChatOverlayState } from "../chat-overlay-store";
 import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon } from "../ChatIcon";
 import { LoadingRing } from "../LoadingRing";
-import { useOverlayValue } from "../useOverlayValue";
 import { FabBadgeLabel } from "./FabBadgeLabel";
 
 /**
  * Кнопка скролла вниз: стрелка, бейдж непрочитанных и кольцо загрузки.
+ *
+ * Видимость и позиция считаются **целиком на UI-потоке**: `isNearEnd` ведёт сам
+ * список, высоту панели ввода и расхождение пишут ворклеты клавиатуры и панели.
+ * Через React проходит только счётчик непрочитанных и флаг загрузки — то, что
+ * меняется единицы раз, а не каждый кадр скролла.
+ *
  * Позиция: compact — над кнопкой микрофона, expanded — над панелью ввода
  * (когда в поле есть текст).
  */
-
-const selectFabVisible = (state: IChatOverlayState) => state.fabVisible;
-const selectFabExpanded = (state: IChatOverlayState) => state.fabExpanded;
-const selectFabLoading = (state: IChatOverlayState) => state.fabLoading;
-const selectUnreadCount = (state: IChatOverlayState) => state.unreadCount;
-
-interface IChatFabProps {
-  store: ChatOverlayStore;
-  /** Нижняя зона экрана (клавиатура / safe area) — от неё считается позиция. */
+export interface IChatFabProps {
+  /** Нижняя зона экрана (клавиатура / safe area). */
   bottomInset: SharedValue<number>;
   inputBarHeight: SharedValue<number>;
+  /** Список у нижнего края — тогда кнопка не нужна. */
+  isNearEnd: SharedValue<boolean>;
+  /** 0..1 — расхождение вверх под выросшую панель ввода. */
+  expanded: SharedValue<number>;
+  /** 1 — спрятать на время записи голоса. */
+  hiddenForRecording: SharedValue<number>;
+  /** Принудительный показ со спиннером (возврат к последним сообщениям). */
+  isLoading: boolean;
+  unreadCount: number;
   onPress: () => void;
 }
 
 export const ChatFab: FC<IChatFabProps> = memo(
-  ({ store, bottomInset, inputBarHeight, onPress }) => {
-    const { theme, layout, features } = useChatViewContext();
+  ({
+    bottomInset,
+    inputBarHeight,
+    isNearEnd,
+    expanded,
+    hiddenForRecording,
+    isLoading,
+    unreadCount,
+    onPress,
+  }) => {
+    const { theme, layout, inputBarLayout, features } = useChatViewContext();
 
-    // Поля читаются по одному: видимость пересчитывается на каждом кадре
-    // скролла, и подписка на весь снимок тянула бы ре-рендер на любое другое
-    // изменение стора.
-    const fabVisible = useOverlayValue(store, selectFabVisible);
-    const fabExpanded = useOverlayValue(store, selectFabExpanded);
-    const fabLoading = useOverlayValue(store, selectFabLoading);
-    const unreadCount = useOverlayValue(store, selectUnreadCount);
-
-    const size = layout.inputButtonSize;
-    const aboveMicOffset = layout.inputBarVPad + size + layout.fabMargin;
-    const singleLineHeight = 2 * layout.inputBarVPad + layout.textViewMinHeight;
+    const size = inputBarLayout.inputButtonSize;
+    const aboveMicOffset =
+      inputBarLayout.inputBarVPad + size + layout.fabMargin;
+    const singleLineHeight =
+      2 * inputBarLayout.inputBarVPad + inputBarLayout.textViewMinHeight;
     const expandedGap = aboveMicOffset - singleLineHeight;
-
-    const opacity = useSharedValue(0);
-    const expandedProgress = useSharedValue(fabExpanded ? 1 : 0);
-
-    const visible = fabVisible || fabLoading;
-
-    useEffect(() => {
-      opacity.value = withTiming(visible ? 1 : 0, {
-        duration: layout.fabAnimationDuration * 1000,
-      });
-    }, [visible, opacity, layout.fabAnimationDuration]);
-
-    // Переключение состояния анимируется 0.25 с.
-    useEffect(() => {
-      expandedProgress.value = withTiming(fabExpanded ? 1 : 0, {
-        duration: 250,
-        easing: Easing.inOut(Easing.ease),
-      });
-    }, [fabExpanded, expandedProgress]);
+    const fadeMs = layout.fabAnimationDuration * 1000;
 
     const containerStyle = useAnimatedStyle(() => {
-      const compact = aboveMicOffset;
-      const expanded = inputBarHeight.value + expandedGap;
+      const visible =
+        (isLoading || !isNearEnd.value) && hiddenForRecording.value === 0;
+      const expandedBottom = inputBarHeight.value + expandedGap;
 
       return {
-        opacity: opacity.value,
+        opacity: withTiming(visible ? 1 : 0, { duration: fadeMs }),
         bottom:
           bottomInset.value +
-          compact +
-          (expanded - compact) * expandedProgress.value,
+          aboveMicOffset +
+          (expandedBottom - aboveMicOffset) * expanded.value,
+        // Тапы обязаны пропадать вместе с кнопкой. Условие видимости живёт на
+        // UI-потоке, поэтому и `pointerEvents` задаётся стилем, а не пропом:
+        // React о нём не знает и знать не должен.
+        pointerEvents: visible && !isLoading ? "auto" : "none",
       };
     });
 
+    // Метрики кнопки и бейджа меняются только со сменой темы или лейаута.
     const buttonStyle = useMemo(
       () => [
         ss.button,
@@ -90,7 +85,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderWidth: layout.inputBorderWidth,
+          borderWidth: inputBarLayout.inputBorderWidth,
           borderColor: theme.fabBorder,
           backgroundColor: theme.fabBackground,
           shadowColor: theme.fabShadowColor,
@@ -99,7 +94,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
           shadowOffset: { width: 0, height: layout.fabShadowOffsetY },
         },
       ],
-      [size, layout, theme],
+      [size, inputBarLayout.inputBorderWidth, layout, theme],
     );
 
     const badgeStyle = useMemo(
@@ -118,19 +113,18 @@ export const ChatFab: FC<IChatFabProps> = memo(
       [layout, theme.fabBadgeBackground],
     );
 
-    if (!features.showFab && !fabLoading) return null;
+    if (!features.showFab && !isLoading) return null;
 
     return (
       <Animated.View
-        pointerEvents={visible && !fabLoading ? "auto" : "none"}
         style={[
           ss.container,
-          { right: layout.inputBarHPad, width: size },
+          { right: inputBarLayout.inputBarHPad, width: size },
           containerStyle,
         ]}
       >
         <Pressable style={buttonStyle} onPress={onPress}>
-          <View style={fabLoading ? ss.arrowDimmed : undefined}>
+          <View style={isLoading ? ss.arrowDimmed : undefined}>
             <ChatIcon
               name="chevron.down"
               size={layout.fabArrowSize}
@@ -138,13 +132,11 @@ export const ChatFab: FC<IChatFabProps> = memo(
               strokeWidth={2.6}
             />
           </View>
-          {fabLoading && (
-            <LoadingRing size={size} color={theme.fabArrowColor} />
-          )}
+          {isLoading && <LoadingRing size={size} color={theme.fabArrowColor} />}
         </Pressable>
 
-        {unreadCount > 0 && fabVisible && (
-          <View style={badgeStyle}>
+        {unreadCount > 0 && (
+          <View style={badgeStyle} pointerEvents="none">
             <FabBadgeLabel count={unreadCount} />
           </View>
         )}

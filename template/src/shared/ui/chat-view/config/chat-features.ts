@@ -3,7 +3,7 @@ import { ChatFeatures, ChatSenderNameMode } from "../types";
 /**
  * Флаги и пороги поведения чата со значениями по умолчанию.
  */
-export interface IChatViewFeatures {
+export interface IChatFeatures {
   senderNameMode: ChatSenderNameMode;
   showMessageStatus: boolean;
   showTimestamp: boolean;
@@ -16,6 +16,7 @@ export interface IChatViewFeatures {
   linkDetectionEnabled: boolean;
 
   showFab: boolean;
+  /** Прилипающая плашка даты вверху списка. */
   showFloatingDate: boolean;
   showDateSeparators: boolean;
   showTopLoadingIndicator: boolean;
@@ -29,15 +30,19 @@ export interface IChatViewFeatures {
   contextMenuEnabled: boolean;
   emojiReactions: string[];
 
+  /**
+   * Пороги пагинации в пикселях. Список принимает их долей высоты вьюпорта
+   * (`onStartReachedThreshold` / `onEndReachedThreshold`), поэтому деление на
+   * измеренную высоту происходит в `JsChatView`.
+   */
   topLoadThreshold: number;
   bottomLoadThreshold: number;
+  /** Расстояние от низа в пикселях, ниже которого чат считается «внизу». */
   scrollToBottomThreshold: number;
   autoScrollOnNewMessage: boolean;
-
-  disintegrationEnabled: boolean;
 }
 
-export const CHAT_DEFAULT_FEATURES: IChatViewFeatures = {
+export const CHAT_DEFAULT_FEATURES: IChatFeatures = {
   senderNameMode: "incomingOnly",
   showMessageStatus: true,
   showTimestamp: true,
@@ -67,8 +72,6 @@ export const CHAT_DEFAULT_FEATURES: IChatViewFeatures = {
   bottomLoadThreshold: 200,
   scrollToBottomThreshold: 150,
   autoScrollOnNewMessage: true,
-
-  disintegrationEnabled: false,
 };
 
 export interface IResolveChatFeaturesInput {
@@ -81,47 +84,43 @@ export interface IResolveChatFeaturesInput {
   scrollToBottomThreshold?: number;
 }
 
-/**
- * Порядок применения повторяет RNChatView: сначала индивидуальные пропсы
- * (showSenderName/showFloatingDate/пороги/emojiReactions), затем объект
- * `features` перекрывает их (native применяет features последним).
- */
-export const resolveChatFeatures = (
-  input: IResolveChatFeaturesInput,
-): IChatViewFeatures => {
-  const resolved: IChatViewFeatures = { ...CHAT_DEFAULT_FEATURES };
+/** Отбрасывает ключи со значением `undefined`, чтобы они не затирали дефолт. */
+const defined = <T extends object>(source: T): Partial<T> => {
+  const result: Partial<T> = {};
 
-  if (input.showSenderName !== undefined) {
-    resolved.senderNameMode = input.showSenderName ? "incomingOnly" : "never";
-  }
-  if (input.showFloatingDate !== undefined) {
-    resolved.showFloatingDate = input.showFloatingDate;
-  }
-  if (input.topThreshold !== undefined) {
-    resolved.topLoadThreshold = input.topThreshold;
-  }
-  if (input.bottomThreshold !== undefined) {
-    resolved.bottomLoadThreshold = input.bottomThreshold;
-  }
-  if (input.scrollToBottomThreshold !== undefined) {
-    resolved.scrollToBottomThreshold = input.scrollToBottomThreshold;
-  }
-  if (input.emojiReactions !== undefined) {
-    resolved.emojiReactions = input.emojiReactions;
+  for (const key of Object.keys(source) as (keyof T)[]) {
+    if (source[key] !== undefined) result[key] = source[key];
   }
 
-  const f = input.features;
-
-  if (f) {
-    const target = resolved as unknown as Record<string, unknown>;
-    const source = f as Record<string, unknown>;
-
-    for (const key of Object.keys(f)) {
-      if (source[key] !== undefined) {
-        target[key] = source[key];
-      }
-    }
-  }
-
-  return resolved;
+  return result;
 };
+
+/**
+ * Порядок применения повторяет нативную реализацию: сначала индивидуальные
+ * пропы, затем объект `features` перекрывает их.
+ */
+export const resolveChatFeatures = ({
+  features,
+  emojiReactions,
+  showSenderName,
+  showFloatingDate,
+  topThreshold,
+  bottomThreshold,
+  scrollToBottomThreshold,
+}: IResolveChatFeaturesInput): IChatFeatures => ({
+  ...CHAT_DEFAULT_FEATURES,
+  ...defined({
+    emojiReactions,
+    showFloatingDate,
+    topLoadThreshold: topThreshold,
+    bottomLoadThreshold: bottomThreshold,
+    scrollToBottomThreshold,
+    senderNameMode:
+      showSenderName === undefined
+        ? undefined
+        : showSenderName
+          ? ("incomingOnly" as const)
+          : ("never" as const),
+  }),
+  ...(features ? defined(features) : null),
+});

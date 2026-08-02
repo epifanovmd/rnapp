@@ -1,4 +1,4 @@
-import { IChatViewFeatures } from "../config";
+import { IChatFeatures } from "../config";
 import {
   IParsedChatMessage,
   IResolvedReply,
@@ -22,13 +22,13 @@ export type ChatRow =
       resolvedReply?: IResolvedReply;
       /** Показывать ли имя отправителя. */
       showSenderName: boolean;
+      /** Рисовать ли аватар отправителя в ячейке. */
+      showAvatar: boolean;
       /** Крупные эмодзи без фона пузыря. */
       bubbleless: boolean;
     }
   | { type: "dateSeparator"; key: string; groupDate: string; hidden: boolean }
-  | { type: "loading"; key: string; position: "top" | "bottom" };
-
-export const chatRowKey = (row: ChatRow): string => row.key;
+  | { type: "loading"; key: string };
 
 /** `localId` даёт pending→real обновление вместо delete+insert. */
 const messageRowKey = (message: IParsedChatMessage): string =>
@@ -38,7 +38,7 @@ const messageRowKey = (message: IParsedChatMessage): string =>
 const isBubbleless = (
   message: IParsedChatMessage,
   showSenderName: boolean,
-  features: IChatViewFeatures,
+  features: IChatFeatures,
 ): boolean =>
   message.body.emojiCount != null &&
   !showSenderName &&
@@ -49,7 +49,7 @@ export interface IBuildChatRowsInput {
   messages: IParsedChatMessage[];
   /** ID → сообщение: нужен для разрешения цитат. */
   messageIndex: Map<string, IParsedChatMessage>;
-  features: IChatViewFeatures;
+  features: IChatFeatures;
   showBottomLoading: boolean;
   /** Скрыть первый разделитель, пока сверху крутится спиннер. */
   hideFirstSeparator: boolean;
@@ -72,12 +72,8 @@ interface IMessageRowCacheEntry {
 export class ChatRowsBuilder {
   private _messageRows = new Map<string, IMessageRowCacheEntry>();
   private _separatorRows = new Map<string, ChatRow>();
-  private _features: IChatViewFeatures | null = null;
-  private readonly _loadingRow: ChatRow = {
-    type: "loading",
-    key: "l_bottom",
-    position: "bottom",
-  };
+  private _features: IChatFeatures | null = null;
+  private readonly _loadingRow: ChatRow = { type: "loading", key: "l_bottom" };
 
   build({
     messages,
@@ -85,7 +81,7 @@ export class ChatRowsBuilder {
     features,
     showBottomLoading,
     hideFirstSeparator,
-  }: IBuildChatRowsInput): ChatRow[] {
+  }: IBuildChatRowsInput): { rows: ChatRow[]; stickyIndices: number[] } {
     // Настройки участвуют в содержимом строки — при их смене кеш недействителен.
     if (this._features !== features) {
       this._features = features;
@@ -93,6 +89,9 @@ export class ChatRowsBuilder {
     }
 
     const rows: ChatRow[] = [];
+    // Индексы разделителей уходят в `stickyHeaderIndices` списка: прилипание
+    // плашки даты к верхней кромке делает сам список, на UI-потоке.
+    const stickyIndices: number[] = [];
     const nextMessageRows = new Map<string, IMessageRowCacheEntry>();
     const nextSeparatorRows = new Map<string, ChatRow>();
     const seenGroups = new Set<string>();
@@ -102,6 +101,7 @@ export class ChatRowsBuilder {
     for (const message of messages) {
       if (features.showDateSeparators && !seenGroups.has(message.groupDate)) {
         seenGroups.add(message.groupDate);
+        stickyIndices.push(rows.length);
         rows.push(
           this._separatorRow(
             message.groupDate,
@@ -122,13 +122,13 @@ export class ChatRowsBuilder {
     this._messageRows = nextMessageRows;
     this._separatorRows = nextSeparatorRows;
 
-    return rows;
+    return { rows, stickyIndices };
   }
 
   private _messageRow(
     message: IParsedChatMessage,
     messageIndex: Map<string, IParsedChatMessage>,
-    features: IChatViewFeatures,
+    features: IChatFeatures,
     into: Map<string, IMessageRowCacheEntry>,
   ): ChatRow {
     const key = messageRowKey(message);
@@ -151,6 +151,11 @@ export class ChatRowsBuilder {
       message,
       features.senderNameMode,
     );
+    // Аватар рисуется у каждого входящего сообщения, у которого есть отправитель.
+    const showAvatar =
+      features.showAvatars &&
+      message.ownership === "theirs" &&
+      message.senderName != null;
 
     const row: ChatRow = {
       type: "message",
@@ -162,6 +167,7 @@ export class ChatRowsBuilder {
         hasImage: replySource.body.media != null,
       },
       showSenderName,
+      showAvatar,
       bubbleless: isBubbleless(message, showSenderName, features),
     };
 

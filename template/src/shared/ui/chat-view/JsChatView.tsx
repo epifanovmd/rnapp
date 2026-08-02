@@ -12,14 +12,11 @@ import React, {
 import {
   ActivityIndicator,
   LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   StyleSheet,
   View,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
-  useScrollViewOffset,
   useSharedValue,
   withSequence,
   withTiming,
@@ -38,54 +35,37 @@ import {
   KeyboardInputBar,
 } from "../input-bar";
 import {
-  ChatAvatarLayer,
-  ChatAvatarStore,
-  ChatCellStore,
   ChatFab,
+  ChatHighlightStore,
   ChatList,
-  ChatOverlayStore,
   ChatViewContext,
-  DisintegrationOverlay,
   EmptyStateOverlay,
-  FloatingDateOverlay,
   IChatViewContextValue,
 } from "./components";
-import { createChatStyles } from "./config";
 import { EMPTY_CHAT_DATA, IChatData } from "./data";
 import {
-  useChatAvatars,
-  useChatCellDelegate,
   useChatCommands,
   useChatConfig,
   useChatData,
-  useChatDisintegration,
-  useChatEmptyState,
-  useChatExternalUnread,
-  useChatFloatingDate,
-  useChatGeometry,
-  useChatInitialScroll,
+  useChatDelegate,
   useChatInputBar,
-  useChatMessageUpdates,
-  useChatOverlays,
-  useChatPagination,
-  useChatScroll,
-  useChatScrollAnchor,
-  useChatVisibility,
-  useParsedMessages,
+  useChatScrollReport,
+  useChatStickyDate,
+  useChatUnread,
+  useChatViewability,
 } from "./hooks";
-import { ChatUnreadManager } from "./services";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 /**
  * React Native-реализация ChatView на `@legendapp/list`.
  *
- * Компонент намеренно тонкий: он только собирает независимые части и связывает
- * их проводами. Логика живёт рядом —
+ * Всё, что связано с положением контента, отдано списку и живёт на UI-потоке:
+ * позиция при вставках, прижатие к низу, прилипшая дата, пороги пагинации и
+ * доли видимости. Здесь остаётся склейка — конфигурация, данные, команды и
+ * разводка колбэков наружу.
  *
  * - `config/` — тема, метрики, флаги и готовые стили ячеек;
- * - `data/` — разбор сообщений, строки, диффы, план обновления;
- * - `scroll/` — геометрия, якорь, видимость, плавающая дата, аватары;
- * - `services/` — плеер голосовых и счётчик непрочитанных;
+ * - `data/` — разбор сообщений и построение строк с сохранением идентичности;
  * - `hooks/` — по хуку на ответственность;
  * - `components/` — только отрисовка;
  * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка (о чате не знает).
@@ -108,61 +88,58 @@ export const JsChatView = memo(
       unreadCount = -1,
     } = props;
 
-    // Пропы читаются из ref всеми стабильными колбэками: обработчик скролла не
-    // должен пересоздаваться из-за смены любого коллбэка хоста.
+    // Пропы читаются из ref всеми стабильными колбэками: обработчики не должны
+    // пересоздаваться из-за смены любого коллбэка хоста.
     const propsRef = useRef(props);
 
     propsRef.current = props;
 
-    const { theme, layout, features, getTheme, getLayout, getFeatures } =
+    const { theme, layout, inputBarLayout, features, styles } =
       useChatConfig(props);
 
-    // ─── Долгоживущие объекты ────────────────────────────────────────────
-
     const listRef = useRef<LegendListRef>(null);
-    const rootRef = useRef<View>(null);
     const inputBarRef = useRef<IInputBarViewRef>(null);
 
-    const storesRef = useRef<{
-      cell: ChatCellStore;
-      overlay: ChatOverlayStore;
-      avatar: ChatAvatarStore;
-      unread: ChatUnreadManager;
-    } | null>(null);
+    const highlightRef = useRef<ChatHighlightStore | null>(null);
 
-    if (!storesRef.current) {
-      storesRef.current = {
-        cell: new ChatCellStore(),
-        overlay: new ChatOverlayStore(),
-        avatar: new ChatAvatarStore(),
-        unread: new ChatUnreadManager(),
-      };
-    }
+    highlightRef.current ??= new ChatHighlightStore();
 
-    const {
-      cell: cellStore,
-      overlay: overlayStore,
-      avatar: avatarStore,
-      unread: unreadManager,
-    } = storesRef.current;
+    const highlight = highlightRef.current;
 
-    // Контейнер данных создаётся до потребителей: команды и якорь нужны раньше,
-    // чем посчитаны строки, а им достаточно стабильной ссылки.
+    // ─── Значения UI-потока ──────────────────────────────────────────────
+    // Их ведут список, клавиатура и панель ввода; React их не читает.
+
+    const scrollOffset = useSharedValue(0);
+    const isNearEnd = useSharedValue(true);
+    const activeStickyIndex = useSharedValue(-1);
+    const fabExpanded = useSharedValue(0);
+    const fabHiddenForRecording = useSharedValue(0);
+
+    const stickyDate = useChatStickyDate(
+      scrollOffset,
+      activeStickyIndex,
+      layout,
+      features.showFloatingDate,
+    );
+
+    // ─── Данные ──────────────────────────────────────────────────────────
+
+    const data = useChatData({
+      messages,
+      getActionsForMessage,
+      features,
+      showBottomLoading: isLoadingBottom && features.showBottomLoadingIndicator,
+      hideFirstSeparator: isLoadingTop,
+    });
+
+    // Команды и делегат создаются раньше, чем посчитаны строки, — им достаточно
+    // стабильной ссылки на актуальный снимок.
     const dataRef = useRef<IChatData>(EMPTY_CHAT_DATA);
 
-    // Ширина списка нужна ячейкам для расчёта максимальной ширины пузыря —
-    // единственная величина геометрии, попадающая в рендер.
-    const [listWidth, setListWidth] = useState(0);
-
-    // ─── Геометрия ───────────────────────────────────────────────────────
-
-    const geometry = useChatGeometry(listRef);
-    const readGeometry = geometry.read;
-
-    const parsed = useParsedMessages(messages, getActionsForMessage);
+    dataRef.current = data;
 
     // ─── Клавиатура ──────────────────────────────────────────────────────
-    // Одна зона на всех потребителей: панель ввода, FAB и нижний инсет списка.
+    // Одна зона на всех потребителей: панель ввода, FAB и низ списка.
 
     const handleKeyboardBlur = useCallback(
       () => inputBarRef.current?.blur(),
@@ -175,466 +152,210 @@ export const JsChatView = memo(
 
     const keyboard = useKeyboardInset({
       extraPadding: layout.collectionBottomPadding + collectionInsetBottom,
-      initialBarHeight: layout.inputBarMinHeight,
+      initialBarHeight: inputBarLayout.inputBarMinHeight,
       onBlur: handleKeyboardBlur,
       onRefocus: handleKeyboardRefocus,
     });
 
-    // Компенсация скролла — отдельный хук: получает инсеты от useKeyboardInset.
     const compensation = useKeyboardScrollCompensation(
       keyboard.contentInset,
       keyboard.reservedInset,
     );
 
-    // Позиции sticky-аватаров считаются на UI-потоке от живого скролла,
-    // поэтому нужен scrollY в shared value, а не из JS-обработчика.
-    const avatarScrollY = useScrollViewOffset(compensation.scrollRef);
-    const avatarViewportHeight = useSharedValue(0);
-
-    const { barHeight, freeze, restore } = keyboard;
-
-    // ─── Скролл, якорь, команды ──────────────────────────────────────────
-
-    const getScrollToBottomThreshold = useCallback(
-      () => getFeatures().scrollToBottomThreshold,
-      [getFeatures],
-    );
-
-    // Остановка скролла — единая точка: финальный якорь плюс применение
-    // отложенного структурного обновления. Обработчики появляются ниже,
-    // поэтому связь через ref.
-    const settleRef = useRef<() => void>(() => {});
-    const handleSettled = useCallback(() => settleRef.current(), []);
-
-    const scroll = useChatScroll({
-      readGeometry,
-      getScrollToBottomThreshold,
-      onSettled: handleSettled,
-    });
-
     const commands = useChatCommands({
       listRef,
-      readGeometry,
       data: dataRef,
-      scroll,
-      cellStore,
+      highlight,
       getBottomInset: keyboard.getContentInset,
     });
 
-    const handleAnchorChange = useCallback(
-      (
-        anchor: Parameters<
-          NonNullable<ChatViewProps["onScrollAnchorChanged"]>
-        >[0],
-      ) => {
-        propsRef.current.onScrollAnchorChanged?.(anchor);
-      },
-      [],
-    );
+    // ─── Непрочитанные ───────────────────────────────────────────────────
 
-    const anchor = useChatScrollAnchor({
-      readGeometry,
-      data: dataRef,
-      scroll,
-      getScrollToBottomThreshold,
-      onChange: handleAnchorChange,
-    });
+    const unread = useChatUnread(unreadCount);
+    const trackUnread = unread.track;
 
-    // ─── Обновления данных ───────────────────────────────────────────────
-
-    const playDisintegration = useChatDisintegration({
-      rootRef,
-      cellStore,
-      overlayStore,
-      getTheme,
-    });
-
-    const isDisintegrationEnabled = useCallback(
-      () => getFeatures().disintegrationEnabled,
-      [getFeatures],
-    );
-
-    const { displayed, flushDeferred } = useChatMessageUpdates({
-      parsed,
-      scroll,
-      anchor,
-      commands,
-      unreadManager,
-      isDisintegrationEnabled,
-      playDisintegration,
-    });
-
-    const data = useChatData(displayed, {
-      features,
-      showBottomLoading: isLoadingBottom && features.showBottomLoadingIndicator,
-      hideFirstSeparator: isLoadingTop,
-    });
-
-    dataRef.current = data;
-
-    settleRef.current = () => {
-      anchor.reportSettled();
-      flushDeferred();
-    };
-
-    // ─── Оверлеи ─────────────────────────────────────────────────────────
-
-    const isFabLoading = useCallback(
-      () => propsRef.current.isLoadingFab === true,
-      [],
-    );
-    const isFabEnabled = useCallback(
-      () => getFeatures().showFab,
-      [getFeatures],
-    );
-    const getDisplayed = useCallback(() => dataRef.current.parsed, []);
-
-    const overlays = useChatOverlays({
-      store: overlayStore,
-      unreadManager,
-      isNearBottom: scroll.isNearBottom,
-      getDisplayed,
-      isFabLoading,
-      isFabEnabled,
-    });
-
-    useChatEmptyState(
-      overlayStore,
-      displayed.length === 0,
-      isLoading,
-      emptyStateText,
-    );
-    useChatExternalUnread(unreadManager, unreadCount);
-
-    // При загрузке FAB показан принудительно.
     useEffect(() => {
-      overlayStore.set({ fabLoading: isLoadingFab });
-
-      if (isLoadingFab) {
-        overlayStore.set({ fabVisible: true });
-      } else {
-        overlays.updateFab();
-      }
-    }, [isLoadingFab, overlayStore, overlays]);
-
-    // Без записи голоса FAB всегда развёрнут.
-    useEffect(() => {
-      if (!features.showVoiceRecording) overlays.setFabExpanded(true);
-    }, [features.showVoiceRecording, overlays]);
-
-    // Хост ответил на нижнюю пагинацию — снимаем защёлку.
-    useEffect(() => {
-      if (!isLoadingBottom) scroll.state.current.isLoadingNewerActive = false;
-    }, [isLoadingBottom, scroll]);
-
-    // ─── Плавающая дата ──────────────────────────────────────────────────
-
-    const getSeparators = useCallback(() => dataRef.current.dateSeparators, []);
-    const isFloatingDateEnabled = useCallback(
-      () => getFeatures().showFloatingDate,
-      [getFeatures],
-    );
-    const hasMessages = useCallback(
-      () => dataRef.current.parsed.length > 0,
-      [],
-    );
-    const getTopInset = useCallback(
-      () => propsRef.current.collectionInsetTop ?? 0,
-      [],
-    );
-
-    const updateFloatingDate = useChatFloatingDate({
-      readGeometry,
-      getSeparators,
-      getLayout,
-      isEnabled: isFloatingDateEnabled,
-      hasMessages,
-      getTopInset,
-      store: overlayStore,
-    });
-
-    // ─── Sticky-аватары ──────────────────────────────────────────────────
-
-    const getAvatarGroups = useCallback(() => dataRef.current.avatarGroups, []);
-    const isAvatarsEnabled = useCallback(
-      () => getFeatures().showAvatars,
-      [getFeatures],
-    );
-    const getAvatarSize = useCallback(
-      () => getLayout().avatarSize,
-      [getLayout],
-    );
-    // Верхний отступ контента: он же задаётся ChatList'у через contentPaddingTop.
-    const getContentPaddingTop = useCallback(
-      () =>
-        getLayout().collectionTopPadding +
-        (propsRef.current.collectionInsetTop ?? 0),
-      [getLayout],
-    );
-
-    const updateAvatars = useChatAvatars({
-      store: avatarStore,
-      readGeometry,
-      getGroups: getAvatarGroups,
-      isEnabled: isAvatarsEnabled,
-      getAvatarSize,
-      getContentPaddingTop,
-      getBottomInset: keyboard.getContentInset,
-    });
+      trackUnread(data.messages);
+    }, [data.messages, trackUnread]);
 
     // ─── Видимость ───────────────────────────────────────────────────────
+    // Доли видимости и пороги считает список; здесь только разводка наружу.
 
-    const getRows = useCallback(() => dataRef.current.rows, []);
-
-    const getThresholds = useCallback(
-      () => ({
-        enterThreshold: propsRef.current.visibilityThreshold ?? 0.8,
-        // Порог выхода (0.5 при входе 0.8): выход всегда ниже
-        // входа — гистерезис гасит дребезг на границе порога.
-        exitThreshold: (propsRef.current.visibilityThreshold ?? 0.8) * 0.625,
-        unreadThreshold: propsRef.current.unreadVisibilityThreshold ?? 0.5,
-        visibleThrottleMs:
-          (propsRef.current.visibleMessagesThrottleInterval ?? 0.3) * 1000,
-        unreadDebounceMs:
-          (propsRef.current.unreadMessagesDebounceInterval ?? 0.3) * 1000,
-      }),
-      [],
-    );
-
-    // scroll.isNearBottom пересоздаётся, а колбэки видимости обязаны быть
-    // стабильными — иначе трекер терял бы состояние гистерезиса.
-    const isNearBottomRef = useRef(scroll.isNearBottom);
-
-    isNearBottomRef.current = scroll.isNearBottom;
-
-    const handleVisibleChange = useCallback((messageIds: string[]) => {
-      propsRef.current.onVisibleMessagesChange?.({
-        messageIds,
-        isAtBottom: isNearBottomRef.current(),
-      });
-    }, []);
-
-    const handleUnreadAppear = useCallback((messageIds: string[]) => {
-      propsRef.current.onUnreadMessagesAppear?.({ messageIds });
-    }, []);
-
-    const handleMarkAsRead = useCallback(
-      (ids: Set<string>) => unreadManager.markAsRead(ids),
-      [unreadManager],
-    );
-
-    const visibility = useChatVisibility({
-      readGeometry,
-      getRows,
-      getThresholds,
-      onVisibleChange: handleVisibleChange,
-      onUnreadAppear: handleUnreadAppear,
-      onMarkAsRead: handleMarkAsRead,
+    const viewabilityPairs = useChatViewability({
+      props: propsRef,
+      isNearEnd,
+      onMarkRead: unread.markRead,
+      visibilityThreshold: props.visibilityThreshold,
+      unreadVisibilityThreshold: props.unreadVisibilityThreshold,
+      visibleInterval: props.visibleMessagesThrottleInterval,
+      unreadInterval: props.unreadMessagesDebounceInterval,
     });
 
-    // ─── Пагинация ───────────────────────────────────────────────────────
+    // ─── Отчёт о скролле ─────────────────────────────────────────────────
 
-    const getPaginationFlags = useCallback(
-      () => ({
-        hasMore: propsRef.current.hasMore === true,
-        hasNewer: propsRef.current.hasNewer === true,
-        isLoadingTop: propsRef.current.isLoadingTop === true,
-        isLoadingBottom: propsRef.current.isLoadingBottom === true,
-        hasMessages: dataRef.current.parsed.length > 0,
-      }),
-      [],
-    );
-
-    const handleReachTop = useCallback((distanceFromTop: number) => {
-      propsRef.current.onReachTop?.({ distanceFromTop });
-    }, []);
-
-    const handleReachBottom = useCallback((distanceFromBottom: number) => {
-      propsRef.current.onReachBottom?.({ distanceFromBottom });
-    }, []);
-
-    const checkPagination = useChatPagination({
-      scroll,
-      getFeatures,
-      getFlags: getPaginationFlags,
-      onReachTop: handleReachTop,
-      onReachBottom: handleReachBottom,
+    const handleScroll = useChatScrollReport({
+      listRef,
+      data: dataRef,
+      props: propsRef,
+      isNearEnd,
+      throttleInterval: layout.scrollThrottleInterval,
     });
 
-    // ─── Обработчик скролла ──────────────────────────────────────────────
-
-    const lastScrollEventAtRef = useRef(0);
-
-    const handleScroll = useCallback(
-      (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const { contentOffset, contentSize, layoutMeasurement } =
-          event.nativeEvent;
-        const y = contentOffset.y;
-
-        scroll.trackDirection(y);
-
-        // Троттлинг по layout.scrollThrottleInterval.
-        const now = Date.now();
-
-        if (
-          now - lastScrollEventAtRef.current >=
-          getLayout().scrollThrottleInterval * 1000
-        ) {
-          lastScrollEventAtRef.current = now;
-          propsRef.current.onScroll?.({
-            x: contentOffset.x,
-            y,
-            isAtBottom: scroll.isNearBottom(),
-          });
-        }
-
-        checkPagination(y, contentSize.height, layoutMeasurement.height);
-
-        overlays.updateFab();
-        updateFloatingDate();
-        updateAvatars();
-        // Доля видимости меняется непрерывно — список сам об этом не сообщит.
-        visibility.recompute();
-        anchor.reportThrottled();
-      },
-      [
-        scroll,
-        getLayout,
-        checkPagination,
-        overlays,
-        updateFloatingDate,
-        updateAvatars,
-        visibility,
-        anchor,
-      ],
-    );
+    const [viewportHeight, setViewportHeight] = useState(0);
 
     const handleLayout = useCallback(
       (event: LayoutChangeEvent) => {
-        const { width, height } = event.nativeEvent.layout;
-
         compensation.onLayout(event);
-        geometry.setViewport(width, height);
-        avatarViewportHeight.value = height;
-        setListWidth(prev => (prev === width ? prev : width));
-      },
-      [compensation, geometry, avatarViewportHeight],
-    );
-
-    const handleContentSizeChange = useCallback(
-      (width: number, height: number) => {
-        compensation.onContentSizeChange(width, height);
+        setViewportHeight(event.nativeEvent.layout.height);
       },
       [compensation],
     );
 
-    // Компенсация обязана знать про палец на экране: пока идёт жест, позицию
-    // она не трогает позицию, пока палец на экране.
-    const handleScrollBeginDrag = useCallback(() => {
-      compensation.onScrollBeginDrag();
-      scroll.onBeginDrag();
-    }, [compensation, scroll]);
+    const handleContentSizeChange = useCallback(
+      (width: number, height: number) =>
+        compensation.onContentSizeChange(width, height),
+      [compensation],
+    );
 
-    const handleScrollEndDrag = useCallback(() => {
-      compensation.onScrollEndDrag();
-      scroll.onEndDrag();
-    }, [compensation, scroll]);
+    // Компенсация обязана знать про палец на экране: пока идёт жест,
+    // позицию она не трогает.
+    const handleScrollBeginDrag = useCallback(
+      () => compensation.onScrollBeginDrag(),
+      [compensation],
+    );
+    const handleScrollEndDrag = useCallback(
+      () => compensation.onScrollEndDrag(),
+      [compensation],
+    );
+
+    // ─── Пагинация ───────────────────────────────────────────────────────
+    // Пороги задаются пропами в пикселях, список принимает их долей экрана.
+
+    const handleStartReached = useCallback(() => {
+      const { hasMore, isLoadingTop: loadingTop } = propsRef.current;
+
+      if (hasMore !== true || loadingTop === true) return;
+
+      propsRef.current.onReachTop?.({ distanceFromTop: scrollOffset.value });
+    }, [scrollOffset]);
+
+    const handleEndReached = useCallback(() => {
+      const { hasNewer, isLoadingBottom: loadingBottom } = propsRef.current;
+
+      if (hasNewer !== true || loadingBottom === true) return;
+
+      propsRef.current.onReachBottom?.({ distanceFromBottom: 0 });
+    }, []);
+
+    const asFraction = (px: number) =>
+      viewportHeight > 0 ? px / viewportHeight : 0.5;
 
     // ─── Начальная позиция ───────────────────────────────────────────────
+    // Берётся один раз на монтировании: дальше позицией управляет пользователь.
 
-    const handleInitialReady = useCallback(() => {
-      overlays.updateFab();
-      updateFloatingDate();
-      updateAvatars();
-      visibility.recompute();
-    }, [overlays, updateFloatingDate, updateAvatars, visibility]);
+    const initialScrollIndex = useMemo(() => {
+      const anchor = initialScrollAnchor;
 
-    const initialScroll = useChatInitialScroll({
-      anchor: initialScrollAnchor,
-      data: dataRef,
-      scroll,
-      onReady: handleInitialReady,
-    });
+      if (!anchor || anchor.wasAtBottom) return undefined;
 
-    // Аватары зависят от строк, а не только от скролла: после обновления
-    // данных группы смещаются даже при неподвижном списке.
-    useEffect(() => updateAvatars(), [data, updateAvatars]);
+      const index = dataRef.current.rowIndexById.get(anchor.messageId);
+
+      if (index == null) return undefined;
+
+      // Выравнивание по низу: нижний край строки у низа вьюпорта, сдвинутый
+      // на сохранённый offset.
+      return { index, viewPosition: 1, viewOffset: -anchor.offset };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // ─── Императивный интерфейс ──────────────────────────────────────────
+
+    const clearUnread = unread.clear;
 
     useImperativeHandle(
       ref,
       () => ({
         scrollToBottom: () => commands.scrollToBottom(true),
         scrollToMessage: commands.scrollToMessage,
-        clearUnread: () => unreadManager.clearAll(),
+        clearUnread,
       }),
-      [commands, unreadManager],
+      [commands, clearUnread],
     );
 
-    // ─── Делегаты ────────────────────────────────────────────────────────
+    // ─── Панель ввода и делегат ──────────────────────────────────────────
 
-    const delegate = useChatCellDelegate({
+    const delegate = useChatDelegate({
       props: propsRef,
       commands,
-      freezeKeyboard: freeze,
-      restoreKeyboard: restore,
+      freezeKeyboard: keyboard.freeze,
+      restoreKeyboard: keyboard.restore,
     });
 
     const inputBar = useChatInputBar({
       inputAction,
       messageIndex: data.messageIndex,
       props: propsRef,
-      scroll,
-      overlays,
-      getFeatures,
-      barHeight,
+      commands,
+      features,
+      barHeight: keyboard.barHeight,
+      fabExpanded,
+      fabHiddenForRecording,
     });
 
-    const handleFabPress = useCallback(() => {
-      propsRef.current.onFabPress?.({});
-    }, []);
+    const handleFabPress = useCallback(
+      () => propsRef.current.onFabPress?.({}),
+      [],
+    );
 
     // ─── Контексты ───────────────────────────────────────────────────────
-
-    const styles = useMemo(
-      () => createChatStyles(theme, layout),
-      [theme, layout],
-    );
 
     const chatContext = useMemo<IChatViewContextValue>(
       () => ({
         theme,
         layout,
+        inputBarLayout,
         features,
         styles,
-        listWidth,
         delegate,
-        cellStore,
+        highlight,
+        stickyDate,
       }),
-      [theme, layout, features, styles, listWidth, delegate, cellStore],
+      [
+        theme,
+        layout,
+        inputBarLayout,
+        features,
+        styles,
+        delegate,
+        highlight,
+        stickyDate,
+      ],
     );
 
-    // Ключи темы и метрик у панели ввода совпадают 1:1 (inputBackground,
-    // inputButtonSize…), поэтому передаются те же объекты — панель просто
-    // читает из них свои ключи.
+    // Ключи темы и метрик у панели ввода совпадают 1:1, поэтому передаются
+    // те же объекты — панель просто читает из них свои ключи.
     const inputBarContext = useMemo(
       () => ({
         theme,
-        layout,
+        layout: inputBarLayout,
         features: INPUT_BAR_DEFAULT_FEATURES,
-        styles: createInputBarStyles(theme, layout),
+        styles: createInputBarStyles(theme, inputBarLayout),
       }),
-      [theme, layout],
+      [theme, inputBarLayout],
     );
 
     const listExtraData = useMemo(
-      () => ({ styles, features, listWidth }),
-      [styles, features, listWidth],
+      () => ({ styles, features }),
+      [styles, features],
     );
 
-    // Смена темы или метрик проявляется через
-    // короткий кросс-фейд, а не мгновенной перекраской списка.
+    // Без плавающей даты разделители едут в потоке, как обычные строки.
+    const stickyIndices = features.showFloatingDate
+      ? data.stickyIndices
+      : NO_STICKY_INDICES;
+
+    // Смена темы или метрик проявляется коротким кросс-фейдом, а не мгновенной
+    // перекраской списка.
     const crossfade = useSharedValue(1);
     const isFirstStyles = useRef(true);
 
@@ -645,8 +366,8 @@ export const JsChatView = memo(
         return;
       }
       crossfade.value = withSequence(
-        withTiming(0, { duration: 125 }),
-        withTiming(1, { duration: 125 }),
+        withTiming(0, { duration: CROSSFADE_MS }),
+        withTiming(1, { duration: CROSSFADE_MS }),
       );
     }, [styles, crossfade]);
 
@@ -656,36 +377,38 @@ export const JsChatView = memo(
 
     return (
       <ChatViewContext.Provider value={chatContext}>
-        <View ref={rootRef} collapsable={false} style={[ss.root, style]}>
+        <View style={[ss.root, style]}>
           <Animated.View style={[ss.listWrap, listWrapStyle]}>
             <ChatList
               ref={listRef}
               rows={data.rows}
+              stickyIndices={stickyIndices}
               scrollRef={compensation.scrollRef}
               bottomSpacerStyle={compensation.spacerStyle}
+              scrollOffset={scrollOffset}
+              isNearEnd={isNearEnd}
+              activeStickyIndex={activeStickyIndex}
               contentPaddingTop={
                 layout.collectionTopPadding + collectionInsetTop
               }
-              initialScrollIndex={initialScroll.initialScrollIndex}
-              initialScrollAtEnd={initialScroll.initialScrollAtEnd}
+              stickyOffset={collectionInsetTop}
+              initialScrollIndex={initialScrollIndex}
               estimatedItemSize={layout.estimatedRowHeight}
               drawDistance={layout.drawDistance}
-              onLoad={initialScroll.onLoad}
+              startReachedThreshold={asFraction(features.topLoadThreshold)}
+              endReachedThreshold={asFraction(features.bottomLoadThreshold)}
+              maintainScrollAtEndThreshold={asFraction(
+                features.scrollToBottomThreshold,
+              )}
+              viewabilityConfigCallbackPairs={viewabilityPairs}
               onScroll={handleScroll}
               onScrollBeginDrag={handleScrollBeginDrag}
               onScrollEndDrag={handleScrollEndDrag}
-              onMomentumScrollEnd={scroll.onMomentumEnd}
+              onStartReached={handleStartReached}
+              onEndReached={handleEndReached}
               onLayout={handleLayout}
               onContentSizeChange={handleContentSizeChange}
-              onViewableItemsChanged={visibility.onViewableItemsChanged}
               extraData={listExtraData}
-            />
-
-            <ChatAvatarLayer
-              store={avatarStore}
-              scrollY={avatarScrollY}
-              viewportHeight={avatarViewportHeight}
-              bottomInset={keyboard.contentInset}
             />
 
             {isLoadingTop && features.showTopLoadingIndicator && (
@@ -694,12 +417,11 @@ export const JsChatView = memo(
               </View>
             )}
 
-            <EmptyStateOverlay store={overlayStore} />
-            <FloatingDateOverlay
-              store={overlayStore}
-              topInset={collectionInsetTop}
+            <EmptyStateOverlay
+              visible={data.messages.length === 0}
+              loading={isLoading}
+              text={emptyStateText}
             />
-            <DisintegrationOverlay store={overlayStore} />
           </Animated.View>
 
           {features.showInputBar && (
@@ -716,9 +438,13 @@ export const JsChatView = memo(
           )}
 
           <ChatFab
-            store={overlayStore}
             bottomInset={keyboard.barOffset}
-            inputBarHeight={barHeight}
+            inputBarHeight={keyboard.barHeight}
+            isNearEnd={isNearEnd}
+            expanded={fabExpanded}
+            hiddenForRecording={fabHiddenForRecording}
+            isLoading={isLoadingFab}
+            unreadCount={unread.count}
             onPress={handleFabPress}
           />
         </View>
@@ -729,9 +455,15 @@ export const JsChatView = memo(
 
 JsChatView.displayName = "JsChatView";
 
+/** Длительность половины кросс-фейда при смене темы (мс). */
+const CROSSFADE_MS = 125;
+
+/** Пустой массив-константа: смена ссылки заставила бы список пересчитать sticky. */
+const NO_STICKY_INDICES: number[] = [];
+
 const ss = StyleSheet.create({
-  // И вью, и коллекция, и панель ввода прозрачные —
-  // фон чата рисует хост. Оверлеи не должны вылезать за границы чата.
+  // И вью, и коллекция, и панель ввода прозрачные — фон чата рисует хост.
+  // Оверлеи не должны вылезать за границы чата.
   root: { flex: 1, backgroundColor: "transparent", overflow: "hidden" },
   listWrap: { flex: 1 },
   topSpinner: { position: "absolute", left: 0, right: 0, alignItems: "center" },

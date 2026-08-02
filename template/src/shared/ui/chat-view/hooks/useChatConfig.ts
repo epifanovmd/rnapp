@@ -1,8 +1,11 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useMemo } from "react";
 
+import { IInputBarLayout } from "../../input-bar";
 import {
-  IChatViewFeatures,
-  IChatViewLayout,
+  createChatStyles,
+  IChatFeatures,
+  IChatLayout,
+  IChatStyles,
   IChatViewTheme,
   resolveChatFeatures,
   resolveChatLayout,
@@ -11,39 +14,39 @@ import {
 import { ChatViewProps } from "../types";
 
 /**
- * Разрешение конфигурации полей `theme` / `layout` / `features`.
+ * Разрешение пропов `theme` / `layout` / `features` в готовую конфигурацию.
  *
- * Отдельные пропы (`showSenderName`, `topThreshold`, …) перекрываются
- * объектом `features` — всё применяется разом.
- *
- * Геттеры нужны стабильным колбэкам (скролл, пагинация, видимость): они
- * не должны пересоздаваться при смене темы, но обязаны читать актуальное.
+ * Отдельные пропы (`showSenderName`, `topThreshold`, …) перекрываются объектом
+ * `features` — всё применяется разом. Геттеров здесь больше нет: пагинация,
+ * прилипшая дата и видимость теперь считаются списком, а не стабильными
+ * колбэками, которым требовалось читать «текущее» в обход зависимостей.
  */
-
 export interface IChatConfig {
   theme: IChatViewTheme;
-  layout: IChatViewLayout;
-  features: IChatViewFeatures;
-  getTheme: () => IChatViewTheme;
-  getLayout: () => IChatViewLayout;
-  getFeatures: () => IChatViewFeatures;
+  layout: IChatLayout;
+  inputBarLayout: IInputBarLayout;
+  features: IChatFeatures;
+  styles: IChatStyles;
 }
 
-export const useChatConfig = (props: ChatViewProps): IChatConfig => {
-  const {
-    theme: themeName = "light",
-    layout: layoutProp,
-    features: featuresProp,
-    emojiReactions,
-    showSenderName,
-    showFloatingDate,
-    topThreshold,
-    bottomThreshold,
-    scrollToBottomThreshold,
-  } = props;
-
+export const useChatConfig = ({
+  theme: themeName,
+  layout: layoutProp,
+  features: featuresProp,
+  emojiReactions,
+  showSenderName,
+  showFloatingDate,
+  topThreshold,
+  bottomThreshold,
+  scrollToBottomThreshold,
+}: ChatViewProps): IChatConfig => {
   const theme = useMemo(() => resolveChatTheme(themeName), [themeName]);
-  const layout = useMemo(() => resolveChatLayout(layoutProp), [layoutProp]);
+
+  const { chat: layout, inputBar: inputBarLayout } = useMemo(
+    () => resolveChatLayout(layoutProp),
+    [layoutProp],
+  );
+
   const features = useMemo(
     () =>
       resolveChatFeatures({
@@ -66,16 +69,15 @@ export const useChatConfig = (props: ChatViewProps): IChatConfig => {
     ],
   );
 
-  const ref = useRef({ theme, layout, features });
-
-  ref.current = { theme, layout, features };
-
-  const getTheme = useCallback(() => ref.current.theme, []);
-  const getLayout = useCallback(() => ref.current.layout, []);
-  const getFeatures = useCallback(() => ref.current.features, []);
+  // Стили пересобираются только при смене темы или метрик: ячейка не должна
+  // аллоцировать три десятка объектов стиля на каждый рендер.
+  const styles = useMemo(
+    () => createChatStyles(theme, layout),
+    [theme, layout],
+  );
 
   return useMemo(
-    () => ({ theme, layout, features, getTheme, getLayout, getFeatures }),
-    [theme, layout, features, getTheme, getLayout, getFeatures],
+    () => ({ theme, layout, inputBarLayout, features, styles }),
+    [theme, layout, inputBarLayout, features, styles],
   );
 };

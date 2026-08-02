@@ -2,7 +2,7 @@ import { TextStyle, ViewStyle } from "react-native";
 
 import { ChatMessageOwnership } from "../types";
 import { chatTextBase, withOpacity } from "../utils";
-import { IChatFont, IChatViewLayout } from "./chat-layout";
+import { IChatFont, IChatLayout } from "./chat-layout";
 import { IChatViewTheme } from "./chat-theme";
 
 /**
@@ -67,9 +67,12 @@ export interface IChatOwnershipStyles {
 
 /** Стили, общие для всех сообщений. */
 export interface IChatSharedStyles {
-  avatarSlot: ViewStyle;
+  /** Резерв под аватар входящего сообщения — сдвигает пузырь вправо, как нативно. */
+  avatarColumn: ViewStyle;
   /** Ширина колонки под аватар — она же вычитается из ширины пузыря. */
   avatarSlotWidth: number;
+  /** Аватар поверх ячейки (absolute): left = avatarLeadingMargin, низ = низ пузыря. */
+  avatarOverlay: ViewStyle;
   senderName: TextStyle;
 
   footerRow: ViewStyle;
@@ -186,7 +189,7 @@ const justifyOf = (
 
 const extraSpacingOf = (
   ownership: ChatMessageOwnership,
-  l: IChatViewLayout,
+  l: IChatLayout,
 ): number => {
   switch (ownership) {
     case "system":
@@ -201,7 +204,7 @@ const extraSpacingOf = (
 const ownershipStyles = (
   ownership: ChatMessageOwnership,
   t: IChatViewTheme,
-  l: IChatViewLayout,
+  l: IChatLayout,
 ): IChatOwnershipStyles => {
   const isOutgoing = ownership === "mine";
   const spacing = extraSpacingOf(ownership, l);
@@ -225,6 +228,12 @@ const ownershipStyles = (
       paddingBottom: l.bubbleBottomPad,
       paddingHorizontal: l.bubbleHPad,
       gap: l.bubbleSpacing,
+      // Пузырь заполняет content box ячейки, когда её высоту диктует cellMinHeight —
+      // как нативно (bubble pinned top+bottom к contentView). System/pinned пропускаем:
+      // у них своё extra-дно, формула не сходится.
+      ...(ownership === "mine" || ownership === "theirs"
+        ? { minHeight: l.cellMinHeight - l.cellVSpacing }
+        : null),
     },
     text: font(l.messageFont, color, {
       textAlign: ownership === "system" ? "center" : "auto",
@@ -325,13 +334,24 @@ const ownershipStyles = (
 
 const sharedStyles = (
   t: IChatViewTheme,
-  l: IChatViewLayout,
+  l: IChatLayout,
 ): IChatSharedStyles => ({
-  // Колонка аватара всегда резервирует место, сам аватар рисуется слоем поверх.
-  avatarSlot: {
+  // Резерв под аватар — пустой спейсер. Позиционирует пузырь ровно как нативно:
+  // bubble leading = cellHMargin + avatarSize + avatarLeadingMargin + avatarBubbleSpacing,
+  // т.е. отступ аватар→пузырь = cellHMargin + avatarBubbleSpacing (10 при дефолтах).
+  avatarColumn: {
     width: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
   },
   avatarSlotWidth: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
+  // Аватар рисуется поверх ячейки (absolute), как нативный AvatarSupplementaryView:
+  // left = avatarLeadingMargin, bottom = cellVSpacing/2 (низ контента ячейки = низ пузыря).
+  avatarOverlay: {
+    position: "absolute",
+    left: l.avatarLeadingMargin,
+    bottom: l.cellVSpacing / 2,
+    width: l.avatarSize,
+    height: l.avatarSize,
+  },
   senderName: font(l.senderNameFont, t.incomingSenderName),
 
   footerRow: {
@@ -414,26 +434,12 @@ const sharedStyles = (
     backgroundColor: t.pollBarEmpty,
   },
 
-  emoji: [
-    {
-      ...chatTextBase,
-      textAlign: "center",
-      fontSize: l.emojiFont1.fontSize,
-      lineHeight: l.emojiFont1.fontSize * 1.2,
-    },
-    {
-      ...chatTextBase,
-      textAlign: "center",
-      fontSize: l.emojiFont2.fontSize,
-      lineHeight: l.emojiFont2.fontSize * 1.2,
-    },
-    {
-      ...chatTextBase,
-      textAlign: "center",
-      fontSize: l.emojiFont3.fontSize,
-      lineHeight: l.emojiFont3.fontSize * 1.2,
-    },
-  ],
+  emoji: l.emojiFonts.map(f => ({
+    ...chatTextBase,
+    textAlign: "center" as const,
+    fontSize: f.fontSize,
+    lineHeight: f.fontSize * 1.2,
+  })) as unknown as [TextStyle, TextStyle, TextStyle],
 
   dateSeparatorPill: {
     borderRadius: l.dateSeparatorCornerRadius,
@@ -452,7 +458,7 @@ const sharedStyles = (
 /** Собрать полный набор стилей чата. Вызывать только при смене темы/лейаута. */
 export const createChatStyles = (
   theme: IChatViewTheme,
-  layout: IChatViewLayout,
+  layout: IChatLayout,
 ): IChatStyles => {
   const byOwnership = {} as Record<ChatMessageOwnership, IChatOwnershipStyles>;
 

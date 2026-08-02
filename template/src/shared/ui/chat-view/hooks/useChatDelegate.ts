@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { RefObject, useMemo, useRef } from "react";
 import { Keyboard } from "react-native";
 
 import { IChatCellDelegate } from "../components/chat-view-context";
@@ -6,14 +6,13 @@ import { ChatViewProps } from "../types";
 import { IChatCommands } from "./useChatCommands";
 
 /**
- * Маршрутизация действий ячеек.
+ * Маршрутизация действий ячеек в колбэки хоста.
  *
  * Делегат отдаётся ячейкам через ref, чтобы они оставались мемоизированными:
  * пересоздание делегата не должно перерисовывать тысячи строк.
  */
-
-export interface IChatCellDelegateOptions {
-  props: React.RefObject<ChatViewProps>;
+export interface IChatDelegateOptions {
+  props: RefObject<ChatViewProps>;
   commands: IChatCommands;
   /** Заморозить нижнюю зону перед показом меню. */
   freezeKeyboard: () => void;
@@ -21,16 +20,16 @@ export interface IChatCellDelegateOptions {
   restoreKeyboard: () => void;
 }
 
-export const useChatCellDelegate = ({
+export const useChatDelegate = ({
   props,
   commands,
   freezeKeyboard,
   restoreKeyboard,
-}: IChatCellDelegateOptions): React.RefObject<IChatCellDelegate> => {
+}: IChatDelegateOptions): RefObject<IChatCellDelegate> => {
   const delegate = useMemo<IChatCellDelegate>(
     () => ({
-      // Тап по чату всегда убирает клавиатуру. Пустую
-      // область берёт на себя `keyboardShouldPersistTaps` списка.
+      // Тап по чату всегда убирает клавиатуру. Пустую область берёт на себя
+      // `keyboardShouldPersistTaps` списка.
       onTapMessage: (messageId, attachmentIndex) => {
         Keyboard.dismiss();
         props.current.onMessagePress?.(

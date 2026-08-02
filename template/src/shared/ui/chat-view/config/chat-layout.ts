@@ -1,6 +1,12 @@
 import { TextStyle } from "react-native";
 
-import { ChatLayoutConfig } from "../types";
+/**
+ * Метрики чата.
+ *
+ * Здесь только то, что рисует сам чат. Метрики панели ввода и записи голоса
+ * живут в `shared/ui/input-bar` (`IInputBarLayout`) — чат их не описывает,
+ * а лишь прокидывает (см. `resolveChatLayout`).
+ */
 
 export interface IChatFont {
   fontSize: number;
@@ -9,20 +15,15 @@ export interface IChatFont {
   monospacedDigits?: boolean;
 }
 
-const font = (
+export const font = (
   fontSize: number,
   fontWeight: TextStyle["fontWeight"] = "400",
   monospacedDigits = false,
 ): IChatFont => ({ fontSize, fontWeight, monospacedDigits });
 
-/**
- * Метрики чата со значениями по умолчанию.
- * Числовые значения переопределяются пропом `layout`.
- */
-export interface IChatViewLayout {
-  // Пузырь сообщения
+export interface IChatLayout {
+  // Пузырь
   bubbleCornerRadius: number;
-  bubbleTailWidth: number;
   bubbleMaxWidthRatio: number;
   bubbleMinWidth: number;
   bubbleHPad: number;
@@ -31,19 +32,19 @@ export interface IChatViewLayout {
   bubbleSpacing: number;
   mixedContentSpacing: number;
 
-  // Ячейка сообщения
+  // Ячейка
   cellHMargin: number;
   cellVSpacing: number;
   cellMinHeight: number;
   systemCellBottomSpacing: number;
   pinnedCellBottomSpacing: number;
 
-  // Аватарки
+  // Аватар
   avatarSize: number;
   avatarLeadingMargin: number;
   avatarBubbleSpacing: number;
 
-  // Шрифты контента
+  // Текст
   messageFont: IChatFont;
   senderNameFont: IChatFont;
   timeFont: IChatFont;
@@ -57,7 +58,7 @@ export interface IChatViewLayout {
   footerSpacing: number;
   statusIconSize: number;
 
-  // Превью цитаты
+  // Цитата
   replyHeight: number;
   replyAccentWidth: number;
   replyCornerRadius: number;
@@ -78,7 +79,7 @@ export interface IChatViewLayout {
   threadBarIconSize: number;
   threadBarChevronSize: number;
 
-  // Медиа / изображения
+  // Медиа
   imageMaxHeight: number;
   imageMinHeight: number;
   imageCornerRadius: number;
@@ -93,12 +94,7 @@ export interface IChatViewLayout {
   mediaDurationPadV: number;
   mediaDurationMargin: number;
 
-  // Видео
-  videoPlaySize: number;
-  videoDurationFont: IChatFont;
-
-  // Голосовое сообщение
-  voiceWaveformHeight: number;
+  // Голосовое
   voiceBarWidth: number;
   voiceBarSpacing: number;
   voiceDurationFont: IChatFont;
@@ -114,13 +110,12 @@ export interface IChatViewLayout {
   pollSubtitleFont: IChatFont;
   pollOptionFont: IChatFont;
   pollPercentFont: IChatFont;
+  pollVotesFont: IChatFont;
   pollBarHeight: number;
   pollBarCornerRadius: number;
+  pollBarHPad: number;
   pollHeaderSpacing: number;
   pollOptionSpacing: number;
-  pollVotesFont: IChatFont;
-  pollBarHPad: number;
-  pollAnimationDuration: number;
 
   // Файл
   fileIconSize: number;
@@ -132,65 +127,22 @@ export interface IChatViewLayout {
   filePadding: number;
   fileCornerRadius: number;
 
-  // Только эмодзи
-  emojiFont1: IChatFont;
-  emojiFont2: IChatFont;
-  emojiFont3: IChatFont;
+  /** Кегли для сообщений из 1, 2 и 3 эмодзи. */
+  emojiFonts: readonly [IChatFont, IChatFont, IChatFont];
 
-  // Разделитель дат
+  // Разделитель дат (он же — прилипающая плашка даты)
   dateSeparatorFont: IChatFont;
   dateSeparatorVPad: number;
   dateSeparatorHPad: number;
   dateSeparatorCornerRadius: number;
 
-  // Коллекция
+  // Список
   collectionTopPadding: number;
   collectionBottomPadding: number;
   sectionSpacing: number;
 
-  // Панель ввода
-  inputBarMinHeight: number;
-  inputBarVPad: number;
-  inputBarHPad: number;
-  textViewMinHeight: number;
-  textViewMaxHeight: number;
-  textViewCornerRadius: number;
-  textViewFont: IChatFont;
-  textViewInsetTop: number;
-  textViewInsetLeft: number;
-  textViewInsetBottom: number;
-  textViewInsetRight: number;
-  inputReplyPanelHeight: number;
-  inputButtonSize: number;
-  inputSeparatorHeight: number;
-  inputStackSpacing: number;
-  inputBorderWidth: number;
-  inputIconSize: number;
-  inputReplyIconSize: number;
-  inputReplyCancelSize: number;
-  inputReplyCancelIconSize: number;
-  inputReplySpacing: number;
-  recordFloatingMicIconSize: number;
-  recordLockChevronSize: number;
-  recordLockButtonIconSize: number;
-  recordLockBottomMargin: number;
-  recordLockChevronTopPad: number;
-  recordLockIconCenterOffset: number;
-  recordDotLeading: number;
-  recordTimerLeading: number;
-  recordSlideHintOffset: number;
-  inputPlaceholderLeading: number;
-  inputPlaceholderText: string;
-  inputSendButtonInset: number;
-  inputSendButtonIconSize: number;
-  inputReplyAccentWidth: number;
-  inputReplySenderFont: IChatFont;
-  inputReplyTextFont: IChatFont;
-
   // FAB
-  fabSize: number;
   fabMargin: number;
-  fabTrailingMargin: number;
   fabArrowSize: number;
   fabShadowOpacity: number;
   fabShadowRadius: number;
@@ -201,61 +153,34 @@ export interface IChatViewLayout {
   fabBadgeFont: IChatFont;
   fabBadgePadH: number;
 
-  // Тени пузыря
-  bubbleShadowOpacity: number;
-  bubbleShadowRadius: number;
-
-  // Запись голоса
-  recordDotSize: number;
-  recordTimerFont: IChatFont;
-  recordCancelFont: IChatFont;
-  recordStopSize: number;
-  recordDotMinAlpha: number;
-  recordFloatingMicSize: number;
-  recordCancelThreshold: number;
-  recordLockThreshold: number;
-  recordLockIconSize: number;
-  recordLockContainerSize: number;
-  recordTrashIconSize: number;
-  recordMinPressDuration: number;
-  recordPulseRingSize: number;
-  recordPulseBaseScale: number;
-  recordPulseMaxScale: number;
-  recordPulseDuration: number;
+  // Пустое состояние
+  emptyStateFont: IChatFont;
+  emptyStatePadding: number;
 
   // Анимации (секунды)
-  floatingDateShowDuration: number;
-  floatingDateHideDuration: number;
-  floatingDateHideDelay: number;
+  stickyDateShowDuration: number;
+  stickyDateHideDuration: number;
+  stickyDateHideDelay: number;
   highlightAnimateIn: number;
   highlightAnimateOut: number;
   highlightDelay: number;
   fabAnimationDuration: number;
 
-  // Жесты
+  /** Долгое нажатие для контекстного меню (сек). */
   longPressDuration: number;
 
-  // Пустое состояние
-  emptyStateFont: IChatFont;
-  emptyStatePadding: number;
-
-  // Скролл
+  /** Троттлинг проброса `onScroll` наружу (сек). */
   scrollThrottleInterval: number;
-  paginationDebounceInterval: number;
 
   // Виртуализация
-  /**
-   * Ожидаемая высота строки — подсказка списку только для первого кадра.
-   * Дальше используются реальные измерения, поэтому точность не критична.
-   */
+  /** Подсказка списку для первого кадра; дальше идут реальные измерения. */
   estimatedRowHeight: number;
   /** Насколько за пределы экрана предрендерить строки (px). */
   drawDistance: number;
 }
 
-export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
+export const CHAT_DEFAULT_LAYOUT: IChatLayout = {
   bubbleCornerRadius: 18,
-  bubbleTailWidth: 6,
   bubbleMaxWidthRatio: 0.85,
   bubbleMinWidth: 60,
   bubbleHPad: 12,
@@ -318,10 +243,6 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
   mediaDurationPadV: 2,
   mediaDurationMargin: 4,
 
-  videoPlaySize: 48,
-  videoDurationFont: font(12, "500", true),
-
-  voiceWaveformHeight: 28,
   voiceBarWidth: 2.5,
   voiceBarSpacing: 2,
   voiceDurationFont: font(12, "500", true),
@@ -336,13 +257,12 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
   pollSubtitleFont: font(12),
   pollOptionFont: font(14, "500"),
   pollPercentFont: font(13, "600", true),
+  pollVotesFont: font(12),
   pollBarHeight: 32,
   pollBarCornerRadius: 12,
+  pollBarHPad: 12,
   pollHeaderSpacing: 10,
   pollOptionSpacing: 4,
-  pollVotesFont: font(12),
-  pollBarHPad: 12,
-  pollAnimationDuration: 0.3,
 
   fileIconSize: 32,
   fileIconPointSize: 16,
@@ -353,9 +273,7 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
   filePadding: 6,
   fileCornerRadius: 8,
 
-  emojiFont1: font(48),
-  emojiFont2: font(40),
-  emojiFont3: font(34),
+  emojiFonts: [font(48), font(40), font(34)],
 
   dateSeparatorFont: font(13, "500"),
   dateSeparatorVPad: 4,
@@ -366,47 +284,7 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
   collectionBottomPadding: 8,
   sectionSpacing: 6,
 
-  inputBarMinHeight: 52,
-  inputBarVPad: 8,
-  inputBarHPad: 12,
-  textViewMinHeight: 40,
-  textViewMaxHeight: 120,
-  textViewCornerRadius: 20,
-  textViewFont: font(16),
-  textViewInsetTop: 10,
-  textViewInsetLeft: 8,
-  textViewInsetBottom: 10,
-  textViewInsetRight: 40,
-  inputReplyPanelHeight: 48,
-  inputButtonSize: 40,
-  inputSeparatorHeight: 0.5,
-  inputStackSpacing: 6,
-  inputBorderWidth: 0.5,
-  inputIconSize: 16,
-  inputReplyIconSize: 10,
-  inputReplyCancelSize: 20,
-  inputReplyCancelIconSize: 10,
-  inputReplySpacing: 8,
-  recordFloatingMicIconSize: 18,
-  recordLockChevronSize: 10,
-  recordLockButtonIconSize: 14,
-  recordLockBottomMargin: 8,
-  recordLockChevronTopPad: 6,
-  recordLockIconCenterOffset: 5,
-  recordDotLeading: 12,
-  recordTimerLeading: 8,
-  recordSlideHintOffset: 20,
-  inputPlaceholderLeading: 13,
-  inputPlaceholderText: "Сообщение",
-  inputSendButtonInset: 4,
-  inputSendButtonIconSize: 14,
-  inputReplyAccentWidth: 2.5,
-  inputReplySenderFont: font(13, "600"),
-  inputReplyTextFont: font(13),
-
-  fabSize: 40,
   fabMargin: 12,
-  fabTrailingMargin: 16,
   fabArrowSize: 18,
   fabShadowOpacity: 0.18,
   fabShadowRadius: 8,
@@ -417,29 +295,12 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
   fabBadgeFont: font(12, "600", true),
   fabBadgePadH: 6,
 
-  bubbleShadowOpacity: 0.12,
-  bubbleShadowRadius: 8,
+  emptyStateFont: font(16),
+  emptyStatePadding: 32,
 
-  recordDotSize: 10,
-  recordTimerFont: font(16, "400", true),
-  recordCancelFont: font(14),
-  recordStopSize: 36,
-  recordDotMinAlpha: 0.2,
-  recordFloatingMicSize: 48,
-  recordCancelThreshold: 100,
-  recordLockThreshold: 70,
-  recordLockIconSize: 24,
-  recordLockContainerSize: 44,
-  recordTrashIconSize: 24,
-  recordMinPressDuration: 0.15,
-  recordPulseRingSize: 56,
-  recordPulseBaseScale: 1.15,
-  recordPulseMaxScale: 1.28,
-  recordPulseDuration: 0.6,
-
-  floatingDateShowDuration: 0.15,
-  floatingDateHideDuration: 0.3,
-  floatingDateHideDelay: 0.5,
+  stickyDateShowDuration: 0.15,
+  stickyDateHideDuration: 0.3,
+  stickyDateHideDelay: 0.5,
   highlightAnimateIn: 0.2,
   highlightAnimateOut: 0.6,
   highlightDelay: 0.4,
@@ -447,134 +308,8 @@ export const CHAT_DEFAULT_LAYOUT: IChatViewLayout = {
 
   longPressDuration: 0.35,
 
-  emptyStateFont: font(16),
-  emptyStatePadding: 32,
-
   scrollThrottleInterval: 1 / 30,
-  paginationDebounceInterval: 0.5,
 
   estimatedRowHeight: 72,
   drawDistance: 300,
-};
-
-/** Числовые ключи NativeChatLayoutConfig, совпадающие с IChatViewLayout по имени. */
-const NUMERIC_KEYS = [
-  "bubbleCornerRadius",
-  "bubbleTailWidth",
-  "bubbleMaxWidthRatio",
-  "bubbleMinWidth",
-  "bubbleHPad",
-  "bubbleVPad",
-  "bubbleBottomPad",
-  "bubbleSpacing",
-  "mixedContentSpacing",
-  "cellHMargin",
-  "cellVSpacing",
-  "cellMinHeight",
-  "footerHeight",
-  "footerSpacing",
-  "statusIconSize",
-  "replyHeight",
-  "replyAccentWidth",
-  "replyCornerRadius",
-  "reactionChipHeight",
-  "reactionChipSpacing",
-  "reactionChipPadding",
-  "reactionBorderWidth",
-  "imageMaxHeight",
-  "imageMinHeight",
-  "imageCornerRadius",
-  "mediaGridSpacing",
-  "mediaPlayIconSize",
-  "voiceWaveformHeight",
-  "voiceBarWidth",
-  "voiceBarSpacing",
-  "voicePlaySize",
-  "voicePlayIconSize",
-  "voiceWaveformWidth",
-  "voiceWaveformTrailingInset",
-  "voiceContentSpacing",
-  "voiceBarMinHeight",
-  "pollBarHeight",
-  "pollBarCornerRadius",
-  "pollHeaderSpacing",
-  "pollOptionSpacing",
-  "pollBarHPad",
-  "pollAnimationDuration",
-  "fileIconSize",
-  "fileRowSpacing",
-  "fileContentSpacing",
-  "filePadding",
-  "fileCornerRadius",
-  "dateSeparatorVPad",
-  "dateSeparatorHPad",
-  "dateSeparatorCornerRadius",
-  "collectionTopPadding",
-  "collectionBottomPadding",
-  "sectionSpacing",
-  "inputBarMinHeight",
-  "inputBarVPad",
-  "inputBarHPad",
-  "textViewMinHeight",
-  "textViewMaxHeight",
-  "textViewCornerRadius",
-  "inputReplyPanelHeight",
-  "inputButtonSize",
-  "inputSeparatorHeight",
-  "inputStackSpacing",
-  "inputBorderWidth",
-  "inputIconSize",
-  "inputSendButtonInset",
-  "inputSendButtonIconSize",
-  "inputReplyAccentWidth",
-  "inputPlaceholderLeading",
-  "fabSize",
-  "fabMargin",
-  "fabTrailingMargin",
-  "fabArrowSize",
-  "fabShadowOpacity",
-  "fabShadowRadius",
-  "fabBadgeCornerRadius",
-  "fabBadgeHeight",
-  "fabBadgeMinWidth",
-  "fabBadgePadH",
-  "bubbleShadowOpacity",
-  "bubbleShadowRadius",
-  "floatingDateShowDuration",
-  "floatingDateHideDuration",
-  "floatingDateHideDelay",
-  "highlightAnimateIn",
-  "highlightAnimateOut",
-  "highlightDelay",
-  "fabAnimationDuration",
-  "longPressDuration",
-  "emptyStatePadding",
-  "scrollThrottleInterval",
-  "paginationDebounceInterval",
-  "estimatedRowHeight",
-  "drawDistance",
-] as const;
-
-export const resolveChatLayout = (
-  config: ChatLayoutConfig | undefined,
-): IChatViewLayout => {
-  if (!config) return CHAT_DEFAULT_LAYOUT;
-
-  const resolved: IChatViewLayout = { ...CHAT_DEFAULT_LAYOUT };
-  const source = config as Record<string, unknown>;
-  const target = resolved as unknown as Record<string, unknown>;
-
-  for (const key of NUMERIC_KEYS) {
-    const value = source[key];
-
-    if (typeof value === "number") {
-      target[key] = value;
-    }
-  }
-
-  if (typeof config.inputPlaceholderText === "string") {
-    resolved.inputPlaceholderText = config.inputPlaceholderText;
-  }
-
-  return resolved;
 };

@@ -7,32 +7,25 @@ import {
   Text,
 } from "react-native";
 
-import { ChatOverlayStore, IChatOverlayState } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
-import { useOverlayValue } from "./useOverlayValue";
 
 /**
- * Пустое состояние: текст или спиннер при `isLoading`, тап скрывает
- * клавиатуру.
+ * Пустое состояние: текст или спиннер при загрузке, тап скрывает клавиатуру.
+ *
+ * Состояние приходит пропами напрямую из пропов чата — внешний стор для трёх
+ * значений, меняющихся дважды за жизнь экрана, был лишним.
  */
-
 const DEFAULT_EMPTY_TEXT = "Сообщений пока нет.\nНапишите первым!";
 
-const selectVisible = (state: IChatOverlayState) => state.emptyVisible;
-const selectLoading = (state: IChatOverlayState) => state.emptyLoading;
-const selectText = (state: IChatOverlayState) => state.emptyText;
-
 interface IEmptyStateOverlayProps {
-  store: ChatOverlayStore;
+  visible: boolean;
+  loading: boolean;
+  text?: string;
 }
 
 export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
-  ({ store }) => {
+  ({ visible, loading, text }) => {
     const { features, styles } = useChatViewContext();
-
-    const visible = useOverlayValue(store, selectVisible);
-    const loading = useOverlayValue(store, selectLoading);
-    const text = useOverlayValue(store, selectText);
 
     const handlePress = useCallback(() => Keyboard.dismiss(), []);
 

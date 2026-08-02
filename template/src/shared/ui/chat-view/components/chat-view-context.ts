@@ -1,16 +1,18 @@
 import { createContext, RefObject, useContext } from "react";
-import { View } from "react-native";
+import { makeMutable, SharedValue } from "react-native-reanimated";
 
+import { IInputBarLayout, INPUT_BAR_DEFAULT_LAYOUT } from "../../input-bar";
 import {
   CHAT_DEFAULT_FEATURES,
   CHAT_DEFAULT_LAYOUT,
   CHAT_LIGHT_THEME,
   createChatStyles,
+  IChatFeatures,
+  IChatLayout,
   IChatStyles,
-  IChatViewFeatures,
-  IChatViewLayout,
   IChatViewTheme,
 } from "../config";
+import { ChatHighlightStore } from "./chat-highlight-store";
 
 /**
  * Маршрутизация действий ячеек.
@@ -32,112 +34,41 @@ export interface IChatCellDelegate {
 }
 
 /**
- * Точечные обновления ячеек без ре-рендера списка: подсветка `scrollToMessage`
- * и анимированное схлопывание удаляемого пузыря под эффект распада.
+ * Состояние прилипшей плашки даты — целиком на UI-потоке.
+ *
+ * `activeIndex` ведёт сам список (проп `sharedValues`), `opacity` гасит плашку
+ * в покое. Ни то, ни другое не проходит через React: иначе каждый кадр скролла
+ * стоил бы ре-рендера.
  */
-export class ChatCellStore {
-  private _highlightId: string | null = null;
-  private _highlightToken = 0;
-  /** id → измеренная высота ячейки: пока запись есть, ячейка схлопывается. */
-  private _removing = new Map<string, number>();
-  private readonly _listeners = new Set<() => void>();
-
-  /** Пузыри сообщений — для замера кадра конфетти-эффекта. */
-  readonly bubbleRefs = new Map<string, View>();
-  /** Корни ячеек — для замера высоты схлопывания. */
-  readonly cellRefs = new Map<string, View>();
-
-  get highlightId(): string | null {
-    return this._highlightId;
-  }
-
-  /** Токен меняется на каждый вызов — повторная подсветка того же id сработает. */
-  get highlightToken(): number {
-    return this._highlightToken;
-  }
-
-  /** Высота схлопывания удаляемого сообщения либо `null`, если оно не удаляется. */
-  removingHeightOf(id: string): number | null {
-    return this._removing.get(id) ?? null;
-  }
-
-  highlight(id: string) {
-    this._highlightId = id;
-    this._highlightToken += 1;
-    this._notify();
-  }
-
-  clearHighlight(id: string) {
-    if (this._highlightId !== id) return;
-    this._highlightId = null;
-    this._notify();
-  }
-
-  /** Начать анимацию удаления: ячейка схлопнется с этой высоты до нуля. */
-  beginRemove(id: string, height: number) {
-    this._removing.set(id, height);
-    this._notify();
-  }
-
-  /** Сбросить состояние удаления (после того как строка ушла из данных). */
-  clearRemoving(ids: Iterable<string>) {
-    let changed = false;
-
-    for (const id of ids) {
-      changed = this._removing.delete(id) || changed;
-    }
-    if (changed) this._notify();
-  }
-
-  registerBubble(id: string, ref: View | null) {
-    if (ref) {
-      this.bubbleRefs.set(id, ref);
-    } else {
-      this.bubbleRefs.delete(id);
-    }
-  }
-
-  registerCell(id: string, ref: View | null) {
-    if (ref) {
-      this.cellRefs.set(id, ref);
-    } else {
-      this.cellRefs.delete(id);
-    }
-  }
-
-  subscribe = (listener: () => void) => {
-    this._listeners.add(listener);
-
-    return () => {
-      this._listeners.delete(listener);
-    };
-  };
-
-  private _notify() {
-    this._listeners.forEach(listener => listener());
-  }
+export interface IChatStickyDate {
+  /** Индекс строки-разделителя, прилипшей к верхней кромке; -1 — никакой. */
+  activeIndex: SharedValue<number>;
+  /** Прозрачность прилипшей плашки: 1 при скролле, 0 через паузу. */
+  opacity: SharedValue<number>;
 }
 
 export interface IChatViewContextValue {
   theme: IChatViewTheme;
-  layout: IChatViewLayout;
-  features: IChatViewFeatures;
+  layout: IChatLayout;
+  /** Метрики панели ввода: от них считается позиция FAB. */
+  inputBarLayout: IInputBarLayout;
+  features: IChatFeatures;
   /** Готовые стили под текущую пару (тема, лейаут). */
   styles: IChatStyles;
-  /** Ширина списка — для расчёта максимальной ширины пузыря. */
-  listWidth: number;
   delegate: RefObject<IChatCellDelegate>;
-  cellStore: ChatCellStore;
+  highlight: ChatHighlightStore;
+  stickyDate: IChatStickyDate;
 }
 
 export const ChatViewContext = createContext<IChatViewContextValue>({
   theme: CHAT_LIGHT_THEME,
   layout: CHAT_DEFAULT_LAYOUT,
+  inputBarLayout: INPUT_BAR_DEFAULT_LAYOUT,
   features: CHAT_DEFAULT_FEATURES,
   styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
-  listWidth: 0,
   delegate: { current: null as unknown as IChatCellDelegate },
-  cellStore: new ChatCellStore(),
+  highlight: new ChatHighlightStore(),
+  stickyDate: { activeIndex: makeMutable(-1), opacity: makeMutable(0) },
 });
 
 export const useChatViewContext = () => useContext(ChatViewContext);

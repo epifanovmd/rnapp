@@ -1,44 +1,38 @@
-import React, {
-  FC,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useSyncExternalStore,
-} from "react";
+import { useListScrollSize } from "@legendapp/list/react-native";
+import React, { FC, memo, useCallback, useMemo } from "react";
 import { View, ViewStyle } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 
 // Тестовое исключение: в ячейке используется именно JS-реализация меню —
 // нативное на iOS показывает демо-экран отдельным переключателем.
 import { JsContextMenuView } from "../../../context-menu-view/JsContextMenuView";
 import { IParsedChatMessage, IResolvedReply } from "../../data";
 import { ChatViewContext, useChatViewContext } from "../chat-view-context";
-import { DISINTEGRATION_REMOVE_MS } from "../disintegration-overlay/disintegration-particles";
+import { ChatAvatar } from "../ChatAvatar";
 import { MessageBubble } from "../MessageBubble";
 import { HighlightOverlay } from "./HighlightOverlay";
 
 /**
  * Ячейка сообщения: выравнивание пузыря по ownership, место под аватар,
  * контекстное меню по долгому нажатию и подсветка `scrollToMessage`.
+ *
+ * Ширину списка ячейка спрашивает у самого списка (`useListScrollSize`), а не
+ * получает пропом сверху: иначе замер ширины в корне чата пришлось бы держать
+ * React-состоянием и перерисовывать им весь чат на каждый поворот экрана.
  */
-
 interface IMessageCellProps {
   message: IParsedChatMessage;
   resolvedReply?: IResolvedReply;
   showSenderName: boolean;
+  showAvatar: boolean;
   bubbleless: boolean;
 }
 
 export const MessageCell: FC<IMessageCellProps> = memo(
-  ({ message, resolvedReply, showSenderName, bubbleless }) => {
+  ({ message, resolvedReply, showSenderName, showAvatar, bubbleless }) => {
     const chatContext = useChatViewContext();
-    const { theme, layout, features, styles, listWidth, delegate, cellStore } =
-      chatContext;
+    const { theme, layout, features, styles, delegate } = chatContext;
+
+    const { width: listWidth } = useListScrollSize();
 
     const messageId = message.id;
     const ownStyles = styles.byOwnership[message.ownership];
@@ -49,54 +43,10 @@ export const MessageCell: FC<IMessageCellProps> = memo(
     const maxBubbleWidth =
       Math.max(listWidth, 1) * layout.bubbleMaxWidthRatio - avatarSpace;
 
-    const removingHeight = useSyncExternalStore(
-      cellStore.subscribe,
-      useCallback(
-        () => cellStore.removingHeightOf(messageId),
-        [cellStore, messageId],
-      ),
-    );
-
-    const registerBubble = useCallback(
-      (ref: View | null) => cellStore.registerBubble(messageId, ref),
-      [cellStore, messageId],
-    );
-
-    const registerCell = useCallback(
-      (ref: View | null) => cellStore.registerCell(messageId, ref),
-      [cellStore, messageId],
-    );
-
     const bubbleWrapStyle = useMemo<ViewStyle>(
       () => ({ maxWidth: maxBubbleWidth }),
       [maxBubbleWidth],
     );
-
-    // ─── Анимация удаления ───────────────────────────────────────────────
-    // Пока в сторе есть высота схлопывания, ячейка за DISINTEGRATION_REMOVE_MS
-    // сворачивается к нулю (высота + прозрачность). Список доизмеряет ячейку на
-    // каждый кадр, поэтому строки ниже поднимаются плавно, а не прыжком.
-    const removeProgress = useSharedValue(0);
-
-    useEffect(() => {
-      if (removingHeight == null) return;
-
-      removeProgress.value = withTiming(1, {
-        duration: DISINTEGRATION_REMOVE_MS,
-      });
-    }, [removingHeight, removeProgress]);
-
-    const removeStyle = useAnimatedStyle(() => {
-      if (removingHeight == null) return {};
-
-      const p = removeProgress.value;
-
-      return {
-        height: Math.max(0, removingHeight * (1 - p)),
-        opacity: 1 - p,
-        overflow: "hidden",
-      };
-    }, [removingHeight]);
 
     const menuEnabled =
       features.contextMenuEnabled &&
@@ -134,39 +84,46 @@ export const MessageCell: FC<IMessageCellProps> = memo(
     );
 
     return (
-      <Animated.View ref={registerCell} collapsable={false} style={removeStyle}>
-        <View style={ownStyles.cell}>
-          {reservesAvatar && <View style={styles.shared.avatarSlot} />}
-          <View
-            ref={registerBubble}
-            collapsable={false}
-            style={bubbleWrapStyle}
-          >
-            {menuEnabled ? (
-              <JsContextMenuView
-                menuId={messageId}
-                emojis={features.emojiReactions}
-                actions={message.actions}
-                theme={theme.isDark ? "dark" : "light"}
-                minimumPressDuration={layout.longPressDuration}
-                onWillShow={handleMenuWillShow}
-                onEmojiSelect={handleMenuEmojiSelect}
-                onActionSelect={handleMenuActionSelect}
-                onDismiss={handleMenuDismiss}
-              >
-                {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
-                    поэтому контекст едет вместе с children. */}
-                <ChatViewContext.Provider value={chatContext}>
-                  {bubble}
-                </ChatViewContext.Provider>
-              </JsContextMenuView>
-            ) : (
-              bubble
-            )}
-            <HighlightOverlay messageId={messageId} />
-          </View>
+      <View style={ownStyles.cell}>
+        {/* Резерв под аватар: пустой спейсер сдвигает пузырь так же, как нативно
+            (bubble leading = cellHMargin + avatarSize + avatarLeadingMargin + avatarBubbleSpacing). */}
+        {reservesAvatar && <View style={styles.shared.avatarColumn} />}
+        <View style={bubbleWrapStyle}>
+          {menuEnabled ? (
+            <JsContextMenuView
+              menuId={messageId}
+              emojis={features.emojiReactions}
+              actions={message.actions}
+              theme={theme.isDark ? "dark" : "light"}
+              minimumPressDuration={layout.longPressDuration}
+              onWillShow={handleMenuWillShow}
+              onEmojiSelect={handleMenuEmojiSelect}
+              onActionSelect={handleMenuActionSelect}
+              onDismiss={handleMenuDismiss}
+            >
+              {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
+                  поэтому контекст едет вместе с children. */}
+              <ChatViewContext.Provider value={chatContext}>
+                {bubble}
+              </ChatViewContext.Provider>
+            </JsContextMenuView>
+          ) : (
+            bubble
+          )}
+          <HighlightOverlay messageId={messageId} />
         </View>
-      </Animated.View>
+        {/* Аватар поверх ячейки (absolute), как нативный AvatarSupplementaryView:
+            left = avatarLeadingMargin, низ = низ пузыря. Высоту ячейки не раздувает. */}
+        {showAvatar && (
+          <View style={styles.shared.avatarOverlay} pointerEvents="none">
+            <ChatAvatar
+              name={message.senderName!}
+              url={message.senderAvatarUrl}
+              size={layout.avatarSize}
+            />
+          </View>
+        )}
+      </View>
     );
   },
 );

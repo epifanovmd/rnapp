@@ -1,40 +1,14 @@
 ---
 name: Path aliases
-description: Актуальные path aliases проекта — 6 канонических алиасов Feature-Sliced Design
+description: @app/@pages/@widgets/@features/@entities/@shared — где объявлены и что куда мапится
 type: project
 ---
 
-Алиасы объявлены синхронно в двух местах — при добавлении/изменении алиаса нужно править оба файла:
-- `template/tsconfig.json` → `compilerOptions.paths` (типы/IDE, tsc)
-- `template/babel.config.js` → плагин `module-resolver` (Metro bundler)
+Объявлены в **двух местах синхронно** (править оба): `template/tsconfig.json`
+(`compilerOptions.paths`) и `template/babel.config.js` (`module-resolver`).
 
-`@app`, `@pages`, `@widgets`, `@features`, `@entities`, `@shared` — каждый резолвится и как голый
-алиас (`@shared` → `src/shared`), и как алиас с подпутём (`@shared/*` → `src/shared/*`).
+`@app → src/app`, `@pages → src/pages`, `@widgets → src/widgets`, `@features → src/features`,
+`@entities → src/entities`, `@shared → src/shared` (ui/api/config/lib). Каждый — и голый, и с подпутём.
 
-Что где лежит (соответствует слоям FSD):
-- `@app` → `src/app/` — композиционный корень, DI-регистрация, навигационные манифесты
-- `@pages` → `src/pages/` — экраны (sign-in, sign-up, recovery-password, chat, settings, ui-kit-demo)
-- `@widgets` → `src/widgets/` — chat-room, app-shell
-- `@features` → `src/features/` — sign-in, sign-up, recovery-password, biometric
-- `@entities` → `src/entities/` — auth, user
-- `@shared` → `src/shared/` — ui, api, config, lib
-
-Полезные под-пути внутри `@shared`:
-- `@shared/lib/di` — `createInjectDecorator`, `iocContainer`
-- `@shared/lib/holders` — EntityHolder/PagedHolder/InfiniteHolder/CollectionHolder/MutationHolder/
-  PollingHolder/CombinedHolder/CursorHolder/FilterHolder и их хуки
-- `@shared/lib/navigation` — StackNavigation/TabNavigation/TopTabNavigation, NavigationService
-- `@shared/lib/theme` — ThemeProvider, useTheme, useThemeAwareObject
-- `@shared/lib/socket` — SocketTransport, UserSocketService
-- `@shared/lib/slots` — createSlot, useSlotProps (compound components)
-- `@shared/lib/models` — DataModelBase, EnumModelBase (`createEnumModelBase`)
-- `@shared/lib/utils` — общие утилиты
-- `@shared/lib/hooks` — общие хуки (useBoolean, useDimensions, ...)
-- `@shared/api` — HttpClient (axios), `api.gen/` (orval codegen, не редактировать вручную)
-- `@shared/config` — env.ts (react-native-config)
-- `@entities/auth` — общая логина/пароль-валидация (`loginValidation`, `passwordValidation`), AuthStore,
-  BiometricStore, PasskeyStore, JWT/session/token сервисы; схема конкретной формы — в фиче
-  (`@features/sign-in`, `@features/sign-up`)
-- `@entities/user` — UserStore, SessionStore, UserRealtime, доменные модели пользователя
-
-Без `~`-префикса нигде в проекте не используется.
+Полезные `@shared/*`: `lib/di`, `lib/holders`, `lib/navigation`, `lib/theme`, `lib/socket`, `lib/slots`,
+`api` (HttpClient, gen/), `config` (env.ts).
