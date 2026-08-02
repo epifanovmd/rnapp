@@ -18,7 +18,9 @@ type: project
   `NativeContextMenuViewSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"`.
 
 ## JS-архитектура чата (`shared/ui/chat-view/`)
-Слои строго вниз: `config → data → services → utils → hooks → components`.
+Слои строго вниз: `types → utils → config → data → services → model → hooks → components`.
+- `model/` — контекст чата и стор подсветки. Не рисуют, поэтому лежат отдельно от
+  `components/`: их читают и хуки тоже, а хуки — слой ниже.
 - **Позиционирование делает LegendList, а не JS** (v3.3.3). Слоя `scroll/` больше нет: якоря,
   плавающая дата, доли видимости и пагинация раньше считались вручную по геометрии — теперь это
   штатные механизмы списка (см. таблицу ниже). Не возвращать ручные аналоги.

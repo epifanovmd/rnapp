@@ -2,8 +2,8 @@ import React, { FC, memo, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
+import { useChatViewContext } from "../model";
 import { getSectionTitle } from "../utils";
-import { useChatViewContext } from "./chat-view-context";
 import { ChatText } from "./ChatText";
 
 /**

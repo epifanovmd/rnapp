@@ -3,8 +3,8 @@ import { Pressable, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
 import { IChatMediaItem } from "../../../data";
+import { useChatViewContext } from "../../../model";
 import { formatChatDuration } from "../../../utils";
-import { useChatViewContext } from "../../chat-view-context";
 import { ChatIcon } from "../../ChatIcon";
 import { ChatText } from "../../ChatText";
 import { IMediaGridFrame } from "./media-grid-layout";

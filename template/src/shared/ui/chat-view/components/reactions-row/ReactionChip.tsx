@@ -1,8 +1,8 @@
 import React, { FC, memo, useCallback } from "react";
 import { Pressable } from "react-native";
 
+import { useChatViewContext } from "../../model";
 import { ChatMessage } from "../../types";
-import { useChatViewContext } from "../chat-view-context";
 import { ChatText } from "../ChatText";
 
 /** Чип реакции: у выбранной — акцентный фон и рамка. */

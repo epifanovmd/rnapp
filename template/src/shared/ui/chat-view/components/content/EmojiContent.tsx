@@ -1,6 +1,6 @@
 import React, { FC, memo } from "react";
 
-import { useChatViewContext } from "../chat-view-context";
+import { useChatViewContext } from "../../model";
 import { ChatText } from "../ChatText";
 
 /**

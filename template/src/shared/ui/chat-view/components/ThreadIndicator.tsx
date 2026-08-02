@@ -1,9 +1,9 @@
 import React, { FC, memo, useCallback } from "react";
 import { Pressable } from "react-native";
 
+import { useChatViewContext } from "../model";
 import { ChatThreadInfo } from "../types";
 import { threadReplyCountLabel, withOpacity } from "../utils";
-import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
 import { ChatText } from "./ChatText";
 

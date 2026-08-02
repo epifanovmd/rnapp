@@ -1,9 +1,9 @@
 import React, { FC, memo, useCallback, useSyncExternalStore } from "react";
 
+import { useChatViewContext } from "../../../model";
 import { chatVoicePlayer } from "../../../services";
 import { ChatMessageOwnership } from "../../../types";
 import { formatChatDuration } from "../../../utils";
-import { useChatViewContext } from "../../chat-view-context";
 import { ChatText } from "../../ChatText";
 
 /** Таймер трека: перерисовывается раз в секунду, а не на каждый тик прогресса. */

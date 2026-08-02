@@ -17,10 +17,10 @@ import {
 } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
 
+import { useChatViewContext } from "../../../model";
 import { chatVoicePlayer } from "../../../services";
 import { ChatMessageOwnership } from "../../../types";
 import { withOpacity } from "../../../utils";
-import { useChatViewContext } from "../../chat-view-context";
 import { ChatIcon } from "../../ChatIcon";
 import { LoadingRing } from "../../LoadingRing";
 import { VoiceTimer } from "./VoiceTimer";

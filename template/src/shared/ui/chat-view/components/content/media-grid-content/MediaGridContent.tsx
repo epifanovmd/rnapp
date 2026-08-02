@@ -2,7 +2,7 @@ import React, { FC, memo, useCallback, useMemo } from "react";
 import { View } from "react-native";
 
 import { IChatMediaItem } from "../../../data";
-import { useChatViewContext } from "../../chat-view-context";
+import { useChatViewContext } from "../../../model";
 import {
   MEDIA_GRID_MAX_VISIBLE,
   mediaGridFrames,

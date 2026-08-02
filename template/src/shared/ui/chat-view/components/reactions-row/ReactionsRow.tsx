@@ -1,8 +1,8 @@
 import React, { FC, memo, useCallback } from "react";
 import { View } from "react-native";
 
+import { useChatViewContext } from "../../model";
 import { ChatMessage } from "../../types";
-import { useChatViewContext } from "../chat-view-context";
 import { ReactionChip } from "./ReactionChip";
 
 /** Реакции: чипы с переносом строк. */

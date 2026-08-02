@@ -1,8 +1,8 @@
 import React, { FC, memo, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { useChatViewContext } from "../../../model";
 import { ChatMessageOwnership, ChatPoll } from "../../../types";
-import { useChatViewContext } from "../../chat-view-context";
 import { ChatText } from "../../ChatText";
 import { PollOptionRow } from "./PollOptionRow";
 

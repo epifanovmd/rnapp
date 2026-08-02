@@ -1,7 +1,7 @@
 import { RefObject, useMemo, useRef } from "react";
 import { Keyboard } from "react-native";
 
-import { IChatCellDelegate } from "../components/chat-view-context";
+import { IChatCellDelegate } from "../model";
 import { ChatViewProps } from "../types";
 import { IChatCommands } from "./useChatCommands";
 

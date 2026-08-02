@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useChatViewContext } from "../chat-view-context";
+import { useChatViewContext } from "../../model";
 import { ChatIcon } from "../ChatIcon";
 import { LoadingRing } from "../LoadingRing";
 import { FabBadgeLabel } from "./FabBadgeLabel";

@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useChatViewContext } from "../chat-view-context";
+import { useChatViewContext } from "../../model";
 
 /**
  * Вспышка поверх пузыря после `scrollToMessage({ highlight: true })`.

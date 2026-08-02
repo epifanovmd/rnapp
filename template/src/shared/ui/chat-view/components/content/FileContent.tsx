@@ -1,9 +1,9 @@
 import React, { FC, memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { useChatViewContext } from "../../model";
 import { ChatFileItem, ChatMessageOwnership } from "../../types";
 import { formatFileSize } from "../../utils";
-import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon, ChatIconName } from "../ChatIcon";
 import { ChatText } from "../ChatText";
 

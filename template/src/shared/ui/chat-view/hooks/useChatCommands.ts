@@ -1,8 +1,8 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { RefObject, useEffect, useMemo, useRef } from "react";
 
-import { ChatHighlightStore } from "../components/chat-highlight-store";
 import { IChatData } from "../data";
+import { ChatHighlightStore } from "../model";
 import { ChatScrollPosition } from "../types";
 
 /**

@@ -8,8 +8,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { IChatStickyDate } from "../components/chat-view-context";
 import { IChatLayout } from "../config";
+import { IChatStickyDate } from "../model";
 
 /**
  * Прилипшая плашка даты — целиком на UI-потоке.

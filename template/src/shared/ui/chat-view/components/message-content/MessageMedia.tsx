@@ -2,7 +2,7 @@ import React, { FC } from "react";
 import { View } from "react-native";
 
 import { IParsedChatMessage } from "../../data";
-import { useChatViewContext } from "../chat-view-context";
+import { useChatViewContext } from "../../model";
 import {
   FileContent,
   MediaGridContent,

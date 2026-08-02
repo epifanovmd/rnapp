@@ -2,8 +2,8 @@ import React, { FC, memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { IResolvedReply } from "../data";
+import { useChatViewContext } from "../model";
 import { ChatMessageOwnership, ChatReplyRef } from "../types";
-import { useChatViewContext } from "./chat-view-context";
 import { ChatText } from "./ChatText";
 
 /**

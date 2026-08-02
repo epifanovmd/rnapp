@@ -2,9 +2,9 @@ import React, { FC, memo } from "react";
 import { View } from "react-native";
 
 import { IParsedChatMessage } from "../data";
+import { useChatViewContext } from "../model";
 import { ChatMessageStatus } from "../types";
 import { getTimeString } from "../utils";
-import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon, ChatIconName } from "./ChatIcon";
 import { ChatText } from "./ChatText";
 

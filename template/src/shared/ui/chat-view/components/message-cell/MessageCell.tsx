@@ -6,7 +6,7 @@ import { View, ViewStyle } from "react-native";
 // нативное на iOS показывает демо-экран отдельным переключателем.
 import { JsContextMenuView } from "../../../context-menu-view/JsContextMenuView";
 import { IParsedChatMessage, IResolvedReply } from "../../data";
-import { ChatViewContext, useChatViewContext } from "../chat-view-context";
+import { ChatViewContext, useChatViewContext } from "../../model";
 import { ChatAvatar } from "../ChatAvatar";
 import { MessageBubble } from "../MessageBubble";
 import { HighlightOverlay } from "./HighlightOverlay";

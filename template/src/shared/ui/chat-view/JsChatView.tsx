@@ -35,14 +35,7 @@ import {
   InputBarView,
   KeyboardInputBar,
 } from "../input-bar";
-import {
-  ChatFab,
-  ChatHighlightStore,
-  ChatList,
-  ChatViewContext,
-  EmptyStateOverlay,
-  IChatViewContextValue,
-} from "./components";
+import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
 import { EMPTY_CHAT_DATA, IChatData } from "./data";
 import {
   useChatCommands,
@@ -55,6 +48,11 @@ import {
   useChatUnread,
   useChatViewability,
 } from "./hooks";
+import {
+  ChatHighlightStore,
+  ChatViewContext,
+  IChatViewContextValue,
+} from "./model";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 /**
@@ -67,6 +65,7 @@ import { ChatViewProps, IChatViewRef } from "./types";
  *
  * - `config/` — тема, метрики, флаги и готовые стили ячеек;
  * - `data/` — разбор сообщений и построение строк с сохранением идентичности;
+ * - `model/` — контекст и стор подсветки;
  * - `hooks/` — по хуку на ответственность;
  * - `components/` — только отрисовка;
  * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка (о чате не знает).

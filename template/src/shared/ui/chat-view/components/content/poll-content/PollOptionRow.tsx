@@ -6,9 +6,9 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
+import { useChatViewContext } from "../../../model";
 import { ChatMessageOwnership, ChatPollOption } from "../../../types";
 import { withOpacity } from "../../../utils";
-import { useChatViewContext } from "../../chat-view-context";
 import { ChatText } from "../../ChatText";
 
 /**

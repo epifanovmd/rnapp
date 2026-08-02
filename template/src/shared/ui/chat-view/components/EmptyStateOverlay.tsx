@@ -5,7 +5,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useChatViewContext } from "./chat-view-context";
+import { useChatViewContext } from "../model";
 import { ChatText } from "./ChatText";
 
 /**

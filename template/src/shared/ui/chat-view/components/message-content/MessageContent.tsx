@@ -2,7 +2,7 @@ import React, { FC, memo } from "react";
 import { View } from "react-native";
 
 import { IParsedChatMessage } from "../../data";
-import { useChatViewContext } from "../chat-view-context";
+import { useChatViewContext } from "../../model";
 import { EmojiContent, TextContent } from "../content";
 import { MessageMedia } from "./MessageMedia";
 
