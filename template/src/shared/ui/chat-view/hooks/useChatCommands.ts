@@ -29,6 +29,16 @@ export interface IChatCommands {
     messageId: string,
     options?: IChatScrollToMessageOptions,
   ) => void;
+  /**
+   * Поставить строку нижним краем к низу видимой области.
+   *
+   * Нужно для восстановления якоря: `initialScrollIndex` применяется на первом
+   * layout, когда высоты строк ещё оценочные (`estimatedItemSize`), и на
+   * длинной истории накопленная ошибка достигает экрана. Нативная реализация
+   * этого не знает — она считает позицию после `layoutIfNeeded()`, по реальным
+   * высотам. Здесь тот же приём: доуточнить позицию, когда строки измерены.
+   */
+  alignMessageToBottom: (messageId: string, offset: number) => void;
 }
 
 export interface IChatCommandsOptions {
@@ -99,6 +109,22 @@ export const useChatCommands = ({
           () => highlight.highlight(messageId),
           animated ? HIGHLIGHT_DELAY_ANIMATED : HIGHLIGHT_DELAY_INSTANT,
         );
+      },
+
+      alignMessageToBottom: (messageId, offset) => {
+        const index = data.current.rowIndexById.get(messageId);
+
+        if (index == null) return;
+
+        // `viewPosition: 1` ставит низ строки к низу вьюпорта; видимая область
+        // заканчивается выше — над панелью ввода, поэтому её высоту добавляем
+        // к сдвигу (аналог `+ contentInset.bottom` в нативной реализации).
+        listRef.current?.scrollToIndex({
+          index,
+          animated: false,
+          viewPosition: 1,
+          viewOffset: -(offset + getBottomInset()),
+        });
       },
     }),
     [listRef, data, highlight, getBottomInset],

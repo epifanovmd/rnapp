@@ -78,6 +78,8 @@ export interface IChatListProps {
 
   viewabilityConfigCallbackPairs: ViewabilityConfigCallbackPairs<ChatRow>;
 
+  /** Список отрисовал первый кадр и знает реальные высоты видимых строк. */
+  onLoad: () => void;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onScrollBeginDrag: () => void;
   onScrollEndDrag: () => void;
@@ -143,6 +145,7 @@ export const ChatList = memo(
         endReachedThreshold,
         maintainScrollAtEndThreshold,
         viewabilityConfigCallbackPairs,
+        onLoad,
         onScroll,
         onScrollBeginDrag,
         onScrollEndDrag,
@@ -217,6 +220,7 @@ export const ChatList = memo(
           onEndReached={onEndReached}
           onEndReachedThreshold={endReachedThreshold}
           viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
+          onLoad={onLoad}
           onScroll={onScroll}
           onScrollBeginDrag={onScrollBeginDrag}
           onScrollEndDrag={onScrollEndDrag}

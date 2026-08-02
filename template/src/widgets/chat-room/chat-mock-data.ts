@@ -690,8 +690,16 @@ const createCuratedMessages = (): MessageDto[] => {
 export const createMockMessages = (): MessageDto[] => {
   const curated = createCuratedMessages();
 
-  return [
-    ...createBulkMessages(MOCK_MESSAGES_TOTAL - curated.length),
-    ...curated,
-  ];
+  return (
+    [...createBulkMessages(MOCK_MESSAGES_TOTAL - curated.length), ...curated]
+      // Порядок задаёт хост: нативная реализация рисует массив как есть и не
+      // сортирует его. Куратные сообщения создаются вразнобой (minutesAgo 15,
+      // 42, 40, …), поэтому без сортировки здесь iOS показывал бы их не по
+      // времени, а JS — по времени (его парсер досортировывает), и две
+      // реализации расходились бы на одних и тех же данных.
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      )
+  );
 };

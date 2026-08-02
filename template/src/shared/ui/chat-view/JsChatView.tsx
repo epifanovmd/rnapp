@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   LayoutChangeEvent,
   StyleSheet,
   View,
@@ -201,7 +202,14 @@ export const JsChatView = memo(
       throttleInterval: layout.scrollThrottleInterval,
     });
 
-    const [viewportHeight, setViewportHeight] = useState(0);
+    // Высота вьюпорта нужна, чтобы перевести пороги из пикселей в доли экрана.
+    // Стартовое значение — высота окна, а не 0: до первого layout нулевая
+    // высота давала бы долю 0.5, то есть «полэкрана» и для пагинации, и для
+    // прижатия к низу — на первом же кадре это дёргает позицию и шлёт лишние
+    // запросы на догрузку.
+    const [viewportHeight, setViewportHeight] = useState(
+      () => Dimensions.get("window").height,
+    );
 
     const handleLayout = useCallback(
       (event: LayoutChangeEvent) => {
@@ -247,8 +255,7 @@ export const JsChatView = memo(
       propsRef.current.onReachBottom?.({ distanceFromBottom: 0 });
     }, []);
 
-    const asFraction = (px: number) =>
-      viewportHeight > 0 ? px / viewportHeight : 0.5;
+    const asFraction = (px: number) => px / viewportHeight;
 
     // ─── Начальная позиция ───────────────────────────────────────────────
     // Берётся один раз на монтировании: дальше позицией управляет пользователь.
@@ -262,11 +269,45 @@ export const JsChatView = memo(
 
       if (index == null) return undefined;
 
-      // Выравнивание по низу: нижний край строки у низа вьюпорта, сдвинутый
-      // на сохранённый offset.
-      return { index, viewPosition: 1, viewOffset: -anchor.offset };
+      // Якорь описывает расстояние от нижнего края **видимой** области до
+      // нижнего края строки. Видимая область заканчивается над панелью ввода,
+      // а нижняя зона у нас — распорка в конце контента (не `contentInset`),
+      // поэтому её высоту вычитаем здесь сами. Нативная реализация делает то
+      // же самое слагаемым `+ cv.contentInset.bottom`; без него якорная строка
+      // уезжает под панель ввода.
+      const bottomZone =
+        inputBarLayout.inputBarMinHeight +
+        layout.collectionBottomPadding +
+        collectionInsetBottom;
+
+      return {
+        index,
+        viewPosition: 1,
+        viewOffset: -(anchor.offset + bottomZone),
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Декларативный `initialScrollIndex` считается по оценочным высотам строк,
+    // поэтому подводит близко, но не точно. Когда список отрисовал первый кадр
+    // и знает реальные высоты — доуточняем позицию по тому же якорю. Ровно так
+    // же поступает нативная реализация: она скроллит после `layoutIfNeeded()`.
+    const didAlignRef = useRef(false);
+
+    const handleLoad = useCallback(() => {
+      if (didAlignRef.current) return;
+
+      const anchor = initialScrollAnchor;
+
+      didAlignRef.current = true;
+
+      if (!anchor || anchor.wasAtBottom) return;
+
+      commands.alignMessageToBottom(anchor.messageId, anchor.offset);
+      // Якорь читается один раз, на монтировании: дальше позицией управляет
+      // пользователь, и повторное выравнивание вырвало бы её из-под пальца.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [commands]);
 
     // ─── Императивный интерфейс ──────────────────────────────────────────
 
@@ -401,6 +442,7 @@ export const JsChatView = memo(
                 features.scrollToBottomThreshold,
               )}
               viewabilityConfigCallbackPairs={viewabilityPairs}
+              onLoad={handleLoad}
               onScroll={handleScroll}
               onScrollBeginDrag={handleScrollBeginDrag}
               onScrollEndDrag={handleScrollEndDrag}
