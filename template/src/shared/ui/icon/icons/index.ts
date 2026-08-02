@@ -10,3 +10,4 @@ export * from "./EyeOffIcon";
 export * from "./Image";
 export * from "./SaveIcon";
 export * from "./SearchIcon";
+export * from "./SettingsIcon";

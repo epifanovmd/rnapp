@@ -10,9 +10,13 @@ import {
   type ChatCancelInputActionEventData,
   type ChatEditMessageEventData,
   type ChatEmojiReactionSelectData,
+  type ChatFeatures,
   type ChatInputAction,
+  type ChatInputTypingEventData,
+  type ChatLinkTapEventData,
   type ChatMessage,
   type ChatMessagePressEventData,
+  type ChatPhoneNumberTapEventData,
   type ChatPollDetailPressEventData,
   type ChatPollOptionPressEventData,
   type ChatReachBottomEventData,
@@ -20,7 +24,9 @@ import {
   type ChatReactionTapEventData,
   type ChatReplyMessagePressEventData,
   type ChatScrollAnchorChangedEventData,
+  type ChatScrollEventData,
   type ChatSendMessageEventData,
+  type ChatThreadTapEventData,
   type ChatUnreadMessagesAppearEventData,
   ChatView,
   type ChatVisibleMessagesChangeEventData,
@@ -42,6 +48,42 @@ import { mapMessageToNative } from "./native/map-message-to-native";
 const TYPING_SIMULATION_INTERVAL_MS = 14_000;
 const TYPING_SIMULATION_DURATION_MS = 2_500;
 
+/** Эмодзи быстрых реакций в контекстном меню. Стабильная ссылка — ломает memo на ChatView. */
+const EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
+
+/** Лог всех колбэков чата для тестирования: тег + имя события + данные. */
+const TAG = "[ChatRoomMock]";
+
+const logEvent = (name: string, payload?: unknown) => {
+  console.log(TAG, name, payload ?? "");
+};
+
+/** Начальные настройки чата — их переключает модалка с шестерёнкой. */
+const DEFAULT_FEATURES: ChatFeatures = {
+  senderNameMode: "always",
+  showMessageStatus: true,
+  showTimestamp: true,
+  showEditedMark: true,
+  showReactions: true,
+  showReplyPreview: true,
+  showForwardedMark: true,
+  showThreadIndicator: true,
+  showAvatars: true,
+  linkDetectionEnabled: true,
+  showFab: true,
+  showFloatingDate: true,
+  showDateSeparators: true,
+  showTopLoadingIndicator: true,
+  showBottomLoadingIndicator: true,
+  showEmptyState: true,
+  showInputBar: true,
+  showAttachButton: true,
+  showVoiceRecording: true,
+  contextMenuEnabled: true,
+  autoScrollOnNewMessage: true,
+  disintegrationEnabled: true,
+};
+
 /**
  * Полностью локальный мок чата — без API и без сокета.
  * Существует исключительно для демонстрации нативного ChatView-компонента:
@@ -60,6 +102,16 @@ export const useChatRoomMock = () => {
     [],
   );
   const [isPeerTyping, setIsPeerTyping] = useState(false);
+  const [chatFeatures, setChatFeatures] =
+    useState<ChatFeatures>(DEFAULT_FEATURES);
+
+  // ── Настройки чата ──────────────────────────────────────────────────
+
+  const updateFeature = useCallback(
+    (patch: Partial<ChatFeatures>) =>
+      setChatFeatures(prev => ({ ...prev, ...patch })),
+    [],
+  );
 
   // ── Нативные сообщения с сохранением идентичности ───────────────────────
 
@@ -163,6 +215,8 @@ export const useChatRoomMock = () => {
 
   const handleSendMessage = useCallback(
     ({ text, replyToId }: ChatSendMessageEventData) => {
+      logEvent("onSendMessage", { text, replyToId });
+
       const replyTo = replyToId
         ? messages.find(m => m.id === replyToId)
         : undefined;
@@ -221,6 +275,8 @@ export const useChatRoomMock = () => {
 
   const handleEditMessage = useCallback(
     ({ text, messageId }: ChatEditMessageEventData) => {
+      logEvent("onEditMessage", { text, messageId });
+
       setMessages(prev =>
         prev.map(m =>
           m.id === messageId ? { ...m, content: text, isEdited: true } : m,
@@ -232,29 +288,41 @@ export const useChatRoomMock = () => {
   );
 
   const handleCancelInputAction = useCallback(
-    (_: ChatCancelInputActionEventData) => {
+    (payload: ChatCancelInputActionEventData) => {
+      logEvent("onCancelInputAction", payload);
       setInputAction(null);
     },
     [],
   );
 
-  const handleTyping = useCallback((_?: { text: string }) => {
+  const handleTyping = useCallback((payload: ChatInputTypingEventData) => {
+    logEvent("onInputTyping", payload);
     // Локальный мок — печать текущего пользователя никуда не отправляется.
   }, []);
 
   // ── Scrolling / pagination (мок — история не подгружается) ────────
 
-  const handleReachTop = useCallback((_: ChatReachTopEventData) => {}, []);
-  const handleReachBottom = useCallback(
-    (_: ChatReachBottomEventData) => {},
-    [],
-  );
+  const handleScroll = useCallback((event: ChatScrollEventData) => {
+    // Самый частый колбэк — идёт на каждый скролл (throttle ~30мс).
+    logEvent("onScroll", event);
+  }, []);
+
+  const handleReachTop = useCallback((payload: ChatReachTopEventData) => {
+    logEvent("onReachTop", payload);
+  }, []);
+  const handleReachBottom = useCallback((payload: ChatReachBottomEventData) => {
+    logEvent("onReachBottom", payload);
+  }, []);
   const handleVisibleMessagesChange = useCallback(
-    (_: ChatVisibleMessagesChangeEventData) => {},
+    (payload: ChatVisibleMessagesChangeEventData) => {
+      logEvent("onVisibleMessagesChange", payload);
+    },
     [],
   );
   const handleUnreadMessagesAppear = useCallback(
-    (_: ChatUnreadMessagesAppearEventData) => {},
+    (payload: ChatUnreadMessagesAppearEventData) => {
+      logEvent("onUnreadMessagesAppear", payload);
+    },
     [],
   );
 
@@ -262,6 +330,8 @@ export const useChatRoomMock = () => {
 
   const handleActionPress = useCallback(
     ({ actionId, messageId }: ChatActionPressEventData) => {
+      logEvent("onActionPress", { actionId, messageId });
+
       const msg = messages.find(m => m.id === messageId);
 
       switch (actionId) {
@@ -365,6 +435,7 @@ export const useChatRoomMock = () => {
 
   const handleEmojiReaction = useCallback(
     ({ emoji, messageId }: ChatEmojiReactionSelectData) => {
+      logEvent("onEmojiReactionSelect", { emoji, messageId });
       toggleReaction(messageId, emoji);
     },
     [toggleReaction],
@@ -372,6 +443,7 @@ export const useChatRoomMock = () => {
 
   const handleReactionTap = useCallback(
     ({ emoji, messageId }: ChatReactionTapEventData) => {
+      logEvent("onReactionTap", { emoji, messageId });
       toggleReaction(messageId, emoji);
     },
     [toggleReaction],
@@ -381,6 +453,7 @@ export const useChatRoomMock = () => {
 
   const handleReplyMessagePress = useCallback(
     ({ messageId }: ChatReplyMessagePressEventData) => {
+      logEvent("onReplyMessagePress", { messageId });
       chatRef.current?.scrollToMessage(messageId, {
         position: "center",
         animated: true,
@@ -394,6 +467,8 @@ export const useChatRoomMock = () => {
 
   const handlePollOptionPress = useCallback(
     ({ pollId, optionId }: ChatPollOptionPressEventData) => {
+      logEvent("onPollOptionPress", { pollId, optionId });
+
       setMessages(prev =>
         prev.map(m => {
           if (!m.poll || m.poll.id !== pollId) return m;
@@ -427,6 +502,7 @@ export const useChatRoomMock = () => {
 
   const handlePollDetailPress = useCallback(
     ({ pollId }: ChatPollDetailPressEventData) => {
+      logEvent("onPollDetailPress", { pollId });
       setPollDetailId(pollId);
     },
     [],
@@ -436,6 +512,8 @@ export const useChatRoomMock = () => {
 
   const handleMessagePress = useCallback(
     ({ messageId }: ChatMessagePressEventData) => {
+      logEvent("onMessagePress", { messageId });
+
       const msg = messages.find(m => m.id === messageId);
 
       if (!msg) return;
@@ -452,39 +530,70 @@ export const useChatRoomMock = () => {
     [messages],
   );
 
+  // ── Thread / link / phone taps ────────────────────────────────────
+
+  const handleThreadTap = useCallback(
+    ({ messageId, threadId }: ChatThreadTapEventData) => {
+      logEvent("onThreadTap", { messageId, threadId });
+    },
+    [],
+  );
+
+  const handleLinkTap = useCallback(
+    ({ url, messageId }: ChatLinkTapEventData) => {
+      logEvent("onLinkTap", { url, messageId });
+    },
+    [],
+  );
+
+  const handlePhoneNumberTap = useCallback(
+    ({ phoneNumber, messageId }: ChatPhoneNumberTapEventData) => {
+      logEvent("onPhoneNumberTap", { phoneNumber, messageId });
+    },
+    [],
+  );
+
   // ── Scroll anchor / FAB — мок без персистентности ──────────────────
 
   const handleScrollAnchorChanged = useCallback(
-    (_: ChatScrollAnchorChangedEventData) => {},
+    (payload: ChatScrollAnchorChangedEventData) => {
+      logEvent("onScrollAnchorChanged", payload);
+    },
     [],
   );
 
   const handleFabPress = useCallback(() => {
+    logEvent("onFabPress");
     chatRef.current?.scrollToBottom();
   }, []);
 
   // ── Attachments ───────────────────────────────────────────────────
 
   const handleAttachmentPress = useCallback(
-    (_: ChatAttachmentPressEventData) => {
+    (payload: ChatAttachmentPressEventData) => {
+      logEvent("onAttachmentPress", payload);
       setShowAttachmentPicker(true);
     },
     [],
   );
 
   const handleAttachmentPickerClose = useCallback(() => {
+    logEvent("onAttachmentPickerClose");
     setShowAttachmentPicker(false);
   }, []);
 
   const handleCameraPress = useCallback(() => {
+    logEvent("attachmentPicker.camera");
     Alert.alert("Camera", "Camera picker is not yet available.");
   }, []);
 
   const handleGalleryPress = useCallback(() => {
+    logEvent("attachmentPicker.gallery");
     Alert.alert("Gallery", "Gallery picker is not yet available.");
   }, []);
 
   const handleFilePickerPress = useCallback(() => {
+    logEvent("attachmentPicker.file");
     Alert.alert("File", "Document picker is not yet available.");
   }, []);
 
@@ -493,6 +602,9 @@ export const useChatRoomMock = () => {
   const handleVoiceRecordingComplete = useCallback(
     (event: ChatVoiceRecordingCompleteEventData) => {
       const { fileUrl, duration, waveform } = event;
+
+      logEvent("onVoiceRecordingComplete", { fileUrl, duration, waveform });
+
       const now = new Date().toISOString();
 
       setMessages(prev => [
@@ -551,6 +663,11 @@ export const useChatRoomMock = () => {
     currentUserId: MOCK_CURRENT_USER_ID,
     chatRef,
 
+    // Features / settings
+    chatFeatures,
+    updateFeature,
+    emojiReactions: EMOJI_REACTIONS,
+
     // State
     inputAction,
     showAttachmentPicker,
@@ -573,6 +690,7 @@ export const useChatRoomMock = () => {
     handleEditMessage,
     handleCancelInputAction,
     handleTyping,
+    handleScroll,
     handleReachTop,
     handleReachBottom,
     handleVisibleMessagesChange,
@@ -584,6 +702,9 @@ export const useChatRoomMock = () => {
     handlePollOptionPress,
     handlePollDetailPress,
     handleMessagePress,
+    handleThreadTap,
+    handleLinkTap,
+    handlePhoneNumberTap,
     handleAttachmentPress,
     handleAttachmentPickerClose,
     handleCameraPress,

@@ -29,7 +29,9 @@ tab bar root.
 - **Chat** — `pages/chat` → re-exports `widgets/chat-room`'s `ChatRoom` (chat demo, fully mocked;
   has a temporary switch between the native `RNChatView` (iOS) and the RN `JsChatView` port),
   `headerShown: false` (renders its own `Navbar`, now including `Navbar.BackButton` since it's pushed
-  from Playground rather than mounted as a tab root)
+  from Playground rather than mounted as a tab root). The `Navbar` also has a gear button opening
+  `ChatSettingsModal` (a `BottomSheet` that toggles `ChatFeatures`, owned by `useChatRoomMock`).
+  Every `ChatView` callback is logged to the console with the `[ChatRoomMock]` tag for testing.
 - **Charts** — `pages/ui-kit-demo/stack/charts/Charts.tsx` — Skia + Reanimated charting core demo (see
   `project_charts.md`); Line/Area/Bar chart cards with Grid/Axis/Crosshair/Tooltip
 - **PdfView** — `pages/ui-kit-demo/stack/pdf-view/PdfView.tsx` — modal presentation

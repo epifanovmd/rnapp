@@ -16,6 +16,7 @@ import {
   ImageIcon,
   SaveIcon,
   SearchIcon,
+  SettingsIcon,
 } from "./icons";
 
 type TOmitFlexPropsKeys =
@@ -35,6 +36,7 @@ const ICONS_MAP = {
   image: ImageIcon,
   save: SaveIcon,
   search: SearchIcon,
+  settings: SettingsIcon,
 };
 
 export type TIconName = keyof typeof ICONS_MAP;

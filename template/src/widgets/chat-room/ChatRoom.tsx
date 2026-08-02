@@ -1,21 +1,27 @@
 import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
-import { Col, Navbar, Row, Switch, Text } from "@shared/ui";
+import {
+  Col,
+  Navbar,
+  NavbarIcon,
+  Row,
+  Switch,
+  Text,
+  useBottomSheetRef,
+} from "@shared/ui";
 // Тестовое исключение: демо-переключатель нативной и RN-реализаций —
 // обычный код должен импортировать ChatView из @shared/ui.
 import { JsChatView } from "@shared/ui/chat-view/JsChatView";
 import { NativeChatView } from "@shared/ui/chat-view/native";
 import { ImageViewing } from "@shared/ui/image-viewing";
 import { observer } from "mobx-react-lite";
-import React, { FC, useMemo, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import React, { FC, useState } from "react";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { AttachmentPickerSheet } from "./AttachmentPickerSheet";
+import { ChatSettingsModal } from "./ChatSettingsModal";
 import { PollDetailModal } from "./PollDetailModal";
 import { useChatRoomMock } from "./useChatRoomMock";
-
-/** Инлайновые литералы в пропах ломают memo на ChatView — держим стабильными. */
-const EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
 
 /**
  * Демо-экран нативного чата. Полностью на моках (см. useChatRoomMock) —
@@ -39,6 +45,9 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     nativeMessages,
     initialScrollAnchor,
     chatRef,
+    chatFeatures,
+    updateFeature,
+    emojiReactions,
     inputAction,
     showAttachmentPicker,
     pollDetailId,
@@ -55,6 +64,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     handleEditMessage,
     handleCancelInputAction,
     handleTyping,
+    handleScroll,
     handleReachTop,
     handleReachBottom,
     handleVisibleMessagesChange,
@@ -66,6 +76,9 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     handlePollOptionPress,
     handlePollDetailPress,
     handleMessagePress,
+    handleThreadTap,
+    handleLinkTap,
+    handlePhoneNumberTap,
     handleAttachmentPress,
     handleAttachmentPickerClose,
     handleCameraPress,
@@ -76,36 +89,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     handleScrollAnchorChanged,
   } = useChatRoomMock();
 
-  // Все фичи чата включены — демо показывает возможности компонента целиком.
-  // `emojiReactions` передаётся отдельным пропом ниже.
-  const chatFeatures = useMemo(
-    () =>
-      ({
-        senderNameMode: "always",
-        showMessageStatus: true,
-        showTimestamp: true,
-        showEditedMark: true,
-        showReactions: true,
-        showReplyPreview: true,
-        showForwardedMark: true,
-        showThreadIndicator: true,
-        showAvatars: true,
-        linkDetectionEnabled: true,
-        showFab: true,
-        showFloatingDate: true,
-        showDateSeparators: true,
-        showTopLoadingIndicator: true,
-        showBottomLoadingIndicator: true,
-        showEmptyState: true,
-        showInputBar: true,
-        showAttachButton: true,
-        showVoiceRecording: true,
-        contextMenuEnabled: true,
-        autoScrollOnNewMessage: true,
-        disintegrationEnabled: true,
-      }) as const,
-    [],
-  );
+  const settingsSheetRef = useBottomSheetRef();
 
   return (
     <Col flex={1}>
@@ -129,6 +113,14 @@ export const ChatRoom: FC<StackProps> = observer(() => {
             )}
           </View>
         </Navbar.Subtitle>
+        <Navbar.Right>
+          <TouchableOpacity
+            onPress={() => settingsSheetRef.current?.present()}
+            hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+          >
+            <NavbarIcon name="settings" />
+          </TouchableOpacity>
+        </Navbar.Right>
       </Navbar>
 
       <Row
@@ -162,7 +154,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         messages={nativeMessages}
         initialScrollAnchor={initialScrollAnchor}
         getActionsForMessage={getActionsForMessage}
-        emojiReactions={EMOJI_REACTIONS}
+        emojiReactions={emojiReactions}
         inputAction={inputAction}
         hasMore={hasMore}
         hasNewer={hasNewer}
@@ -181,6 +173,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onCancelInputAction={handleCancelInputAction}
+        onScroll={handleScroll}
         onReachTop={handleReachTop}
         onReachBottom={handleReachBottom}
         onVisibleMessagesChange={handleVisibleMessagesChange}
@@ -191,6 +184,9 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         onPollOptionPress={handlePollOptionPress}
         onPollDetailPress={handlePollDetailPress}
         onMessagePress={handleMessagePress}
+        onThreadTap={handleThreadTap}
+        onLinkTap={handleLinkTap}
+        onPhoneNumberTap={handlePhoneNumberTap}
         onAttachmentPress={handleAttachmentPress}
         onVoiceRecordingComplete={handleVoiceRecordingComplete}
         onInputTyping={handleTyping}
@@ -222,6 +218,12 @@ export const ChatRoom: FC<StackProps> = observer(() => {
           onClose={() => setPollDetailId(null)}
         />
       )}
+
+      <ChatSettingsModal
+        ref={settingsSheetRef}
+        features={chatFeatures}
+        onUpdate={updateFeature}
+      />
     </Col>
   );
 });
