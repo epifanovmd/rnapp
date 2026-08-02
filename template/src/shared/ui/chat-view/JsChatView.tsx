@@ -364,6 +364,13 @@ export const JsChatView = memo(
       () => getLayout().avatarSize,
       [getLayout],
     );
+    // Верхний отступ контента: он же задаётся ChatList'у через contentPaddingTop.
+    const getContentPaddingTop = useCallback(
+      () =>
+        getLayout().collectionTopPadding +
+        (propsRef.current.collectionInsetTop ?? 0),
+      [getLayout],
+    );
 
     const updateAvatars = useChatAvatars({
       store: avatarStore,
@@ -371,7 +378,7 @@ export const JsChatView = memo(
       getGroups: getAvatarGroups,
       isEnabled: isAvatarsEnabled,
       getAvatarSize,
-      getTopInset,
+      getContentPaddingTop,
       getBottomInset: keyboard.getContentInset,
     });
 

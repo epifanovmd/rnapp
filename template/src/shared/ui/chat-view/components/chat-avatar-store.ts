@@ -39,7 +39,7 @@ export class ChatAvatarStore {
     };
   };
 
-  /** Применить новый снимок: границы — всегда, состав — только при изменении. */
+  /** Применить новый снимок: границы — при изменении, состав — при смене набора. */
   sync(avatars: IStickyAvatar[]) {
     let sameSet = avatars.length === this._slots.length;
 
@@ -48,8 +48,11 @@ export class ChatAvatarStore {
       const slot = this._byKey.get(avatar.key);
 
       if (slot) {
-        slot.top.value = avatar.top;
-        slot.bottom.value = avatar.bottom;
+        // Границы статичны при скролле — пишем только когда реально изменились.
+        if (slot.top.value !== avatar.top) slot.top.value = avatar.top;
+        if (slot.bottom.value !== avatar.bottom) {
+          slot.bottom.value = avatar.bottom;
+        }
       }
       if (sameSet && this._slots[i]?.key !== avatar.key) sameSet = false;
     }
@@ -69,8 +72,8 @@ export class ChatAvatarStore {
         bottom: makeMutable(avatar.bottom),
       };
 
-      slot.senderName = avatar.senderName;
-      slot.senderAvatarUrl = avatar.senderAvatarUrl;
+      // Данные отправителя неизменны для ключа группы и задаются один раз при
+      // создании слота: слоты захвачены ворклетом слоя, мутировать их поля нельзя.
       slot.top.value = avatar.top;
       slot.bottom.value = avatar.bottom;
       nextByKey.set(avatar.key, slot);

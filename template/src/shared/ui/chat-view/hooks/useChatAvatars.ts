@@ -18,7 +18,8 @@ export interface IChatAvatarsOptions {
   getGroups: () => IChatAvatarGroup[];
   isEnabled: () => boolean;
   getAvatarSize: () => number;
-  getTopInset: () => number;
+  /** Верхний отступ контента: позиции строк не включают его, а координаты — да. */
+  getContentPaddingTop: () => number;
   getBottomInset: () => number;
 }
 
@@ -28,7 +29,7 @@ export const useChatAvatars = ({
   getGroups,
   isEnabled,
   getAvatarSize,
-  getTopInset,
+  getContentPaddingTop,
   getBottomInset,
 }: IChatAvatarsOptions) => {
   useEffect(() => () => store.clear(), [store]);
@@ -45,7 +46,7 @@ export const useChatAvatars = ({
         geometry: readGeometry(),
         groups: getGroups(),
         avatarSize: getAvatarSize(),
-        topInset: getTopInset(),
+        contentPaddingTop: getContentPaddingTop(),
         bottomInset: getBottomInset(),
       }),
     );
@@ -55,7 +56,7 @@ export const useChatAvatars = ({
     getGroups,
     isEnabled,
     getAvatarSize,
-    getTopInset,
+    getContentPaddingTop,
     getBottomInset,
   ]);
 };

@@ -26,8 +26,8 @@ export interface IResolveStickyAvatarsInput {
   geometry: IChatGeometry;
   groups: IChatAvatarGroup[];
   avatarSize: number;
-  /** Перекрытие контента сверху. */
-  topInset: number;
+  /** Верхний отступ контента — его нет в позициях строк, но есть в координатах. */
+  contentPaddingTop: number;
   /** Перекрытие снизу: панель ввода и клавиатура. */
   bottomInset: number;
 }
@@ -39,18 +39,21 @@ export const resolveStickyAvatars = ({
   geometry,
   groups,
   avatarSize,
-  topInset,
+  contentPaddingTop,
   bottomInset,
 }: IResolveStickyAvatarsInput): IStickyAvatar[] => {
   if (groups.length === 0 || geometry.viewportHeight <= 0) return [];
 
-  const visibleTop = geometry.scrollY + topInset;
+  const visibleTop = geometry.scrollY;
   const visibleBottom =
     geometry.scrollY + geometry.viewportHeight - bottomInset;
   const margin = avatarSize + CULL_MARGIN;
 
   const result: IStickyAvatar[] = [];
 
+  // Группы отсортированы по индексам строк: идём от начала и прерываемся по
+  // физической границе видимой области. Рендер-диапазон списка тут не
+  // используем — он «дёргается» на краях и заставлял аватар моргать.
   for (const group of groups) {
     const groupTop = geometry.rowTop(group.firstIndex);
     const groupBottom = rowBottom(geometry, group.lastIndex);
@@ -59,12 +62,14 @@ export const resolveStickyAvatars = ({
     if (groupBottom + margin < visibleTop) continue;
     if (groupTop - margin > visibleBottom) break;
 
+    // Позиции LegendList не включают верхний отступ контента — приводим к
+    // координатам контента, в которых работает и позиция, и отсечка.
     result.push({
       key: group.key,
       senderName: group.senderName,
       senderAvatarUrl: group.senderAvatarUrl,
-      top: groupTop,
-      bottom: groupBottom,
+      top: groupTop + contentPaddingTop,
+      bottom: groupBottom + contentPaddingTop,
     });
   }
 
