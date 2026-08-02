@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  ChatUnreadManager,
-  IParsedChatMessage,
-  planChatUpdate,
-  shouldDeferUpdate,
-} from "../model";
+import { IParsedChatMessage, planChatUpdate, shouldDeferUpdate } from "../data";
+import { ChatUnreadManager } from "../services";
 import { IChatCommands } from "./useChatCommands";
 import { IChatScrollController } from "./useChatScroll";
 import { IChatScrollAnchorController } from "./useChatScrollAnchor";
@@ -13,32 +9,15 @@ import { IChatScrollAnchorController } from "./useChatScrollAnchor";
 /**
  * Применение обновлений списка — порт `MessageUpdateHandler`.
  *
- * Ключевая мысль эталона: **стратегия обновления определяет поведение
- * скролла**, и решение принимается по состоянию *до* применения данных.
- * Поэтому здесь снимок (`wasAtBottom`, якоря) берётся первым делом, а
- * применение данных идёт следом.
+ * Стратегия обновления определяет поведение скролла, и решение принимается по
+ * состоянию **до** применения данных — поэтому снимок (`wasAtBottom`, якоря)
+ * берётся первым делом:
  *
- * Что делает каждая стратегия:
- *
- * - `initial` — первая загрузка: позиция ставится начальным якорем или
- *   концом списка. Этим занимается `useChatInitialScroll` — здесь только
- *   снимается защита.
- * - `clear` — данные ушли, восстанавливать нечего.
- * - `prepend` — вставка сверху. Позицию держит
- *   `maintainVisibleContentPosition` самого списка (порт компенсации
- *   `newTotalH - oldTotalH`), вмешиваться не нужно.
- * - `append` — вставка снизу. Порт `applyAppend`: скроллим вниз, только
- *   если пользователь **был** внизу и добавилось не больше двух сообщений
- *   (иначе это догрузка истории, а не новое сообщение). Остальное уходит
- *   в счётчик непрочитанных.
- * - `content` — наполнение поменялось без сдвига структуры: список сам
- *   удержит позицию через `maintainVisibleContentPosition.size`.
- * - `structural` — перестановки/удаления: восстанавливаем позицию по
- *   лучшему из видимых якорей (порт `restoreBestAnchor`).
- *
- * Отдельно живёт откладывание: структурные изменения во время
- * перетаскивания дёргают контент под пальцем, поэтому эталон копит их
- * в `pendingMessages` и применяет по остановке скролла.
+ * - `initial` / `clear` — позицией занимается `useChatInitialScroll`;
+ * - `prepend` / `content` — держит `maintainVisibleContentPosition` списка;
+ * - `append` — вниз, только если были внизу и это похоже на новое сообщение,
+ *   а не на догрузку хвоста; остальное уходит в непрочитанные;
+ * - `structural` — восстановление по лучшему из видимых якорей.
  */
 
 /** Сколько сообщений считаем «своей отправкой», а не догрузкой истории. */

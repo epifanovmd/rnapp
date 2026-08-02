@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { TextInput } from "react-native";
 
-import { InputBarMode } from "../model/input-bar-types";
+import { InputBarMode } from "../model";
 
 /**
  * Реакция на смену режима reply/edit: фокус, текст, сброс.

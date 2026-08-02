@@ -184,22 +184,49 @@ of a legacy (non-Fabric) implementation existing anywhere.
 
 On non-iOS platforms all three components resolve to full React Native ports via single public entry
 points: `ChatView` (`src/shared/ui/chat-view/ChatView.tsx` → `JsChatView.tsx` on `@legendapp/list`),
-`InputBar` (`src/shared/ui/input-bar/InputBar.tsx` → `JsInputBar.tsx`, core `ChatInputBar.tsx` shared
+`InputBar` (`src/shared/ui/input-bar/InputBar.tsx` → `JsInputBar.tsx`, core
+`components/input-bar-view/InputBarView.tsx` shared
 with `JsChatView`), `ContextMenuView` (see `project_components.md`). Audio capture/playback in the JS
-ports is abstracted (`chat-voice-player.ts` / `chat-voice-recorder.ts` in `chat-view/model/`) with
+ports is abstracted (`chat-view/services/voice-player.ts`, `input-bar/services/voice-recorder.ts`) with
 simulated default backends — real backends can be injected via `setChatVoicePlayerBackend` /
 `setChatVoiceRecorderBackend` (no audio native module exists in this project).
 
+#### Структура `shared/ui/chat-view/`
+
+Слои разделены по ответственности, зависимости идут строго вниз
+(`components → hooks → scroll → data → config → utils`):
+
+- `config/` — порт `ChatTheme` / `ChatLayout` / `ChatFeatures` плюс `chat-styles.ts`:
+  `createChatStyles(theme, layout)` собирает **готовые** стили ячейки один раз на пару тема+лейаут
+  (`byOwnership[ownership]` + `shared`). Это порт UIKit-подхода «цвета применяются при configure»
+  и главный выигрыш в списке — ячейка больше не аллоцирует десятки объектов стиля на рендер.
+- `data/` — вся работа с данными: `chat-message.ts` (модель + разбор, включая `files[]`, детекцию
+  ссылок и «только эмодзи» — всё считается один раз при разборе), `message-parser.ts`,
+  `message-diff.ts`, `update-plan.ts`, `chat-rows.ts`, `chat-data.ts` (строки, индексы, разделители
+  дат, группы аватаров).
+- `scroll/` — чистая математика: `chat-geometry.ts` (узкий интерфейс вместо LegendList),
+  `scroll-anchor.ts`, `visibility-tracker.ts`, `floating-date.ts`, `avatar-layout.ts`.
+- `services/` — `voice-player.ts` (состояния idle/loading/playing/paused/failed, состояние отдаётся
+  **по одному треку примитивами**) и `unread-manager.ts`.
+- `utils/` — `text-format.ts` (даты, длительности, размеры, плюрализация, эмодзи, базовый TextStyle),
+  `link-detector.ts`.
+- `hooks/` — по хуку на ответственность; `components/` — только отрисовка.
+
 **Обновление списка на тысячи сообщений (задержка после голосования/удаления):** всё держится на
-сохранении идентичности. `ChatMessageParser` (`model/chat-message-parser.ts`) кеширует
-`parseChatMessage` по входному `ChatMessage` (объект переиспользуется, пока не изменился сам вход),
-`ChatRowsBuilder` (`model/chat-rows.ts`) переиспользует `ChatRow`, пока не изменились её входы, а
-`ChatList.tsx` передаёт списку `itemsAreEqual` и стабильный `renderItem` без замыканий — `LegendList`
+сохранении идентичности. `ChatMessageParser` (`data/message-parser.ts`) кеширует `parseChatMessage`
+по входному `ChatMessage` (объект переиспользуется, пока не изменился сам вход), `ChatRowsBuilder`
+(`data/chat-rows.ts`) переиспользует `ChatRow`, пока не изменились её входы, а `ChatList.tsx`
+передаёт списку `itemsAreEqual` и стабильный `renderItem` без замыканий — `LegendList`
 перерисовывает ровно те контейнеры, чьи строки реально изменились. Обязательное требование к хосту:
 `messages` должен сохранять идентичность неизменённых элементов — демо кеширует `mapMessageToNative`
 по DTO (`useChatRoomMock.nativeMessages`). Оверлеи (`components/chat-overlay-store.ts`) читают поля по
 одному через `useOverlayValue`, покадровый сдвиг плашки даты — shared value стора, так что кадр
 скролла не вызывает ни одного ре-рендера корня.
+
+**Что ещё не даёт ре-рендеров на кадр:** sticky-аватары (`components/chat-avatar-store.ts` +
+`ChatAvatarLayer.tsx`) — состав групп на экране держит React, позиция каждого аватара едет shared
+value; прогресс голосового (`WaveBar` анимируется от shared value, таймер округлён до секунды и
+перерисовывается раз в секунду, и только у активного трека).
 
 ### Keyboard compensation in the JS ports (port of `updateCollectionInsets`)
 
@@ -223,7 +250,7 @@ The reference's key property is not the formula but that there is exactly **one*
 on `keyboardLayoutGuide`, and the collection inset is derived from `inputBar.frame.minY` — the list
 follows the *bar*, not the keyboard separately. They cannot drift apart by construction.
 
-The port keeps that: one `bottomInset` shared value (`overlay + barHeight + chat padding`) drives both
+The port keeps that: one `bottomInset` shared value (`occludedBottom + barHeight + chat padding`) drives both
 the bar's `translateY` (`KeyboardFloatingView`) and the list's zone, read in the same UI-thread frame.
 
 - Zone lives as a **spacer at the end of the content** (`ListFooterComponent`), not as `contentInset`:

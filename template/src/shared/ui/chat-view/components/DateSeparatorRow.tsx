@@ -1,49 +1,35 @@
-import React, { FC, memo } from "react";
+import React, { FC, memo, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { chatTextBase, getSectionTitle } from "../model";
+import { getSectionTitle } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
 
 /**
- * Порт DateSeparatorCell + dateSeparatorView: плашка-«пилюля» с датой группы.
- * Первый разделитель скрывается на время isLoadingTop (порт
- * hideFirstDateSeparator).
+ * Разделитель дат — порт `DateSeparatorCell`. Первый скрывается на время
+ * `isLoadingTop` (порт `hideFirstDateSeparator`).
  */
 
 interface IDateSeparatorRowProps {
   groupDate: string;
-  hidden?: boolean;
+  hidden: boolean;
 }
 
 export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
-  ({ groupDate, hidden = false }) => {
-    const { theme, layout } = useChatViewContext();
+  ({ groupDate, hidden }) => {
+    const { layout, styles } = useChatViewContext();
 
-    const rowDynamicStyle = {
-      paddingVertical: layout.sectionSpacing,
-      opacity: hidden ? 0 : 1,
-    };
+    const rowStyle = useMemo(
+      () => [
+        ss.row,
+        { paddingVertical: layout.sectionSpacing, opacity: hidden ? 0 : 1 },
+      ],
+      [layout.sectionSpacing, hidden],
+    );
 
     return (
-      <View style={[ss.row, rowDynamicStyle]}>
-        <View
-          style={{
-            borderRadius: layout.dateSeparatorCornerRadius,
-            backgroundColor: theme.dateSeparatorBackground,
-            paddingVertical: layout.dateSeparatorVPad,
-            paddingHorizontal: layout.dateSeparatorHPad,
-          }}
-        >
-          <Text
-            style={[
-              chatTextBase,
-              {
-                fontSize: layout.dateSeparatorFont.fontSize,
-                fontWeight: layout.dateSeparatorFont.fontWeight,
-                color: theme.dateSeparatorText,
-              },
-            ]}
-          >
+      <View style={rowStyle}>
+        <View style={styles.shared.dateSeparatorPill}>
+          <Text style={styles.shared.dateSeparatorText}>
             {getSectionTitle(groupDate)}
           </Text>
         </View>
@@ -55,7 +41,5 @@ export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
 DateSeparatorRow.displayName = "DateSeparatorRow";
 
 const ss = StyleSheet.create({
-  row: {
-    alignItems: "center",
-  },
+  row: { alignItems: "center" },
 });

@@ -5,13 +5,15 @@ import {
   CHAT_DEFAULT_FEATURES,
   CHAT_DEFAULT_LAYOUT,
   CHAT_LIGHT_THEME,
+  createChatStyles,
+  IChatStyles,
   IChatViewFeatures,
   IChatViewLayout,
   IChatViewTheme,
-} from "../model";
+} from "../config";
 
 /**
- * Маршрутизация действий ячеек — порт ChatViewController+MessageActions.
+ * Маршрутизация действий ячеек — порт `ChatViewController+MessageActions`.
  * Хранится в ref, чтобы ячейки оставались мемоизированными.
  */
 export interface IChatCellDelegate {
@@ -30,21 +32,16 @@ export interface IChatCellDelegate {
 }
 
 /**
- * Мини-стор для точечных обновлений ячеек (подсветка scrollToMessage,
- * скрытие пузыря на время эффекта распада) без ре-рендера списка.
+ * Точечные обновления ячеек без ре-рендера списка: подсветка `scrollToMessage`
+ * и скрытие пузыря на время эффекта распада.
  */
 export class ChatCellStore {
   private _highlightId: string | null = null;
   private _highlightToken = 0;
   private _hiddenBubbleIds = new Set<string>();
-  private _version = 0;
   private readonly _listeners = new Set<() => void>();
 
   readonly bubbleRefs = new Map<string, View>();
-
-  get version(): number {
-    return this._version;
-  }
 
   get highlightId(): string | null {
     return this._highlightId;
@@ -62,20 +59,20 @@ export class ChatCellStore {
   highlight(id: string) {
     this._highlightId = id;
     this._highlightToken += 1;
-    this.bump();
+    this._notify();
   }
 
   clearHighlight(id: string) {
     if (this._highlightId !== id) return;
     this._highlightId = null;
-    this.bump();
+    this._notify();
   }
 
   hideBubbles(ids: Iterable<string>) {
     for (const id of ids) {
       this._hiddenBubbleIds.add(id);
     }
-    this.bump();
+    this._notify();
   }
 
   showBubbles(ids: Iterable<string>) {
@@ -84,7 +81,7 @@ export class ChatCellStore {
     for (const id of ids) {
       changed = this._hiddenBubbleIds.delete(id) || changed;
     }
-    if (changed) this.bump();
+    if (changed) this._notify();
   }
 
   registerBubble(id: string, ref: View | null) {
@@ -103,8 +100,7 @@ export class ChatCellStore {
     };
   };
 
-  private bump() {
-    this._version += 1;
+  private _notify() {
     this._listeners.forEach(listener => listener());
   }
 }
@@ -113,6 +109,8 @@ export interface IChatViewContextValue {
   theme: IChatViewTheme;
   layout: IChatViewLayout;
   features: IChatViewFeatures;
+  /** Готовые стили под текущую пару (тема, лейаут). */
+  styles: IChatStyles;
   /** Ширина списка — для расчёта максимальной ширины пузыря. */
   listWidth: number;
   delegate: RefObject<IChatCellDelegate>;
@@ -123,6 +121,7 @@ export const ChatViewContext = createContext<IChatViewContextValue>({
   theme: CHAT_LIGHT_THEME,
   layout: CHAT_DEFAULT_LAYOUT,
   features: CHAT_DEFAULT_FEATURES,
+  styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
   listWidth: 0,
   delegate: { current: null as unknown as IChatCellDelegate },
   cellStore: new ChatCellStore(),

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { ChatOverlayStore } from "../components/chat-overlay-store";
-import { ChatUnreadManager, IParsedChatMessage } from "../model";
+import { IParsedChatMessage } from "../data";
+import { ChatUnreadManager } from "../services";
 
 /**
  * FAB, пустое состояние и счётчик непрочитанных — порт `FABManager`,

@@ -156,6 +156,8 @@ export type NativeChatMessage = {
   poll?: NativeChatPoll;
   /** Файловое вложение */
   file?: NativeChatFileItem;
+  /** Несколько файловых вложений (имеет приоритет над `file`) */
+  files?: NativeChatFileItem[];
   /** Реакции на сообщение */
   reactions?: NativeChatReaction[];
   /** Временная метка сообщения (Unix timestamp в миллисекундах) */

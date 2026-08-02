@@ -17,62 +17,22 @@ import {
 } from "./use-scroll-compensation";
 
 /**
- * Работа с нижней зоной экрана — единственный хук, который нужен экрану
- * с плавающей панелью ввода над прокручиваемым контентом.
+ * Нижняя зона экрана — единственный хук, который нужен экрану с плавающей
+ * панелью ввода над прокручиваемым контентом. Ровно один инстанс на экран:
+ * второй — это вторая подписка на клавиатуру, и панель разъедется с контентом.
  *
- * Умеет три вещи, и каждая отдаётся **отдельным значением**, чтобы
- * прокидывать её ровно туда, куда нужно:
+ * Каждая задача отдаётся **отдельным значением**, чтобы прокидывать её явно:
+ * `barStyle`/`barOffset` — панели и FAB, `contentInset` + `scroll` — скроллу,
+ * `freeze()`/`restore()` — контекстному меню.
  *
- * | что | значение | кому |
- * |-----|----------|------|
- * | позиция панели | `barStyle` / `barOffset` | плавающей панели ввода, FAB |
- * | отступ контента | `contentInset` | тем, кто стоит над зоной |
- * | компенсация скролла | `scroll` | самому скроллу |
- * | заморозка | `freeze()` / `restore()` | контекстному меню |
+ * **Заморозка держит только отступ контента**; `barOffset` живой всегда.
+ * Это порт эталона (`updateCollectionInsets` выходит по `isInsetFrozen`, а
+ * констрейнт панели на `keyboardLayoutGuide` не трогает никто): меню снимает
+ * снапшот пузыря, поэтому неподвижным должен быть контент, а замершая посреди
+ * экрана панель выглядела бы как зависшая вьюха.
  *
- * ## Что мёрзнет, а что нет
- *
- * Заморозка применяется **только к отступу контента** (`contentInset`,
- * `scroll`). `barOffset` остаётся живым всегда — панель уезжает вместе
- * с клавиатурой при любых обстоятельствах.
- *
- * Это порт эталона: `updateCollectionInsets` выходит по `isInsetFrozen`,
- * то есть держит инсет коллекции, а констрейнт панели на
- * `keyboardLayoutGuide.topAnchor` не трогает никто. Контекстное меню
- * снимает снапшот пузыря — двигаться не должен именно контент; панель
- * в снапшоте не участвует, и её остановка посреди экрана выглядела бы
- * как зависшая вьюха.
- *
- * ## Использование
- *
- * ```tsx
- * const kb = useKeyboardInset({
- *   extraPadding: 8,
- *   onBlur: () => inputRef.current?.blur(),
- *   onRefocus: () => inputRef.current?.focus(),
- * });
- *
- * <Animated.ScrollView
- *   ref={kb.scroll.scrollRef}
- *   onLayout={kb.scroll.onLayout}
- *   onContentSizeChange={kb.scroll.onContentSizeChange}
- *   onScrollBeginDrag={kb.scroll.onScrollBeginDrag}
- *   onScrollEndDrag={kb.scroll.onScrollEndDrag}
- * >
- *   {content}
- *   <Animated.View style={kb.scroll.spacerStyle} />
- * </Animated.ScrollView>
- *
- * <KeyboardInputBar style={kb.barStyle}>
- *   <InputBar onHeightChange={kb.setBarHeight} />
- * </KeyboardInputBar>
- * ```
- *
- * Развеска скролла остаётся за потребителем: ref, распорка и обработчики —
- * это разметка, и у разных списков она называется по-разному
- * (`refScrollView` + `ListFooterComponent` у LegendList, обычные пропы
- * у `ScrollView`). Готовая обвязка для обычного скролла —
- * `shared/ui/keyboard-scroll-view`.
+ * Развеска скролла — за потребителем: у разных списков она называется
+ * по-разному. Готовая обвязка — `shared/ui/keyboard-scroll-view`.
  */
 
 export interface IKeyboardInsetOptions {
@@ -138,30 +98,31 @@ export const useKeyboardInset = (
   // `getContentInset` нужно синхронное чтение из JS-обработчика.
   const barHeightRef = useRef(initialBarHeight);
 
-  // Нижняя граница экрана — на ней стоит панель. Порт keyboardLayoutGuide
-  // + followsUndockedKeyboard. Значение всегда живое.
-  const overlay = useDerivedValue(
+  // Сколько низа экрана занято не контентом: клавиатурой, а без неё — safe
+  // area. На этой границе стоит панель. Порт keyboardLayoutGuide +
+  // followsUndockedKeyboard, значение всегда живое.
+  const occludedBottom = useDerivedValue(
     () => Math.max(keyboard.height.value, safeAreaBottom),
     [safeAreaBottom],
   );
 
   // То же, но по цели: клавиатура сообщает конечную высоту в onStart, до
   // первого кадра анимации.
-  const overlayTarget = useDerivedValue(
+  const occludedBottomTarget = useDerivedValue(
     () => Math.max(keyboard.targetHeight.value, safeAreaBottom),
     [safeAreaBottom],
   );
 
   // Перекрытие контента снизу: зона + панель над ней + свои отступы.
   const liveInset = useDerivedValue(
-    () => overlay.value + barHeight.value + extraPadding,
+    () => occludedBottom.value + barHeight.value + extraPadding,
     [extraPadding],
   );
 
   // Резерв под целевую зону: распорка вырастает до начала анимации, поэтому
   // у самого низа scrollTo не упирается в ещё не выросший contentSize.
   const liveReserved = useDerivedValue(
-    () => overlayTarget.value + barHeight.value + extraPadding,
+    () => occludedBottomTarget.value + barHeight.value + extraPadding,
     [extraPadding],
   );
 
@@ -189,7 +150,7 @@ export const useKeyboardInset = (
   const scroll = useScrollCompensation(contentInset, reservedInset);
 
   const barStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -overlay.value }],
+    transform: [{ translateY: -occludedBottom.value }],
   }));
 
   const setBarHeight = useCallback(
@@ -211,7 +172,7 @@ export const useKeyboardInset = (
   return useMemo(
     () => ({
       barStyle,
-      barOffset: overlay,
+      barOffset: occludedBottom,
       barHeight,
       setBarHeight,
       contentInset,
@@ -224,7 +185,7 @@ export const useKeyboardInset = (
     }),
     [
       barStyle,
-      overlay,
+      occludedBottom,
       barHeight,
       setBarHeight,
       contentInset,

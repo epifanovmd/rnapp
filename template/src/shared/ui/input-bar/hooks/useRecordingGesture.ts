@@ -9,8 +9,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../model/input-bar-context";
-import { RecordingState } from "../model/input-bar-types";
+import { useInputBarContext } from "../config";
+import { RecordingState } from "../model";
 
 /**
  * Pan-жест записи + shared values для drag-анимации микрофона.

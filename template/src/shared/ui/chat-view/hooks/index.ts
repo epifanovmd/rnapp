@@ -1,3 +1,4 @@
+export * from "./useChatAvatars";
 export * from "./useChatCellDelegate";
 export * from "./useChatCommands";
 export * from "./useChatConfig";

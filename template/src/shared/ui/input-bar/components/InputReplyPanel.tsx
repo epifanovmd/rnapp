@@ -1,16 +1,15 @@
 import React, { FC, memo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { useReplyPanelAnimation } from "../hooks/useReplyPanelAnimation";
-import { useInputBarContext } from "../model/input-bar-context";
-import { InputBarMode } from "../model/input-bar-types";
-import { inputTextBase } from "../model/text-style";
+import { useInputBarContext } from "../config";
+import { useReplyPanelAnimation } from "../hooks";
+import { InputBarMode } from "../model";
 import { InputIcon } from "./InputIcon";
 
 /**
- * Порт InputBarReplyPanel: панель ответа/редактирования с акцентной полоской,
- * иконкой, автором, текстом и кнопкой закрытия.
+ * Панель ответа/редактирования — порт `InputBarReplyPanel`: акцентная полоска,
+ * иконка режима, автор, текст и кнопка закрытия.
  */
 
 interface IInputReplyPanelProps {
@@ -20,72 +19,30 @@ interface IInputReplyPanelProps {
 
 export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
   ({ mode, onClose }) => {
-    const { theme, layout } = useInputBarContext();
+    const { theme, layout, styles } = useInputBarContext();
 
     const { content, wrapStyle } = useReplyPanelAnimation(mode);
 
-    const sp = layout.inputReplySpacing;
-
     return (
-      <Animated.View style={[ss.wrap, wrapStyle]}>
-        <View style={[ss.inner, { paddingHorizontal: sp }]}>
-          <View
-            style={[
-              ss.accent,
-              {
-                width: layout.inputReplyAccentWidth,
-                marginVertical: sp - 2,
-                backgroundColor: theme.inputReplyAccent,
-              },
-            ]}
-          />
-          <View style={[ss.icon, { marginLeft: sp - 2 }]}>
+      <Animated.View style={[styles.replyWrap, wrapStyle]}>
+        <View style={styles.replyInner}>
+          <View style={styles.replyAccent} />
+          <View style={styles.replyIcon}>
             <InputIcon
               name={content.isEdit ? "pencil" : "arrowshape.turn.up.left.fill"}
               size={layout.inputReplyIconSize + 2}
               color={theme.inputReplyAccent}
             />
           </View>
-          <View style={[ss.texts, { marginLeft: sp / 2 }]}>
-            <Text
-              numberOfLines={1}
-              style={[
-                inputTextBase,
-                {
-                  fontSize: layout.inputReplySenderFont.fontSize,
-                  fontWeight: layout.inputReplySenderFont.fontWeight,
-                  color: theme.inputReplySender,
-                },
-              ]}
-            >
+          <View style={styles.replyTexts}>
+            <Text numberOfLines={1} style={styles.replySender}>
               {content.sender}
             </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                inputTextBase,
-                ss.replyText,
-                {
-                  fontSize: layout.inputReplyTextFont.fontSize,
-                  fontWeight: layout.inputReplyTextFont.fontWeight,
-                  color: theme.inputReplyText,
-                },
-              ]}
-            >
+            <Text numberOfLines={1} style={styles.replyText}>
               {content.text}
             </Text>
           </View>
-          <Pressable
-            hitSlop={8}
-            style={[
-              ss.close,
-              {
-                width: layout.inputReplyCancelSize,
-                height: layout.inputReplyCancelSize,
-              },
-            ]}
-            onPress={onClose}
-          >
+          <Pressable hitSlop={8} style={styles.replyClose} onPress={onClose}>
             <InputIcon
               name="xmark"
               size={layout.inputReplyCancelIconSize + 2}
@@ -94,26 +51,10 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
             />
           </Pressable>
         </View>
-        <View
-          style={{
-            height: layout.inputSeparatorHeight,
-            marginHorizontal: sp,
-            backgroundColor: theme.inputBorder,
-          }}
-        />
+        <View style={styles.replySeparator} />
       </Animated.View>
     );
   },
 );
 
 InputReplyPanel.displayName = "InputReplyPanel";
-
-const ss = StyleSheet.create({
-  accent: { alignSelf: "stretch" },
-  replyText: { marginTop: 1 },
-  close: { alignItems: "center", justifyContent: "center" },
-  wrap: { overflow: "hidden" },
-  inner: { flex: 1, flexDirection: "row", alignItems: "center" },
-  icon: { alignItems: "center", justifyContent: "center" },
-  texts: { flex: 1 },
-});

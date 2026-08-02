@@ -88,6 +88,8 @@ navigation (only used from `src/app/app-tab-screens.tsx`).
   (single entry points; iOS → native `RNChatView`/`RNInputBar`, elsewhere → full RN ports `JsChatView`
   on `@legendapp/list` / `JsInputBar`). `ChatRoom.tsx` has a temporary native-vs-JS switch (deep imports of
   both implementations as a testing exception) for iOS side-by-side comparison.
+  The JS port's internal layering (`config` / `data` / `scroll` / `services` / `utils` / `hooks` /
+  `components`) is documented in `project_native.md`.
 - `AttachmentPickerSheet.tsx`, `PollDetailModal.tsx` — supporting UI for the chat screen
 
 ## App shell (`src/widgets/app-shell/`)

@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useRef } from "react";
 
+import { IChatData } from "../data";
 import {
   computeScrollAnchor,
   computeVisibleAnchors,
   IChatGeometry,
-} from "../model";
+} from "../scroll";
 import { IChatScrollAnchor } from "../types";
-import { IChatData } from "./useChatData";
 import { IChatScrollController } from "./useChatScroll";
 
 /** Троттлинг отправки якоря наружу (мс). Порт `anchorThrottleTime`. */
@@ -17,8 +17,7 @@ const ANCHOR_THROTTLE_MS = 300;
  * `reportScrollAnchorOnSettled()`.
  *
  * Якорь отправляется только при **пользовательском** скролле: во время
- * начальной защиты и программных перемещений позицией управляет хост,
- * и перебивать его своим значением нельзя.
+ * начальной защиты и программных перемещений позицией управляет хост.
  */
 
 export interface IChatScrollAnchorOptions {

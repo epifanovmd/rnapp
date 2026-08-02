@@ -11,10 +11,10 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { useInputBarContext } from "../model/input-bar-context";
-import { IInputBarViewDelegate } from "../model/input-bar-delegate";
-import { RecordingState } from "../model/input-bar-types";
-import { createVoiceRecorder, VoiceRecorder } from "../model/voice-recorder";
+import { useInputBarContext } from "../config";
+import { IInputBarViewDelegate } from "../model";
+import { RecordingState } from "../model";
+import { createVoiceRecorder, VoiceRecorder } from "../services";
 
 // ─── Тайминги возврата панели (порт performCancel/handleRelease) ─────────────
 // Под разыгрывает возврат последовательно, и именно из-за этого он выглядит

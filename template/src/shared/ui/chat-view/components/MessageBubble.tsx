@@ -1,208 +1,109 @@
-import React, { FC, memo, ReactNode } from "react";
-import { Pressable, View, ViewStyle } from "react-native";
+import React, { FC, memo, useCallback, useMemo } from "react";
+import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 
-import { emojiOnlyCount, IChatViewTheme, IParsedChatMessage } from "../model";
+import { IParsedChatMessage, IResolvedReply } from "../data";
 import { useChatViewContext } from "./chat-view-context";
-import { ChatText } from "./ChatText";
-import {
-  EmojiContent,
-  FileContent,
-  MediaGridContent,
-  PollContent,
-  TextContent,
-  VoiceContent,
-} from "./content";
+import { MessageContent } from "./message-content";
 import { MessageFooter } from "./MessageFooter";
-import { ReactionsRow } from "./ReactionsRow";
-import { IResolvedReply, ReplyPreview } from "./ReplyPreview";
+import { ReactionsRow } from "./reactions-row";
+import { ReplyPreview } from "./ReplyPreview";
 import { ThreadIndicator } from "./ThreadIndicator";
 
 /**
- * Порт MessageBubbleView: вертикальный стек — имя отправителя, пересланное
- * (акцентная полоска), цитата, контент (медиа+текст), тред, реакции, футер.
+ * Пузырь сообщения — порт `MessageBubbleView`: вертикальный стек из имени
+ * отправителя, блока пересылки, цитаты, контента, треда, реакций и футера.
  */
-
-const bubbleColorFor = (
-  msg: IParsedChatMessage,
-  theme: IChatViewTheme,
-): string => {
-  switch (msg.ownership) {
-    case "mine":
-      return theme.outgoingBubble;
-    case "theirs":
-      return theme.incomingBubble;
-    case "system":
-      return theme.systemBubble;
-    case "pinned":
-      return theme.pinnedBubble;
-  }
-};
 
 interface IMessageBubbleProps {
   message: IParsedChatMessage;
   resolvedReply?: IResolvedReply;
-  /** Максимальная ширина пузыря (уже с учётом аватара). */
+  showSenderName: boolean;
+  /** Крупные эмодзи без фона пузыря. Порт `isBubblelessEmoji`. */
+  bubbleless: boolean;
+  /** Максимальная ширина пузыря (уже с учётом места под аватар). */
   maxBubbleWidth: number;
 }
 
 export const MessageBubble: FC<IMessageBubbleProps> = memo(
-  ({ message, resolvedReply, maxBubbleWidth }) => {
-    const { theme, layout, features, delegate } = useChatViewContext();
+  ({ message, resolvedReply, showSenderName, bubbleless, maxBubbleWidth }) => {
+    const { layout, features, styles, delegate } = useChatViewContext();
 
+    const s = styles.byOwnership[message.ownership];
     const body = message.body;
-    const emojiCount = body.media ? null : emojiOnlyCount(body.text);
+    const media = body.media;
+
     const isForwarded =
       features.showForwardedMark && message.forwardedFrom != null;
     const hasReply = features.showReplyPreview && message.reply != null;
-    const showName =
-      message.senderName != null &&
-      (features.senderNameMode === "always"
-        ? message.ownership === "mine" || message.ownership === "theirs"
-        : features.senderNameMode === "incomingOnly" &&
-          message.ownership === "theirs");
-
-    // Порт isBubblelessEmoji: крупное эмодзи без фона пузыря — только когда
-    // рядом нет имени отправителя, цитаты и заголовка пересылки.
-    const isEmojiOnly =
-      emojiCount !== null && !isForwarded && !hasReply && !showName;
 
     const forwardedInset = isForwarded
       ? layout.forwardedAccentWidth + layout.forwardedContentInset
       : 0;
     const innerWidth = maxBubbleWidth - layout.bubbleHPad * 2 - forwardedInset;
 
-    const hasMedia = body.media != null;
-
-    // Порт contentPreferredWidth: голосовое сжимает пузырь по контенту,
+    // Порт contentPreferredWidth: голосовое сжимает пузырь по своему контенту,
     // остальные медиа занимают всю доступную ширину.
-    const preferredMediaWidth =
-      body.media?.type === "voice"
-        ? Math.min(
-            layout.voicePlaySize +
-              layout.voiceContentSpacing +
-              layout.voiceWaveformWidth +
-              layout.voiceWaveformTrailingInset +
-              layout.bubbleHPad * 2,
-            maxBubbleWidth,
-          )
-        : null;
+    const minWidth = useMemo(() => {
+      if (!media) return layout.bubbleMinWidth;
+      if (media.type !== "voice") return maxBubbleWidth;
 
-    const contentChildren: ReactNode[] = [];
-
-    if (emojiCount !== null) {
-      contentChildren.push(
-        <EmojiContent key="emoji" text={body.text!} emojiCount={emojiCount} />,
+      return Math.min(
+        layout.voicePlaySize +
+          layout.voiceContentSpacing +
+          layout.voiceWaveformWidth +
+          layout.voiceWaveformTrailingInset +
+          layout.bubbleHPad * 2,
+        maxBubbleWidth,
       );
-    } else {
-      if (body.media) {
-        switch (body.media.type) {
-          case "images":
-            contentChildren.push(
-              <MediaGridContent
-                key="media"
-                messageId={message.id}
-                media={body.media.items}
-                width={innerWidth}
-              />,
-            );
-            break;
-          case "voice":
-            contentChildren.push(
-              <VoiceContent
-                key="voice"
-                messageId={message.id}
-                url={body.media.url}
-                duration={body.media.duration}
-                waveform={body.media.waveform}
-                ownership={message.ownership}
-              />,
-            );
-            break;
-          case "poll":
-            contentChildren.push(
-              <PollContent
-                key="poll"
-                messageId={message.id}
-                poll={body.media.poll}
-                ownership={message.ownership}
-              />,
-            );
-            break;
-          case "files":
-            contentChildren.push(
-              <View key="files" style={{ gap: layout.fileRowSpacing }}>
-                {body.media.items.map((file, i) => (
-                  <FileContent
-                    key={i}
-                    messageId={message.id}
-                    file={file}
-                    ownership={message.ownership}
-                  />
-                ))}
-              </View>,
-            );
-            break;
-        }
-      }
+    }, [media, layout, maxBubbleWidth]);
 
-      if (body.text && body.text.length > 0) {
-        contentChildren.push(
-          <View
-            key="text"
-            style={hasMedia ? { marginTop: layout.mixedContentSpacing } : null}
-          >
-            <TextContent
-              messageId={message.id}
-              text={body.text}
-              ownership={message.ownership}
-            />
-          </View>,
-        );
-      }
-    }
+    const bubbleStyle = useMemo<ViewStyle>(
+      () =>
+        bubbleless
+          ? {
+              maxWidth: maxBubbleWidth,
+              paddingTop: layout.bubbleVPad,
+              paddingBottom: layout.bubbleBottomPad,
+              paddingHorizontal: layout.bubbleHPad,
+              gap: layout.bubbleSpacing,
+            }
+          : { maxWidth: maxBubbleWidth, minWidth },
+      [bubbleless, maxBubbleWidth, minWidth, layout],
+    );
 
-    const inner = (
-      <>
-        {showName && (
-          <ChatText
-            font={layout.senderNameFont}
-            color={theme.incomingSenderName}
-          >
-            {message.senderName}
-          </ChatText>
+    const handlePress = useCallback(
+      () => delegate.current?.onTapMessage(message.id),
+      [delegate, message.id],
+    );
+
+    const content = (
+      <MessageContent message={message} innerWidth={innerWidth} />
+    );
+
+    return (
+      <Pressable
+        style={bubbleless ? bubbleStyle : [s.bubble, bubbleStyle]}
+        onPress={handlePress}
+      >
+        {showSenderName && (
+          <Text style={styles.shared.senderName}>{message.senderName}</Text>
         )}
 
         {isForwarded ? (
-          <View style={rowStyle}>
-            <View
-              style={{
-                width: layout.forwardedAccentWidth,
-                borderRadius: layout.forwardedAccentWidth / 2,
-                backgroundColor:
-                  message.ownership === "mine"
-                    ? theme.outgoingForwardedAccent
-                    : theme.incomingForwardedAccent,
-              }}
-            />
+          <View style={ss.forwardedRow}>
+            <View style={s.forwardedAccent} />
             <View
               style={[
-                forwardedColumnStyle,
+                ss.forwardedColumn,
                 {
                   marginLeft: layout.forwardedContentInset,
                   gap: layout.bubbleSpacing,
                 },
               ]}
             >
-              <ChatText
-                font={layout.forwardedFont}
-                color={
-                  message.ownership === "mine"
-                    ? theme.outgoingForwardedLabel
-                    : theme.incomingForwardedLabel
-                }
-              >
+              <Text style={s.forwardedLabel}>
                 {`Переслано от ${message.forwardedFrom}`}
-              </ChatText>
+              </Text>
               {hasReply && (
                 <ReplyPreview
                   reply={message.reply!}
@@ -210,7 +111,7 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
                   ownership={message.ownership}
                 />
               )}
-              <View>{contentChildren}</View>
+              {content}
             </View>
           </View>
         ) : (
@@ -222,7 +123,7 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
                 ownership={message.ownership}
               />
             )}
-            <View>{contentChildren}</View>
+            {content}
           </>
         )}
 
@@ -234,38 +135,7 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
           <ReactionsRow messageId={message.id} reactions={message.reactions} />
         )}
 
-        {!isEmojiOnly && <MessageFooter message={message} />}
-      </>
-    );
-
-    const bubbleStyle: ViewStyle = isEmojiOnly
-      ? {
-          maxWidth: maxBubbleWidth,
-          paddingTop: layout.bubbleVPad,
-          paddingBottom: layout.bubbleBottomPad,
-          paddingHorizontal: layout.bubbleHPad,
-          gap: layout.bubbleSpacing,
-        }
-      : {
-          maxWidth: maxBubbleWidth,
-          minWidth: hasMedia
-            ? (preferredMediaWidth ?? maxBubbleWidth)
-            : layout.bubbleMinWidth,
-          borderRadius: layout.bubbleCornerRadius,
-          backgroundColor: bubbleColorFor(message, theme),
-          overflow: "hidden",
-          paddingTop: layout.bubbleVPad,
-          paddingBottom: layout.bubbleBottomPad,
-          paddingHorizontal: layout.bubbleHPad,
-          gap: layout.bubbleSpacing,
-        };
-
-    return (
-      <Pressable
-        style={bubbleStyle}
-        onPress={() => delegate.current?.onTapMessage(message.id)}
-      >
-        {inner}
+        {!bubbleless && <MessageFooter message={message} />}
       </Pressable>
     );
   },
@@ -273,7 +143,9 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
 
 MessageBubble.displayName = "MessageBubble";
 
-const rowStyle: ViewStyle = { flexDirection: "row", alignItems: "stretch" };
-// Именно flexShrink, а не flex: последний обнуляет flex-basis, колонка перестаёт
-// давать собственную ширину и пузырь схлопывается до bubbleMinWidth.
-const forwardedColumnStyle: ViewStyle = { flexShrink: 1 };
+const ss = StyleSheet.create({
+  forwardedRow: { flexDirection: "row", alignItems: "stretch" },
+  // Именно flexShrink, а не flex: последний обнуляет flex-basis, колонка
+  // перестаёт давать собственную ширину и пузырь схлопывается до минимума.
+  forwardedColumn: { flexShrink: 1 },
+});

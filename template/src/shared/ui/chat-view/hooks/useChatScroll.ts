@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 
-import { IChatGeometry, isNearBottom } from "../model";
+import { IChatGeometry, isNearBottom } from "../scroll";
 
 export type ChatScrollDirection = "up" | "down" | "none";
 

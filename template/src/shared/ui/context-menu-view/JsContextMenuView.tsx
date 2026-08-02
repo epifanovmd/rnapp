@@ -6,12 +6,18 @@ import {
 } from "react-native-gesture-handler";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 
+import { resolveContextMenuTheme } from "./config";
 import { contextMenuController } from "./context-menu-controller";
 import { ContextMenuCloseResult, IContextMenuViewProps } from "./types";
-import { resolveContextMenuTheme } from "./utils";
+
+/**
+ * JS-реализация контекстного меню — порт `ContextMenuViewController`.
+ *
+ * Сам элемент — только View и долгое нажатие: по нему замеряется рамка, и
+ * контроллеру уходит запрос на показ. Всё тяжёлое рисует общий оверлей.
+ */
 
 const LONG_PRESS_MAX_DISTANCE = 10;
-
 const DEFAULT_MINIMUM_PRESS_DURATION = 0.35;
 
 export const JsContextMenuView: FC<IContextMenuViewProps> = memo(
@@ -147,3 +153,5 @@ const ss = StyleSheet.create({
     opacity: 0,
   },
 });
+
+JsContextMenuView.displayName = "JsContextMenuView";

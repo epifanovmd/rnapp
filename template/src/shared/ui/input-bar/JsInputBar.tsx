@@ -7,18 +7,15 @@ import React, {
 } from "react";
 import { View } from "react-native";
 
+import { InputBarView } from "./components";
 import {
-  IInputBarViewDelegate,
-  IInputBarViewRef,
-  InputBarView,
-} from "./InputBarView";
-import {
+  createInputBarStyles,
   INPUT_BAR_DEFAULT_FEATURES,
   INPUT_BAR_DEFAULT_LAYOUT,
   InputBarContext,
   resolveInputBarTheme,
-} from "./model/input-bar-context";
-import { InputBarMode } from "./model/input-bar-types";
+} from "./config";
+import { IInputBarViewDelegate, IInputBarViewRef, InputBarMode } from "./model";
 import { IInputBarRef, InputBarProps } from "./types";
 
 /**
@@ -48,6 +45,7 @@ export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
         theme: resolvedTheme,
         layout,
         features: INPUT_BAR_DEFAULT_FEATURES,
+        styles: createInputBarStyles(resolvedTheme, layout),
       }),
       [resolvedTheme, layout],
     );

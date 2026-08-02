@@ -2,7 +2,7 @@ import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
-import { chatTextBase } from "../model";
+import { chatTextBase } from "../utils";
 
 /**
  * Порт avatarView: круглая аватарка с фоллбэком на инициал

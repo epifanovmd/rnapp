@@ -1,4 +1,5 @@
 import { useMemo, useRef } from "react";
+import { Keyboard } from "react-native";
 
 import { IChatCellDelegate } from "../components/chat-view-context";
 import { ChatViewProps } from "../types";
@@ -29,12 +30,16 @@ export const useChatCellDelegate = ({
 }: IChatCellDelegateOptions): React.RefObject<IChatCellDelegate> => {
   const delegate = useMemo<IChatCellDelegate>(
     () => ({
-      onTapMessage: (messageId, attachmentIndex) =>
+      // Порт dismissKeyboard: тап по чату всегда убирает клавиатуру. Пустую
+      // область берёт на себя `keyboardShouldPersistTaps` списка.
+      onTapMessage: (messageId, attachmentIndex) => {
+        Keyboard.dismiss();
         props.current.onMessagePress?.(
           attachmentIndex != null
             ? { messageId, attachmentIndex }
             : { messageId },
-        ),
+        );
+      },
 
       // Выбор эмодзи/действия закрывает меню без onDismiss, поэтому зону
       // размораживаем здесь же (restore идемпотентен).

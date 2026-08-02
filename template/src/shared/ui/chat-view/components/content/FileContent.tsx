@@ -1,20 +1,18 @@
-import React, { FC, memo } from "react";
+import React, { FC, memo, useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { chatTextBase, formatFileSize } from "../../model";
 import { ChatFileItem, ChatMessageOwnership } from "../../types";
+import { formatFileSize } from "../../utils";
 import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon, ChatIconName } from "../ChatIcon";
 
 /**
- * Порт FileContentView: карточка файла с иконкой по расширению,
- * именем (обрезка) и размером.
+ * Карточка файла — порт `FileContentView`: иконка по расширению, имя с
+ * обрезкой посередине и размер.
  */
 
 const iconForFile = (name: string): ChatIconName => {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-
-  switch (ext) {
+  switch (name.split(".").pop()?.toLowerCase()) {
     case "pdf":
       return "doc.richtext.fill";
     case "zip":
@@ -43,25 +41,16 @@ interface IFileContentProps {
 
 export const FileContent: FC<IFileContentProps> = memo(
   ({ messageId, file, ownership }) => {
-    const { theme, layout, delegate } = useChatViewContext();
-    const isOutgoing = ownership === "mine";
-    const pad = layout.filePadding;
+    const { layout, styles, delegate } = useChatViewContext();
+    const s = styles.byOwnership[ownership];
+
+    const handlePress = useCallback(
+      () => delegate.current?.onTapMessage(messageId),
+      [delegate, messageId],
+    );
 
     return (
-      <Pressable
-        style={[
-          ss.card,
-          {
-            minHeight: layout.fileIconSize + pad * 2,
-            borderRadius: layout.fileCornerRadius,
-            backgroundColor: isOutgoing
-              ? theme.outgoingFileBackground
-              : theme.incomingFileBackground,
-            padding: pad,
-          },
-        ]}
-        onPress={() => delegate.current?.onTapMessage(messageId)}
-      >
+      <Pressable style={s.fileCard} onPress={handlePress}>
         <View
           style={[
             ss.iconBox,
@@ -71,37 +60,14 @@ export const FileContent: FC<IFileContentProps> = memo(
           <ChatIcon
             name={iconForFile(file.name)}
             size={layout.fileIconPointSize + 6}
-            color={isOutgoing ? theme.outgoingText : theme.fileIconColor}
+            color={s.fileIconColor}
           />
         </View>
         <View style={[ss.info, { marginLeft: layout.fileContentSpacing }]}>
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="middle"
-            style={[
-              chatTextBase,
-              {
-                fontSize: layout.fileNameFont.fontSize,
-                fontWeight: layout.fileNameFont.fontWeight,
-                color: isOutgoing ? theme.outgoingText : theme.incomingText,
-              },
-            ]}
-          >
+          <Text numberOfLines={1} ellipsizeMode="middle" style={s.fileName}>
             {file.name}
           </Text>
-          <Text
-            style={[
-              chatTextBase,
-              ss.size,
-              {
-                fontSize: layout.fileSizeFont.fontSize,
-                fontWeight: layout.fileSizeFont.fontWeight,
-                color: isOutgoing ? theme.outgoingTime : theme.incomingTime,
-              },
-            ]}
-          >
-            {formatFileSize(file.size)}
-          </Text>
+          <Text style={s.fileSize}>{formatFileSize(file.size)}</Text>
         </View>
       </Pressable>
     );
@@ -111,18 +77,6 @@ export const FileContent: FC<IFileContentProps> = memo(
 FileContent.displayName = "FileContent";
 
 const ss = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  iconBox: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  info: {
-    flex: 1,
-  },
-  size: {
-    marginTop: 1,
-  },
+  iconBox: { alignItems: "center", justifyContent: "center" },
+  info: { flex: 1 },
 });

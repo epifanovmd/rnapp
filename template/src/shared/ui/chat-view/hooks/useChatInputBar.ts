@@ -1,13 +1,10 @@
 import { useCallback, useMemo, useRef } from "react";
 import { SharedValue } from "react-native-reanimated";
 
-import { IInputBarViewDelegate } from "../../input-bar/InputBarView";
-import { InputBarMode } from "../../input-bar/model/input-bar-types";
-import {
-  chatVoicePlayer,
-  IChatViewFeatures,
-  IParsedChatMessage,
-} from "../model";
+import { IInputBarViewDelegate, InputBarMode } from "../../input-bar";
+import { IChatViewFeatures } from "../config";
+import { IParsedChatMessage } from "../data";
+import { chatVoicePlayer } from "../services";
 import { ChatInputAction, ChatViewProps } from "../types";
 import { IChatOverlaysController } from "./useChatOverlays";
 import { IChatScrollController } from "./useChatScroll";
@@ -15,11 +12,9 @@ import { IChatScrollController } from "./useChatScroll";
 /**
  * Панель ввода — порт `ChatViewController+Input` и `applyInputAction`.
  *
- * Две обязанности, обе тривиальные по отдельности:
- * - превратить `inputAction` (id сообщения) в режим панели с уже
- *   разрешёнными данными цитируемого/редактируемого сообщения;
- * - развести события панели по чату: отправка ставит отложенный скролл
- *   вниз и схлопывает FAB, запись голоса ставит на паузу воспроизведение.
+ * Две обязанности: превратить `inputAction` в режим панели с разрешёнными
+ * данными сообщения и развести события панели по чату (отправка ставит
+ * отложенный скролл вниз, запись голоса ставит плеер на паузу).
  */
 
 export interface IChatInputBarOptions {

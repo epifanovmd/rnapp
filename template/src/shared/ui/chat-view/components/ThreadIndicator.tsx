@@ -1,14 +1,14 @@
-import React, { FC, memo } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import React, { FC, memo, useCallback } from "react";
+import { Pressable, Text } from "react-native";
 
-import { chatTextBase, threadReplyCountLabel } from "../model";
 import { ChatThreadInfo } from "../types";
+import { threadReplyCountLabel, withOpacity } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
 
 /**
- * Порт threadIndicatorView: иконка диалога, «N ответов», имя последнего
- * ответившего, шеврон.
+ * Индикатор треда — порт `threadIndicatorView`: иконка диалога, «N ответов»,
+ * имя последнего ответившего и шеврон.
  */
 
 interface IThreadIndicatorProps {
@@ -18,60 +18,27 @@ interface IThreadIndicatorProps {
 
 export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
   ({ messageId, thread }) => {
-    const { theme, layout, delegate } = useChatViewContext();
+    const { theme, layout, styles, delegate } = useChatViewContext();
+
+    const handlePress = useCallback(
+      () => delegate.current?.onThreadTap(messageId, thread.threadId),
+      [delegate, messageId, thread.threadId],
+    );
 
     return (
-      <Pressable
-        style={[
-          ss.row,
-          { height: layout.threadBarHeight, gap: layout.threadBarSpacing },
-        ]}
-        onPress={() =>
-          delegate.current?.onThreadTap(messageId, thread.threadId)
-        }
-      >
+      <Pressable style={styles.shared.threadRow} onPress={handlePress}>
         <ChatIcon
           name="bubble.left.and.bubble.right"
           size={layout.threadBarIconSize}
           color={theme.threadBarIcon}
         />
-        <Text
-          style={[
-            chatTextBase,
-            {
-              fontSize: layout.threadBarFont.fontSize,
-              fontWeight: layout.threadBarFont.fontWeight,
-              color: theme.threadBarText,
-            },
-          ]}
-        >
+        <Text style={styles.shared.threadText}>
           {threadReplyCountLabel(thread.replyCount)}
         </Text>
         {!!thread.lastReplierName && (
           <>
-            <Text
-              style={[
-                chatTextBase,
-                {
-                  fontSize: layout.threadBarFont.fontSize,
-                  color: withAlpha(theme.threadBarText, 0.5),
-                },
-              ]}
-            >
-              {"·"}
-            </Text>
-            <Text
-              numberOfLines={1}
-              style={[
-                chatTextBase,
-                ss.replier,
-                {
-                  fontSize: layout.threadBarFont.fontSize,
-                  fontWeight: layout.threadBarFont.fontWeight,
-                  color: withAlpha(theme.threadBarText, 0.7),
-                },
-              ]}
-            >
+            <Text style={styles.shared.threadSeparator}>{"·"}</Text>
+            <Text numberOfLines={1} style={styles.shared.threadReplier}>
               {thread.lastReplierName}
             </Text>
           </>
@@ -79,7 +46,7 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
         <ChatIcon
           name="chevron.right"
           size={layout.threadBarChevronSize}
-          color={withAlpha(theme.threadBarText, 0.4)}
+          color={withOpacity(theme.threadBarText, 0.4)}
           strokeWidth={3}
         />
       </Pressable>
@@ -88,19 +55,3 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
 );
 
 ThreadIndicator.displayName = "ThreadIndicator";
-
-const withAlpha = (color: string, opacity: number): string =>
-  color.startsWith("rgb(")
-    ? color.replace("rgb(", "rgba(").replace(")", `, ${opacity})`)
-    : color;
-
-const ss = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-  },
-  replier: {
-    flexShrink: 1,
-  },
-});

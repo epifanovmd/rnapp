@@ -1,18 +1,16 @@
 import React, { FC, memo } from "react";
 
-import { ChatRow } from "../model";
+import { ChatRow } from "../data";
 import { DateSeparatorRow } from "./DateSeparatorRow";
 import { LoadingRow } from "./LoadingRow";
-import { MessageCell } from "./MessageCell";
+import { MessageCell } from "./message-cell";
 
 /**
  * Диспетчер строки — порт `ChatDataSource.cellProvider`.
  *
- * Компонент принимает **только строку**: цитата, признак якоря аватара и
- * скрытие первого разделителя уже посчитаны при её построении
- * (`ChatRowsBuilder`). Благодаря этому `memo` здесь реально работает —
- * строка неизменного сообщения приходит тем же объектом, и вся ветка
- * ячейки не перерисовывается.
+ * Принимает **только строку**: цитата, показ имени и режим крупных эмодзи уже
+ * посчитаны в `ChatRowsBuilder`. Поэтому `memo` здесь реально работает — строка
+ * неизменного сообщения приходит тем же объектом.
  */
 
 export interface IChatRowViewProps {
@@ -26,7 +24,8 @@ export const ChatRowView: FC<IChatRowViewProps> = memo(({ row }) => {
         <MessageCell
           message={row.message}
           resolvedReply={row.resolvedReply}
-          avatarAnchor={row.avatarAnchor}
+          showSenderName={row.showSenderName}
+          bubbleless={row.bubbleless}
         />
       );
 

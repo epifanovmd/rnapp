@@ -9,7 +9,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../model/input-bar-context";
+import { useInputBarContext } from "../config";
 
 /** Амплитуда покачивания подсказки «Отмена» (порт animateSlide). */
 const SLIDE_HINT_SHIFT = 8;

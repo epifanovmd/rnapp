@@ -1,20 +1,16 @@
 import { useCallback, useMemo, useRef } from "react";
 
+import { IChatData } from "../data";
 import { IChatScrollAnchor } from "../types";
-import { IChatData } from "./useChatData";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
  * Начальная позиция — порт `executePendingInitialScroll()`.
  *
- * Эталон откладывает первый скролл до момента, когда вьюха реально
- * отлейаутилась, и только потом снимает `isInitialScrollProtected`. Здесь
- * ту же роль играет декларативный `initialScrollIndex` списка плюс
- * `onLoad`: список сам ставит стартовую позицию до первого кадра, а мы
- * лишь снимаем защиту, когда он отчитался о готовности.
- *
- * Это заметно надёжнее императивного «скроллнуть в `useEffect`»: не бывает
- * кадра со списком в неправильной позиции.
+ * Эталон откладывает первый скролл до реального лейаута. Здесь ту же роль
+ * играет декларативный `initialScrollIndex` плюс `onLoad`: список сам ставит
+ * стартовую позицию до первого кадра, а мы лишь снимаем защиту. Надёжнее
+ * императивного скролла в `useEffect` — не бывает кадра в неверной позиции.
  */
 
 export interface IChatInitialScrollOptions {

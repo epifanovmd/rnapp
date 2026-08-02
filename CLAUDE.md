@@ -192,37 +192,57 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   `Podfile`: `pod 'IOSChatView', :path => '../../../rn-chat-view'` — i.e. it is NOT part of this repo.
   JS side lives in `src/shared/ui/chat-view/`: the public entry point `ChatView.tsx` picks the
   implementation per platform (iOS → `native/NativeChatView.tsx`, elsewhere → `JsChatView.tsx` — a full
-  React Native port of the pod's `ChatViewController` on **`@legendapp/list`**). The port is decomposed
-  the same way as `input-bar` and `context-menu-view`, and `JsChatView.tsx` itself is only composition:
-  - `model/` — pure logic, no React and no list dependency: theme/layout/features 1:1, row building,
-    message diff (localId pending→real keys), `chat-update-plan.ts` (port of the `MessageUpdateHandler`
-    router: initial/clear/prepend/append/content/structural), `scroll-anchor.ts` (port of
-    `ScrollAnchor` + `restoreScrollAnchor`/`restoreBestAnchor` math), `chat-geometry.ts`
-    (`IChatGeometry` — the narrow interface all logic depends on instead of the list library),
-    `visibility-tracker.ts` (hysteresis + throttle/debounce port of `collectVisibleMessageIDs`),
-    `floating-date.ts` (port of `FloatingDateManager`'s math), date helper, unread manager, voice
-    player/recorder abstractions with simulated backends.
+  React Native port of the pod's `ChatViewController` on **`@legendapp/list`**). `JsChatView.tsx`
+  itself is only composition; the layers below it depend strictly downwards
+  (`components → hooks → scroll → data → config → utils`):
+  - `config/` — 1:1 port of `ChatTheme` / `ChatLayout` / `ChatFeatures`, plus `chat-styles.ts`:
+    `createChatStyles(theme, layout)` builds the cell's **ready** styles once per theme+layout pair
+    (`byOwnership[ownership]` + `shared`). This is the port of "colors are applied in `configure`" and
+    the single biggest list win — a cell no longer allocates dozens of style objects per render.
+  - `data/` — all data handling: `chat-message.ts` (model + parse: media priority, `files[]`, link
+    detection and emoji-only detection are computed **once, at parse time**), `message-parser.ts`
+    (identity-preserving cache), `message-diff.ts`, `update-plan.ts` (port of the
+    `MessageUpdateHandler` router: initial/clear/prepend/append/content/structural), `chat-rows.ts`
+    (`ChatRow` carries `key`, `resolvedReply`, `showSenderName`, `bubbleless`), `chat-data.ts` (rows,
+    indices, date separators, avatar groups).
+  - `scroll/` — pure math, no React: `chat-geometry.ts` (`IChatGeometry`, the narrow interface all
+    logic depends on instead of the list library), `scroll-anchor.ts`, `visibility-tracker.ts`
+    (hysteresis + throttle/debounce), `floating-date.ts`, `avatar-layout.ts` (sticky-avatar math).
+  - `services/` — `voice-player.ts` (idle/loading/playing/paused/failed; state is exposed **per track
+    as primitives**, so a playing message never re-renders the other voice bubbles) and
+    `unread-manager.ts`. Both have simulated backends — no audio native module exists here.
+  - `utils/` — `text-format.ts` (dates, durations, file sizes, pluralisation, emoji-only, base
+    `TextStyle`) and `link-detector.ts`.
   - **Обновление данных построено на сохранении идентичности**: `ChatMessageParser`
-    (`model/chat-message-parser.ts`) кеширует `parseChatMessage` по входному сообщению, а
-    `ChatRowsBuilder` (`model/chat-rows.ts`) переиспользует строку, пока не изменились её входы
-    (само сообщение, сосед для аватара, оригинал цитаты). `ChatRow` несёт уже выведенные данные —
-    `key`, `resolvedReply`, `avatarAnchor`, `hidden` — и список перерисовывает ровно те контейнеры,
-    чьи строки реально изменились (`itemsAreEqual` в `ChatList.tsx`, `renderItem` стабилен и не
-    замыкается на массив). Требование к хосту: `messages` обязан сохранять идентичность неизменённых
-    элементов (демо кеширует `mapMessageToNative` по DTO).
+    (`data/message-parser.ts`) кеширует `parseChatMessage` по входному сообщению, а `ChatRowsBuilder`
+    (`data/chat-rows.ts`) переиспользует строку, пока не изменились её входы. Список перерисовывает
+    ровно те контейнеры, чьи строки реально изменились (`itemsAreEqual` в `ChatList.tsx`, `renderItem`
+    стабилен и не замыкается на массив). Требование к хосту: `messages` обязан сохранять идентичность
+    неизменённых элементов (демо кеширует `mapMessageToNative` по DTO).
   - `hooks/` — one hook per responsibility: `useChatGeometry` (the **only** file that knows about
     LegendList — adapts `getState()` to `IChatGeometry`), `useChatData`, `useChatMessageUpdates`,
     `useChatScroll`, `useChatScrollAnchor`, `useChatCommands` (the only place that moves the list),
-    `useChatPagination`, `useChatVisibility`, `useChatFloatingDate`, `useChatOverlays`,
-    `useChatDisintegration`, `useChatInitialScroll`, `useChatInputBar`, `useChatCellDelegate`,
-    `useChatConfig`.
+    `useChatPagination`, `useChatVisibility`, `useChatFloatingDate`, `useChatAvatars`,
+    `useChatOverlays`, `useChatDisintegration`, `useChatInitialScroll`, `useChatInputBar`,
+    `useChatCellDelegate`, `useChatConfig`.
   - `components/` — rendering only: `ChatList.tsx` (the LegendList wrapper), `ChatRowView.tsx` (row
-    dispatcher, takes **only the row** — производные данные уже в ней), plus bubble, content views for
-    text/links, media grid, voice, poll, files, reactions, reply, thread, footer, FAB, floating date,
-    empty state, disintegration burst. Per-item context menu reuses `shared/ui/context-menu-view`.
-    Оверлеи подписываются на **отдельные поля** стора через `useOverlayValue` (а не на весь снимок:
-    видимость FAB, плашка даты и empty state обновляются независимо на каждом кадре скролла);
-    покадровый сдвиг плашки даты живёт в shared value стора (`store.floatingDatePush`).
+    dispatcher, takes **only the row**), `MessageBubble`, content views for text/links and files, plus
+    reply, thread, footer, floating date, empty state. A component that needs sub-components lives in
+    its own kebab-case folder with an `index.ts` barrel — one component per file:
+    `message-cell/` (+ `HighlightOverlay`), `message-content/` (+ `MessageMedia`), `reactions-row/`
+    (+ `ReactionChip`), `chat-fab/` (+ `FabBadgeLabel`), `chat-avatar-layer/` (+ `StickyAvatarView`),
+    `disintegration-overlay/` (+ `DisintegrationBurst`, `DisintegrationParticle`,
+    `disintegration-particles.ts`), `content/voice-content/` (+ `VoiceWaveform`, `WaveBar`,
+    `VoiceTimer`, `waveform-math.ts`), `content/poll-content/` (+ `PollOptionRow`),
+    `content/media-grid-content/` (+ `MediaGridCell`, `media-grid-layout.ts`). Per-item context menu is
+    `JsContextMenuView` (deep import as a testing exception — the native menu on iOS is shown by the
+    demo screen's own native-vs-JS switch).
+    Оверлеи подписываются на **отдельные поля** стора через `useOverlayValue`; покадровые величины
+    (сдвиг плашки даты, позиции sticky-аватаров, прогресс голосового) живут в shared values и до
+    React не доходят.
+  - Sticky-аватары — порт `AvatarSupplementaryView` + `avatarAttributes`: аватар группы прилипает к
+    низу видимой области, поэтому рисуется слоем поверх списка (`ChatAvatarLayer` +
+    `chat-avatar-store.ts`), а ячейка только резервирует под него колонку.
 
   Native parity comes from `ChatList.tsx`: `AnimatedLegendList` (the `@legendapp/list/reanimated`
   build — it exposes `refScrollView` and `sharedValues.scrollOffset`, which the compensation needs),
@@ -234,10 +254,18 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   widget) has a temporary native-vs-JS switch for iOS comparison (deep imports as a testing exception).
 - **InputBar** (iOS native, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
   JS side lives in `src/shared/ui/input-bar/`: entry point `InputBar.tsx` (iOS → `native/NativeInputBar.tsx`,
-  elsewhere → `JsInputBar.tsx`). The core `ChatInputBar.tsx` (port of the pod's `InputBarView`: growing
-  text field, reply/edit panel, attach button, morphing mic/send button, voice-recording gesture with
-  slide-to-cancel/lock) lives in the same folder and is shared by both `JsInputBar` and the integrated
-  input bar inside `JsChatView` (mirroring how both native bridges reuse the pod's `InputBarView`).
+  elsewhere → `JsInputBar.tsx`). Layered the same way as `chat-view`:
+  - `config/` — `input-bar-theme.ts` / `input-bar-layout.ts` (ports of `InputBarTheme` and the input part
+    of `ChatLayout`; key names match `IChatViewTheme`/`IChatViewLayout`, so the chat passes its own
+    objects straight through), `input-bar-styles.ts` (`createInputBarStyles(theme, layout)` — the same
+    precomputed-styles trick as in the chat) and `input-bar-context.ts` (context + features).
+  - `model/input-bar-mode.ts` — modes, recording state, delegate and imperative ref.
+  - `services/voice-recorder.ts`, `utils/text-format.ts`, `hooks/` (one hook per behaviour).
+  - `components/input-bar-view/` — the core `InputBarView` (port of the pod's `InputBarView`: growing text
+    field, reply/edit panel, attach button, morphing mic/send button, voice-recording gesture with
+    slide-to-cancel/lock) split into `InputBarAttachButton`, `InputBarTextField`, `InputBarSendButton`,
+    `InputBarMicButton`. It is shared by both `JsInputBar` and the integrated bar inside `JsChatView`,
+    mirroring how both native bridges reuse the pod's `InputBarView`.
   The native view does **not** self-size: under Fabric a legacy-interop view never gets asked for
   `intrinsicContentSize`, so Yoga gives it height 0. It reports its Auto Layout height via
   `onHeightChange` (on every layout **and** on every content change — mode, text growth, recording) and
@@ -260,15 +288,19 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   Underneath, one hook per responsibility:
   - `use-keyboard-height.ts` — raw keyboard height as a shared value (per-frame, incl. interactive
     swipe-dismiss) + a JS-readable `isVisible()`. The only low-level source of truth.
-  - `use-keyboard-overlay.ts` — `overlay` = `max(keyboardHeight, safeAreaBottom)`, composed with the
-    freeze controller; also re-exports `useBottomInset` (`overlay + barHeight`, for the FAB).
+  - `occludedBottom` (inside `use-keyboard-inset.ts`) = `max(keyboardHeight, safeAreaBottom)` — how much
+    of the screen bottom is taken by something that is not content. The bar stands on that edge
+    (`translateY(-occludedBottom)`, exposed as `barOffset` for the FAB), and the content inset is
+    `occludedBottom + barHeight + extraPadding`. Deliberately not called "shift": in this module *shift*
+    means the movement driven by `contentInset` (see `use-scroll-compensation.ts`), and `occludedBottom`
+    is only a shift for the bar — for the content it is an occlusion.
   - Freeze is the port of `KeyboardFreezeManager`, but the mechanic is not keyboard-specific and lives
     in `shared/lib/hooks/use-freezable-value.ts` (`useFreezableValue`): it freezes any shared value,
     remembers whether the source was active, asks it back, and thaws only once the live value has
     caught up (with a fallback timer). `useKeyboardInset` only picks *which* value to freeze — the
     content inset, never the bar.
   - `use-scroll-compensation.ts` — **the single source of shift.** One `bottomInset` shared value
-    (`overlay + barHeight + own padding`) drives both the bar's `translateY` and the list's zone in the
+    (`occludedBottom + barHeight + own padding`) drives both the bar's `translateY` and the list's zone in the
     same UI-thread frame, mirroring the reference where the inset is derived from `inputBar.frame.minY`
     rather than from the keyboard separately. The zone is a spacer at the end of the content (counts
     toward content size, so `scrollToEnd`/autoscroll stay correct) and the scroll moves by the same
@@ -284,11 +316,13 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   No Android native implementation exists. JS side lives in `src/shared/ui/context-menu-view/`: the public
   entry point `ContextMenuView.tsx` picks the implementation per platform (iOS → the native wrapper
   `native/NativeContextMenuView.tsx`, elsewhere → `JsContextMenuView.tsx`, a full JS re-implementation on
-  Reanimated + Gesture Handler, 1:1 port of the pod's layout/theme/animations; submodules `menu/`,
-  `hooks/`, `utils/`; per-item the component is just a View + long-press gesture — the overlay renders
-  once via `<ContextMenuView.Host />` in App.tsx, driven by a singleton `context-menu-controller.ts`, so
-  it is safe in large lists). Only `ContextMenuView` is exported publicly; the demo screen deep-imports
-  both concrete implementations directly as a testing exception.
+  Reanimated + Gesture Handler, 1:1 port of the pod's layout/theme/animations; submodules `config/`
+  (theme + `createContextMenuStyles`), `layout/` (pure placement math), `menu/` (`ContextMenuOverlay`,
+  `ContextMenuBackdrop`, `ContextMenuHost`, plus `actions-view/` and `emoji-panel/` folders — one
+  component per file), `hooks/`; per-item the component is just a View + long-press gesture — the overlay
+  renders once via `<ContextMenuView.Host />` in App.tsx, driven by a singleton
+  `context-menu-controller.ts`, so it is safe in large lists). Only `ContextMenuView` is exported
+  publicly; the demo screen deep-imports both concrete implementations directly as a testing exception.
   Both share one props/events contract (`types.ts`). Demo: `ContextMenu` stack screen
   (`pages/ui-kit-demo/stack/context-menu/`) with a temporary native-vs-JS switch for iOS comparison.
 - **Picker / WheelPicker** — exists on **both** platforms (not Android-only as previously documented):

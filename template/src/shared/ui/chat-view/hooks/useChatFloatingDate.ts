@@ -1,32 +1,21 @@
 import { useCallback, useEffect, useRef } from "react";
 
 import { ChatOverlayStore } from "../components/chat-overlay-store";
-import {
-  getSectionTitle,
-  IChatGeometry,
-  IChatViewLayout,
-  IDateSeparatorPosition,
-  resolveFloatingDate,
-} from "../model";
+import { IChatViewLayout } from "../config";
+import { IDateSeparatorPosition } from "../data";
+import { IChatGeometry, resolveFloatingDate } from "../scroll";
+import { getSectionTitle } from "../utils";
 
 /**
  * Плавающая дата — порт `FloatingDateManager` (сторона состояния).
  *
- * Расчёт живёт в `resolveFloatingDate` (чистая функция), здесь остаётся
- * только то, что расчётом быть не может: таймер автоскрытия и запись в
- * стор оверлеев. Стор внешний, поэтому обновление плашки на каждом кадре
- * скролла не перерисовывает ни чат, ни список.
- *
- * Единственная величина, которая действительно меняется каждый кадр —
- * сдвиг плашки — уходит в shared value стора и React не касается вовсе.
- * В состояние пишутся только видимость и заголовок, а `store.set`
- * гасит повторы, так что обычный кадр скролла не даёт ни одного ре-рендера.
+ * Расчёт живёт в `resolveFloatingDate`, здесь — только таймер автоскрытия и
+ * запись в стор оверлеев. Сдвиг плашки меняется каждый кадр и уходит в shared
+ * value; в состояние пишутся лишь видимость и заголовок, поэтому обычный кадр
+ * скролла не даёт ни одного ре-рендера.
  */
 
-/**
- * Как часто перевзводится таймер автоскрытия. Взводить его на каждом кадре
- * — это 60 таймеров в секунду ради того же самого эффекта.
- */
+/** Как часто перевзводится таймер автоскрытия (иначе 60 таймеров в секунду). */
 const HIDE_TIMER_REARM_MS = 100;
 
 export interface IChatFloatingDateOptions {

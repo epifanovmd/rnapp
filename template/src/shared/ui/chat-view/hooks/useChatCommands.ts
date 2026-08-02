@@ -2,21 +2,20 @@ import type { LegendListRef } from "@legendapp/list/react-native";
 import { RefObject, useCallback, useMemo, useRef } from "react";
 
 import { ChatCellStore } from "../components/chat-view-context";
+import { IChatData } from "../data";
 import {
   IChatGeometry,
   resolveAnchorOffset,
   resolveBestAnchorOffset,
-} from "../model";
+} from "../scroll";
 import { ChatScrollPosition, IChatScrollAnchor } from "../types";
-import { IChatData } from "./useChatData";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
- * Скролл к позиции — порт `scrollToBottom` / `scrollToMessage` /
+ * Команды скролла — порт `scrollToBottom` / `scrollToMessage` /
  * `restoreScrollAnchor` / `restoreBestAnchor` / `performHighlight`.
  *
- * Единственное место, которое двигает список. Всё остальное просит его
- * об этом, а не дёргает `listRef` напрямую: иначе флаг
+ * Единственное место, которое двигает список: иначе флаг
  * `isProgrammaticScroll` рассинхронизируется и якорь начнёт улетать.
  */
 

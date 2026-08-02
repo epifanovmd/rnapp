@@ -11,9 +11,9 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
+import { IContextMenuTheme } from "../config";
+import { CONTEXT_MENU_PANEL_SCALE, IContextMenuLayout } from "../layout";
 import { IContextMenuRect } from "../types";
-import { CONTEXT_MENU_PANEL_SCALE, IContextMenuLayout } from "../utils";
-import { IContextMenuTheme } from "../utils";
 
 const EASE_OUT = Easing.bezier(0, 0, 0.58, 1);
 

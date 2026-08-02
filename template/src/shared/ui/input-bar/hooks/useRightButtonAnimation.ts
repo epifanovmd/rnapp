@@ -7,7 +7,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../model/input-bar-context";
+import { useInputBarContext } from "../config";
 
 /**
  * Анимация ширины правой кнопки (mic).

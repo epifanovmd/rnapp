@@ -4,6 +4,11 @@ import { contextMenuController } from "../context-menu-controller";
 import { ContextMenuCloseResult } from "../types";
 import { ContextMenuOverlay } from "./ContextMenuOverlay";
 
+/**
+ * Единственная точка монтирования меню — ставится один раз в `App.tsx`.
+ * Благодаря этому оверлея нет в каждом элементе списка.
+ */
+
 const getRequest = () => contextMenuController.request;
 
 export const ContextMenuHost = memo(() => {
@@ -36,3 +41,5 @@ export const ContextMenuHost = memo(() => {
     </ContextMenuOverlay>
   );
 });
+
+ContextMenuHost.displayName = "ContextMenuHost";

@@ -6,32 +6,31 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { chatTextBase } from "../model";
 import { ChatOverlayStore, IChatOverlayState } from "./chat-overlay-store";
 import { useChatViewContext } from "./chat-view-context";
 import { useOverlayValue } from "./useOverlayValue";
 
 /**
- * Порт FloatingDateManager: плашка текущей даты вверху при скролле,
- * автоскрытие после floatingDateHideDelay.
+ * Плашка текущей даты при скролле — порт `FloatingDateManager` с автоскрытием
+ * через `floatingDateHideDelay`.
  */
+
+const selectVisible = (state: IChatOverlayState) => state.floatingDateVisible;
+const selectTitle = (state: IChatOverlayState) => state.floatingDateTitle;
 
 interface IFloatingDateOverlayProps {
   store: ChatOverlayStore;
   topInset: number;
 }
 
-const selectVisible = (state: IChatOverlayState) => state.floatingDateVisible;
-const selectTitle = (state: IChatOverlayState) => state.floatingDateTitle;
-
 export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
   ({ store, topInset }) => {
-    const { theme, layout, features } = useChatViewContext();
+    const { layout, features, styles } = useChatViewContext();
+
     const isShown = useOverlayValue(store, selectVisible);
     const title = useOverlayValue(store, selectTitle);
 
     const opacity = useSharedValue(0);
-
     const visible = features.showFloatingDate && isShown && title != null;
 
     useEffect(() => {
@@ -48,10 +47,8 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
       layout.floatingDateHideDuration,
     ]);
 
-    // Порт container.transform: следующий разделитель выталкивает плашку.
-    // Сдвиг считается на каждом кадре скролла и приходит shared value —
-    // анимировать или проводить через состояние его нельзя, иначе плашка
-    // отстанет от подпирающего разделителя.
+    // Сдвиг плашки подпирающим разделителем считается на каждом кадре скролла,
+    // поэтому едет shared value: анимировать или вести состоянием нельзя.
     const push = store.floatingDatePush;
 
     const style = useAnimatedStyle(() => ({
@@ -59,35 +56,15 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
       transform: [{ translateY: push.value }],
     }));
 
-    if (!features.showFloatingDate || title == null) {
-      return null;
-    }
+    if (!features.showFloatingDate || title == null) return null;
 
     return (
       <Animated.View
         pointerEvents="none"
         style={[ss.wrap, { top: layout.sectionSpacing + topInset }, style]}
       >
-        <View
-          style={{
-            borderRadius: layout.dateSeparatorCornerRadius,
-            backgroundColor: theme.dateSeparatorBackground,
-            paddingVertical: layout.dateSeparatorVPad,
-            paddingHorizontal: layout.dateSeparatorHPad,
-          }}
-        >
-          <Text
-            style={[
-              chatTextBase,
-              {
-                fontSize: layout.dateSeparatorFont.fontSize,
-                fontWeight: layout.dateSeparatorFont.fontWeight,
-                color: theme.dateSeparatorText,
-              },
-            ]}
-          >
-            {title}
-          </Text>
+        <View style={styles.shared.dateSeparatorPill}>
+          <Text style={styles.shared.dateSeparatorText}>{title}</Text>
         </View>
       </Animated.View>
     );
@@ -97,10 +74,5 @@ export const FloatingDateOverlay: FC<IFloatingDateOverlayProps> = memo(
 FloatingDateOverlay.displayName = "FloatingDateOverlay";
 
 const ss = StyleSheet.create({
-  wrap: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
+  wrap: { position: "absolute", left: 0, right: 0, alignItems: "center" },
 });

@@ -3,16 +3,16 @@ import { View } from "react-native";
 
 import { ChatOverlayStore } from "../components/chat-overlay-store";
 import { ChatCellStore } from "../components/chat-view-context";
-import { IChatViewTheme, IParsedChatMessage } from "../model";
+import { IChatViewTheme } from "../config";
+import { IParsedChatMessage } from "../data";
 
 /**
  * Эффект распада при удалении — порт `DisintegrationAnimator` +
  * `animateDisintegrationThen`.
  *
- * Пузырь удаляемого сообщения замеряется на экране, его прямоугольник
- * уходит в стор оверлеев (там его подхватит `DisintegrationOverlay`), сам
- * пузырь прячется, а данные применяются только после паузы — иначе строка
- * исчезнет раньше, чем начнётся анимация.
+ * Пузырь удаляемого сообщения замеряется на экране, его прямоугольник уходит в
+ * стор оверлеев, сам пузырь прячется, а данные применяются после паузы — иначе
+ * строка исчезнет раньше, чем начнётся анимация.
  */
 
 export interface IChatDisintegrationOptions {

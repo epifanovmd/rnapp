@@ -1,35 +1,28 @@
-import React, { FC, memo } from "react";
+import React, { FC, memo, useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { chatTextBase } from "../model";
+import { IResolvedReply } from "../data";
 import { ChatMessageOwnership, ChatReplyRef } from "../types";
 import { useChatViewContext } from "./chat-view-context";
 
 /**
- * Порт ReplyPreviewView: акцентная полоска, имя автора, текст цитаты
- * (или «📷 Photo» для изображений).
+ * Превью цитаты — порт `ReplyPreviewView`: акцентная полоска, имя автора и
+ * текст оригинала (или «📷 Photo» для вложений).
  */
-
-export interface IResolvedReply {
-  senderName: string;
-  text: string;
-  hasImage: boolean;
-}
 
 interface IReplyPreviewProps {
   reply: ChatReplyRef;
+  /** Данные оригинала, разрешённые при построении строки. */
   resolved?: IResolvedReply;
   ownership: ChatMessageOwnership;
 }
 
 export const ReplyPreview: FC<IReplyPreviewProps> = memo(
   ({ reply, resolved, ownership }) => {
-    const { theme, layout, delegate } = useChatViewContext();
-    const isOutgoing = ownership === "mine";
+    const { styles, delegate } = useChatViewContext();
+    const s = styles.byOwnership[ownership];
 
-    const sender = resolved?.senderName ?? reply.senderName ?? "";
     const text = resolved?.text || reply.text;
-
     let content: string;
 
     if (text && text.length > 0) {
@@ -40,58 +33,19 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
       content = "…";
     }
 
+    const handlePress = useCallback(
+      () => delegate.current?.onReplyTap(reply.id),
+      [delegate, reply.id],
+    );
+
     return (
-      <Pressable
-        style={[
-          ss.card,
-          {
-            height: layout.replyHeight,
-            borderRadius: layout.replyCornerRadius,
-            backgroundColor: isOutgoing
-              ? theme.outgoingReplyBackground
-              : theme.incomingReplyBackground,
-          },
-        ]}
-        onPress={() => delegate.current?.onReplyTap(reply.id)}
-      >
-        <View
-          style={{
-            width: layout.replyAccentWidth,
-            backgroundColor: isOutgoing
-              ? theme.outgoingReplyAccent
-              : theme.incomingReplyAccent,
-          }}
-        />
+      <Pressable style={s.replyCard} onPress={handlePress}>
+        <View style={s.replyAccent} />
         <View style={ss.textWrap}>
-          <Text
-            numberOfLines={1}
-            style={[
-              chatTextBase,
-              {
-                fontSize: layout.replySenderFont.fontSize,
-                fontWeight: layout.replySenderFont.fontWeight,
-                color: isOutgoing
-                  ? theme.outgoingReplySender
-                  : theme.incomingReplySender,
-              },
-            ]}
-          >
-            {sender}
+          <Text numberOfLines={1} style={s.replySender}>
+            {resolved?.senderName ?? reply.senderName ?? ""}
           </Text>
-          <Text
-            numberOfLines={1}
-            style={[
-              chatTextBase,
-              {
-                marginTop: ss.contentGap.marginTop,
-                fontSize: layout.replyFont.fontSize,
-                fontWeight: layout.replyFont.fontWeight,
-                color: isOutgoing
-                  ? theme.outgoingReplyText
-                  : theme.incomingReplyText,
-              },
-            ]}
-          >
+          <Text numberOfLines={1} style={s.replyText}>
             {content}
           </Text>
         </View>
@@ -103,18 +57,7 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
 ReplyPreview.displayName = "ReplyPreview";
 
 const ss = StyleSheet.create({
-  card: {
-    overflow: "hidden",
-    flexDirection: "row",
-  },
-  contentGap: {
-    marginTop: 1,
-  },
   // flexShrink, а не flex: цитата должна отдавать собственную ширину наружу —
   // от неё зависит ширина пузыря (порт replyW из bubbleWidth).
-  textWrap: {
-    flexShrink: 1,
-    paddingHorizontal: 8,
-    paddingTop: 4,
-  },
+  textWrap: { flexShrink: 1, paddingHorizontal: 8, paddingTop: 4 },
 });

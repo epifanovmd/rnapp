@@ -17,28 +17,39 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useKeyboardInset } from "../../lib/keyboard";
-import { IInputBarViewRef, InputBarView } from "../input-bar/InputBarView";
-import { KeyboardInputBar } from "../input-bar/KeyboardInputBar";
 import {
+  createInputBarStyles,
+  IInputBarViewRef,
   INPUT_BAR_DEFAULT_FEATURES,
   InputBarContext,
-} from "../input-bar/model/input-bar-context";
-import { ChatOverlayStore } from "./components/chat-overlay-store";
+  InputBarView,
+  KeyboardInputBar,
+} from "../input-bar";
 import {
+  ChatAvatarLayer,
+  ChatAvatarStore,
   ChatCellStore,
+  ChatFab,
+  ChatList,
+  ChatOverlayStore,
   ChatViewContext,
+  DisintegrationOverlay,
+  EmptyStateOverlay,
+  FloatingDateOverlay,
   IChatViewContextValue,
-} from "./components/chat-view-context";
-import { ChatFab } from "./components/ChatFab";
-import { ChatList } from "./components/ChatList";
-import { DisintegrationOverlay } from "./components/DisintegrationOverlay";
-import { EmptyStateOverlay } from "./components/EmptyStateOverlay";
-import { FloatingDateOverlay } from "./components/FloatingDateOverlay";
+} from "./components";
+import { createChatStyles } from "./config";
+import { EMPTY_CHAT_DATA, IChatData } from "./data";
 import {
-  EMPTY_CHAT_DATA,
-  IChatData,
+  useChatAvatars,
   useChatCellDelegate,
   useChatCommands,
   useChatConfig,
@@ -58,26 +69,23 @@ import {
   useChatVisibility,
   useParsedMessages,
 } from "./hooks";
-import { ChatUnreadManager } from "./model";
+import { ChatUnreadManager } from "./services";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 /**
- * React Native-реализация ChatView — порт `ChatViewController`
- * (IOSChatView) на `@legendapp/list`.
+ * React Native-реализация ChatView — порт `ChatViewController` (IOSChatView) на
+ * `@legendapp/list`.
  *
- * Компонент намеренно тонкий: он только собирает независимые части и
- * связывает их проводами. Логика живёт рядом —
+ * Компонент намеренно тонкий: он только собирает независимые части и связывает
+ * их проводами. Логика живёт рядом —
  *
- * - `model/` — чистые расчёты (якорь скролла, план обновления, видимость,
- *   плавающая дата, геометрия). Без React и без списка.
- * - `hooks/` — поведение: по хуку на ответственность.
- * - `components/` — отрисовка (список, строки, оверлеи).
- * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка. Модуль
- *   ничего не знает о чате и переиспользуется любым экраном с плавающей
- *   панелью.
- *
- * Так же разложены соседние компоненты с нативными реализациями —
- * `input-bar` и `context-menu-view`.
+ * - `config/` — тема, метрики, флаги и готовые стили ячеек;
+ * - `data/` — разбор сообщений, строки, диффы, план обновления;
+ * - `scroll/` — геометрия, якорь, видимость, плавающая дата, аватары;
+ * - `services/` — плеер голосовых и счётчик непрочитанных;
+ * - `hooks/` — по хуку на ответственность;
+ * - `components/` — только отрисовка;
+ * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка (о чате не знает).
  */
 export const JsChatView = memo(
   forwardRef<IChatViewRef, ChatViewProps>((props, ref) => {
@@ -97,8 +105,8 @@ export const JsChatView = memo(
       unreadCount = -1,
     } = props;
 
-    // Пропы читаются из ref всеми стабильными колбэками: обработчик скролла
-    // не должен пересоздаваться из-за смены любого коллбэка хоста.
+    // Пропы читаются из ref всеми стабильными колбэками: обработчик скролла не
+    // должен пересоздаваться из-за смены любого коллбэка хоста.
     const propsRef = useRef(props);
 
     propsRef.current = props;
@@ -115,6 +123,7 @@ export const JsChatView = memo(
     const storesRef = useRef<{
       cell: ChatCellStore;
       overlay: ChatOverlayStore;
+      avatar: ChatAvatarStore;
       unread: ChatUnreadManager;
     } | null>(null);
 
@@ -122,6 +131,7 @@ export const JsChatView = memo(
       storesRef.current = {
         cell: new ChatCellStore(),
         overlay: new ChatOverlayStore(),
+        avatar: new ChatAvatarStore(),
         unread: new ChatUnreadManager(),
       };
     }
@@ -129,11 +139,12 @@ export const JsChatView = memo(
     const {
       cell: cellStore,
       overlay: overlayStore,
+      avatar: avatarStore,
       unread: unreadManager,
     } = storesRef.current;
 
-    // Контейнер данных создаётся до потребителей: команды и якорь нужны
-    // раньше, чем посчитаны строки, а им достаточно стабильной ссылки.
+    // Контейнер данных создаётся до потребителей: команды и якорь нужны раньше,
+    // чем посчитаны строки, а им достаточно стабильной ссылки.
     const dataRef = useRef<IChatData>(EMPTY_CHAT_DATA);
 
     // Ширина списка нужна ячейкам для расчёта максимальной ширины пузыря —
@@ -145,7 +156,7 @@ export const JsChatView = memo(
     const geometry = useChatGeometry(listRef);
     const readGeometry = geometry.read;
 
-    const parsed = useParsedMessages({ messages, getActionsForMessage });
+    const parsed = useParsedMessages(messages, getActionsForMessage);
 
     // ─── Клавиатура ──────────────────────────────────────────────────────
     // Порт keyboardLayoutGuide + KeyboardFreezeManager. Одна зона на всех
@@ -160,9 +171,6 @@ export const JsChatView = memo(
       [],
     );
 
-    // Единый источник сдвига: и панель, и отступ контента считаются от
-    // одной высоты клавиатуры. Заморозка под контекстным меню держит
-    // только отступ контента — панель уезжает с клавиатурой, как в эталоне.
     const keyboard = useKeyboardInset({
       extraPadding: layout.collectionBottomPadding + collectionInsetBottom,
       initialBarHeight: layout.inputBarMinHeight,
@@ -244,7 +252,7 @@ export const JsChatView = memo(
     });
 
     const data = useChatData(displayed, {
-      showDateSeparators: features.showDateSeparators,
+      features,
       showBottomLoading: isLoadingBottom && features.showBottomLoadingIndicator,
       hideFirstSeparator: isLoadingTop,
     });
@@ -298,16 +306,12 @@ export const JsChatView = memo(
 
     // Порт applyFeatureChanges: без записи голоса FAB всегда развёрнут.
     useEffect(() => {
-      if (!features.showVoiceRecording) {
-        overlays.setFabExpanded(true);
-      }
+      if (!features.showVoiceRecording) overlays.setFabExpanded(true);
     }, [features.showVoiceRecording, overlays]);
 
     // Хост ответил на нижнюю пагинацию — снимаем защёлку.
     useEffect(() => {
-      if (!isLoadingBottom) {
-        scroll.state.current.isLoadingNewerActive = false;
-      }
+      if (!isLoadingBottom) scroll.state.current.isLoadingNewerActive = false;
     }, [isLoadingBottom, scroll]);
 
     // ─── Плавающая дата ──────────────────────────────────────────────────
@@ -336,6 +340,28 @@ export const JsChatView = memo(
       store: overlayStore,
     });
 
+    // ─── Sticky-аватары ──────────────────────────────────────────────────
+
+    const getAvatarGroups = useCallback(() => dataRef.current.avatarGroups, []);
+    const isAvatarsEnabled = useCallback(
+      () => getFeatures().showAvatars,
+      [getFeatures],
+    );
+    const getAvatarSize = useCallback(
+      () => getLayout().avatarSize,
+      [getLayout],
+    );
+
+    const updateAvatars = useChatAvatars({
+      store: avatarStore,
+      readGeometry,
+      getGroups: getAvatarGroups,
+      isEnabled: isAvatarsEnabled,
+      getAvatarSize,
+      getTopInset,
+      getBottomInset: keyboard.getContentInset,
+    });
+
     // ─── Видимость ───────────────────────────────────────────────────────
 
     const getRows = useCallback(() => dataRef.current.rows, []);
@@ -343,8 +369,8 @@ export const JsChatView = memo(
     const getThresholds = useCallback(
       () => ({
         enterThreshold: propsRef.current.visibilityThreshold ?? 0.8,
-        // Порт visibilityExitThreshold (0.5 при входе 0.8): выход всегда
-        // ниже входа — гистерезис гасит дребезг на границе порога.
+        // Порт visibilityExitThreshold (0.5 при входе 0.8): выход всегда ниже
+        // входа — гистерезис гасит дребезг на границе порога.
         exitThreshold: (propsRef.current.visibilityThreshold ?? 0.8) * 0.625,
         unreadThreshold: propsRef.current.unreadVisibilityThreshold ?? 0.5,
         visibleThrottleMs:
@@ -429,9 +455,11 @@ export const JsChatView = memo(
 
         // Порт throttle по layout.scrollThrottleInterval.
         const now = Date.now();
-        const throttleMs = getLayout().scrollThrottleInterval * 1000;
 
-        if (now - lastScrollEventAtRef.current >= throttleMs) {
+        if (
+          now - lastScrollEventAtRef.current >=
+          getLayout().scrollThrottleInterval * 1000
+        ) {
           lastScrollEventAtRef.current = now;
           propsRef.current.onScroll?.({
             x: contentOffset.x,
@@ -444,8 +472,8 @@ export const JsChatView = memo(
 
         overlays.updateFab();
         updateFloatingDate();
-        // Доля видимости меняется непрерывно — список сам об этом
-        // не сообщит, поэтому пересчитываем на скролле.
+        updateAvatars();
+        // Доля видимости меняется непрерывно — список сам об этом не сообщит.
         visibility.recompute();
         anchor.reportThrottled();
       },
@@ -455,6 +483,7 @@ export const JsChatView = memo(
         checkPagination,
         overlays,
         updateFloatingDate,
+        updateAvatars,
         visibility,
         anchor,
       ],
@@ -478,8 +507,8 @@ export const JsChatView = memo(
       [compensation],
     );
 
-    // Компенсация обязана знать про палец на экране: пока идёт жест,
-    // позицию она не трогает (порт `if isUserDragging`).
+    // Компенсация обязана знать про палец на экране: пока идёт жест, позицию
+    // она не трогает (порт `if isUserDragging`).
     const handleScrollBeginDrag = useCallback(() => {
       compensation.onScrollBeginDrag();
       scroll.onBeginDrag();
@@ -495,8 +524,9 @@ export const JsChatView = memo(
     const handleInitialReady = useCallback(() => {
       overlays.updateFab();
       updateFloatingDate();
+      updateAvatars();
       visibility.recompute();
-    }, [overlays, updateFloatingDate, visibility]);
+    }, [overlays, updateFloatingDate, updateAvatars, visibility]);
 
     const initialScroll = useChatInitialScroll({
       anchor: initialScrollAnchor,
@@ -504,6 +534,10 @@ export const JsChatView = memo(
       scroll,
       onReady: handleInitialReady,
     });
+
+    // Аватары зависят от строк, а не только от скролла: после обновления
+    // данных группы смещаются даже при неподвижном списке.
+    useEffect(() => updateAvatars(), [data, updateAvatars]);
 
     // ─── Императивный интерфейс ──────────────────────────────────────────
 
@@ -542,35 +576,67 @@ export const JsChatView = memo(
 
     // ─── Контексты ───────────────────────────────────────────────────────
 
+    const styles = useMemo(
+      () => createChatStyles(theme, layout),
+      [theme, layout],
+    );
+
     const chatContext = useMemo<IChatViewContextValue>(
       () => ({
         theme,
         layout,
         features,
+        styles,
         listWidth,
         delegate,
         cellStore,
       }),
-      [theme, layout, features, listWidth, delegate, cellStore],
+      [theme, layout, features, styles, listWidth, delegate, cellStore],
     );
 
-    // Ключи тем и лейаута у панели ввода совпадают 1:1 (inputBackground,
-    // inputButtonSize…), поэтому передаются те же объекты — просто в её
-    // контексте читаются лишь input-специфичные ключи.
+    // Ключи темы и метрик у панели ввода совпадают 1:1 (inputBackground,
+    // inputButtonSize…), поэтому передаются те же объекты — панель просто
+    // читает из них свои ключи.
     const inputBarContext = useMemo(
-      () => ({ theme, layout, features: INPUT_BAR_DEFAULT_FEATURES }),
+      () => ({
+        theme,
+        layout,
+        features: INPUT_BAR_DEFAULT_FEATURES,
+        styles: createInputBarStyles(theme, layout),
+      }),
       [theme, layout],
     );
 
     const listExtraData = useMemo(
-      () => ({ theme, layout, features, listWidth }),
-      [theme, layout, features, listWidth],
+      () => ({ styles, features, listWidth }),
+      [styles, features, listWidth],
     );
+
+    // Порт reloadWithCrossfade: смена темы или метрик проявляется через
+    // короткий кросс-фейд, а не мгновенной перекраской списка.
+    const crossfade = useSharedValue(1);
+    const isFirstStyles = useRef(true);
+
+    useEffect(() => {
+      if (isFirstStyles.current) {
+        isFirstStyles.current = false;
+
+        return;
+      }
+      crossfade.value = withSequence(
+        withTiming(0, { duration: 125 }),
+        withTiming(1, { duration: 125 }),
+      );
+    }, [styles, crossfade]);
+
+    const listWrapStyle = useAnimatedStyle(() => ({
+      opacity: crossfade.value,
+    }));
 
     return (
       <ChatViewContext.Provider value={chatContext}>
         <View ref={rootRef} collapsable={false} style={[ss.root, style]}>
-          <View style={ss.listWrap}>
+          <Animated.View style={[ss.listWrap, listWrapStyle]}>
             <ChatList
               ref={listRef}
               rows={data.rows}
@@ -594,6 +660,8 @@ export const JsChatView = memo(
               extraData={listExtraData}
             />
 
+            <ChatAvatarLayer store={avatarStore} />
+
             {isLoadingTop && features.showTopLoadingIndicator && (
               <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
                 <ActivityIndicator size="small" />
@@ -606,7 +674,7 @@ export const JsChatView = memo(
               topInset={collectionInsetTop}
             />
             <DisintegrationOverlay store={overlayStore} />
-          </View>
+          </Animated.View>
 
           {features.showInputBar && (
             <KeyboardInputBar style={keyboard.barStyle}>
@@ -636,22 +704,9 @@ export const JsChatView = memo(
 JsChatView.displayName = "JsChatView";
 
 const ss = StyleSheet.create({
-  // Порт ChatViewController: и view, и коллекция, и панель ввода прозрачные —
-  // фон чата рисует хост, а не сам компонент.
-  root: {
-    flex: 1,
-    backgroundColor: "transparent",
-    // Оверлеи (пустое состояние, плавающая дата, распад) не должны вылезать
-    // за границы чата.
-    overflow: "hidden",
-  },
-  listWrap: {
-    flex: 1,
-  },
-  topSpinner: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    alignItems: "center",
-  },
+  // Порт ChatViewController: и вью, и коллекция, и панель ввода прозрачные —
+  // фон чата рисует хост. Оверлеи не должны вылезать за границы чата.
+  root: { flex: 1, backgroundColor: "transparent", overflow: "hidden" },
+  listWrap: { flex: 1 },
+  topSpinner: { position: "absolute", left: 0, right: 0, alignItems: "center" },
 });

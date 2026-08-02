@@ -1,24 +1,22 @@
 import type { ViewToken } from "@legendapp/list/react-native";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
+import { ChatRow } from "../data";
 import {
-  ChatRow,
   ChatVisibilityTracker,
   IChatGeometry,
   IVisibilityThresholds,
   IVisibleItem,
   rowBottom,
-} from "../model";
+} from "../scroll";
 
 /**
- * Видимость сообщений — мост между `onViewableItemsChanged` списка и
- * `ChatVisibilityTracker` (портом `collectVisibleMessageIDs`).
+ * Видимость сообщений — мост между списком и `ChatVisibilityTracker`.
  *
- * `LegendList` сообщает лишь факт «видимо / не видимо» по одному порогу,
- * а эталону нужна **доля видимости** каждой ячейки: по ней работают
- * гистерезис и отдельный порог прочитанности. Поэтому доля считается
- * здесь по геометрии — ровно как эталон считает пересечение
- * `visibleRect ∩ cellFrame`.
+ * `LegendList` сообщает лишь «видимо / не видимо» по одному порогу, а эталону
+ * нужна **доля видимости** каждой ячейки: на ней держатся гистерезис и
+ * отдельный порог прочитанности. Поэтому доля считается здесь по геометрии —
+ * как эталон считает `visibleRect ∩ cellFrame`.
  */
 
 export interface IChatVisibilityOptions {

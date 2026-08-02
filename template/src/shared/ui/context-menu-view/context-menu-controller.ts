@@ -1,8 +1,14 @@
 import { ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
+import { IContextMenuTheme } from "./config";
 import { ContextMenuCloseResult, IContextMenuSession } from "./types";
-import { IContextMenuTheme } from "./utils";
+
+/**
+ * Синглтон-контроллер открытого меню: элемент просит показать себя, хост
+ * подписывается и рисует единственный оверлей. Поэтому меню безопасно вешать
+ * на каждый элемент длинного списка.
+ */
 
 export interface IContextMenuRequest {
   /** Конфигурация, зафиксированная на момент открытия. */

@@ -1,11 +1,10 @@
 import React, { FC, memo } from "react";
-import { StyleSheet, Text } from "react-native";
+import { Text } from "react-native";
 
-import { chatTextBase, IChatFont } from "../../model";
 import { useChatViewContext } from "../chat-view-context";
 
 /**
- * Порт emojiView: сообщение из 1–3 эмодзи — крупный шрифт, без фона пузыря.
+ * Сообщение из 1–3 эмодзи — порт `emojiView`: крупный шрифт, без фона пузыря.
  */
 
 interface IEmojiContentProps {
@@ -15,29 +14,10 @@ interface IEmojiContentProps {
 
 export const EmojiContent: FC<IEmojiContentProps> = memo(
   ({ text, emojiCount }) => {
-    const { layout } = useChatViewContext();
-
-    let emojiFont: IChatFont;
-
-    if (emojiCount <= 1) {
-      emojiFont = layout.emojiFont1;
-    } else if (emojiCount === 2) {
-      emojiFont = layout.emojiFont2;
-    } else {
-      emojiFont = layout.emojiFont3;
-    }
+    const { styles } = useChatViewContext();
 
     return (
-      <Text
-        style={[
-          chatTextBase,
-          ss.text,
-          {
-            fontSize: emojiFont.fontSize,
-            lineHeight: emojiFont.fontSize * 1.2,
-          },
-        ]}
-      >
+      <Text style={styles.shared.emoji[Math.min(emojiCount, 3) - 1]}>
         {text}
       </Text>
     );
@@ -45,9 +25,3 @@ export const EmojiContent: FC<IEmojiContentProps> = memo(
 );
 
 EmojiContent.displayName = "EmojiContent";
-
-const ss = StyleSheet.create({
-  text: {
-    textAlign: "center",
-  },
-});

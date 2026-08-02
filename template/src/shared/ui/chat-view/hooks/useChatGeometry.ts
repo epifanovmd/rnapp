@@ -1,18 +1,14 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { RefObject, useCallback, useMemo, useRef } from "react";
 
-import { IChatGeometry } from "../model";
+import { IChatGeometry } from "../scroll";
 
 /**
  * Адаптер геометрии `LegendList` к `IChatGeometry`.
  *
- * DIP на практике: вся логика чата (якорь, плавающая дата, «внизу ли мы»)
- * зависит от узкого интерфейса, а знание о конкретном списке заперто здесь.
- * Замена библиотеки списка = замена одного этого файла.
- *
- * Все значения читаются лениво, прямо в момент обращения: `getState()`
- * у `LegendList` — это живой снимок внутреннего состояния виртуализации,
- * поэтому кешировать его между кадрами нельзя.
+ * Вся логика чата зависит от узкого `IChatGeometry`, а знание о конкретной
+ * библиотеке списка заперто здесь: её замена = замена одного этого файла.
+ * Значения читаются лениво — `getState()` живой, кешировать его нельзя.
  */
 
 export interface IChatGeometryController {

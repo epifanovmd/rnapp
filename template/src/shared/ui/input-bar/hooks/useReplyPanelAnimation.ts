@@ -6,8 +6,8 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../model/input-bar-context";
-import { InputBarMode } from "../model/input-bar-types";
+import { useInputBarContext } from "../config";
+import { InputBarMode } from "../model";
 
 interface IReplyContent {
   sender: string;

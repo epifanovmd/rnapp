@@ -18,22 +18,28 @@ import {
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { createContextMenuStyles, IContextMenuTheme } from "../config";
 import { useContextMenuAnimator } from "../hooks";
+import {
+  actionsPanelPreferredSize,
+  calculateContextMenuLayout,
+  emojiPanelPreferredSize,
+} from "../layout";
 import {
   ContextMenuAction,
   ContextMenuCloseResult,
   IContextMenuRect,
   IContextMenuSession,
 } from "../types";
-import {
-  actionsPanelPreferredSize,
-  calculateContextMenuLayout,
-  emojiPanelPreferredSize,
-} from "../utils";
-import { CONTEXT_MENU_SNAPSHOT_SHADOW, IContextMenuTheme } from "../utils";
-import { ContextMenuActionsView } from "./ContextMenuActionsView";
+import { ContextMenuActionsView } from "./actions-view";
 import { ContextMenuBackdrop } from "./ContextMenuBackdrop";
-import { ContextMenuEmojiPanel } from "./ContextMenuEmojiPanel";
+import { ContextMenuEmojiPanel } from "./emoji-panel";
+
+/**
+ * Открытое меню целиком — порт `ContextMenuViewController`: затемнение, копия
+ * исходной вьюхи, панель эмодзи и список действий на прокручиваемом холсте.
+ * Существует в единственном экземпляре, монтируется хостом.
+ */
 
 export interface IContextMenuOverlayProps {
   session: IContextMenuSession;
@@ -46,11 +52,23 @@ export interface IContextMenuOverlayProps {
   onClosed: (result: ContextMenuCloseResult) => void;
 }
 
+/** Абсолютное позиционирование по посчитанному прямоугольнику. */
+const rectStyle = (rect: IContextMenuRect) =>
+  ({
+    position: "absolute",
+    left: rect.x,
+    top: rect.y,
+    width: rect.width,
+    height: rect.height,
+  }) as const;
+
 export const ContextMenuOverlay: FC<
   PropsWithChildren<IContextMenuOverlayProps>
 > = memo(({ session, theme, sourceStyle, children, onShown, onClosed }) => {
   const screen = useWindowDimensions();
   const safeArea = useSafeAreaInsets();
+
+  const styles = useMemo(() => createContextMenuStyles(theme), [theme]);
 
   const layout = useMemo(
     () =>
@@ -71,13 +89,12 @@ export const ContextMenuOverlay: FC<
 
   const animator = useContextMenuAnimator(layout, theme, session.sourceFrame);
 
+  // Закрытие идёт с анимацией, поэтому повторные нажатия надо гасить.
   const closingRef = useRef(false);
 
   const close = useCallback(
     (result: ContextMenuCloseResult) => {
-      if (closingRef.current) {
-        return;
-      }
+      if (closingRef.current) return;
 
       closingRef.current = true;
       animator.animateClose(() => onClosed(result));
@@ -112,6 +129,23 @@ export const ContextMenuOverlay: FC<
     scrollOffset.value = event.contentOffset.y;
   });
 
+  const canvasStyle = useMemo(
+    () => ({
+      width: layout.canvasSize.width,
+      height: layout.canvasSize.height,
+    }),
+    [layout.canvasSize.width, layout.canvasSize.height],
+  );
+
+  const snapshotContentStyle = useMemo(
+    () => [
+      sourceStyle,
+      ss.snapshotContent,
+      { width: layout.snapTarget.width, height: layout.snapTarget.height },
+    ],
+    [sourceStyle, layout.snapTarget.width, layout.snapTarget.height],
+  );
+
   return (
     <Modal
       visible
@@ -126,15 +160,13 @@ export const ContextMenuOverlay: FC<
       <View style={ss.container}>
         <ContextMenuBackdrop
           theme={theme}
+          styles={styles}
           animatedStyle={animator.backdropAnimatedStyle}
         />
 
         <Animated.ScrollView
           style={StyleSheet.absoluteFill}
-          contentContainerStyle={{
-            width: layout.canvasSize.width,
-            height: layout.canvasSize.height,
-          }}
+          contentContainerStyle={canvasStyle}
           contentOffset={{ x: 0, y: layout.scrollOffset }}
           scrollEnabled={layout.needsScroll}
           showsVerticalScrollIndicator={false}
@@ -149,24 +181,13 @@ export const ContextMenuOverlay: FC<
           />
           <Animated.View
             style={[
-              ss.snapshot,
+              styles.snapshot,
               rectStyle(layout.snapTarget),
               animator.snapAnimatedStyle,
             ]}
             pointerEvents="box-only"
           >
-            <View
-              style={[
-                sourceStyle,
-                ss.snapshotContent,
-                {
-                  width: layout.snapTarget.width,
-                  height: layout.snapTarget.height,
-                },
-              ]}
-            >
-              {children}
-            </View>
+            <View style={snapshotContentStyle}>{children}</View>
           </Animated.View>
 
           {layout.hasEmoji && (
@@ -178,7 +199,7 @@ export const ContextMenuOverlay: FC<
             >
               <ContextMenuEmojiPanel
                 emojis={session.emojis}
-                theme={theme}
+                styles={styles}
                 onEmojiTap={handleEmojiTap}
               />
             </Animated.View>
@@ -194,6 +215,7 @@ export const ContextMenuOverlay: FC<
               <ContextMenuActionsView
                 actions={session.actions}
                 theme={theme}
+                styles={styles}
                 onActionTap={handleActionTap}
               />
             </Animated.View>
@@ -204,26 +226,12 @@ export const ContextMenuOverlay: FC<
   );
 });
 
-const rectStyle = (rect: IContextMenuRect) =>
-  ({
-    position: "absolute",
-    left: rect.x,
-    top: rect.y,
-    width: rect.width,
-    height: rect.height,
-  }) as const;
+ContextMenuOverlay.displayName = "ContextMenuOverlay";
 
 const ss = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  snapshot: {
-    shadowColor: CONTEXT_MENU_SNAPSHOT_SHADOW.color,
-    shadowOpacity: CONTEXT_MENU_SNAPSHOT_SHADOW.opacity,
-    shadowRadius: CONTEXT_MENU_SNAPSHOT_SHADOW.radius,
-    shadowOffset: { width: 0, height: CONTEXT_MENU_SNAPSHOT_SHADOW.offsetY },
-  },
-
+  container: { flex: 1 },
+  // Копия обязана лечь ровно в посчитанный прямоугольник: любые внешние
+  // отступы исходного контейнера здесь обнуляются.
   snapshotContent: {
     overflow: "hidden",
     alignSelf: "stretch",

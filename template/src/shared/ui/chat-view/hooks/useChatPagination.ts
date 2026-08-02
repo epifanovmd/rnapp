@@ -1,17 +1,13 @@
 import { useCallback } from "react";
 
-import { IChatViewFeatures } from "../model";
+import { IChatViewFeatures } from "../config";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
  * Пагинация — порт блока пагинации из `scrollViewDidScroll`.
  *
- * Эталон намеренно не использует «onEndReached»-семантику: у чата два края,
- * и каждый должен срабатывать только при движении **в его сторону**.
- * Иначе инерция после подгрузки сверху тут же вызывает подгрузку снизу.
- *
- * - верх: пропускаем, если скроллим вниз (`direction !== "down"`);
- * - низ: пропускаем, если скроллим вверх (`direction !== "up"`).
+ * У чата два края, и каждый срабатывает только при движении **в его сторону**:
+ * иначе инерция после подгрузки сверху тут же вызывает подгрузку снизу.
  */
 
 export interface IChatPaginationOptions {

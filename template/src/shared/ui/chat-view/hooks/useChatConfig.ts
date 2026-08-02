@@ -7,7 +7,7 @@ import {
   resolveChatFeatures,
   resolveChatLayout,
   resolveChatTheme,
-} from "../model";
+} from "../config";
 import { ChatViewProps } from "../types";
 
 /**
