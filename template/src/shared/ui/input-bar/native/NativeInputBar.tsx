@@ -68,8 +68,8 @@ function dispatchCommand(
 }
 
 /**
- * Обёртка над нативной панелью ввода: на iOS это InputBarView из пода
- * IOSChatView, на Android — Kotlin-порт того же компонента.
+ * Обёртка над нативной панелью ввода: на iOS это InputBarView,
+ * на Android — Kotlin-реализация того же компонента.
  */
 export const NativeInputBar = forwardRef<IInputBarRef, InputBarProps>(
   (props, ref) => {

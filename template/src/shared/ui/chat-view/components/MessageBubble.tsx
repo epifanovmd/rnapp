@@ -10,15 +10,15 @@ import { ReplyPreview } from "./ReplyPreview";
 import { ThreadIndicator } from "./ThreadIndicator";
 
 /**
- * Пузырь сообщения — порт `MessageBubbleView`: вертикальный стек из имени
- * отправителя, блока пересылки, цитаты, контента, треда, реакций и футера.
+ * Пузырь сообщения: вертикальный стек из имени отправителя, блока пересылки,
+ * цитаты, контента, треда, реакций и футера.
  */
 
 interface IMessageBubbleProps {
   message: IParsedChatMessage;
   resolvedReply?: IResolvedReply;
   showSenderName: boolean;
-  /** Крупные эмодзи без фона пузыря. Порт `isBubblelessEmoji`. */
+  /** Крупные эмодзи без фона пузыря. */
   bubbleless: boolean;
   /** Максимальная ширина пузыря (уже с учётом места под аватар). */
   maxBubbleWidth: number;
@@ -41,7 +41,7 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
       : 0;
     const innerWidth = maxBubbleWidth - layout.bubbleHPad * 2 - forwardedInset;
 
-    // Порт contentPreferredWidth: голосовое сжимает пузырь по своему контенту,
+    // Голосовое сжимает пузырь по своему контенту,
     // остальные медиа занимают всю доступную ширину.
     const minWidth = useMemo(() => {
       if (!media) return layout.bubbleMinWidth;

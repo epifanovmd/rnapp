@@ -13,7 +13,7 @@ import type {
   NativeInputBarVoiceRecordingCompleteEventData,
 } from "./native/NativeInputBarSpec";
 
-// ─── Доменные типы (эталон — codegen-спек RNInputBar) ────────────────────────
+// ─── Доменные типы ───────────────────────────────────────────────────────────
 
 export type InputBarTheme = "light" | "dark";
 export type InputBarInputActionType = "reply" | "edit" | "none";

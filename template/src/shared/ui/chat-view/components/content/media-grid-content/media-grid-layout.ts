@@ -1,7 +1,7 @@
 import { IChatViewLayout } from "../../../config";
 import { IChatMediaItem } from "../../../data";
 
-/** Раскладка сетки вложений — порт `MediaGridView.gridHeight` и `layoutFrames`. */
+/** Раскладка сетки вложений: высоты и фреймы ячеек. */
 
 /** Максимум ячеек в сетке; остальные прячутся под оверлей «+N». */
 export const MEDIA_GRID_MAX_VISIBLE = 4;

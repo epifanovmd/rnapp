@@ -4,7 +4,7 @@ import { Text } from "react-native";
 import { useChatViewContext } from "../chat-view-context";
 
 /**
- * Сообщение из 1–3 эмодзи — порт `emojiView`: крупный шрифт, без фона пузыря.
+ * Сообщение из 1–3 эмодзи: крупный шрифт, без фона пузыря.
  */
 
 interface IEmojiContentProps {

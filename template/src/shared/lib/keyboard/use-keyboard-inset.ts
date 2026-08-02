@@ -11,28 +11,18 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useFreezableValue } from "../hooks/use-freezable-value";
 import { useKeyboardHeight } from "./use-keyboard-height";
-import {
-  IScrollCompensation,
-  useScrollCompensation,
-} from "./use-scroll-compensation";
 
 /**
- * Нижняя зона экрана — единственный хук, который нужен экрану с плавающей
- * панелью ввода над прокручиваемым контентом. Ровно один инстанс на экран:
- * второй — это вторая подписка на клавиатуру, и панель разъедется с контентом.
+ * Нижняя зона экрана для плавающей панели над прокручиваемым контентом.
+ * Отдаёт инсеты и положение панели; скролл-компенсация — отдельный хук
+ * `useKeyboardScrollCompensation`, которому передаются `contentInset` +
+ * `reservedInset`. Один инстанс на экран: второй — вторая подписка на
+ * клавиатуру, и панель разъедется с контентом.
  *
- * Каждая задача отдаётся **отдельным значением**, чтобы прокидывать её явно:
- * `barStyle`/`barOffset` — панели и FAB, `contentInset` + `scroll` — скроллу,
- * `freeze()`/`restore()` — контекстному меню.
- *
- * **Заморозка держит только отступ контента**; `barOffset` живой всегда.
- * Это порт эталона (`updateCollectionInsets` выходит по `isInsetFrozen`, а
- * констрейнт панели на `keyboardLayoutGuide` не трогает никто): меню снимает
- * снапшот пузыря, поэтому неподвижным должен быть контент, а замершая посреди
- * экрана панель выглядела бы как зависшая вьюха.
- *
- * Развеска скролла — за потребителем: у разных списков она называется
- * по-разному. Готовая обвязка — `shared/ui/keyboard-scroll-view`.
+ * Заморозка держит только отступ контента (`contentInset`), панель живая
+ * всегда: меню снимает снапшот пузыря, поэтому неподвижным
+ * должен быть контент, а замершая посреди экрана панель выглядела бы как
+ * зависшая вьюха.
  */
 
 export interface IKeyboardInsetOptions {
@@ -40,7 +30,7 @@ export interface IKeyboardInsetOptions {
   extraPadding?: number;
   /**
    * Высота панели до первого замера. Нативная панель под Fabric не участвует
-   * в измерении Yoga, поэтому нулевой старт оставил бы её за экраном.
+   * в измерении Yoga — нулевой старт оставил бы её за экраном.
    */
   initialBarHeight?: number;
   /** Снять фокус с поля ввода при заморозке. */
@@ -65,8 +55,8 @@ export interface IKeyboardInset {
 
   /** Суммарное перекрытие контента снизу: зона + панель + свои отступы. */
   contentInset: SharedValue<number>;
-  /** Всё, что требуется скроллу для компенсации. */
-  scroll: IScrollCompensation;
+  /** Резерв под целевое перекрытие — отдаётся в `useKeyboardScrollCompensation`. */
+  reservedInset: SharedValue<number>;
 
   // ─── Заморозка ───────────────────────────────────────────────────────
 
@@ -79,10 +69,7 @@ export interface IKeyboardInset {
 
   /** Открыта ли клавиатура — синхронное чтение из JS. */
   isKeyboardVisible: () => boolean;
-  /**
-   * Суммарное перекрытие контента снизу числом — синхронное чтение из JS.
-   * Для центрирования скролла по видимой области (над клавиатурой и панелью).
-   */
+  /** Суммарное перекрытие снизу числом — синхронное чтение из JS. */
   getContentInset: () => number;
 }
 
@@ -94,41 +81,35 @@ export const useKeyboardInset = (
   const safeAreaBottom = useSafeAreaInsets().bottom;
   const keyboard = useKeyboardHeight();
   const barHeight = useSharedValue(initialBarHeight);
-  // JS-зеркало высоты панели: `barHeight` живёт на UI-потоке, а для
-  // `getContentInset` нужно синхронное чтение из JS-обработчика.
+  // JS-зеркало высоты панели: для `getContentInset` нужно синхронное чтение.
   const barHeightRef = useRef(initialBarHeight);
 
-  // Сколько низа экрана занято не контентом: клавиатурой, а без неё — safe
-  // area. На этой границе стоит панель. Порт keyboardLayoutGuide +
-  // followsUndockedKeyboard, значение всегда живое.
+  // Сколько низа занято не контентом: клавиатура, а без неё — safe area.
   const occludedBottom = useDerivedValue(
     () => Math.max(keyboard.height.value, safeAreaBottom),
     [safeAreaBottom],
   );
 
-  // То же, но по цели: клавиатура сообщает конечную высоту в onStart, до
-  // первого кадра анимации.
+  // То же по цели: конечная высота сообщается в onStart, до анимации.
   const occludedBottomTarget = useDerivedValue(
     () => Math.max(keyboard.targetHeight.value, safeAreaBottom),
     [safeAreaBottom],
   );
 
-  // Перекрытие контента снизу: зона + панель над ней + свои отступы.
+  // Перекрытие контента снизу: зона + панель + свои отступы.
   const liveInset = useDerivedValue(
     () => occludedBottom.value + barHeight.value + extraPadding,
     [extraPadding],
   );
 
-  // Резерв под целевую зону: распорка вырастает до начала анимации, поэтому
-  // у самого низа scrollTo не упирается в ещё не выросший contentSize.
+  // Резерв под целевую зону — распорка вырастает до начала движения.
   const liveReserved = useDerivedValue(
     () => occludedBottomTarget.value + barHeight.value + extraPadding,
     [extraPadding],
   );
 
-  // Мёрзнет только контент — см. «Что мёрзнет, а что нет» выше.
-  // Механика заморозки общая и живёт в shared/lib/hooks: к клавиатуре она
-  // не привязана, здесь только выбор замораживаемой величины.
+  // Мёрзнет только контент. Механика общая и живёт в shared/lib/hooks —
+  // здесь только выбор замораживаемой величины.
   const {
     value: contentInset,
     frozen,
@@ -141,13 +122,12 @@ export const useKeyboardInset = (
     onFreeze: onBlur,
     onRestore: onRefocus,
   });
+
   // Резерв держим на том же значении: иначе распорка схлопнется под
   // замороженным контентом и диапазон скролла уедет из-под него.
   const reservedInset = useDerivedValue(() =>
     frozen.value >= 0 ? frozen.value : liveReserved.value,
   );
-
-  const scroll = useScrollCompensation(contentInset, reservedInset);
 
   const barStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -occludedBottom.value }],
@@ -176,7 +156,7 @@ export const useKeyboardInset = (
       barHeight,
       setBarHeight,
       contentInset,
-      scroll,
+      reservedInset,
       isFrozen,
       freeze,
       restore,
@@ -189,7 +169,7 @@ export const useKeyboardInset = (
       barHeight,
       setBarHeight,
       contentInset,
-      scroll,
+      reservedInset,
       isFrozen,
       freeze,
       restore,

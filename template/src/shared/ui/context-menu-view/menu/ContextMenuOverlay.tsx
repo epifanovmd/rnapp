@@ -36,7 +36,7 @@ import { ContextMenuBackdrop } from "./ContextMenuBackdrop";
 import { ContextMenuEmojiPanel } from "./emoji-panel";
 
 /**
- * Открытое меню целиком — порт `ContextMenuViewController`: затемнение, копия
+ * Открытое меню целиком: затемнение, копия
  * исходной вьюхи, панель эмодзи и список действий на прокручиваемом холсте.
  * Существует в единственном экземпляре, монтируется хостом.
  */

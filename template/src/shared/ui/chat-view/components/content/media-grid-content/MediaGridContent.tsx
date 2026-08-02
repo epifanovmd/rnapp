@@ -11,8 +11,8 @@ import {
 import { MediaGridCell } from "./MediaGridCell";
 
 /**
- * Сетка вложений — порт `MediaGridView`: 1/2/3/4+ изображений и видео с
- * оверлеем «+N» на последней ячейке.
+ * Сетка вложений: 1/2/3/4+ изображений и видео с оверлеем «+N» на последней
+ * ячейке.
  */
 
 interface IMediaGridContentProps {

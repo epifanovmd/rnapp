@@ -2,7 +2,7 @@ import { Platform, TextStyle } from "react-native";
 
 /** Форматирование и базовый стиль текста панели ввода. */
 
-/** Таймер записи «m:ss,cc» — порт `showRecordingUI`. */
+/** Таймер записи «m:ss,cc». */
 export const formatRecordTimer = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds) % 60;

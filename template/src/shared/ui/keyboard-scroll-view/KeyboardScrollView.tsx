@@ -6,17 +6,21 @@ import Animated from "react-native-reanimated";
 
 /**
  * Скролл с компенсацией перекрытия снизу — обвязка над готовой
- * компенсацией из `useKeyboardInset`.
+ * компенсацией из `useKeyboardScrollCompensation`.
  *
  * Компонент намеренно не создаёт компенсацию сам: тогда на экране
  * появилась бы вторая подписка на клавиатуру, и панель с контентом
- * поехали бы по разным значениям. Хук живёт на экране, сюда приходит
+ * поехали бы по разным значениям. Хуки живут на экране, сюда приходит
  * только результат.
  *
  * ```tsx
  * const kb = useKeyboardInset({ extraPadding: 8 });
+ * const compensation = useKeyboardScrollCompensation(
+ *   kb.contentInset,
+ *   kb.reservedInset,
+ * );
  *
- * <KeyboardScrollView scroll={kb.scroll}>{content}</KeyboardScrollView>
+ * <KeyboardScrollView scroll={compensation}>{content}</KeyboardScrollView>
  *
  * <KeyboardInputBar style={kb.barStyle}>
  *   <InputBar onHeightChange={kb.setBarHeight} />
@@ -25,7 +29,7 @@ import Animated from "react-native-reanimated";
  */
 
 export interface IKeyboardScrollViewProps extends ScrollViewProps {
-  /** Компенсация из `useKeyboardInset().scroll`. */
+  /** Компенсация из `useKeyboardScrollCompensation`. */
   scroll: IScrollCompensation;
 }
 

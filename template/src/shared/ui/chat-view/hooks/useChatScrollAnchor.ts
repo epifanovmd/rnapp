@@ -9,12 +9,11 @@ import {
 import { IChatScrollAnchor } from "../types";
 import { IChatScrollController } from "./useChatScroll";
 
-/** Троттлинг отправки якоря наружу (мс). Порт `anchorThrottleTime`. */
+/** Троттлинг отправки якоря наружу (мс). */
 const ANCHOR_THROTTLE_MS = 300;
 
 /**
- * Якорь скролла — порт `reportScrollAnchorIfNeeded()` и
- * `reportScrollAnchorOnSettled()`.
+ * Якорь скролла: отчёт об изменении якоря во время скролла и по его остановке.
  *
  * Якорь отправляется только при **пользовательском** скролле: во время
  * начальной защиты и программных перемещений позицией управляет хост.
@@ -29,9 +28,9 @@ export interface IChatScrollAnchorOptions {
 }
 
 export interface IChatScrollAnchorController {
-  /** Текущий якорь. Порт `currentScrollAnchor()`. */
+  /** Текущий якорь. */
   current: () => IChatScrollAnchor | null;
-  /** Все видимые якоря. Порт `currentVisibleAnchors()`. */
+  /** Все видимые якоря. */
   visible: () => IChatScrollAnchor[];
   /** Троттленная отправка во время скролла. */
   reportThrottled: () => void;

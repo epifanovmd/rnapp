@@ -3,9 +3,8 @@ import { IChatScrollAnchor } from "../types";
 import { IChatGeometry, isNearBottom, rowBottom } from "./chat-geometry";
 
 /**
- * Якорь скролла — порт `ScrollAnchor` и семейства методов
- * `currentScrollAnchor` / `currentVisibleAnchors` / `restoreScrollAnchor` /
- * `restoreBestAnchor` из `ChatViewController`.
+ * Якорь скролла: вычисление текущего якоря, всех видимых якорей и
+ * восстановление позиции по ним.
  *
  * Привязка идёт не к индексу (он плывёт при вставках сверху), а к **нижнему
  * видимому сообщению** и расстоянию от него до низа вьюпорта — такой якорь
@@ -25,7 +24,7 @@ const offsetFromVisibleBottom = (
 };
 
 /**
- * Текущая позиция как стабильный якорь. Порт `currentScrollAnchor()`.
+ * Текущая позиция как стабильный якорь.
  *
  * Внизу чата возвращаем `wasAtBottom` — точную позицию восстанавливать
  * не нужно, достаточно снова прижаться к концу.
@@ -60,7 +59,7 @@ export const computeScrollAnchor = (
 };
 
 /**
- * Все видимые якоря сверху вниз. Порт `currentVisibleAnchors()`.
+ * Все видимые якоря сверху вниз.
  *
  * Нужны там, где часть сообщений может исчезнуть при обновлении: после
  * применения данных выбираем тот якорь, который ещё существует.
@@ -104,7 +103,7 @@ const clampOffset = (geometry: IChatGeometry, target: number): number => {
 
 /**
  * Позиция скролла, при которой якорь снова окажется на прежнем месте.
- * Порт `restoreScrollAnchor()` (без самого скролла — только математика).
+ * Без самого скролла — только математика.
  *
  * `contentOffset.y = cellBottom + offset - bounds.height`
  */
@@ -129,7 +128,6 @@ export const resolveAnchorOffset = (
 
 /**
  * Лучший из якорей: существует в новом списке и смещает скролл минимально.
- * Порт `restoreBestAnchor()`.
  */
 export const resolveBestAnchorOffset = (
   geometry: IChatGeometry,

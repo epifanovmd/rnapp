@@ -6,7 +6,7 @@ import { useChatViewContext } from "../chat-view-context";
 import { StickyAvatarView } from "./StickyAvatarView";
 
 /**
- * Слой sticky-аватаров поверх списка — порт `AvatarSupplementaryView`.
+ * Слой sticky-аватаров поверх списка.
  *
  * Аватары рисуются вне ячеек: они должны прилипать к низу видимой области, а
  * элемент списка так двигаться не может. Слой перерисовывается только когда

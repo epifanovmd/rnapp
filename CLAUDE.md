@@ -248,8 +248,8 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   build — it exposes `refScrollView` and `sharedValues.scrollOffset`, which the compensation needs),
   `alignItemsAtEnd`, `maintainVisibleContentPosition: { data, size }` (port of `applyPrepend`'s
   `newTotalH - oldTotalH` compensation and `applyContentOnly`'s size stabilization), and the bottom
-  spacer driven by `use-scroll-compensation.ts`. `recycleItems` is deliberately **off**: chat cells
-  hold internal state (voice playback, highlight, disintegration hide).
+  spacer driven by `use-keyboard-scroll-compensation.ts`. `recycleItems` is deliberately **off**: chat cells
+  hold internal state (voice playback, highlight, disintegration removal animation).
   One props/events contract (`types.ts`, aliased from the codegen spec). The chat demo (`ChatRoom`
   widget) has a temporary native-vs-JS switch for iOS comparison (deep imports as a testing exception).
 - **InputBar** (iOS native, `ios/InputBar/Bridge/`, 3 files) — same pattern, also imports `IOSChatView`.
@@ -276,36 +276,38 @@ living entirely inside this repo, and WheelPicker as Android-only. Neither is ac
   screen with a floating bottom bar over scrollable content uses it (chat, `KeyboardScrollView`, the
   ui-kit-demo InputBar page).
 
-  **One hook per screen: `use-keyboard-inset.ts` (`useKeyboardInset`).** It assembles everything and
-  hands each concern out as its own value: `barStyle`/`barOffset` (the floating bar, always live),
-  `contentInset` + `scroll` (the content, freezable), `freeze()`/`restore()` (the context menu),
-  `setBarHeight`. Exactly one instance per screen — a second one is a second keyboard subscription and
-  the bar drifts from the content. **Freeze holds only the content inset**, never the bar: that is the
-  reference (`updateCollectionInsets` bails on `isInsetFrozen`; the bar's `keyboardLayoutGuide`
-  constraint is untouched). The wrappers `KeyboardInputBar` and `KeyboardScrollView` are presentational
-  and create nothing.
+  **One keyboard subscription per screen.** `use-keyboard-inset.ts` (`useKeyboardInset`) computes the
+  bottom zone and hands each concern out as its own value: `barStyle`/`barOffset` (the floating bar,
+  always live), `contentInset` + `reservedInset` (the content, freezable), `freeze()`/`restore()` (the
+  context menu), `setBarHeight`. The scroll wiring is a **separate hook**
+  `use-keyboard-scroll-compensation.ts` (`useKeyboardScrollCompensation`) that takes
+  `contentInset` + `reservedInset` — consumers call both on the screen. Exactly one keyboard
+  subscription per screen: a second one and the bar drifts from the content. **Freeze holds only the
+  content inset**, never the bar: that is the reference (`updateCollectionInsets` bails on
+  `isInsetFrozen`; the bar's `keyboardLayoutGuide` constraint is untouched). The wrappers
+  `KeyboardInputBar` and `KeyboardScrollView` are presentational and create nothing.
 
   Underneath, one hook per responsibility:
   - `use-keyboard-height.ts` — raw keyboard height as a shared value (per-frame, incl. interactive
-    swipe-dismiss) + a JS-readable `isVisible()`. The only low-level source of truth.
+    swipe-dismiss) + a JS-readable `isVisible()`/`getHeight()`. The only low-level source of truth.
   - `occludedBottom` (inside `use-keyboard-inset.ts`) = `max(keyboardHeight, safeAreaBottom)` — how much
     of the screen bottom is taken by something that is not content. The bar stands on that edge
     (`translateY(-occludedBottom)`, exposed as `barOffset` for the FAB), and the content inset is
     `occludedBottom + barHeight + extraPadding`. Deliberately not called "shift": in this module *shift*
-    means the movement driven by `contentInset` (see `use-scroll-compensation.ts`), and `occludedBottom`
-    is only a shift for the bar — for the content it is an occlusion.
+    means the movement driven by `contentInset` (see `use-keyboard-scroll-compensation.ts`), and
+    `occludedBottom` is only a shift for the bar — for the content it is an occlusion.
   - Freeze is the port of `KeyboardFreezeManager`, but the mechanic is not keyboard-specific and lives
     in `shared/lib/hooks/use-freezable-value.ts` (`useFreezableValue`): it freezes any shared value,
     remembers whether the source was active, asks it back, and thaws only once the live value has
     caught up (with a fallback timer). `useKeyboardInset` only picks *which* value to freeze — the
     content inset, never the bar.
-  - `use-scroll-compensation.ts` — **the single source of shift.** One `bottomInset` shared value
-    (`occludedBottom + barHeight + own padding`) drives both the bar's `translateY` and the list's zone in the
-    same UI-thread frame, mirroring the reference where the inset is derived from `inputBar.frame.minY`
-    rather than from the keyboard separately. The zone is a spacer at the end of the content (counts
-    toward content size, so `scrollToEnd`/autoscroll stay correct) and the scroll moves by the same
-    delta. Do **not** hand this to `KeyboardChatScrollView`: it subscribes to the keyboard itself and
-    becomes a second driver — that is exactly what made the list lag visibly behind the input bar.
+  - `use-keyboard-scroll-compensation.ts` — **the single source of shift.** One `bottomInset` shared
+    value (`occludedBottom + barHeight + own padding`) drives the list's zone in the same UI-thread
+    frame, mirroring the reference where the inset is derived from `inputBar.frame.minY` rather than
+    from the keyboard separately. The zone is a spacer at the end of the content (counts toward content
+    size, so `scrollToEnd`/autoscroll stay correct) and the scroll moves by the same delta. Do **not**
+    hand this to `KeyboardChatScrollView`: it subscribes to the keyboard itself and becomes a second
+    driver — that is exactly what made the list lag visibly behind the input bar.
   - `KeyboardFloatingView.tsx` — port of `keyboardLayoutGuide` + `followsUndockedKeyboard`;
     `KeyboardInputBar` in `input-bar/` is now a thin alias of it.
 

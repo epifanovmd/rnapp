@@ -11,7 +11,7 @@ import { contextMenuController } from "./context-menu-controller";
 import { ContextMenuCloseResult, IContextMenuViewProps } from "./types";
 
 /**
- * JS-реализация контекстного меню — порт `ContextMenuViewController`.
+ * JS-реализация контекстного меню.
  *
  * Сам элемент — только View и долгое нажатие: по нему замеряется рамка, и
  * контроллеру уходит запрос на показ. Всё тяжёлое рисует общий оверлей.

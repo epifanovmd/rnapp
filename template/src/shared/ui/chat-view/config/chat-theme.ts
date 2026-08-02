@@ -1,8 +1,8 @@
 import { ChatTheme } from "../types";
 
 /**
- * Полный порт ChatTheme + InputBarTheme из IOSChatView (Swift).
- * Все значения 1:1 из ChatTheme.light / ChatTheme.dark.
+ * Цвета темы чата и панели ввода: светлый и тёмный наборы
+ * со значениями по умолчанию.
  */
 export interface IChatViewTheme {
   isDark: boolean;

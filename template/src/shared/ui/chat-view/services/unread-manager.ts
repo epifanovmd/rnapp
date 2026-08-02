@@ -1,8 +1,8 @@
 import { IParsedChatMessage } from "../data/chat-message";
 
 /**
- * Порт UnreadManager: два режима — внутренний (отслеживание ID)
- * и внешний (host задаёт count через проп unreadCount).
+ * Два режима: внутренний (отслеживание ID) и внешний
+ * (host задаёт count через проп unreadCount).
  */
 export class ChatUnreadManager {
   private _count = 0;

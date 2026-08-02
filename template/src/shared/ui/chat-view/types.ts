@@ -42,7 +42,7 @@ import type {
   NativeChatVoiceRecordingCompleteEventData,
 } from "./native/NativeChatViewSpec";
 
-// ─── Доменные типы (эталон — codegen-спек RNChatView) ────────────────────────
+// ─── Доменные типы ───────────────────────────────────────────────────────────
 
 export type ChatMessageStatus = "sending" | "sent" | "delivered" | "read";
 export type ChatMessageOwnership = "mine" | "theirs" | "system" | "pinned";

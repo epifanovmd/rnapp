@@ -6,8 +6,8 @@ import { ChatMessageOwnership, ChatReplyRef } from "../types";
 import { useChatViewContext } from "./chat-view-context";
 
 /**
- * Превью цитаты — порт `ReplyPreviewView`: акцентная полоска, имя автора и
- * текст оригинала (или «📷 Photo» для вложений).
+ * Превью цитаты: акцентная полоска, имя автора и текст оригинала (или
+ * «📷 Photo» для вложений).
  */
 
 interface IReplyPreviewProps {
@@ -58,6 +58,6 @@ ReplyPreview.displayName = "ReplyPreview";
 
 const ss = StyleSheet.create({
   // flexShrink, а не flex: цитата должна отдавать собственную ширину наружу —
-  // от неё зависит ширина пузыря (порт replyW из bubbleWidth).
+  // от неё зависит ширина пузыря.
   textWrap: { flexShrink: 1, paddingHorizontal: 8, paddingTop: 4 },
 });

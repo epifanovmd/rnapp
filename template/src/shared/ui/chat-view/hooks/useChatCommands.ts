@@ -12,14 +12,13 @@ import { ChatScrollPosition, IChatScrollAnchor } from "../types";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
- * Команды скролла — порт `scrollToBottom` / `scrollToMessage` /
- * `restoreScrollAnchor` / `restoreBestAnchor` / `performHighlight`.
+ * Команды скролла.
  *
  * Единственное место, которое двигает список: иначе флаг
  * `isProgrammaticScroll` рассинхронизируется и якорь начнёт улетать.
  */
 
-/** Задержка подсветки после скролла. Порт значений 0.35 / 0.1 с. */
+/** Задержка подсветки после скролла: 0.35 / 0.1 с. */
 const HIGHLIGHT_DELAY_ANIMATED = 350;
 const HIGHLIGHT_DELAY_INSTANT = 100;
 
@@ -48,13 +47,13 @@ export interface IChatCommands {
       highlight?: boolean;
     },
   ) => void;
-  /** Восстановить позицию по якорю. Порт `restoreScrollAnchor`. */
+  /** Восстановить позицию по якорю. */
   restoreAnchor: (anchor: IChatScrollAnchor, animated?: boolean) => boolean;
-  /** Восстановить по лучшему из якорей. Порт `restoreBestAnchor`. */
+  /** Восстановить по лучшему из якорей. */
   restoreBestAnchor: (anchors: IChatScrollAnchor[]) => boolean;
 }
 
-/** Порт маппинга строкового `position` на `UICollectionView.ScrollPosition`. */
+/** Маппинг строкового `position` на числовую `viewPosition`. */
 const viewPositionOf = (position: ChatScrollPosition): number => {
   switch (position) {
     case "top":
@@ -122,13 +121,12 @@ export const useChatCommands = ({
 
       const viewPosition = viewPositionOf(position);
 
-      // Порт центрирования по видимой области: LegendList центрирует элемент
+      // Центрирование по видимой области: LegendList центрирует элемент
       // в полном вьюпорте, но при открытой клавиатуре видимая область короче
       // на нижнее перекрытие. Отрицательный `viewOffset` добавляет к смещению
       // `viewPosition * bottomInset` — ровно столько, чтобы видимый центр
-      // совпал с центром области над клавиатурой (вывод в
-      // calculateOffsetWithOffsetPosition: offset -= viewOffset, и центрирование
-      // идёт по viewport - trailingInset).
+      // совпал с центром области над клавиатурой (центрирование идёт по
+      // viewport - trailingInset).
       listRef.current?.scrollToIndex({
         index,
         animated,

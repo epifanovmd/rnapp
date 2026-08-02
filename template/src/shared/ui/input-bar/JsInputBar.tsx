@@ -20,7 +20,7 @@ import { IInputBarRef, InputBarProps } from "./types";
 
 /**
  * React Native-реализация InputBar — точь-в-точь контракт RNInputBar.
- * Ядро — тот же порт InputBarView, что использует JsChatView.
+ * Ядро — тот же InputBarView, что использует JsChatView.
  */
 export const JsInputBar = forwardRef<IInputBarRef, InputBarProps>(
   (props, ref) => {

@@ -297,7 +297,7 @@ it work, and both are easy to drop by accident:
 1. `use-keyboard-height.ts` handles `onInteractive` per frame just like `onMove`, so the bar and the
    zone track the finger and stop when it stops.
 2. **`updateCollectionInsets` returns early while `isUserDragging`** — it updates the inset but leaves
-   `contentOffset` alone. `use-scroll-compensation.ts` ports that guard: the spacer still grows/shrinks,
+   `contentOffset` alone. `use-keyboard-scroll-compensation.ts` ports that guard: the spacer still grows/shrinks,
    but no `scrollTo` is issued while the finger is down. Without it the compensation fights the gesture
    (the content is already following the finger) and the list scrolls down on its own during dismissal.
    That is why `onScrollBeginDrag`/`onScrollEndDrag` from the hook are **required** wiring, not optional.
@@ -314,7 +314,7 @@ to chase the bar. Scrolled up it is invisible, because the clamp never binds.
 
 Fix: the spacer grows by the **target**, not the current value. `onStart` reports the final keyboard
 height before the animation begins (`useKeyboardHeight.targetHeight` →
-`useKeyboardOverlay.overlayTarget` → `useScrollCompensation(bottomInset, reservedInset)`), so the range
+`useKeyboardOverlay.overlayTarget` → `useKeyboardScrollCompensation(bottomInset, reservedInset)`), so the range
 is ready by the first frame of motion and nothing gets clamped. The position still animates per frame
 off `bottomInset`; the reserve sits below the fold and is not visible. On interactive dismiss the
 target simply tracks the current height — a gesture has no destination.
@@ -357,18 +357,21 @@ fallback). The mechanic itself is keyboard-agnostic and lives in
 `shared/lib/hooks/use-freezable-value.ts` (`useFreezableValue`) — it freezes any shared value and waits
 for the live one to catch up; `useKeyboardInset` only chooses *which* value to freeze.
 
-**One hook per screen: `useKeyboardInset`.** It owns the whole chain and hands each concern out as its
-own value, so everything is wired explicitly: `barStyle` / `barOffset` → the floating bar and the FAB,
-`contentInset` → whatever sits above the zone, `scroll` → the scroll view, `freeze()` / `restore()` →
-the context menu. Exactly one instance per screen — a second one means a second keyboard subscription
-and the bar drifting away from the content.
+**One keyboard subscription per screen: `useKeyboardInset` + `useKeyboardScrollCompensation`.** The two
+hooks are used separately on the screen: `useKeyboardInset` computes the bottom zone and hands each
+concern out as its own value — `barStyle` / `barOffset` → the floating bar and the FAB, `contentInset`
++ `reservedInset` → the scroll compensation, `freeze()` / `restore()` → the context menu. The scroll
+wiring is a separate hook, `useKeyboardScrollCompensation(contentInset, reservedInset)`, whose result
+goes to the scroll view. Exactly one keyboard subscription per screen — a second one means a second
+keyboard subscription and the bar drifting away from the content.
 
 Both wrappers are purely presentational and create nothing: `input-bar/KeyboardInputBar.tsx` (absolute
-bottom + the passed `barStyle`) and `shared/ui/keyboard-scroll-view` (takes `scroll={kb.scroll}`).
+bottom + the passed `barStyle`) and `shared/ui/keyboard-scroll-view` (takes the compensation from
+`useKeyboardScrollCompensation`).
 
 Underlying hooks, each an independently reusable responsibility: `use-keyboard-height.ts` (raw height
-+ target height + JS-readable `isVisible()`) and `use-scroll-compensation.ts` (spacer + scroll delta).
-The freeze mechanic is not keyboard-specific and lives outside the module, in
++ target height + JS-readable `isVisible()`/`getHeight()`) and `use-keyboard-scroll-compensation.ts`
+(spacer + scroll delta). The freeze mechanic is not keyboard-specific and lives outside the module, in
 `shared/lib/hooks/use-freezable-value.ts`. The zone arithmetic
 (`max(keyboard, safeArea) + barHeight + padding`) lives inline in `use-keyboard-inset.ts` — it is glue
 for the facade, not a separate concern, and keeping it there makes the whole calculation readable in

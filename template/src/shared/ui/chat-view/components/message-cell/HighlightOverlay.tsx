@@ -17,8 +17,7 @@ import Animated, {
 import { useChatViewContext } from "../chat-view-context";
 
 /**
- * Вспышка поверх пузыря после `scrollToMessage(highlight: true)` — порт
- * `MessageCell.playHighlight`.
+ * Вспышка поверх пузыря после `scrollToMessage(highlight: true)`.
  */
 
 interface IHighlightOverlayProps {

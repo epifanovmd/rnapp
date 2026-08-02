@@ -4,7 +4,7 @@ import { IChatViewFeatures } from "../config";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
- * Пагинация — порт блока пагинации из `scrollViewDidScroll`.
+ * Пагинация.
  *
  * У чата два края, и каждый срабатывает только при движении **в его сторону**:
  * иначе инерция после подгрузки сверху тут же вызывает подгрузку снизу.

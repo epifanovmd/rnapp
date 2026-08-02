@@ -13,7 +13,7 @@ import {
 } from "../config";
 
 /**
- * Маршрутизация действий ячеек — порт `ChatViewController+MessageActions`.
+ * Маршрутизация действий ячеек.
  * Хранится в ref, чтобы ячейки оставались мемоизированными.
  */
 export interface IChatCellDelegate {
@@ -33,15 +33,19 @@ export interface IChatCellDelegate {
 
 /**
  * Точечные обновления ячеек без ре-рендера списка: подсветка `scrollToMessage`
- * и скрытие пузыря на время эффекта распада.
+ * и анимированное схлопывание удаляемого пузыря под эффект распада.
  */
 export class ChatCellStore {
   private _highlightId: string | null = null;
   private _highlightToken = 0;
-  private _hiddenBubbleIds = new Set<string>();
+  /** id → измеренная высота ячейки: пока запись есть, ячейка схлопывается. */
+  private _removing = new Map<string, number>();
   private readonly _listeners = new Set<() => void>();
 
+  /** Пузыри сообщений — для замера кадра конфетти-эффекта. */
   readonly bubbleRefs = new Map<string, View>();
+  /** Корни ячеек — для замера высоты схлопывания. */
+  readonly cellRefs = new Map<string, View>();
 
   get highlightId(): string | null {
     return this._highlightId;
@@ -52,8 +56,9 @@ export class ChatCellStore {
     return this._highlightToken;
   }
 
-  isBubbleHidden(id: string): boolean {
-    return this._hiddenBubbleIds.has(id);
+  /** Высота схлопывания удаляемого сообщения либо `null`, если оно не удаляется. */
+  removingHeightOf(id: string): number | null {
+    return this._removing.get(id) ?? null;
   }
 
   highlight(id: string) {
@@ -68,18 +73,18 @@ export class ChatCellStore {
     this._notify();
   }
 
-  hideBubbles(ids: Iterable<string>) {
-    for (const id of ids) {
-      this._hiddenBubbleIds.add(id);
-    }
+  /** Начать анимацию удаления: ячейка схлопнется с этой высоты до нуля. */
+  beginRemove(id: string, height: number) {
+    this._removing.set(id, height);
     this._notify();
   }
 
-  showBubbles(ids: Iterable<string>) {
+  /** Сбросить состояние удаления (после того как строка ушла из данных). */
+  clearRemoving(ids: Iterable<string>) {
     let changed = false;
 
     for (const id of ids) {
-      changed = this._hiddenBubbleIds.delete(id) || changed;
+      changed = this._removing.delete(id) || changed;
     }
     if (changed) this._notify();
   }
@@ -89,6 +94,14 @@ export class ChatCellStore {
       this.bubbleRefs.set(id, ref);
     } else {
       this.bubbleRefs.delete(id);
+    }
+  }
+
+  registerCell(id: string, ref: View | null) {
+    if (ref) {
+      this.cellRefs.set(id, ref);
+    } else {
+      this.cellRefs.delete(id);
     }
   }
 

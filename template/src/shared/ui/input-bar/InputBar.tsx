@@ -7,7 +7,7 @@ import { IInputBarRef, InputBarProps } from "./types";
 
 /**
  * Единственная публичная точка входа InputBar: iOS — нативный RNInputBar
- * (InputBarView из пода IOSChatView), остальные платформы — JS-порт.
+ * (InputBarView), остальные платформы — JS-реализация.
  */
 export const InputBar = forwardRef<IInputBarRef, InputBarProps>((props, ref) =>
   Platform.OS === "ios" ? (

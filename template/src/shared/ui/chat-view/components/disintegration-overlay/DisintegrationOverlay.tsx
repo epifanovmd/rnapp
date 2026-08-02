@@ -6,9 +6,8 @@ import { useOverlayValue } from "../useOverlayValue";
 import { DisintegrationBurst } from "./DisintegrationBurst";
 
 /**
- * Эффект распада удалённых пузырей — порт `DisintegrationAnimator`
- * (CAEmitterLayer → Reanimated). Упрощение порта: цвет частиц берётся из цвета
- * пузыря, а не из пиксельного снапшота.
+ * Эффект распада удалённых пузырей (на Reanimated). Упрощение: цвет частиц
+ * берётся из цвета пузыря, а не из пиксельного снапшота.
  */
 
 // Массив пересоздаётся только в addBurst/removeBurst, поэтому годится как снимок.

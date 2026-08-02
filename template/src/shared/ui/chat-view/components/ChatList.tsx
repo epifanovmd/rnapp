@@ -18,18 +18,16 @@ import { ChatRow, chatRowKey } from "../data";
 import { ChatRowView } from "./ChatRowView";
 
 /**
- * Список чата на `@legendapp/list` — порт `UICollectionView` +
- * `ChatCollectionViewLayout`. Компонент намеренно «глупый»: про якоря,
+ * Список чата на `@legendapp/list`. Компонент намеренно «глупый»: про якоря,
  * пагинацию и непрочитанные он не знает, всё приходит колбэками сверху.
  *
- * Соответствие эталону держится на трёх вещах:
+ * Позиционирование держится на трёх вещах:
  * - `alignItemsAtEnd` — короткий контент прижат к низу;
- * - `maintainVisibleContentPosition: { data, size }` — порт компенсации
- *   `applyPrepend` и стабилизации высот в `applyContentOnly`, нативно и без
- *   кадра с «дёрнувшимся» контентом;
- * - распорка `bottomSpacerStyle` вместо инсета — порт `updateCollectionInsets`;
- *   её ведёт тот же `bottomInset`, что двигает панель ввода, поэтому список и
- *   панель не могут разъехаться.
+ * - `maintainVisibleContentPosition: { data, size }` — компенсация вставки
+ *   сверху и стабилизация высот при обновлении контента, без кадра
+ *   с «дёрнувшимся» контентом;
+ * - распорка `bottomSpacerStyle` вместо инсета; её ведёт тот же `bottomInset`,
+ *   что двигает панель ввода, поэтому список и панель не могут разъехаться.
  *
  * Взят `AnimatedLegendList`, а не `KeyboardAwareLegendList`: последний
  * подписывается на клавиатуру сам и становится вторым источником движения.
@@ -53,7 +51,7 @@ export interface IChatListProps {
   initialScrollAtEnd: boolean;
   /** Средняя высота строки — подсказка для первого кадра. */
   estimatedItemSize: number;
-  /** Дистанция предрендера. Порт буфера коллекции. */
+  /** Дистанция предрендера. */
   drawDistance: number;
 
   onLoad: () => void;
@@ -119,7 +117,7 @@ export const ChatList = memo(
         [contentPaddingTop],
       );
 
-      // Порт applyPrepend/applyContentOnly: позицию держит сам список.
+      // Позицию держит сам список.
       const maintainVisibleContentPosition = useMemo(
         () => ({ data: true, size: true }),
         [],
@@ -157,8 +155,7 @@ export const ChatList = memo(
           contentContainerStyle={contentContainerStyle}
           style={ss.list}
           showsVerticalScrollIndicator
-          // Порт keyboardDismissMode = .interactive: контент и панель едут
-          // за пальцем покадрово через onInteractive.
+          // Контент и панель едут за пальцем покадрово (interactive-режим).
           keyboardDismissMode={
             Platform.OS === "ios" ? "interactive" : "on-drag"
           }

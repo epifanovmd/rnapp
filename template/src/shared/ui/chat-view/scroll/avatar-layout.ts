@@ -2,7 +2,7 @@ import { IChatAvatarGroup } from "../data/chat-data";
 import { IChatGeometry, rowBottom } from "./chat-geometry";
 
 /**
- * Позиции sticky-аватаров — порт `ChatCollectionViewLayout.avatarAttributes`.
+ * Позиции sticky-аватаров.
  *
  * Аватар группы стоит у нижнего сообщения, но, пока группа на экране,
  * «прилипает» к низу видимой области и не опускается выше её первого
@@ -22,13 +22,13 @@ export interface IResolveStickyAvatarsInput {
   geometry: IChatGeometry;
   groups: IChatAvatarGroup[];
   avatarSize: number;
-  /** Перекрытие контента сверху (порт `adjustedContentInset.top`). */
+  /** Перекрытие контента сверху. */
   topInset: number;
   /** Перекрытие снизу: панель ввода и клавиатура. */
   bottomInset: number;
 }
 
-/** Запас, на который группа считается «рядом с экраном». Порт `avatarSize + 20`. */
+/** Запас, на который группа считается «рядом с экраном»: размер аватара + 20. */
 const CULL_MARGIN = 20;
 
 export const resolveStickyAvatars = ({

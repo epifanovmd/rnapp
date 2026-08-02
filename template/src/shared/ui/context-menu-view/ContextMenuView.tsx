@@ -7,9 +7,9 @@ import { NativeContextMenuView } from "./native";
 import { IContextMenuViewProps } from "./types";
 
 /**
- * Единственная публичная точка входа контекстного меню: iOS — нативное
- * (IOSChatView pod), остальные платформы — JS-порт. `ContextMenuView.Host`
- * монтируется один раз в App.tsx: сам оверлей общий на всё приложение.
+ * Единственная публичная точка входа контекстного меню: iOS — нативная
+ * реализация, остальные платформы — JS. `ContextMenuView.Host` монтируется
+ * один раз в App.tsx: сам оверлей общий на всё приложение.
  */
 const ContextMenuViewImpl: FC<IContextMenuViewProps> =
   Platform.OS === "ios"

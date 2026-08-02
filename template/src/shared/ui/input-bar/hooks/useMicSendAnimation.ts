@@ -9,7 +9,7 @@ import {
 /**
  * Анимации перехода mic↔send при вводе текста.
  * Оба направления — spring, чтобы исчезновение и появление шли
- * параллельно и плавно (порт updateRightButton из пода).
+ * параллельно и плавно.
  */
 export function useMicSendAnimation(
   showMic: boolean,

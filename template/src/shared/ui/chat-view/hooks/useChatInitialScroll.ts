@@ -5,10 +5,10 @@ import { IChatScrollAnchor } from "../types";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
- * Начальная позиция — порт `executePendingInitialScroll()`.
+ * Начальная позиция.
  *
- * Эталон откладывает первый скролл до реального лейаута. Здесь ту же роль
- * играет декларативный `initialScrollIndex` плюс `onLoad`: список сам ставит
+ * Первый скролл откладывается до реального лейаута: роль играет
+ * декларативный `initialScrollIndex` плюс `onLoad` — список сам ставит
  * стартовую позицию до первого кадра, а мы лишь снимаем защиту. Надёжнее
  * императивного скролла в `useEffect` — не бывает кадра в неверной позиции.
  */
@@ -25,11 +25,11 @@ export interface IChatInitialScroll {
   /**
    * Значение `initialScrollIndex` для списка: индекс строки-якоря с
    * `viewPosition: 1` (нижний край строки у низа вьюпорта) и сдвигом
-   * на сохранённый offset. Порт `restoreScrollAnchor` на старте.
+   * на сохранённый offset.
    */
   initialScrollIndex:
     { index: number; viewPosition: number; viewOffset: number } | undefined;
-  /** Начинать ли с конца списка. Порт `pendingInitialScroll = .toBottom`. */
+  /** Начинать ли с конца списка. */
   initialScrollAtEnd: boolean;
   /** Обработчик `onLoad` списка. */
   onLoad: () => void;
@@ -54,8 +54,8 @@ export const useChatInitialScroll = ({
 
     if (index == null) return undefined;
 
-    // Восстановление якоря — выравнивание по низу (viewPosition 1), как в
-    // эталоне: `contentOffset.y = cellBottom + offset - bounds.height`.
+    // Восстановление якоря — выравнивание по низу (viewPosition 1):
+    // `contentOffset.y = cellBottom + offset - bounds.height`.
     return {
       index,
       viewPosition: 1,

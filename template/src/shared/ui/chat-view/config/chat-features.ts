@@ -1,7 +1,7 @@
 import { ChatFeatures, ChatSenderNameMode } from "../types";
 
 /**
- * Полный порт ChatFeatures из IOSChatView — значения по умолчанию 1:1.
+ * Флаги и пороги поведения чата со значениями по умолчанию.
  */
 export interface IChatViewFeatures {
   senderNameMode: ChatSenderNameMode;

@@ -22,8 +22,13 @@ interface IDisintegrationParticleProps {
 
 export const DisintegrationParticle: FC<IDisintegrationParticleProps> = memo(
   ({ spec, progress, color }) => {
+    // Полная длительность — константа. Считаем один раз на JS-потоке и
+    // захватываем примитив в ворклет: синхронно дёргать JS-функцию
+    // (Remote Function) из useAnimatedStyle нельзя.
+    const duration = disintegrationDuration();
+
     const style = useAnimatedStyle(() => {
-      const t = progress.value * disintegrationDuration();
+      const t = progress.value * duration;
       const life = Math.min(1, t / spec.lifetime);
 
       return {

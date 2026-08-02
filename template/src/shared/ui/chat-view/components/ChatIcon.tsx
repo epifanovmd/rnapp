@@ -2,8 +2,8 @@ import React, { FC, memo } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
 
 /**
- * Векторные аналоги SF Symbols, используемых нативным IOSChatView.
- * ViewBox 24×24, штриховые контуры со скруглёнными концами.
+ * Векторные иконки чата. ViewBox 24×24, штриховые контуры
+ * со скруглёнными концами.
  */
 
 export type ChatIconName =

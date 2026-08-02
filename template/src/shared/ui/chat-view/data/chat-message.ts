@@ -17,7 +17,7 @@ import {
 } from "../utils";
 
 /**
- * Внутренняя модель сообщения — порт `ChatMessage` (Swift) + `ChatParsing`.
+ * Внутренняя модель сообщения.
  *
  * Разбор делает всю дорогую работу один раз: определяет тип медиа, считает ключ
  * группы, находит ссылки, проверяет «только эмодзи». Компоненты берут готовые
@@ -50,7 +50,7 @@ export interface IChatMessageBody {
 
 /**
  * Цитата в том виде, в каком её показывает ячейка: имя и текст берутся из
- * оригинального сообщения, а не из сырого `ReplyRef`. Порт `resolvedReply(for:)`.
+ * оригинального сообщения, а не из сырого `ReplyRef`.
  */
 export interface IResolvedReply {
   senderName: string;
@@ -132,7 +132,7 @@ const parseMedia = (msg: ChatMessage): ChatMediaContent | undefined => {
 };
 
 /**
- * Разбор одного сообщения — порт `ChatMessage.from(dict:)`.
+ * Разбор одного сообщения.
  *
  * `actions` приходят отдельным аргументом, а не копией `msg`: копия ломала бы
  * идентичность входного сообщения, а на ней держится кеш разбора
@@ -181,7 +181,7 @@ export const parseChatMessage = (
   };
 };
 
-/** Показывать ли имя отправителя. Порт `ChatDataSource.shouldShowSenderName`. */
+/** Показывать ли имя отправителя. */
 export const shouldShowSenderName = (
   msg: IParsedChatMessage,
   mode: ChatSenderNameMode,

@@ -11,7 +11,7 @@ import { formatRecordTimer } from "../utils";
 import { InputIcon } from "./InputIcon";
 
 /**
- * Строка записи — порт `InputBarRecordingRow`: мигающая красная точка, таймер
+ * Строка записи: мигающая красная точка, таймер
  * «m:ss,cc» и подсказка «‹ Отмена» с покачиванием.
  */
 
@@ -29,7 +29,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
 
     const { dotStyle, slideShift } = useRecordingRowAnimation();
 
-    // Порт констрейнта slideContainer.centerX == row.centerX + offset:
+    // Констрейнт slideContainer.centerX == row.centerX + offset:
     // подсказка центрируется по всей строке, а не по остатку места справа от
     // таймера — иначе она уезжает вправо примерно на половину его ширины.
     const slideOffset = layout.recordSlideHintOffset;

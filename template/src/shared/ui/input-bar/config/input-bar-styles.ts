@@ -56,7 +56,7 @@ export interface IInputBarStyles {
   lockIconShift: ViewStyle;
 }
 
-/** Насколько капсула замка выше своей ширины (порт `+ 14`). */
+/** Насколько капсула замка выше своей ширины. */
 const LOCK_EXTRA_HEIGHT = 14;
 
 export const createInputBarStyles = (
@@ -101,7 +101,7 @@ export const createInputBarStyles = (
       textAlignVertical: "center",
       paddingTop: l.textViewInsetTop,
       paddingBottom: l.textViewInsetBottom,
-      // +5 — оптическая поправка к иконке вложения, порт отступа textContainer.
+      // +5 — оптическая поправка к иконке вложения.
       paddingLeft: l.textViewInsetLeft + 5,
       paddingRight: l.textViewInsetRight,
       fontSize: l.textViewFont.fontSize,
@@ -183,7 +183,7 @@ export const createInputBarStyles = (
       marginLeft: 3,
     }),
 
-    // Капсула, а не круг: в поде высота на 14 больше ширины, шеврон прижат
+    // Капсула, а не круг: высота на 14 больше ширины, шеврон прижат
     // к верху, замок центрирован со смещением вниз.
     lockBadge: {
       alignItems: "center",

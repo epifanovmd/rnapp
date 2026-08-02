@@ -5,7 +5,7 @@ import FastImage from "react-native-fast-image";
 import { chatTextBase } from "../utils";
 
 /**
- * Порт avatarView: круглая аватарка с фоллбэком на инициал
+ * Круглая аватарка с фоллбэком на инициал
  * (детерминированный цвет из hash имени).
  */
 

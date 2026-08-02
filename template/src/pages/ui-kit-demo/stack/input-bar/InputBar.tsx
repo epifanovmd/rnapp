@@ -1,4 +1,7 @@
-import { useKeyboardInset } from "@shared/lib/keyboard";
+import {
+  useKeyboardInset,
+  useKeyboardScrollCompensation,
+} from "@shared/lib/keyboard";
 import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
@@ -47,14 +50,16 @@ export const InputBarPage: FC<StackProps> = observer(() => {
   const theme = isDark ? "dark" : "light";
 
   // ─── Компенсация клавиатуры ────────────────────────────────────────────
-  // Один хук на весь экран: он же двигает панель (`barStyle`), он же держит
-  // отступ контента и компенсирует скролл (`scroll`). Две подписки на
-  // клавиатуру дали бы два источника сдвига — панель поехала бы отдельно
-  // от контента.
+  // Инсеты и панель — `useKeyboardInset`, скролл — отдельный
+  // `useKeyboardScrollCompensation`. Подписка на клавиатуру одна.
 
   const kb = useKeyboardInset({
     initialBarHeight: INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight,
   });
+  const compensation = useKeyboardScrollCompensation(
+    kb.contentInset,
+    kb.reservedInset,
+  );
 
   // Нативной панели нужна явная высота в стиле (см. ниже), поэтому замер
   // дублируется в состояние. Хуку хватает shared value.
@@ -114,7 +119,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
     <Container edges={[]}>
       <KeyboardScrollView
         style={ss.scroll}
-        scroll={kb.scroll}
+        scroll={compensation}
         keyboardShouldPersistTaps={"handled"}
       >
         {/* Порт тапа по коллекции с view.endEditing(true): штатный

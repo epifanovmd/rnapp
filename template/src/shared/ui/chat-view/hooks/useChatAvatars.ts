@@ -5,8 +5,7 @@ import { IChatAvatarGroup } from "../data";
 import { IChatGeometry, resolveStickyAvatars } from "../scroll";
 
 /**
- * Пересчёт позиций sticky-аватаров на каждом кадре скролла — порт
- * `shouldInvalidateLayout(forBoundsChange:)` для аватар-слоя.
+ * Пересчёт позиций sticky-аватаров на каждом кадре скролла.
  *
  * Возвращает функцию пересчёта: её зовёт обработчик скролла вместе с плавающей
  * датой и видимостью. Результат пишется в стор аватаров, React при этом

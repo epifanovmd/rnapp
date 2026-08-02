@@ -21,7 +21,7 @@ interface IVoiceWaveformProps {
   inactiveColor: string;
   progress: SharedValue<number>;
   isActive: boolean;
-  /** Трек не загрузился — волна приглушена. Порт `setDimmed`. */
+  /** Трек не загрузился — волна приглушена. */
   isDimmed: boolean;
 }
 

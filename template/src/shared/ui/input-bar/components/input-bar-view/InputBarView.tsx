@@ -30,7 +30,7 @@ import { InputBarSendButton } from "./InputBarSendButton";
 import { InputBarTextField } from "./InputBarTextField";
 
 /**
- * Ядро панели ввода — порт `InputBarView` из пода: растущее поле, панель
+ * Ядро панели ввода: растущее поле, панель
  * ответа/редактирования, кнопка вложений и морфинг «микрофон ↔ отправка» с
  * жестом записи. Компонент только собирает части: каждое поведение живёт в
  * своём хуке, каждая кнопка — в своём компоненте.
@@ -207,7 +207,7 @@ export const InputBarView = memo(
         layout.textViewMaxHeight,
       );
 
-      // Порт recordingRow.fadeOut: строка гаснет отдельно от смены состояния.
+      // Строка гаснет отдельно от смены состояния.
       const recordingRowStyle = useAnimatedStyle(() => ({
         opacity: rowOpacity.value,
       }));
@@ -233,7 +233,7 @@ export const InputBarView = memo(
                 value={text}
                 height={inputHeight}
                 // Поле возвращается не в момент остановки записи, а когда
-                // строка записи полностью ушла — как в поде.
+                // строка записи полностью ушла.
                 hidden={rowVisible}
                 onChangeText={handleChangeText}
                 onContentHeightChange={setContentHeight}

@@ -1,8 +1,8 @@
 import { IParsedChatMessage } from "../data/chat-message";
 
 /**
- * Отслеживание видимости — порт `collectVisibleMessageIDs()` и связки
- * throttle/debounce из `ChatViewController+Scroll`.
+ * Отслеживание видимости: сбор видимых сообщений и связка
+ * throttle/debounce.
  *
  * Три вещи, которых нет в обычном `onViewableItemsChanged`:
  * 1. гистерезис — вход при `visibilityThreshold` (0.8), выход только ниже
@@ -22,11 +22,11 @@ export interface IVisibleItem {
 }
 
 export interface IVisibilityThresholds {
-  /** Порог входа в снимок видимых (0..1). Порт `visibilityThreshold`. */
+  /** Порог входа в снимок видимых (0..1). */
   enterThreshold: number;
-  /** Порог выхода из снимка (0..1). Порт `visibilityExitThreshold`. */
+  /** Порог выхода из снимка (0..1). */
   exitThreshold: number;
-  /** Порог отметки прочитанным (0..1). Порт `unreadVisibilityThreshold`. */
+  /** Порог отметки прочитанным (0..1). */
   unreadThreshold: number;
   /** Троттлинг снимка видимых (мс). */
   visibleThrottleMs: number;
@@ -50,7 +50,7 @@ export interface IVisibilityTrackerOptions {
 export class ChatVisibilityTracker {
   private _options: IVisibilityTrackerOptions;
 
-  /** ID, прошедшие гистерезис на прошлом шаге. Порт `activeVisibleIDs`. */
+  /** ID, прошедшие гистерезис на прошлом шаге. */
   private _activeIds = new Set<string>();
   /** Уже отмеченные прочитанными — чтобы не слать повторно. */
   private _seenUnreadIds = new Set<string>();
@@ -68,8 +68,8 @@ export class ChatVisibilityTracker {
   }
 
   /**
-   * Порт `updateVisibleMessages()`: принимает текущие доли видимости,
-   * применяет гистерезис и раздаёт события по своим каналам.
+   * Принимает текущие доли видимости, применяет гистерезис и раздаёт
+   * события по своим каналам.
    */
   update(items: IVisibleItem[]) {
     const { enterThreshold, exitThreshold, unreadThreshold } =
@@ -124,7 +124,7 @@ export class ChatVisibilityTracker {
     this._unreadTimer = null;
   }
 
-  // ─── Throttle снимка видимых (порт notifyVisibleMessages) ────────────────
+  // ─── Throttle снимка видимых ─────────────────────────────────────────────
 
   private _scheduleVisible() {
     const now = Date.now();
@@ -161,7 +161,7 @@ export class ChatVisibilityTracker {
     this._options.onVisibleChange(ids);
   }
 
-  // ─── Debounce батча непрочитанных (порт notifyUnreadMessages) ────────────
+  // ─── Debounce батча непрочитанных ────────────────────────────────────────
 
   private _scheduleUnread(ids: Set<string>) {
     for (const id of ids) {

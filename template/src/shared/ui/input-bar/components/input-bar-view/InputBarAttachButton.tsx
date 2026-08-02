@@ -10,7 +10,7 @@ import { InputIcon } from "../InputIcon";
 
 /**
  * Левая кнопка панели: скрепка, а во время записи — корзина отмены.
- * Всегда в DOM и анимируется width + scale + opacity, как в поде.
+ * Всегда в DOM и анимируется width + scale + opacity.
  */
 
 interface IInputBarAttachButtonProps {

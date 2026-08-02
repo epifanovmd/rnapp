@@ -16,10 +16,10 @@ import { IInputBarViewDelegate } from "../model";
 import { RecordingState } from "../model";
 import { createVoiceRecorder, VoiceRecorder } from "../services";
 
-// ─── Тайминги возврата панели (порт performCancel/handleRelease) ─────────────
-// Под разыгрывает возврат последовательно, и именно из-за этого он выглядит
+// ─── Тайминги возврата панели ─────────────
+// Возврат разыгрывается последовательно, и именно из-за этого он выглядит
 // плавным: строка записи гаснет → микрофон возвращается пружиной → и только
-// потом слева появляется кнопка. Значения — 1:1 из InputBarView+Recording.
+// потом слева появляется кнопка. Значения — 1:1 из реализации.
 
 /** `recordingRow.fadeOut` — гашение строки записи. */
 const ROW_FADE_DURATION = 150;
@@ -39,7 +39,7 @@ const CLIP_SQUEEZE_SCALE = 0.6;
 /**
  * Машина состояний записи голоса: жизненный цикл рекордера, переходы
  * idle→recording→locked→idle, хаптика, анимация левой кнопки.
- * Порт InputBarView+Recording из пода.
+ * Логика записи панели ввода.
  */
 export function useRecordingController(
   delegateRef: React.RefObject<IInputBarViewDelegate>,
@@ -127,7 +127,7 @@ export function useRecordingController(
     rowOpacity,
   ]);
 
-  /** Порт restoreInputBar: место под кнопку и её проявление. */
+  /** Возврат панели: место под кнопку и её проявление. */
   const restoreLeftButtonBox = useCallback(
     (delay: number) => {
       leftButtonOpacity.value = withDelay(
@@ -155,7 +155,7 @@ export function useRecordingController(
   );
 
   /**
-   * Порт restoreLeftButtonToClip: кнопка сжимается до 0.6, ровно в нижней
+   * Кнопка сжимается до 0.6, ровно в нижней
    * точке корзина меняется на скрепку, и пружина возвращает полный размер.
    * Иконку переключаем из колбэка сжатия, а не по таймеру — тогда подмена
    * всегда попадает в момент, когда кнопка меньше всего заметна.
@@ -186,10 +186,10 @@ export function useRecordingController(
 
     setRecordingState("idle");
     setShowCancelTrash(false);
-    // Отпускание строку не гасит — под просто убирает её в момент возврата.
+    // Отпускание строку не гасит — она убирается в момент возврата.
     hideRecordingRow(delay, false);
     // Из закреплённой записи кнопка стоит на месте с корзиной — прячем её,
-    // чтобы она выехала уже со скрепкой, как в поде.
+    // чтобы она выехала уже со скрепкой.
     if (wasLocked) {
       leftButtonScale.value = 0.01;
       leftButtonOpacity.value = 0;

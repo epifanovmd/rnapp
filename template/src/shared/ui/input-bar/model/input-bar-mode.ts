@@ -1,6 +1,6 @@
 import type { IVoiceRecorderResult } from "../services";
 
-/** Доменные типы панели ввода — порт `InputBarModels` и `InputBarDelegate`. */
+/** Доменные типы панели ввода. */
 
 /** Режим панели: обычный ввод, ответ на сообщение или редактирование. */
 export type InputBarMode =
@@ -17,7 +17,7 @@ export type InputBarMode =
 /** Состояние записи голосового: свободно / идёт / зафиксировано замком. */
 export type RecordingState = "idle" | "recording" | "locked";
 
-/** Наружный контракт панели — порт `InputBarDelegate`. */
+/** Наружный контракт панели. */
 export interface IInputBarViewDelegate {
   onSend(text: string, replyToId: string | undefined): void;
   onEdit(text: string, messageId: string): void;
@@ -29,7 +29,7 @@ export interface IInputBarViewDelegate {
   onRecordingStateChanged(isRecording: boolean): void;
 }
 
-/** Императивный API ядра — порт `clearInput` / `activateKeyboard` / `dismissKeyboard`. */
+/** Императивный API ядра: очистка поля, фокус и снятие фокуса. */
 export interface IInputBarViewRef {
   clearInput(): void;
   focus(): void;

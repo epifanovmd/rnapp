@@ -5,7 +5,7 @@ import Animated, { AnimatedStyle } from "react-native-reanimated";
 /**
  * Плавающая панель ввода, прижатая к верхней границе клавиатуры.
  *
- * Порт `keyboardLayoutGuide` + `followsUndockedKeyboard`, но без
+ * Следование за клавиатурой без
  * собственной подписки на клавиатуру: движение задаёт `style`, который
  * отдаёт `useKeyboardInset().barStyle`. Своя подписка была бы вторым
  * источником сдвига — панель и контент поехали бы по разным значениям.

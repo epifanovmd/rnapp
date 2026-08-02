@@ -13,10 +13,10 @@ import {
 /**
  * Видимость сообщений — мост между списком и `ChatVisibilityTracker`.
  *
- * `LegendList` сообщает лишь «видимо / не видимо» по одному порогу, а эталону
+ * `LegendList` сообщает лишь «видимо / не видимо» по одному порогу, а чату
  * нужна **доля видимости** каждой ячейки: на ней держатся гистерезис и
  * отдельный порог прочитанности. Поэтому доля считается здесь по геометрии —
- * как эталон считает `visibleRect ∩ cellFrame`.
+ * `visibleRect ∩ cellFrame`.
  */
 
 export interface IChatVisibilityOptions {
@@ -28,7 +28,7 @@ export interface IChatVisibilityOptions {
   onMarkAsRead: (messageIds: Set<string>) => void;
 }
 
-/** Доля видимой части строки. Порт `intersection.height / cellFrame.height`. */
+/** Доля видимой части строки. */
 const visibleFractionOf = (
   geometry: IChatGeometry,
   index: number,

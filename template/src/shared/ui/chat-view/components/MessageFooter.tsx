@@ -8,8 +8,8 @@ import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon, ChatIconName } from "./ChatIcon";
 
 /**
- * Футер пузыря — порт `footerView` + `MessageStatusView`: «изм.», время и
- * иконка статуса (только исходящие), прижатые к правому краю.
+ * Футер пузыря: «изм.», время и иконка статуса (только исходящие), прижатые
+ * к правому краю.
  */
 
 const STATUS_ICONS: Record<ChatMessageStatus, ChatIconName> = {

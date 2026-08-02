@@ -8,10 +8,9 @@ import { IChatViewTheme } from "./chat-theme";
 /**
  * Готовые стили ячейки сообщения, собранные один раз на пару (тема, лейаут).
  *
- * Порт того, что в UIKit делают `configure(theme:layout:)`: цвета и метрики
- * применяются к вью один раз при конфигурации, а не пересчитываются на каждую
- * перерисовку. В RN то же самое даёт главный выигрыш в списке — ячейка больше
- * не аллоцирует три десятка объектов стиля на рендер.
+ * Цвета и метрики применяются к вью один раз при конфигурации, а не
+ * пересчитываются на каждую перерисовку. В RN то же самое даёт главный выигрыш
+ * в списке — ячейка больше не аллоцирует три десятка объектов стиля на рендер.
  */
 
 const OWNERSHIPS: ChatMessageOwnership[] = [
@@ -84,7 +83,7 @@ export interface IChatSharedStyles {
   threadSeparator: TextStyle;
   threadReplier: TextStyle;
 
-  /** Отступ текста под медиа. Порт `mixedContentSpacing`. */
+  /** Отступ текста под медиа. */
   mixedContentGap: ViewStyle;
   fileList: ViewStyle;
   mediaGrid: ViewStyle;
@@ -171,7 +170,7 @@ const editedColor = (
   }
 };
 
-/** Порт `MessageOwnership.alignment` → `justifyContent` строки. */
+/** Выравнивание строки по принадлежности сообщения: `justifyContent`. */
 const justifyOf = (
   ownership: ChatMessageOwnership,
 ): ViewStyle["justifyContent"] => {

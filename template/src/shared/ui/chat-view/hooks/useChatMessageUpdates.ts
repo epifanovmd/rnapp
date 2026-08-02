@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { DISINTEGRATION_REMOVE_MS } from "../components/disintegration-overlay/disintegration-particles";
 import { IParsedChatMessage, planChatUpdate, shouldDeferUpdate } from "../data";
 import { ChatUnreadManager } from "../services";
 import { IChatCommands } from "./useChatCommands";
@@ -7,7 +8,7 @@ import { IChatScrollController } from "./useChatScroll";
 import { IChatScrollAnchorController } from "./useChatScrollAnchor";
 
 /**
- * Применение обновлений списка — порт `MessageUpdateHandler`.
+ * Применение обновлений списка.
  *
  * Стратегия обновления определяет поведение скролла, и решение принимается по
  * состоянию **до** применения данных — поэтому снимок (`wasAtBottom`, якоря)
@@ -23,8 +24,12 @@ import { IChatScrollAnchorController } from "./useChatScrollAnchor";
 /** Сколько сообщений считаем «своей отправкой», а не догрузкой истории. */
 const APPEND_AUTOSCROLL_LIMIT = 2;
 
-/** Пауза, за которую проигрывается эффект распада. Порт задержки 0.15 с. */
-const DISINTEGRATION_DELAY = 150;
+/**
+ * Пауза перед применением данных: удаляемая ячейка схлопывается за
+ * DISINTEGRATION_REMOVE_MS плюс запас на кадр замера пузыря. Задержка
+ * 0.15 с — увеличена, чтобы строка уходила уже после анимации удаления.
+ */
+const DISINTEGRATION_DELAY = DISINTEGRATION_REMOVE_MS + 50;
 
 export interface IChatMessageUpdatesOptions {
   /** Разобранные входные сообщения (проп). */
@@ -47,7 +52,7 @@ export interface IChatMessageUpdates {
   displayed: IParsedChatMessage[];
   /**
    * Применить отложенное структурное обновление. Вызывать по остановке
-   * скролла. Порт `flushPendingMessages()`.
+   * скролла.
    */
   flushDeferred: () => void;
 }
@@ -65,7 +70,7 @@ export const useChatMessageUpdates = ({
   const [displayed, setDisplayed] = useState(parsed);
 
   const previousRef = useRef(parsed);
-  /** Отложенное обновление — ждёт остановки скролла. Порт `pendingMessages`. */
+  /** Отложенное обновление — ждёт остановки скролла. */
   const deferredRef = useRef<IParsedChatMessage[] | null>(null);
   /** Позиция, которую нужно восстановить после коммита данных. */
   const restoreRef = useRef<(() => void) | null>(null);
@@ -76,8 +81,8 @@ export const useChatMessageUpdates = ({
       const plan = planChatUpdate(previous, next);
       const state = scroll.state.current;
 
-      // Порт updateMessages: структурные правки во время перетаскивания
-      // откладываем — они сдвинут контент под пальцем.
+      // Структурные правки во время перетаскивания откладываем — они
+      // сдвинут контент под пальцем.
       if (
         (state.isUserDragging || state.isProgrammaticScroll) &&
         shouldDeferUpdate(plan)
@@ -101,7 +106,7 @@ export const useChatMessageUpdates = ({
           break;
 
         case "append": {
-          // Порт applyAppend: вниз едем, только если были внизу и это
+          // Вниз едем, только если были внизу и это
           // похоже на новое сообщение, а не на догрузку хвоста истории.
           const autoScroll =
             wantScroll ||
@@ -125,7 +130,7 @@ export const useChatMessageUpdates = ({
             break;
           }
 
-          // Порт restoreBestAnchor: снимаем якоря ДО применения данных,
+          // Снимаем якоря ДО применения данных,
           // после коммита выбираем тот, что ещё существует.
           const anchors = anchor.visible();
 
@@ -140,7 +145,7 @@ export const useChatMessageUpdates = ({
         }
       }
 
-      // Порт animateDisintegrationThen: сначала распад, потом данные.
+      // Сначала распад, потом данные.
       if (
         isDisintegrationEnabled() &&
         plan.deletedIds.size > 0 &&
@@ -183,7 +188,7 @@ export const useChatMessageUpdates = ({
     return () => cancelAnimationFrame(frame);
   }, [displayed]);
 
-  // Порт flushPendingMessages: скролл остановился — применяем отложенное.
+  // Скролл остановился — применяем отложенное.
   // Вызывается из `onSettled` списка, а не из эффекта: обновление должно
   // приходить ровно один раз на остановку, а не на каждый рендер.
   const flushDeferred = useCallback(() => {
@@ -196,7 +201,7 @@ export const useChatMessageUpdates = ({
   }, [applyUpdate]);
 
   // Отложенный скролл вниз, поставленный до прихода данных (отправка
-  // сообщения в пустой чат). Порт pendingScrollToBottom в applyInitial.
+  // сообщения в пустой чат).
   useEffect(() => {
     if (!scroll.state.current.pendingScrollToBottom) return;
     if (displayed.length === 0) return;

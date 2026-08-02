@@ -6,8 +6,7 @@ import {
 } from "./chat-message";
 
 /**
- * Строка списка — порт `ChatRow`: сообщение, разделитель дат или индикатор
- * загрузки.
+ * Строка списка: сообщение, разделитель дат или индикатор загрузки.
  *
  * Строка **готова к отрисовке**: всё, что ячейке нужно знать о соседях и о
  * настройках (разрешённая цитата, показ имени, режим крупных эмодзи), посчитано
@@ -17,13 +16,13 @@ import {
 export type ChatRow =
   | {
       type: "message";
-      /** Стабильный ключ. Порт `ChatRow.differenceIdentifier`. */
+      /** Стабильный ключ. */
       key: string;
       message: IParsedChatMessage;
       resolvedReply?: IResolvedReply;
-      /** Порт `shouldShowSenderName`. */
+      /** Показывать ли имя отправителя. */
       showSenderName: boolean;
-      /** Крупные эмодзи без фона пузыря. Порт `isBubblelessEmoji`. */
+      /** Крупные эмодзи без фона пузыря. */
       bubbleless: boolean;
     }
   | { type: "dateSeparator"; key: string; groupDate: string; hidden: boolean }
@@ -35,7 +34,7 @@ export const chatRowKey = (row: ChatRow): string => row.key;
 const messageRowKey = (message: IParsedChatMessage): string =>
   `m_${message.localId ?? message.id}`;
 
-/** Порт `isBubblelessEmoji`: имя, цитата и заголовок пересылки требуют пузыря. */
+/** Крупные эмодзи без пузыря, но имя, цитата и заголовок пересылки требуют пузыря. */
 const isBubbleless = (
   message: IParsedChatMessage,
   showSenderName: boolean,
@@ -64,7 +63,7 @@ interface IMessageRowCacheEntry {
 }
 
 /**
- * Построение строк с сохранением идентичности — порт `buildRows(from:)`.
+ * Построение строк с сохранением идентичности.
  *
  * Строка пересоздаётся, только если изменилось что-то из её входов: само
  * сообщение, сообщение-оригинал цитаты или настройки. Иначе возвращается тот же

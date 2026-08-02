@@ -9,8 +9,8 @@ import { ChatIcon } from "../../ChatIcon";
 import { IMediaGridFrame } from "./media-grid-layout";
 
 /**
- * Ячейка сетки — порт `MediaCellView`: превью, иконка воспроизведения и бейдж
- * длительности у видео, оверлей «+N» на последней ячейке.
+ * Ячейка сетки: превью, иконка воспроизведения и бейдж длительности у видео,
+ * оверлей «+N» на последней ячейке.
  */
 
 interface IMediaGridCellProps {

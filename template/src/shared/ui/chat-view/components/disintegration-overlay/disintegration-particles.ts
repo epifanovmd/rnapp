@@ -1,10 +1,17 @@
 /**
- * Параметры частиц эффекта распада — порт `DisintegrationAnimator.Config`
+ * Параметры частиц эффекта распада
  * (lifetime 1.2 с, velocity 200, gravity 300, spin 8).
  */
 
 export const DISINTEGRATION_LIFETIME = 1.2;
 export const DISINTEGRATION_GRAVITY = 300;
+
+/**
+ * Длительность схлопывания удаляемой ячейки (мс). Короче полного распада:
+ * сам конфетти-эффект (`disintegrationDuration`) живёт дольше, а ячейка уходит
+ * за это время — дальше строку из данных убирает обновление.
+ */
+export const DISINTEGRATION_REMOVE_MS = 250;
 
 const VELOCITY = 200;
 const SPIN = 8;

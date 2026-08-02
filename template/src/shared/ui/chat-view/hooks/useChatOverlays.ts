@@ -5,8 +5,7 @@ import { IParsedChatMessage } from "../data";
 import { ChatUnreadManager } from "../services";
 
 /**
- * FAB, пустое состояние и счётчик непрочитанных — порт `FABManager`,
- * `EmptyStateManager` и `UnreadManager` (сторона состояния).
+ * FAB, пустое состояние и счётчик непрочитанных (сторона состояния).
  *
  * Все три пишут в один внешний стор оверлеев: их значения меняются на
  * каждом кадре скролла, и заводить под них React-состояние значило бы
@@ -18,17 +17,17 @@ export interface IChatOverlaysOptions {
   unreadManager: ChatUnreadManager;
   isNearBottom: () => boolean;
   getDisplayed: () => IParsedChatMessage[];
-  /** Порт `isLoadingFab`: FAB показан принудительно и не реагирует на скролл. */
+  /** При загрузке FAB показан принудительно и не реагирует на скролл. */
   isFabLoading: () => boolean;
   isFabEnabled: () => boolean;
 }
 
 export interface IChatOverlaysController {
-  /** Порт `updateFABVisibility(animated:)`. */
+  /** Пересчитать видимость FAB по текущему состоянию. */
   updateFab: () => void;
-  /** Порт `fabManager.setExpanded`. */
+  /** Развернуть / свернуть FAB. */
   setFabExpanded: (expanded: boolean) => void;
-  /** Порт `fabManager.hideForRecording`. */
+  /** Спрятать FAB на время записи голоса. */
   setFabHiddenForRecording: (hidden: boolean) => void;
 }
 
@@ -56,7 +55,7 @@ export const useChatOverlays = ({
       return;
     }
 
-    // Порт: пока идёт загрузка, FAB не прячем.
+    // Пока идёт загрузка, FAB не прячем.
     if (isFabLoading()) return;
 
     store.set({
@@ -86,7 +85,7 @@ export const useChatOverlays = ({
   );
 };
 
-/** Пустое состояние — порт `EmptyStateManager.update`. */
+/** Пустое состояние: запись видимости, загрузки и текста в стор оверлеев. */
 export const useChatEmptyState = (
   store: ChatOverlayStore,
   isEmpty: boolean,
@@ -102,7 +101,7 @@ export const useChatEmptyState = (
   }, [store, isEmpty, isLoading, emptyText]);
 };
 
-/** Внешнее управление счётчиком. Порт `setUnreadCount`. */
+/** Внешнее управление счётчиком. */
 export const useChatExternalUnread = (
   unreadManager: ChatUnreadManager,
   unreadCount: number,

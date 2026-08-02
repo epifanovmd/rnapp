@@ -11,8 +11,8 @@ import { withOpacity } from "../../../utils";
 import { useChatViewContext } from "../../chat-view-context";
 
 /**
- * Вариант опроса — порт `PollOptionRow`: полоса заполнения анимируется spring
- * 0.6 с / damping 0.85, но только при обновлении, не при первом показе.
+ * Вариант опроса: полоса заполнения анимируется spring 0.6 с / damping 0.85,
+ * но только при обновлении, не при первом показе.
  */
 
 interface IPollOptionRowProps {

@@ -2,11 +2,11 @@ import { IDateSeparatorPosition } from "../data/chat-data";
 import { IChatGeometry } from "./chat-geometry";
 
 /**
- * Плавающая дата — порт расчётной части `FloatingDateManager.update()`.
+ * Плавающая дата — расчёт её положения на экране.
  *
  * Плашка показывает дату той группы, чей разделитель уже ушёл под верхнюю
  * границу. Когда снизу подходит следующий разделитель, плашка «выталкивается»
- * им вверх (`pushOffset`) — эталон делает это трансформацией контейнера.
+ * им вверх (`pushOffset`).
  */
 
 export interface IFloatingDateResult {
@@ -14,7 +14,7 @@ export interface IFloatingDateResult {
   groupDate: string | null;
   /**
    * Смещение плашки вверх, когда следующий разделитель подпирает её снизу
-   * (отрицательное или 0). Порт `container.transform`.
+   * (отрицательное или 0).
    */
   pushOffset: number;
 }
@@ -24,11 +24,11 @@ const HIDDEN: IFloatingDateResult = { groupDate: null, pushOffset: 0 };
 export interface IResolveFloatingDateInput {
   geometry: IChatGeometry;
   separators: IDateSeparatorPosition[];
-  /** Позиция покоя плашки от верха вьюпорта. Порт `pillRestY`. */
+  /** Позиция покоя плашки от верха вьюпорта. */
   pillRestY: number;
   /** Высота плашки. */
   pillHeight: number;
-  /** Порт `layout.sectionSpacing`. */
+  /** Зазор вокруг плашки даты по вертикали. */
   spacing: number;
 }
 

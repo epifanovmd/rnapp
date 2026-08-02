@@ -1,8 +1,8 @@
 import { Platform, TextStyle } from "react-native";
 
 /**
- * Форматирование текста чата: порт DateHelper, EmojiHelper, formatTime и
- * ByteCountFormatter из IOSChatView.
+ * Форматирование текста чата: время, даты, длительности, размеры файлов,
+ * плюрализация, эмодзи и базовый стиль текста.
  */
 
 const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
@@ -87,7 +87,7 @@ export const formatChatDuration = (seconds: number): string => {
   return `${Math.floor(total / 60)}:${secs < 10 ? `0${secs}` : secs}`;
 };
 
-/** Размер файла в человекочитаемом виде (порт ByteCountFormatter .file). */
+/** Размер файла в человекочитаемом виде. */
 export const formatFileSize = (bytes: number): string => {
   if (bytes < 1000) return `${bytes} байт`;
 
@@ -125,8 +125,8 @@ const EMOJI_GRAPHEME_RE =
   /\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?(?:‍\p{Extended_Pictographic}(?:️|\p{Emoji_Modifier})?)*|\p{Regional_Indicator}{2}/gu;
 
 /**
- * Число эмодзи, если текст состоит только из 1–3 эмодзи (порт
- * EmojiHelper.emojiOnlyCount) — такое сообщение рисуется крупно и без пузыря.
+ * Число эмодзи, если текст состоит только из 1–3 эмодзи — такое сообщение
+ * рисуется крупно и без пузыря.
  */
 export const emojiOnlyCount = (text: string | undefined): number | null => {
   if (!text) return null;
@@ -140,7 +140,7 @@ export const emojiOnlyCount = (text: string | undefined): number | null => {
 /**
  * Базовый стиль любого текста чата.
  *
- * Метрики порта взяты из iOS (высоты цитаты, футера, чипов реакций), а Android
+ * Высоты цитаты, футера и чипов реакций взяты из iOS, а Android
  * по умолчанию добавляет к строке отступы шрифта — в контейнерах фиксированной
  * высоты это обрезает текст. Отключаем, чтобы высоты совпадали.
  */

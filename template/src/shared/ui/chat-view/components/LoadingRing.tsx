@@ -11,9 +11,8 @@ import Animated, {
 import Svg, { Path } from "react-native-svg";
 
 /**
- * Вращающееся кольцо загрузки по внутреннему контуру круглой кнопки — порт
- * `loadingRing` (CAShapeLayer, дуга 270°, оборот за 0.8 с) из FABManager и
- * VoiceContentView.
+ * Вращающееся кольцо загрузки по внутреннему контуру круглой кнопки: дуга
+ * 270°, оборот за 0.8 с.
  */
 
 interface ILoadingRingProps {
@@ -24,7 +23,7 @@ interface ILoadingRingProps {
   strokeWidth?: number;
 }
 
-/** Дуга 270°, порт `strokeEnd = 0.75`. */
+/** Дуга 270° (0.75 окружности). */
 const arcPath = (size: number, inset: number): string => {
   const c = size / 2;
   const r = c - inset;

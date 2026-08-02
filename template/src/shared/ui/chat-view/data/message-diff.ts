@@ -1,7 +1,7 @@
 import { IParsedChatMessage } from "./chat-message";
 
 /**
- * Порт MessageDiff: классификация обновлений массива сообщений.
+ * Классификация обновлений массива сообщений.
  */
 
 export interface IPendingMapping {

@@ -7,8 +7,7 @@ import { EmojiContent, TextContent } from "../content";
 import { MessageMedia } from "./MessageMedia";
 
 /**
- * Наполнение пузыря — порт `MessageBubbleView.createContentView`: крупные
- * эмодзи либо медиа и текст друг под другом.
+ * Наполнение пузыря: крупные эмодзи либо медиа и текст друг под другом.
  */
 
 interface IMessageContentProps {

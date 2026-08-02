@@ -7,7 +7,7 @@ import { IChatGeometry, resolveFloatingDate } from "../scroll";
 import { getSectionTitle } from "../utils";
 
 /**
- * Плавающая дата — порт `FloatingDateManager` (сторона состояния).
+ * Плавающая дата — сторона состояния.
  *
  * Расчёт живёт в `resolveFloatingDate`, здесь — только таймер автоскрытия и
  * запись в стор оверлеев. Сдвиг плашки меняется каждый кадр и уходит в shared
@@ -24,7 +24,7 @@ export interface IChatFloatingDateOptions {
   getLayout: () => IChatViewLayout;
   isEnabled: () => boolean;
   hasMessages: () => boolean;
-  /** Дополнительный верхний отступ чата. Порт `collectionExtraInsetTop`. */
+  /** Дополнительный верхний отступ чата. */
   getTopInset: () => number;
   store: ChatOverlayStore;
 }
@@ -58,8 +58,7 @@ export const useChatFloatingDate = ({
     }
 
     const layout = getLayout();
-    // Порт dateSeparatorHeight: высота строки ≈ 1.3 кегля плюс вертикальные
-    // отступы плашки.
+    // Высота строки ≈ 1.3 кегля плюс вертикальные отступы плашки.
     const pillHeight =
       layout.dateSeparatorFont.fontSize * 1.3 + layout.dateSeparatorVPad * 2;
 
@@ -89,7 +88,7 @@ export const useChatFloatingDate = ({
 
     store.set({ floatingDateVisible: true });
 
-    // Порт show(): плашка гаснет сама через floatingDateHideDelay. Таймер
+    // Плашка гаснет сама через floatingDateHideDelay. Таймер
     // не взводится заново на каждом кадре скролла — только не чаще чем
     // раз в HIDE_TIMER_REARM_MS: эффект тот же, а 60 таймеров в секунду
     // чистить не нужно.

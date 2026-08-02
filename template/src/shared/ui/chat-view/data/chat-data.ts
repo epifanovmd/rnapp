@@ -3,8 +3,7 @@ import { IParsedChatMessage } from "./chat-message";
 import { ChatRow, ChatRowsBuilder } from "./chat-rows";
 
 /**
- * Производные данные списка — порт `buildRows` + `rebuildCachesFromRows` +
- * `rebuildMessageIndex` + `computeAvatarGroups` из `ChatViewController+Data`.
+ * Производные данные списка: строки, индексы, разделители дат и группы аватаров.
  *
  * Всё, что список и логика скролла знают о сообщениях, собирается здесь и
  * только здесь. Ключевое свойство — сохранение идентичности: объекты, чьи входы
@@ -12,7 +11,7 @@ import { ChatRow, ChatRowsBuilder } from "./chat-rows";
  * изменившиеся строки.
  */
 
-/** Позиция разделителя дат в списке строк. Порт `cachedDateSeparators`. */
+/** Позиция разделителя дат в списке строк. */
 export interface IDateSeparatorPosition {
   rowIndex: number;
   groupDate: string;
@@ -32,13 +31,13 @@ export interface IChatData {
   parsed: IParsedChatMessage[];
   /** Строки списка: сообщения + разделители дат + индикатор загрузки. */
   rows: ChatRow[];
-  /** ID → сообщение. Порт `messageIndex`. */
+  /** ID → сообщение. */
   messageIndex: Map<string, IParsedChatMessage>;
-  /** ID сообщения → индекс строки. Порт `rowIndexCache`. */
+  /** ID сообщения → индекс строки. */
   rowIndexById: Map<string, number>;
-  /** Позиции разделителей дат. Порт `cachedDateSeparators`. */
+  /** Позиции разделителей дат. */
   dateSeparators: IDateSeparatorPosition[];
-  /** Группы аватаров в индексах строк. Порт `avatarGroups`. */
+  /** Группы аватаров в индексах строк. */
   avatarGroups: IChatAvatarGroup[];
 }
 

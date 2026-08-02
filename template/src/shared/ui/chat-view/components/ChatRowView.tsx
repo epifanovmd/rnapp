@@ -6,7 +6,7 @@ import { LoadingRow } from "./LoadingRow";
 import { MessageCell } from "./message-cell";
 
 /**
- * Диспетчер строки — порт `ChatDataSource.cellProvider`.
+ * Диспетчер строки.
  *
  * Принимает **только строку**: цитата, показ имени и режим крупных эмодзи уже
  * посчитаны в `ChatRowsBuilder`. Поэтому `memo` здесь реально работает — строка

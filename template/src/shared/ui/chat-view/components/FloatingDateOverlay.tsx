@@ -11,8 +11,8 @@ import { useChatViewContext } from "./chat-view-context";
 import { useOverlayValue } from "./useOverlayValue";
 
 /**
- * Плашка текущей даты при скролле — порт `FloatingDateManager` с автоскрытием
- * через `floatingDateHideDelay`.
+ * Плашка текущей даты при скролле, с автоскрытием через
+ * `floatingDateHideDelay`.
  */
 
 const selectVisible = (state: IChatOverlayState) => state.floatingDateVisible;

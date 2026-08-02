@@ -11,7 +11,7 @@ import {
 
 import { useInputBarContext } from "../config";
 
-/** Амплитуда покачивания подсказки «Отмена» (порт animateSlide). */
+/** Амплитуда покачивания подсказки «Отмена». */
 const SLIDE_HINT_SHIFT = 8;
 
 /**
@@ -29,7 +29,7 @@ export function useRecordingRowAnimation() {
       -1,
       true,
     );
-    // Порт animateSlide: под качает подсказку между -8 и +8 (первый проход
+    // Подсказка качается между -8 и +8 (первый проход
     // идёт от нуля), поэтому амплитуда 16, а не 8.
     slideShift.value = SLIDE_HINT_SHIFT;
     slideShift.value = withRepeat(

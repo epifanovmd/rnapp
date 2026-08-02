@@ -1,21 +1,23 @@
 /**
- * Автономная работа с клавиатурой: положение плавающей панели, отступ
- * контента, компенсация скролла и заморозка на время оверлеев. О чате модуль
- * не знает — им пользуется любой экран с панелью поверх скролла.
+ * Автономная работа с клавиатурой: положение плавающей панели, отступ контента
+ * и компенсация скролла. О чате модуль не знает — им пользуется любой экран
+ * с панелью поверх скролла.
  *
- * Точка входа одна — `useKeyboardInset`:
+ * Хуки используются по отдельности:
  *
  * ```tsx
  * const kb = useKeyboardInset({ extraPadding: 8, onBlur, onRefocus });
+ * const compensation = useKeyboardScrollCompensation(
+ *   kb.contentInset,
+ *   kb.reservedInset,
+ * );
  *
- * <KeyboardScrollView scroll={kb.scroll}>{content}</KeyboardScrollView>
+ * <KeyboardScrollView scroll={compensation}>{content}</KeyboardScrollView>
  * <KeyboardInputBar style={kb.barStyle}>
  *   <InputBar onHeightChange={kb.setBarHeight} />
  * </KeyboardInputBar>
  * ```
- *
- * Остальные хуки экспортированы для нестандартных составов.
  */
 export * from "./use-keyboard-height";
 export * from "./use-keyboard-inset";
-export * from "./use-scroll-compensation";
+export * from "./use-keyboard-scroll-compensation";

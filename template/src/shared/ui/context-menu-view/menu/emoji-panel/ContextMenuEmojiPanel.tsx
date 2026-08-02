@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import { IContextMenuStyles } from "../../config";
 import { EmojiButton } from "./EmojiButton";
 
-/** Панель быстрых реакций — порт `ContextMenuEmojiPanel`. */
+/** Панель быстрых реакций. */
 
 export interface IContextMenuEmojiPanelProps {
   emojis: string[];

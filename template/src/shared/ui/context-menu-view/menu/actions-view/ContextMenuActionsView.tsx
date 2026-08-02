@@ -6,7 +6,7 @@ import { IContextMenuStyles, IContextMenuTheme } from "../../config";
 import { ContextMenuAction } from "../../types";
 import { ActionRow } from "./ActionRow";
 
-/** Список действий меню — порт `ContextMenuActionsView`. */
+/** Список действий меню. */
 
 export interface IContextMenuActionsViewProps {
   actions: ContextMenuAction[];

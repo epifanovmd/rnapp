@@ -3,16 +3,17 @@ import { View } from "react-native";
 
 import { ChatOverlayStore } from "../components/chat-overlay-store";
 import { ChatCellStore } from "../components/chat-view-context";
+import { DISINTEGRATION_REMOVE_MS } from "../components/disintegration-overlay/disintegration-particles";
 import { IChatViewTheme } from "../config";
 import { IParsedChatMessage } from "../data";
 
 /**
- * Эффект распада при удалении — порт `DisintegrationAnimator` +
- * `animateDisintegrationThen`.
+ * Эффект распада при удалении.
  *
  * Пузырь удаляемого сообщения замеряется на экране, его прямоугольник уходит в
- * стор оверлеев, сам пузырь прячется, а данные применяются после паузы — иначе
- * строка исчезнет раньше, чем начнётся анимация.
+ * стор оверлеев, а ячейка начинает схлопываться (высота + прозрачность к нулю).
+ * Данные применяются после паузы — к моменту, когда анимация удаления
+ * закончилась, а не раньше.
  */
 
 export interface IChatDisintegrationOptions {
@@ -22,7 +23,7 @@ export interface IChatDisintegrationOptions {
   getTheme: () => IChatViewTheme;
 }
 
-/** Цвет частиц берётся из цвета пузыря. Порт выбора цвета в аниматоре. */
+/** Цвет частиц берётся из цвета пузыря. */
 const burstColorOf = (
   message: IParsedChatMessage,
   theme: IChatViewTheme,
@@ -49,8 +50,7 @@ export const useChatDisintegration = ({
 
   /**
    * Возвращает `true`, если хотя бы один пузырь удалось замерить —
-   * тогда вызывающий откладывает применение данных. Порт возврата
-   * `hadVisibleAnimation`.
+   * тогда вызывающий откладывает применение данных.
    */
   return useCallback(
     (deletedIds: Set<string>, previous: IParsedChatMessage[]): boolean => {
@@ -59,14 +59,19 @@ export const useChatDisintegration = ({
       if (!root) return false;
 
       const byId = new Map(previous.map(msg => [msg.id, msg]));
-      const targets: { id: string; message: IParsedChatMessage; view: View }[] =
-        [];
+      const targets: {
+        id: string;
+        message: IParsedChatMessage;
+        view: View;
+        cell: View;
+      }[] = [];
 
       for (const id of deletedIds) {
         const message = byId.get(id);
         const view = cellStore.bubbleRefs.get(id);
+        const cell = cellStore.cellRefs.get(id);
 
-        if (message && view) targets.push({ id, message, view });
+        if (message && view && cell) targets.push({ id, message, view, cell });
       }
 
       if (targets.length === 0) return false;
@@ -76,7 +81,7 @@ export const useChatDisintegration = ({
       // Координаты пузырей приводим к системе координат корня чата:
       // оверлей рисуется внутри него.
       root.measureInWindow((rootX, rootY) => {
-        for (const { message, view } of targets) {
+        for (const { message, view, cell } of targets) {
           view.measureInWindow((x, y, width, height) => {
             if (width <= 0 || height <= 0) return;
 
@@ -87,13 +92,23 @@ export const useChatDisintegration = ({
               color: burstColorOf(message, theme),
             });
           });
+
+          // Высота всей ячейки (не только пузыря) — с неё начинается
+          // схлопывание; пузырь тем временем уходит конфетти-эффектом.
+          cell.measureInWindow((_x, _y, _width, cellHeight) => {
+            if (cellHeight <= 0) return;
+
+            cellStore.beginRemove(message.id, cellHeight);
+          });
         }
       });
 
-      cellStore.hideBubbles(deletedIds);
-      // Пузыри вернутся видимыми к моменту, когда строки уже уйдут из данных —
-      // так переиспользованные ячейки не окажутся скрытыми.
-      setTimeout(() => cellStore.showBubbles(deletedIds), 150);
+      // К моменту, когда строка уйдёт из данных, анимация закончена —
+      // состояние схлопывания больше не нужно.
+      setTimeout(
+        () => cellStore.clearRemoving(deletedIds),
+        DISINTEGRATION_REMOVE_MS + 100,
+      );
 
       return true;
     },

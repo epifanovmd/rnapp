@@ -12,8 +12,8 @@ import { useChatViewContext } from "./chat-view-context";
 import { useOverlayValue } from "./useOverlayValue";
 
 /**
- * Пустое состояние — порт `EmptyStateManager`: текст или спиннер при
- * `isLoading`, тап скрывает клавиатуру.
+ * Пустое состояние: текст или спиннер при `isLoading`, тап скрывает
+ * клавиатуру.
  */
 
 const DEFAULT_EMPTY_TEXT = "Сообщений пока нет.\nНапишите первым!";

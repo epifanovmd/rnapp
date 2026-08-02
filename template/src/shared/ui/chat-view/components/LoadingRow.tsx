@@ -2,7 +2,7 @@ import React, { FC, memo } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 /**
- * Порт LoadingCell: спиннер подгрузки (нижний индикатор пагинации).
+ * Спиннер подгрузки (нижний индикатор пагинации).
  */
 
 export const LoadingRow: FC = memo(() => (

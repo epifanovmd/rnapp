@@ -6,8 +6,7 @@ import { ChatViewProps } from "../types";
 import { IChatCommands } from "./useChatCommands";
 
 /**
- * Маршрутизация действий ячеек — порт `ChatViewController+MessageActions`
- * и `ChatViewController+ContextMenu`.
+ * Маршрутизация действий ячеек.
  *
  * Делегат отдаётся ячейкам через ref, чтобы они оставались мемоизированными:
  * пересоздание делегата не должно перерисовывать тысячи строк.
@@ -16,9 +15,9 @@ import { IChatCommands } from "./useChatCommands";
 export interface IChatCellDelegateOptions {
   props: React.RefObject<ChatViewProps>;
   commands: IChatCommands;
-  /** Заморозить нижнюю зону перед показом меню. Порт `keyboardFreezeManager.freeze`. */
+  /** Заморозить нижнюю зону перед показом меню. */
   freezeKeyboard: () => void;
-  /** Отпустить зону после закрытия меню. Порт `keyboardFreezeManager.restore`. */
+  /** Отпустить зону после закрытия меню. */
   restoreKeyboard: () => void;
 }
 
@@ -30,7 +29,7 @@ export const useChatCellDelegate = ({
 }: IChatCellDelegateOptions): React.RefObject<IChatCellDelegate> => {
   const delegate = useMemo<IChatCellDelegate>(
     () => ({
-      // Порт dismissKeyboard: тап по чату всегда убирает клавиатуру. Пустую
+      // Тап по чату всегда убирает клавиатуру. Пустую
       // область берёт на себя `keyboardShouldPersistTaps` списка.
       onTapMessage: (messageId, attachmentIndex) => {
         Keyboard.dismiss();
@@ -52,7 +51,7 @@ export const useChatCellDelegate = ({
         props.current.onActionPress?.({ actionId, messageId });
       },
 
-      // Порт messageSectionDidTapReply: тап по цитате уводит к оригиналу.
+      // Тап по цитате уводит к оригиналу.
       onReplyTap: replyToId => {
         commands.scrollToMessage(replyToId, {
           position: "center",

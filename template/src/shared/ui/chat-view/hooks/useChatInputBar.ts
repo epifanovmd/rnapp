@@ -10,7 +10,7 @@ import { IChatOverlaysController } from "./useChatOverlays";
 import { IChatScrollController } from "./useChatScroll";
 
 /**
- * Панель ввода — порт `ChatViewController+Input` и `applyInputAction`.
+ * Панель ввода.
  *
  * Две обязанности: превратить `inputAction` в режим панели с разрешёнными
  * данными сообщения и развести события панели по чату (отправка ставит
@@ -33,7 +33,7 @@ export interface IChatInputBar {
   onHeightChange: (height: number) => void;
 }
 
-/** Порт `beginReply` / `beginEdit` / `clearInputMode`. */
+/** Разбор действия панели: reply / edit / обычный режим. */
 const resolveInputMode = (
   action: ChatInputAction | null | undefined,
   messageIndex: Map<string, IParsedChatMessage>,
@@ -82,7 +82,7 @@ export const useChatInputBar = ({
   const delegate = useMemo<IInputBarViewDelegate>(
     () => ({
       onSend: (text, replyToId) => {
-        // Порт inputBarDidSend: своё сообщение всегда доезжает до низа.
+        // Своё сообщение всегда доезжает до низа.
         scroll.state.current.pendingScrollToBottom = true;
         overlays.setFabExpanded(false);
         props.current.onSendMessage?.({ text, replyToId });
@@ -98,8 +98,8 @@ export const useChatInputBar = ({
         props.current.onVoiceRecordingComplete?.(result);
       },
       onChangeText: text => {
-        // Порт inputBarDidChangeText: FAB расходится, освобождая место
-        // под выросшую панель, только когда в поле есть текст.
+        // FAB расходится, освобождая место под выросшую панель, только
+        // когда в поле есть текст.
         if (getFeatures().showVoiceRecording) {
           overlays.setFabExpanded(text.trim().length > 0);
         }

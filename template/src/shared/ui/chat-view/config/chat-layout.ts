@@ -5,7 +5,7 @@ import { ChatLayoutConfig } from "../types";
 export interface IChatFont {
   fontSize: number;
   fontWeight: TextStyle["fontWeight"];
-  /** Табличные цифры (monospacedDigitSystemFont в UIKit). */
+  /** Табличные цифры — одинаковой ширины, для выровненных чисел. */
   monospacedDigits?: boolean;
 }
 
@@ -16,8 +16,8 @@ const font = (
 ): IChatFont => ({ fontSize, fontWeight, monospacedDigits });
 
 /**
- * Полный порт ChatLayout из IOSChatView (Swift) — все значения по умолчанию 1:1.
- * Числовые значения переопределяются пропом `layout` (NativeChatLayoutConfig).
+ * Метрики чата со значениями по умолчанию.
+ * Числовые значения переопределяются пропом `layout`.
  */
 export interface IChatViewLayout {
   // Пузырь сообщения

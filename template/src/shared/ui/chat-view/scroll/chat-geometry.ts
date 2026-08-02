@@ -3,15 +3,14 @@
  *
  * Якорь, плавающая дата, аватары и видимость не должны знать, какой
  * библиотекой отрисован список: им нужны позиция скролла, высота вьюпорта,
- * размер контента и координаты строки. Эталон читает то же самое из
- * `UICollectionView` и `chatLayout.yOffsets`.
+ * размер контента и координаты строки.
  */
 export interface IChatGeometry {
-  /** Текущая позиция скролла (px). Порт `contentOffset.y`. */
+  /** Текущая позиция скролла (px). */
   readonly scrollY: number;
-  /** Высота видимой области. Порт `bounds.height`. */
+  /** Высота видимой области. */
   readonly viewportHeight: number;
-  /** Полный размер контента. Порт `contentSize.height`. */
+  /** Полный размер контента. */
   readonly contentHeight: number;
   /** Верхняя координата строки в контенте, либо `undefined` если не измерена. */
   rowTop(index: number): number | undefined;
@@ -21,7 +20,7 @@ export interface IChatGeometry {
   readonly visibleRange: { start: number; end: number };
 }
 
-/** Нижняя граница строки в координатах контента. Порт `cellBottom`. */
+/** Нижняя граница строки в координатах контента. */
 export const rowBottom = (
   geometry: IChatGeometry,
   index: number,
@@ -35,7 +34,7 @@ export const rowBottom = (
 };
 
 /**
- * Расстояние до конца контента. Порт `distanceFromBottom()`.
+ * Расстояние до конца контента.
  *
  * Нижняя зона (панель ввода, клавиатура) уже учтена инсетом контента,
  * поэтому дополнительных поправок не требуется.
@@ -46,7 +45,7 @@ export const distanceFromBottom = (geometry: IChatGeometry): number =>
     geometry.contentHeight - geometry.scrollY - geometry.viewportHeight,
   );
 
-/** Порт `isNearBottom()`. */
+/** Внизу ли скролл. */
 export const isNearBottom = (
   geometry: IChatGeometry,
   threshold: number,

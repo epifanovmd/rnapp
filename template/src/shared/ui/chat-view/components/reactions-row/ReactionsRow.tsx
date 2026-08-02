@@ -5,7 +5,7 @@ import { ChatMessage } from "../../types";
 import { useChatViewContext } from "../chat-view-context";
 import { ReactionChip } from "./ReactionChip";
 
-/** Реакции — порт `ReactionsView`: чипы с переносом строк. */
+/** Реакции: чипы с переносом строк. */
 
 interface IReactionsRowProps {
   messageId: string;

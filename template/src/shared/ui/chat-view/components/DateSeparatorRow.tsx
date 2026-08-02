@@ -5,8 +5,7 @@ import { getSectionTitle } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
 
 /**
- * Разделитель дат — порт `DateSeparatorCell`. Первый скрывается на время
- * `isLoadingTop` (порт `hideFirstDateSeparator`).
+ * Разделитель дат. Первый скрывается на время `isLoadingTop`.
  */
 
 interface IDateSeparatorRowProps {

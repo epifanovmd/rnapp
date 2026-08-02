@@ -5,7 +5,7 @@ import Animated, { AnimatedStyle } from "react-native-reanimated";
 
 import { IContextMenuStyles, IContextMenuTheme } from "../config";
 
-/** Затемнение с размытием под меню — порт `backdropView`. */
+/** Затемнение с размытием под меню. */
 
 export interface IContextMenuBackdropProps {
   theme: IContextMenuTheme;

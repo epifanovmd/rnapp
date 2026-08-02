@@ -8,7 +8,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-/** Насколько ниже своего места стартует капсула замка (порт animateIn). */
+/** Насколько ниже своего места стартует капсула замка. */
 const BADGE_ENTER_SHIFT = 20;
 
 /**
@@ -21,7 +21,7 @@ export function useLockBadgeAnimation(
   const badgeOpacity = useSharedValue(0);
   const badgeShift = useSharedValue(BADGE_ENTER_SHIFT);
 
-  // Порт animateIn/animateOut: капсула выезжает снизу (translateY 20 → 0)
+  // Капсула выезжает снизу (translateY 20 → 0)
   // пружиной с задержкой 0.1 с, а уходит просто по прозрачности.
   useEffect(() => {
     if (visible) {

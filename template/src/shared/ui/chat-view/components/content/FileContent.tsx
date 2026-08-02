@@ -7,8 +7,7 @@ import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon, ChatIconName } from "../ChatIcon";
 
 /**
- * Карточка файла — порт `FileContentView`: иконка по расширению, имя с
- * обрезкой посередине и размер.
+ * Карточка файла: иконка по расширению, имя с обрезкой посередине и размер.
  */
 
 const iconForFile = (name: string): ChatIconName => {

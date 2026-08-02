@@ -91,8 +91,8 @@ function dispatchCommand(
 }
 
 /**
- * iOS-обёртка над нативным RNChatView (IOSChatView pod).
- * Реализация-эталон; используется через публичную точку входа ChatView.
+ * iOS-обёртка над нативным RNChatView. Используется через публичную
+ * точку входа ChatView.
  */
 export const NativeChatView = forwardRef<IChatViewRef, ChatViewProps>(
   (props, ref) => {

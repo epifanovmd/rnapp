@@ -24,7 +24,10 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useKeyboardInset } from "../../lib/keyboard";
+import {
+  useKeyboardInset,
+  useKeyboardScrollCompensation,
+} from "../../lib/keyboard";
 import {
   createInputBarStyles,
   IInputBarViewRef,
@@ -73,8 +76,7 @@ import { ChatUnreadManager } from "./services";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 /**
- * React Native-реализация ChatView — порт `ChatViewController` (IOSChatView) на
- * `@legendapp/list`.
+ * React Native-реализация ChatView на `@legendapp/list`.
  *
  * Компонент намеренно тонкий: он только собирает независимые части и связывает
  * их проводами. Логика живёт рядом —
@@ -159,8 +161,7 @@ export const JsChatView = memo(
     const parsed = useParsedMessages(messages, getActionsForMessage);
 
     // ─── Клавиатура ──────────────────────────────────────────────────────
-    // Порт keyboardLayoutGuide + KeyboardFreezeManager. Одна зона на всех
-    // потребителей: панель ввода, FAB и нижний инсет списка.
+    // Одна зона на всех потребителей: панель ввода, FAB и нижний инсет списка.
 
     const handleKeyboardBlur = useCallback(
       () => inputBarRef.current?.blur(),
@@ -178,7 +179,13 @@ export const JsChatView = memo(
       onRefocus: handleKeyboardRefocus,
     });
 
-    const { barHeight, freeze, restore, scroll: compensation } = keyboard;
+    // Компенсация скролла — отдельный хук: получает инсеты от useKeyboardInset.
+    const compensation = useKeyboardScrollCompensation(
+      keyboard.contentInset,
+      keyboard.reservedInset,
+    );
+
+    const { barHeight, freeze, restore } = keyboard;
 
     // ─── Скролл, якорь, команды ──────────────────────────────────────────
 
@@ -293,7 +300,7 @@ export const JsChatView = memo(
     );
     useChatExternalUnread(unreadManager, unreadCount);
 
-    // Порт isLoadingFab.didSet: при загрузке FAB показан принудительно.
+    // При загрузке FAB показан принудительно.
     useEffect(() => {
       overlayStore.set({ fabLoading: isLoadingFab });
 
@@ -304,7 +311,7 @@ export const JsChatView = memo(
       }
     }, [isLoadingFab, overlayStore, overlays]);
 
-    // Порт applyFeatureChanges: без записи голоса FAB всегда развёрнут.
+    // Без записи голоса FAB всегда развёрнут.
     useEffect(() => {
       if (!features.showVoiceRecording) overlays.setFabExpanded(true);
     }, [features.showVoiceRecording, overlays]);
@@ -369,7 +376,7 @@ export const JsChatView = memo(
     const getThresholds = useCallback(
       () => ({
         enterThreshold: propsRef.current.visibilityThreshold ?? 0.8,
-        // Порт visibilityExitThreshold (0.5 при входе 0.8): выход всегда ниже
+        // Порог выхода (0.5 при входе 0.8): выход всегда ниже
         // входа — гистерезис гасит дребезг на границе порога.
         exitThreshold: (propsRef.current.visibilityThreshold ?? 0.8) * 0.625,
         unreadThreshold: propsRef.current.unreadVisibilityThreshold ?? 0.5,
@@ -441,7 +448,7 @@ export const JsChatView = memo(
       onReachBottom: handleReachBottom,
     });
 
-    // ─── Обработчик скролла (порт scrollViewDidScroll) ───────────────────
+    // ─── Обработчик скролла ──────────────────────────────────────────────
 
     const lastScrollEventAtRef = useRef(0);
 
@@ -453,7 +460,7 @@ export const JsChatView = memo(
 
         scroll.trackDirection(y);
 
-        // Порт throttle по layout.scrollThrottleInterval.
+        // Троттлинг по layout.scrollThrottleInterval.
         const now = Date.now();
 
         if (
@@ -508,7 +515,7 @@ export const JsChatView = memo(
     );
 
     // Компенсация обязана знать про палец на экране: пока идёт жест, позицию
-    // она не трогает (порт `if isUserDragging`).
+    // она не трогает позицию, пока палец на экране.
     const handleScrollBeginDrag = useCallback(() => {
       compensation.onScrollBeginDrag();
       scroll.onBeginDrag();
@@ -612,7 +619,7 @@ export const JsChatView = memo(
       [styles, features, listWidth],
     );
 
-    // Порт reloadWithCrossfade: смена темы или метрик проявляется через
+    // Смена темы или метрик проявляется через
     // короткий кросс-фейд, а не мгновенной перекраской списка.
     const crossfade = useSharedValue(1);
     const isFirstStyles = useRef(true);
@@ -704,7 +711,7 @@ export const JsChatView = memo(
 JsChatView.displayName = "JsChatView";
 
 const ss = StyleSheet.create({
-  // Порт ChatViewController: и вью, и коллекция, и панель ввода прозрачные —
+  // И вью, и коллекция, и панель ввода прозрачные —
   // фон чата рисует хост. Оверлеи не должны вылезать за границы чата.
   root: { flex: 1, backgroundColor: "transparent", overflow: "hidden" },
   listWrap: { flex: 1 },

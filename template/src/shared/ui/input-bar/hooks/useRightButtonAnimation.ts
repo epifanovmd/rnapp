@@ -12,7 +12,7 @@ import { useInputBarContext } from "../config";
 /**
  * Анимация ширины правой кнопки (mic).
  * Когда micVisible=false, ширина уходит в 0 — бар плавно расширяется вправо.
- * Порт rightButton.isHidden + inputStack.layoutIfNeeded из пода.
+ * Скрытие правой кнопки и пересчёт layout входного стека.
  */
 export function useRightButtonAnimation(micVisible: boolean) {
   const { layout } = useInputBarContext();

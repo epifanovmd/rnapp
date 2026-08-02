@@ -7,7 +7,7 @@ import { useLockBadgeAnimation } from "../hooks";
 import { InputIcon } from "./InputIcon";
 
 /**
- * Капсула замка над микрофоном — порт `InputBarLockView`: появляется при
+ * Капсула замка над микрофоном: появляется при
  * свайпе вверх во время записи.
  */
 

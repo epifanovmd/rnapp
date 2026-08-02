@@ -16,9 +16,9 @@ import { useOverlayValue } from "../useOverlayValue";
 import { FabBadgeLabel } from "./FabBadgeLabel";
 
 /**
- * Кнопка скролла вниз — порт `FABManager`: стрелка, бейдж непрочитанных и
- * кольцо загрузки. Позиция: compact — над кнопкой микрофона, expanded — над
- * панелью ввода (когда в поле есть текст).
+ * Кнопка скролла вниз: стрелка, бейдж непрочитанных и кольцо загрузки.
+ * Позиция: compact — над кнопкой микрофона, expanded — над панелью ввода
+ * (когда в поле есть текст).
  */
 
 const selectFabVisible = (state: IChatOverlayState) => state.fabVisible;
@@ -62,7 +62,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
       });
     }, [visible, opacity, layout.fabAnimationDuration]);
 
-    // Порт setExpanded: переключение констрейнтов анимируется 0.25 с.
+    // Переключение состояния анимируется 0.25 с.
     useEffect(() => {
       expandedProgress.value = withTiming(fabExpanded ? 1 : 0, {
         duration: 250,

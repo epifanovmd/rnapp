@@ -5,37 +5,35 @@ import { IChatGeometry, isNearBottom } from "../scroll";
 export type ChatScrollDirection = "up" | "down" | "none";
 
 /**
- * Состояние скролла — порт полей `scrollDirection` / `isUserDragging` /
- * `isProgrammaticScroll` / `isInitialScrollProtected` из `ChatViewController`
- * и обработчиков `scrollViewWillBeginDragging` / `DidEndDragging` /
- * `DidEndDecelerating`.
+ * Состояние скролла: направление движения, палец на экране, программный
+ * скролл и начальная защита, плюс обработчики начала/конца перетаскивания
+ * и завершения инерции.
  *
  * Всё живёт в ref: скролл не должен вызывать ре-рендер чата.
  */
 export interface IChatScrollState {
-  /** Направление последнего движения. Порт `scrollDirection`. */
+  /** Направление последнего движения. */
   direction: ChatScrollDirection;
-  /** Палец на экране. Порт `isUserDragging`. */
+  /** Палец на экране. */
   isUserDragging: boolean;
-  /** Идёт программный скролл. Порт `isProgrammaticScroll`. */
+  /** Идёт программный скролл. */
   isProgrammaticScroll: boolean;
   /**
    * Начальная защита: до первой раскладки чат не считается «пользовательски
-   * проскролленным» и не шлёт ни пагинацию, ни якорь. Порт
-   * `isInitialScrollProtected`.
+   * проскролленным» и не шлёт ни пагинацию, ни якорь.
    */
   isInitialScrollProtected: boolean;
-  /** Запрошен скролл вниз после отправки. Порт `pendingScrollToBottom`. */
+  /** Запрошен скролл вниз после отправки. */
   pendingScrollToBottom: boolean;
-  /** Нижняя пагинация уже вызвана. Порт `isLoadingNewerActive`. */
+  /** Нижняя пагинация уже вызвана. */
   isLoadingNewerActive: boolean;
 }
 
 export interface IChatScrollController {
   state: React.RefObject<IChatScrollState>;
-  /** Обновить направление по новой позиции. Порт начала `scrollViewDidScroll`. */
+  /** Обновить направление по новой позиции. */
   trackDirection: (y: number) => void;
-  /** Внизу ли чат сейчас. Порт `isNearBottom()`. */
+  /** Внизу ли чат сейчас. */
   isNearBottom: () => boolean;
   onBeginDrag: () => void;
   onEndDrag: () => void;

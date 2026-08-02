@@ -7,8 +7,8 @@ import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
 
 /**
- * Индикатор треда — порт `threadIndicatorView`: иконка диалога, «N ответов»,
- * имя последнего ответившего и шеврон.
+ * Индикатор треда: иконка диалога, «N ответов», имя последнего ответившего
+ * и шеврон.
  */
 
 interface IThreadIndicatorProps {
