@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
+  useScrollViewOffset,
   useSharedValue,
   withSequence,
   withTiming,
@@ -184,6 +185,11 @@ export const JsChatView = memo(
       keyboard.contentInset,
       keyboard.reservedInset,
     );
+
+    // Позиции sticky-аватаров считаются на UI-потоке от живого скролла,
+    // поэтому нужен scrollY в shared value, а не из JS-обработчика.
+    const avatarScrollY = useScrollViewOffset(compensation.scrollRef);
+    const avatarViewportHeight = useSharedValue(0);
 
     const { barHeight, freeze, restore } = keyboard;
 
@@ -502,9 +508,10 @@ export const JsChatView = memo(
 
         compensation.onLayout(event);
         geometry.setViewport(width, height);
+        avatarViewportHeight.value = height;
         setListWidth(prev => (prev === width ? prev : width));
       },
-      [compensation, geometry],
+      [compensation, geometry, avatarViewportHeight],
     );
 
     const handleContentSizeChange = useCallback(
@@ -667,7 +674,12 @@ export const JsChatView = memo(
               extraData={listExtraData}
             />
 
-            <ChatAvatarLayer store={avatarStore} />
+            <ChatAvatarLayer
+              store={avatarStore}
+              scrollY={avatarScrollY}
+              viewportHeight={avatarViewportHeight}
+              bottomInset={keyboard.contentInset}
+            />
 
             {isLoadingTop && features.showTopLoadingIndicator && (
               <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>

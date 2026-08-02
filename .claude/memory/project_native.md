@@ -224,9 +224,11 @@ simulated default backends — real backends can be injected via `setChatVoicePl
 скролла не вызывает ни одного ре-рендера корня.
 
 **Что ещё не даёт ре-рендеров на кадр:** sticky-аватары (`components/chat-avatar-store.ts` +
-`ChatAvatarLayer.tsx`) — состав групп на экране держит React, позиция каждого аватара едет shared
-value; прогресс голосового (`WaveBar` анимируется от shared value, таймер округлён до секунды и
-перерисовывается раз в секунду, и только у активного трека).
+`ChatAvatarLayer.tsx`) — состав групп на экране держит React, границы групп (`top`/`bottom`)
+статичны и живут в shared values, а позиция каждого аватара считается **на UI-потоке** от живого
+`scrollY` (`useAnimatedReaction` в `ChatAvatarLayer`, `scrollY` берётся через
+`useScrollViewOffset`); прогресс голосового (`WaveBar` анимируется от shared value, таймер округлён
+до секунды и перерисовывается раз в секунду, и только у активного трека).
 
 ### Keyboard compensation in the JS ports (port of `updateCollectionInsets`)
 

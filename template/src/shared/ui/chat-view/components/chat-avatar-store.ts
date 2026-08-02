@@ -6,15 +6,22 @@ import { IStickyAvatar } from "../scroll";
  * Стор sticky-аватаров.
  *
  * Набор аватаров на экране меняется редко (только при переходе через границу
- * группы) — его держит React. Позиция каждого меняется каждый кадр скролла и
- * живёт в shared value, поэтому движение идёт на UI-потоке без ре-рендеров.
+ * группы) — его держит React. Границы групп тоже статичны и живут в shared
+ * values. Позиция каждого меняется каждый кадр скролла и считается на
+ * UI-потоке из `scrollY` + границ (см. ChatAvatarLayer), поэтому движение идёт
+ * без ре-рендеров и без JS-потока.
  */
 
 export interface IChatAvatarSlot {
   key: string;
   senderName: string;
   senderAvatarUrl?: string;
+  /** Позиция от верха видимой области — ведёт UI-поток. */
   y: SharedValue<number>;
+  /** Верхняя граница группы (координаты контента). */
+  top: SharedValue<number>;
+  /** Нижняя граница группы (координаты контента). */
+  bottom: SharedValue<number>;
 }
 
 export class ChatAvatarStore {
@@ -32,7 +39,7 @@ export class ChatAvatarStore {
     };
   };
 
-  /** Применить новый снимок: позиции — всегда, состав — только при изменении. */
+  /** Применить новый снимок: границы — всегда, состав — только при изменении. */
   sync(avatars: IStickyAvatar[]) {
     let sameSet = avatars.length === this._slots.length;
 
@@ -41,7 +48,8 @@ export class ChatAvatarStore {
       const slot = this._byKey.get(avatar.key);
 
       if (slot) {
-        slot.y.value = avatar.y;
+        slot.top.value = avatar.top;
+        slot.bottom.value = avatar.bottom;
       }
       if (sameSet && this._slots[i]?.key !== avatar.key) sameSet = false;
     }
@@ -56,12 +64,15 @@ export class ChatAvatarStore {
         key: avatar.key,
         senderName: avatar.senderName,
         senderAvatarUrl: avatar.senderAvatarUrl,
-        y: makeMutable(avatar.y),
+        y: makeMutable(0),
+        top: makeMutable(avatar.top),
+        bottom: makeMutable(avatar.bottom),
       };
 
       slot.senderName = avatar.senderName;
       slot.senderAvatarUrl = avatar.senderAvatarUrl;
-      slot.y.value = avatar.y;
+      slot.top.value = avatar.top;
+      slot.bottom.value = avatar.bottom;
       nextByKey.set(avatar.key, slot);
 
       return slot;

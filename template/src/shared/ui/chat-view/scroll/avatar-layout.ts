@@ -2,11 +2,13 @@ import { IChatAvatarGroup } from "../data/chat-data";
 import { IChatGeometry, rowBottom } from "./chat-geometry";
 
 /**
- * Позиции sticky-аватаров.
+ * Границы групп для sticky-аватаров.
  *
  * Аватар группы стоит у нижнего сообщения, но, пока группа на экране,
  * «прилипает» к низу видимой области и не опускается выше её первого
- * сообщения: natural → sticky → ceiling.
+ * сообщения: natural → sticky → ceiling. Сама позиция считается на UI-потоке
+ * от скролла (см. ChatAvatarLayer), здесь только границы групп в координатах
+ * контента — они меняются редко, по данным/измерениям.
  */
 
 export interface IStickyAvatar {
@@ -14,8 +16,10 @@ export interface IStickyAvatar {
   key: string;
   senderName: string;
   senderAvatarUrl?: string;
-  /** Позиция от верха видимой области списка (px). */
-  y: number;
+  /** Верхняя граница группы (координаты контента). */
+  top: number;
+  /** Нижняя граница группы — низ последней строки (координаты контента). */
+  bottom: number;
 }
 
 export interface IResolveStickyAvatarsInput {
@@ -55,16 +59,12 @@ export const resolveStickyAvatars = ({
     if (groupBottom + margin < visibleTop) continue;
     if (groupTop - margin > visibleBottom) break;
 
-    const sticky = Math.min(
-      groupBottom - avatarSize,
-      visibleBottom - avatarSize,
-    );
-
     result.push({
       key: group.key,
       senderName: group.senderName,
       senderAvatarUrl: group.senderAvatarUrl,
-      y: Math.max(sticky, groupTop) - geometry.scrollY,
+      top: groupTop,
+      bottom: groupBottom,
     });
   }
 
