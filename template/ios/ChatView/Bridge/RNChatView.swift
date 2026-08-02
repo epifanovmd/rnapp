@@ -551,8 +551,24 @@ extension RNChatView: ChatViewControllerDelegate {
         onReplyMessagePress?(["messageId": id])
     }
 
+    /// Взаимодействия из factory-created views (медиа, файлы, опрос, голосовое).
+    ///
+    /// Пропустить тип здесь — значит молча проглотить жест: под отдаёт всё
+    /// через этот один делегат, а `default` ничего не логирует.
     func chatDidContentInteraction(messageId: String, interaction: ChatContentInteraction) {
         switch interaction.type {
+        // Тап по вложению открывает просмотрщик на стороне хоста — то же
+        // событие, что и тап по пузырю, но с индексом вложения.
+        case "mediaTap":
+            var data: [String: Any] = ["messageId": messageId]
+            if let index = interaction.payload["index"] as? Int {
+                data["attachmentIndex"] = index
+            }
+            onMessagePress?(data)
+        // JS-реализация на тап по файлу шлёт onMessagePress без индекса —
+        // повторяем, чтобы поведение платформ совпадало.
+        case "fileTap":
+            onMessagePress?(["messageId": messageId])
         case "pollOptionTap":
             let pollId = interaction.payload["pollId"] as? String ?? ""
             let optionId = interaction.payload["optionId"] as? String ?? ""
@@ -560,6 +576,10 @@ extension RNChatView: ChatViewControllerDelegate {
         case "pollDetailTap":
             let pollId = interaction.payload["pollId"] as? String ?? ""
             onPollDetailPress?(["messageId": messageId, "pollId": pollId])
+        // Воспроизведение голосового живёт внутри пода, наружу его знать не надо
+        // (в JS так же: VoiceContent играет сам и onMessagePress не шлёт).
+        case "voiceTap":
+            break
         default:
             break
         }

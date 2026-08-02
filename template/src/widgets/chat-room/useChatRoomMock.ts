@@ -516,8 +516,8 @@ export const useChatRoomMock = () => {
   // ── Message press (image viewer) ──────────────────────────────────
 
   const handleMessagePress = useCallback(
-    ({ messageId }: ChatMessagePressEventData) => {
-      logEvent("onMessagePress", { messageId });
+    ({ messageId, attachmentIndex }: ChatMessagePressEventData) => {
+      logEvent("onMessagePress", { messageId, attachmentIndex });
 
       const msg = messages.find(m => m.id === messageId);
 
@@ -529,7 +529,13 @@ export const useChatRoomMock = () => {
 
       if (imageAttachments.length > 0) {
         setImageViewerImages(imageAttachments.map(a => ({ uri: a.fileUrl })));
-        setImageViewerIndex(0);
+        // Открываем именно то вложение, по которому тапнули: индекс приходит
+        // из сетки медиа. Тап по самому пузырю индекса не несёт — тогда первое.
+        setImageViewerIndex(
+          attachmentIndex != null && attachmentIndex < imageAttachments.length
+            ? attachmentIndex
+            : 0,
+        );
       }
     },
     [messages],
