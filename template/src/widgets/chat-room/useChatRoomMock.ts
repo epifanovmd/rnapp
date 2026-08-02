@@ -3,6 +3,7 @@ import {
   EMessageType,
   MessageDto,
 } from "@shared/api/gen/model";
+import { IStorageService } from "@shared/lib/storage";
 import {
   type ChatAction,
   type ChatActionPressEventData,
@@ -42,7 +43,11 @@ import {
   MOCK_PEER,
   nextMockId,
 } from "./chat-mock-data";
+import { createChatScrollStorage } from "./chat-scroll-storage";
 import { mapMessageToNative } from "./native/map-message-to-native";
+
+/** Демо-чат один, но ключ хранения всё равно привязан к нему. */
+const MOCK_CHAT_ID = "demo-chat";
 
 /** Каждые ~14с на 2.5с показываем "печатает..." — просто чтобы показать индикатор. */
 const TYPING_SIMULATION_INTERVAL_MS = 14_000;
@@ -141,29 +146,53 @@ export const useChatRoomMock = () => {
     });
   }, [messages]);
 
-  // ── Начальная позиция: демо открывается с середины переписки ─────────────
+  // ── Начальная позиция: восстановление сохранённого якоря ────────────────
 
-  // Якорь берётся один раз на первом рендере: чат читает его только в момент
-  // монтирования (`useChatInitialScroll`). Среднее сообщение в исходном
-  // массиве ≈ середина по времени, поэтому чат стартует с середины списка,
-  // а не с конца (как в реальном мессенджере с восстановлением позиции).
+  const storage = IStorageService.useInstance();
+  const scrollStorage = useRef(createChatScrollStorage(storage)).current;
+
+  const [isScrollRestoreEnabled, setIsScrollRestoreEnabled] = useState(() =>
+    scrollStorage.isRestoreEnabled(),
+  );
+
+  // Якорь читается ровно один раз, на первом рендере: чат берёт
+  // `initialScrollAnchor` только в момент монтирования. MMKV синхронный,
+  // поэтому значение доступно уже здесь — без мигания «сначала низ, потом
+  // прыжок к позиции».
   const initialScrollAnchorRef = useRef<IChatScrollAnchor | undefined>(
     undefined,
   );
+  const didReadAnchorRef = useRef(false);
 
-  if (initialScrollAnchorRef.current === undefined && messages.length > 0) {
-    const mid = messages[Math.floor(messages.length / 2)];
+  if (!didReadAnchorRef.current) {
+    didReadAnchorRef.current = true;
 
-    // Восстановление якоря идёт как в эталоне (нативная реализация):
-    // выравнивание по низу — среднее сообщение оказывается у нижнего края
-    // вьюпорта, сверху видна более ранняя часть переписки.
-    initialScrollAnchorRef.current = {
-      messageId: mid.id,
-      offset: 0,
-      wasAtBottom: false,
-    };
+    const stored = isScrollRestoreEnabled
+      ? scrollStorage.readAnchor(MOCK_CHAT_ID)
+      : undefined;
+
+    // Якорь на несуществующее сообщение чат отрабатывает молча — просто
+    // открывается в конце. Отличить «нечего восстанавливать» от «якорь есть,
+    // но сообщение потерялось» иначе невозможно, поэтому проверяем здесь.
+    if (stored && !messages.some(message => message.id === stored.messageId)) {
+      logEvent("scrollAnchor: сообщение не найдено, откроем в конце", stored);
+      scrollStorage.clearAnchor(MOCK_CHAT_ID);
+    } else {
+      initialScrollAnchorRef.current = stored;
+    }
   }
 
+  const handleScrollRestoreToggle = useCallback(
+    (enabled: boolean) => {
+      setIsScrollRestoreEnabled(enabled);
+      scrollStorage.setRestoreEnabled(enabled);
+
+      // Выключили — забываем сохранённое, иначе оно всплывёт при повторном
+      // включении и покажет позицию из прошлой жизни.
+      if (!enabled) scrollStorage.clearAnchor(MOCK_CHAT_ID);
+    },
+    [scrollStorage],
+  );
   // ── Типинг-индикатор для демонстрации (просто таймер, не сокет) ─────────
 
   useEffect(() => {
@@ -569,8 +598,15 @@ export const useChatRoomMock = () => {
   const handleScrollAnchorChanged = useCallback(
     (payload: ChatScrollAnchorChangedEventData) => {
       logEvent("onScrollAnchorChanged", payload);
+
+      if (!isScrollRestoreEnabled) return;
+
+      // Чат уже троттлит это событие (~300 мс) и шлёт его только при
+      // пользовательском скролле, поэтому пишем как есть — MMKV синхронный
+      // и дешёвый, дополнительный дебаунс тут ничего не даст.
+      scrollStorage.writeAnchor(MOCK_CHAT_ID, payload);
     },
-    [],
+    [isScrollRestoreEnabled, scrollStorage],
   );
 
   const handleFabPress = useCallback(() => {
@@ -677,6 +713,8 @@ export const useChatRoomMock = () => {
     // Features / settings
     chatFeatures,
     updateFeature,
+    isScrollRestoreEnabled,
+    onScrollRestoreToggle: handleScrollRestoreToggle,
 
     // State
     inputAction,

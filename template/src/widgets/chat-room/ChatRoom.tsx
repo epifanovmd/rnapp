@@ -47,6 +47,8 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     chatRef,
     chatFeatures,
     updateFeature,
+    isScrollRestoreEnabled,
+    onScrollRestoreToggle,
     inputAction,
     showAttachmentPicker,
     pollDetailId,
@@ -217,6 +219,8 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         ref={settingsSheetRef}
         features={chatFeatures}
         onUpdate={updateFeature}
+        isScrollRestoreEnabled={isScrollRestoreEnabled}
+        onScrollRestoreToggle={onScrollRestoreToggle}
       />
     </Col>
   );

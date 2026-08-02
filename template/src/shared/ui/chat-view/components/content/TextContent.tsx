@@ -1,8 +1,8 @@
 import React, { FC, memo } from "react";
-import { Text } from "react-native";
 
 import { IParsedChatMessage } from "../../data";
 import { useChatViewContext } from "../chat-view-context";
+import { ChatText } from "../ChatText";
 
 /**
  * Текст сообщения. Ссылки и телефоны найдены ещё при
@@ -21,18 +21,18 @@ export const TextContent: FC<ITextContentProps> = memo(({ message }) => {
   const { text, textSegments } = message.body;
 
   if (!features.linkDetectionEnabled || !textSegments) {
-    return <Text style={s.text}>{text}</Text>;
+    return <ChatText style={s.text}>{text}</ChatText>;
   }
 
   return (
-    <Text style={s.text}>
+    <ChatText style={s.text}>
       {textSegments.map((segment, i) => {
         const url = segment.url;
 
         if (!url) return segment.text;
 
         return (
-          <Text
+          <ChatText
             key={i}
             suppressHighlighting
             style={s.link}
@@ -43,10 +43,10 @@ export const TextContent: FC<ITextContentProps> = memo(({ message }) => {
             }
           >
             {segment.text}
-          </Text>
+          </ChatText>
         );
       })}
-    </Text>
+    </ChatText>
   );
 });
 

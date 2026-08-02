@@ -1,8 +1,9 @@
 import React, { FC, memo, useCallback } from "react";
-import { Pressable, Text } from "react-native";
+import { Pressable } from "react-native";
 
 import { ChatMessage } from "../../types";
 import { useChatViewContext } from "../chat-view-context";
+import { ChatText } from "../ChatText";
 
 /** Чип реакции: у выбранной — акцентный фон и рамка. */
 
@@ -31,9 +32,9 @@ export const ReactionChip: FC<IReactionChipProps> = memo(
         }
         onPress={handlePress}
       >
-        <Text style={styles.shared.reactionText}>
+        <ChatText style={styles.shared.reactionText}>
           {`${reaction.emoji} ${reaction.count}`}
-        </Text>
+        </ChatText>
       </Pressable>
     );
   },

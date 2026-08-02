@@ -1,10 +1,11 @@
 import React, { FC, memo, useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { ChatFileItem, ChatMessageOwnership } from "../../types";
 import { formatFileSize } from "../../utils";
 import { useChatViewContext } from "../chat-view-context";
 import { ChatIcon, ChatIconName } from "../ChatIcon";
+import { ChatText } from "../ChatText";
 
 /**
  * Карточка файла: иконка по расширению, имя с обрезкой посередине и размер.
@@ -63,10 +64,10 @@ export const FileContent: FC<IFileContentProps> = memo(
           />
         </View>
         <View style={[ss.info, { marginLeft: layout.fileContentSpacing }]}>
-          <Text numberOfLines={1} ellipsizeMode="middle" style={s.fileName}>
+          <ChatText numberOfLines={1} ellipsizeMode="middle" style={s.fileName}>
             {file.name}
-          </Text>
-          <Text style={s.fileSize}>{formatFileSize(file.size)}</Text>
+          </ChatText>
+          <ChatText style={s.fileSize}>{formatFileSize(file.size)}</ChatText>
         </View>
       </Pressable>
     );

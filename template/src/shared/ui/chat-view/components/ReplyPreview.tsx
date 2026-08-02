@@ -1,9 +1,10 @@
 import React, { FC, memo, useCallback } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 
 import { IResolvedReply } from "../data";
 import { ChatMessageOwnership, ChatReplyRef } from "../types";
 import { useChatViewContext } from "./chat-view-context";
+import { ChatText } from "./ChatText";
 
 /**
  * Превью цитаты: акцентная полоска, имя автора и текст оригинала (или
@@ -42,12 +43,12 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
       <Pressable style={s.replyCard} onPress={handlePress}>
         <View style={s.replyAccent} />
         <View style={ss.textWrap}>
-          <Text numberOfLines={1} style={s.replySender}>
+          <ChatText numberOfLines={1} style={s.replySender}>
             {resolved?.senderName ?? reply.senderName ?? ""}
-          </Text>
-          <Text numberOfLines={1} style={s.replyText}>
+          </ChatText>
+          <ChatText numberOfLines={1} style={s.replyText}>
             {content}
-          </Text>
+          </ChatText>
         </View>
       </Pressable>
     );

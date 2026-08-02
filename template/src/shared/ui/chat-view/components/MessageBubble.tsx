@@ -1,8 +1,9 @@
 import React, { FC, memo, useCallback, useMemo } from "react";
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
 
 import { IParsedChatMessage, IResolvedReply } from "../data";
 import { useChatViewContext } from "./chat-view-context";
+import { ChatText } from "./ChatText";
 import { MessageContent } from "./message-content";
 import { MessageFooter } from "./MessageFooter";
 import { ReactionsRow } from "./reactions-row";
@@ -86,7 +87,9 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
         onPress={handlePress}
       >
         {showSenderName && (
-          <Text style={styles.shared.senderName}>{message.senderName}</Text>
+          <ChatText style={styles.shared.senderName}>
+            {message.senderName}
+          </ChatText>
         )}
 
         {isForwarded ? (
@@ -101,9 +104,9 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
                 },
               ]}
             >
-              <Text style={s.forwardedLabel}>
+              <ChatText style={s.forwardedLabel}>
                 {`Переслано от ${message.forwardedFrom}`}
-              </Text>
+              </ChatText>
               {hasReply && (
                 <ReplyPreview
                   reply={message.reply!}

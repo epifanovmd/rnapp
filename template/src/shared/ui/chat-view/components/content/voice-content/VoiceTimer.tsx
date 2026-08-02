@@ -1,10 +1,10 @@
 import React, { FC, memo, useCallback, useSyncExternalStore } from "react";
-import { Text } from "react-native";
 
 import { chatVoicePlayer } from "../../../services";
 import { ChatMessageOwnership } from "../../../types";
 import { formatChatDuration } from "../../../utils";
 import { useChatViewContext } from "../../chat-view-context";
+import { ChatText } from "../../ChatText";
 
 /** Таймер трека: перерисовывается раз в секунду, а не на каждый тик прогресса. */
 
@@ -27,9 +27,9 @@ export const VoiceTimer: FC<IVoiceTimerProps> = memo(
     );
 
     return (
-      <Text style={styles.byOwnership[ownership].voiceDuration}>
+      <ChatText style={styles.byOwnership[ownership].voiceDuration}>
         {formatChatDuration(seconds)}
-      </Text>
+      </ChatText>
     );
   },
 );

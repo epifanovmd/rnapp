@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
-import { Text } from "react-native";
 
 import { useChatViewContext } from "../chat-view-context";
+import { ChatText } from "../ChatText";
 
 /**
  * Сообщение из 1–3 эмодзи: крупный шрифт, без фона пузыря.
@@ -17,9 +17,9 @@ export const EmojiContent: FC<IEmojiContentProps> = memo(
     const { styles } = useChatViewContext();
 
     return (
-      <Text style={styles.shared.emoji[Math.min(emojiCount, 3) - 1]}>
+      <ChatText style={styles.shared.emoji[Math.min(emojiCount, 3) - 1]}>
         {text}
-      </Text>
+      </ChatText>
     );
   },
 );

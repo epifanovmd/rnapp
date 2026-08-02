@@ -1,11 +1,12 @@
 import React, { FC, memo, useCallback, useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
 import { IChatMediaItem } from "../../../data";
 import { formatChatDuration } from "../../../utils";
 import { useChatViewContext } from "../../chat-view-context";
 import { ChatIcon } from "../../ChatIcon";
+import { ChatText } from "../../ChatText";
 import { IMediaGridFrame } from "./media-grid-layout";
 
 /**
@@ -75,17 +76,17 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
 
         {showsVideoBadges && item.duration != null && (
           <View style={styles.shared.mediaDurationBadge}>
-            <Text style={styles.shared.mediaDurationText}>
+            <ChatText style={styles.shared.mediaDurationText}>
               {formatChatDuration(item.duration)}
-            </Text>
+            </ChatText>
           </View>
         )}
 
         {remaining > 0 && (
           <View style={styles.shared.mediaOverlay}>
-            <Text
+            <ChatText
               style={styles.shared.mediaOverlayText}
-            >{`+${remaining}`}</Text>
+            >{`+${remaining}`}</ChatText>
           </View>
         )}
       </Pressable>

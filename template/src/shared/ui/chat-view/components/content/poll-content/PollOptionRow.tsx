@@ -1,5 +1,5 @@
 import React, { FC, memo, useCallback, useEffect, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,6 +9,7 @@ import Animated, {
 import { ChatMessageOwnership, ChatPollOption } from "../../../types";
 import { withOpacity } from "../../../utils";
 import { useChatViewContext } from "../../chat-view-context";
+import { ChatText } from "../../ChatText";
 
 /**
  * Вариант опроса: полоса заполнения анимируется spring 0.6 с / damping 0.85,
@@ -74,15 +75,15 @@ export const PollOptionRow: FC<IPollOptionRowProps> = memo(
           ]}
         />
         <View style={ss.row}>
-          <Text
+          <ChatText
             numberOfLines={1}
             style={isSelected ? s.pollOptionSelected : s.pollOption}
           >
             {option.text}
-          </Text>
-          <Text style={isSelected ? s.pollPercentSelected : s.pollPercent}>
+          </ChatText>
+          <ChatText style={isSelected ? s.pollPercentSelected : s.pollPercent}>
             {`${Math.round(option.percentage * 100)}%`}
-          </Text>
+          </ChatText>
         </View>
       </Pressable>
     );

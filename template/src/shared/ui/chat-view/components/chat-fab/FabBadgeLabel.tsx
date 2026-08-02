@@ -1,7 +1,7 @@
 import React, { FC, memo } from "react";
-import { Text } from "react-native";
 
 import { useChatViewContext } from "../chat-view-context";
+import { ChatText } from "../ChatText";
 
 /** Счётчик непрочитанных на FAB: больше 99 показывается как «99+». */
 
@@ -13,9 +13,9 @@ export const FabBadgeLabel: FC<IFabBadgeLabelProps> = memo(({ count }) => {
   const { styles } = useChatViewContext();
 
   return (
-    <Text style={styles.shared.fabBadgeText}>
+    <ChatText style={styles.shared.fabBadgeText}>
       {count > 99 ? "99+" : `${count}`}
-    </Text>
+    </ChatText>
   );
 });
 

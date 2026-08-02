@@ -28,6 +28,7 @@ const computeAnchor = (
   list: LegendListRef | null,
   rows: IChatData["rows"],
   isAtBottom: boolean,
+  bottomInset: number,
 ): IChatScrollAnchor | null => {
   const state = list?.getState();
 
@@ -47,7 +48,12 @@ const computeAnchor = (
     return null;
   }
 
-  const visibleBottom = state.scroll + state.scrollLength;
+  // Видимая область заканчивается **над панелью ввода**, поэтому нижнюю зону
+  // вычитаем. Ровно так же считает нативная реализация
+  // (`contentOffset.y + bounds.height - contentInset.bottom`), и это обязано
+  // совпадать с восстановлением: сохраняем и восстанавливаем от одного края,
+  // иначе позиция уезжает на высоту панели при каждом круге.
+  const visibleBottom = state.scroll + state.scrollLength - bottomInset;
 
   for (let i = state.end; i >= state.start; i--) {
     const row = rows[i];
@@ -77,6 +83,8 @@ export interface IChatScrollReportOptions {
   isNearEnd: SharedValue<boolean>;
   /** Троттлинг проброса `onScroll` (сек). */
   throttleInterval: number;
+  /** Перекрытие контента снизу (клавиатура + панель ввода). */
+  getBottomInset: () => number;
 }
 
 export const useChatScrollReport = ({
@@ -85,6 +93,7 @@ export const useChatScrollReport = ({
   props,
   isNearEnd,
   throttleInterval,
+  getBottomInset,
 }: IChatScrollReportOptions) => {
   const lastScrollAtRef = useRef(0);
   const lastAnchorAtRef = useRef(0);
@@ -114,11 +123,12 @@ export const useChatScrollReport = ({
           listRef.current,
           data.current.rows,
           isAtBottom,
+          getBottomInset(),
         );
 
         if (anchor) props.current.onScrollAnchorChanged(anchor);
       }
     },
-    [listRef, data, props, isNearEnd, throttleInterval],
+    [listRef, data, props, isNearEnd, throttleInterval, getBottomInset],
   );
 };

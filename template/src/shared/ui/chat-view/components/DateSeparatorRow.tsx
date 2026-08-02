@@ -1,9 +1,10 @@
 import React, { FC, memo, useMemo } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 import { getSectionTitle } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
+import { ChatText } from "./ChatText";
 
 /**
  * Разделитель дат — он же прилипающая плашка даты.
@@ -45,9 +46,9 @@ export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
     return (
       <Animated.View style={[staticStyle, rowStyle]}>
         <Animated.View style={styles.shared.dateSeparatorPill}>
-          <Text style={styles.shared.dateSeparatorText}>
+          <ChatText style={styles.shared.dateSeparatorText}>
             {getSectionTitle(groupDate)}
-          </Text>
+          </ChatText>
         </Animated.View>
       </Animated.View>
     );

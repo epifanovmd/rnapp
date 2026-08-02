@@ -129,7 +129,10 @@ export const JsChatView = memo(
       messages,
       getActionsForMessage,
       features,
-      showBottomLoading: isLoadingBottom && features.showBottomLoadingIndicator,
+      showBottomLoading:
+        isLoadingBottom &&
+        features.showBottomLoadingIndicator &&
+        messages.length > 0,
       hideFirstSeparator: isLoadingTop,
     });
 
@@ -200,6 +203,7 @@ export const JsChatView = memo(
       props: propsRef,
       isNearEnd,
       throttleInterval: layout.scrollThrottleInterval,
+      getBottomInset: keyboard.getContentInset,
     });
 
     // Высота вьюпорта нужна, чтобы перевести пороги из пикселей в доли экрана.
@@ -257,6 +261,10 @@ export const JsChatView = memo(
 
     const asFraction = (px: number) => px / viewportHeight;
 
+    // Верхний паддинг контента. Участвует и в разметке списка, и в расчёте
+    // начальной позиции — поэтому одна переменная, а не два выражения.
+    const contentPaddingTop = layout.collectionTopPadding + collectionInsetTop;
+
     // ─── Начальная позиция ───────────────────────────────────────────────
     // Берётся один раз на монтировании: дальше позицией управляет пользователь.
 
@@ -270,20 +278,28 @@ export const JsChatView = memo(
       if (index == null) return undefined;
 
       // Якорь описывает расстояние от нижнего края **видимой** области до
-      // нижнего края строки. Видимая область заканчивается над панелью ввода,
-      // а нижняя зона у нас — распорка в конце контента (не `contentInset`),
-      // поэтому её высоту вычитаем здесь сами. Нативная реализация делает то
-      // же самое слагаемым `+ cv.contentInset.bottom`; без него якорная строка
-      // уезжает под панель ввода.
-      const bottomZone =
-        inputBarLayout.inputBarMinHeight +
-        layout.collectionBottomPadding +
-        collectionInsetBottom;
-
+      // нижнего края строки. Нижняя зона у нас — распорка в конце контента, а
+      // не `contentInset`, поэтому список о ней не знает: её высоту добавляем
+      // сами (нативная реализация делает это слагаемым `+ contentInset.bottom`).
+      // Величина берётся та же, что при сохранении якоря, — иначе теряется
+      // нижний safe area, и чат открывается на его высоту мимо.
+      //
+      // Второе слагаемое — верхний паддинг контента. При `viewPosition: 1`
+      // список считает смещение так:
+      //
+      //   result = position − viewOffset + topOffsetAdjustment
+      //          + itemSize + trailingInset − scrollLength
+      //
+      // где `topOffsetAdjustment = stylePaddingTop + headerSize + …`. В якоре
+      // этого слагаемого нет — `positionAtIndex` паддинг не включает, — и без
+      // компенсации каждое открытие уводило позицию ровно на `paddingTop`.
+      // Ошибка накапливалась: восстановленная позиция становится следующей
+      // сохранённой.
       return {
         index,
         viewPosition: 1,
-        viewOffset: -(anchor.offset + bottomZone),
+        viewOffset:
+          -(anchor.offset + keyboard.getContentInset()) + contentPaddingTop,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -429,9 +445,7 @@ export const JsChatView = memo(
               scrollOffset={scrollOffset}
               isNearEnd={isNearEnd}
               activeStickyIndex={activeStickyIndex}
-              contentPaddingTop={
-                layout.collectionTopPadding + collectionInsetTop
-              }
+              contentPaddingTop={contentPaddingTop}
               stickyOffset={collectionInsetTop}
               initialScrollIndex={initialScrollIndex}
               estimatedItemSize={layout.estimatedRowHeight}
@@ -453,16 +467,19 @@ export const JsChatView = memo(
               extraData={listExtraData}
             />
 
-            {isLoadingTop && features.showTopLoadingIndicator && (
-              <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
-                <ActivityIndicator size="small" />
-              </View>
-            )}
+            {isLoadingTop &&
+              features.showTopLoadingIndicator &&
+              data.messages.length > 0 && (
+                <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
+                  <ActivityIndicator size="small" />
+                </View>
+              )}
 
             <EmptyStateOverlay
               visible={data.messages.length === 0}
               loading={isLoading}
               text={emptyStateText}
+              bottomInset={keyboard.contentInset}
             />
           </Animated.View>
 
@@ -486,6 +503,7 @@ export const JsChatView = memo(
             expanded={fabExpanded}
             hiddenForRecording={fabHiddenForRecording}
             isLoading={isLoadingFab}
+            hasMessages={data.messages.length > 0}
             unreadCount={unread.count}
             onPress={handleFabPress}
           />

@@ -34,6 +34,8 @@ export interface IChatFabProps {
   hiddenForRecording: SharedValue<number>;
   /** Принудительный показ со спиннером (возврат к последним сообщениям). */
   isLoading: boolean;
+  /** В пустом чате прокручивать некуда — кнопки быть не должно. */
+  hasMessages: boolean;
   unreadCount: number;
   onPress: () => void;
 }
@@ -46,6 +48,7 @@ export const ChatFab: FC<IChatFabProps> = memo(
     expanded,
     hiddenForRecording,
     isLoading,
+    hasMessages,
     unreadCount,
     onPress,
   }) => {
@@ -61,7 +64,8 @@ export const ChatFab: FC<IChatFabProps> = memo(
 
     const containerStyle = useAnimatedStyle(() => {
       const visible =
-        (isLoading || !isNearEnd.value) && hiddenForRecording.value === 0;
+        (isLoading || (!isNearEnd.value && hasMessages)) &&
+        hiddenForRecording.value === 0;
       const expandedBottom = inputBarHeight.value + expandedGap;
 
       return {

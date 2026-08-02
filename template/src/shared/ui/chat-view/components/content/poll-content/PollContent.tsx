@@ -1,8 +1,9 @@
 import React, { FC, memo, useCallback } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { ChatMessageOwnership, ChatPoll } from "../../../types";
 import { useChatViewContext } from "../../chat-view-context";
+import { ChatText } from "../../ChatText";
 import { PollOptionRow } from "./PollOptionRow";
 
 /**
@@ -58,8 +59,10 @@ export const PollContent: FC<IPollContentProps> = memo(
 
     return (
       <View>
-        <Text style={s.pollQuestion}>{poll.question}</Text>
-        <Text style={styles.shared.pollSubtitle}>{pollSubtitle(poll)}</Text>
+        <ChatText style={s.pollQuestion}>{poll.question}</ChatText>
+        <ChatText style={styles.shared.pollSubtitle}>
+          {pollSubtitle(poll)}
+        </ChatText>
 
         <View style={{ marginTop: layout.pollHeaderSpacing }}>
           {poll.options.map((option, i) => (
@@ -81,15 +84,17 @@ export const PollContent: FC<IPollContentProps> = memo(
         </View>
 
         <View style={ss.footer}>
-          <Text style={s.pollVotes}>{`${poll.totalVotes} голосов`}</Text>
+          <ChatText
+            style={s.pollVotes}
+          >{`${poll.totalVotes} голосов`}</ChatText>
           {!isPollAnonymous(poll) && (
-            <Text
+            <ChatText
               suppressHighlighting
               style={s.pollResults}
               onPress={handleDetailPress}
             >
               {"Результаты"}
-            </Text>
+            </ChatText>
           )}
         </View>
       </View>

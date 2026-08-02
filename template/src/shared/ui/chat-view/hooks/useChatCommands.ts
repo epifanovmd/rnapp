@@ -112,18 +112,36 @@ export const useChatCommands = ({
       },
 
       alignMessageToBottom: (messageId, offset) => {
+        const list = listRef.current;
         const index = data.current.rowIndexById.get(messageId);
 
-        if (index == null) return;
+        if (!list || index == null) return;
 
-        // `viewPosition: 1` ставит низ строки к низу вьюпорта; видимая область
-        // заканчивается выше — над панелью ввода, поэтому её высоту добавляем
-        // к сдвигу (аналог `+ contentInset.bottom` в нативной реализации).
-        listRef.current?.scrollToIndex({
-          index,
+        const state = list.getState();
+        const top = state.positionAtIndex(index);
+        const size = state.sizeAtIndex(index);
+
+        if (!Number.isFinite(top) || !Number.isFinite(size)) return;
+
+        // Целевое смещение считаем сами — из тех же `positionAtIndex` и
+        // `sizeAtIndex`, по которым якорь и сохранялся. Это обратная функция к
+        // `computeAnchor`, один в один как в нативной реализации:
+        //
+        //   сохранение: offset = scroll + scrollLength - bottomInset - cellBottom
+        //   восстановление: scroll = cellBottom + offset - scrollLength + bottomInset
+        //
+        // Через `scrollToIndex` этого делать нельзя: там к результату
+        // примешиваются внутренние поправки списка (`trailingInset`,
+        // `topOffsetAdjustment`), которых нет в сохранении. Они не сокращаются,
+        // и каждый круг «сохранил → открыл» уводил позицию на их сумму —
+        // ошибка накапливалась с каждым открытием чата.
+        const target =
+          top + size + offset - state.scrollLength + getBottomInset();
+        const maxOffset = Math.max(0, state.contentLength - state.scrollLength);
+
+        list.scrollToOffset({
+          offset: Math.min(Math.max(target, 0), maxOffset),
           animated: false,
-          viewPosition: 1,
-          viewOffset: -(offset + getBottomInset()),
         });
       },
     }),

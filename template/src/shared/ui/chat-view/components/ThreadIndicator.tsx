@@ -1,10 +1,11 @@
 import React, { FC, memo, useCallback } from "react";
-import { Pressable, Text } from "react-native";
+import { Pressable } from "react-native";
 
 import { ChatThreadInfo } from "../types";
 import { threadReplyCountLabel, withOpacity } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon } from "./ChatIcon";
+import { ChatText } from "./ChatText";
 
 /**
  * Индикатор треда: иконка диалога, «N ответов», имя последнего ответившего
@@ -32,15 +33,15 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
           size={layout.threadBarIconSize}
           color={theme.threadBarIcon}
         />
-        <Text style={styles.shared.threadText}>
+        <ChatText style={styles.shared.threadText}>
           {threadReplyCountLabel(thread.replyCount)}
-        </Text>
+        </ChatText>
         {!!thread.lastReplierName && (
           <>
-            <Text style={styles.shared.threadSeparator}>{"·"}</Text>
-            <Text numberOfLines={1} style={styles.shared.threadReplier}>
+            <ChatText style={styles.shared.threadSeparator}>{"·"}</ChatText>
+            <ChatText numberOfLines={1} style={styles.shared.threadReplier}>
               {thread.lastReplierName}
-            </Text>
+            </ChatText>
           </>
         )}
         <ChatIcon

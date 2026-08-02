@@ -20,7 +20,9 @@ export const MOCK_MESSAGES_TOTAL = 1000;
 const minutesAgo = (minutes: number) =>
   new Date(Date.now() - minutes * 60_000).toISOString();
 
-let idCounter = 1000;
+const FIRST_MOCK_ID = 1000;
+
+let idCounter = FIRST_MOCK_ID;
 
 export const nextMockId = () => String(idCounter++);
 
@@ -688,6 +690,15 @@ const createCuratedMessages = (): MessageDto[] => {
  * одно и то же и их можно сравнивать переключателем.
  */
 export const createMockMessages = (): MessageDto[] => {
+  // Счётчик сбрасывается на каждой генерации, иначе id «поедут».
+  //
+  // Хук пересоздаёт переписку при каждом монтировании — то есть при каждом
+  // открытии экрана. Без сброса те же самые сообщения получали бы новые id, и
+  // сохранённый якорь скролла никогда не находился бы в свежих данных:
+  // восстановление молча уходило бы в конец списка. Генератор сидированный, а
+  // порядок вызовов фиксирован, поэтому сброс делает id воспроизводимыми.
+  idCounter = FIRST_MOCK_ID;
+
   const curated = createCuratedMessages();
 
   return (

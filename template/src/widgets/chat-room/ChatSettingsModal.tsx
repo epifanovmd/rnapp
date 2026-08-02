@@ -14,6 +14,14 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 interface IChatSettingsModalProps {
   features: ChatFeatures;
   onUpdate: (patch: Partial<ChatFeatures>) => void;
+  /**
+   * Восстанавливать ли позицию скролла при следующем открытии чата.
+   *
+   * Отдельным пропом, а не полем `features`: это поведение демо-экрана
+   * (он сохраняет якорь в MMKV), а не настройка самого ChatView.
+   */
+  isScrollRestoreEnabled: boolean;
+  onScrollRestoreToggle: (enabled: boolean) => void;
   /** Вызывается при закрытии шита (свайп/бэкдроп/крест/кнопка). */
   onClose?: () => void;
 }
@@ -75,82 +83,103 @@ const SENDER_NAME_MODES: { value: ChatSenderNameMode; label: string }[] = [
 export const ChatSettingsModal = forwardRef<
   BottomSheet,
   IChatSettingsModalProps
->(({ features, onUpdate, onClose }, ref) => {
-  const { colors } = useTheme();
-  const sheetRef = useBottomSheetRef();
+>(
+  (
+    {
+      features,
+      onUpdate,
+      isScrollRestoreEnabled,
+      onScrollRestoreToggle,
+      onClose,
+    },
+    ref,
+  ) => {
+    const { colors } = useTheme();
+    const sheetRef = useBottomSheetRef();
 
-  return (
-    <BottomSheet
-      ref={mergeRefs([ref, sheetRef])}
-      haptic
-      snapPoints={["50%"]}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      onDismiss={onClose}
-    >
-      <BottomSheet.Header
-        label="Настройки чата"
-        onClose={() => sheetRef.current?.dismiss()}
-      />
+    return (
+      <BottomSheet
+        ref={mergeRefs([ref, sheetRef])}
+        haptic
+        snapPoints={["50%"]}
+        enableDynamicSizing={false}
+        enablePanDownToClose
+        onDismiss={onClose}
+      >
+        <BottomSheet.Header
+          label="Настройки чата"
+          onClose={() => sheetRef.current?.dismiss()}
+        />
 
-      <BottomSheet.Content>
-        <View style={styles.section}>
-          <Text textStyle="Caption_M2" color="textSecondary">
-            Имя отправителя
-          </Text>
+        <BottomSheet.Content>
+          <View style={styles.section}>
+            <Text textStyle="Caption_M2" color="textSecondary">
+              Имя отправителя
+            </Text>
 
-          <View style={styles.modeRow}>
-            {SENDER_NAME_MODES.map(mode => {
-              const isActive = features.senderNameMode === mode.value;
+            <View style={styles.modeRow}>
+              {SENDER_NAME_MODES.map(mode => {
+                const isActive = features.senderNameMode === mode.value;
 
-              return (
-                <TouchableOpacity
-                  key={mode.value}
-                  activeOpacity={0.7}
-                  style={[
-                    styles.modeButton,
-                    {
-                      backgroundColor: isActive
-                        ? colors.blue500
-                        : colors.gray100,
-                    },
-                  ]}
-                  onPress={() => onUpdate({ senderNameMode: mode.value })}
-                >
-                  <Text
-                    textStyle="Body_S1"
-                    color={isActive ? "white" : "textSecondary"}
+                return (
+                  <TouchableOpacity
+                    key={mode.value}
+                    activeOpacity={0.7}
+                    style={[
+                      styles.modeButton,
+                      {
+                        backgroundColor: isActive
+                          ? colors.blue500
+                          : colors.gray100,
+                      },
+                    ]}
+                    onPress={() => onUpdate({ senderNameMode: mode.value })}
                   >
-                    {mode.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text
+                      textStyle="Body_S1"
+                      color={isActive ? "white" : "textSecondary"}
+                    >
+                      {mode.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        {FEATURE_TOGGLES.map(({ key, title }) => (
-          <View key={key} style={styles.row}>
+          <View style={styles.row}>
             <Text textStyle="Body_M1" color="textPrimary">
-              {title}
+              {"Восстанавливать позицию"}
             </Text>
             <Switch
-              isActive={!!features[key]}
-              onChange={value => onUpdate({ [key]: value })}
+              isActive={isScrollRestoreEnabled}
+              onChange={onScrollRestoreToggle}
             />
           </View>
-        ))}
-      </BottomSheet.Content>
 
-      <BottomSheet.Footer>
-        <BottomSheet.Footer.PrimaryButton
-          title="Готово"
-          onPress={() => sheetRef.current?.dismiss()}
-        />
-      </BottomSheet.Footer>
-    </BottomSheet>
-  );
-});
+          {FEATURE_TOGGLES.map(({ key, title }) => (
+            <View key={key} style={styles.row}>
+              <Text textStyle="Body_M1" color="textPrimary">
+                {title}
+              </Text>
+              <Switch
+                isActive={!!features[key]}
+                onChange={value => onUpdate({ [key]: value })}
+              />
+            </View>
+          ))}
+        </BottomSheet.Content>
+
+        <BottomSheet.Footer>
+          <BottomSheet.Footer.PrimaryButton
+            title="Готово"
+            onPress={() => sheetRef.current?.dismiss()}
+          />
+        </BottomSheet.Footer>
+      </BottomSheet>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   section: {

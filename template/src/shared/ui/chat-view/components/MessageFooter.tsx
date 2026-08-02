@@ -1,11 +1,12 @@
 import React, { FC, memo } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { IParsedChatMessage } from "../data";
 import { ChatMessageStatus } from "../types";
 import { getTimeString } from "../utils";
 import { useChatViewContext } from "./chat-view-context";
 import { ChatIcon, ChatIconName } from "./ChatIcon";
+import { ChatText } from "./ChatText";
 
 /**
  * Футер пузыря: «изм.», время и иконка статуса (только исходящие), прижатые
@@ -32,10 +33,10 @@ export const MessageFooter: FC<IMessageFooterProps> = memo(({ message }) => {
   return (
     <View style={styles.shared.footerRow}>
       {message.isEdited && features.showEditedMark && (
-        <Text style={s.edited}>{"изм."}</Text>
+        <ChatText style={s.edited}>{"изм."}</ChatText>
       )}
       {features.showTimestamp && (
-        <Text style={s.time}>{getTimeString(message.timestamp)}</Text>
+        <ChatText style={s.time}>{getTimeString(message.timestamp)}</ChatText>
       )}
       {isOutgoing && features.showMessageStatus && (
         <ChatIcon
