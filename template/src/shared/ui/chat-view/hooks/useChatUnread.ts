@@ -1,6 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { appendedIncomingIds, IParsedChatMessage } from "../data";
+import { IParsedChatMessage } from "../data";
+
+/**
+ * Хвост, дописанный в конец списка с прошлого снимка.
+ *
+ * Это всё, что осталось от диффа сообщений: позицию держит сам список, и от
+ * сравнения нужен один ответ — какие чужие сообщения приехали снизу.
+ */
+const appendedIncomingIds = (
+  previous: IParsedChatMessage[],
+  next: IParsedChatMessage[],
+): string[] => {
+  if (previous.length === 0 || next.length <= previous.length) return [];
+
+  const previousIds = new Set(previous.map(message => message.id));
+  const appended: string[] = [];
+
+  for (let i = next.length - 1; i >= 0; i--) {
+    const message = next[i];
+
+    if (previousIds.has(message.id)) break;
+    if (message.ownership === "theirs") appended.push(message.id);
+  }
+
+  return appended;
+};
 
 /**
  * Счётчик непрочитанных.

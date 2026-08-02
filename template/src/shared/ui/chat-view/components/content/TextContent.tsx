@@ -15,7 +15,7 @@ interface ITextContentProps {
 }
 
 export const TextContent: FC<ITextContentProps> = memo(({ message }) => {
-  const { features, styles, delegate } = useChatViewContext();
+  const { features, styles, actions } = useChatViewContext();
 
   const s = styles.byOwnership[message.ownership];
   const { text, textSegments } = message.body;
@@ -38,8 +38,8 @@ export const TextContent: FC<ITextContentProps> = memo(({ message }) => {
             style={s.link}
             onPress={() =>
               url.startsWith("tel:")
-                ? delegate.current?.onPhoneNumberTap(url.slice(4), message.id)
-                : delegate.current?.onLinkTap(url, message.id)
+                ? actions.current?.onPhoneNumberTap(url.slice(4), message.id)
+                : actions.current?.onLinkTap(url, message.id)
             }
           >
             {segment.text}

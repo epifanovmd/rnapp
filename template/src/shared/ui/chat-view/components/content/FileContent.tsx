@@ -41,12 +41,12 @@ interface IFileContentProps {
 
 export const FileContent: FC<IFileContentProps> = memo(
   ({ messageId, file, ownership }) => {
-    const { layout, styles, delegate } = useChatViewContext();
+    const { layout, styles, actions } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const handlePress = useCallback(
-      () => delegate.current?.onTapMessage(messageId),
-      [delegate, messageId],
+      () => actions.current?.onTapMessage(messageId),
+      [actions, messageId],
     );
 
     return (

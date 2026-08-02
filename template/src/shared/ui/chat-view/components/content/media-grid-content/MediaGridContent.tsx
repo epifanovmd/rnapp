@@ -23,7 +23,7 @@ interface IMediaGridContentProps {
 
 export const MediaGridContent: FC<IMediaGridContentProps> = memo(
   ({ messageId, media, width }) => {
-    const { layout, styles, delegate } = useChatViewContext();
+    const { layout, styles, actions } = useChatViewContext();
 
     const count = media.length;
     const visibleCount = Math.min(count, MEDIA_GRID_MAX_VISIBLE);
@@ -46,8 +46,8 @@ export const MediaGridContent: FC<IMediaGridContentProps> = memo(
     );
 
     const handlePress = useCallback(
-      (index: number) => delegate.current?.onTapMessage(messageId, index),
-      [delegate, messageId],
+      (index: number) => actions.current?.onTapMessage(messageId, index),
+      [actions, messageId],
     );
 
     if (count === 0) return null;

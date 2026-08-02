@@ -47,8 +47,6 @@ const isBubbleless = (
 
 export interface IBuildChatRowsInput {
   messages: IParsedChatMessage[];
-  /** ID → сообщение: нужен для разрешения цитат. */
-  messageIndex: Map<string, IParsedChatMessage>;
   features: IChatFeatures;
   showBottomLoading: boolean;
   /** Скрыть первый разделитель, пока сверху крутится спиннер. */
@@ -85,19 +83,28 @@ const rowRelevantFeatures = (features: IChatFeatures): string =>
     features.showForwardedMark,
   ].join("|");
 
+export interface IBuildChatRowsResult {
+  rows: ChatRow[];
+  stickyIndices: number[];
+  messageIndex: Map<string, IParsedChatMessage>;
+}
+
 export class ChatRowsBuilder {
   private _messageRows = new Map<string, IMessageRowCacheEntry>();
   private _separatorRows = new Map<string, ChatRow>();
   private _featuresKey: string | null = null;
+  private _indexSource: IParsedChatMessage[] | null = null;
+  private _messageIndex = new Map<string, IParsedChatMessage>();
   private readonly _loadingRow: ChatRow = { type: "loading", key: "l_bottom" };
 
   build({
     messages,
-    messageIndex,
     features,
     showBottomLoading,
     hideFirstSeparator,
-  }: IBuildChatRowsInput): { rows: ChatRow[]; stickyIndices: number[] } {
+  }: IBuildChatRowsInput): IBuildChatRowsResult {
+    const messageIndex = this._messageIndexFor(messages);
+
     // Кеш недействителен, только если поменялись настройки, влияющие на строку.
     const featuresKey = rowRelevantFeatures(features);
 
@@ -140,7 +147,24 @@ export class ChatRowsBuilder {
     this._messageRows = nextMessageRows;
     this._separatorRows = nextSeparatorRows;
 
-    return { rows, stickyIndices };
+    return { rows, stickyIndices, messageIndex };
+  }
+
+  private _messageIndexFor(
+    messages: IParsedChatMessage[],
+  ): Map<string, IParsedChatMessage> {
+    if (this._indexSource === messages) return this._messageIndex;
+
+    const index = new Map<string, IParsedChatMessage>();
+
+    for (const message of messages) {
+      index.set(message.id, message);
+    }
+
+    this._indexSource = messages;
+    this._messageIndex = index;
+
+    return index;
   }
 
   private _messageRow(

@@ -30,7 +30,7 @@ interface IMessageCellProps {
 export const MessageCell: FC<IMessageCellProps> = memo(
   ({ message, resolvedReply, showSenderName, showAvatar, bubbleless }) => {
     const chatContext = useChatViewContext();
-    const { theme, layout, features, styles, delegate } = chatContext;
+    const { theme, layout, features, styles, actions } = chatContext;
 
     const { width: listWidth } = useListScrollSize();
 
@@ -55,22 +55,22 @@ export const MessageCell: FC<IMessageCellProps> = memo(
     // Делегат живёт в ref и не меняется — обработчики стабильны, меню не
     // пересоздаётся на каждый рендер ячейки.
     const handleMenuWillShow = useCallback(
-      () => delegate.current?.onContextMenuWillShow(messageId),
-      [delegate, messageId],
+      () => actions.current?.onContextMenuWillShow(messageId),
+      [actions, messageId],
     );
     const handleMenuEmojiSelect = useCallback(
       ({ emoji }: { emoji: string }) =>
-        delegate.current?.onEmojiSelect(emoji, messageId),
-      [delegate, messageId],
+        actions.current?.onEmojiSelect(emoji, messageId),
+      [actions, messageId],
     );
     const handleMenuActionSelect = useCallback(
       ({ actionId }: { actionId: string }) =>
-        delegate.current?.onActionSelect(actionId, messageId),
-      [delegate, messageId],
+        actions.current?.onActionSelect(actionId, messageId),
+      [actions, messageId],
     );
     const handleMenuDismiss = useCallback(
-      () => delegate.current?.onContextMenuDismiss(messageId),
-      [delegate, messageId],
+      () => actions.current?.onContextMenuDismiss(messageId),
+      [actions, messageId],
     );
 
     const bubble = (

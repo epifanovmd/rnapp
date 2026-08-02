@@ -27,7 +27,7 @@ interface IMessageBubbleProps {
 
 export const MessageBubble: FC<IMessageBubbleProps> = memo(
   ({ message, resolvedReply, showSenderName, bubbleless, maxBubbleWidth }) => {
-    const { layout, features, styles, delegate } = useChatViewContext();
+    const { layout, features, styles, actions } = useChatViewContext();
 
     const s = styles.byOwnership[message.ownership];
     const body = message.body;
@@ -73,8 +73,8 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
     );
 
     const handlePress = useCallback(
-      () => delegate.current?.onTapMessage(message.id),
-      [delegate, message.id],
+      () => actions.current?.onTapMessage(message.id),
+      [actions, message.id],
     );
 
     const content = (

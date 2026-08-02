@@ -1,32 +1,32 @@
 import { RefObject, useMemo, useRef } from "react";
 import { Keyboard } from "react-native";
 
-import { IChatCellDelegate } from "../model";
+import { IChatCellActions } from "../model";
 import { ChatViewProps } from "../types";
-import { IChatCommands } from "./useChatCommands";
+import { IChatScrollControl } from "./useChatScrollControl";
 
 /**
- * Маршрутизация действий ячеек в колбэки хоста.
+ * Маршрутизация действий ячейки в колбэки хоста.
  *
- * Делегат отдаётся ячейкам через ref, чтобы они оставались мемоизированными:
- * пересоздание делегата не должно перерисовывать тысячи строк.
+ * Обработчики отдаются ячейкам через ref, чтобы они оставались мемоизированными:
+ * пересоздание набора не должно перерисовывать тысячи строк.
  */
-export interface IChatDelegateOptions {
+export interface IChatCellActionsOptions {
   props: RefObject<ChatViewProps>;
-  commands: IChatCommands;
+  scrollControl: IChatScrollControl;
   /** Заморозить нижнюю зону перед показом меню. */
   freezeKeyboard: () => void;
   /** Отпустить зону после закрытия меню. */
   restoreKeyboard: () => void;
 }
 
-export const useChatDelegate = ({
+export const useChatCellActions = ({
   props,
-  commands,
+  scrollControl,
   freezeKeyboard,
   restoreKeyboard,
-}: IChatDelegateOptions): RefObject<IChatCellDelegate> => {
-  const delegate = useMemo<IChatCellDelegate>(
+}: IChatCellActionsOptions): RefObject<IChatCellActions> => {
+  const actions = useMemo<IChatCellActions>(
     () => ({
       // Тап по чату всегда убирает клавиатуру. Пустую область берёт на себя
       // `keyboardShouldPersistTaps` списка.
@@ -52,7 +52,7 @@ export const useChatDelegate = ({
 
       // Тап по цитате уводит к оригиналу.
       onReplyTap: replyToId => {
-        commands.scrollToMessage(replyToId, {
+        scrollControl.scrollToMessage(replyToId, {
           position: "center",
           animated: true,
           highlight: true,
@@ -78,12 +78,12 @@ export const useChatDelegate = ({
       onContextMenuWillShow: () => freezeKeyboard(),
       onContextMenuDismiss: () => restoreKeyboard(),
     }),
-    [props, commands, freezeKeyboard, restoreKeyboard],
+    [props, scrollControl, freezeKeyboard, restoreKeyboard],
   );
 
-  const ref = useRef(delegate);
+  const ref = useRef(actions);
 
-  ref.current = delegate;
+  ref.current = actions;
 
   return ref;
 };

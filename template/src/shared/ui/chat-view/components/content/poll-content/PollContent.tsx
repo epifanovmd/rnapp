@@ -41,20 +41,20 @@ interface IPollContentProps {
 
 export const PollContent: FC<IPollContentProps> = memo(
   ({ messageId, poll, ownership }) => {
-    const { layout, styles, delegate } = useChatViewContext();
+    const { layout, styles, actions } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const selectedIds = poll.selectedOptionIds;
 
     const handleOptionPress = useCallback(
       (optionId: string) =>
-        delegate.current?.onPollOptionTap(messageId, poll.id, optionId),
-      [delegate, messageId, poll.id],
+        actions.current?.onPollOptionTap(messageId, poll.id, optionId),
+      [actions, messageId, poll.id],
     );
 
     const handleDetailPress = useCallback(
-      () => delegate.current?.onPollDetailTap(messageId, poll.id),
-      [delegate, messageId, poll.id],
+      () => actions.current?.onPollDetailTap(messageId, poll.id),
+      [actions, messageId, poll.id],
     );
 
     return (

@@ -6,7 +6,7 @@ import { ChatHighlightStore } from "../model";
 import { ChatScrollPosition } from "../types";
 
 /**
- * Команды скролла.
+ * Управление скроллом.
  *
  * Единственное место, которое двигает список. Восстановления позиции по якорям
  * здесь больше нет: её держит сам список — `maintainVisibleContentPosition`
@@ -23,7 +23,7 @@ export interface IChatScrollToMessageOptions {
   highlight?: boolean;
 }
 
-export interface IChatCommands {
+export interface IChatScrollControl {
   scrollToBottom: (animated?: boolean) => void;
   scrollToMessage: (
     messageId: string,
@@ -41,7 +41,7 @@ export interface IChatCommands {
   alignMessageToBottom: (messageId: string, offset: number) => void;
 }
 
-export interface IChatCommandsOptions {
+export interface IChatScrollControlOptions {
   listRef: RefObject<LegendListRef | null>;
   data: RefObject<IChatData>;
   highlight: ChatHighlightStore;
@@ -60,12 +60,12 @@ const VIEW_POSITIONS: Record<ChatScrollPosition, number> = {
   bottom: 1,
 };
 
-export const useChatCommands = ({
+export const useChatScrollControl = ({
   listRef,
   data,
   highlight,
   getBottomInset,
-}: IChatCommandsOptions): IChatCommands => {
+}: IChatScrollControlOptions): IChatScrollControl => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -75,7 +75,7 @@ export const useChatCommands = ({
     [],
   );
 
-  return useMemo<IChatCommands>(
+  return useMemo<IChatScrollControl>(
     () => ({
       scrollToBottom: (animated = true) =>
         listRef.current?.scrollToEnd({ animated }),
@@ -86,7 +86,7 @@ export const useChatCommands = ({
           animated = true,
           highlight: shouldHighlight = true,
         } = options;
-        const index = data.current.rowIndexById.get(messageId);
+        const index = data.current.rowIndexOf(messageId);
 
         if (index == null) return;
 
@@ -113,7 +113,7 @@ export const useChatCommands = ({
 
       alignMessageToBottom: (messageId, offset) => {
         const list = listRef.current;
-        const index = data.current.rowIndexById.get(messageId);
+        const index = data.current.rowIndexOf(messageId);
 
         if (!list || index == null) return;
 

@@ -19,8 +19,14 @@ export interface IChatData {
   stickyIndices: number[];
   /** ID → сообщение. */
   messageIndex: Map<string, IParsedChatMessage>;
-  /** ID сообщения → индекс строки. */
-  rowIndexById: Map<string, number>;
+  /**
+   * Индекс строки по ID сообщения.
+   *
+   * Функция, а не готовая карта: её читают только скролл к сообщению и
+   * восстановление якоря — единицы раз за сессию. Карта строится при первом
+   * обращении, поэтому обычное обновление данных за неё не платит.
+   */
+  rowIndexOf: (messageId: string) => number | undefined;
 }
 
 export interface IBuildChatDataOptions {
@@ -35,29 +41,30 @@ export const buildChatData = (
   messages: IParsedChatMessage[],
   { features, showBottomLoading, hideFirstSeparator }: IBuildChatDataOptions,
 ): IChatData => {
-  const messageIndex = new Map<string, IParsedChatMessage>();
-
-  for (const message of messages) {
-    messageIndex.set(message.id, message);
-  }
-
-  const { rows, stickyIndices } = builder.build({
+  const { rows, stickyIndices, messageIndex } = builder.build({
     messages,
-    messageIndex,
     features,
     showBottomLoading,
     hideFirstSeparator,
   });
 
-  const rowIndexById = new Map<string, number>();
+  let rowIndex: Map<string, number> | null = null;
 
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
+  const rowIndexOf = (messageId: string) => {
+    if (!rowIndex) {
+      rowIndex = new Map();
 
-    if (row.type === "message") rowIndexById.set(row.message.id, i);
-  }
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
 
-  return { messages, rows, stickyIndices, messageIndex, rowIndexById };
+        if (row.type === "message") rowIndex.set(row.message.id, i);
+      }
+    }
+
+    return rowIndex.get(messageId);
+  };
+
+  return { messages, rows, stickyIndices, messageIndex, rowIndexOf };
 };
 
 /** Пустой снимок для инициализации ссылки на данные до первого расчёта. */

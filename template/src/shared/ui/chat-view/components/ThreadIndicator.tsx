@@ -19,11 +19,11 @@ interface IThreadIndicatorProps {
 
 export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
   ({ messageId, thread }) => {
-    const { theme, layout, styles, delegate } = useChatViewContext();
+    const { theme, layout, styles, actions } = useChatViewContext();
 
     const handlePress = useCallback(
-      () => delegate.current?.onThreadTap(messageId, thread.threadId),
-      [delegate, messageId, thread.threadId],
+      () => actions.current?.onThreadTap(messageId, thread.threadId),
+      [actions, messageId, thread.threadId],
     );
 
     return (

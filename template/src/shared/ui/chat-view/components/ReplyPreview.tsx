@@ -20,7 +20,7 @@ interface IReplyPreviewProps {
 
 export const ReplyPreview: FC<IReplyPreviewProps> = memo(
   ({ reply, resolved, ownership }) => {
-    const { styles, delegate } = useChatViewContext();
+    const { styles, actions } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const text = resolved?.text || reply.text;
@@ -35,8 +35,8 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
     }
 
     const handlePress = useCallback(
-      () => delegate.current?.onReplyTap(reply.id),
-      [delegate, reply.id],
+      () => actions.current?.onReplyTap(reply.id),
+      [actions, reply.id],
     );
 
     return (

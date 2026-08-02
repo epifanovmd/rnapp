@@ -14,11 +14,11 @@ interface IReactionsRowProps {
 
 export const ReactionsRow: FC<IReactionsRowProps> = memo(
   ({ messageId, reactions }) => {
-    const { styles, delegate } = useChatViewContext();
+    const { styles, actions } = useChatViewContext();
 
     const handlePress = useCallback(
-      (emoji: string) => delegate.current?.onReactionTap(messageId, emoji),
-      [delegate, messageId],
+      (emoji: string) => actions.current?.onReactionTap(messageId, emoji),
+      [actions, messageId],
     );
 
     return (

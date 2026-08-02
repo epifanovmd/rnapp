@@ -6,7 +6,7 @@ import { IChatFeatures } from "../config";
 import { IParsedChatMessage } from "../data";
 import { chatVoicePlayer } from "../services";
 import { ChatInputAction, ChatViewProps } from "../types";
-import { IChatCommands } from "./useChatCommands";
+import { IChatScrollControl } from "./useChatScrollControl";
 
 /**
  * Панель ввода.
@@ -22,7 +22,7 @@ export interface IChatInputBarOptions {
   inputAction: ChatInputAction | null | undefined;
   messageIndex: Map<string, IParsedChatMessage>;
   props: RefObject<ChatViewProps>;
-  commands: IChatCommands;
+  scrollControl: IChatScrollControl;
   features: IChatFeatures;
   /** Высота панели: входит в нижнюю зону, применяется на UI-потоке. */
   barHeight: SharedValue<number>;
@@ -72,7 +72,7 @@ export const useChatInputBar = ({
   inputAction,
   messageIndex,
   props,
-  commands,
+  scrollControl,
   features,
   barHeight,
   fabExpanded,
@@ -90,7 +90,7 @@ export const useChatInputBar = ({
       onSend: (text, replyToId) => {
         // Своё сообщение всегда доезжает до низа. Кадр нужен, чтобы список
         // успел закоммитить новую строку.
-        requestAnimationFrame(() => commands.scrollToBottom(true));
+        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
         fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
         props.current.onSendMessage?.({ text, replyToId });
       },
@@ -101,7 +101,7 @@ export const useChatInputBar = ({
       },
       onTapAttachment: () => props.current.onAttachmentPress?.({}),
       onVoiceRecordingComplete: result => {
-        requestAnimationFrame(() => commands.scrollToBottom(true));
+        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
         props.current.onVoiceRecordingComplete?.(result);
       },
       onChangeText: text => {
@@ -126,7 +126,7 @@ export const useChatInputBar = ({
         fabHiddenForRecording.value = isRecording ? 1 : 0;
       },
     }),
-    [commands, props, features, fabExpanded, fabHiddenForRecording],
+    [scrollControl, props, features, fabExpanded, fabHiddenForRecording],
   );
 
   // Высота панели живёт только в shared value: она входит в нижнюю зону,

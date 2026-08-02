@@ -38,11 +38,11 @@ import {
 import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
 import { EMPTY_CHAT_DATA, IChatData } from "./data";
 import {
-  useChatCommands,
+  useChatCellActions,
   useChatConfig,
   useChatData,
-  useChatDelegate,
   useChatInputBar,
+  useChatScrollControl,
   useChatScrollReport,
   useChatStickyDate,
   useChatUnread,
@@ -165,7 +165,7 @@ export const JsChatView = memo(
       keyboard.reservedInset,
     );
 
-    const commands = useChatCommands({
+    const scrollControl = useChatScrollControl({
       listRef,
       data: dataRef,
       highlight,
@@ -272,7 +272,7 @@ export const JsChatView = memo(
 
       if (!anchor || anchor.wasAtBottom) return undefined;
 
-      const index = dataRef.current.rowIndexById.get(anchor.messageId);
+      const index = dataRef.current.rowIndexOf(anchor.messageId);
 
       if (index == null) return undefined;
 
@@ -318,11 +318,11 @@ export const JsChatView = memo(
 
       if (!anchor || anchor.wasAtBottom) return;
 
-      commands.alignMessageToBottom(anchor.messageId, anchor.offset);
+      scrollControl.alignMessageToBottom(anchor.messageId, anchor.offset);
       // Якорь читается один раз, на монтировании: дальше позицией управляет
       // пользователь, и повторное выравнивание вырвало бы её из-под пальца.
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [commands]);
+    }, [scrollControl]);
 
     // ─── Императивный интерфейс ──────────────────────────────────────────
 
@@ -331,18 +331,18 @@ export const JsChatView = memo(
     useImperativeHandle(
       ref,
       () => ({
-        scrollToBottom: () => commands.scrollToBottom(true),
-        scrollToMessage: commands.scrollToMessage,
+        scrollToBottom: () => scrollControl.scrollToBottom(true),
+        scrollToMessage: scrollControl.scrollToMessage,
         clearUnread,
       }),
-      [commands, clearUnread],
+      [scrollControl, clearUnread],
     );
 
-    // ─── Панель ввода и делегат ──────────────────────────────────────────
+    // ─── Действия ячейки и панель ввода ──────────────────────────────────
 
-    const delegate = useChatDelegate({
+    const cellActions = useChatCellActions({
       props: propsRef,
-      commands,
+      scrollControl,
       freezeKeyboard: keyboard.freeze,
       restoreKeyboard: keyboard.restore,
     });
@@ -351,7 +351,7 @@ export const JsChatView = memo(
       inputAction,
       messageIndex: data.messageIndex,
       props: propsRef,
-      commands,
+      scrollControl,
       features,
       barHeight: keyboard.barHeight,
       fabExpanded,
@@ -372,7 +372,7 @@ export const JsChatView = memo(
         inputBarLayout,
         features,
         styles,
-        delegate,
+        actions: cellActions,
         highlight,
         stickyDate,
       }),
@@ -382,7 +382,7 @@ export const JsChatView = memo(
         inputBarLayout,
         features,
         styles,
-        delegate,
+        cellActions,
         highlight,
         stickyDate,
       ],

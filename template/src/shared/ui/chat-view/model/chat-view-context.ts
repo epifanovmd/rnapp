@@ -15,10 +15,10 @@ import {
 import { ChatHighlightStore } from "./chat-highlight-store";
 
 /**
- * Маршрутизация действий ячеек.
- * Хранится в ref, чтобы ячейки оставались мемоизированными.
+ * Обработчики действий ячейки.
+ * Хранятся в ref, чтобы ячейки оставались мемоизированными.
  */
-export interface IChatCellDelegate {
+export interface IChatCellActions {
   onTapMessage(messageId: string, attachmentIndex?: number): void;
   onEmojiSelect(emoji: string, messageId: string): void;
   onActionSelect(actionId: string, messageId: string): void;
@@ -55,7 +55,7 @@ export interface IChatViewContextValue {
   features: IChatFeatures;
   /** Готовые стили под текущую пару (тема, лейаут). */
   styles: IChatStyles;
-  delegate: RefObject<IChatCellDelegate>;
+  actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
   stickyDate: IChatStickyDate;
 }
@@ -66,7 +66,7 @@ export const ChatViewContext = createContext<IChatViewContextValue>({
   inputBarLayout: INPUT_BAR_DEFAULT_LAYOUT,
   features: CHAT_DEFAULT_FEATURES,
   styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
-  delegate: { current: null as unknown as IChatCellDelegate },
+  actions: { current: null as unknown as IChatCellActions },
   highlight: new ChatHighlightStore(),
   stickyDate: { activeIndex: makeMutable(-1), opacity: makeMutable(0) },
 });
