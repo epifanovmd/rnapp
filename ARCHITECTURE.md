@@ -261,6 +261,25 @@ ChatView, InputBar, ContextMenu — **тонкие iOS-бриджи**; реал�
 JS-порты (`JsChatView`/`JsInputBar`/`JsContextMenuView`). **Picker/WheelPicker** — на обеих платформах.
 Fabric-спеки: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec` (framework-имена).
 
+### Конфигурация чата: одна настройка — один дом
+
+| Куда | Что | Признак |
+|---|---|---|
+| **проп** | данные (`messages`), состояние сессии (`isLoading*`, `hasMore`, `inputAction`, `unreadCount`), контекст показа (`theme`, `collectionInset*`), **все коллбэки** | меняется в течение жизни экрана, React обязан это диффить |
+| **`features`** | поведенческие флаги и пороги: что из UI существует, когда срабатывает пагинация, набор эмодзи меню | конфигурация «какой это чат», задаётся один раз |
+| **`layout`** | числовые метрики чата и панели ввода | их больше сотни — плоскими пропами нечитаемо |
+
+Плоских пропов-дублей у настроек **нет**. Раньше шесть из них (`showSenderName`,
+`showFloatingDate`, `topThreshold`, `bottomThreshold`, `scrollToBottomThreshold`,
+`emojiReactions`) существовали одновременно и как проп, и как поле `features` — у настройки было
+два входа, и побеждал тот, что применится последним. На iOS порядок недетерминирован (оба попадают
+в один `folly::dynamic::object` в `getDiffProps`), поэтому поведение расходилось с JS. Дубли удалены
+из спеки, бриджа и `ChatViewProps` — не возвращать.
+
+`features` и `layout` должны быть **стабильны по ссылке** (константа модуля или `useMemo`). Кеш
+строк защищён от нестабильной ссылки: `ChatRowsBuilder` сравнивает не идентичность объекта, а слепок
+тех четырёх полей, что реально влияют на содержимое строки.
+
 `JsChatView` опирается на штатные механизмы `@legendapp/list` v3.3: `sharedValues` (позиция скролла и
 признаки края — читаются в ворклетах), `stickyHeaderIndices` (плавающая дата), `viewabilityConfigCallbackPairs`
 (видимость и прочитанность), `maintainVisibleContentPosition` / `maintainScrollAtEnd` (позиция),

@@ -33,12 +33,6 @@ export const useChatConfig = ({
   theme: themeName,
   layout: layoutProp,
   features: featuresProp,
-  emojiReactions,
-  showSenderName,
-  showFloatingDate,
-  topThreshold,
-  bottomThreshold,
-  scrollToBottomThreshold,
 }: ChatViewProps): IChatConfig => {
   const theme = useMemo(() => resolveChatTheme(themeName), [themeName]);
 
@@ -48,25 +42,8 @@ export const useChatConfig = ({
   );
 
   const features = useMemo(
-    () =>
-      resolveChatFeatures({
-        features: featuresProp,
-        emojiReactions,
-        showSenderName,
-        showFloatingDate,
-        topThreshold,
-        bottomThreshold,
-        scrollToBottomThreshold,
-      }),
-    [
-      featuresProp,
-      emojiReactions,
-      showSenderName,
-      showFloatingDate,
-      topThreshold,
-      bottomThreshold,
-      scrollToBottomThreshold,
-    ],
+    () => resolveChatFeatures(featuresProp),
+    [featuresProp],
   );
 
   // Стили пересобираются только при смене темы или метрик: ячейка не должна

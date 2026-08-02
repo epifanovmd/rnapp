@@ -69,10 +69,26 @@ interface IMessageRowCacheEntry {
  * сообщение, сообщение-оригинал цитаты или настройки. Иначе возвращается тот же
  * объект, и список не трогает соответствующий контейнер.
  */
+/**
+ * Слепок тех и только тех настроек, что попадают в содержимое строки.
+ *
+ * Сбрасывать кеш по идентичности всего `features` нельзя: хост вправе передать
+ * объект литералом, и тогда каждый рендер обнулял бы кеш всех строк — то есть
+ * ровно тот случай, ради которого кеш и заведён. Остальные два десятка флагов
+ * (FAB, пустое состояние, панель ввода) на строки не влияют.
+ */
+const rowRelevantFeatures = (features: IChatFeatures): string =>
+  [
+    features.senderNameMode,
+    features.showAvatars,
+    features.showReplyPreview,
+    features.showForwardedMark,
+  ].join("|");
+
 export class ChatRowsBuilder {
   private _messageRows = new Map<string, IMessageRowCacheEntry>();
   private _separatorRows = new Map<string, ChatRow>();
-  private _features: IChatFeatures | null = null;
+  private _featuresKey: string | null = null;
   private readonly _loadingRow: ChatRow = { type: "loading", key: "l_bottom" };
 
   build({
@@ -82,9 +98,11 @@ export class ChatRowsBuilder {
     showBottomLoading,
     hideFirstSeparator,
   }: IBuildChatRowsInput): { rows: ChatRow[]; stickyIndices: number[] } {
-    // Настройки участвуют в содержимом строки — при их смене кеш недействителен.
-    if (this._features !== features) {
-      this._features = features;
+    // Кеш недействителен, только если поменялись настройки, влияющие на строку.
+    const featuresKey = rowRelevantFeatures(features);
+
+    if (this._featuresKey !== featuresKey) {
+      this._featuresKey = featuresKey;
       this._messageRows.clear();
     }
 

@@ -74,16 +74,6 @@ export const CHAT_DEFAULT_FEATURES: IChatFeatures = {
   autoScrollOnNewMessage: true,
 };
 
-export interface IResolveChatFeaturesInput {
-  features?: ChatFeatures;
-  emojiReactions?: string[];
-  showSenderName?: boolean;
-  showFloatingDate?: boolean;
-  topThreshold?: number;
-  bottomThreshold?: number;
-  scrollToBottomThreshold?: number;
-}
-
 /** Отбрасывает ключи со значением `undefined`, чтобы они не затирали дефолт. */
 const defined = <T extends object>(source: T): Partial<T> => {
   const result: Partial<T> = {};
@@ -96,31 +86,16 @@ const defined = <T extends object>(source: T): Partial<T> => {
 };
 
 /**
- * Порядок применения повторяет нативную реализацию: сначала индивидуальные
- * пропы, затем объект `features` перекрывает их.
+ * Наложение пропа `features` на дефолты.
+ *
+ * Раньше здесь мирились шесть плоских пропов-дублей (`showSenderName`,
+ * `topThreshold`, …), писавших те же поля: у настройки было два входа, и
+ * побеждал тот, что применится последним. Дублей больше нет — у каждой
+ * настройки ровно один дом.
  */
-export const resolveChatFeatures = ({
-  features,
-  emojiReactions,
-  showSenderName,
-  showFloatingDate,
-  topThreshold,
-  bottomThreshold,
-  scrollToBottomThreshold,
-}: IResolveChatFeaturesInput): IChatFeatures => ({
+export const resolveChatFeatures = (
+  features: ChatFeatures | undefined,
+): IChatFeatures => ({
   ...CHAT_DEFAULT_FEATURES,
-  ...defined({
-    emojiReactions,
-    showFloatingDate,
-    topLoadThreshold: topThreshold,
-    bottomLoadThreshold: bottomThreshold,
-    scrollToBottomThreshold,
-    senderNameMode:
-      showSenderName === undefined
-        ? undefined
-        : showSenderName
-          ? ("incomingOnly" as const)
-          : ("never" as const),
-  }),
   ...(features ? defined(features) : null),
 });

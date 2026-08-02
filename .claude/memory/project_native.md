@@ -29,6 +29,11 @@ type: project
   перерисовывает только изменившиеся строки. Хост обязан сохранять identity сообщений.
 - `hooks/` — по хуку на ответственность; LegendList-aware только `useChatCommands`/`useChatScrollReport`.
 
+- **`features.disintegrationEnabled` — только iOS.** `JsChatView` его игнорирует: эффект распада
+  снят при рефакторинге (measureInWindow + отложенный коммит данных ради выключенной по умолчанию
+  анимации). На Android/non-iOS сообщение удаляется без анимации. Тумблер в `ChatSettingsModal`
+  подписан «(только iOS)».
+
 ### Что отдано списку (не писать руками заново)
 | Задача | Механизм LegendList |
 |---|---|

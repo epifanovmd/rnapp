@@ -49,7 +49,6 @@ const TYPING_SIMULATION_INTERVAL_MS = 14_000;
 const TYPING_SIMULATION_DURATION_MS = 2_500;
 
 /** Эмодзи быстрых реакций в контекстном меню. Стабильная ссылка — ломает memo на ChatView. */
-const EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
 
 /** Лог всех колбэков чата для тестирования: тег + имя события + данные. */
 const TAG = "[ChatRoomMock]";
@@ -57,6 +56,8 @@ const TAG = "[ChatRoomMock]";
 const logEvent = (name: string, payload?: unknown) => {
   console.log(TAG, name, payload ?? "");
 };
+
+const EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
 
 /** Начальные настройки чата — их переключает модалка с шестерёнкой. */
 const DEFAULT_FEATURES: ChatFeatures = {
@@ -81,6 +82,10 @@ const DEFAULT_FEATURES: ChatFeatures = {
   showVoiceRecording: true,
   contextMenuEnabled: true,
   autoScrollOnNewMessage: true,
+  emojiReactions: EMOJI_REACTIONS,
+  topLoadThreshold: 400,
+  bottomLoadThreshold: 400,
+  scrollToBottomThreshold: 150,
   disintegrationEnabled: true,
 };
 
@@ -666,7 +671,6 @@ export const useChatRoomMock = () => {
     // Features / settings
     chatFeatures,
     updateFeature,
-    emojiReactions: EMOJI_REACTIONS,
 
     // State
     inputAction,

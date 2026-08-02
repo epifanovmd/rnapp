@@ -99,14 +99,10 @@ export const NativeChatView = forwardRef<IChatViewRef, ChatViewProps>(
     const {
       messages,
       getActionsForMessage,
-      emojiReactions = [],
       inputAction,
       initialScrollAnchor,
-      scrollToBottomThreshold = 150,
       hasMore = false,
       hasNewer = false,
-      topThreshold = 200,
-      bottomThreshold = 200,
       isLoading = false,
       emptyStateText,
       isLoadingTop = false,
@@ -144,8 +140,6 @@ export const NativeChatView = forwardRef<IChatViewRef, ChatViewProps>(
       onFabPress,
       onScrollAnchorChanged,
       inputTypingThrottle,
-      showSenderName,
-      showFloatingDate = true,
       features,
       layout: layoutConfig,
       unreadCount,
@@ -317,14 +311,10 @@ export const NativeChatView = forwardRef<IChatViewRef, ChatViewProps>(
         ref={nativeRef}
         style={[styles.fill, style]}
         messages={nativeMessages}
-        emojiReactions={emojiReactions}
         inputAction={nativeInputAction}
         initialScrollAnchor={initialScrollAnchor}
-        scrollToBottomThreshold={scrollToBottomThreshold}
         hasMore={hasMore}
         hasNewer={hasNewer}
-        topThreshold={topThreshold}
-        bottomThreshold={bottomThreshold}
         isLoading={isLoading}
         emptyStateText={emptyStateText}
         isLoadingTop={isLoadingTop}
@@ -361,8 +351,6 @@ export const NativeChatView = forwardRef<IChatViewRef, ChatViewProps>(
         onFabPress={handleFabPress}
         onScrollAnchorChanged={handleScrollAnchorChanged}
         inputTypingThrottle={inputTypingThrottle}
-        showSenderName={showSenderName}
-        showFloatingDate={showFloatingDate}
         features={features}
         layout={layoutConfig}
         unreadCount={unreadCount}

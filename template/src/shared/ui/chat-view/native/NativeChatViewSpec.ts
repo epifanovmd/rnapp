@@ -244,7 +244,15 @@ export type NativeChatFeatures = {
   scrollToBottomThreshold?: Double;
   /** Автоматически скроллить вниз при своём новом сообщении */
   autoScrollOnNewMessage?: boolean;
-  /** Включить эффект рассыпания на частицы при удалении сообщения (по умолчанию false) */
+  /**
+   * Включить эффект рассыпания на частицы при удалении сообщения
+   * (по умолчанию false).
+   *
+   * **Только iOS.** В `JsChatView` флаг игнорируется: эффект требовал замера
+   * пузыря через `measureInWindow` и отложенного применения данных, из-за чего
+   * весь конвейер обновлений держался вокруг выключенной по умолчанию анимации.
+   * На Android/non-iOS сообщение удаляется без анимации.
+   */
   disintegrationEnabled?: boolean;
 };
 
@@ -650,18 +658,11 @@ export interface NativeChatViewProps extends ViewProps {
   /** Массив сообщений чата */
   messages: NativeChatMessage[];
 
-  /** Список эмодзи для панели контекстного меню. Пример: ["❤️", "👍", "😂"] */
-  emojiReactions?: string[];
-
   /** Есть ли более старые сообщения для подгрузки сверху */
   hasMore?: WithDefault<boolean, false>;
   /** Есть ли более новые сообщения для подгрузки снизу (detached mode) */
   hasNewer?: WithDefault<boolean, false>;
 
-  /** Порог от верха для вызова загрузки (px) */
-  topThreshold?: WithDefault<Double, 200>;
-  /** Порог от низа для вызова загрузки (px) */
-  bottomThreshold?: WithDefault<Double, 200>;
   /** Идёт ли начальная загрузка (показывает спиннер в пустом состоянии) */
   isLoading?: WithDefault<boolean, false>;
   /** Текст пустого состояния (когда нет сообщений и не идёт загрузка) */
@@ -680,8 +681,6 @@ export interface NativeChatViewProps extends ViewProps {
     offset: Double;
     wasAtBottom: boolean;
   }>;
-  /** Расстояние от низа, при котором считается «рядом с низом» */
-  scrollToBottomThreshold?: WithDefault<Double, 150>;
   /** Тема оформления: "light" | "dark" */
   theme?: WithDefault<string, "light">;
   /** Дополнительный верхний отступ коллекции */
@@ -698,14 +697,13 @@ export interface NativeChatViewProps extends ViewProps {
   visibilityThreshold?: WithDefault<Double, 0.8>;
   /** Минимальная доля видимости ячейки для mark-as-read (0..1) */
   unreadVisibilityThreshold?: WithDefault<Double, 0.5>;
-  /** Показывать имя отправителя */
-  showSenderName?: WithDefault<boolean, false>;
-  /** Показывать плавающую дату при скролле */
-  showFloatingDate?: WithDefault<boolean, true>;
   /** Количество непрочитанных сообщений (-1 = внутреннее управление) */
   unreadCount?: WithDefault<Double, -1>;
 
-  /** Все флаги функциональности одним объектом (переопределяет индивидуальные пропсы) */
+  /**
+   * Флаги и пороги поведения. Единственный дом для настроек «какой это чат»:
+   * плоских пропов-дублей у них нет — см. ARCHITECTURE.md, «Конфигурация чата».
+   */
   features?: NativeChatFeatures;
   /** Конфигурация размеров и отступов (числовые значения, шрифты исключены) */
   layout?: NativeChatLayoutConfig;

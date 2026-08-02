@@ -40,28 +40,12 @@ final class RNChatView: UIView {
         }
     }
 
-    @objc var emojiReactions: NSArray = [] {
-        didSet {
-            guard emojiReactions != lastAppliedEmojiReactions else { return }
-            lastAppliedEmojiReactions = emojiReactions
-            chatVC.features.emojiReactions = emojiReactions.compactMap { $0 as? String }
-        }
-    }
-
     @objc var hasMore: Bool = false {
         didSet { chatVC.hasMore = hasMore }
     }
 
     @objc var hasNewer: Bool = false {
         didSet { chatVC.hasNewer = hasNewer }
-    }
-
-    @objc var topThreshold: NSNumber = 200 {
-        didSet { chatVC.features.topLoadThreshold = CGFloat(topThreshold.doubleValue) }
-    }
-
-    @objc var bottomThreshold: NSNumber = 200 {
-        didSet { chatVC.features.bottomLoadThreshold = CGFloat(bottomThreshold.doubleValue) }
     }
 
     @objc var isLoading: Bool = false {
@@ -115,20 +99,8 @@ final class RNChatView: UIView {
         }
     }
 
-    @objc var scrollToBottomThreshold: NSNumber = 150 {
-        didSet { chatVC.features.scrollToBottomThreshold = CGFloat(scrollToBottomThreshold.doubleValue) }
-    }
-
     @objc var theme: NSString = "light" {
         didSet { chatVC.theme = (theme == "dark") ? .dark : .light }
-    }
-
-    @objc var showSenderName: Bool = false {
-        didSet { chatVC.features.senderNameMode = showSenderName ? .incomingOnly : .never }
-    }
-
-    @objc var showFloatingDate: Bool = true {
-        didSet { chatVC.features.showFloatingDate = showFloatingDate }
     }
 
     @objc var collectionInsetTop: NSNumber = 0 {
@@ -189,7 +161,6 @@ final class RNChatView: UIView {
     private var lastTypingTime: CFTimeInterval = 0
     private var messageCache: [String: (dict: NSDictionary, msg: ChatMessage)] = [:]
     private var lastAppliedMessages: NSArray?
-    private var lastAppliedEmojiReactions: NSArray?
     private var lastAppliedInputAction: NSDictionary?
     private var lastAppliedFeatures: NSDictionary?
     private var lastAppliedLayout: NSDictionary?

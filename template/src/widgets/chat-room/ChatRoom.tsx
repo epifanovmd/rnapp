@@ -47,7 +47,6 @@ export const ChatRoom: FC<StackProps> = observer(() => {
     chatRef,
     chatFeatures,
     updateFeature,
-    emojiReactions,
     inputAction,
     showAttachmentPicker,
     pollDetailId,
@@ -154,7 +153,6 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         messages={nativeMessages}
         initialScrollAnchor={initialScrollAnchor}
         getActionsForMessage={getActionsForMessage}
-        emojiReactions={emojiReactions}
         inputAction={inputAction}
         hasMore={hasMore}
         hasNewer={hasNewer}
@@ -163,10 +161,7 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         isLoadingBottom={false}
         isLoadingFab={isReturningToLatest}
         theme={isDark ? "dark" : "light"}
-        topThreshold={400}
         features={chatFeatures}
-        bottomThreshold={400}
-        scrollToBottomThreshold={150}
         collectionInsetTop={0}
         collectionInsetBottom={0}
         onSendMessage={handleSendMessage}
