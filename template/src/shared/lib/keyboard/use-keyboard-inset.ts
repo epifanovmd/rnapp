@@ -55,6 +55,17 @@ export interface IKeyboardInset {
   contentInset: SharedValue<number>;
   /** Резерв под целевое перекрытие — отдаётся в `useKeyboardScrollCompensation`. */
   reservedInset: SharedValue<number>;
+  /**
+   * Часть перекрытия, которую клавиатура **не** покрывает: панель, safe area
+   * под ней и свои отступы.
+   *
+   * Для потребителей, которым высоту клавиатуры добавляет кто-то другой —
+   * например, нативный `KeyboardChatScrollView` под списком: он ведёт
+   * `contentInset` на высоту клавиатуры сам, а всё остальное принимает
+   * отдельным значением (`extraContentPadding`). Складывать их дважды нельзя,
+   * поэтому здесь именно разница, а не полное перекрытие.
+   */
+  composerInset: SharedValue<number>;
 
   // ─── Заморозка ───────────────────────────────────────────────────────
 
@@ -123,6 +134,16 @@ export const useKeyboardInset = (
     frozen.value >= 0 ? frozen.value : liveReserved.value,
   );
 
+  // Ровно `contentInset` минус высота клавиатуры: при открытой клавиатуре
+  // safe area уже перекрыта ею и второй раз не считается.
+  const composerInset = useDerivedValue(
+    () =>
+      Math.max(0, safeAreaBottom - keyboard.height.value) +
+      barHeight.value +
+      extraPadding,
+    [safeAreaBottom, extraPadding],
+  );
+
   const barStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: -occludedBottom.value }],
   }));
@@ -151,6 +172,7 @@ export const useKeyboardInset = (
       setBarHeight,
       contentInset,
       reservedInset,
+      composerInset,
       isFrozen,
       freeze,
       restore,
@@ -164,6 +186,7 @@ export const useKeyboardInset = (
       setBarHeight,
       contentInset,
       reservedInset,
+      composerInset,
       isFrozen,
       freeze,
       restore,

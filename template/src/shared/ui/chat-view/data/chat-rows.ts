@@ -18,6 +18,15 @@ export type ChatRow =
       type: "message";
       /** Стабильный ключ. */
       key: string;
+      /**
+       * Тип контейнера для переиспользования (`getItemType` списка).
+       *
+       * Дробнее, чем `type`: список сначала ищет контейнер того же типа, и
+       * попадание означает, что у переиспользуемой ячейки уже та же структура
+       * поддерева — React меняет пропы вместо размонтирования и монтирования.
+       * Текст, попавший в контейнер из-под фото, стоит куда дороже.
+       */
+      itemType: string;
       message: IParsedChatMessage;
       resolvedReply?: IResolvedReply;
       /** Показывать ли имя отправителя. */
@@ -27,12 +36,33 @@ export type ChatRow =
       /** Крупные эмодзи без фона пузыря. */
       bubbleless: boolean;
     }
-  | { type: "dateSeparator"; key: string; groupDate: string; hidden: boolean }
-  | { type: "loading"; key: string };
+  | {
+      type: "dateSeparator";
+      key: string;
+      itemType: string;
+      groupDate: string;
+      hidden: boolean;
+    }
+  | { type: "loading"; key: string; itemType: string };
 
 /** `localId` даёт pending→real обновление вместо delete+insert. */
 const messageRowKey = (message: IParsedChatMessage): string =>
   `m_${message.localId ?? message.id}`;
+
+/**
+ * Тип контейнера сообщения: принадлежность плюс род контента.
+ *
+ * Принадлежность — потому что от неё зависит сама разметка ячейки (колонка под
+ * аватар, сторона прижатия), род контента — потому что от него зависит
+ * поддерево пузыря. Дробить мельче смысла нет: чем больше типов, тем чаще
+ * список не находит свободный контейнер нужного и берёт чужой.
+ */
+const messageItemType = (message: IParsedChatMessage): string => {
+  const { media, emojiCount } = message.body;
+  const content = media ? media.type : emojiCount != null ? "emoji" : "text";
+
+  return `m:${message.ownership}:${content}`;
+};
 
 /** Крупные эмодзи без пузыря, но имя, цитата и заголовок пересылки требуют пузыря. */
 const isBubbleless = (
@@ -95,7 +125,11 @@ export class ChatRowsBuilder {
   private _featuresKey: string | null = null;
   private _indexSource: IParsedChatMessage[] | null = null;
   private _messageIndex = new Map<string, IParsedChatMessage>();
-  private readonly _loadingRow: ChatRow = { type: "loading", key: "l_bottom" };
+  private readonly _loadingRow: ChatRow = {
+    type: "loading",
+    key: "l_bottom",
+    itemType: "loading",
+  };
 
   build({
     messages,
@@ -202,6 +236,7 @@ export class ChatRowsBuilder {
     const row: ChatRow = {
       type: "message",
       key,
+      itemType: messageItemType(message),
       message,
       resolvedReply: replySource && {
         senderName: replySource.senderName ?? "Неизвестный",
@@ -232,7 +267,13 @@ export class ChatRowsBuilder {
       return cached;
     }
 
-    const row: ChatRow = { type: "dateSeparator", key, groupDate, hidden };
+    const row: ChatRow = {
+      type: "dateSeparator",
+      key,
+      itemType: "dateSeparator",
+      groupDate,
+      hidden,
+    };
 
     into.set(key, row);
 

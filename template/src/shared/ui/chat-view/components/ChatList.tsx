@@ -1,9 +1,9 @@
+import { KeyboardAwareLegendList } from "@legendapp/list/keyboard";
 import type {
   LegendListRef,
   LegendListRenderItemProps,
   ViewabilityConfigCallbackPairs,
 } from "@legendapp/list/react-native";
-import { AnimatedLegendList } from "@legendapp/list/reanimated";
 import React, { forwardRef, memo, useMemo } from "react";
 import {
   LayoutChangeEvent,
@@ -12,11 +12,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import Animated, {
-  AnimatedRef,
-  AnimatedStyle,
-  SharedValue,
-} from "react-native-reanimated";
+import { SharedValue } from "react-native-reanimated";
 
 import { ChatRow } from "../data";
 import { ChatRowView } from "./ChatRowView";
@@ -36,22 +32,38 @@ import { ChatRowView } from "./ChatRowView";
  * - `onStartReached`/`onEndReached` — пагинация с порогом в долях экрана;
  * - `viewabilityConfigCallbackPairs` — два порога сразу: снимок видимых
  *   и отметка о прочтении;
- * - распорка `bottomSpacerStyle` вместо инсета; её ведёт тот же `bottomInset`,
- *   что двигает панель ввода, поэтому список и панель не могут разъехаться.
+ * - нижняя зона — **инсет**, а не распорка в конце контента: её ведёт
+ *   нативный `KeyboardChatScrollView` под списком.
  *
- * Взят `AnimatedLegendList`, а не `KeyboardAwareLegendList`: последний
- * подписывается на клавиатуру сам и становится вторым источником движения,
- * а нижнюю зону в этом проекте ведёт `shared/lib/keyboard`.
+ * Про последнее подробнее, потому что раньше здесь было наоборот. Пока панель
+ * ввода была частью контента, конец списка не совпадал с видимым низом:
+ * `initialScrollAtEnd` и `scrollToEnd` целились в конец контента, а не в
+ * строку над панелью, реакцию `maintainScrollAtEnd` на лейаут футера
+ * приходилось выключать (второй источник движения рядом с компенсацией
+ * скролла), и открытие чата раз за разом промахивалось. Документация про это
+ * говорит прямо: для панели, перекрывающей конец списка, — инсет, а не
+ * padding контента.
+ *
+ * Отсюда `KeyboardAwareLegendList`: он тот же `AnimatedLegendList`, но со
+ * `KeyboardChatScrollView` вместо обычного скролла. Тот сам ведёт
+ * `contentInset` на высоту клавиатуры, расширяет диапазон прокрутки на
+ * `contentInsetEndAdjustment` (панель + safe area) и сообщает получившийся
+ * инсет списку — то есть заменяет собой и распорку, и компенсацию скролла.
+ * `freeze` принимает наш shared value: заморозка под контекстное меню
+ * осталась там же, где была.
  */
 export interface IChatListProps {
   rows: ChatRow[];
   /** Индексы разделителей дат. */
   stickyIndices: number[];
 
-  /** Скролл-ref компенсации: на него уходит `scrollTo` с UI-потока. */
-  scrollRef: AnimatedRef<Animated.ScrollView>;
-  /** Распорка нижней зоны (панель ввода + клавиатура + отступы чата). */
-  bottomSpacerStyle: AnimatedStyle<{ height: number }>;
+  /**
+   * Нижняя зона **без** клавиатуры: панель ввода, safe area под ней и отступы
+   * чата. Высоту клавиатуры добавляет сам скролл, поэтому её здесь нет.
+   */
+  composerInset: SharedValue<number>;
+  /** Заморозка зоны на время контекстного меню. */
+  freeze: SharedValue<boolean>;
 
   /** Значения, которые список ведёт сам, — читаются из ворклетов. */
   scrollOffset: SharedValue<number>;
@@ -81,16 +93,14 @@ export interface IChatListProps {
   /** Список отрисовал первый кадр и знает реальные высоты видимых строк. */
   onLoad: () => void;
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
-  onScrollBeginDrag: () => void;
-  onScrollEndDrag: () => void;
   onStartReached: () => void;
   onEndReached: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
-  onContentSizeChange: (width: number, height: number) => void;
 }
 
 const keyExtractor = (row: ChatRow) => row.key;
-const getItemType = (row: ChatRow) => row.type;
+// Не `row.type`: тип контейнера дробнее и посчитан заранее — см. `ChatRow`.
+const getItemType = (row: ChatRow) => row.itemType;
 
 /**
  * Обязан быть стабильным и без замыканий на данные: список зовёт его лениво и
@@ -104,25 +114,44 @@ const renderItem = ({ item, index }: LegendListRenderItemProps<ChatRow>) => (
 const itemsAreEqual = (previous: ChatRow, next: ChatRow) => previous === next;
 
 /**
- * Ячейки держат внутреннее состояние (проигрывание голоса, подсветка), поэтому
- * переиспользование React-элементов выключено.
+ * Ячейки переиспользуются: список не пересоздаёт вью на скролле, а меняет
+ * пропы у уже смонтированных — самое дорогое в ячейке (жест-детектор меню)
+ * переживает прокрутку.
+ *
+ * Плата за это — состояние ячейки переезжает на новое сообщение. Всё, что его
+ * держит, отделено React-ключом и пересоздаётся вместе со сменой сообщения:
+ * подсветка (`HighlightOverlay`), голосовое (`VoiceContent`) и опрос
+ * (`PollContent`); сетка вложений и файлы ключуются по url внутри себя.
+ * Строки разных типов (`getItemType`) React разводит сам — там другой
+ * компонент, переиспользовать нечего.
  */
-const RECYCLE_ITEMS = false;
+const RECYCLE_ITEMS = true;
 const MAINTAIN_VISIBLE_CONTENT_POSITION = { data: true, size: true };
 /**
- * Прижимать к низу **только** при новых данных.
+ * Прижимать к низу при новых данных и при изменении футера.
  *
- * `footerLayout` включать нельзя: нижняя зона (клавиатура + панель ввода) — это
- * распорка в конце контента, и реакция на её лейаут сделала бы список вторым
- * источником сдвига рядом с `shared/lib/keyboard`. Проверено дважды: список
- * начинает лагать. `itemLayout` — по той же причине: доизмерение строк выше
- * утащило бы вниз при догрузке истории.
+ * `footerLayout` раньше было нельзя: нижняя зона жила распоркой в конце
+ * контента, и реакция на её лейаут делала список вторым источником сдвига
+ * рядом с компенсацией скролла. Распорки больше нет — зона стала инсетом, —
+ * поэтому флаг включён по прямой рекомендации документации: он для «chat
+ * typing indicators and dynamic footers that should keep an end-pinned list at
+ * the bottom».
+ *
+ * `itemLayout` по-прежнему выключен: доизмерение строк выше утащило бы вниз
+ * при догрузке истории.
  */
 const MAINTAIN_SCROLL_AT_END = {
   animated: true,
-  on: { dataChange: true },
+  on: { dataChange: true, footerLayout: true },
 };
-const ADAPTIVE_RENDER = {};
+/**
+ * Облегчённый рендер на броске: ячейка отдаёт жест-детектор меню, а сетка
+ * вложений — превью (обе читают режим через `useAdaptiveRender`).
+ *
+ * Пороги скорости дефолтные, а возврат к полному рендеру ускорен: дефолтные
+ * 250 мс после остановки видны как серые плитки на месте картинок.
+ */
+const ADAPTIVE_RENDER = { exitDelay: 120 };
 
 export const ChatList = memo(
   forwardRef<LegendListRef, IChatListProps>(
@@ -130,8 +159,8 @@ export const ChatList = memo(
       {
         rows,
         stickyIndices,
-        scrollRef,
-        bottomSpacerStyle,
+        composerInset,
+        freeze,
         scrollOffset,
         isNearEnd,
         activeStickyIndex,
@@ -146,25 +175,15 @@ export const ChatList = memo(
         viewabilityConfigCallbackPairs,
         onLoad,
         onScroll,
-        onScrollBeginDrag,
-        onScrollEndDrag,
         onStartReached,
         onEndReached,
         onLayout,
-        onContentSizeChange,
       },
       ref,
     ) => {
       const contentContainerStyle = useMemo(
         () => ({ paddingTop: contentPaddingTop }),
         [contentPaddingTop],
-      );
-
-      // Нижняя зона — последним элементом контента, а не инсетом: так она
-      // входит в размер контента, и прижатие к низу считается верно.
-      const listFooter = useMemo(
-        () => <Animated.View style={bottomSpacerStyle} />,
-        [bottomSpacerStyle],
       );
 
       const sharedValues = useMemo(
@@ -178,13 +197,10 @@ export const ChatList = memo(
       );
 
       return (
-        <AnimatedLegendList
+        <KeyboardAwareLegendList
           ref={ref}
-          refScrollView={
-            scrollRef as unknown as React.Ref<
-              React.ComponentRef<typeof Animated.ScrollView>
-            >
-          }
+          contentInsetEndAdjustment={composerInset}
+          freeze={freeze}
           data={rows}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -203,7 +219,6 @@ export const ChatList = memo(
           stickyHeaderIndices={stickyIndices}
           stickyHeaderConfig={stickyHeaderConfig}
           sharedValues={sharedValues}
-          ListFooterComponent={listFooter}
           contentContainerStyle={contentContainerStyle}
           style={ss.list}
           showsVerticalScrollIndicator
@@ -220,10 +235,7 @@ export const ChatList = memo(
           viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
           onLoad={onLoad}
           onScroll={onScroll}
-          onScrollBeginDrag={onScrollBeginDrag}
-          onScrollEndDrag={onScrollEndDrag}
           onLayout={onLayout}
-          onContentSizeChange={onContentSizeChange}
         />
       );
     },

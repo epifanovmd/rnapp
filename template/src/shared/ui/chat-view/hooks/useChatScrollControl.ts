@@ -90,16 +90,10 @@ export const useChatScrollControl = ({
 
         if (index == null) return;
 
-        const viewPosition = VIEW_POSITIONS[position];
-
-        // Список центрирует элемент в полном вьюпорте, но при открытой
-        // клавиатуре видимая область короче на нижнее перекрытие.
-        // Отрицательный `viewOffset` возвращает элемент в видимый центр.
         listRef.current?.scrollToIndex({
           index,
           animated,
-          viewPosition,
-          viewOffset: -viewPosition * getBottomInset(),
+          viewPosition: VIEW_POSITIONS[position],
         });
 
         if (!shouldHighlight) return;
@@ -123,18 +117,6 @@ export const useChatScrollControl = ({
 
         if (!Number.isFinite(top) || !Number.isFinite(size)) return;
 
-        // Целевое смещение считаем сами — из тех же `positionAtIndex` и
-        // `sizeAtIndex`, по которым якорь и сохранялся. Это обратная функция к
-        // `computeAnchor`, один в один как в нативной реализации:
-        //
-        //   сохранение: offset = scroll + scrollLength - bottomInset - cellBottom
-        //   восстановление: scroll = cellBottom + offset - scrollLength + bottomInset
-        //
-        // Через `scrollToIndex` этого делать нельзя: там к результату
-        // примешиваются внутренние поправки списка (`trailingInset`,
-        // `topOffsetAdjustment`), которых нет в сохранении. Они не сокращаются,
-        // и каждый круг «сохранил → открыл» уводил позицию на их сумму —
-        // ошибка накапливалась с каждым открытием чата.
         const target =
           top + size + offset - state.scrollLength + getBottomInset();
         const maxOffset = Math.max(0, state.contentLength - state.scrollLength);

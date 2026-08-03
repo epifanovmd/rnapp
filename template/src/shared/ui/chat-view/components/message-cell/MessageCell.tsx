@@ -1,7 +1,4 @@
-import {
-  useAdaptiveRender,
-  useListScrollSize,
-} from "@legendapp/list/react-native";
+import { useListScrollSize } from "@legendapp/list/react-native";
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { View, ViewStyle } from "react-native";
 
@@ -36,10 +33,6 @@ export const MessageCell: FC<IMessageCellProps> = memo(
     const { theme, layout, features, styles, actions } = chatContext;
 
     const { width: listWidth } = useListScrollSize();
-    // На быстром скролле список просит дешёвую версию ячейки. Самое дорогое
-    // здесь — жест-детектор контекстного меню на каждый пузырь; пока список
-    // летит, долгое нажатие всё равно невозможно.
-    const adaptiveRender = useAdaptiveRender();
 
     const messageId = message.id;
     const ownStyles = styles.byOwnership[message.ownership];
@@ -56,7 +49,6 @@ export const MessageCell: FC<IMessageCellProps> = memo(
     );
 
     const menuEnabled =
-      adaptiveRender === "normal" &&
       features.contextMenuEnabled &&
       (features.emojiReactions.length > 0 || message.actions.length > 0);
 
@@ -118,7 +110,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
           ) : (
             bubble
           )}
-          <HighlightOverlay messageId={messageId} />
+          <HighlightOverlay key={messageId} messageId={messageId} />
         </View>
         {/* Аватар поверх ячейки (absolute), как нативный AvatarSupplementaryView:
             left = avatarLeadingMargin, низ = низ пузыря. Высоту ячейки не раздувает. */}

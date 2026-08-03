@@ -23,10 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import {
-  useKeyboardInset,
-  useKeyboardScrollCompensation,
-} from "../../lib/keyboard";
+import { useKeyboardInset } from "../../lib/keyboard";
 import {
   createInputBarStyles,
   IInputBarViewRef,
@@ -160,11 +157,6 @@ export const JsChatView = memo(
       onRefocus: handleKeyboardRefocus,
     });
 
-    const compensation = useKeyboardScrollCompensation(
-      keyboard.contentInset,
-      keyboard.reservedInset,
-    );
-
     const scrollControl = useChatScrollControl({
       listRef,
       data: dataRef,
@@ -215,28 +207,9 @@ export const JsChatView = memo(
     );
 
     const handleLayout = useCallback(
-      (event: LayoutChangeEvent) => {
-        compensation.onLayout(event);
-        setViewportHeight(event.nativeEvent.layout.height);
-      },
-      [compensation],
-    );
-
-    const handleContentSizeChange = useCallback(
-      (width: number, height: number) =>
-        compensation.onContentSizeChange(width, height),
-      [compensation],
-    );
-
-    // Компенсация обязана знать про палец на экране: пока идёт жест,
-    // позицию она не трогает.
-    const handleScrollBeginDrag = useCallback(
-      () => compensation.onScrollBeginDrag(),
-      [compensation],
-    );
-    const handleScrollEndDrag = useCallback(
-      () => compensation.onScrollEndDrag(),
-      [compensation],
+      (event: LayoutChangeEvent) =>
+        setViewportHeight(event.nativeEvent.layout.height),
+      [],
     );
 
     // ─── Пагинация ───────────────────────────────────────────────────────
@@ -276,12 +249,13 @@ export const JsChatView = memo(
 
       if (index == null) return undefined;
 
-      // Якорь описывает расстояние от нижнего края **видимой** области до
-      // нижнего края строки. Нижняя зона у нас — распорка в конце контента, а
-      // не `contentInset`, поэтому список о ней не знает: её высоту добавляем
-      // сами (нативная реализация делает это слагаемым `+ contentInset.bottom`).
-      // Величина берётся та же, что при сохранении якоря, — иначе теряется
-      // нижний safe area, и чат открывается на его высоту мимо.
+      // Нижняя зона прибавляется здесь, хотя список и знает про инсет: **на
+      // момент разрешения этой цели он его ещё не знает**. Инсет приходит от
+      // нативного скролла после его лейаута (`onContentInsetChange` →
+      // `reportContentInset`), а начальную цель список считает раньше — и
+      // вычитает `trailingInset`, равный нулю. Без слагаемого восстановление
+      // недокручивало ровно на высоту зоны, а следующее сохранение записывало
+      // уже сдвинутую позицию: ошибка копилась с каждым открытием.
       //
       // Второе слагаемое — верхний паддинг контента. При `viewPosition: 1`
       // список считает смещение так:
@@ -290,10 +264,7 @@ export const JsChatView = memo(
       //          + itemSize + trailingInset − scrollLength
       //
       // где `topOffsetAdjustment = stylePaddingTop + headerSize + …`. В якоре
-      // этого слагаемого нет — `positionAtIndex` паддинг не включает, — и без
-      // компенсации каждое открытие уводило позицию ровно на `paddingTop`.
-      // Ошибка накапливалась: восстановленная позиция становится следующей
-      // сохранённой.
+      // этого слагаемого нет — `positionAtIndex` паддинг не включает.
       return {
         index,
         viewPosition: 1,
@@ -302,6 +273,9 @@ export const JsChatView = memo(
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    console.log("initialScrollIndex messageId", initialScrollAnchor?.messageId);
+    console.log("initialScrollIndex index", initialScrollIndex?.index);
 
     // Декларативный `initialScrollIndex` считается по оценочным высотам строк,
     // поэтому подводит близко, но не точно. Когда список отрисовал первый кадр
@@ -316,8 +290,14 @@ export const JsChatView = memo(
 
       didAlignRef.current = true;
 
+      // Открытие внизу список доводит сам: конец он считает с учётом инсета,
+      // а при изменении инсета — перецеливается.
       if (!anchor || anchor.wasAtBottom) return;
 
+      // Здесь позиция доводится точно, и это единственное место, которое не
+      // зависит от гонок с инсетом: смещение считается той же формулой, что и
+      // при сохранении якоря, только в обратную сторону. Декларативная цель
+      // выше — лишь приближение по оценочным высотам.
       scrollControl.alignMessageToBottom(anchor.messageId, anchor.offset);
       // Якорь читается один раз, на монтировании: дальше позицией управляет
       // пользователь, и повторное выравнивание вырвало бы её из-под пальца.
@@ -434,8 +414,8 @@ export const JsChatView = memo(
               ref={listRef}
               rows={data.rows}
               stickyIndices={stickyIndices}
-              scrollRef={compensation.scrollRef}
-              bottomSpacerStyle={compensation.spacerStyle}
+              composerInset={keyboard.composerInset}
+              freeze={keyboard.isFrozen}
               scrollOffset={scrollOffset}
               isNearEnd={isNearEnd}
               activeStickyIndex={activeStickyIndex}
@@ -452,12 +432,9 @@ export const JsChatView = memo(
               viewabilityConfigCallbackPairs={viewabilityPairs}
               onLoad={handleLoad}
               onScroll={handleScroll}
-              onScrollBeginDrag={handleScrollBeginDrag}
-              onScrollEndDrag={handleScrollEndDrag}
               onStartReached={handleStartReached}
               onEndReached={handleEndReached}
               onLayout={handleLayout}
-              onContentSizeChange={handleContentSizeChange}
             />
 
             {isLoadingTop &&

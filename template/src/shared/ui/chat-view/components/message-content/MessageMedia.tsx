@@ -40,6 +40,7 @@ export const MessageMedia: FC<IMessageMediaProps> = ({
     case "voice":
       return (
         <VoiceContent
+          key={media.url}
           url={media.url}
           duration={media.duration}
           waveform={media.waveform}
@@ -50,6 +51,7 @@ export const MessageMedia: FC<IMessageMediaProps> = ({
     case "poll":
       return (
         <PollContent
+          key={media.poll.id}
           messageId={message.id}
           poll={media.poll}
           ownership={message.ownership}
