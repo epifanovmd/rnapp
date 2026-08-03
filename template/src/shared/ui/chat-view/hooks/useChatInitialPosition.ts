@@ -1,12 +1,7 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import {
-  RefObject,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { RefObject, useCallback, useMemo, useRef } from "react";
 
+import { useLatestRef } from "../../../lib/hooks";
 import { IChatData } from "../data";
 import {
   IAnchorScrollIndex,
@@ -26,16 +21,14 @@ export interface IChatInitialPositionOptions {
 export interface IChatInitialPosition {
   /** Начальная цель списка; `undefined` — открываемся в конце. */
   scrollIndex: IAnchorScrollIndex | undefined;
-  /** Список отрисовал первый кадр и знает реальные высоты строк. */
+  /** Список отрисовал первый кадр и знает реальные высоты видимых строк. */
   onListLoad: () => void;
 }
 
 /**
- * Правильность первого кадра: нижняя зона и позиция по якорю.
- *
- * Якорь читается один раз, на монтировании: дальше позицией распоряжается
- * пользователь. Декларативная цель подводит близко по оценочным высотам, а
- * точную посадку делает `onListLoad` — уже по измеренным.
+ * Декларативный `initialScrollIndex` + доводка по измеренным высотам после
+ * первого кадра. Без доводки ошибка оценочных высот на длинной истории
+ * попадает в следующий сохранённый якорь и копится от открытия к открытию.
  */
 export const useChatInitialPosition = ({
   anchor,
@@ -47,10 +40,6 @@ export const useChatInitialPosition = ({
   const anchorRef = useRef(anchor);
   const didAlignRef = useRef(false);
 
-  useLayoutEffect(() => {
-    listRef.current?.reportContentInset({ bottom: getBottomInset() });
-  }, [listRef, getBottomInset]);
-
   const scrollIndex = useMemo(() => {
     const initial = anchorRef.current;
 
@@ -60,23 +49,37 @@ export const useChatInitialPosition = ({
 
     if (index == null) return undefined;
 
-    return resolveAnchorScrollIndex(index, initial, contentPaddingTop);
+    return resolveAnchorScrollIndex(
+      index,
+      initial,
+      contentPaddingTop,
+      getBottomInset(),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onListLoad = useCallback(() => {
+  const alignRef = useLatestRef(() => {
     if (didAlignRef.current) return;
 
-    didAlignRef.current = true;
-
     const initial = anchorRef.current;
+
+    if (!initial || initial.wasAtBottom) {
+      didAlignRef.current = true;
+
+      return;
+    }
+
     const list = listRef.current;
 
-    if (!initial || initial.wasAtBottom || !list) return;
+    if (!list) return;
 
     const index = data.current.rowIndexOf(initial.messageId);
 
-    if (index == null) return;
+    if (index == null) {
+      didAlignRef.current = true;
+
+      return;
+    }
 
     const offset = resolveAnchorScrollOffset(
       list,
@@ -85,10 +88,29 @@ export const useChatInitialPosition = ({
       getBottomInset(),
     );
 
-    if (offset == null) return;
+    // Строка не измерена — скроллим к ней по оценке, чтобы попала в окно рендера.
+    if (offset == null) {
+      const bottomInset = getBottomInset();
 
+      list.scrollToIndex({
+        ...resolveAnchorScrollIndex(
+          index,
+          initial,
+          contentPaddingTop,
+          bottomInset,
+        ),
+        animated: false,
+      });
+      requestAnimationFrame(() => alignRef.current());
+
+      return;
+    }
+
+    didAlignRef.current = true;
     list.scrollToOffset({ offset, animated: false });
-  }, [listRef, data, getBottomInset]);
+  });
+
+  const onListLoad = useCallback(() => alignRef.current(), [alignRef]);
 
   return useMemo(
     () => ({ scrollIndex, onListLoad }),

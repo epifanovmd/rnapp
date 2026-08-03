@@ -1,72 +1,130 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { RefObject, useCallback, useRef } from "react";
-import { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
-import { SharedValue } from "react-native-reanimated";
+import {
+  RefObject,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useSharedValue,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { IChatData } from "../data";
 import { readScrollAnchor } from "../model";
-import { ChatViewProps } from "../types";
+import { ChatViewProps, IChatScrollAnchor } from "../types";
 
-/** Троттлинг отправки якоря наружу (мс). */
-const ANCHOR_THROTTLE_MS = 300;
+const EPSILON = 0.5;
+const ANCHOR_SETTLE_MS = 250;
 
 export interface IChatScrollReportOptions {
   listRef: RefObject<LegendListRef | null>;
   data: RefObject<IChatData>;
   props: RefObject<ChatViewProps>;
+  /** Позиция скролла — её ведёт сам список, на UI-потоке. */
+  scrollOffset: SharedValue<number>;
   isNearEnd: SharedValue<boolean>;
   /** Троттлинг проброса `onScroll` (сек). */
   throttleInterval: number;
   getBottomInset: () => number;
 }
 
+export interface IChatScrollReport {
+  scheduleAnchorSave: () => void;
+}
+
 /**
- * Единственное, что осталось в JS-обработчике скролла: троттленный отчёт хосту
- * и снимок якоря позиции. Пагинацией, видимостью и прилипшей датой занимается
- * сам список.
+ * Троттленный `onScroll` (UI-поток) и якорь позиции по остановке (JS-дебаунс).
+ * Якорь снимается при любом движении — палец, инерция, программный скролл, —
+ * и при размонтировании. Повторы не уходят.
  */
 export const useChatScrollReport = ({
   listRef,
   data,
   props,
+  scrollOffset,
   isNearEnd,
   throttleInterval,
   getBottomInset,
-}: IChatScrollReportOptions) => {
-  const lastScrollAtRef = useRef(0);
-  const lastAnchorAtRef = useRef(0);
+}: IChatScrollReportOptions): IChatScrollReport => {
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastAnchorRef = useRef<IChatScrollAnchor | null>(null);
+  const lastReportAt = useSharedValue(0);
 
-  return useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const now = Date.now();
-      const isAtBottom = isNearEnd.value;
-      const { contentOffset } = event.nativeEvent;
+  const clearSettleTimer = useCallback(() => {
+    if (settleTimerRef.current != null) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
+  }, []);
 
-      if (now - lastScrollAtRef.current >= throttleInterval * 1000) {
-        lastScrollAtRef.current = now;
-        props.current.onScroll?.({
-          x: contentOffset.x,
-          y: contentOffset.y,
-          isAtBottom,
-        });
-      }
+  const saveAnchor = useCallback(() => {
+    clearSettleTimer();
 
-      if (
-        props.current.onScrollAnchorChanged &&
-        now - lastAnchorAtRef.current >= ANCHOR_THROTTLE_MS
-      ) {
-        lastAnchorAtRef.current = now;
+    const onScrollAnchorChanged = props.current.onScrollAnchorChanged;
 
-        const anchor = readScrollAnchor(
-          listRef.current,
-          data.current.rows,
-          isAtBottom,
-          getBottomInset(),
-        );
+    if (!onScrollAnchorChanged) return;
 
-        if (anchor) props.current.onScrollAnchorChanged(anchor);
-      }
+    const anchor = readScrollAnchor(
+      listRef.current,
+      data.current.rows,
+      isNearEnd.value,
+      getBottomInset(),
+    );
+
+    if (!anchor) return;
+
+    const last = lastAnchorRef.current;
+
+    if (
+      last != null &&
+      last.messageId === anchor.messageId &&
+      last.wasAtBottom === anchor.wasAtBottom &&
+      last.offset === anchor.offset
+    ) {
+      return;
+    }
+
+    lastAnchorRef.current = anchor;
+    onScrollAnchorChanged(anchor);
+  }, [clearSettleTimer, props, listRef, data, isNearEnd, getBottomInset]);
+
+  const scheduleAnchorSave = useCallback(() => {
+    if (!props.current.onScrollAnchorChanged) return;
+
+    clearSettleTimer();
+    settleTimerRef.current = setTimeout(saveAnchor, ANCHOR_SETTLE_MS);
+  }, [props, clearSettleTimer, saveAnchor]);
+
+  const report = useCallback(
+    (y: number, isAtBottom: boolean) => {
+      props.current.onScroll?.({ x: 0, y, isAtBottom });
+      scheduleAnchorSave();
     },
-    [listRef, data, props, isNearEnd, throttleInterval, getBottomInset],
+    [props, scheduleAnchorSave],
   );
+
+  const throttleMs = throttleInterval * 1000;
+
+  useAnimatedReaction(
+    () => scrollOffset.value,
+    (current, previous) => {
+      if (previous === null || Math.abs(current - previous) < EPSILON) return;
+
+      const now = Date.now();
+
+      if (now - lastReportAt.value < throttleMs) return;
+
+      lastReportAt.value = now;
+      scheduleOnRN(report, current, isNearEnd.value);
+    },
+    [throttleMs, report],
+  );
+
+  useLayoutEffect(() => () => saveAnchor(), [saveAnchor]);
+
+  return useMemo(() => ({ scheduleAnchorSave }), [scheduleAnchorSave]);
 };

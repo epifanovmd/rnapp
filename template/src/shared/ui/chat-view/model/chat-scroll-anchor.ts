@@ -4,18 +4,12 @@ import { ChatRow } from "../data";
 import { IChatScrollAnchor } from "../types";
 
 /**
- * Якорь позиции чата: нижнее видимое сообщение и расстояние от него до низа
- * видимой области.
+ * Якорь позиции — семантика нативного `ScrollAnchor`:
+ *   offset = visibleBottom − cellBottom  (от низа видимой области до низа ячейки)
+ *   restore = cellBottom + offset − scrollLength + bottomInset
  *
- * Сохранение и восстановление — одна формула в две стороны, поэтому живут
- * рядом: разойдясь, они дают сдвиг, накапливающийся с каждым открытием чата.
- *
- *   offset = scroll + scrollLength − bottomInset − cellBottom
- *   scroll = cellBottom + offset − scrollLength + bottomInset
- *
- * `bottomInset` — перекрытие снизу (клавиатура и панель ввода): видимая область
- * заканчивается над панелью, а не у края экрана. Привязка идёт к сообщению, а
- * не к индексу: индекс плывёт при вставках сверху.
+ * Нижнее видимое сообщение, любой знак offset (отрицательный ← частично за панелью).
+ * Только измеренная строка: `sizeAtIndex` на оценке уводил бы позицию при открытии.
  */
 
 export interface IAnchorScrollIndex {
@@ -24,7 +18,7 @@ export interface IAnchorScrollIndex {
   viewOffset: number;
 }
 
-/** Снять якорь с текущей позиции списка. */
+/** Снять якорь с текущей позиции списка — нижнее видимое сообщение. */
 export const readScrollAnchor = (
   list: LegendListRef | null,
   rows: ChatRow[],
@@ -49,6 +43,9 @@ export const readScrollAnchor = (
 
   const visibleBottom = state.scroll + state.scrollLength - bottomInset;
 
+  // Идём снизу вверх: нижнее видимое сообщение — якорь. Нативный код не
+  // фильтрует offset: ячейка может быть частично за панелью (отрицательный
+  // offset), и это нормально — restoreScrollAnchor обрабатывает любой знак.
   for (let i = state.end; i >= state.start; i--) {
     const row = rows[i];
 
@@ -69,32 +66,19 @@ export const readScrollAnchor = (
   return null;
 };
 
-/**
- * Декларативная начальная цель списка — приближение по оценочным высотам строк.
- *
- * Нижняя зона сюда не входит: список вычитает свой инсет сам (`trailingInset`),
- * а знает он его к этому моменту гарантированно — зона сообщается ему в
- * layout-эффекте, до первого расчёта. Прибавить её здесь значило бы вычесть
- * дважды и уехать на её высоту вниз. `contentPaddingTop` компенсирует
- * `topOffsetAdjustment`, которого нет в якоре.
- */
+/** Декларативная цель для `initialScrollIndex` — по оценочным высотам. */
 export const resolveAnchorScrollIndex = (
   index: number,
   anchor: IChatScrollAnchor,
   contentPaddingTop: number,
+  bottomInset: number,
 ): IAnchorScrollIndex => ({
   index,
   viewPosition: 1,
-  viewOffset: -anchor.offset + contentPaddingTop,
+  viewOffset: -(anchor.offset + bottomInset) + contentPaddingTop,
 });
 
-/**
- * Точное смещение по якорю — по уже измеренным высотам строк.
- *
- * Считается напрямую, а не через `scrollToIndex`: там к результату примешаны
- * внутренние поправки списка, которых нет в сохранении, и каждый круг
- * «сохранил → открыл» уводил бы позицию на их сумму.
- */
+/** Точное смещение по измеренным высотам. `null` — строка ещё не измерена. */
 export const resolveAnchorScrollOffset = (
   list: LegendListRef,
   index: number,

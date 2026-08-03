@@ -12,14 +12,11 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
+import { useConstant } from "../hooks";
+
 /**
- * Компенсация перекрытия скролла снизу.
- *
- * Один `bottomInset` двигает и распорку в конце контента, и позицию скролла на
- * ту же дельту (единый источник сдвига). Распорка, а не инсет: она входит в
- * размер контента, поэтому `scrollToEnd`/автоскролл верны без поправок.
- * Единственное состояние — `appliedInset`; любое число пропущенных событий
- * схлопывается в один корректный шаг.
+ * Распорка в конце контента + подъём скролла от одного `bottomInset`.
+ * Распорка входит в размер контента — `scrollToEnd`/автоскролл верны без поправок.
  */
 
 export interface IScrollCompensation {
@@ -48,7 +45,10 @@ export const useKeyboardScrollCompensation = (
 ): IScrollCompensation => {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
-  const appliedInset = useSharedValue(0);
+  // Зона не ноль на первом кадре — иначе дельта прокрутит контент на пустом месте.
+  const initialInset = useConstant(() => bottomInset.value);
+
+  const appliedInset = useSharedValue(initialInset);
   const isUserDragging = useSharedValue(false);
   const pendingEndPin = useSharedValue(false);
   // Дельту считаем от реальной позиции, поэтому она читается отсюда, а не
@@ -56,7 +56,7 @@ export const useKeyboardScrollCompensation = (
   const scrollY = useScrollViewOffset(scrollRef);
   const contentHeight = useSharedValue(0);
   const viewportHeight = useSharedValue(0);
-  const spacerHeight = useSharedValue(0);
+  const spacerHeight = useSharedValue(initialInset);
 
   useAnimatedReaction(
     () => bottomInset.value,
@@ -69,28 +69,20 @@ export const useKeyboardScrollCompensation = (
       const reserve = reservedInset?.value ?? 0;
       const previousSpacer = Math.max(applied, reserve);
 
-      // Распорка меняется первой — она и есть «нижний инсет».
       appliedInset.value = target;
       spacerHeight.value = Math.max(target, reserve);
 
-      // Пока палец на экране, позицией управляет жест: при интерактивном
-      // закрытии контент уже едет за пальцем, второй коррекции поверх него
-      // быть не должно.
       if (isUserDragging.value) return;
+      if (contentHeight.value <= 0 || viewportHeight.value <= 0) return;
 
-      // Ожидаемая высота контента после коммита распорки: сам коммит
-      // отстаёт на кадр, а решение о скролле нужно сейчас.
       const contentEnd =
         contentHeight.value - previousSpacer + spacerHeight.value;
       const maxOffset = contentEnd - viewportHeight.value;
 
-      // Контент короче видимой области — держим прижатым к верху.
       if (maxOffset <= 0) return;
 
       const next = Math.min(Math.max(scrollY.value + delta, 0), maxOffset);
 
-      // Взводим добор, если целились в самый конец: нативный скролл подрежет
-      // запрошенный offset по ещё не выросшему contentSize.
       pendingEndPin.value = next >= maxOffset - 0.5;
 
       scrollY.value = next;
@@ -98,8 +90,7 @@ export const useKeyboardScrollCompensation = (
     },
   );
 
-  // Досыл до конца после коммита распорки. Одноразовый: следующий кадр
-  // взведёт заново, если нужно.
+  // Досыл до конца после коммита распорки.
   useAnimatedReaction(
     () => contentHeight.value,
     height => {
@@ -117,8 +108,7 @@ export const useKeyboardScrollCompensation = (
     },
   );
 
-  // Резерв применяется и сам по себе: цель известна в onStart, до первого
-  // кадра движения.
+  // Резерв применяется сам по себе — цель известна до первого кадра движения.
   useAnimatedReaction(
     () => Math.max(appliedInset.value, reservedInset?.value ?? 0),
     height => {
@@ -148,7 +138,6 @@ export const useKeyboardScrollCompensation = (
 
   const onScrollBeginDrag = useCallback(() => {
     isUserDragging.value = true;
-    // Пользователь перехватил управление — досылать конец больше не нужно.
     pendingEndPin.value = false;
   }, [isUserDragging, pendingEndPin]);
 

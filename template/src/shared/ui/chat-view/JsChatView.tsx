@@ -6,11 +6,19 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  LayoutChangeEvent,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, { useSharedValue } from "react-native-reanimated";
 
 import { useConstant, useCrossfade, useLatestRef } from "../../lib/hooks";
-import { useKeyboardInset } from "../../lib/keyboard";
+import {
+  useKeyboardInset,
+  useKeyboardScrollCompensation,
+} from "../../lib/keyboard";
 import {
   IInputBarViewRef,
   InputBarContext,
@@ -40,23 +48,9 @@ import {
 } from "./model";
 import { ChatViewProps, IChatViewRef } from "./types";
 
-/** Смена ссылки заставила бы список пересчитать sticky. */
 const NO_STICKY_INDICES: number[] = [];
 
-/**
- * React Native-реализация ChatView на `@legendapp/list`.
- *
- * Всё, что связано с положением контента, отдано списку и нативному слою
- * клавиатуры. Здесь остаётся склейка — конфигурация, данные, команды и
- * разводка колбэков наружу.
- *
- * - `config/` — тема, метрики, флаги и готовые стили ячеек;
- * - `data/` — разбор сообщений и построение строк;
- * - `model/` — контекст, стор подсветки и математика якоря позиции;
- * - `hooks/` — по хуку на ответственность;
- * - `components/` — только отрисовка;
- * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка.
- */
+/** JS-реализация ChatView: LegendList + одна зона клавиатуры на всех потребителей. */
 export const JsChatView = memo(
   forwardRef<IChatViewRef, ChatViewProps>((props, ref) => {
     const {
@@ -130,10 +124,29 @@ export const JsChatView = memo(
       onRefocus: handleKeyboardRefocus,
     });
 
+    // Зона одна на экран, применений два: панель едет по `occludedBottom`,
+    // контент — распоркой и компенсацией скролла по тому же `contentInset`.
+    const compensation = useKeyboardScrollCompensation(
+      keyboard.contentInset,
+      keyboard.reservedInset,
+    );
+
+    const scrollReport = useChatScrollReport({
+      listRef,
+      data: dataRef,
+      props: propsRef,
+      scrollOffset,
+      isNearEnd,
+      throttleInterval: layout.scrollThrottleInterval,
+      getBottomInset: keyboard.getContentInset,
+    });
+
     const scrollControl = useChatScrollControl({
       listRef,
       data: dataRef,
       highlight,
+      getBottomInset: keyboard.getContentInset,
+      onScrollRequested: scrollReport.scheduleAnchorSave,
     });
 
     const unread = useChatUnread(unreadCount, data.messages);
@@ -148,20 +161,28 @@ export const JsChatView = memo(
       unreadInterval: props.unreadMessagesDebounceInterval,
     });
 
-    const handleScroll = useChatScrollReport({
-      listRef,
-      data: dataRef,
-      props: propsRef,
-      isNearEnd,
-      throttleInterval: layout.scrollThrottleInterval,
-      getBottomInset: keyboard.getContentInset,
-    });
-
     const pagination = useChatPagination({
       props: propsRef,
       features,
       scrollOffset,
     });
+
+    // Геометрию скролла читают двое: пагинация переводит пороги в доли экрана,
+    // компенсация считает по ней предел прокрутки.
+    const handleLayout = useCallback(
+      (event: LayoutChangeEvent) => {
+        compensation.onLayout(event);
+        pagination.onLayout(event);
+      },
+      [compensation, pagination],
+    );
+
+    // Палец отпущен — дальше либо инерция, либо остановка. И то и другое
+    // доводится до якоря таймером устаканивания.
+    const handleScrollEndDrag = useCallback(() => {
+      compensation.onScrollEndDrag();
+      scrollReport.scheduleAnchorSave();
+    }, [compensation, scrollReport]);
 
     const contentPaddingTop = layout.collectionTopPadding + collectionInsetTop;
 
@@ -205,8 +226,7 @@ export const JsChatView = memo(
 
     const handleFabPress = useCallback(() => {
       propsRef.current.onFabPress?.({});
-      scrollControl.scrollToBottom(true);
-    }, [propsRef, scrollControl]);
+    }, [propsRef]);
 
     const chatContext = useChatViewContextValue({
       theme,
@@ -238,8 +258,8 @@ export const JsChatView = memo(
               ref={listRef}
               rows={data.rows}
               stickyIndices={stickyIndices}
-              composerInset={keyboard.composerInset}
-              freeze={keyboard.isFrozen}
+              scrollRef={compensation.scrollRef}
+              bottomSpacerStyle={compensation.spacerStyle}
               scrollOffset={scrollOffset}
               isNearEnd={isNearEnd}
               activeStickyIndex={activeStickyIndex}
@@ -253,10 +273,12 @@ export const JsChatView = memo(
               maintainScrollAtEndThreshold={pagination.scrollToBottomThreshold}
               viewabilityConfigCallbackPairs={viewabilityPairs}
               onLoad={initialPosition.onListLoad}
-              onScroll={handleScroll}
+              onScrollBeginDrag={compensation.onScrollBeginDrag}
+              onScrollEndDrag={handleScrollEndDrag}
               onStartReached={pagination.onStartReached}
               onEndReached={pagination.onEndReached}
-              onLayout={pagination.onLayout}
+              onLayout={handleLayout}
+              onContentSizeChange={compensation.onContentSizeChange}
               onAdaptiveRenderChange={adaptiveRender.set}
             />
 

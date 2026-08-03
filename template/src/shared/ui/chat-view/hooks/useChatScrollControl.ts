@@ -33,19 +33,27 @@ export interface IChatScrollControlOptions {
   listRef: RefObject<LegendListRef | null>;
   data: RefObject<IChatData>;
   highlight: ChatHighlightStore;
+  /**
+   * Перекрытие контента снизу (клавиатура + панель ввода): видимая область
+   * короче вьюпорта на эту величину, а список о ней не знает — зона живёт
+   * распоркой в конце контента.
+   */
+  getBottomInset: () => number;
+  /**
+   * Позицию попросили изменить программно. Отправка сообщения, FAB и переход к
+   * сообщению приходят сюда — этого достаточно, чтобы снять якорь после любого
+   * из них: снимет его всё равно один общий таймер устаканивания.
+   */
+  onScrollRequested?: () => void;
 }
 
-/**
- * Команды прокрутки для хоста и ячеек.
- *
- * Поправок на нижнее перекрытие здесь нет: зона приходит списку инсетом, и он
- * вычитает её из вьюпорта сам. Восстановление начальной позиции живёт отдельно
- * — в `useChatInitialPosition`.
- */
+/** Команды прокрутки: `scrollToEnd` без поправок, `scrollToIndex` — с поправкой на зону. */
 export const useChatScrollControl = ({
   listRef,
   data,
   highlight,
+  getBottomInset,
+  onScrollRequested,
 }: IChatScrollControlOptions): IChatScrollControl => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -58,8 +66,10 @@ export const useChatScrollControl = ({
 
   return useMemo<IChatScrollControl>(
     () => ({
-      scrollToBottom: (animated = true) =>
-        listRef.current?.scrollToEnd({ animated }),
+      scrollToBottom: (animated = true) => {
+        onScrollRequested?.();
+        listRef.current?.scrollToEnd({ animated });
+      },
 
       scrollToMessage: (messageId, options = {}) => {
         const {
@@ -71,10 +81,16 @@ export const useChatScrollControl = ({
 
         if (index == null) return;
 
+        const viewPosition = VIEW_POSITIONS[position];
+
+        onScrollRequested?.();
+
+        // Компенсация: список центрирует по полному вьюпорту, а видимая область короче на зону.
         listRef.current?.scrollToIndex({
           index,
           animated,
-          viewPosition: VIEW_POSITIONS[position],
+          viewPosition,
+          viewOffset: -viewPosition * getBottomInset(),
         });
 
         if (!shouldHighlight) return;
@@ -86,6 +102,6 @@ export const useChatScrollControl = ({
         );
       },
     }),
-    [listRef, data, highlight],
+    [listRef, data, highlight, getBottomInset, onScrollRequested],
   );
 };

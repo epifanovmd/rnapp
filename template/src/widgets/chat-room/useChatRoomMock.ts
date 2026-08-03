@@ -597,7 +597,12 @@ export const useChatRoomMock = () => {
 
   const handleScrollAnchorChanged = useCallback(
     (payload: ChatScrollAnchorChangedEventData) => {
-      logEvent("onScrollAnchorChanged", payload);
+      const msg = messages.find(m => m.id === payload.messageId);
+
+      logEvent(
+        "onScrollAnchorChanged",
+        [payload.messageId, payload.offset, msg?.content].join("\t"),
+      );
 
       if (!isScrollRestoreEnabled) return;
 
@@ -606,11 +611,12 @@ export const useChatRoomMock = () => {
       // и дешёвый, дополнительный дебаунс тут ничего не даст.
       scrollStorage.writeAnchor(MOCK_CHAT_ID, payload);
     },
-    [isScrollRestoreEnabled, scrollStorage],
+    [isScrollRestoreEnabled, messages, scrollStorage],
   );
 
   const handleFabPress = useCallback(() => {
     logEvent("onFabPress");
+    chatRef.current?.scrollToBottom();
   }, []);
 
   // ── Attachments ───────────────────────────────────────────────────
