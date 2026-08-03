@@ -1,5 +1,11 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { RefObject, useCallback, useMemo, useRef } from "react";
+import {
+  RefObject,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 
 import { IChatData } from "../data";
 import {
@@ -25,7 +31,7 @@ export interface IChatInitialPosition {
 }
 
 /**
- * Восстановление позиции по якорю.
+ * Правильность первого кадра: нижняя зона и позиция по якорю.
  *
  * Якорь читается один раз, на монтировании: дальше позицией распоряжается
  * пользователь. Декларативная цель подводит близко по оценочным высотам, а
@@ -41,6 +47,10 @@ export const useChatInitialPosition = ({
   const anchorRef = useRef(anchor);
   const didAlignRef = useRef(false);
 
+  useLayoutEffect(() => {
+    listRef.current?.reportContentInset({ bottom: getBottomInset() });
+  }, [listRef, getBottomInset]);
+
   const scrollIndex = useMemo(() => {
     const initial = anchorRef.current;
 
@@ -50,12 +60,7 @@ export const useChatInitialPosition = ({
 
     if (index == null) return undefined;
 
-    return resolveAnchorScrollIndex(
-      index,
-      initial,
-      contentPaddingTop,
-      getBottomInset(),
-    );
+    return resolveAnchorScrollIndex(index, initial, contentPaddingTop);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

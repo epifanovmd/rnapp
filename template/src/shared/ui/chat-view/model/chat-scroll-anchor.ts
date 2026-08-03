@@ -72,20 +72,20 @@ export const readScrollAnchor = (
 /**
  * Декларативная начальная цель списка — приближение по оценочным высотам строк.
  *
- * `bottomInset` прибавляется, хотя список и вычитает свой инсет сам: на момент
- * разрешения этой цели он его ещё не знает — инсет приходит от нативного
- * скролла после его лейаута. `contentPaddingTop` компенсирует
+ * Нижняя зона сюда не входит: список вычитает свой инсет сам (`trailingInset`),
+ * а знает он его к этому моменту гарантированно — зона сообщается ему в
+ * layout-эффекте, до первого расчёта. Прибавить её здесь значило бы вычесть
+ * дважды и уехать на её высоту вниз. `contentPaddingTop` компенсирует
  * `topOffsetAdjustment`, которого нет в якоре.
  */
 export const resolveAnchorScrollIndex = (
   index: number,
   anchor: IChatScrollAnchor,
   contentPaddingTop: number,
-  bottomInset: number,
 ): IAnchorScrollIndex => ({
   index,
   viewPosition: 1,
-  viewOffset: -(anchor.offset + bottomInset) + contentPaddingTop,
+  viewOffset: -anchor.offset + contentPaddingTop,
 });
 
 /**
