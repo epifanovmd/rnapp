@@ -27,8 +27,7 @@ export interface IKeyboardHeight {
 export const useKeyboardHeight = (): IKeyboardHeight => {
   const height = useSharedValue(0);
   const targetHeight = useSharedValue(0);
-  // Shared values на UI-потоке, из JS-обработчика их читать нельзя —
-  // значения зеркалятся в ref на событиях клавиатуры.
+
   const isVisibleRef = useRef(false);
   const heightRef = useRef(0);
 
@@ -44,8 +43,6 @@ export const useKeyboardHeight = (): IKeyboardHeight => {
     {
       onStart: e => {
         "worklet";
-        // Цель известна до анимации — резервируем место заранее. Пришедший
-        // onMove перебьёт анимацию присваиванием.
         targetHeight.value = e.height;
         height.value = withTiming(e.height, { duration: e.duration });
         scheduleOnRN(setVisible, e.height > 0);
@@ -57,7 +54,6 @@ export const useKeyboardHeight = (): IKeyboardHeight => {
       },
       onInteractive: e => {
         "worklet";
-        // У жеста цели нет — текущее положение и есть цель.
         targetHeight.value = e.height;
         height.value = e.height;
         scheduleOnRN(setHeight, e.height);

@@ -40,8 +40,6 @@ export interface IKeyboardInsetOptions {
 }
 
 export interface IKeyboardInset {
-  // ─── Панель (всегда живая) ───────────────────────────────────────────
-
   /** Готовый стиль плавающей панели: `translateY` на высоту зоны. */
   barStyle: AnimatedStyle<ViewStyle>;
   /** Та же величина числом — для FAB и прочего, что стоит над зоной. */
@@ -78,10 +76,10 @@ export const useKeyboardInset = (
 ): IKeyboardInset => {
   const { extraPadding = 0, initialBarHeight = 0, onBlur, onRefocus } = options;
 
-  const safeAreaBottom = useSafeAreaInsets().bottom;
+  const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
   const barHeight = useSharedValue(initialBarHeight);
-  // JS-зеркало высоты панели: для `getContentInset` нужно синхронное чтение.
+
   const barHeightRef = useRef(initialBarHeight);
 
   // Сколько низа занято не контентом: клавиатура, а без неё — safe area.
@@ -108,8 +106,6 @@ export const useKeyboardInset = (
     [extraPadding],
   );
 
-  // Мёрзнет только контент. Механика общая и живёт в shared/lib/hooks —
-  // здесь только выбор замораживаемой величины.
   const {
     value: contentInset,
     frozen,
@@ -123,8 +119,6 @@ export const useKeyboardInset = (
     onRestore: onRefocus,
   });
 
-  // Резерв держим на том же значении: иначе распорка схлопнется под
-  // замороженным контентом и диапазон скролла уедет из-под него.
   const reservedInset = useDerivedValue(() =>
     frozen.value >= 0 ? frozen.value : liveReserved.value,
   );
