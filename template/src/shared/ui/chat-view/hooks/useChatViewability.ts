@@ -2,40 +2,25 @@ import type {
   ViewabilityConfigCallbackPairs,
   ViewToken,
 } from "@legendapp/list/react-native";
-import { RefObject, useCallback, useMemo, useRef } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { SharedValue } from "react-native-reanimated";
 
 import { useLatestRef } from "../../../lib/hooks";
 import { ChatRow } from "../data";
 import { ChatViewProps } from "../types";
 
-/** Значения по умолчанию совпадают с нативной реализацией. */
 const DEFAULT_VISIBLE_THRESHOLD = 0.8;
 const DEFAULT_UNREAD_THRESHOLD = 0.5;
 const DEFAULT_VISIBLE_INTERVAL = 0.3;
 const DEFAULT_UNREAD_INTERVAL = 0.3;
 
 /**
- * Два порога видимости сразу: строгий для снимка видимых сообщений и мягкий
- * для отметки о прочтении. Считает их сам список через
- * `viewabilityConfigCallbackPairs`.
+ * Два порога видимости через `viewabilityConfigCallbackPairs`:
+ * строгий для снимка видимых и мягкий для отметки о прочтении.
  *
- * `minimumViewTime` в каждом конфиге — это не глобальный дебаунс, а
- * **порог на элемент**: строка должна провисеть в зоне видимости дольше этого
- * времени, чтобы попасть в срез. При быстром броске строки проносятся мимо
- * быстрее порога и не попадают — это правильное поведение, менять его не надо.
- *
- * Что добавлено поверх штатной механики списка:
- *
- * 1. **Дедупликация среза видимых**: если тот же набор messageId, что и в
- *    прошлый раз, событие наружу не уходит. Без неё хост на каждый тик пишет
- *    в хранилище один и тот же список — видимые сообщения при медленном
- *    скролле почти не меняются.
- *
- * 2. **Стабильные колбэки**: `handleVisible`/`handleRead` не пересоздаются при
- *    смене `props` или `isNearEnd` — вместо этого читают актуальные значения
- *    из `useLatestRef`. Иначе LegendList перерегистрирует `viewabilityConfig`
- *    на каждый ререндер.
+ * `handleVisible` — дедупликация по набору id.
+ * `handleRead` — mark-as-read сразу, `onUnreadMessagesAppear` с батчингом
+ * (дебаунс + аккумуляция за интервал), как в нативном `notifyUnreadMessages`.
  */
 export interface IChatViewabilityOptions {
   props: RefObject<ChatViewProps>;
@@ -59,6 +44,25 @@ export const useChatViewability = ({
   const propsRef = useLatestRef(props.current);
   const onMarkReadRef = useLatestRef(onMarkRead);
   const lastVisibleIdsRef = useRef<string>("");
+
+  const pendingUnreadRef = useRef<Set<string>>(new Set());
+  const unreadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushUnread = useCallback(() => {
+    if (unreadTimerRef.current != null) {
+      clearTimeout(unreadTimerRef.current);
+      unreadTimerRef.current = null;
+    }
+
+    const batch = pendingUnreadRef.current;
+
+    if (batch.size === 0) return;
+
+    const ids = Array.from(batch);
+
+    pendingUnreadRef.current = new Set();
+    propsRef.current.onUnreadMessagesAppear?.({ messageIds: ids });
+  }, [propsRef]);
 
   const handleVisible = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ChatRow>[] }) => {
@@ -104,12 +108,22 @@ export const useChatViewability = ({
 
       if (unreadIds.length === 0) return;
 
+      // mark-as-read — сразу.
       onMarkReadRef.current(unreadIds);
-      propsRef.current.onUnreadMessagesAppear?.({ messageIds: unreadIds });
+
+      // onUnreadMessagesAppear — батчинг с дебаунсом, как в нативе.
+      for (const id of unreadIds) {
+        pendingUnreadRef.current.add(id);
+      }
+
+      if (unreadTimerRef.current != null) clearTimeout(unreadTimerRef.current);
+      unreadTimerRef.current = setTimeout(flushUnread, unreadInterval * 1000);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  useEffect(() => () => flushUnread(), [flushUnread]);
 
   return useMemo(
     () => [
