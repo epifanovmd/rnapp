@@ -7,6 +7,7 @@ import {
   INPUT_BAR_DEFAULT_FEATURES,
 } from "../../input-bar";
 import {
+  ChatAdaptiveRenderStore,
   ChatHighlightStore,
   IChatCellActions,
   IChatStickyDate,
@@ -17,6 +18,7 @@ import { IChatConfig } from "./useChatConfig";
 export interface IChatViewContextOptions extends IChatConfig {
   actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
+  adaptiveRender: ChatAdaptiveRenderStore;
   stickyDate: IChatStickyDate;
 }
 
@@ -29,6 +31,7 @@ export const useChatViewContextValue = ({
   styles,
   actions,
   highlight,
+  adaptiveRender,
   stickyDate,
 }: IChatViewContextOptions): IChatViewContextValue =>
   useMemo(
@@ -40,6 +43,7 @@ export const useChatViewContextValue = ({
       styles,
       actions,
       highlight,
+      adaptiveRender,
       stickyDate,
     }),
     [
@@ -50,6 +54,7 @@ export const useChatViewContextValue = ({
       styles,
       actions,
       highlight,
+      adaptiveRender,
       stickyDate,
     ],
   );

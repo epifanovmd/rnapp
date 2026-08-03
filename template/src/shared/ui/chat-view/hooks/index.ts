@@ -1,3 +1,4 @@
+export * from "./useChatAdaptiveRender";
 export * from "./useChatCellActions";
 export * from "./useChatConfig";
 export * from "./useChatContexts";

@@ -49,7 +49,6 @@ export const InputBarView = memo(
 
       const inputRef = useRef<TextInput>(null);
       const [text, setText] = useState("");
-      const [contentHeight, setContentHeight] = useState(0);
 
       // Свежие значения для стабильных колбэков — пересоздавать их нельзя:
       // от этого зависят и жест записи, и подписки поля ввода.
@@ -202,11 +201,6 @@ export const InputBarView = memo(
         [],
       );
 
-      const inputHeight = Math.min(
-        Math.max(contentHeight, layout.textViewMinHeight),
-        layout.textViewMaxHeight,
-      );
-
       // Строка гаснет отдельно от смены состояния.
       const recordingRowStyle = useAnimatedStyle(() => ({
         opacity: rowOpacity.value,
@@ -231,12 +225,10 @@ export const InputBarView = memo(
               <InputBarTextField
                 inputRef={inputRef}
                 value={text}
-                height={inputHeight}
                 // Поле возвращается не в момент остановки записи, а когда
                 // строка записи полностью ушла.
                 hidden={rowVisible}
                 onChangeText={handleChangeText}
-                onContentHeightChange={setContentHeight}
               />
 
               {rowVisible && (

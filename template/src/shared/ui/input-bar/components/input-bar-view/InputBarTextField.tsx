@@ -1,49 +1,47 @@
-import React, { FC, memo, useCallback, useMemo } from "react";
-import {
-  NativeSyntheticEvent,
-  TextInput,
-  TextInputContentSizeChangeEventData,
-} from "react-native";
+import React, { FC, memo, useMemo } from "react";
+import { TextInput } from "react-native";
 
 import { useInputBarContext } from "../../config";
-
-/**
- * Поле ввода. Всегда смонтировано и с неизменными пропсами во время записи:
- * размонтирование увело бы фокус и закрыло клавиатуру, а смена пропсов может
- * заставить RN пересоздать нативный UITextView с тем же эффектом.
- */
 
 interface IInputBarTextFieldProps {
   inputRef: React.RefObject<TextInput | null>;
   value: string;
-  /** Высота поля с учётом роста текста, уже ограниченная min/max. */
-  height: number;
   /** Поле накрыто строкой записи — прячем, не размонтируя. */
   hidden: boolean;
   onChangeText: (value: string) => void;
-  onContentHeightChange: (height: number) => void;
 }
 
+/**
+ * Поле ввода. Растёт под текст само: границы заданы `minHeight`/`maxHeight`,
+ * дальше поле прокручивает содержимое внутри себя — как нативная панель.
+ *
+ * Явную высоту задавать нельзя: `contentSize` многострочного поля ограничен
+ * его же фреймом, и высота, посчитанная из `onContentSizeChange`, замыкает
+ * петлю на минимуме — поле перестаёт расти.
+ *
+ * Всегда смонтировано и с неизменными пропсами во время записи:
+ * размонтирование увело бы фокус и закрыло клавиатуру, а смена пропсов может
+ * заставить RN пересоздать нативный UITextView с тем же эффектом.
+ */
 export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
-  ({
-    inputRef,
-    value,
-    height,
-    hidden,
-    onChangeText,
-    onContentHeightChange,
-  }) => {
+  ({ inputRef, value, hidden, onChangeText }) => {
     const { theme, layout, styles } = useInputBarContext();
 
     const style = useMemo(
-      () => [styles.textInput, { height, opacity: hidden ? 0 : 1 }],
-      [styles.textInput, height, hidden],
-    );
-
-    const handleContentSizeChange = useCallback(
-      (e: NativeSyntheticEvent<TextInputContentSizeChangeEventData>) =>
-        onContentHeightChange(e.nativeEvent.contentSize.height),
-      [onContentHeightChange],
+      () => [
+        styles.textInput,
+        {
+          minHeight: layout.textViewMinHeight,
+          maxHeight: layout.textViewMaxHeight,
+          opacity: hidden ? 0 : 1,
+        },
+      ],
+      [
+        styles.textInput,
+        layout.textViewMinHeight,
+        layout.textViewMaxHeight,
+        hidden,
+      ],
     );
 
     return (
@@ -56,7 +54,6 @@ export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
         style={style}
         selectionColor={theme.inputTint}
         onChangeText={onChangeText}
-        onContentSizeChange={handleContentSizeChange}
       />
     );
   },

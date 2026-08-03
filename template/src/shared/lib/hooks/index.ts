@@ -1,5 +1,6 @@
 export * from "./merge-refs";
 export * from "./use-boolean";
+export * from "./use-constant";
 export * from "./use-crossfade";
 export * from "./use-dimensions";
 export * from "./use-freezable-value";

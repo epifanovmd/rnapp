@@ -9,7 +9,7 @@ import React, {
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 import Animated, { useSharedValue } from "react-native-reanimated";
 
-import { useCrossfade, useLatestRef } from "../../lib/hooks";
+import { useConstant, useCrossfade, useLatestRef } from "../../lib/hooks";
 import { useKeyboardInset } from "../../lib/keyboard";
 import {
   IInputBarViewRef,
@@ -33,7 +33,11 @@ import {
   useChatViewContextValue,
   useInputBarContextValue,
 } from "./hooks";
-import { ChatHighlightStore, ChatViewContext } from "./model";
+import {
+  ChatAdaptiveRenderStore,
+  ChatHighlightStore,
+  ChatViewContext,
+} from "./model";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 /** Смена ссылки заставила бы список пересчитать sticky. */
@@ -78,11 +82,9 @@ export const JsChatView = memo(
 
     const listRef = useRef<LegendListRef>(null);
     const inputBarRef = useRef<IInputBarViewRef>(null);
-    const highlightRef = useRef<ChatHighlightStore | null>(null);
 
-    highlightRef.current ??= new ChatHighlightStore();
-
-    const highlight = highlightRef.current;
+    const highlight = useConstant(() => new ChatHighlightStore());
+    const adaptiveRender = useConstant(() => new ChatAdaptiveRenderStore());
 
     const scrollOffset = useSharedValue(0);
     const isNearEnd = useSharedValue(true);
@@ -119,9 +121,11 @@ export const JsChatView = memo(
       [],
     );
 
+    const barHeight = useSharedValue(inputBarLayout.inputBarMinHeight);
+
     const keyboard = useKeyboardInset({
+      barHeight,
       extraPadding: layout.collectionBottomPadding + collectionInsetBottom,
-      initialBarHeight: inputBarLayout.inputBarMinHeight,
       onBlur: handleKeyboardBlur,
       onRefocus: handleKeyboardRefocus,
     });
@@ -194,7 +198,7 @@ export const JsChatView = memo(
       props: propsRef,
       scrollControl,
       features,
-      barHeight: keyboard.barHeight,
+      barHeight,
       fabExpanded,
       fabHiddenForRecording,
     });
@@ -212,6 +216,7 @@ export const JsChatView = memo(
       styles,
       actions: cellActions,
       highlight,
+      adaptiveRender,
       stickyDate,
     });
 
@@ -252,6 +257,7 @@ export const JsChatView = memo(
               onStartReached={pagination.onStartReached}
               onEndReached={pagination.onEndReached}
               onLayout={pagination.onLayout}
+              onAdaptiveRenderChange={adaptiveRender.set}
             />
 
             {isLoadingTop &&
@@ -285,7 +291,7 @@ export const JsChatView = memo(
 
           <ChatFab
             bottomInset={keyboard.occludedBottom}
-            inputBarHeight={keyboard.barHeight}
+            inputBarHeight={barHeight}
             isNearEnd={isNearEnd}
             expanded={fabExpanded}
             hiddenForRecording={fabHiddenForRecording}

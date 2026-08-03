@@ -15,6 +15,7 @@ import {
 import { SharedValue } from "react-native-reanimated";
 
 import { ChatRow } from "../data";
+import { ChatAdaptiveRenderMode } from "../model";
 import { ChatRowView } from "./ChatRowView";
 
 /**
@@ -96,6 +97,11 @@ export interface IChatListProps {
   onStartReached: () => void;
   onEndReached: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
+  /**
+   * Смена режима рендера. Отдаётся наружу, а не читается ячейками через
+   * `useAdaptiveRender`: копия пузыря живёт в оверлее меню, вне списка.
+   */
+  onAdaptiveRenderChange: (mode: ChatAdaptiveRenderMode) => void;
 }
 
 const keyExtractor = (row: ChatRow) => row.key;
@@ -145,13 +151,10 @@ const MAINTAIN_SCROLL_AT_END = {
   on: { dataChange: true, footerLayout: true },
 };
 /**
- * Облегчённый рендер на броске: ячейка отдаёт жест-детектор меню, а сетка
- * вложений — превью (обе читают режим через `useAdaptiveRender`).
- *
- * Пороги скорости дефолтные, а возврат к полному рендеру ускорен: дефолтные
- * 250 мс после остановки видны как серые плитки на месте картинок.
+ * Возврат к полному рендеру после броска: дефолтные 250 мс заметны как серые
+ * плитки на месте картинок. Пороги скорости оставлены дефолтными.
  */
-const ADAPTIVE_RENDER = { exitDelay: 120 };
+const ADAPTIVE_RENDER_EXIT_DELAY = 120;
 
 export const ChatList = memo(
   forwardRef<LegendListRef, IChatListProps>(
@@ -178,9 +181,18 @@ export const ChatList = memo(
         onStartReached,
         onEndReached,
         onLayout,
+        onAdaptiveRenderChange,
       },
       ref,
     ) => {
+      const adaptiveRender = useMemo(
+        () => ({
+          exitDelay: ADAPTIVE_RENDER_EXIT_DELAY,
+          onChange: onAdaptiveRenderChange,
+        }),
+        [onAdaptiveRenderChange],
+      );
+
       const contentContainerStyle = useMemo(
         () => ({ paddingTop: contentPaddingTop }),
         [contentPaddingTop],
@@ -207,7 +219,7 @@ export const ChatList = memo(
           getItemType={getItemType}
           itemsAreEqual={itemsAreEqual}
           recycleItems={RECYCLE_ITEMS}
-          experimental_adaptiveRender={ADAPTIVE_RENDER}
+          experimental_adaptiveRender={adaptiveRender}
           estimatedItemSize={estimatedItemSize}
           drawDistance={drawDistance}
           alignItemsAtEnd

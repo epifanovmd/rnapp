@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import {
   SharedValue,
   useDerivedValue,
@@ -10,10 +10,15 @@ import { useFreezableValue } from "../hooks/use-freezable-value";
 import { useKeyboardHeight } from "./use-keyboard-height";
 
 export interface IKeyboardInsetOptions {
+  /**
+   * Живая высота панели ввода — её замеряет и ведёт сама панель.
+   *
+   * Входное значение, а не собственность хука: он лишь складывает её с
+   * клавиатурой и safe area.
+   */
+  barHeight: SharedValue<number>;
   /** Собственные отступы контента снизу, не связанные с клавиатурой. */
   extraPadding?: number;
-  /** Высота панели до первого замера: нулевой старт увёл бы её за экран. */
-  initialBarHeight?: number;
   /** Снять фокус с поля ввода при заморозке. */
   onBlur?: () => void;
   /** Вернуть фокус в поле ввода при разморозке. */
@@ -23,9 +28,6 @@ export interface IKeyboardInsetOptions {
 export interface IKeyboardInset {
   /** Перекрытие снизу клавиатурой, а без неё — safe area. */
   occludedBottom: SharedValue<number>;
-  /** Живая высота панели ввода — её замеряет и сообщает сама панель. */
-  barHeight: SharedValue<number>;
-  setBarHeight: (height: number) => void;
 
   /** Полное перекрытие контента снизу: зона + панель + свои отступы. */
   contentInset: SharedValue<number>;
@@ -58,16 +60,14 @@ export interface IKeyboardInset {
  * Заморозка держит только отступ контента: панель живая всегда, иначе она
  * выглядела бы зависшей посреди экрана.
  */
-export const useKeyboardInset = (
-  options: IKeyboardInsetOptions = {},
-): IKeyboardInset => {
-  const { extraPadding = 0, initialBarHeight = 0, onBlur, onRefocus } = options;
-
+export const useKeyboardInset = ({
+  barHeight,
+  extraPadding = 0,
+  onBlur,
+  onRefocus,
+}: IKeyboardInsetOptions): IKeyboardInset => {
   const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
-  const barHeight = useSharedValue(initialBarHeight);
-
-  const barHeightRef = useRef(initialBarHeight);
 
   const occludedBottom = useDerivedValue(
     () => Math.max(keyboard.height.value, safeAreaBottom),
@@ -114,27 +114,17 @@ export const useKeyboardInset = (
     [safeAreaBottom, extraPadding],
   );
 
-  const setBarHeight = useCallback(
-    (height: number) => {
-      barHeightRef.current = height;
-      barHeight.value = height;
-    },
-    [barHeight],
-  );
-
   const getContentInset = useCallback(
     () =>
       Math.max(keyboard.getHeight(), safeAreaBottom) +
-      barHeightRef.current +
+      barHeight.value +
       extraPadding,
-    [keyboard, safeAreaBottom, extraPadding],
+    [keyboard, safeAreaBottom, barHeight, extraPadding],
   );
 
   return useMemo(
     () => ({
       occludedBottom,
-      barHeight,
-      setBarHeight,
       contentInset,
       reservedInset,
       composerInset,
@@ -146,8 +136,6 @@ export const useKeyboardInset = (
     }),
     [
       occludedBottom,
-      barHeight,
-      setBarHeight,
       contentInset,
       reservedInset,
       composerInset,

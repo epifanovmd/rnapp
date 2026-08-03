@@ -12,6 +12,7 @@ import {
   IChatStyles,
   IChatViewTheme,
 } from "../config";
+import { ChatAdaptiveRenderStore } from "./chat-adaptive-render-store";
 import { ChatHighlightStore } from "./chat-highlight-store";
 
 /**
@@ -57,6 +58,7 @@ export interface IChatViewContextValue {
   styles: IChatStyles;
   actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
+  adaptiveRender: ChatAdaptiveRenderStore;
   stickyDate: IChatStickyDate;
 }
 
@@ -68,6 +70,7 @@ export const ChatViewContext = createContext<IChatViewContextValue>({
   styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
   actions: { current: null as unknown as IChatCellActions },
   highlight: new ChatHighlightStore(),
+  adaptiveRender: new ChatAdaptiveRenderStore(),
   stickyDate: { activeIndex: makeMutable(-1), opacity: makeMutable(0) },
 });
 

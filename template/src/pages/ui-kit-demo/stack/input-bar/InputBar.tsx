@@ -23,6 +23,7 @@ import { JsInputBar } from "@shared/ui/input-bar/JsInputBar";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useMemo, useState } from "react";
 import { Keyboard, Platform, Pressable, StyleSheet } from "react-native";
+import { useSharedValue } from "react-native-reanimated";
 
 type EventEntry = { time: string; text: string };
 
@@ -53,9 +54,9 @@ export const InputBarPage: FC<StackProps> = observer(() => {
   // Инсеты и панель — `useKeyboardInset`, скролл — отдельный
   // `useKeyboardScrollCompensation`. Подписка на клавиатуру одна.
 
-  const kb = useKeyboardInset({
-    initialBarHeight: INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight,
-  });
+  const barHeight = useSharedValue(INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight);
+
+  const kb = useKeyboardInset({ barHeight });
   const compensation = useKeyboardScrollCompensation(
     kb.contentInset,
     kb.reservedInset,
@@ -69,10 +70,10 @@ export const InputBarPage: FC<StackProps> = observer(() => {
 
   const handleHeightChange = useCallback(
     ({ height }: { height: number }) => {
-      kb.setBarHeight(height);
+      barHeight.value = height;
       setInputBarHeight(height);
     },
-    [kb],
+    [barHeight],
   );
 
   // Нативная панель под Fabric не участвует в измерении Yoga (intrinsicContentSize
