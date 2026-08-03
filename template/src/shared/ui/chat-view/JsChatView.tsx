@@ -400,11 +400,6 @@ export const JsChatView = memo(
       [theme, inputBarLayout],
     );
 
-    const listExtraData = useMemo(
-      () => ({ styles, features }),
-      [styles, features],
-    );
-
     // Без плавающей даты разделители едут в потоке, как обычные строки.
     const stickyIndices = features.showFloatingDate
       ? data.stickyIndices
@@ -463,7 +458,6 @@ export const JsChatView = memo(
               onEndReached={handleEndReached}
               onLayout={handleLayout}
               onContentSizeChange={handleContentSizeChange}
-              extraData={listExtraData}
             />
 
             {isLoadingTop &&

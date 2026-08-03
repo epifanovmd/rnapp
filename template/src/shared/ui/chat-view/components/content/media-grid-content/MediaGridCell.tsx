@@ -1,3 +1,4 @@
+import { useAdaptiveRender } from "@legendapp/list/react-native";
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
@@ -41,11 +42,16 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
 
     const handlePress = useCallback(() => onPress(index), [onPress, index]);
 
+    const adaptiveRender = useAdaptiveRender();
+
+    // Пока список летит, превью не грузим и не декодируем: у ячейки уже есть
+    // фон-плейсхолдер, а картинка появится, когда скролл замедлится.
+    const showsImage = !!item.thumbnailUrl && adaptiveRender === "normal";
     const showsVideoBadges = item.isVideo && remaining === 0;
 
     return (
       <Pressable style={cellStyle} onPress={handlePress}>
-        {!!item.thumbnailUrl && (
+        {showsImage && (
           <FastImage
             style={StyleSheet.absoluteFill}
             source={{ uri: item.thumbnailUrl }}
@@ -66,7 +72,7 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
               ]}
             >
               <ChatIcon
-                name="play.circle.fill"
+                name={"play.circle.fill"}
                 size={layout.mediaPlayIconSize}
                 color={theme.mediaPlayIconColor}
               />

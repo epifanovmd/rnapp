@@ -32,7 +32,7 @@ import { useChatRoomMock } from "./useChatRoomMock";
 export const ChatRoom: FC<StackProps> = observer(() => {
   const { isDark } = useTheme();
 
-  const [useNative, setUseNative] = useState(Platform.OS === "ios");
+  const [useNative, setUseNative] = useState(Platform.OS !== "ios");
 
   const Chat = useNative ? NativeChatView : JsChatView;
 

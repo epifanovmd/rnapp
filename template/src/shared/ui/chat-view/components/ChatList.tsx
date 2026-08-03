@@ -87,8 +87,6 @@ export interface IChatListProps {
   onEndReached: () => void;
   onLayout: (event: LayoutChangeEvent) => void;
   onContentSizeChange: (width: number, height: number) => void;
-  /** Пересборка строк при смене темы/лейаута. */
-  extraData: unknown;
 }
 
 const keyExtractor = (row: ChatRow) => row.key;
@@ -124,6 +122,7 @@ const MAINTAIN_SCROLL_AT_END = {
   animated: true,
   on: { dataChange: true },
 };
+const ADAPTIVE_RENDER = {};
 
 export const ChatList = memo(
   forwardRef<LegendListRef, IChatListProps>(
@@ -153,7 +152,6 @@ export const ChatList = memo(
         onEndReached,
         onLayout,
         onContentSizeChange,
-        extraData,
       },
       ref,
     ) => {
@@ -192,8 +190,8 @@ export const ChatList = memo(
           keyExtractor={keyExtractor}
           getItemType={getItemType}
           itemsAreEqual={itemsAreEqual}
-          extraData={extraData}
           recycleItems={RECYCLE_ITEMS}
+          experimental_adaptiveRender={ADAPTIVE_RENDER}
           estimatedItemSize={estimatedItemSize}
           drawDistance={drawDistance}
           alignItemsAtEnd
