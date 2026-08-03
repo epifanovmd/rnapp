@@ -1,36 +1,35 @@
 import React, { forwardRef } from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
-import Animated, { AnimatedStyle } from "react-native-reanimated";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+
+export interface IKeyboardInputBarProps {
+  children: React.ReactNode;
+  /** Перекрытие снизу: клавиатура, а без неё — safe area. */
+  offset: SharedValue<number>;
+}
 
 /**
  * Плавающая панель ввода, прижатая к верхней границе клавиатуры.
  *
- * Следование за клавиатурой без
- * собственной подписки на клавиатуру: движение задаёт `style`, который
- * отдаёт `useKeyboardInset().barStyle`. Своя подписка была бы вторым
- * источником сдвига — панель и контент поехали бы по разным значениям.
- *
- * ```tsx
- * const kb = useKeyboardInset();
- *
- * <KeyboardInputBar style={kb.barStyle}>
- *   <InputBar onHeightChange={kb.setBarHeight} />
- * </KeyboardInputBar>
- * ```
+ * Своей подписки на клавиатуру нет: величину перекрытия ведёт
+ * `useKeyboardInset`, панель лишь поднимается на неё. Вторая подписка сделала
+ * бы панель и контент двумя источниками движения.
  */
-
-export interface IKeyboardInputBarProps {
-  children: React.ReactNode;
-  /** Анимированный стиль движения — `useKeyboardInset().barStyle`. */
-  style?: AnimatedStyle<ViewStyle>;
-}
-
 export const KeyboardInputBar = forwardRef<View, IKeyboardInputBarProps>(
-  ({ children, style }, ref) => (
-    <Animated.View ref={ref} style={[ss.container, style]}>
-      {children}
-    </Animated.View>
-  ),
+  ({ children, offset }, ref) => {
+    const style = useAnimatedStyle(() => ({
+      transform: [{ translateY: -offset.value }],
+    }));
+
+    return (
+      <Animated.View ref={ref} style={[ss.container, style]}>
+        {children}
+      </Animated.View>
+    );
+  },
 );
 
 KeyboardInputBar.displayName = "KeyboardInputBar";

@@ -5,12 +5,6 @@ import { IChatCellActions } from "../model";
 import { ChatViewProps } from "../types";
 import { IChatScrollControl } from "./useChatScrollControl";
 
-/**
- * Маршрутизация действий ячейки в колбэки хоста.
- *
- * Обработчики отдаются ячейкам через ref, чтобы они оставались мемоизированными:
- * пересоздание набора не должно перерисовывать тысячи строк.
- */
 export interface IChatCellActionsOptions {
   props: RefObject<ChatViewProps>;
   scrollControl: IChatScrollControl;
@@ -20,6 +14,13 @@ export interface IChatCellActionsOptions {
   restoreKeyboard: () => void;
 }
 
+/**
+ * Маршрутизация действий ячейки в колбэки хоста.
+ *
+ * Отдаются ячейкам через ref: пересоздание набора не должно перерисовывать
+ * тысячи строк.
+ */
+
 export const useChatCellActions = ({
   props,
   scrollControl,
@@ -28,8 +29,6 @@ export const useChatCellActions = ({
 }: IChatCellActionsOptions): RefObject<IChatCellActions> => {
   const actions = useMemo<IChatCellActions>(
     () => ({
-      // Тап по чату всегда убирает клавиатуру. Пустую область берёт на себя
-      // `keyboardShouldPersistTaps` списка.
       onTapMessage: (messageId, attachmentIndex) => {
         Keyboard.dismiss();
         props.current.onMessagePress?.(
@@ -39,8 +38,6 @@ export const useChatCellActions = ({
         );
       },
 
-      // Выбор эмодзи/действия закрывает меню без onDismiss, поэтому зону
-      // размораживаем здесь же (restore идемпотентен).
       onEmojiSelect: (emoji, messageId) => {
         restoreKeyboard();
         props.current.onEmojiReactionSelect?.({ emoji, messageId });
@@ -50,7 +47,6 @@ export const useChatCellActions = ({
         props.current.onActionPress?.({ actionId, messageId });
       },
 
-      // Тап по цитате уводит к оригиналу.
       onReplyTap: replyToId => {
         scrollControl.scrollToMessage(replyToId, {
           position: "center",
@@ -73,8 +69,6 @@ export const useChatCellActions = ({
       onPollDetailTap: (messageId, pollId) =>
         props.current.onPollDetailPress?.({ messageId, pollId }),
 
-      // Клавиатуру убирает сам freeze — вместе с фиксацией зоны, чтобы меню
-      // успело снять снапшот пузыря по неподвижному лейауту.
       onContextMenuWillShow: () => freezeKeyboard(),
       onContextMenuDismiss: () => restoreKeyboard(),
     }),

@@ -9,18 +9,6 @@ import {
 } from "../data";
 import { ChatAction, ChatMessage } from "../types";
 
-/**
- * Входные сообщения → строки списка.
- *
- * Оба преобразования сохраняют идентичность неизменённых объектов, и от этого
- * напрямую зависит стоимость обновления списка: разобранное сообщение
- * переиспользуется, пока не изменилось входное (сравнение по ссылке), а строка —
- * пока не изменились сообщение, оригинал его цитаты и настройки. Поменялось одно
- * сообщение — перерисовалась одна ячейка.
- *
- * Отсюда требование к хосту: он тоже обязан сохранять идентичность неизменённых
- * элементов `messages`.
- */
 export interface IChatDataOptions {
   messages: ChatMessage[];
   getActionsForMessage?: (message: ChatMessage) => ChatAction[];
@@ -29,6 +17,11 @@ export interface IChatDataOptions {
   hideFirstSeparator: boolean;
 }
 
+/**
+ * Входные сообщения → строки списка с сохранением идентичности: не изменившиеся
+ * объекты возвращаются те же, поэтому перерисовывается ровно изменившееся.
+ * Того же требует и от хоста — он обязан сохранять идентичность `messages`.
+ */
 export const useChatData = ({
   messages,
   getActionsForMessage,
@@ -48,8 +41,6 @@ export const useChatData = ({
 
   const { parser, builder } = toolsRef.current;
 
-  // Разбор отдельным мемо: он зависит только от входных сообщений и меняется
-  // реже, чем настройки показа.
   const parsed = useMemo(
     () => parser.parse(messages, getActionsForMessage),
     [parser, messages, getActionsForMessage],

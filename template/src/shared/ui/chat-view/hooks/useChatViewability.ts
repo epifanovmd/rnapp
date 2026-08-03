@@ -8,27 +8,19 @@ import { SharedValue } from "react-native-reanimated";
 import { ChatRow } from "../data";
 import { ChatViewProps } from "../types";
 
-/**
- * Видимость сообщений — две пары порогов для списка.
- *
- * Чату нужны два разных порога: более строгий для снимка видимых и более мягкий
- * для отметки о прочтении. Список умеет и то и другое сразу
- * (`viewabilityConfigCallbackPairs`), поэтому долю видимости больше не нужно
- * считать вручную по геометрии на каждом кадре скролла — вместе с ней ушёл и
- * ручной гистерезис: его роль играет `minimumViewTime`.
- */
-
 /** Значения по умолчанию совпадают с нативной реализацией. */
 const DEFAULT_VISIBLE_THRESHOLD = 0.8;
 const DEFAULT_UNREAD_THRESHOLD = 0.5;
 const DEFAULT_VISIBLE_INTERVAL = 0.3;
 const DEFAULT_UNREAD_INTERVAL = 0.3;
 
+/**
+ * Два порога видимости сразу: строгий для снимка видимых сообщений и мягкий
+ * для отметки о прочтении. Считает их сам список.
+ */
 export interface IChatViewabilityOptions {
   props: RefObject<ChatViewProps>;
-  /** Признак «у нижнего края», который ведёт сам список. */
   isNearEnd: SharedValue<boolean>;
-  /** Отметить прочитанными во внутреннем счётчике. */
   onMarkRead: (ids: readonly string[]) => void;
   visibilityThreshold?: number;
   unreadVisibilityThreshold?: number;
@@ -85,7 +77,6 @@ export const useChatViewability = ({
     [props, onMarkRead],
   );
 
-  // Пропы задают долю 0..1, список — проценты.
   return useMemo(
     () => [
       {

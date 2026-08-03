@@ -3,69 +3,55 @@ import React, {
   forwardRef,
   memo,
   useCallback,
-  useEffect,
   useImperativeHandle,
-  useMemo,
   useRef,
-  useState,
 } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  LayoutChangeEvent,
-  StyleSheet,
-  View,
-} from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import Animated, { useSharedValue } from "react-native-reanimated";
 
+import { useCrossfade, useLatestRef } from "../../lib/hooks";
 import { useKeyboardInset } from "../../lib/keyboard";
 import {
-  createInputBarStyles,
   IInputBarViewRef,
-  INPUT_BAR_DEFAULT_FEATURES,
   InputBarContext,
   InputBarView,
   KeyboardInputBar,
 } from "../input-bar";
 import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
-import { EMPTY_CHAT_DATA, IChatData } from "./data";
 import {
   useChatCellActions,
   useChatConfig,
   useChatData,
+  useChatInitialPosition,
   useChatInputBar,
+  useChatPagination,
   useChatScrollControl,
   useChatScrollReport,
   useChatStickyDate,
   useChatUnread,
   useChatViewability,
+  useChatViewContextValue,
+  useInputBarContextValue,
 } from "./hooks";
-import {
-  ChatHighlightStore,
-  ChatViewContext,
-  IChatViewContextValue,
-} from "./model";
+import { ChatHighlightStore, ChatViewContext } from "./model";
 import { ChatViewProps, IChatViewRef } from "./types";
+
+/** Смена ссылки заставила бы список пересчитать sticky. */
+const NO_STICKY_INDICES: number[] = [];
 
 /**
  * React Native-реализация ChatView на `@legendapp/list`.
  *
- * Всё, что связано с положением контента, отдано списку и живёт на UI-потоке:
- * позиция при вставках, прижатие к низу, прилипшая дата, пороги пагинации и
- * доли видимости. Здесь остаётся склейка — конфигурация, данные, команды и
+ * Всё, что связано с положением контента, отдано списку и нативному слою
+ * клавиатуры. Здесь остаётся склейка — конфигурация, данные, команды и
  * разводка колбэков наружу.
  *
  * - `config/` — тема, метрики, флаги и готовые стили ячеек;
- * - `data/` — разбор сообщений и построение строк с сохранением идентичности;
- * - `model/` — контекст и стор подсветки;
+ * - `data/` — разбор сообщений и построение строк;
+ * - `model/` — контекст, стор подсветки и математика якоря позиции;
  * - `hooks/` — по хуку на ответственность;
  * - `components/` — только отрисовка;
- * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка (о чате не знает).
+ * - `shared/lib/keyboard` — нижняя зона экрана и её заморозка.
  */
 export const JsChatView = memo(
   forwardRef<IChatViewRef, ChatViewProps>((props, ref) => {
@@ -85,26 +71,18 @@ export const JsChatView = memo(
       unreadCount = -1,
     } = props;
 
-    // Пропы читаются из ref всеми стабильными колбэками: обработчики не должны
-    // пересоздаваться из-за смены любого коллбэка хоста.
-    const propsRef = useRef(props);
-
-    propsRef.current = props;
+    const propsRef = useLatestRef(props);
 
     const { theme, layout, inputBarLayout, features, styles } =
       useChatConfig(props);
 
     const listRef = useRef<LegendListRef>(null);
     const inputBarRef = useRef<IInputBarViewRef>(null);
-
     const highlightRef = useRef<ChatHighlightStore | null>(null);
 
     highlightRef.current ??= new ChatHighlightStore();
 
     const highlight = highlightRef.current;
-
-    // ─── Значения UI-потока ──────────────────────────────────────────────
-    // Их ведут список, клавиатура и панель ввода; React их не читает.
 
     const scrollOffset = useSharedValue(0);
     const isNearEnd = useSharedValue(true);
@@ -119,8 +97,6 @@ export const JsChatView = memo(
       features.showFloatingDate,
     );
 
-    // ─── Данные ──────────────────────────────────────────────────────────
-
     const data = useChatData({
       messages,
       getActionsForMessage,
@@ -132,14 +108,7 @@ export const JsChatView = memo(
       hideFirstSeparator: isLoadingTop,
     });
 
-    // Команды и делегат создаются раньше, чем посчитаны строки, — им достаточно
-    // стабильной ссылки на актуальный снимок.
-    const dataRef = useRef<IChatData>(EMPTY_CHAT_DATA);
-
-    dataRef.current = data;
-
-    // ─── Клавиатура ──────────────────────────────────────────────────────
-    // Одна зона на всех потребителей: панель ввода, FAB и низ списка.
+    const dataRef = useLatestRef(data);
 
     const handleKeyboardBlur = useCallback(
       () => inputBarRef.current?.blur(),
@@ -161,20 +130,9 @@ export const JsChatView = memo(
       listRef,
       data: dataRef,
       highlight,
-      getBottomInset: keyboard.getContentInset,
     });
 
-    // ─── Непрочитанные ───────────────────────────────────────────────────
-
-    const unread = useChatUnread(unreadCount);
-    const trackUnread = unread.track;
-
-    useEffect(() => {
-      trackUnread(data.messages);
-    }, [data.messages, trackUnread]);
-
-    // ─── Видимость ───────────────────────────────────────────────────────
-    // Доли видимости и пороги считает список; здесь только разводка наружу.
+    const unread = useChatUnread(unreadCount, data.messages);
 
     const viewabilityPairs = useChatViewability({
       props: propsRef,
@@ -186,8 +144,6 @@ export const JsChatView = memo(
       unreadInterval: props.unreadMessagesDebounceInterval,
     });
 
-    // ─── Отчёт о скролле ─────────────────────────────────────────────────
-
     const handleScroll = useChatScrollReport({
       listRef,
       data: dataRef,
@@ -197,114 +153,21 @@ export const JsChatView = memo(
       getBottomInset: keyboard.getContentInset,
     });
 
-    // Высота вьюпорта нужна, чтобы перевести пороги из пикселей в доли экрана.
-    // Стартовое значение — высота окна, а не 0: до первого layout нулевая
-    // высота давала бы долю 0.5, то есть «полэкрана» и для пагинации, и для
-    // прижатия к низу — на первом же кадре это дёргает позицию и шлёт лишние
-    // запросы на догрузку.
-    const [viewportHeight, setViewportHeight] = useState(
-      () => Dimensions.get("window").height,
-    );
+    const pagination = useChatPagination({
+      props: propsRef,
+      features,
+      scrollOffset,
+    });
 
-    const handleLayout = useCallback(
-      (event: LayoutChangeEvent) =>
-        setViewportHeight(event.nativeEvent.layout.height),
-      [],
-    );
-
-    // ─── Пагинация ───────────────────────────────────────────────────────
-    // Пороги задаются пропами в пикселях, список принимает их долей экрана.
-
-    const handleStartReached = useCallback(() => {
-      const { hasMore, isLoadingTop: loadingTop } = propsRef.current;
-
-      if (hasMore !== true || loadingTop === true) return;
-
-      propsRef.current.onReachTop?.({ distanceFromTop: scrollOffset.value });
-    }, [scrollOffset]);
-
-    const handleEndReached = useCallback(() => {
-      const { hasNewer, isLoadingBottom: loadingBottom } = propsRef.current;
-
-      if (hasNewer !== true || loadingBottom === true) return;
-
-      propsRef.current.onReachBottom?.({ distanceFromBottom: 0 });
-    }, []);
-
-    const asFraction = (px: number) => px / viewportHeight;
-
-    // Верхний паддинг контента. Участвует и в разметке списка, и в расчёте
-    // начальной позиции — поэтому одна переменная, а не два выражения.
     const contentPaddingTop = layout.collectionTopPadding + collectionInsetTop;
 
-    // ─── Начальная позиция ───────────────────────────────────────────────
-    // Берётся один раз на монтировании: дальше позицией управляет пользователь.
-
-    const initialScrollIndex = useMemo(() => {
-      const anchor = initialScrollAnchor;
-
-      if (!anchor || anchor.wasAtBottom) return undefined;
-
-      const index = dataRef.current.rowIndexOf(anchor.messageId);
-
-      if (index == null) return undefined;
-
-      // Нижняя зона прибавляется здесь, хотя список и знает про инсет: **на
-      // момент разрешения этой цели он его ещё не знает**. Инсет приходит от
-      // нативного скролла после его лейаута (`onContentInsetChange` →
-      // `reportContentInset`), а начальную цель список считает раньше — и
-      // вычитает `trailingInset`, равный нулю. Без слагаемого восстановление
-      // недокручивало ровно на высоту зоны, а следующее сохранение записывало
-      // уже сдвинутую позицию: ошибка копилась с каждым открытием.
-      //
-      // Второе слагаемое — верхний паддинг контента. При `viewPosition: 1`
-      // список считает смещение так:
-      //
-      //   result = position − viewOffset + topOffsetAdjustment
-      //          + itemSize + trailingInset − scrollLength
-      //
-      // где `topOffsetAdjustment = stylePaddingTop + headerSize + …`. В якоре
-      // этого слагаемого нет — `positionAtIndex` паддинг не включает.
-      return {
-        index,
-        viewPosition: 1,
-        viewOffset:
-          -(anchor.offset + keyboard.getContentInset()) + contentPaddingTop,
-      };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    console.log("initialScrollIndex messageId", initialScrollAnchor?.messageId);
-    console.log("initialScrollIndex index", initialScrollIndex?.index);
-
-    // Декларативный `initialScrollIndex` считается по оценочным высотам строк,
-    // поэтому подводит близко, но не точно. Когда список отрисовал первый кадр
-    // и знает реальные высоты — доуточняем позицию по тому же якорю. Ровно так
-    // же поступает нативная реализация: она скроллит после `layoutIfNeeded()`.
-    const didAlignRef = useRef(false);
-
-    const handleLoad = useCallback(() => {
-      if (didAlignRef.current) return;
-
-      const anchor = initialScrollAnchor;
-
-      didAlignRef.current = true;
-
-      // Открытие внизу список доводит сам: конец он считает с учётом инсета,
-      // а при изменении инсета — перецеливается.
-      if (!anchor || anchor.wasAtBottom) return;
-
-      // Здесь позиция доводится точно, и это единственное место, которое не
-      // зависит от гонок с инсетом: смещение считается той же формулой, что и
-      // при сохранении якоря, только в обратную сторону. Декларативная цель
-      // выше — лишь приближение по оценочным высотам.
-      scrollControl.alignMessageToBottom(anchor.messageId, anchor.offset);
-      // Якорь читается один раз, на монтировании: дальше позицией управляет
-      // пользователь, и повторное выравнивание вырвало бы её из-под пальца.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [scrollControl]);
-
-    // ─── Императивный интерфейс ──────────────────────────────────────────
+    const initialPosition = useChatInitialPosition({
+      anchor: initialScrollAnchor,
+      listRef,
+      data: dataRef,
+      contentPaddingTop,
+      getBottomInset: keyboard.getContentInset,
+    });
 
     const clearUnread = unread.clear;
 
@@ -317,8 +180,6 @@ export const JsChatView = memo(
       }),
       [scrollControl, clearUnread],
     );
-
-    // ─── Действия ячейки и панель ввода ──────────────────────────────────
 
     const cellActions = useChatCellActions({
       props: propsRef,
@@ -340,71 +201,29 @@ export const JsChatView = memo(
 
     const handleFabPress = useCallback(
       () => propsRef.current.onFabPress?.({}),
-      [],
+      [propsRef],
     );
 
-    // ─── Контексты ───────────────────────────────────────────────────────
+    const chatContext = useChatViewContextValue({
+      theme,
+      layout,
+      inputBarLayout,
+      features,
+      styles,
+      actions: cellActions,
+      highlight,
+      stickyDate,
+    });
 
-    const chatContext = useMemo<IChatViewContextValue>(
-      () => ({
-        theme,
-        layout,
-        inputBarLayout,
-        features,
-        styles,
-        actions: cellActions,
-        highlight,
-        stickyDate,
-      }),
-      [
-        theme,
-        layout,
-        inputBarLayout,
-        features,
-        styles,
-        cellActions,
-        highlight,
-        stickyDate,
-      ],
-    );
+    const inputBarContext = useInputBarContextValue(theme, inputBarLayout);
 
-    // Ключи темы и метрик у панели ввода совпадают 1:1, поэтому передаются
-    // те же объекты — панель просто читает из них свои ключи.
-    const inputBarContext = useMemo(
-      () => ({
-        theme,
-        layout: inputBarLayout,
-        features: INPUT_BAR_DEFAULT_FEATURES,
-        styles: createInputBarStyles(theme, inputBarLayout),
-      }),
-      [theme, inputBarLayout],
-    );
-
-    // Без плавающей даты разделители едут в потоке, как обычные строки.
     const stickyIndices = features.showFloatingDate
       ? data.stickyIndices
       : NO_STICKY_INDICES;
 
-    // Смена темы или метрик проявляется коротким кросс-фейдом, а не мгновенной
-    // перекраской списка.
-    const crossfade = useSharedValue(1);
-    const isFirstStyles = useRef(true);
+    const listWrapStyle = useCrossfade(styles);
 
-    useEffect(() => {
-      if (isFirstStyles.current) {
-        isFirstStyles.current = false;
-
-        return;
-      }
-      crossfade.value = withSequence(
-        withTiming(0, { duration: CROSSFADE_MS }),
-        withTiming(1, { duration: CROSSFADE_MS }),
-      );
-    }, [styles, crossfade]);
-
-    const listWrapStyle = useAnimatedStyle(() => ({
-      opacity: crossfade.value,
-    }));
+    const hasMessages = data.messages.length > 0;
 
     return (
       <ChatViewContext.Provider value={chatContext}>
@@ -421,32 +240,30 @@ export const JsChatView = memo(
               activeStickyIndex={activeStickyIndex}
               contentPaddingTop={contentPaddingTop}
               stickyOffset={collectionInsetTop}
-              initialScrollIndex={initialScrollIndex}
+              initialScrollIndex={initialPosition.scrollIndex}
               estimatedItemSize={layout.estimatedRowHeight}
               drawDistance={layout.drawDistance}
-              startReachedThreshold={asFraction(features.topLoadThreshold)}
-              endReachedThreshold={asFraction(features.bottomLoadThreshold)}
-              maintainScrollAtEndThreshold={asFraction(
-                features.scrollToBottomThreshold,
-              )}
+              startReachedThreshold={pagination.startReachedThreshold}
+              endReachedThreshold={pagination.endReachedThreshold}
+              maintainScrollAtEndThreshold={pagination.scrollToBottomThreshold}
               viewabilityConfigCallbackPairs={viewabilityPairs}
-              onLoad={handleLoad}
+              onLoad={initialPosition.onListLoad}
               onScroll={handleScroll}
-              onStartReached={handleStartReached}
-              onEndReached={handleEndReached}
-              onLayout={handleLayout}
+              onStartReached={pagination.onStartReached}
+              onEndReached={pagination.onEndReached}
+              onLayout={pagination.onLayout}
             />
 
             {isLoadingTop &&
               features.showTopLoadingIndicator &&
-              data.messages.length > 0 && (
+              hasMessages && (
                 <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
                   <ActivityIndicator size="small" />
                 </View>
               )}
 
             <EmptyStateOverlay
-              visible={data.messages.length === 0}
+              visible={!hasMessages}
               loading={isLoading}
               text={emptyStateText}
               bottomInset={keyboard.contentInset}
@@ -454,7 +271,7 @@ export const JsChatView = memo(
           </Animated.View>
 
           {features.showInputBar && (
-            <KeyboardInputBar style={keyboard.barStyle}>
+            <KeyboardInputBar offset={keyboard.occludedBottom}>
               <InputBarContext.Provider value={inputBarContext}>
                 <InputBarView
                   ref={inputBarRef}
@@ -467,13 +284,13 @@ export const JsChatView = memo(
           )}
 
           <ChatFab
-            bottomInset={keyboard.barOffset}
+            bottomInset={keyboard.occludedBottom}
             inputBarHeight={keyboard.barHeight}
             isNearEnd={isNearEnd}
             expanded={fabExpanded}
             hiddenForRecording={fabHiddenForRecording}
             isLoading={isLoadingFab}
-            hasMessages={data.messages.length > 0}
+            hasMessages={hasMessages}
             unreadCount={unread.count}
             onPress={handleFabPress}
           />
@@ -485,15 +302,7 @@ export const JsChatView = memo(
 
 JsChatView.displayName = "JsChatView";
 
-/** Длительность половины кросс-фейда при смене темы (мс). */
-const CROSSFADE_MS = 125;
-
-/** Пустой массив-константа: смена ссылки заставила бы список пересчитать sticky. */
-const NO_STICKY_INDICES: number[] = [];
-
 const ss = StyleSheet.create({
-  // И вью, и коллекция, и панель ввода прозрачные — фон чата рисует хост.
-  // Оверлеи не должны вылезать за границы чата.
   root: { flex: 1, backgroundColor: "transparent", overflow: "hidden" },
   listWrap: { flex: 1 },
   topSpinner: { position: "absolute", left: 0, right: 0, alignItems: "center" },

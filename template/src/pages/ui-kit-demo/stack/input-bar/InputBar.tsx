@@ -232,7 +232,7 @@ export const InputBarPage: FC<StackProps> = observer(() => {
         </Pressable>
       </KeyboardScrollView>
 
-      <KeyboardInputBar style={kb.barStyle}>
+      <KeyboardInputBar offset={kb.occludedBottom}>
         <Bar
           theme={theme}
           style={barStyle}

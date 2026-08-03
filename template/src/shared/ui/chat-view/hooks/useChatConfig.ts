@@ -13,14 +13,6 @@ import {
 } from "../config";
 import { ChatViewProps } from "../types";
 
-/**
- * Разрешение пропов `theme` / `layout` / `features` в готовую конфигурацию.
- *
- * Отдельные пропы (`showSenderName`, `topThreshold`, …) перекрываются объектом
- * `features` — всё применяется разом. Геттеров здесь больше нет: пагинация,
- * прилипшая дата и видимость теперь считаются списком, а не стабильными
- * колбэками, которым требовалось читать «текущее» в обход зависимостей.
- */
 export interface IChatConfig {
   theme: IChatViewTheme;
   layout: IChatLayout;
@@ -29,6 +21,7 @@ export interface IChatConfig {
   styles: IChatStyles;
 }
 
+/** Пропы `theme` / `layout` / `features` — в готовую конфигурацию и стили. */
 export const useChatConfig = ({
   theme: themeName,
   layout: layoutProp,
@@ -46,8 +39,6 @@ export const useChatConfig = ({
     [featuresProp],
   );
 
-  // Стили пересобираются только при смене темы или метрик: ячейка не должна
-  // аллоцировать три десятка объектов стиля на каждый рендер.
   const styles = useMemo(
     () => createChatStyles(theme, layout),
     [theme, layout],

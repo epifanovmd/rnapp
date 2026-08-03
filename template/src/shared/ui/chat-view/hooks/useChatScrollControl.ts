@@ -5,17 +5,15 @@ import { IChatData } from "../data";
 import { ChatHighlightStore } from "../model";
 import { ChatScrollPosition } from "../types";
 
-/**
- * Управление скроллом.
- *
- * Единственное место, которое двигает список. Восстановления позиции по якорям
- * здесь больше нет: её держит сам список — `maintainVisibleContentPosition`
- * при вставках выше вьюпорта и `maintainScrollAtEnd`, когда мы у нижнего края.
- */
-
 /** Пауза перед подсветкой: сообщение должно доехать до места. */
 const HIGHLIGHT_DELAY_ANIMATED = 350;
 const HIGHLIGHT_DELAY_INSTANT = 100;
+
+const VIEW_POSITIONS: Record<ChatScrollPosition, number> = {
+  top: 0,
+  center: 0.5,
+  bottom: 1,
+};
 
 export interface IChatScrollToMessageOptions {
   position?: ChatScrollPosition;
@@ -29,42 +27,25 @@ export interface IChatScrollControl {
     messageId: string,
     options?: IChatScrollToMessageOptions,
   ) => void;
-  /**
-   * Поставить строку нижним краем к низу видимой области.
-   *
-   * Нужно для восстановления якоря: `initialScrollIndex` применяется на первом
-   * layout, когда высоты строк ещё оценочные (`estimatedItemSize`), и на
-   * длинной истории накопленная ошибка достигает экрана. Нативная реализация
-   * этого не знает — она считает позицию после `layoutIfNeeded()`, по реальным
-   * высотам. Здесь тот же приём: доуточнить позицию, когда строки измерены.
-   */
-  alignMessageToBottom: (messageId: string, offset: number) => void;
 }
 
 export interface IChatScrollControlOptions {
   listRef: RefObject<LegendListRef | null>;
   data: RefObject<IChatData>;
   highlight: ChatHighlightStore;
-  /**
-   * Перекрытие контента снизу (клавиатура + панель ввода). Нужно
-   * `scrollToMessage`, чтобы центрировать сообщение по **видимой** области:
-   * при открытой клавиатуре видимый центр выше, и без поправки сообщение
-   * уходит под клавиатуру.
-   */
-  getBottomInset: () => number;
 }
 
-const VIEW_POSITIONS: Record<ChatScrollPosition, number> = {
-  top: 0,
-  center: 0.5,
-  bottom: 1,
-};
-
+/**
+ * Команды прокрутки для хоста и ячеек.
+ *
+ * Поправок на нижнее перекрытие здесь нет: зона приходит списку инсетом, и он
+ * вычитает её из вьюпорта сам. Восстановление начальной позиции живёт отдельно
+ * — в `useChatInitialPosition`.
+ */
 export const useChatScrollControl = ({
   listRef,
   data,
   highlight,
-  getBottomInset,
 }: IChatScrollControlOptions): IChatScrollControl => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,29 +85,7 @@ export const useChatScrollControl = ({
           animated ? HIGHLIGHT_DELAY_ANIMATED : HIGHLIGHT_DELAY_INSTANT,
         );
       },
-
-      alignMessageToBottom: (messageId, offset) => {
-        const list = listRef.current;
-        const index = data.current.rowIndexOf(messageId);
-
-        if (!list || index == null) return;
-
-        const state = list.getState();
-        const top = state.positionAtIndex(index);
-        const size = state.sizeAtIndex(index);
-
-        if (!Number.isFinite(top) || !Number.isFinite(size)) return;
-
-        const target =
-          top + size + offset - state.scrollLength + getBottomInset();
-        const maxOffset = Math.max(0, state.contentLength - state.scrollLength);
-
-        list.scrollToOffset({
-          offset: Math.min(Math.max(target, 0), maxOffset),
-          animated: false,
-        });
-      },
     }),
-    [listRef, data, highlight, getBottomInset],
+    [listRef, data, highlight],
   );
 };

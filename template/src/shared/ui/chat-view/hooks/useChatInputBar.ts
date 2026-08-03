@@ -8,13 +8,6 @@ import { chatVoicePlayer } from "../services";
 import { ChatInputAction, ChatViewProps } from "../types";
 import { IChatScrollControl } from "./useChatScrollControl";
 
-/**
- * Панель ввода.
- *
- * Две обязанности: превратить `inputAction` в режим панели с разрешёнными
- * данными сообщения и развести события панели по чату.
- */
-
 /** Плавность расхождения FAB, когда панель ввода растёт под текст. */
 const FAB_EXPAND_MS = 250;
 
@@ -68,6 +61,10 @@ const resolveInputMode = (
   };
 };
 
+/**
+ * Панель ввода: `inputAction` превращается в режим панели с данными
+ * сообщения, события панели разводятся по чату.
+ */
 export const useChatInputBar = ({
   inputAction,
   messageIndex,
@@ -88,8 +85,6 @@ export const useChatInputBar = ({
   const delegate = useMemo<IInputBarViewDelegate>(
     () => ({
       onSend: (text, replyToId) => {
-        // Своё сообщение всегда доезжает до низа. Кадр нужен, чтобы список
-        // успел закоммитить новую строку.
         requestAnimationFrame(() => scrollControl.scrollToBottom(true));
         fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
         props.current.onSendMessage?.({ text, replyToId });
@@ -105,8 +100,6 @@ export const useChatInputBar = ({
         props.current.onVoiceRecordingComplete?.(result);
       },
       onChangeText: text => {
-        // FAB расходится, освобождая место под выросшую панель, только когда
-        // в поле есть текст.
         if (features.showVoiceRecording) {
           fabExpanded.value = withTiming(text.trim().length > 0 ? 1 : 0, {
             duration: FAB_EXPAND_MS,
@@ -129,8 +122,6 @@ export const useChatInputBar = ({
     [scrollControl, props, features, fabExpanded, fabHiddenForRecording],
   );
 
-  // Высота панели живёт только в shared value: она входит в нижнюю зону,
-  // а та применяется на UI-потоке — ре-рендер чата тут не нужен.
   const onHeightChange = useCallback(
     (height: number) => {
       barHeight.value = height;

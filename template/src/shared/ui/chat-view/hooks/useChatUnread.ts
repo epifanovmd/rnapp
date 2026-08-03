@@ -2,12 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { IParsedChatMessage } from "../data";
 
-/**
- * Хвост, дописанный в конец списка с прошлого снимка.
- *
- * Это всё, что осталось от диффа сообщений: позицию держит сам список, и от
- * сравнения нужен один ответ — какие чужие сообщения приехали снизу.
- */
+/** Чужие сообщения, дописанные в конец списка с прошлого снимка. */
 const appendedIncomingIds = (
   previous: IParsedChatMessage[],
   next: IParsedChatMessage[],
@@ -27,27 +22,21 @@ const appendedIncomingIds = (
   return appended;
 };
 
-/**
- * Счётчик непрочитанных.
- *
- * Два режима: внутренний (чат сам считает чужие сообщения, приехавшие снизу,
- * и вычёркивает прочитанные) и внешний — когда хост задаёт число пропом
- * `unreadCount` (`-1` означает внутренний режим).
- *
- * Прочитанность приходит от списка: строка считается прочитанной, когда
- * пересекает `unreadVisibilityThreshold` в viewability-паре. Раньше долю
- * видимости приходилось считать вручную по геометрии на каждом кадре скролла.
- */
 export interface IChatUnread {
   count: number;
-  /** Учесть новые сообщения; вызывается при изменении списка. */
-  track: (messages: IParsedChatMessage[]) => void;
-  /** Отметить прочитанными (из viewability-колбэка списка). */
+  /** Отметить прочитанными; вызывается из viewability-колбэка списка. */
   markRead: (ids: readonly string[]) => void;
   clear: () => void;
 }
 
-export const useChatUnread = (externalCount: number): IChatUnread => {
+/**
+ * Счётчик непрочитанных в двух режимах: внутренний считает чужие сообщения,
+ * приехавшие снизу, внешний берёт число из пропа (`-1` — внутренний).
+ */
+export const useChatUnread = (
+  externalCount: number,
+  messages: IParsedChatMessage[],
+): IChatUnread => {
   const [count, setCount] = useState(0);
 
   const idsRef = useRef(new Set<string>());
@@ -61,7 +50,7 @@ export const useChatUnread = (externalCount: number): IChatUnread => {
     if (isExternal) setCount(externalCount);
   }, [isExternal, externalCount]);
 
-  const track = useCallback((messages: IParsedChatMessage[]) => {
+  useEffect(() => {
     const previous = previousRef.current;
 
     previousRef.current = messages;
@@ -78,7 +67,7 @@ export const useChatUnread = (externalCount: number): IChatUnread => {
       ids.add(id);
     }
     setCount(ids.size);
-  }, []);
+  }, [messages]);
 
   const markRead = useCallback((readIds: readonly string[]) => {
     if (isExternalRef.current) return;
@@ -98,8 +87,5 @@ export const useChatUnread = (externalCount: number): IChatUnread => {
     setCount(0);
   }, []);
 
-  return useMemo(
-    () => ({ count, track, markRead, clear }),
-    [count, track, markRead, clear],
-  );
+  return useMemo(() => ({ count, markRead, clear }), [count, markRead, clear]);
 };
