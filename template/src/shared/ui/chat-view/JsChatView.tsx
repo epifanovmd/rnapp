@@ -203,10 +203,10 @@ export const JsChatView = memo(
       fabHiddenForRecording,
     });
 
-    const handleFabPress = useCallback(
-      () => propsRef.current.onFabPress?.({}),
-      [propsRef],
-    );
+    const handleFabPress = useCallback(() => {
+      propsRef.current.onFabPress?.({});
+      scrollControl.scrollToBottom(true);
+    }, [propsRef, scrollControl]);
 
     const chatContext = useChatViewContextValue({
       theme,

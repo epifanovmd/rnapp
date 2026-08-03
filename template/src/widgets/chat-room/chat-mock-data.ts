@@ -15,7 +15,7 @@ export const MOCK_PEER = {
 export const MOCK_CURRENT_USER_ID = "me";
 
 /** Размер демо-переписки — стресс-тест списка на тысяче сообщений. */
-export const MOCK_MESSAGES_TOTAL = 1000;
+export const MOCK_MESSAGES_TOTAL = 100;
 
 const minutesAgo = (minutes: number) =>
   new Date(Date.now() - minutes * 60_000).toISOString();

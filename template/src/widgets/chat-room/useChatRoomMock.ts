@@ -611,7 +611,6 @@ export const useChatRoomMock = () => {
 
   const handleFabPress = useCallback(() => {
     logEvent("onFabPress");
-    chatRef.current?.scrollToBottom();
   }, []);
 
   // ── Attachments ───────────────────────────────────────────────────
