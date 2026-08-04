@@ -14,12 +14,12 @@ const DEFAULT_UNREAD_THRESHOLD = 0.5;
 const DEFAULT_VISIBLE_INTERVAL = 0.3;
 const DEFAULT_UNREAD_INTERVAL = 0.3;
 
+/** Блокировка коллбэков на время начального позиционирования списка. */
+const INITIAL_PROTECTION_MS = 1000;
+
 /**
- * Два порога видимости через `viewabilityConfigCallbackPairs`:
- * строгий для снимка видимых, мягкий для отметки о прочтении.
- *
- * `handleVisible` — дедупликация по набору id.
- * `handleRead` — mark-as-read сразу, `onUnreadMessagesAppear` с дебаунсом.
+ * Два порога видимости: строгий для снимка видимых, мягкий для отметки о прочтении.
+ * На время начальной защиты коллбэки не вызываются.
  */
 export interface IChatViewabilityOptions {
   props: RefObject<ChatViewProps>;
@@ -47,6 +47,17 @@ export const useChatViewability = ({
   const pendingUnreadRef = useRef<Set<string>>(new Set());
   const unreadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  /** Блокирует коллбэки на время начального позиционирования. */
+  const isInitialScrollProtectedRef = useRef(true);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      isInitialScrollProtectedRef.current = false;
+    }, INITIAL_PROTECTION_MS);
+
+    return () => clearTimeout(id);
+  }, []);
+
   const flushUnread = useCallback(() => {
     if (unreadTimerRef.current != null) {
       clearTimeout(unreadTimerRef.current);
@@ -65,6 +76,8 @@ export const useChatViewability = ({
 
   const handleVisible = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ChatRow>[] }) => {
+      if (isInitialScrollProtectedRef.current) return;
+
       const messageIds: string[] = [];
 
       for (const { item } of viewableItems) {
@@ -73,9 +86,6 @@ export const useChatViewability = ({
 
       if (messageIds.length === 0) return;
 
-      // Сортировка для стабильного сравнения: список может отдать id в
-      // разном порядке (особенно при recycleItems), и один и тот же набор
-      // строк выглядел бы как новый.
       const key = messageIds.sort().join(",");
 
       if (key === lastVisibleIdsRef.current) return;
@@ -93,6 +103,8 @@ export const useChatViewability = ({
 
   const handleRead = useCallback(
     ({ viewableItems }: { viewableItems: ViewToken<ChatRow>[] }) => {
+      if (isInitialScrollProtectedRef.current) return;
+
       const unreadIds: string[] = [];
 
       for (const { item } of viewableItems) {
@@ -107,10 +119,8 @@ export const useChatViewability = ({
 
       if (unreadIds.length === 0) return;
 
-      // mark-as-read — сразу.
       onMarkReadRef.current(unreadIds);
 
-      // onUnreadMessagesAppear — батчинг с дебаунсом.
       for (const id of unreadIds) {
         pendingUnreadRef.current.add(id);
       }

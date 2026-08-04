@@ -106,10 +106,12 @@ export const useChatInitialPosition = ({
     }
 
     didAlignRef.current = true;
-    list.scrollToOffset({ offset, animated: false });
+    list.scrollToOffset({ offset, animated: false }).then();
   });
 
-  const onListLoad = useCallback(() => alignRef.current(), [alignRef]);
+  const onListLoad = useCallback(() => {
+    alignRef.current();
+  }, [alignRef]);
 
   return useMemo(
     () => ({ scrollIndex, onListLoad }),
