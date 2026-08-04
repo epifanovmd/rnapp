@@ -16,11 +16,10 @@ const DEFAULT_UNREAD_INTERVAL = 0.3;
 
 /**
  * Два порога видимости через `viewabilityConfigCallbackPairs`:
- * строгий для снимка видимых и мягкий для отметки о прочтении.
+ * строгий для снимка видимых, мягкий для отметки о прочтении.
  *
  * `handleVisible` — дедупликация по набору id.
- * `handleRead` — mark-as-read сразу, `onUnreadMessagesAppear` с батчингом
- * (дебаунс + аккумуляция за интервал), как в нативном `notifyUnreadMessages`.
+ * `handleRead` — mark-as-read сразу, `onUnreadMessagesAppear` с дебаунсом.
  */
 export interface IChatViewabilityOptions {
   props: RefObject<ChatViewProps>;
@@ -111,7 +110,7 @@ export const useChatViewability = ({
       // mark-as-read — сразу.
       onMarkReadRef.current(unreadIds);
 
-      // onUnreadMessagesAppear — батчинг с дебаунсом, как в нативе.
+      // onUnreadMessagesAppear — батчинг с дебаунсом.
       for (const id of unreadIds) {
         pendingUnreadRef.current.add(id);
       }

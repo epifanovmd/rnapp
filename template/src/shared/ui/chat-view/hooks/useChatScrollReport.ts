@@ -34,12 +34,14 @@ export interface IChatScrollReportOptions {
 
 export interface IChatScrollReport {
   scheduleAnchorSave: () => void;
+  /** Вызывать в `onScrollBeginDrag` списка. */
+  onScrollBeginDrag: () => void;
 }
 
 /**
  * Троттленный `onScroll` (UI-поток) и якорь позиции по остановке (JS-дебаунс).
- * Якорь снимается при любом движении — палец, инерция, программный скролл, —
- * и при размонтировании. Повторы не уходят.
+ * Якорь снимается только при пользовательском скролле (палец/инерция).
+ * Программный скролл якорь не дёргает. При размонтировании — финальный снимок.
  */
 export const useChatScrollReport = ({
   listRef,
@@ -53,6 +55,9 @@ export const useChatScrollReport = ({
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastAnchorRef = useRef<IChatScrollAnchor | null>(null);
   const lastReportAt = useSharedValue(0);
+
+  /** Пользователь взаимодействует со скроллом: палец на экране или инерция. */
+  const isUserInteractingRef = useRef(false);
 
   const clearSettleTimer = useCallback(() => {
     if (settleTimerRef.current != null) {
@@ -93,11 +98,21 @@ export const useChatScrollReport = ({
   }, [clearSettleTimer, props, listRef, data, isNearEnd, getBottomInset]);
 
   const scheduleAnchorSave = useCallback(() => {
+    // Только пользовательский скролл.
+    if (!isUserInteractingRef.current) return;
     if (!props.current.onScrollAnchorChanged) return;
 
     clearSettleTimer();
-    settleTimerRef.current = setTimeout(saveAnchor, ANCHOR_SETTLE_MS);
+    settleTimerRef.current = setTimeout(() => {
+      saveAnchor();
+      // Скролл устаканился — снимаем флаг, следующая серия начнётся с нового beginDrag.
+      isUserInteractingRef.current = false;
+    }, ANCHOR_SETTLE_MS);
   }, [props, clearSettleTimer, saveAnchor]);
+
+  const onScrollBeginDrag = useCallback(() => {
+    isUserInteractingRef.current = true;
+  }, []);
 
   const report = useCallback(
     (y: number, isAtBottom: boolean) => {
@@ -126,5 +141,8 @@ export const useChatScrollReport = ({
 
   useLayoutEffect(() => () => saveAnchor(), [saveAnchor]);
 
-  return useMemo(() => ({ scheduleAnchorSave }), [scheduleAnchorSave]);
+  return useMemo(
+    () => ({ scheduleAnchorSave, onScrollBeginDrag }),
+    [scheduleAnchorSave, onScrollBeginDrag],
+  );
 };

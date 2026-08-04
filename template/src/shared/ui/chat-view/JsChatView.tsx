@@ -124,8 +124,8 @@ export const JsChatView = memo(
       onRefocus: handleKeyboardRefocus,
     });
 
-    // Зона одна на экран, применений два: панель едет по `occludedBottom`,
-    // контент — распоркой и компенсацией скролла по тому же `contentInset`.
+    // Одна зона клавиатуры: панель едет по occludedBottom,
+    // контент — распоркой и компенсацией скролла по contentInset.
     const compensation = useKeyboardScrollCompensation(
       keyboard.contentInset,
       keyboard.reservedInset,
@@ -146,7 +146,6 @@ export const JsChatView = memo(
       data: dataRef,
       highlight,
       getBottomInset: keyboard.getContentInset,
-      onScrollRequested: scrollReport.scheduleAnchorSave,
     });
 
     const unread = useChatUnread(unreadCount, data.messages);
@@ -167,8 +166,8 @@ export const JsChatView = memo(
       scrollOffset,
     });
 
-    // Геометрию скролла читают двое: пагинация переводит пороги в доли экрана,
-    // компенсация считает по ней предел прокрутки.
+    // Геометрия скролла нужна пагинации (пороги как доли экрана)
+    // и компенсации (предел прокрутки).
     const handleLayout = useCallback(
       (event: LayoutChangeEvent) => {
         compensation.onLayout(event);
@@ -177,8 +176,13 @@ export const JsChatView = memo(
       [compensation, pagination],
     );
 
-    // Палец отпущен — дальше либо инерция, либо остановка. И то и другое
-    // доводится до якоря таймером устаканивания.
+    // Начало жеста: включаем флаг пользовательского взаимодействия для якоря.
+    const handleScrollBeginDrag = useCallback(() => {
+      compensation.onScrollBeginDrag();
+      scrollReport.onScrollBeginDrag();
+    }, [compensation, scrollReport]);
+
+    // Конец жеста: запускаем таймер устаканивания для снятия якоря.
     const handleScrollEndDrag = useCallback(() => {
       compensation.onScrollEndDrag();
       scrollReport.scheduleAnchorSave();
@@ -273,7 +277,7 @@ export const JsChatView = memo(
               maintainScrollAtEndThreshold={pagination.scrollToBottomThreshold}
               viewabilityConfigCallbackPairs={viewabilityPairs}
               onLoad={initialPosition.onListLoad}
-              onScrollBeginDrag={compensation.onScrollBeginDrag}
+              onScrollBeginDrag={handleScrollBeginDrag}
               onScrollEndDrag={handleScrollEndDrag}
               onStartReached={pagination.onStartReached}
               onEndReached={pagination.onEndReached}

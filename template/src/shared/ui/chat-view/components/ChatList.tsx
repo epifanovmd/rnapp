@@ -73,7 +73,7 @@ const MAINTAIN_VISIBLE_CONTENT_POSITION = { data: true, size: true };
 // Только dataChange: footerLayout — второй источник сдвига.
 const MAINTAIN_SCROLL_AT_END = { animated: true, on: { dataChange: true } };
 
-// Быстрее дефолтных 250 мс — иначе серые плитки на месте картинок при броске.
+// 120 мс вместо дефолтных 250 — иначе серые плитки на месте картинок при быстром скролле.
 const ADAPTIVE_RENDER_EXIT_DELAY = 120;
 
 export const ChatList = memo(

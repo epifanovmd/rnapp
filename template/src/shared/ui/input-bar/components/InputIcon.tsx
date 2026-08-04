@@ -2,12 +2,8 @@ import React, { FC, memo } from "react";
 import Svg, { Circle, Path } from "react-native-svg";
 
 /**
- * Иконки InputBar — подмножество ChatIcon, только те, что используются
- * внутри InputBar. ViewBox 24×24.
- *
- * ChatIcon остаётся в chat-view/components и используется там же компонентами
- * чата (MessageFooter, ChatFab, ThreadIndicator, MediaGridContent, FileContent,
- * VoiceContent). InputBar не импортирует из chat-view.
+ * Иконки панели ввода. ViewBox 24×24. Используются только те глифы,
+ * которые нужны самой панели.
  */
 
 export type InputIconName =

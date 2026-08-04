@@ -39,12 +39,6 @@ export interface IChatScrollControlOptions {
    * распоркой в конце контента.
    */
   getBottomInset: () => number;
-  /**
-   * Позицию попросили изменить программно. Отправка сообщения, FAB и переход к
-   * сообщению приходят сюда — этого достаточно, чтобы снять якорь после любого
-   * из них: снимет его всё равно один общий таймер устаканивания.
-   */
-  onScrollRequested?: () => void;
 }
 
 /** Команды прокрутки: `scrollToEnd` без поправок, `scrollToIndex` — с поправкой на зону. */
@@ -53,7 +47,6 @@ export const useChatScrollControl = ({
   data,
   highlight,
   getBottomInset,
-  onScrollRequested,
 }: IChatScrollControlOptions): IChatScrollControl => {
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,7 +60,6 @@ export const useChatScrollControl = ({
   return useMemo<IChatScrollControl>(
     () => ({
       scrollToBottom: (animated = true) => {
-        onScrollRequested?.();
         listRef.current?.scrollToEnd({ animated });
       },
 
@@ -82,8 +74,6 @@ export const useChatScrollControl = ({
         if (index == null) return;
 
         const viewPosition = VIEW_POSITIONS[position];
-
-        onScrollRequested?.();
 
         // Компенсация: список центрирует по полному вьюпорту, а видимая область короче на зону.
         listRef.current?.scrollToIndex({
@@ -102,6 +92,6 @@ export const useChatScrollControl = ({
         );
       },
     }),
-    [listRef, data, highlight, getBottomInset, onScrollRequested],
+    [listRef, data, highlight, getBottomInset],
   );
 };

@@ -45,14 +45,13 @@ export const useKeyboardScrollCompensation = (
 ): IScrollCompensation => {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
-  // Зона не ноль на первом кадре — иначе дельта прокрутит контент на пустом месте.
+  // Начальное значение инсета — иначе нулевая дельта сдвинет контент при старте.
   const initialInset = useConstant(() => bottomInset.value);
 
   const appliedInset = useSharedValue(initialInset);
   const isUserDragging = useSharedValue(false);
   const pendingEndPin = useSharedValue(false);
-  // Дельту считаем от реальной позиции, поэтому она читается отсюда, а не
-  // подставляется снаружи.
+  // Дельта вычисляется от реальной позиции скролла, а не передаётся извне.
   const scrollY = useScrollViewOffset(scrollRef);
   const contentHeight = useSharedValue(0);
   const viewportHeight = useSharedValue(0);

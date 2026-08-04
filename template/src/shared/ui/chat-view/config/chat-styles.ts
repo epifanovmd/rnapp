@@ -67,7 +67,7 @@ export interface IChatOwnershipStyles {
 
 /** Стили, общие для всех сообщений. */
 export interface IChatSharedStyles {
-  /** Резерв под аватар входящего сообщения — сдвигает пузырь вправо, как нативно. */
+  /** Резерв под аватар входящего сообщения — сдвигает пузырь вправо. */
   avatarColumn: ViewStyle;
   /** Ширина колонки под аватар — она же вычитается из ширины пузыря. */
   avatarSlotWidth: number;
@@ -228,9 +228,8 @@ const ownershipStyles = (
       paddingBottom: l.bubbleBottomPad,
       paddingHorizontal: l.bubbleHPad,
       gap: l.bubbleSpacing,
-      // Пузырь заполняет content box ячейки, когда её высоту диктует cellMinHeight —
-      // как нативно (bubble pinned top+bottom к contentView). System/pinned пропускаем:
-      // у них своё extra-дно, формула не сходится.
+      // Пузырь заполняет ячейку по высоте (cellMinHeight). System/pinned — нет,
+      // у них свой дополнительный нижний отступ.
       ...(ownership === "mine" || ownership === "theirs"
         ? { minHeight: l.cellMinHeight - l.cellVSpacing }
         : null),
@@ -336,15 +335,12 @@ const sharedStyles = (
   t: IChatViewTheme,
   l: IChatLayout,
 ): IChatSharedStyles => ({
-  // Резерв под аватар — пустой спейсер. Позиционирует пузырь ровно как нативно:
-  // bubble leading = cellHMargin + avatarSize + avatarLeadingMargin + avatarBubbleSpacing,
-  // т.е. отступ аватар→пузырь = cellHMargin + avatarBubbleSpacing (10 при дефолтах).
+  // Резерв под аватар — пустой спейсер. Сдвигает пузырь входящего сообщения вправо.
   avatarColumn: {
     width: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
   },
   avatarSlotWidth: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
-  // Аватар рисуется поверх ячейки (absolute), как нативный AvatarSupplementaryView:
-  // left = avatarLeadingMargin, bottom = cellVSpacing/2 (низ контента ячейки = низ пузыря).
+  // Аватар абсолютным позиционированием поверх ячейки.
   avatarOverlay: {
     position: "absolute",
     left: l.avatarLeadingMargin,

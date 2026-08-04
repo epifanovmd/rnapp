@@ -89,7 +89,7 @@ export const ContextMenuOverlay: FC<
 
   const animator = useContextMenuAnimator(layout, theme, session.sourceFrame);
 
-  // Закрытие идёт с анимацией, поэтому повторные нажатия надо гасить.
+  // Блокировка повторных нажатий на время анимации закрытия.
   const closingRef = useRef(false);
 
   const close = useCallback(
@@ -230,8 +230,8 @@ ContextMenuOverlay.displayName = "ContextMenuOverlay";
 
 const ss = StyleSheet.create({
   container: { flex: 1 },
-  // Копия обязана лечь ровно в посчитанный прямоугольник: любые внешние
-  // отступы исходного контейнера здесь обнуляются.
+  // Снапшот должен точно совпадать с посчитанным прямоугольником —
+  // внешние отступы исходного контейнера обнуляются.
   snapshotContent: {
     overflow: "hidden",
     alignSelf: "stretch",

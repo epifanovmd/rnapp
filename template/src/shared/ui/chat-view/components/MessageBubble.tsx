@@ -148,7 +148,7 @@ MessageBubble.displayName = "MessageBubble";
 
 const ss = StyleSheet.create({
   forwardedRow: { flexDirection: "row", alignItems: "stretch" },
-  // Именно flexShrink, а не flex: последний обнуляет flex-basis, колонка
-  // перестаёт давать собственную ширину и пузырь схлопывается до минимума.
+  // flexShrink вместо flex: flex обнуляет flex-basis, и колонка
+  // схлопывается до минимума.
   forwardedColumn: { flexShrink: 1 },
 });

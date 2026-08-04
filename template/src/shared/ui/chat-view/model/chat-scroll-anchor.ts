@@ -4,12 +4,12 @@ import { ChatRow } from "../data";
 import { IChatScrollAnchor } from "../types";
 
 /**
- * Якорь позиции — семантика нативного `ScrollAnchor`:
- *   offset = visibleBottom − cellBottom  (от низа видимой области до низа ячейки)
+ * Якорь позиции для сохранения/восстановления скролла:
+ *   offset = visibleBottom − cellBottom
  *   restore = cellBottom + offset − scrollLength + bottomInset
  *
- * Нижнее видимое сообщение, любой знак offset (отрицательный ← частично за панелью).
- * Только измеренная строка: `sizeAtIndex` на оценке уводил бы позицию при открытии.
+ * Нижнее видимое сообщение. Допустим отрицательный offset (ячейка частично за панелью).
+ * Используются только измеренные высоты строк.
  */
 
 export interface IAnchorScrollIndex {
@@ -43,9 +43,8 @@ export const readScrollAnchor = (
 
   const visibleBottom = state.scroll + state.scrollLength - bottomInset;
 
-  // Идём снизу вверх: нижнее видимое сообщение — якорь. Нативный код не
-  // фильтрует offset: ячейка может быть частично за панелью (отрицательный
-  // offset), и это нормально — restoreScrollAnchor обрабатывает любой знак.
+  // Идём снизу вверх: нижнее видимое сообщение — якорь.
+  // Допустим отрицательный offset (ячейка частично за панелью).
   for (let i = state.end; i >= state.start; i--) {
     const row = rows[i];
 

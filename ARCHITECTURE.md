@@ -6,12 +6,9 @@ type: project
 
 # Architecture Guide
 
-Адаптировано из ARCHITECTURE.md проекта `react-vite` под этот проект (React Native вместо Web).
-
 ## Feature-Sliced Design
 
-Проект построен по методологии **Feature-Sliced Design**. Шесть слоёв, каждый следующий строится
-поверх предыдущих и не знает о вышестоящих:
+Шесть слоёв, каждый следующий использует только нижние:
 
 ```
 app → pages → widgets → features → entities → shared
@@ -20,81 +17,54 @@ app → pages → widgets → features → entities → shared
 ```
 template/src/
   app/                    ← композиционный корень
-    App.tsx               ←   точка входа: DI + провайдеры (Theme, SafeArea, BottomSheet, Keyboard, Dialog.Host, ContextMenuView.Host)
+    App.tsx               ←   DI + провайдеры (Theme, SafeArea, BottomSheetModal, Keyboard, Dialog, ContextMenu)
     App.navigator.tsx     ←   выбор маршрутов по IAuthStore.isAuthenticated
-    App.screens.ts        ←   манифесты PUBLIC_SCREENS / PRIVATE_SCREENS
+    App.screens.ts        ←   PUBLIC_SCREENS / PRIVATE_SCREENS
     app-tab-screens.tsx   ←   TAB_SCREENS (Main/Playground/Settings)
     App.linking.ts        ←   deep linking
+    App.notifications.tsx ←   push-уведомления
     app.module.ts         ←   регистрация всех *.module.ts (DI)
-    app-data-*, common/, hooks/
+    app-data-*            ←   стор данных приложения
 
-  pages/                  ← экраны — тонкая композиция widgets/features/entities под роут
+  pages/                  ← экраны — композиция widgets/features/entities под роут
     sign-in/, sign-up/, recovery-password/, chat/, settings/
-    ui-kit-demo/          ←   демо/плейграунд (stack/ + tabs/)
+    ui-kit-demo/          ←   плейграунд (stack/ + tabs/)
 
   widgets/                ← крупные самостоятельные блоки UI
     chat-room/            ←   ChatRoom + useChatRoomMock (мок-данные)
     app-shell/            ←   TabBar
 
-  features/               ← юзкейсы — интерактивные сценарии поверх entities
-    sign-in/, sign-up/, recovery-password/   ← model/use<Xxx>VM.ts + validation.ts
-    biometric/            ←   useBiometric (общий для sign-in и settings)
+  features/               ← интерактивные сценарии поверх entities
+    sign-in/, sign-up/, recovery-password/
+    biometric/            ←   useBiometric (sign-in + settings)
 
-  entities/               ← бизнес-сущности — состояние и доменные модели, без UI-форм
+  entities/               ← бизнес-сущности — состояние и доменные модели
     auth/                 ←   model/ (AuthStore, validation, biometric, passkey), api/ (jwt, session, token)
     user/                 ←   model/ (store, session, realtime), lib/permissions
 
-  shared/                 ← переиспользуемый код без знания о бизнес-логике
+  shared/                 ← переиспользуемый код, не знает о бизнес-логике
     ui/                   ←   UI-кит (chat-view, input-bar, context-menu-view, ...)
-    api/                  ←   HttpClient, ApiError, contract/, orval codegen (gen/)
+    api/                  ←   HttpClient, ApiError, contract/, orval-gen (gen/)
     config/               ←   env.ts (react-native-config)
-    lib/                  ←   di, holders, navigation, theme, socket, storage, notifications, ...
+    lib/                  ←   di, holders, navigation, theme, socket, keyboard, storage, ...
 ```
 
-Каждый слайс (`entities/auth`, `features/sign-in`, `widgets/chat-room`, `pages/profile`, ...) —
-самодостаточная папка с сегментами `model/`, `api/`, `ui/`, `lib/` внутри. У `shared` слайсов нет —
-там сегменты (`ui/`, `api/`, `config/`, `lib/`) сами по себе плоская коллекция независимых модулей.
+Слайс (`entities/auth`, `features/sign-in`, ...) — самодостаточная папка с сегментами
+`model/`, `api/`, `ui/`, `lib/`. У `shared` слайсов нет — сегменты (`ui/`, `api/`, `config/`,
+`lib/`) сами по себе плоская коллекция независимых модулей.
 
 ## Правила зависимостей
 
-```
-        ┌────────────┐
-        │    app     │  видит всё
-        └─────┬──────┘
-              │
-        ┌─────▼──────┐
-        │   pages    │  shared + entities + features + widgets
-        └─────┬──────┘
-              │
-        ┌─────▼──────┐
-        │  widgets   │  shared + entities + features
-        └─────┬──────┘
-              │
-        ┌─────▼──────┐
-        │  features  │  shared + entities
-        └─────┬──────┘
-              │
-        ┌─────▼──────┐
-        │  entities  │  shared
-        └─────┬──────┘
-              │
-        ┌─────▼──────┐
-        │   shared   │  ничего бизнесового
-        └────────────┘
-```
-
-Правило FSD: *модуль слайса может импортировать только слайсы строго нижних слоёв*. Всё проверяется
+Модуль слайса импортирует только слайсы строго нижних слоёв. Проверяется
 `eslint-plugin-boundaries` ([eslint.boundaries.mjs](template/eslint.boundaries.mjs)),
-`default: "disallow"` — 0 нарушений обязательное условие для мержа.
+`default: "disallow"`.
 
 ### Слайсы одного слоя не видят друг друга
 
-`entities/auth` не импортирует `entities/user`, `features/sign-in` не импортирует `features/sign-up`,
-`widgets/chat-room` не импортирует `widgets/app-shell`, `pages/sign-in` не импортирует `pages/settings`.
-
-Если двум слайсам одного слоя нужна общая логика — она лежит слоем ниже. Пример:
-`loginValidation`/`passwordValidation` используются в `features/sign-in` и `features/sign-up`,
-определены в `entities/auth/model/validation.ts`.
+`entities/auth` не импортирует `entities/user`, `features/sign-in` не импортирует
+`features/sign-up`. Общая логика — слоем ниже. Пример: `loginValidation`/`passwordValidation`
+используются в `features/sign-in` и `features/sign-up`, определены в
+`entities/auth/model/validation.ts`.
 
 ### Разрешено
 
@@ -109,54 +79,47 @@ template/src/
 
 ### Запрещено
 
-| Нарушение | Почему |
+| Нарушение | Причина |
 |---|---|
-| **Слайс → слайс того же слоя** | `entities/auth` → `entities/user` ✗ (используй Dependency Inversion — контракт в `shared`) |
-| **Слой → слой выше** | `entities/*` → `@features/*` ✗ |
-| **Self-import через свой же alias** | внутри `entities/auth/model/` — `@entities/auth` ✗, только относительные пути |
+| Слайс → слайс того же слоя | Dependency Inversion — контракт в `shared` |
+| Слой → слой выше | `entities/*` → `@features/*` |
+| Self-import через свой же alias | внутри слайса — только относительные пути |
 
 ### Self-imports
 
-Внутри слайса/сегмента — только **относительные** пути. Публичный alias самого себя запрещён
-(`no-restricted-imports` в [eslint.config.mjs](template/eslint.config.mjs)):
-`SHARED_SEGMENTS = ["ui", "api", "config"]`, `SLICE_LAYERS` — конкретные слайсы
-(entities: auth/user; features: sign-in/sign-up/recovery-password/biometric; widgets: chat-room/app-shell;
-pages: sign-in/sign-up/recovery-password/chat/settings/ui-kit-demo). `shared/lib` сознательно исключён —
-это плоская россыпь независимых тем (di, models, utils, theme, socket, holders, ...), им разрешено
-ссылаться друг на друга через alias.
+Внутри слайса/сегмента — только относительные пути. Публичный alias самого себя запрещён
+(`no-restricted-imports` в [eslint.config.mjs](template/eslint.config.mjs)).
 
 ```ts
-// ✅ Правильно (внутри entities/auth/api/session-guard.ts)
+// ✅ внутри entities/auth/api/session-guard.ts
 import { IAuthStore } from "../model/types";
 
-// ❌ Неправильно (та же папка)
+// ❌ там же
 import { IAuthStore } from "@entities/auth";
 
-// ✅ Правильно (из features/sign-in в entities/auth)
+// ✅ из features/sign-in в entities/auth
 import { IAuthStore } from "@entities/auth";
 ```
 
 ### Контракты (Dependency Inversion)
 
-Если `shared/lib` требует данные из `entities` — создаётся контракт (интерфейс) внутри `shared`, а
-`entities` его реализует. Пример:
+Если `shared/lib` требует данные из `entities` — интерфейс в `shared`, реализация в `entities`:
 
 ```
-shared/api/contract/token-source.contract.ts   ← интерфейс ITokenSource (ensureFreshToken, refreshToken)
-                                                      ↑ implements
-entities/auth/api/token-source.ts              ← реальная реализация (SessionService)
+shared/api/contract/token-source.contract.ts   ← ITokenSource
+                                                     ↑ implements
+entities/auth/api/token-source.ts              ← SessionService
 ```
 
 ## Navigation (React Navigation 7)
 
-Экраны — **plain-манифесты**, не файловый роутинг:
-- `app/App.screens.ts` — `PUBLIC_SCREENS` (SignIn/SignUp/RecoveryPassword) и `PRIVATE_SCREENS`
-  (`MAIN` = табы + демо-стек Components/Carousel/Chat/Charts/ContextMenu/PdfView/WebView).
-- `app/app-tab-screens.tsx` — `TAB_SCREENS` (Main/Playground/Settings), рендерятся внутри `MAIN`.
-- `app/App.navigator.tsx` — по `IAuthStore.isAuthenticated`: unauth → PUBLIC, auth → `PRIVATE+PUBLIC`.
-- `NavigationService` (IoC-синглтон) — императивная навигация вне React
-  (`navigateTo`/`pushTo`/`replaceTo`/`goBack`, история).
-- Deep linking — `app/App.linking.ts` (схема из `DEEPLINK_BASE_URL`).
+Экраны — plain-манифесты:
+- `app/App.screens.ts` — `PUBLIC_SCREENS` (SignIn/SignUp/RecoveryPassword), `PRIVATE_SCREENS`
+  (`MAIN` = табы + демо-стек).
+- `app/app-tab-screens.tsx` — `TAB_SCREENS` (Main/Playground/Settings).
+- `app/App.navigator.tsx` — unauth → PUBLIC, auth → PRIVATE+PUBLIC.
+- `NavigationService` (IoC-синглтон, `shared/lib/navigation/`) — императивная навигация.
+- Deep linking — `app/App.linking.ts`.
 
 ## State Management
 
@@ -165,22 +128,21 @@ entities/auth/api/token-source.ts              ← реальная реализ
 ```
 entities/auth/
   model/
-    store.ts        ← класс MobX store (AuthStore)
+    store.ts        ← класс MobX (AuthStore)
     types.ts        ← AuthStatus, IAuthStore (DI-токен)
   auth.module.ts    ← bind(IAuthStore.Tid).to(AuthStore).inSingletonScope()
 ```
 
-- Стор — **только состояние и переходы**; инфраструктура (токены, refresh) — в `api/`.
-- Регистрация — явная через `ContainerModule` в `<slice>.module.ts`.
-- Зависимости — через DI: `@IAuthSessionService() private _session: IAuthSessionService`.
+Стор — состояние и переходы. Инфраструктура (токены, refresh) — в `api/`.
+Регистрация — `ContainerModule` в `<slice>.module.ts`.
+Зависимости — через DI: `@IAuthSessionService() private _session: IAuthSessionService`.
 
-### Холдеры (async state) + React-хуки
+### Холдеры (async state)
 
-`shared/lib/holders/` — самодостаточные папки: `entity/`, `collection/`, `paged/`, `infinite/`,
-`mutation/`, `polling/`, `base/` (BaseHolder, CombinedHolder), `cursor/`
-(Cursor/CachedCursor/SyncCursor), `filter/` (Filter/Filters/Value), `hooks/` (use-holder-ref, watch-effect).
+`shared/lib/holders/`: entity, collection, paged, infinite, mutation, polling, base, cursor,
+filter, hooks.
 
-| Хук | Holder | Аналог TanStack Query |
+| Хук | Holder | Аналог |
 |---|---|---|
 | `useEntity` | `EntityHolder` | `useQuery` |
 | `useCollection` | `CollectionHolder` | `useQuery` (list) |
@@ -189,16 +151,12 @@ entities/auth/
 | `useMutation` | `MutationHolder` | `useMutation` |
 | `usePolling` | `PollingHolder` | `useQuery` + refetchInterval |
 
-Фичи: `{data} | {error}` (никогда не кидают), cancellation (stale-ответы игнорируются),
-"quiet refresh". `*Provider`/`use*Context` — для шаринга состояния через дерево.
+Фичи: `{data} | {error}` (не кидают), cancellation, quiet refresh.
 
-## DI (Dependency Injection)
+## DI (Inversify)
 
-- Контейнер: **Inversify**, регистрация — явная через `ContainerModule`.
-- Токен/фабрика: `createInjectDecorator<T>()` из `shared/lib/di/` — объект-декоратор с `.Tid`,
-  `.getInstance()`, `.useInstance()`.
-- Каждый слайс с биндингами — свой `<slice>.module.ts`; все модули собираются в
-  `app/app.module.ts` (`registerContainerModules`), вызывается в начале `App.tsx`.
+- Регистрация — `ContainerModule`, собираются в `app/app.module.ts` (`registerContainerModules`).
+- Токен: `createInjectDecorator<T>()` (`shared/lib/di/`) — `.Tid`, `.getInstance()`, `.useInstance()`.
 
 ```ts
 export const IAuthJwtService = createInjectDecorator<IAuthJwtService>();
@@ -213,115 +171,89 @@ export const authModule = new ContainerModule(({ bind }) => {
 
 | Где | Как |
 |---|---|
-| В React-компоненте/хуке | `IAuthJwtService.useInstance()` (useRef-мемоизация) |
-| Вне React (сервис, стор) | `IAuthJwtService.getInstance()` |
-| Инъекция в конструктор | `@IAuthJwtService() private _jwt: IAuthJwtService` |
+| React-компонент/хук | `IXxx.useInstance()` |
+| Вне React | `IXxx.getInstance()` |
+| Инъекция в конструктор | `@IXxx() private _svc: IXxx` |
 
-Отдельных wrapper-хуков нет — компоненты вызывают `IXxx.useInstance()` напрямую.
-
-## HTTP и Авторизация
+## HTTP и авторизация
 
 ### Token lifecycle
 
 ```
 TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (interceptors) → API calls
-                                                              SocketTransport (via ITokenProvider)
+                                                              SocketTransport (через ITokenProvider)
 ```
 
-### JWT
-- `AuthJwtService` (`entities/auth/api/jwt-service.ts`) — парсинг/валидация токена,
-  `isExpired(token, bufferSeconds = 60)`.
-- `isTokenExpiringSoon(bufferSeconds = 60)` (`session-service`) — проактивный refresh за 60s до expiry.
+- `AuthJwtService` — парсинг/валидация JWT, `isExpired(token, bufferSeconds=60)`.
+- Request interceptor: `ensureFreshToken()` при скором expiry.
+- Response interceptor: 401 → дедуплицированный refresh → ретрай один раз.
+- Ошибка refresh → очистка токенов → signOut.
+- Результат: `{ data } | { error, isCanceled }`.
 
-### 401 handling
-- **Request interceptor**: `ensureFreshToken()` — проактивный refresh при скором expiry.
-- **Response interceptor**: 401 → `_handleConcurrentRefresh()` (дедуплицированный refresh) → ретрай
-  запроса один раз.
-- Ошибка refresh → очистка токенов/session → signOut.
-- Результат нормализуется: `{ data } | { error, isCanceled }`.
+### Socket (`shared/lib/socket/`)
 
-### Socket transport (`shared/lib/socket/`)
-- `SocketTransport` — socket.io: `reconnection: true`, `reconnectionAttempts: Infinity`, jitter 0.3.
-- `EmitQueue` — буфер эмитов офлайн, `PersistentListeners` — переживают reconnect.
-- Auth token — через `ITokenProvider` (контракт в `shared/lib/socket/contract`, реализация в
-  `entities/auth`). `UserSocketService` — user-scoped realtime-события.
+- `SocketTransport` — socket.io: `reconnection: true`, `reconnectionAttempts: Infinity`.
+- `EmitQueue` — буфер эмитов офлайн.
+- Auth token — через `ITokenProvider` (контракт в `shared/lib/socket/contract`).
 
 ## Error Handling
 
-- Все API-вызовы возвращают `{ data } | { error }`, исключения не кидаются.
+- API-вызовы возвращают `{ data } | { error }`, исключений нет.
 - `ApiError` (`shared/api/api-error.ts`): `isUnauthorized`, `isForbidden`, `isNotFound`,
   `isServerError`, `isNetworkError`.
-- Toast (interceptor): сетевые ошибки («Нет соединения с сервером», 6s) и 5xx.
-  401 — НЕ toast, обрабатывается refresh/reconnect.
+- Toast (interceptor): сетевые ошибки и 5xx. 401 — не toast (обрабатывается refresh).
 
-## Native modules (кратко)
+## Конфигурация чата
 
-ChatView, InputBar, ContextMenu — **тонкие iOS-бриджи**; реальный UI — во внешнем поде `IOSChatView`
-(sibling repo, `ios/Podfile`). **Нет Android-native** чата/инпута/меню — на Android/non-iOS используются
-JS-порты (`JsChatView`/`JsInputBar`/`JsContextMenuView`). **Picker/WheelPicker** — на обеих платформах.
-Fabric-спеки: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec` (framework-имена).
+Три группы настроек, дублей нет:
 
-### Конфигурация чата: одна настройка — один дом
+| Куда | Что |
+|---|---|
+| **пропы** | данные, состояние сессии, контекст показа, коллбэки |
+| **`features`** | флаги и пороги поведения |
+| **`layout`** | числовые метрики чата и панели ввода |
 
-| Куда | Что | Признак |
-|---|---|---|
-| **проп** | данные (`messages`), состояние сессии (`isLoading*`, `hasMore`, `inputAction`, `unreadCount`), контекст показа (`theme`, `collectionInset*`), **все коллбэки** | меняется в течение жизни экрана, React обязан это диффить |
-| **`features`** | поведенческие флаги и пороги: что из UI существует, когда срабатывает пагинация, набор эмодзи меню | конфигурация «какой это чат», задаётся один раз |
-| **`layout`** | числовые метрики чата и панели ввода | их больше сотни — плоскими пропами нечитаемо |
+`features` и `layout` — стабильные ссылки (константа или `useMemo`).
 
-Плоских пропов-дублей у настроек **нет**. Раньше шесть из них (`showSenderName`,
-`showFloatingDate`, `topThreshold`, `bottomThreshold`, `scrollToBottomThreshold`,
-`emojiReactions`) существовали одновременно и как проп, и как поле `features` — у настройки было
-два входа, и побеждал тот, что применится последним. На iOS порядок недетерминирован (оба попадают
-в один `folly::dynamic::object` в `getDiffProps`), поэтому поведение расходилось с JS. Дубли удалены
-из спеки, бриджа и `ChatViewProps` — не возвращать.
-
-`features` и `layout` должны быть **стабильны по ссылке** (константа модуля или `useMemo`). Кеш
-строк защищён от нестабильной ссылки: `ChatRowsBuilder` сравнивает не идентичность объекта, а слепок
-тех четырёх полей, что реально влияют на содержимое строки.
-
-`JsChatView` опирается на штатные механизмы `@legendapp/list` v3.3: `sharedValues` (позиция скролла и
-признаки края — читаются в ворклетах), `stickyHeaderIndices` (плавающая дата), `viewabilityConfigCallbackPairs`
-(видимость и прочитанность), `maintainVisibleContentPosition` / `maintainScrollAtEnd` (позиция),
-`onStartReached`/`onEndReached` (пагинация). Ручных аналогов на JS быть не должно.
-Подробности и JS-архитектура чата — в `project_native.md`.
+`JsChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
+`stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,
+`maintainScrollAtEnd`, `onStartReached`/`onEndReached`. Ручные JS-аналоги не допускаются.
+Детали: `project_native.md`.
 
 ## Naming Conventions
 
-Слайсы и сегменты — всегда **kebab-case**. Имя файла описывает **purpose, не essence** — слайс уже
-сказал, о чём он, повторять в имени не нужно (`entities/user/model/store.ts`, а не `User.store.ts`).
+Слайсы/сегменты — kebab-case. Имя файла — purpose, не essence.
 
 | Сущность | Паттерн | Пример |
 |---|---|---|
-| Слайс/сегмент (папка) | `kebab-case/` | `sign-in/`, `chat-room/`, `model/`, `api/` |
-| Компонент (`.tsx`) | `PascalCase.tsx` | `MessageBubble.tsx`, `ChatAvatar.tsx` |
+| Папка | `kebab-case/` | `sign-in/`, `model/` |
+| Компонент (`.tsx`) | `PascalCase.tsx` | `MessageBubble.tsx` |
 | Стор/сервис (`.ts`) | `kebab-case.ts` | `store.ts`, `token-provider.ts` |
-| Типы слайса/сегмента (единственный файл) | `types.ts` | `entities/auth/model/types.ts` |
-| React-хук — единственный смысловой экспорт | имя файла = имя хука (camelCase) | `useSignInVM.ts`, `useBiometric.ts` |
-| React-хук — утилитарный, среди файлов модуля | `use-kebab-case.ts` | `use-holder-ref.ts`, `use-keyboard-inset.ts` |
+| Типы (один на сегмент) | `types.ts` | `entities/auth/model/types.ts` |
+| Хук (единственный экспорт) | имя файла = имя хука | `useSignInVM.ts` |
+| Хук (утилитарный) | `use-kebab-case.ts` | `use-keyboard-inset.ts` |
 | Валидация (zod) | `validation.ts` | `features/sign-in/model/validation.ts` |
-| Контракт (интерфейс в `shared`) | `<name>.contract.ts` | `token-source.contract.ts` |
-| Модуль DI-регистрации | `<slice>.module.ts` | `auth.module.ts` |
-| Barrel (Public API) | `index.ts` | `index.ts` |
+| Контракт в `shared` | `<name>.contract.ts` | `token-source.contract.ts` |
+| DI-модуль | `<slice>.module.ts` | `auth.module.ts` |
+| Barrel | `index.ts` | `index.ts` |
 
-Проверяется `eslint-plugin-check-file` ([eslint.naming.mjs](template/eslint.naming.mjs)):
-kebab-case папок, PascalCase компонентов, camelCase VM-хуков. **Особые случаи** (не наша конвенция,
-не подчиняются общей проверке):
-- RN codegen-спеки: `NativeChatViewSpec`, `NativeInputBarSpec`, `NativeContextMenuViewSpec`.
-- `app/App.*` — композиционный неймспейс (App.tsx, App.navigator.tsx, App.screens.ts, ...);
-  `app/app-tab-screens.tsx` — JSX-модуль, не компонент.
-- `ImageItem.ios.tsx/.android.tsx/.d.ts` — платформенный компонент, `.d.ts` совпадает по имени.
-- `shared/{api,config,lib}` — kebab-case без глагольного camelCase-исключения (хуки уже kebab-case).
+Проверяется `eslint-plugin-check-file` ([eslint.naming.mjs](template/eslint.naming.mjs)).
+
+Особые случаи (вне общей конвенции):
+- `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec` — RN codegen-спеки.
+- `app/App.*` — композиционный неймспейс.
+- `ImageItem.ios.tsx/.android.tsx/.d.ts` — платформенный компонент.
+- `shared/{api,config,lib}` — kebab-case, без camelCase-исключения.
 
 ## ESLint
 
 | Правило | Назначение |
 |---|---|
-| `boundaries/dependencies` | Границы слоёв/слайсов FSD (`eslint.boundaries.mjs`) |
-| `no-restricted-imports` | Self-imports внутри слайса/сегмента через свой же alias |
-| `check-file/filename-naming-convention` | Именование файлов (`eslint.naming.mjs`) |
+| `boundaries/dependencies` | Границы слоёв/слайсов FSD |
+| `no-restricted-imports` | Self-imports через alias |
+| `check-file/filename-naming-convention` | Именование файлов |
 | `check-file/folder-naming-convention` | kebab-case папок |
 | `simple-import-sort/imports` + `/exports` | Порядок импортов |
 | `react-hooks/rules-of-hooks` | Правила хуков |
-| `react-hooks/exhaustive-deps` | Полнота зависимостей |
+| `react-hooks/exhaustive-deps` | Зависимости хуков |
 | `padding-line-between-statements` | Пустые строки между блоками |

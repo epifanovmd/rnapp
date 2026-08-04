@@ -32,8 +32,7 @@ export interface IChatFeatures {
 
   /**
    * Пороги пагинации в пикселях. Список принимает их долей высоты вьюпорта
-   * (`onStartReachedThreshold` / `onEndReachedThreshold`), поэтому деление на
-   * измеренную высоту происходит в `JsChatView`.
+   * (`onStartReachedThreshold` / `onEndReachedThreshold`).
    */
   topLoadThreshold: number;
   bottomLoadThreshold: number;
@@ -85,14 +84,7 @@ const defined = <T extends object>(source: T): Partial<T> => {
   return result;
 };
 
-/**
- * Наложение пропа `features` на дефолты.
- *
- * Раньше здесь мирились шесть плоских пропов-дублей (`showSenderName`,
- * `topThreshold`, …), писавших те же поля: у настройки было два входа, и
- * побеждал тот, что применится последним. Дублей больше нет — у каждой
- * настройки ровно один дом.
- */
+/** Наложение пропа `features` на дефолты. */
 export const resolveChatFeatures = (
   features: ChatFeatures | undefined,
 ): IChatFeatures => ({

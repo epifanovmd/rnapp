@@ -132,11 +132,8 @@ const parseMedia = (msg: ChatMessage): ChatMediaContent | undefined => {
 };
 
 /**
- * Разбор одного сообщения.
- *
- * `actions` приходят отдельным аргументом, а не копией `msg`: копия ломала бы
- * идентичность входного сообщения, а на ней держится кеш разбора
- * (см. `ChatMessageParser`).
+ * Разбор одного сообщения. `actions` приходят отдельным аргументом,
+ * чтобы сохранить идентичность `msg` для кеша разбора.
  */
 export const parseChatMessage = (
   msg: ChatMessage,

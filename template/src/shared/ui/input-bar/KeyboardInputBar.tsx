@@ -12,11 +12,8 @@ export interface IKeyboardInputBarProps {
 }
 
 /**
- * Плавающая панель ввода, прижатая к верхней границе клавиатуры.
- *
- * Своей подписки на клавиатуру нет: величину перекрытия ведёт
- * `useKeyboardInset`, панель лишь поднимается на неё. Вторая подписка сделала
- * бы панель и контент двумя источниками движения.
+ * Панель ввода, прижатая к верхней границе клавиатуры.
+ * Величину перекрытия задаёт `useKeyboardInset` через проп `offset`.
  */
 export const KeyboardInputBar = forwardRef<View, IKeyboardInputBarProps>(
   ({ children, offset }, ref) => {

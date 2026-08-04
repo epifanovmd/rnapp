@@ -3,10 +3,7 @@ export type ChatAdaptiveRenderMode = "normal" | "light";
 /**
  * Режим рендера строк: на быстром броске список просит облегчённую отрисовку.
  *
- * Внешний стор, а не `useAdaptiveRender` из списка: копия пузыря рисуется в
- * оверлее контекстного меню — вне списка, где его хуки падают, читая пустой
- * контекст. Ровно этот случай документация и предлагает решать через
- * `experimental_adaptiveRender.onChange`.
+ * Внешний стор — чтобы оверлей контекстного меню (вне списка) тоже знал режим.
  */
 export class ChatAdaptiveRenderStore {
   private _mode: ChatAdaptiveRenderMode = "normal";

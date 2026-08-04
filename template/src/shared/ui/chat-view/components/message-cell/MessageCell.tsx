@@ -2,8 +2,6 @@ import { useListScrollSize } from "@legendapp/list/react-native";
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { View, ViewStyle } from "react-native";
 
-// Тестовое исключение: в ячейке используется именно JS-реализация меню —
-// нативное на iOS показывает демо-экран отдельным переключателем.
 import { JsContextMenuView } from "../../../context-menu-view/JsContextMenuView";
 import { IParsedChatMessage, IResolvedReply } from "../../data";
 import { ChatViewContext, useChatViewContext } from "../../model";
@@ -15,9 +13,8 @@ import { HighlightOverlay } from "./HighlightOverlay";
  * Ячейка сообщения: выравнивание пузыря по ownership, место под аватар,
  * контекстное меню по долгому нажатию и подсветка `scrollToMessage`.
  *
- * Ширину списка ячейка спрашивает у самого списка (`useListScrollSize`), а не
- * получает пропом сверху: иначе замер ширины в корне чата пришлось бы держать
- * React-состоянием и перерисовывать им весь чат на каждый поворот экрана.
+ * Ширину списка получает через `useListScrollSize`, чтобы не держать её
+ * в React-состоянии корня чата.
  */
 interface IMessageCellProps {
   message: IParsedChatMessage;
@@ -85,8 +82,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
 
     return (
       <View style={ownStyles.cell}>
-        {/* Резерв под аватар: пустой спейсер сдвигает пузырь так же, как нативно
-            (bubble leading = cellHMargin + avatarSize + avatarLeadingMargin + avatarBubbleSpacing). */}
+        {/* Пустой спейсер под аватар — сдвигает пузырь так же, как native-реализация. */}
         {reservesAvatar && <View style={styles.shared.avatarColumn} />}
         <View style={bubbleWrapStyle}>
           {menuEnabled ? (
@@ -101,8 +97,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
               onActionSelect={handleMenuActionSelect}
               onDismiss={handleMenuDismiss}
             >
-              {/* Копия пузыря рисуется в оверлее меню — вне провайдера чата,
-                  поэтому контекст едет вместе с children. */}
+              {/* Контекст чата передаётся в children меню явно. */}
               <ChatViewContext.Provider value={chatContext}>
                 {bubble}
               </ChatViewContext.Provider>
@@ -112,8 +107,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
           )}
           <HighlightOverlay key={messageId} messageId={messageId} />
         </View>
-        {/* Аватар поверх ячейки (absolute), как нативный AvatarSupplementaryView:
-            left = avatarLeadingMargin, низ = низ пузыря. Высоту ячейки не раздувает. */}
+        {/* Аватар поверх ячейки (absolute), выровнен по низу пузыря. */}
         {showAvatar && (
           <View style={styles.shared.avatarOverlay} pointerEvents="none">
             <ChatAvatar
