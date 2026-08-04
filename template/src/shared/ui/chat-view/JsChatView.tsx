@@ -3,6 +3,7 @@ import React, {
   forwardRef,
   memo,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
 } from "react";
@@ -26,6 +27,8 @@ import {
   KeyboardInputBar,
 } from "../input-bar";
 import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
+import { createChatContentRegistry } from "./content";
+import { CHAT_BUILTIN_CONTENT } from "./content/builtin";
 import {
   useChatCellActions,
   useChatConfig,
@@ -46,9 +49,16 @@ import {
   ChatHighlightStore,
   ChatViewContext,
 } from "./model";
+import { chatVoicePlayer } from "./services";
 import { ChatViewProps, IChatViewRef } from "./types";
 
 const NO_STICKY_INDICES: number[] = [];
+
+/**
+ * Реестр типов контента. Модульная константа: ссылка обязана быть стабильной —
+ * иначе инвалидируется мемоизация всех ячеек и кеш разбора сообщений.
+ */
+const CONTENT_TYPES = createChatContentRegistry(CHAT_BUILTIN_CONTENT);
 
 /** JS-реализация ChatView: LegendList + одна зона клавиатуры на всех потребителей. */
 export const JsChatView = memo(
@@ -80,6 +90,10 @@ export const JsChatView = memo(
     const highlight = useConstant(() => new ChatHighlightStore());
     const adaptiveRender = useConstant(() => new ChatAdaptiveRenderStore());
 
+    // Плеер — синглтон и переживает чат: без остановки запись продолжала бы
+    // играть после ухода с экрана.
+    useEffect(() => () => chatVoicePlayer.stop(), []);
+
     const scrollOffset = useSharedValue(0);
     const isNearEnd = useSharedValue(true);
     const activeStickyIndex = useSharedValue(-1);
@@ -95,6 +109,7 @@ export const JsChatView = memo(
 
     const data = useChatData({
       messages,
+      contentTypes: CONTENT_TYPES,
       getActionsForMessage,
       features,
       showBottomLoading:
@@ -220,6 +235,7 @@ export const JsChatView = memo(
     const inputBar = useChatInputBar({
       inputAction,
       messageIndex: data.messageIndex,
+      contentTypes: CONTENT_TYPES,
       props: propsRef,
       scrollControl,
       features,
@@ -238,6 +254,7 @@ export const JsChatView = memo(
       inputBarLayout,
       features,
       styles,
+      contentTypes: CONTENT_TYPES,
       actions: cellActions,
       highlight,
       adaptiveRender,

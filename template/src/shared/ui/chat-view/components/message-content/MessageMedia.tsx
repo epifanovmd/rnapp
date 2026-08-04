@@ -1,16 +1,15 @@
-import React, { FC } from "react";
-import { View } from "react-native";
+import React, { FC, useCallback } from "react";
 
+import { ChatContentEmit, ChatContentInteraction } from "../../content";
 import { IParsedChatMessage } from "../../data";
 import { useChatViewContext } from "../../model";
-import {
-  FileContent,
-  MediaGridContent,
-  PollContent,
-  VoiceContent,
-} from "../content";
 
-/** Медиа-часть сообщения; текст рисуется отдельно, ниже. */
+/**
+ * Медиа-часть сообщения; текст рисуется отдельно, ниже.
+ *
+ * Компонент блока берётся из реестра типов — здесь нет знания о конкретных
+ * типах контента.
+ */
 
 interface IMessageMediaProps {
   message: IParsedChatMessage;
@@ -22,54 +21,47 @@ export const MessageMedia: FC<IMessageMediaProps> = ({
   message,
   innerWidth,
 }) => {
-  const { styles } = useChatViewContext();
-  const media = message.body.media;
+  const { contentTypes, actions } = useChatViewContext();
 
-  if (!media) return null;
+  const messageId = message.id;
 
-  switch (media.type) {
-    case "images":
-      return (
-        <MediaGridContent
-          messageId={message.id}
-          media={media.items}
-          width={innerWidth}
-        />
+  // Пара (type, payload) согласована сигнатурой ChatContentEmit; в объекте
+  // события связь между ними уже не выводится, отсюда приведение.
+  const emit = useCallback<ChatContentEmit>(
+    (type, payload) =>
+      actions.current?.onContentInteraction({
+        messageId,
+        type,
+        payload,
+      } as ChatContentInteraction),
+    [actions, messageId],
+  );
+
+  const block = message.body.media;
+
+  if (!block) return null;
+
+  const contentType = contentTypes.get(block.type);
+
+  if (!contentType) {
+    if (__DEV__) {
+      console.warn(
+        `[chat-view] Тип контента "${block.type}" не зарегистрирован.`,
       );
+    }
 
-    case "voice":
-      return (
-        <VoiceContent
-          key={media.url}
-          url={media.url}
-          duration={media.duration}
-          waveform={media.waveform}
-          ownership={message.ownership}
-        />
-      );
-
-    case "poll":
-      return (
-        <PollContent
-          key={media.poll.id}
-          messageId={message.id}
-          poll={media.poll}
-          ownership={message.ownership}
-        />
-      );
-
-    case "files":
-      return (
-        <View style={styles.shared.fileList}>
-          {media.items.map((file, i) => (
-            <FileContent
-              key={`${file.url}_${i}`}
-              messageId={message.id}
-              file={file}
-              ownership={message.ownership}
-            />
-          ))}
-        </View>
-      );
+    return null;
   }
+
+  const { Component } = contentType;
+
+  return (
+    <Component
+      content={block}
+      messageId={messageId}
+      ownership={message.ownership}
+      innerWidth={innerWidth}
+      emit={emit}
+    />
+  );
 };

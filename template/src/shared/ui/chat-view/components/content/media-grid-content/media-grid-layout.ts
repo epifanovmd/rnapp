@@ -1,5 +1,5 @@
 import { IChatLayout } from "../../../config";
-import { IChatMediaItem } from "../../../data";
+import { IChatMediaItem } from "../../../content";
 
 /** Раскладка сетки вложений: высоты и фреймы ячеек. */
 

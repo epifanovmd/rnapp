@@ -12,6 +12,11 @@ import {
   IChatStyles,
   IChatViewTheme,
 } from "../config";
+import {
+  ChatContentInteraction,
+  ChatContentRegistry,
+  EMPTY_CHAT_CONTENT_REGISTRY,
+} from "../content";
 import { ChatAdaptiveRenderStore } from "./chat-adaptive-render-store";
 import { ChatHighlightStore } from "./chat-highlight-store";
 
@@ -20,7 +25,7 @@ import { ChatHighlightStore } from "./chat-highlight-store";
  * Хранятся в ref, чтобы ячейки оставались мемоизированными.
  */
 export interface IChatCellActions {
-  onTapMessage(messageId: string, attachmentIndex?: number): void;
+  onTapMessage(messageId: string): void;
   onEmojiSelect(emoji: string, messageId: string): void;
   onActionSelect(actionId: string, messageId: string): void;
   onReplyTap(replyToId: string): void;
@@ -28,8 +33,8 @@ export interface IChatCellActions {
   onThreadTap(messageId: string, threadId: string): void;
   onLinkTap(url: string, messageId: string): void;
   onPhoneNumberTap(phoneNumber: string, messageId: string): void;
-  onPollOptionTap(messageId: string, pollId: string, optionId: string): void;
-  onPollDetailTap(messageId: string, pollId: string): void;
+  /** Событие от блока контента — единый канал для всех типов. */
+  onContentInteraction(event: ChatContentInteraction): void;
   onContextMenuWillShow(messageId: string): void;
   onContextMenuDismiss(messageId: string): void;
 }
@@ -56,6 +61,8 @@ export interface IChatViewContextValue {
   features: IChatFeatures;
   /** Готовые стили под текущую пару (тема, лейаут). */
   styles: IChatStyles;
+  /** Реестр типов контента: по нему ячейка выбирает компонент блока. */
+  contentTypes: ChatContentRegistry;
   actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
   adaptiveRender: ChatAdaptiveRenderStore;
@@ -68,6 +75,7 @@ export const ChatViewContext = createContext<IChatViewContextValue>({
   inputBarLayout: INPUT_BAR_DEFAULT_LAYOUT,
   features: CHAT_DEFAULT_FEATURES,
   styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
+  contentTypes: EMPTY_CHAT_CONTENT_REGISTRY,
   actions: { current: null as unknown as IChatCellActions },
   highlight: new ChatHighlightStore(),
   adaptiveRender: new ChatAdaptiveRenderStore(),

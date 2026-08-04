@@ -1,11 +1,11 @@
 import React, { FC, memo, useCallback } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
-import { useChatViewContext } from "../../model";
-import { ChatFileItem, ChatMessageOwnership } from "../../types";
-import { formatFileSize } from "../../utils";
-import { ChatIcon, ChatIconName } from "../ChatIcon";
-import { ChatText } from "../ChatText";
+import { useChatViewContext } from "../../../model";
+import { ChatFileItem, ChatMessageOwnership } from "../../../types";
+import { formatFileSize } from "../../../utils";
+import { ChatIcon, ChatIconName } from "../../ChatIcon";
+import { ChatText } from "../../ChatText";
 
 /**
  * Карточка файла: иконка по расширению, имя с обрезкой посередине и размер.
@@ -34,20 +34,19 @@ const iconForFile = (name: string): ChatIconName => {
 };
 
 interface IFileContentProps {
-  messageId: string;
   file: ChatFileItem;
+  /** Позиция файла в сообщении — уходит в событие тапа. */
+  index: number;
   ownership: ChatMessageOwnership;
+  onPress: (index: number) => void;
 }
 
 export const FileContent: FC<IFileContentProps> = memo(
-  ({ messageId, file, ownership }) => {
-    const { layout, styles, actions } = useChatViewContext();
+  ({ file, index, ownership, onPress }) => {
+    const { layout, styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
-    const handlePress = useCallback(
-      () => actions.current?.onTapMessage(messageId),
-      [actions, messageId],
-    );
+    const handlePress = useCallback(() => onPress(index), [onPress, index]);
 
     return (
       <Pressable style={s.fileCard} onPress={handlePress}>

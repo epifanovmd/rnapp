@@ -1,10 +1,9 @@
+import type { ChatContentBlock, ChatContentRegistry } from "../content";
 import {
   ChatAction,
-  ChatFileItem,
   ChatMessage,
   ChatMessageOwnership,
   ChatMessageStatus,
-  ChatPoll,
   ChatReplyRef,
   ChatSenderNameMode,
   ChatThreadInfo,
@@ -24,24 +23,10 @@ import {
  * значения и не вычисляют ничего в рендере.
  */
 
-export interface IChatMediaItem {
-  isVideo: boolean;
-  url: string;
-  thumbnailUrl?: string;
-  width?: number;
-  height?: number;
-  duration?: number;
-}
-
-export type ChatMediaContent =
-  | { type: "images"; items: IChatMediaItem[] }
-  | { type: "voice"; url: string; duration: number; waveform: number[] }
-  | { type: "poll"; poll: ChatPoll }
-  | { type: "files"; items: ChatFileItem[] };
-
 export interface IChatMessageBody {
   text?: string;
-  media?: ChatMediaContent;
+  /** Блок контента, распознанный реестром типов. */
+  media?: ChatContentBlock;
   /** Текст, разбитый на сегменты со ссылками. Пусто — ссылок нет. */
   textSegments?: IChatTextSegment[];
   /** Число эмодзи, если сообщение состоит только из 1–3 эмодзи. */
@@ -55,7 +40,8 @@ export interface IChatMessageBody {
 export interface IResolvedReply {
   senderName: string;
   text: string;
-  hasImage: boolean;
+  /** Описание вложения от дескриптора — показывается, когда текста нет. */
+  preview?: string;
 }
 
 export interface IParsedChatMessage {
@@ -89,58 +75,17 @@ const OWNERSHIPS: ChatMessageOwnership[] = [
 ];
 const STATUSES: ChatMessageStatus[] = ["sending", "sent", "delivered", "read"];
 
-/** Медиа сообщения. Приоритет типов как в parseContent: poll > files > voice > images. */
-const parseMedia = (msg: ChatMessage): ChatMediaContent | undefined => {
-  if (msg.poll) return { type: "poll", poll: msg.poll };
-
-  const files = msg.files ?? (msg.file ? [msg.file] : undefined);
-
-  if (files && files.length > 0) return { type: "files", items: files };
-
-  if (msg.voice) {
-    return {
-      type: "voice",
-      url: msg.voice.url,
-      duration: msg.voice.duration ?? 0,
-      waveform: msg.voice.waveform ?? [],
-    };
-  }
-
-  const items: IChatMediaItem[] = [];
-
-  for (const img of msg.images ?? []) {
-    items.push({
-      isVideo: false,
-      url: img.url,
-      thumbnailUrl: img.thumbnailUrl ?? img.url,
-      width: img.width,
-      height: img.height,
-    });
-  }
-  if (msg.video) {
-    items.push({
-      isVideo: true,
-      url: msg.video.url,
-      thumbnailUrl: msg.video.thumbnailUrl,
-      width: msg.video.width,
-      height: msg.video.height,
-      duration: msg.video.duration,
-    });
-  }
-
-  return items.length > 0 ? { type: "images", items } : undefined;
-};
-
 /**
  * Разбор одного сообщения. `actions` приходят отдельным аргументом,
  * чтобы сохранить идентичность `msg` для кеша разбора.
  */
 export const parseChatMessage = (
   msg: ChatMessage,
+  contentTypes: ChatContentRegistry,
   actions?: ChatAction[],
 ): IParsedChatMessage => {
   const text = msg.text && msg.text.length > 0 ? msg.text : undefined;
-  const media = parseMedia(msg);
+  const media = contentTypes.parse(msg);
 
   const ownership = OWNERSHIPS.includes(msg.ownership as ChatMessageOwnership)
     ? (msg.ownership as ChatMessageOwnership)

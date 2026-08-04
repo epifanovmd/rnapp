@@ -3,6 +3,7 @@ import { SharedValue, withTiming } from "react-native-reanimated";
 
 import { IInputBarViewDelegate, InputBarMode } from "../../input-bar";
 import { IChatFeatures } from "../config";
+import { ChatContentRegistry } from "../content";
 import { IParsedChatMessage } from "../data";
 import { chatVoicePlayer } from "../services";
 import { ChatInputAction, ChatViewProps } from "../types";
@@ -14,6 +15,7 @@ const FAB_EXPAND_MS = 250;
 export interface IChatInputBarOptions {
   inputAction: ChatInputAction | null | undefined;
   messageIndex: Map<string, IParsedChatMessage>;
+  contentTypes: ChatContentRegistry;
   props: RefObject<ChatViewProps>;
   scrollControl: IChatScrollControl;
   features: IChatFeatures;
@@ -35,6 +37,7 @@ export interface IChatInputBar {
 const resolveInputMode = (
   action: ChatInputAction | null | undefined,
   messageIndex: Map<string, IParsedChatMessage>,
+  contentTypes: ChatContentRegistry,
 ): InputBarMode => {
   if (!action || action.type === "none" || !action.messageId) {
     return { type: "normal" };
@@ -45,12 +48,14 @@ const resolveInputMode = (
   if (!message) return { type: "normal" };
 
   if (action.type === "reply") {
+    const media = message.body.media;
+
     return {
       type: "reply",
       messageId: action.messageId,
       senderName: message.senderName,
       text: message.body.text,
-      hasImage: message.body.media != null,
+      preview: media && contentTypes.get(media.type)?.preview?.(media),
     };
   }
 
@@ -68,6 +73,7 @@ const resolveInputMode = (
 export const useChatInputBar = ({
   inputAction,
   messageIndex,
+  contentTypes,
   props,
   scrollControl,
   features,
@@ -78,8 +84,8 @@ export const useChatInputBar = ({
   const lastTypingAtRef = useRef(0);
 
   const mode = useMemo(
-    () => resolveInputMode(inputAction, messageIndex),
-    [inputAction, messageIndex],
+    () => resolveInputMode(inputAction, messageIndex, contentTypes),
+    [inputAction, messageIndex, contentTypes],
   );
 
   const delegate = useMemo<IInputBarViewDelegate>(

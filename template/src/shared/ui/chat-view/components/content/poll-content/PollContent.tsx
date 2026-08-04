@@ -1,8 +1,9 @@
 import React, { FC, memo, useCallback } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { IChatContentProps, IChatPollContent } from "../../../content";
 import { useChatViewContext } from "../../../model";
-import { ChatMessageOwnership, ChatPoll } from "../../../types";
+import { ChatPoll } from "../../../types";
 import { ChatText } from "../../ChatText";
 import { PollOptionRow } from "./PollOptionRow";
 
@@ -26,28 +27,23 @@ const pollSubtitle = (poll: ChatPoll): string => {
   return parts.join(" · ");
 };
 
-interface IPollContentProps {
-  messageId: string;
-  poll: ChatPoll;
-  ownership: ChatMessageOwnership;
-}
-
-export const PollContent: FC<IPollContentProps> = memo(
-  ({ messageId, poll, ownership }) => {
-    const { layout, styles, actions } = useChatViewContext();
+export const PollContent: FC<IChatContentProps<IChatPollContent>> = memo(
+  ({ content, ownership, emit }) => {
+    const { layout, styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
+    const poll = content.poll;
     const selectedIds = poll.selectedOptionIds;
 
     const handleOptionPress = useCallback(
       (optionId: string) =>
-        actions.current?.onPollOptionTap(messageId, poll.id, optionId),
-      [actions, messageId, poll.id],
+        emit("builtin.poll.option.tap", { pollId: poll.id, optionId }),
+      [emit, poll.id],
     );
 
     const handleDetailPress = useCallback(
-      () => actions.current?.onPollDetailTap(messageId, poll.id),
-      [actions, messageId, poll.id],
+      () => emit("builtin.poll.detail.tap", { pollId: poll.id }),
+      [emit, poll.id],
     );
 
     return (

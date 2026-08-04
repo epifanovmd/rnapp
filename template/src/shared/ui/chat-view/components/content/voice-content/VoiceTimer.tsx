@@ -9,20 +9,21 @@ import { ChatText } from "../../ChatText";
 /** Таймер трека: перерисовывается раз в секунду, а не на каждый тик прогресса. */
 
 interface IVoiceTimerProps {
-  url: string;
+  /** Идентификатор сообщения — им плеер опознаёт свой трек. */
+  messageId: string;
   duration: number;
   ownership: ChatMessageOwnership;
 }
 
 export const VoiceTimer: FC<IVoiceTimerProps> = memo(
-  ({ url, duration, ownership }) => {
+  ({ messageId, duration, ownership }) => {
     const { styles } = useChatViewContext();
 
     const seconds = useSyncExternalStore(
       chatVoicePlayer.subscribe,
       useCallback(
-        () => chatVoicePlayer.getDisplayTime(url, duration),
-        [url, duration],
+        () => chatVoicePlayer.getDisplayTime(messageId, duration),
+        [messageId, duration],
       ),
     );
 

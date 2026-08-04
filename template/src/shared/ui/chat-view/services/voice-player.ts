@@ -9,17 +9,36 @@
  * Наружу состояние отдаётся **по одному треку и примитивами** (`getStatus`,
  * `getProgress`, `getDisplayTime`): подписка на весь снимок перерисовывала бы
  * каждое голосовое сообщение на экране на каждый тик прогресса.
+ *
+ * Играющий трек опознаётся по `trackId` (идентификатору сообщения), а не по
+ * ссылке на файл: одна и та же запись может быть в нескольких сообщениях —
+ * например переслана, — и по ссылке они неотличимы.
  */
 
 export type ChatVoiceStatus =
   "idle" | "loading" | "playing" | "paused" | "failed";
 
+interface IChatVoiceTrack {
+  /** Идентификатор сообщения, к которому относится запись. */
+  trackId: string;
+  /** Ссылка на файл — нужна только бэкенду. */
+  url: string;
+}
+
 export type ChatVoicePlayerState =
   | { type: "idle" }
-  | { type: "loading"; url: string }
-  | { type: "failed"; url: string }
-  | { type: "playing"; url: string; progress: number; currentTime: number }
-  | { type: "paused"; url: string; progress: number; currentTime: number };
+  | ({ type: "loading" } & IChatVoiceTrack)
+  | ({ type: "failed" } & IChatVoiceTrack)
+  | ({
+      type: "playing";
+      progress: number;
+      currentTime: number;
+    } & IChatVoiceTrack)
+  | ({
+      type: "paused";
+      progress: number;
+      currentTime: number;
+    } & IChatVoiceTrack);
 
 export type ChatVoicePlayerObserver = (state: ChatVoicePlayerState) => void;
 
@@ -93,10 +112,13 @@ class ChatVoicePlayer {
     const simulated = new SimulatedVoicePlayerBackend();
 
     simulated.onProgress = (progress, currentTime) => {
-      if (this._state.type !== "playing") return;
+      const s = this._state;
+
+      if (s.type !== "playing") return;
       this._setState({
         type: "playing",
-        url: this._state.url,
+        trackId: s.trackId,
+        url: s.url,
         progress,
         currentTime,
       });
@@ -123,17 +145,18 @@ class ChatVoicePlayer {
   };
 
   /** Статус конкретного трека. Для всех, кроме активного, всегда `idle`. */
-  getStatus(url: string): ChatVoiceStatus {
+  getStatus(trackId: string): ChatVoiceStatus {
     const s = this._state;
 
-    return s.type !== "idle" && s.url === url ? s.type : "idle";
+    return s.type !== "idle" && s.trackId === trackId ? s.type : "idle";
   }
 
   /** Прогресс трека 0..1 (0 для неактивного). */
-  getProgress(url: string): number {
+  getProgress(trackId: string): number {
     const s = this._state;
 
-    return (s.type === "playing" || s.type === "paused") && s.url === url
+    return (s.type === "playing" || s.type === "paused") &&
+      s.trackId === trackId
       ? s.progress
       : 0;
   }
@@ -143,24 +166,26 @@ class ChatVoicePlayer {
    * полная длительность. Округление до секунды намеренное: подписчик
    * перерисовывается раз в секунду, а не на каждый тик прогресса.
    */
-  getDisplayTime(url: string, fallbackDuration: number): number {
+  getDisplayTime(trackId: string, fallbackDuration: number): number {
     const s = this._state;
 
-    return (s.type === "playing" || s.type === "paused") && s.url === url
+    return (s.type === "playing" || s.type === "paused") &&
+      s.trackId === trackId
       ? Math.floor(s.currentTime)
       : Math.floor(fallbackDuration);
   }
 
   /** Play/pause по тапу; на неудачно загруженном треке — повторная попытка. */
-  toggle(url: string, duration: number) {
+  toggle(trackId: string, url: string, duration: number) {
     const s = this._state;
 
-    if (s.type !== "idle" && s.url === url) {
+    if (s.type !== "idle" && s.trackId === trackId) {
       if (s.type === "playing") return this._pause();
       if (s.type === "paused") {
         this._backend.play(url, s.progress);
         this._setState({
           type: "playing",
+          trackId,
           url,
           progress: s.progress,
           currentTime: s.currentTime,
@@ -171,7 +196,7 @@ class ChatVoicePlayer {
       if (s.type === "loading") return;
     }
 
-    this._play(url, duration);
+    this._play(trackId, url, duration);
   }
 
   stop() {
@@ -189,44 +214,54 @@ class ChatVoicePlayer {
     if (s.type !== "playing" && s.type !== "paused") return;
 
     const duration = this._durations.get(s.url) ?? 0;
+    const next = { trackId: s.trackId, url: s.url, progress };
 
     this._backend.seek(progress);
-    this._setState({
-      type: s.type,
-      url: s.url,
-      progress,
-      currentTime: progress * duration,
-    });
+    this._setState(
+      s.type === "playing"
+        ? { type: "playing", ...next, currentTime: progress * duration }
+        : { type: "paused", ...next, currentTime: progress * duration },
+    );
   }
 
-  private _play(url: string, duration: number) {
+  private _play(trackId: string, url: string, duration: number) {
     this._backend.stop();
-    this._setState({ type: "loading", url });
+    this._setState({ type: "loading", trackId, url });
+
+    const isStillLoading = () =>
+      this._state.type === "loading" && this._state.trackId === trackId;
 
     this._backend
       .load(url, duration)
       .then(realDuration => {
-        if (this._state.type !== "loading" || this._state.url !== url) return;
+        if (!isStillLoading()) return;
         this._durations.set(url, realDuration);
         this._backend.play(url, 0);
-        this._setState({ type: "playing", url, progress: 0, currentTime: 0 });
+        this._setState({
+          type: "playing",
+          trackId,
+          url,
+          progress: 0,
+          currentTime: 0,
+        });
       })
       .catch(() => {
-        if (this._state.type === "loading" && this._state.url === url) {
-          this._setState({ type: "failed", url });
-        }
+        if (isStillLoading()) this._setState({ type: "failed", trackId, url });
       });
   }
 
   private _pause() {
-    if (this._state.type !== "playing") return;
+    const s = this._state;
+
+    if (s.type !== "playing") return;
 
     this._backend.pause();
     this._setState({
       type: "paused",
-      url: this._state.url,
-      progress: this._state.progress,
-      currentTime: this._state.currentTime,
+      trackId: s.trackId,
+      url: s.url,
+      progress: s.progress,
+      currentTime: s.currentTime,
     });
   }
 

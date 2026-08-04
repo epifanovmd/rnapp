@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 
 import { IChatFeatures } from "../config";
+import { ChatContentRegistry } from "../content";
 import {
   buildChatData,
   ChatMessageParser,
@@ -11,6 +12,8 @@ import { ChatAction, ChatMessage } from "../types";
 
 export interface IChatDataOptions {
   messages: ChatMessage[];
+  /** Реестр типов контента. Фиксируется при первом разборе и дальше неизменен. */
+  contentTypes: ChatContentRegistry;
   getActionsForMessage?: (message: ChatMessage) => ChatAction[];
   features: IChatFeatures;
   showBottomLoading: boolean;
@@ -24,6 +27,7 @@ export interface IChatDataOptions {
  */
 export const useChatData = ({
   messages,
+  contentTypes,
   getActionsForMessage,
   features,
   showBottomLoading,
@@ -35,8 +39,8 @@ export const useChatData = ({
   } | null>(null);
 
   toolsRef.current ??= {
-    parser: new ChatMessageParser(),
-    builder: new ChatRowsBuilder(),
+    parser: new ChatMessageParser(contentTypes),
+    builder: new ChatRowsBuilder(contentTypes),
   };
 
   const { parser, builder } = toolsRef.current;

@@ -2,7 +2,7 @@ import React, { FC, memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import FastImage from "react-native-fast-image";
 
-import { IChatMediaItem } from "../../../data";
+import { IChatMediaItem } from "../../../content";
 import { useChatAdaptiveRender } from "../../../hooks";
 import { useChatViewContext } from "../../../model";
 import { formatChatDuration } from "../../../utils";

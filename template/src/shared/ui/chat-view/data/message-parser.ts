@@ -1,3 +1,4 @@
+import type { ChatContentRegistry } from "../content";
 import { ChatAction, ChatMessage } from "../types";
 import { IParsedChatMessage, parseChatMessage } from "./chat-message";
 
@@ -16,6 +17,11 @@ import { IParsedChatMessage, parseChatMessage } from "./chat-message";
 export class ChatMessageParser {
   private _cache = new Map<ChatMessage, IParsedChatMessage>();
   private _getActions: ((message: ChatMessage) => ChatAction[]) | undefined;
+  private readonly _contentTypes: ChatContentRegistry;
+
+  constructor(contentTypes: ChatContentRegistry) {
+    this._contentTypes = contentTypes;
+  }
 
   /** Разобрать список и отсортировать по времени. */
   parse(
@@ -38,7 +44,11 @@ export class ChatMessageParser {
       const message = messages[i];
       const parsed =
         this._cache.get(message) ??
-        parseChatMessage(message, getActionsForMessage?.(message));
+        parseChatMessage(
+          message,
+          this._contentTypes,
+          getActionsForMessage?.(message),
+        );
 
       next.set(message, parsed);
       result[i] = parsed;

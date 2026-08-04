@@ -10,7 +10,9 @@ export type InputBarMode =
       messageId: string;
       senderName?: string;
       text?: string;
-      hasImage: boolean;
+      /** Описание вложения: показывается вместо текста, когда текста нет. */
+      preview?: string;
+      hasImage?: boolean;
     }
   | { type: "edit"; messageId: string; text: string };
 

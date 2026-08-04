@@ -1,4 +1,5 @@
 import { CHAT_DEFAULT_FEATURES, IChatFeatures } from "../config";
+import { EMPTY_CHAT_CONTENT_REGISTRY } from "../content";
 import { IParsedChatMessage } from "./chat-message";
 import { ChatRow, ChatRowsBuilder } from "./chat-rows";
 
@@ -69,7 +70,7 @@ export const buildChatData = (
 
 /** Пустой снимок для инициализации ссылки на данные до первого расчёта. */
 export const EMPTY_CHAT_DATA: IChatData = buildChatData(
-  new ChatRowsBuilder(),
+  new ChatRowsBuilder(EMPTY_CHAT_CONTENT_REGISTRY),
   [],
   {
     features: CHAT_DEFAULT_FEATURES,

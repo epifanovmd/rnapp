@@ -33,7 +33,7 @@ export function useReplyPanelAnimation(mode: InputBarMode) {
   if (mode.type === "reply") {
     lastContent.current = {
       sender: mode.senderName ?? "Сообщение",
-      text: mode.text ?? (mode.hasImage ? "📷 Photo" : "…"),
+      text: mode.text ?? mode.preview ?? (mode.hasImage ? "📷 Фото" : "…"),
       isEdit: false,
     };
   } else if (mode.type === "edit") {

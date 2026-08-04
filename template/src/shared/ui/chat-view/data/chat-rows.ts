@@ -1,4 +1,5 @@
 import { IChatFeatures } from "../config";
+import type { ChatContentRegistry } from "../content";
 import {
   IParsedChatMessage,
   IResolvedReply,
@@ -57,9 +58,20 @@ const messageRowKey = (message: IParsedChatMessage): string =>
  * поддерево пузыря. Дробить мельче смысла нет: чем больше типов, тем чаще
  * список не находит свободный контейнер нужного и берёт чужой.
  */
-const messageItemType = (message: IParsedChatMessage): string => {
+const messageItemType = (
+  message: IParsedChatMessage,
+  contentTypes: ChatContentRegistry,
+): string => {
   const { media, emojiCount } = message.body;
-  const content = media ? media.type : emojiCount != null ? "emoji" : "text";
+  let content: string;
+
+  if (media) {
+    const contentType = contentTypes.get(media.type);
+
+    content = contentType?.recycleKey?.(media) ?? media.type;
+  } else {
+    content = emojiCount != null ? "emoji" : "text";
+  }
 
   return `m:${message.ownership}:${content}`;
 };
@@ -117,6 +129,7 @@ export interface IBuildChatRowsResult {
 }
 
 export class ChatRowsBuilder {
+  private readonly _contentTypes: ChatContentRegistry;
   private _messageRows = new Map<string, IMessageRowCacheEntry>();
   private _separatorRows = new Map<string, ChatRow>();
   private _featuresKey: string | null = null;
@@ -127,6 +140,10 @@ export class ChatRowsBuilder {
     key: "l_bottom",
     itemType: "loading",
   };
+
+  constructor(contentTypes: ChatContentRegistry) {
+    this._contentTypes = contentTypes;
+  }
 
   build({
     messages,
@@ -233,12 +250,12 @@ export class ChatRowsBuilder {
     const row: ChatRow = {
       type: "message",
       key,
-      itemType: messageItemType(message),
+      itemType: messageItemType(message, this._contentTypes),
       message,
       resolvedReply: replySource && {
         senderName: replySource.senderName ?? "Неизвестный",
         text: replySource.body.text ?? "",
-        hasImage: replySource.body.media != null,
+        preview: this._contentPreview(replySource),
       },
       showSenderName,
       showAvatar,
@@ -248,6 +265,15 @@ export class ChatRowsBuilder {
     into.set(key, { message, replySource, row });
 
     return row;
+  }
+
+  /** Описание вложения сообщения от дескриптора его типа. */
+  private _contentPreview(message: IParsedChatMessage): string | undefined {
+    const media = message.body.media;
+
+    if (!media) return undefined;
+
+    return this._contentTypes.get(media.type)?.preview?.(media);
   }
 
   private _separatorRow(

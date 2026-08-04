@@ -31,11 +31,16 @@ export const PollOptionRow: FC<IPollOptionRowProps> = memo(
 
     const percentage = Math.max(0.02, option.percentage);
     const fill = useSharedValue(percentage);
-    const isFirstRender = useRef(true);
+    const shownOptionIdRef = useRef<string | undefined>(undefined);
 
+    // Прыжком показываются первый рендер и вариант чужого опроса, попавший
+    // в переиспользованную ячейку; анимируется только обновление своего.
     useEffect(() => {
-      if (isFirstRender.current) {
-        isFirstRender.current = false;
+      const isSameOption = shownOptionIdRef.current === option.id;
+
+      shownOptionIdRef.current = option.id;
+
+      if (!isSameOption) {
         fill.value = percentage;
 
         return;
@@ -44,7 +49,7 @@ export const PollOptionRow: FC<IPollOptionRowProps> = memo(
         duration: 600,
         dampingRatio: 0.85,
       });
-    }, [percentage, fill]);
+    }, [option.id, percentage, fill]);
 
     const fillStyle = useAnimatedStyle(() => ({
       width: `${fill.value * 100}%`,

@@ -3,6 +3,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -17,9 +18,9 @@ import {
 } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
 
+import { IChatContentProps, IChatVoiceContent } from "../../../content";
 import { useChatViewContext } from "../../../model";
 import { chatVoicePlayer } from "../../../services";
-import { ChatMessageOwnership } from "../../../types";
 import { withOpacity } from "../../../utils";
 import { ChatIcon } from "../../ChatIcon";
 import { LoadingRing } from "../../LoadingRing";
@@ -35,21 +36,16 @@ import { normalizeWaveform, resampleWaveform } from "./waveform-math";
  * таймер округлён до секунды. Это исключает лишние ре-рендеры при воспроизведении.
  */
 
-interface IVoiceContentProps {
-  url: string;
-  duration: number;
-  waveform: number[];
-  ownership: ChatMessageOwnership;
-}
-
-export const VoiceContent: FC<IVoiceContentProps> = memo(
-  ({ url, duration, waveform, ownership }) => {
+export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
+  ({ content, messageId, ownership }) => {
     const { theme, layout, styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
+    const { url, duration, waveform } = content;
+
     const status = useSyncExternalStore(
       chatVoicePlayer.subscribe,
-      useCallback(() => chatVoicePlayer.getStatus(url), [url]),
+      useCallback(() => chatVoicePlayer.getStatus(messageId), [messageId]),
     );
 
     const isLoading = status === "loading";
@@ -64,14 +60,23 @@ export const VoiceContent: FC<IVoiceContentProps> = memo(
 
     waveWidthRef.current = waveWidth;
 
+    // Ячейка переиспользована под другую запись: состояние плеера сбрасывается
+    // на месте, без пересоздания поддерева. Layout-эффект, а не рендер: писать
+    // в shared value во время рендера нельзя, а до отрисовки кадра — можно,
+    // поэтому чужой прогресс не успевает мелькнуть.
+    useLayoutEffect(() => {
+      progress.value = chatVoicePlayer.getProgress(messageId);
+      isSeekingRef.current = false;
+    }, [messageId, progress]);
+
     // Прогресс плеера едет в shared value: React о нём не знает.
     useEffect(
       () =>
         chatVoicePlayer.subscribe(() => {
           if (isSeekingRef.current) return;
-          progress.value = chatVoicePlayer.getProgress(url);
+          progress.value = chatVoicePlayer.getProgress(messageId);
         }),
-      [url, progress],
+      [messageId, progress],
     );
 
     const btnSize = layout.voicePlaySize;
@@ -94,8 +99,8 @@ export const VoiceContent: FC<IVoiceContentProps> = memo(
     );
 
     const handlePlayTap = useCallback(
-      () => chatVoicePlayer.toggle(url, duration),
-      [url, duration],
+      () => chatVoicePlayer.toggle(messageId, url, duration),
+      [messageId, url, duration],
     );
 
     const updateSeek = useCallback(
@@ -202,7 +207,11 @@ export const VoiceContent: FC<IVoiceContentProps> = memo(
               />
             </View>
           </GestureDetector>
-          <VoiceTimer url={url} duration={duration} ownership={ownership} />
+          <VoiceTimer
+            messageId={messageId}
+            duration={duration}
+            ownership={ownership}
+          />
         </View>
       </View>
     );

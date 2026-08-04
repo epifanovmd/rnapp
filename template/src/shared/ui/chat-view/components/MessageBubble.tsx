@@ -1,6 +1,7 @@
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { Pressable, StyleSheet, View, ViewStyle } from "react-native";
 
+import { resolveContentMinWidth } from "../content";
 import { IParsedChatMessage, IResolvedReply } from "../data";
 import { useChatViewContext } from "../model";
 import { ChatText } from "./ChatText";
@@ -27,7 +28,8 @@ interface IMessageBubbleProps {
 
 export const MessageBubble: FC<IMessageBubbleProps> = memo(
   ({ message, resolvedReply, showSenderName, bubbleless, maxBubbleWidth }) => {
-    const { layout, features, styles, actions } = useChatViewContext();
+    const { layout, features, styles, contentTypes, actions } =
+      useChatViewContext();
 
     const s = styles.byOwnership[message.ownership];
     const body = message.body;
@@ -42,21 +44,15 @@ export const MessageBubble: FC<IMessageBubbleProps> = memo(
       : 0;
     const innerWidth = maxBubbleWidth - layout.bubbleHPad * 2 - forwardedInset;
 
-    // Голосовое сжимает пузырь по своему контенту,
-    // остальные медиа занимают всю доступную ширину.
+    // Ширину под себя объявляет дескриптор типа; пузырь типов не знает.
     const minWidth = useMemo(() => {
       if (!media) return layout.bubbleMinWidth;
-      if (media.type !== "voice") return maxBubbleWidth;
 
-      return Math.min(
-        layout.voicePlaySize +
-          layout.voiceContentSpacing +
-          layout.voiceWaveformWidth +
-          layout.voiceWaveformTrailingInset +
-          layout.bubbleHPad * 2,
-        maxBubbleWidth,
-      );
-    }, [media, layout, maxBubbleWidth]);
+      return resolveContentMinWidth(contentTypes.get(media.type)?.sizing, {
+        layout,
+        maxWidth: maxBubbleWidth,
+      });
+    }, [media, contentTypes, layout, maxBubbleWidth]);
 
     const bubbleStyle = useMemo<ViewStyle>(
       () =>

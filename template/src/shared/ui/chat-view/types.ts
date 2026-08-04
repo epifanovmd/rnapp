@@ -1,6 +1,9 @@
 import React from "react";
 import { HostComponent, ViewProps, ViewStyle } from "react-native";
 
+// Прямо из модуля, а не из бочки `./content`: там же лежит реестр, и слою
+// типов незачем тянуть его за собой.
+import type { ChatContentInteraction } from "./content/content-interaction";
 import type {
   NativeChatAction,
   NativeChatActionPressEventData,
@@ -232,6 +235,14 @@ export interface ChatViewProps extends ViewProps {
   onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
   onPollOptionPress?: (event: ChatPollOptionPressEventData) => void;
   onPollDetailPress?: (event: ChatPollDetailPressEventData) => void;
+  /**
+   * Взаимодействие с блоком контента (JS-реализация).
+   *
+   * Сюда приходят события всех типов, включая добавленные приложением.
+   * Встроенные типы дополнительно продолжают вызывать свои коллбэки выше —
+   * их же шлёт нативная реализация.
+   */
+  onContentInteraction?: (event: ChatContentInteraction) => void;
   onVoiceRecordingComplete?: (
     event: ChatVoiceRecordingCompleteEventData,
   ) => void;

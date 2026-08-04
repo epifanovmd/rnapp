@@ -6,6 +6,7 @@ import {
   IInputBarLayout,
   INPUT_BAR_DEFAULT_FEATURES,
 } from "../../input-bar";
+import { ChatContentRegistry } from "../content";
 import {
   ChatAdaptiveRenderStore,
   ChatHighlightStore,
@@ -16,6 +17,7 @@ import {
 import { IChatConfig } from "./useChatConfig";
 
 export interface IChatViewContextOptions extends IChatConfig {
+  contentTypes: ChatContentRegistry;
   actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
   adaptiveRender: ChatAdaptiveRenderStore;
@@ -29,6 +31,7 @@ export const useChatViewContextValue = ({
   inputBarLayout,
   features,
   styles,
+  contentTypes,
   actions,
   highlight,
   adaptiveRender,
@@ -41,6 +44,7 @@ export const useChatViewContextValue = ({
       inputBarLayout,
       features,
       styles,
+      contentTypes,
       actions,
       highlight,
       adaptiveRender,
@@ -52,6 +56,7 @@ export const useChatViewContextValue = ({
       inputBarLayout,
       features,
       styles,
+      contentTypes,
       actions,
       highlight,
       adaptiveRender,

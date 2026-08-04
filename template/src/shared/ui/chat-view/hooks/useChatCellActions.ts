@@ -1,9 +1,52 @@
 import { RefObject, useMemo, useRef } from "react";
 import { Keyboard } from "react-native";
 
+import { ChatContentInteraction } from "../content";
 import { IChatCellActions } from "../model";
 import { ChatViewProps } from "../types";
 import { IChatScrollControl } from "./useChatScrollControl";
+
+/**
+ * Мост встроенных событий контента к типизированным пропсам чата.
+ *
+ * Существует только ради совместимости: те же события нативная реализация
+ * шлёт своими коллбэками, и хост обрабатывает оба пути одинаково. Типам,
+ * добавленным приложением, мост не нужен — их события хост получает целиком
+ * в `onContentInteraction`.
+ */
+const bridgeBuiltinInteraction = (
+  event: ChatContentInteraction,
+  props: ChatViewProps,
+): void => {
+  const messageId = event.messageId;
+
+  switch (event.type) {
+    case "builtin.media.tap":
+      Keyboard.dismiss();
+      props.onMessagePress?.({
+        messageId,
+        attachmentIndex: event.payload.index,
+      });
+      break;
+
+    case "builtin.file.tap":
+      Keyboard.dismiss();
+      props.onMessagePress?.({ messageId });
+      break;
+
+    case "builtin.poll.option.tap":
+      props.onPollOptionPress?.({
+        messageId,
+        pollId: event.payload.pollId,
+        optionId: event.payload.optionId,
+      });
+      break;
+
+    case "builtin.poll.detail.tap":
+      props.onPollDetailPress?.({ messageId, pollId: event.payload.pollId });
+      break;
+  }
+};
 
 export interface IChatCellActionsOptions {
   props: RefObject<ChatViewProps>;
@@ -29,13 +72,14 @@ export const useChatCellActions = ({
 }: IChatCellActionsOptions): RefObject<IChatCellActions> => {
   const actions = useMemo<IChatCellActions>(
     () => ({
-      onTapMessage: (messageId, attachmentIndex) => {
+      onTapMessage: messageId => {
         Keyboard.dismiss();
-        props.current.onMessagePress?.(
-          attachmentIndex != null
-            ? { messageId, attachmentIndex }
-            : { messageId },
-        );
+        props.current.onMessagePress?.({ messageId });
+      },
+
+      onContentInteraction: event => {
+        bridgeBuiltinInteraction(event, props.current);
+        props.current.onContentInteraction?.(event);
       },
 
       onEmojiSelect: (emoji, messageId) => {
@@ -64,11 +108,6 @@ export const useChatCellActions = ({
         props.current.onLinkTap?.({ url, messageId }),
       onPhoneNumberTap: (phoneNumber, messageId) =>
         props.current.onPhoneNumberTap?.({ phoneNumber, messageId }),
-      onPollOptionTap: (messageId, pollId, optionId) =>
-        props.current.onPollOptionPress?.({ messageId, pollId, optionId }),
-      onPollDetailTap: (messageId, pollId) =>
-        props.current.onPollDetailPress?.({ messageId, pollId }),
-
       onContextMenuWillShow: () => freezeKeyboard(),
       onContextMenuDismiss: () => restoreKeyboard(),
     }),

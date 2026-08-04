@@ -8,7 +8,7 @@ import { ChatText } from "./ChatText";
 
 /**
  * Превью цитаты: акцентная полоска, имя автора и текст оригинала (или
- * «📷 Photo» для вложений).
+ * описание вложения от дескриптора его типа).
  */
 
 interface IReplyPreviewProps {
@@ -28,8 +28,11 @@ export const ReplyPreview: FC<IReplyPreviewProps> = memo(
 
     if (text && text.length > 0) {
       content = text;
-    } else if (reply.hasImages || resolved?.hasImage) {
-      content = "📷 Photo";
+    } else if (resolved?.preview) {
+      content = resolved.preview;
+    } else if (reply.hasImages) {
+      // Оригинал вне загруженного окна — остаётся только флаг из ссылки.
+      content = "📷 Фото";
     } else {
       content = "…";
     }

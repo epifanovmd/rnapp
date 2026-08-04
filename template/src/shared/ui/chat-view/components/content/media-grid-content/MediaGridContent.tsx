@@ -1,7 +1,7 @@
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { View } from "react-native";
 
-import { IChatMediaItem } from "../../../data";
+import { IChatContentProps, IChatImagesContent } from "../../../content";
 import { useChatViewContext } from "../../../model";
 import {
   MEDIA_GRID_MAX_VISIBLE,
@@ -15,16 +15,11 @@ import { MediaGridCell } from "./MediaGridCell";
  * ячейке.
  */
 
-interface IMediaGridContentProps {
-  messageId: string;
-  media: IChatMediaItem[];
-  width: number;
-}
+export const MediaGridContent: FC<IChatContentProps<IChatImagesContent>> = memo(
+  ({ content, innerWidth: width, emit }) => {
+    const { layout, styles } = useChatViewContext();
 
-export const MediaGridContent: FC<IMediaGridContentProps> = memo(
-  ({ messageId, media, width }) => {
-    const { layout, styles, actions } = useChatViewContext();
-
+    const media = content.items;
     const count = media.length;
     const visibleCount = Math.min(count, MEDIA_GRID_MAX_VISIBLE);
     const totalHeight = mediaGridHeight(media, width, layout);
@@ -46,8 +41,8 @@ export const MediaGridContent: FC<IMediaGridContentProps> = memo(
     );
 
     const handlePress = useCallback(
-      (index: number) => actions.current?.onTapMessage(messageId, index),
-      [actions, messageId],
+      (index: number) => emit("builtin.media.tap", { index }),
+      [emit],
     );
 
     if (count === 0) return null;

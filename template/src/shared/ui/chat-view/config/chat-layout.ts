@@ -310,6 +310,6 @@ export const CHAT_DEFAULT_LAYOUT: IChatLayout = {
 
   scrollThrottleInterval: 1 / 30,
 
-  estimatedRowHeight: 56,
-  drawDistance: 600,
+  estimatedRowHeight: 110,
+  drawDistance: 300,
 };
