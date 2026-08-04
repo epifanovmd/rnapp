@@ -10,6 +10,7 @@ export * from "./chip";
 export * from "./collapsable";
 export * from "./context-menu-view";
 export * from "./dialog";
+export * from "./disintegrate";
 export * from "./field";
 export * from "./flex-view";
 export * from "./image";

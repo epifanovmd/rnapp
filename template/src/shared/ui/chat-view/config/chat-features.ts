@@ -39,6 +39,10 @@ export interface IChatFeatures {
   /** Расстояние от низа в пикселях, ниже которого чат считается «внизу». */
   scrollToBottomThreshold: number;
   autoScrollOnNewMessage: boolean;
+  /** Анимировать исчезновение удалённого сообщения (только JS-реализация). */
+  animateMessageRemoval: boolean;
+  /** Рассыпать удаляемое сообщение на частицы. */
+  disintegrationEnabled: boolean;
 }
 
 export const CHAT_DEFAULT_FEATURES: IChatFeatures = {
@@ -71,6 +75,8 @@ export const CHAT_DEFAULT_FEATURES: IChatFeatures = {
   bottomLoadThreshold: 200,
   scrollToBottomThreshold: 150,
   autoScrollOnNewMessage: true,
+  animateMessageRemoval: true,
+  disintegrationEnabled: false,
 };
 
 /** Отбрасывает ключи со значением `undefined`, чтобы они не затирали дефолт. */

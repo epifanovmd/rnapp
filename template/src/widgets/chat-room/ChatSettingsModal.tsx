@@ -70,8 +70,7 @@ const FEATURE_TOGGLES: { key: BooleanFeatureKey; title: string }[] = [
   { key: "showVoiceRecording", title: "Запись голоса" },
   { key: "contextMenuEnabled", title: "Контекстное меню" },
   { key: "autoScrollOnNewMessage", title: "Автоскролл на новое" },
-  // Флаг понимает только нативная реализация — JsChatView его игнорирует.
-  { key: "disintegrationEnabled", title: "Эффект распада (только iOS)" },
+  { key: "disintegrationEnabled", title: "Эффект распада" },
 ];
 
 const SENDER_NAME_MODES: { value: ChatSenderNameMode; label: string }[] = [

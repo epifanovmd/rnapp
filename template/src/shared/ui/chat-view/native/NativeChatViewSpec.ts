@@ -244,10 +244,7 @@ export type NativeChatFeatures = {
   scrollToBottomThreshold?: Double;
   /** Автоматически скроллить вниз при своём новом сообщении */
   autoScrollOnNewMessage?: boolean;
-  /**
-   * Эффект рассыпания на частицы при удалении сообщения.
-   * Только iOS; на остальных платформах игнорируется.
-   */
+  /** Эффект рассыпания на частицы при удалении сообщения. */
   disintegrationEnabled?: boolean;
 };
 

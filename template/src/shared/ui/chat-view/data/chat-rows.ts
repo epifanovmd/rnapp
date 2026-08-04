@@ -36,6 +36,8 @@ export type ChatRow =
       showAvatar: boolean;
       /** Крупные эмодзи без фона пузыря. */
       bubbleless: boolean;
+      /** Строка уже удалена из данных и доигрывает исчезновение. */
+      removing: boolean;
     }
   | {
       type: "dateSeparator";
@@ -43,11 +45,13 @@ export type ChatRow =
       itemType: string;
       groupDate: string;
       hidden: boolean;
+      /** Все сообщения дня исчезают — плашка уходит вместе с ними. */
+      removing: boolean;
     }
   | { type: "loading"; key: string; itemType: string };
 
 /** `localId` даёт pending→real обновление вместо delete+insert. */
-const messageRowKey = (message: IParsedChatMessage): string =>
+export const chatMessageRowKey = (message: IParsedChatMessage): string =>
   `m_${message.localId ?? message.id}`;
 
 /**
@@ -93,14 +97,41 @@ export interface IBuildChatRowsInput {
   showBottomLoading: boolean;
   /** Скрыть первый разделитель, пока сверху крутится спиннер. */
   hideFirstSeparator: boolean;
+  /** Ключи строк, доигрывающих исчезновение; `null` — таких нет. */
+  removingKeys: ReadonlySet<string> | null;
 }
 
 /** Слепок входных данных строки: по нему решается, можно ли её переиспользовать. */
 interface IMessageRowCacheEntry {
   message: IParsedChatMessage;
   replySource: IParsedChatMessage | undefined;
+  removing: boolean;
   row: ChatRow;
 }
+
+/**
+ * Дни, у которых не осталось ни одного живого сообщения. Плашка такого дня
+ * исчезает вместе с ними, иначе она мигнула бы одна посреди списка.
+ */
+const fullyRemovedGroups = (
+  messages: IParsedChatMessage[],
+  removingKeys: ReadonlySet<string>,
+): Set<string> => {
+  const groups = new Set<string>();
+  const alive = new Set<string>();
+
+  for (const message of messages) {
+    groups.add(message.groupDate);
+
+    if (!removingKeys.has(chatMessageRowKey(message))) {
+      alive.add(message.groupDate);
+    }
+  }
+
+  for (const group of alive) groups.delete(group);
+
+  return groups;
+};
 
 /**
  * Построение строк с сохранением идентичности.
@@ -150,8 +181,12 @@ export class ChatRowsBuilder {
     features,
     showBottomLoading,
     hideFirstSeparator,
+    removingKeys,
   }: IBuildChatRowsInput): IBuildChatRowsResult {
     const messageIndex = this._messageIndexFor(messages);
+    const removedGroups = removingKeys
+      ? fullyRemovedGroups(messages, removingKeys)
+      : null;
 
     // Кеш недействителен, только если поменялись настройки, влияющие на строку.
     const featuresKey = rowRelevantFeatures(features);
@@ -179,6 +214,7 @@ export class ChatRowsBuilder {
           this._separatorRow(
             message.groupDate,
             isFirstSeparator && hideFirstSeparator,
+            removedGroups?.has(message.groupDate) ?? false,
             nextSeparatorRows,
           ),
         );
@@ -186,7 +222,13 @@ export class ChatRowsBuilder {
       }
 
       rows.push(
-        this._messageRow(message, messageIndex, features, nextMessageRows),
+        this._messageRow(
+          message,
+          messageIndex,
+          features,
+          removingKeys?.has(chatMessageRowKey(message)) ?? false,
+          nextMessageRows,
+        ),
       );
     }
 
@@ -219,9 +261,10 @@ export class ChatRowsBuilder {
     message: IParsedChatMessage,
     messageIndex: Map<string, IParsedChatMessage>,
     features: IChatFeatures,
+    removing: boolean,
     into: Map<string, IMessageRowCacheEntry>,
   ): ChatRow {
-    const key = messageRowKey(message);
+    const key = chatMessageRowKey(message);
     const replySource = message.reply
       ? messageIndex.get(message.reply.id)
       : undefined;
@@ -230,7 +273,8 @@ export class ChatRowsBuilder {
     if (
       cached &&
       cached.message === message &&
-      cached.replySource === replySource
+      cached.replySource === replySource &&
+      cached.removing === removing
     ) {
       into.set(key, cached);
 
@@ -260,9 +304,10 @@ export class ChatRowsBuilder {
       showSenderName,
       showAvatar,
       bubbleless: isBubbleless(message, showSenderName, features),
+      removing,
     };
 
-    into.set(key, { message, replySource, row });
+    into.set(key, { message, replySource, removing, row });
 
     return row;
   }
@@ -279,12 +324,18 @@ export class ChatRowsBuilder {
   private _separatorRow(
     groupDate: string,
     hidden: boolean,
+    removing: boolean,
     into: Map<string, ChatRow>,
   ): ChatRow {
     const key = `d_${groupDate}`;
     const cached = this._separatorRows.get(key);
 
-    if (cached && cached.type === "dateSeparator" && cached.hidden === hidden) {
+    if (
+      cached &&
+      cached.type === "dateSeparator" &&
+      cached.hidden === hidden &&
+      cached.removing === removing
+    ) {
       into.set(key, cached);
 
       return cached;
@@ -296,6 +347,7 @@ export class ChatRowsBuilder {
       itemType: "dateSeparator",
       groupDate,
       hidden,
+      removing,
     };
 
     into.set(key, row);

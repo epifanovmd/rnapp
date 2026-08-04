@@ -1,6 +1,7 @@
 import React, { FC, memo } from "react";
 
 import { ChatRow } from "../data";
+import { ChatRowCollapse } from "./ChatRowCollapse";
 import { DateSeparatorRow } from "./DateSeparatorRow";
 import { LoadingRow } from "./LoadingRow";
 import { MessageCell } from "./message-cell";
@@ -22,22 +23,26 @@ export const ChatRowView: FC<IChatRowViewProps> = memo(({ row, index }) => {
   switch (row.type) {
     case "message":
       return (
-        <MessageCell
-          message={row.message}
-          resolvedReply={row.resolvedReply}
-          showSenderName={row.showSenderName}
-          showAvatar={row.showAvatar}
-          bubbleless={row.bubbleless}
-        />
+        <ChatRowCollapse rowKey={row.key} removing={row.removing}>
+          <MessageCell
+            message={row.message}
+            resolvedReply={row.resolvedReply}
+            showSenderName={row.showSenderName}
+            showAvatar={row.showAvatar}
+            bubbleless={row.bubbleless}
+          />
+        </ChatRowCollapse>
       );
 
     case "dateSeparator":
       return (
-        <DateSeparatorRow
-          groupDate={row.groupDate}
-          hidden={row.hidden}
-          index={index}
-        />
+        <ChatRowCollapse rowKey={row.key} removing={row.removing}>
+          <DateSeparatorRow
+            groupDate={row.groupDate}
+            hidden={row.hidden}
+            index={index}
+          />
+        </ChatRowCollapse>
       );
 
     case "loading":

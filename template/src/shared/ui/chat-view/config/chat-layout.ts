@@ -165,6 +165,13 @@ export interface IChatLayout {
   highlightAnimateOut: number;
   highlightDelay: number;
   fabAnimationDuration: number;
+  /**
+   * Пауза перед схлопыванием удалённой строки: столько длится рождение частиц.
+   * Нативная реализация выжидает ровно `burstDuration` эмиттера.
+   */
+  messageBurstDelay: number;
+  /** Схлопывание строки — следом за распадом, а не одновременно с ним. */
+  messageCollapseDuration: number;
 
   /** Долгое нажатие для контекстного меню (сек). */
   longPressDuration: number;
@@ -305,6 +312,8 @@ export const CHAT_DEFAULT_LAYOUT: IChatLayout = {
   highlightAnimateOut: 0.6,
   highlightDelay: 0.4,
   fabAnimationDuration: 0.25,
+  messageBurstDelay: 0.15,
+  messageCollapseDuration: 0.18,
 
   longPressDuration: 0.35,
 

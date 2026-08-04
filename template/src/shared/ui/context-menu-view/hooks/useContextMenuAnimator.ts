@@ -3,13 +3,13 @@ import { ViewStyle } from "react-native";
 import {
   AnimatedStyle,
   Easing,
-  runOnJS,
   SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { IContextMenuTheme } from "../config";
 import { CONTEXT_MENU_PANEL_SCALE, IContextMenuLayout } from "../layout";
@@ -44,7 +44,7 @@ const springTo = (
       ? finished => {
           "worklet";
           if (finished) {
-            runOnJS(onFinished)();
+            scheduleOnRN(onFinished);
           }
         }
       : undefined,

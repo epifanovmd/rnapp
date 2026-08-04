@@ -23,6 +23,7 @@ import {
   useKeyboardInset,
   useKeyboardScrollCompensation,
 } from "../../lib/keyboard";
+import { DisintegrateProvider } from "../disintegrate";
 import {
   IInputBarViewRef,
   InputBarContext,
@@ -120,6 +121,9 @@ export const JsChatView = memo(
         features.showBottomLoadingIndicator &&
         messages.length > 0,
       hideFirstSeparator: isLoadingTop && features.showTopLoadingIndicator,
+      removeDuration: features.animateMessageRemoval
+        ? layout.messageBurstDelay + layout.messageCollapseDuration
+        : 0,
     });
 
     const dataRef = useLatestRef(data);
@@ -284,7 +288,8 @@ export const JsChatView = memo(
 
     return (
       <ChatViewContext.Provider value={chatContext}>
-        <View style={[ss.root, style]}>
+        {/* Частицы распада живут поверх всего чата и переживают удалённую строку. */}
+        <DisintegrateProvider style={[ss.root, style]}>
           <Animated.View style={[ss.listWrap, listWrapStyle]}>
             <ChatList
               ref={listRef}
@@ -355,7 +360,7 @@ export const JsChatView = memo(
             unreadCount={unread.count}
             onPress={handleFabPress}
           />
-        </View>
+        </DisintegrateProvider>
       </ChatViewContext.Provider>
     );
   }),

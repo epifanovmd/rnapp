@@ -34,19 +34,34 @@ export interface IBuildChatDataOptions {
   features: IChatFeatures;
   showBottomLoading: boolean;
   hideFirstSeparator: boolean;
+  /**
+   * Сообщения для строк: `messages` плюс доигрывающие исчезновение. Наружу
+   * (`IChatData.messages`) они не попадают — для непрочитанных и видимости
+   * удалённого сообщения уже нет.
+   */
+  rowMessages?: IParsedChatMessage[];
+  /** Ключи строк, доигрывающих исчезновение. */
+  removingKeys?: ReadonlySet<string> | null;
 }
 
 /** Собрать строки и индексы по готовому списку сообщений. */
 export const buildChatData = (
   builder: ChatRowsBuilder,
   messages: IParsedChatMessage[],
-  { features, showBottomLoading, hideFirstSeparator }: IBuildChatDataOptions,
-): IChatData => {
-  const { rows, stickyIndices, messageIndex } = builder.build({
-    messages,
+  {
     features,
     showBottomLoading,
     hideFirstSeparator,
+    rowMessages,
+    removingKeys = null,
+  }: IBuildChatDataOptions,
+): IChatData => {
+  const { rows, stickyIndices, messageIndex } = builder.build({
+    messages: rowMessages ?? messages,
+    features,
+    showBottomLoading,
+    hideFirstSeparator,
+    removingKeys,
   });
 
   let rowIndex: Map<string, number> | null = null;

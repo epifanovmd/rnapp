@@ -70,6 +70,11 @@ export interface ChatFeatures extends Omit<
   "senderNameMode"
 > {
   senderNameMode?: ChatSenderNameMode;
+  /**
+   * Анимировать исчезновение удалённого сообщения. Только JS-реализация:
+   * нативная анимирует удаление средствами коллекции.
+   */
+  animateMessageRemoval?: boolean;
 }
 
 export interface ChatMessage extends NativeChatMessage {
