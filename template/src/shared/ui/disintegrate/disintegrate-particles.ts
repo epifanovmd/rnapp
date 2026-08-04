@@ -1,4 +1,9 @@
-import { AlphaType, ColorType, SkImage } from "@shopify/react-native-skia";
+import {
+  AlphaType,
+  ColorType,
+  Skia,
+  SkImage,
+} from "@shopify/react-native-skia";
 
 import { IDisintegrateConfig } from "./disintegrate-config";
 
@@ -41,6 +46,89 @@ export interface IDisintegrateParticles {
   gravity: number;
 }
 
+/** Формат выборки: снимок вью приходит то BGRA, то премультиплицированным. */
+const GRID_FORMAT = {
+  colorType: ColorType.RGBA_8888,
+  alphaType: AlphaType.Unpremul,
+} as const;
+
+/**
+ * Снимок → сетка `cols × rows` пикселей RGBA.
+ *
+ * Через уменьшающую отрисовку в растровую (не GPU) поверхность: полный
+ * `readPixels` у сообщения с картинкой — это мегабайты в JS-куче ради двух сотен
+ * значений. Заодно цвет ячейки получается усреднённым по её площади, а не
+ * взятым из одной точки, как в нативной версии, — края облака мягче.
+ *
+ * Если поверхность не создалась, читается снимок целиком и опрашивается по
+ * центрам ячеек — ровно как делает нативный аниматор.
+ */
+const sampleGrid = (
+  image: SkImage,
+  cols: number,
+  rows: number,
+): Uint8Array | Float32Array | null => {
+  const surface = Skia.Surface.Make(cols, rows);
+
+  if (surface) {
+    const source = Skia.XYWHRect(0, 0, image.width(), image.height());
+
+    surface
+      .getCanvas()
+      .drawImageRect(
+        image,
+        source,
+        Skia.XYWHRect(0, 0, cols, rows),
+        Skia.Paint(),
+      );
+
+    const scaled = surface.makeImageSnapshot();
+    const pixels = scaled.readPixels(0, 0, {
+      ...GRID_FORMAT,
+      width: cols,
+      height: rows,
+    });
+
+    scaled.dispose();
+
+    if (pixels) return pixels;
+  }
+
+  const imageWidth = image.width();
+  const imageHeight = image.height();
+  const full = image.readPixels(0, 0, {
+    ...GRID_FORMAT,
+    width: imageWidth,
+    height: imageHeight,
+  });
+
+  if (!full) return null;
+
+  const grid = new Uint8Array(cols * rows * 4);
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const px = Math.min(
+        Math.floor(((col + 0.5) / cols) * imageWidth),
+        imageWidth - 1,
+      );
+      const py = Math.min(
+        Math.floor(((row + 0.5) / rows) * imageHeight),
+        imageHeight - 1,
+      );
+      const from = (py * imageWidth + px) * 4;
+      const to = (row * cols + col) * 4;
+
+      grid[to] = full[from];
+      grid[to + 1] = full[from + 1];
+      grid[to + 2] = full[from + 2];
+      grid[to + 3] = full[from + 3];
+    }
+  }
+
+  return grid;
+};
+
 /**
  * Разбор снимка на частицы.
  *
@@ -60,57 +148,37 @@ export const buildDisintegrateParticles = (
 ): IDisintegrateParticles | null => {
   if (width <= 0 || height <= 0) return null;
 
-  const imageWidth = image.width();
-  const imageHeight = image.height();
-
-  // Формат запрашивается явно: снимок вью на разных платформах приходит то
-  // BGRA, то премультиплицированным, а распакованный сюда — всегда один и тот же.
-  const pixels = image.readPixels(0, 0, {
-    width: imageWidth,
-    height: imageHeight,
-    colorType: ColorType.RGBA_8888,
-    alphaType: AlphaType.Unpremul,
-  });
-
-  if (!pixels) return null;
-
-  const scaleX = imageWidth / width;
-  const scaleY = imageHeight / height;
-
   const grid = config.sampleGridSize;
   const cols = Math.max(1, Math.ceil(width / grid));
   const rows = Math.max(1, Math.ceil(height / grid));
 
+  const pixels = sampleGrid(image, cols, rows);
+
+  if (!pixels) return null;
+
   const cellColors: number[] = [];
 
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
-      const px = Math.min(
-        Math.floor((col + 0.5) * grid * scaleX),
-        imageWidth - 1,
-      );
-      const py = Math.min(
-        Math.floor((row + 0.5) * grid * scaleY),
-        imageHeight - 1,
-      );
-      const offset = (py * imageWidth + px) * 4;
+  for (let cell = 0; cell < cols * rows; cell++) {
+    const offset = cell * 4;
+    const alpha = pixels[offset + 3] / 255;
 
-      const alpha = pixels[offset + 3] / 255;
+    if (alpha <= ALPHA_CUTOFF) continue;
 
-      if (alpha <= ALPHA_CUTOFF) continue;
-
-      cellColors.push(
-        pixels[offset] / 255,
-        pixels[offset + 1] / 255,
-        pixels[offset + 2] / 255,
-        Math.max(alpha, ALPHA_FLOOR),
-      );
-    }
+    cellColors.push(
+      pixels[offset] / 255,
+      pixels[offset + 1] / 255,
+      pixels[offset + 2] / 255,
+      Math.max(alpha, ALPHA_FLOOR),
+    );
   }
 
-  const cellCount = cellColors.length / 4;
+  let cellCount = cellColors.length / 4;
 
   if (cellCount === 0) return null;
+
+  // Потолок именно потолок: у крупного вложения ячеек может оказаться больше,
+  // чем разрешено частиц, и «хотя бы по одной на ячейку» его бы перебило.
+  cellCount = Math.min(cellCount, config.maxParticles);
 
   const perCell = Math.max(
     1,
@@ -132,7 +200,6 @@ export const buildDisintegrateParticles = (
 
       const angle = Math.random() * Math.PI * 2;
       const speed = config.velocity * (0.5 + Math.random());
-      // Частица должна успеть сжаться в ничто раньше, чем истечёт её жизнь.
       const size =
         config.particleSize +
         config.particleSizeRange * (Math.random() * 2 - 1);

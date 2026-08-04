@@ -6,6 +6,7 @@ import React, {
   PropsWithChildren,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,9 +14,9 @@ import React, {
 import { StyleSheet, View } from "react-native";
 
 import {
-  DISINTEGRATE_DEFAULT_CONFIG,
   disintegrateTotalDuration,
   IDisintegrateConfig,
+  resolveDisintegrateConfig,
 } from "./disintegrate-config";
 import {
   buildDisintegrateParticles,
@@ -91,13 +92,20 @@ export const DisintegrateProvider: FC<
   const nextId = useRef(0);
   /** Распады в работе: и готовящиеся, и уже летящие. */
   const running = useRef(0);
+  /** Подготовка идёт асинхронно и может пережить экран — за ней нужен присмотр. */
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const [bursts, setBursts] = useState<IBurst[]>([]);
 
-  const resolved = useMemo(
-    () => ({ ...DISINTEGRATE_DEFAULT_CONFIG, ...config }),
-    [config],
-  );
+  const resolved = useMemo(() => resolveDisintegrateConfig(config), [config]);
 
   const disintegrate = useCallback(
     async (target: DisintegrateTarget): Promise<boolean> => {
@@ -117,25 +125,23 @@ export const DisintegrateProvider: FC<
       // Счётчик держит удавшийся распад до конца полёта — снимает его `finish`.
       let handedOff = false;
 
+      const image = await makeImageFromView(target).catch(() => null);
+
+      if (!image) {
+        running.current -= 1;
+
+        return false;
+      }
+
       try {
-        const image = await makeImageFromView(target).catch(() => null);
-
-        if (!image) return false;
-
         // Мерить после снимка: пока он снимается, список может уехать,
         // и облако вышло бы не там, где было содержимое.
         const [[viewX, viewY, width, height], [rootX, rootY]] =
           await Promise.all([measure(view), measure(root)]);
 
-        const particles = buildDisintegrateParticles(
-          image,
-          width,
-          height,
-          resolved,
-        );
-
-        // Снимок нужен был только ради цветов — дальше он держал бы текстуру зря.
-        image.dispose();
+        const particles = mounted.current
+          ? buildDisintegrateParticles(image, width, height, resolved)
+          : null;
 
         if (!particles) return false;
 
@@ -156,6 +162,10 @@ export const DisintegrateProvider: FC<
 
         return true;
       } finally {
+        // Снимок нужен был только ради цветов, и освободить его надо в любом
+        // исходе: иначе на ошибке измерения текстура доживёт до сборки мусора.
+        image.dispose();
+
         if (!handedOff) running.current -= 1;
       }
     },

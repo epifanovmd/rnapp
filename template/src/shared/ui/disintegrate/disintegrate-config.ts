@@ -72,3 +72,38 @@ export const DISINTEGRATE_DEFAULT_CONFIG: IDisintegrateConfig = {
 export const disintegrateTotalDuration = (
   config: IDisintegrateConfig,
 ): number => config.burstDuration + config.lifetime * 1.4;
+
+const atLeast = (value: number, min: number, fallback: number): number =>
+  Number.isFinite(value) && value >= min ? value : fallback;
+
+/**
+ * Наложение настроек на умолчания.
+ *
+ * Конфиг публичный, а его значения идут в деление, границы циклов и размеры
+ * массивов: нулевой шаг сетки или отрицательное время жизни уронили бы не
+ * эффект, а кадр целиком. Поэтому величины, которыми можно навредить,
+ * пропускаются только осмысленными.
+ */
+export const resolveDisintegrateConfig = (
+  config: Partial<IDisintegrateConfig> | undefined,
+): IDisintegrateConfig => {
+  const merged = { ...DISINTEGRATE_DEFAULT_CONFIG, ...config };
+  const defaults = DISINTEGRATE_DEFAULT_CONFIG;
+
+  return {
+    ...merged,
+    sampleGridSize: atLeast(merged.sampleGridSize, 1, defaults.sampleGridSize),
+    particlesPerCell: Math.floor(
+      atLeast(merged.particlesPerCell, 1, defaults.particlesPerCell),
+    ),
+    lifetime: atLeast(merged.lifetime, 0.01, defaults.lifetime),
+    particleSize: atLeast(merged.particleSize, 0.1, defaults.particleSize),
+    burstDuration: atLeast(merged.burstDuration, 0, defaults.burstDuration),
+    maxParticles: Math.floor(
+      atLeast(merged.maxParticles, 1, defaults.maxParticles),
+    ),
+    maxConcurrent: Math.floor(
+      atLeast(merged.maxConcurrent, 1, defaults.maxConcurrent),
+    ),
+  };
+};

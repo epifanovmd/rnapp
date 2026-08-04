@@ -62,6 +62,8 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
   /** Содержимое гаснет мгновенно под частицами и плавно — без них. */
   const contentOpacity = useSharedValue(1);
   const removingRef = useRef(removing);
+  /** Ключ строки, для которой распад уже запущен. */
+  const startedFor = useRef<string | null>(null);
 
   removingRef.current = removing;
 
@@ -83,37 +85,50 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
   useEffect(() => {
     if (!removing) {
       // Контейнер достался другой строке — состояние сбрасывается без анимации.
+      startedFor.current = null;
       collapse.value = 1;
       contentOpacity.value = 1;
 
       return;
     }
 
+    // Однократно на строку: повторный прогон эффекта на смене зависимостей
+    // запустил бы второй распад того же сообщения.
+    if (startedFor.current === rowKey) return;
+
+    startedFor.current = rowKey;
+
     let cancelled = false;
 
+    const startCollapse = () => {
+      collapse.value = withDelay(
+        burstMs,
+        withTiming(0, {
+          duration: collapseMs,
+          easing: Easing.inOut(Easing.quad),
+        }),
+      );
+    };
+
     if (withParticles) {
-      // Прятать содержимое только по готовности снимка: иначе он застанет
-      // уже скрытую строку и рассыпать будет нечего.
-      disintegrate(contentRef).then(started => {
+      // Всё после снимка — по его готовности. Прятать раньше нельзя: снимок
+      // застанет уже скрытую строку. Схлопывать раньше — тоже: подготовка
+      // занимает своё время, и строка начала бы съезжать до вылета частиц,
+      // а замер под них пришёлся бы на уже уезжающую высоту.
+      disintegrate(contentRef).then(burst => {
         if (cancelled) return;
 
-        contentOpacity.value = started
+        contentOpacity.value = burst
           ? 0
           : withTiming(0, { duration: burstMs + collapseMs });
+        startCollapse();
       });
     } else {
       contentOpacity.value = withTiming(0, {
         duration: burstMs + collapseMs,
       });
+      startCollapse();
     }
-
-    collapse.value = withDelay(
-      burstMs,
-      withTiming(0, {
-        duration: collapseMs,
-        easing: Easing.inOut(Easing.quad),
-      }),
-    );
 
     return () => {
       cancelled = true;

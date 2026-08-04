@@ -99,6 +99,16 @@ export const useChatData = ({
     const timers = timersRef.current;
     const keys = removed.removingKeys;
 
+    // Строка перестала исчезать (сообщение вернулось) — её таймер больше не
+    // её. Оставить его нельзя: повторное удаление не завело бы новый, а этот
+    // оборвал бы анимацию раньше времени.
+    for (const [key, timer] of timers) {
+      if (!keys?.has(key)) {
+        clearTimeout(timer);
+        timers.delete(key);
+      }
+    }
+
     if (!keys) return;
 
     for (const key of keys) {
