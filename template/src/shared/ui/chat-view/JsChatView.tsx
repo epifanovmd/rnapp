@@ -13,7 +13,10 @@ import {
   StyleSheet,
   View,
 } from "react-native";
-import Animated, { useSharedValue } from "react-native-reanimated";
+import Animated, {
+  useDerivedValue,
+  useSharedValue,
+} from "react-native-reanimated";
 
 import { useConstant, useCrossfade, useLatestRef } from "../../lib/hooks";
 import {
@@ -116,7 +119,7 @@ export const JsChatView = memo(
         isLoadingBottom &&
         features.showBottomLoadingIndicator &&
         messages.length > 0,
-      hideFirstSeparator: isLoadingTop,
+      hideFirstSeparator: isLoadingTop && features.showTopLoadingIndicator,
     });
 
     const dataRef = useLatestRef(data);
@@ -130,10 +133,14 @@ export const JsChatView = memo(
       [],
     );
 
-    const barHeight = useSharedValue(inputBarLayout.inputBarMinHeight);
+    const measuredBarHeight = useSharedValue(inputBarLayout.inputBarMinHeight);
+    const visibleBarHeight = useDerivedValue(
+      () => (features.showInputBar ? measuredBarHeight.value : 0),
+      [features.showInputBar],
+    );
 
     const keyboard = useKeyboardInset({
-      barHeight,
+      barHeight: visibleBarHeight,
       extraPadding: layout.collectionBottomPadding + collectionInsetBottom,
       onBlur: handleKeyboardBlur,
       onRefocus: handleKeyboardRefocus,
@@ -239,7 +246,7 @@ export const JsChatView = memo(
       props: propsRef,
       scrollControl,
       features,
-      barHeight,
+      barHeight: measuredBarHeight,
       fabExpanded,
       fabHiddenForRecording,
     });
@@ -261,7 +268,11 @@ export const JsChatView = memo(
       stickyDate,
     });
 
-    const inputBarContext = useInputBarContextValue(theme, inputBarLayout);
+    const inputBarContext = useInputBarContextValue(
+      theme,
+      inputBarLayout,
+      features,
+    );
 
     const stickyIndices = features.showFloatingDate
       ? data.stickyIndices
@@ -292,6 +303,7 @@ export const JsChatView = memo(
               startReachedThreshold={pagination.startReachedThreshold}
               endReachedThreshold={pagination.endReachedThreshold}
               maintainScrollAtEndThreshold={pagination.scrollToBottomThreshold}
+              autoScrollOnNewMessage={features.autoScrollOnNewMessage}
               viewabilityConfigCallbackPairs={viewabilityPairs}
               onLoad={initialPosition.onListLoad}
               onScrollBeginDrag={handleScrollBeginDrag}
@@ -334,7 +346,7 @@ export const JsChatView = memo(
 
           <ChatFab
             bottomInset={keyboard.occludedBottom}
-            inputBarHeight={barHeight}
+            inputBarHeight={visibleBarHeight}
             isNearEnd={isNearEnd}
             expanded={fabExpanded}
             hiddenForRecording={fabHiddenForRecording}

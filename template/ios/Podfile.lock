@@ -2324,6 +2324,125 @@ PODS:
     - React-utils (= 0.86.0)
     - ReactNativeDependencies
   - ReactNativeDependencies (0.86.0)
+  - RNAudioAPI (0.13.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNAudioAPI/audioapi (= 0.13.2)
+    - RNWorklets
+    - Yoga
+  - RNAudioAPI/audioapi (0.13.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNAudioAPI/audioapi/audioapi_dsp (= 0.13.2)
+    - RNAudioAPI/audioapi/ios (= 0.13.2)
+    - RNAudioAPI/audioapi/miniaudio_impl (= 0.13.2)
+    - RNWorklets
+    - Yoga
+  - RNAudioAPI/audioapi/audioapi_dsp (0.13.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
+  - RNAudioAPI/audioapi/ios (0.13.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
+  - RNAudioAPI/audioapi/miniaudio_impl (0.13.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - RNWorklets
+    - Yoga
   - RNBootSplash (7.3.2):
     - hermes-engine
     - RCTRequired
@@ -2790,6 +2909,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios/ReactCodegen`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
+  - RNAudioAPI (from `../node_modules/react-native-audio-api`)
   - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - RNDeviceInfo (from `../node_modules/react-native-device-info`)
   - RNFastImage (from `../node_modules/react-native-fast-image`)
@@ -3007,6 +3127,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   ReactNativeDependencies:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
+  RNAudioAPI:
+    :path: "../node_modules/react-native-audio-api"
   RNBootSplash:
     :path: "../node_modules/react-native-bootsplash"
   RNDeviceInfo:
@@ -3139,12 +3261,13 @@ SPEC CHECKSUMS:
   ReactCodegen: 873ef47fdf9cea3d86af27a88c4e8331b11140e4
   ReactCommon: d5c1bb4427bf51c443de5926aac332c89ddd9363
   ReactNativeDependencies: fa0a54b3f5319ae0e3b9aff32bfee7a424b88e66
+  RNAudioAPI: 2b32302dd10791682b13b6552e6a71d0d234b0c3
   RNBootSplash: 896e77f6b01c459249d3259c052ac97a2403a576
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNFastImage: 462a183c4b0b6b26fdfd639e1ed6ba37536c3b87
   RNGestureHandler: f07022ab7ca42692c1cd3364f4aab2eebe66dc0d
   RNNotifee: 5e3b271e8ea7456a36eec994085543c9adca9168
-  RNPermissions: acaec9a5c663de127980054fa2a9b559669896f8
+  RNPermissions: cc9e4b47c1982a7787af9fc38351ec636ee0dfb5
   RNReactNativeHapticFeedback: 9dc72312c12cb53ee240b5b7aae1e167f3d940a6
   RNReanimated: 41ad1a808a5860d14883872f68ed7cae2efc8635
   RNScreens: 5b4b260e28d8263d97fddcb53e59649515797bcc
@@ -3155,6 +3278,6 @@ SPEC CHECKSUMS:
   SwiftUIIntrospect: fee9aa07293ee280373a591e1824e8ddc869ba5d
   Yoga: c30c859b7e9b75e547b600b486fe33165f60de00
 
-PODFILE CHECKSUM: 56844af9a52dce9efa693ec5a533285c047b365b
+PODFILE CHECKSUM: 890bc210f42bc71475805896559fc4462b892cba
 
 COCOAPODS: 1.16.2

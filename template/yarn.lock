@@ -6544,6 +6544,13 @@ react-is@^19.1.0:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-19.2.8.tgz#09826f9fbc187bc668e3e5c62edc001f804d5018"
   integrity sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==
 
+react-native-audio-api@0.13.2:
+  version "0.13.2"
+  resolved "https://registry.yarnpkg.com/react-native-audio-api/-/react-native-audio-api-0.13.2.tgz#8d472b96f23aa8bc8aef0c0c1e1ef7c828ac2193"
+  integrity sha512-xwJyj43uB2vxqHoSWQgdWL6/XO3Six8Dh1HIikidZiz3njeLuBYGzzFvZ7kg4ruhu0vSJO4ubgJQZcKBMm781w==
+  dependencies:
+    semver "^7.7.3"
+
 react-native-biometrics@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/react-native-biometrics/-/react-native-biometrics-3.0.1.tgz#23c5a0bdbae1fcb1e08b22936223fe0fc4af846e"

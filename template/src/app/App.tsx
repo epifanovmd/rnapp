@@ -16,9 +16,11 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { registerContainerModules } from "./app.module";
 import { AppNavigator } from "./App.navigator";
 import { AppNotifications } from "./App.notifications";
+import { registerAudioBackends } from "./app-audio";
 import { IAppDataStore } from "./app-data-types";
 
 registerContainerModules();
+registerAudioBackends();
 configure({ enforceActions: "observed" });
 setDefaultOptions({ locale: ru });
 

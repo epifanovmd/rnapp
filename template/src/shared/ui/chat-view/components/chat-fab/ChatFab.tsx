@@ -50,10 +50,12 @@ export const ChatFab: FC<IChatFabProps> = memo(
     const { theme, layout, inputBarLayout, features } = useChatViewContext();
 
     const size = inputBarLayout.inputButtonSize;
-    const aboveMicOffset =
-      inputBarLayout.inputBarVPad + size + layout.fabMargin;
-    const singleLineHeight =
-      2 * inputBarLayout.inputBarVPad + inputBarLayout.textViewMinHeight;
+    const aboveMicOffset = features.showInputBar
+      ? inputBarLayout.inputBarVPad + size + layout.fabMargin
+      : layout.fabMargin;
+    const singleLineHeight = features.showInputBar
+      ? 2 * inputBarLayout.inputBarVPad + inputBarLayout.textViewMinHeight
+      : 0;
     const expandedGap = aboveMicOffset - singleLineHeight;
     const fadeMs = layout.fabAnimationDuration * 1000;
 

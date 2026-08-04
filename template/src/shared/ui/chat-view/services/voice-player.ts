@@ -2,9 +2,9 @@
  * Проигрывание голосовых сообщений: синглтон со состояниями
  * idle/loading/playing/paused/failed и наблюдателями.
  *
- * Аудио-бэкенд абстрагирован: нативного аудио-модуля в проекте нет, поэтому по
- * умолчанию работает симуляция (прогресс по таймеру). Реальный подключается
- * через `setChatVoicePlayerBackend`.
+ * Аудио-бэкенд абстрагирован: по умолчанию работает симуляция (прогресс по
+ * таймеру, без звука), приложение подставляет реальный через
+ * `setChatVoicePlayerBackend` — см. `AudioApiVoicePlayerBackend`.
  *
  * Наружу состояние отдаётся **по одному треку и примитивами** (`getStatus`,
  * `getProgress`, `getDisplayTime`): подписка на весь снимок перерисовывала бы
@@ -49,6 +49,13 @@ export interface IChatVoicePlayerBackend {
   pause(): void;
   stop(): void;
   seek(progress: number): void;
+  /**
+   * Ход воспроизведения. Присваивается плеером при подключении бэкенда —
+   * реализации остаётся только вызывать.
+   */
+  onProgress?: (progress: number, currentTime: number) => void;
+  /** Трек доигран до конца. Тоже присваивается плеером. */
+  onEnd?: () => void;
 }
 
 /** Симуляция воспроизведения: прогресс идёт по таймеру. */
@@ -109,9 +116,21 @@ class ChatVoicePlayer {
   private readonly _durations = new Map<string, number>();
 
   constructor() {
-    const simulated = new SimulatedVoicePlayerBackend();
+    this._backend = this._attach(new SimulatedVoicePlayerBackend());
+  }
 
-    simulated.onProgress = (progress, currentTime) => {
+  get state(): ChatVoicePlayerState {
+    return this._state;
+  }
+
+  setBackend(backend: IChatVoicePlayerBackend) {
+    this.stop();
+    this._backend = this._attach(backend);
+  }
+
+  /** Подписать бэкенд на обновление состояния плеера. */
+  private _attach(backend: IChatVoicePlayerBackend): IChatVoicePlayerBackend {
+    backend.onProgress = (progress, currentTime) => {
       const s = this._state;
 
       if (s.type !== "playing") return;
@@ -123,17 +142,9 @@ class ChatVoicePlayer {
         currentTime,
       });
     };
-    simulated.onEnd = () => this.stop();
-    this._backend = simulated;
-  }
+    backend.onEnd = () => this.stop();
 
-  get state(): ChatVoicePlayerState {
-    return this._state;
-  }
-
-  setBackend(backend: IChatVoicePlayerBackend) {
-    this.stop();
-    this._backend = backend;
+    return backend;
   }
 
   subscribe = (observer: ChatVoicePlayerObserver) => {

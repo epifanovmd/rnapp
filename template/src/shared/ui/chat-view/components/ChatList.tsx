@@ -42,6 +42,7 @@ export interface IChatListProps {
   startReachedThreshold: number;
   endReachedThreshold: number;
   maintainScrollAtEndThreshold: number;
+  autoScrollOnNewMessage: boolean;
 
   viewabilityConfigCallbackPairs: ViewabilityConfigCallbackPairs<ChatRow>;
 
@@ -95,6 +96,7 @@ export const ChatList = memo(
         startReachedThreshold,
         endReachedThreshold,
         maintainScrollAtEndThreshold,
+        autoScrollOnNewMessage,
         viewabilityConfigCallbackPairs,
         onLoad,
         onScrollBeginDrag,
@@ -121,7 +123,13 @@ export const ChatList = memo(
       );
 
       const sharedValues = useMemo(
-        () => ({ scrollOffset, isNearEnd, activeStickyIndex }),
+        () => ({
+          scrollOffset,
+          activeStickyIndex,
+          // LegendList считает `isNearEnd` по порогу пагинации. Для чата
+          // состояние «у низа» должно жить на отдельном scroll-пороге.
+          isWithinMaintainScrollAtEndThreshold: isNearEnd,
+        }),
         [scrollOffset, isNearEnd, activeStickyIndex],
       );
 
@@ -155,7 +163,9 @@ export const ChatList = memo(
           drawDistance={drawDistance}
           alignItemsAtEnd
           maintainVisibleContentPosition={MAINTAIN_VISIBLE_CONTENT_POSITION}
-          maintainScrollAtEnd={MAINTAIN_SCROLL_AT_END}
+          maintainScrollAtEnd={
+            autoScrollOnNewMessage ? MAINTAIN_SCROLL_AT_END : false
+          }
           maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
           initialScrollIndex={initialScrollIndex}
           initialScrollAtEnd={initialScrollIndex == null}

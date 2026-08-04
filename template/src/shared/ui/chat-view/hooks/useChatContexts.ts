@@ -3,8 +3,8 @@ import { RefObject, useMemo } from "react";
 import {
   createInputBarStyles,
   IInputBarContextValue,
+  IInputBarFeatures,
   IInputBarLayout,
-  INPUT_BAR_DEFAULT_FEATURES,
 } from "../../input-bar";
 import { ChatContentRegistry } from "../content";
 import {
@@ -73,13 +73,17 @@ export const useChatViewContextValue = ({
 export const useInputBarContextValue = (
   theme: IChatViewContextValue["theme"],
   layout: IInputBarLayout,
+  features: IInputBarFeatures,
 ): IInputBarContextValue =>
   useMemo(
     () => ({
       theme,
       layout,
-      features: INPUT_BAR_DEFAULT_FEATURES,
+      features: {
+        showAttachButton: features.showAttachButton,
+        showVoiceRecording: features.showVoiceRecording,
+      },
       styles: createInputBarStyles(theme, layout),
     }),
-    [theme, layout],
+    [theme, layout, features.showAttachButton, features.showVoiceRecording],
   );

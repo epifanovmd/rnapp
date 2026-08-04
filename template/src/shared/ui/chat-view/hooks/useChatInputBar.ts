@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useMemo, useRef } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 import { SharedValue, withTiming } from "react-native-reanimated";
 
 import { IInputBarViewDelegate, InputBarMode } from "../../input-bar";
@@ -88,10 +88,18 @@ export const useChatInputBar = ({
     [inputAction, messageIndex, contentTypes],
   );
 
+  useEffect(() => {
+    if (!features.showVoiceRecording) {
+      fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
+    }
+  }, [features.showVoiceRecording, fabExpanded]);
+
   const delegate = useMemo<IInputBarViewDelegate>(
     () => ({
       onSend: (text, replyToId) => {
-        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
+        if (features.autoScrollOnNewMessage) {
+          requestAnimationFrame(() => scrollControl.scrollToBottom(true));
+        }
         fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
         props.current.onSendMessage?.({ text, replyToId });
       },
@@ -102,7 +110,9 @@ export const useChatInputBar = ({
       },
       onTapAttachment: () => props.current.onAttachmentPress?.({}),
       onVoiceRecordingComplete: result => {
-        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
+        if (features.autoScrollOnNewMessage) {
+          requestAnimationFrame(() => scrollControl.scrollToBottom(true));
+        }
         props.current.onVoiceRecordingComplete?.(result);
       },
       onChangeText: text => {
