@@ -66,7 +66,8 @@ npm run start | reinstall
 
 ChatView/InputBar/ContextMenu — iOS-бриджи к поду `IOSChatView` (sibling repo
 `../../../rn-chat-view`). Android/non-iOS — JS-порты (`JsChatView`/`JsInputBar`/`JsContextMenuView`).
-Picker/WheelPicker — на обеих платформах.
+WheelPicker (`RNWheelPicker`) — на обеих платформах, единый API из одной codegen-спеки:
+iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
 
 `JsChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
 `stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,

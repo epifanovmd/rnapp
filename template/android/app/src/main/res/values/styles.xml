@@ -6,9 +6,8 @@
     <style name="BootTheme" parent="Theme.BootSplash">
         <item name="bootSplashBackground">@color/bootsplash_background</item>
         <item name="bootSplashLogo">@mipmap/bootsplash_logo</item>
+        <!-- Подпись внизу, аналог лейбла из BootSplash.storyboard. Слот — 200x80dp. -->
+        <item name="bootSplashBrand">@mipmap/bootsplash_brand</item>
         <item name="postBootSplashTheme">@style/AppTheme</item>
-        <item name="android:opacity">opaque</item>
-        <item name="android:windowBackground">@layout/launch_screen</item>
-        <item name="bootSplashBrand">@mipmap/bootsplash_logo</item>
     </style>
 </resources>

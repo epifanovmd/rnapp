@@ -52,14 +52,11 @@ const daysInMonth = [
   () => 31,
 ];
 
-const generateDays = (month: number, year: number) => {
-  return Array.from(
-    {
-      length: daysInMonth[month || 0](isLeapYear(year)),
-    },
-    (_, i) => i + 1,
-  );
-};
+/** Дней в колонке всегда 31: лишние дизейблятся, набор не пересобирается. */
+const allDays = Array.from({ length: 31 }, (_, i) => i + 1);
+
+const daysCount = (month: number, year: number) =>
+  daysInMonth[month || 0](isLeapYear(year));
 
 export interface DatePickerProps extends ITouchableProps {
   date?: dayjs.Dayjs | null;
@@ -113,7 +110,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     const [month, setMonth] = useState<number>(_month);
     const [year, setYear] = useState<number>(_year);
 
-    const days = useMemo(() => generateDays(month, year), [month, year]);
+    const days = useMemo(() => daysCount(month, year), [month, year]);
 
     const onReset = useCallback(() => {
       setDay(_day);
@@ -139,20 +136,16 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
     const handleMonth = useCallback(
       ({ value }: PickerChangeItem) => {
         setMonth(Number(value));
-        const daysCount = daysInMonth[Number(value)](isLeapYear(year));
+        const count = daysCount(Number(value), year);
 
-        if (day > daysCount) {
-          setDay(daysCount);
+        if (day > count) {
+          setDay(count);
         }
 
         if (onChange && !renderFooter) {
           onChange(
             dayjs(
-              new Date(
-                `${year}-${Number(value) + 1}-${
-                  day > daysCount ? daysCount : day
-                }`,
-              ),
+              new Date(`${year}-${Number(value) + 1}-${Math.min(day, count)}`),
             ),
           );
         }
@@ -180,11 +173,14 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const renderDayItems = useMemo(
       () =>
-        days.map(item => {
-          return (
-            <PickerItem key={item + "day"} label={String(item)} value={item} />
-          );
-        }),
+        allDays.map(item => (
+          <PickerItem
+            key={item + "day"}
+            label={String(item)}
+            value={item}
+            disabled={item > days}
+          />
+        )),
       [days],
     );
 

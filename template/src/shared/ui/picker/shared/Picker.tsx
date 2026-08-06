@@ -1,235 +1,340 @@
-import { useTheme } from "@shared/lib/theme";
+import { TColorTheme, useTheme } from "@shared/lib/theme";
 import React, {
   Children,
+  isValidElement,
   memo,
   ReactElement,
+  ReactNode,
   useCallback,
   useMemo,
-  useState,
 } from "react";
-import {
-  LayoutChangeEvent,
-  Platform,
-  processColor,
-  StyleProp,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-  ViewStyle,
-} from "react-native";
+import { ColorValue, StyleSheet, View } from "react-native";
 
-import { NativePicker } from "./NativePicker";
+import NativeWheelPicker, {
+  NativeWheelPickerItem,
+} from "../native/NativeWheelPickerSpec";
 import type { PickerColumnProps } from "./PickerColumn";
-import type { NativeOnChange, PickerChangeItem, PickerItem } from "./types";
+import type { PickerItemProps } from "./PickerItem";
+import type {
+  PickerAppearance,
+  PickerColor,
+  PickerItemValue,
+  PickerProps,
+  PickerScrollState,
+} from "./types";
 
 type PickerChild = ReactElement<PickerColumnProps>;
 
-export interface PickerProps {
-  loop?: boolean;
+export interface PickerRootProps extends PickerProps {
   children: PickerChild | PickerChild[];
-  hasCurtain?: boolean;
-  curtainColor?: string;
-  hasIndicator?: boolean;
-  indicatorColor?: string;
-  indicatorSize?: number;
-  itemSpace?: number;
-  textColor?: string;
-  textSize?: number;
-  numberOfLines?: number;
-  style?: StyleProp<ViewStyle>;
-  onChange?: (item: PickerChangeItem) => void;
-  testID?: string;
 }
 
+const SCROLL_STATES: PickerScrollState[] = ["idle", "dragging", "settling"];
+
+const DEFAULTS = {
+  itemHeight: 44,
+  visibleItemCount: 5,
+  itemSpacing: 0,
+  fontSize: 20,
+  selectedFontSize: 20,
+  fontWeight: "normal",
+  selectedFontWeight: "normal",
+  textAlign: "center",
+  numberOfLines: 1,
+  itemPaddingHorizontal: 8,
+  curvature: 1,
+  edgeOpacity: 0.25,
+  edgeScale: 0.8,
+  haptics: true,
+  indicatorStyle: "fill",
+  indicatorRadius: 8,
+  indicatorSize: 1,
+  // Отступ по краям колонки: полосы соседних колонок не смыкаются.
+  indicatorInset: 4,
+} as const;
+
+/** Полоса выбора как у системного колеса: полупрозрачная заливка. */
+const INDICATOR_FILL = {
+  light: "rgba(120, 120, 128, 0.12)",
+  dark: "rgba(120, 120, 128, 0.24)",
+} as const;
+
+const isThemeColor = (
+  color: PickerColor,
+  colors: TColorTheme,
+): color is keyof TColorTheme =>
+  typeof color === "string" && color in (colors as object);
+
+const asChildren = <T,>(nodes: ReactNode): ReactElement<T>[] =>
+  Children.toArray(nodes).filter(isValidElement) as ReactElement<T>[];
+
+/**
+ * Колесо выбора: одна колонка — один нативный вью. Оформление задаётся на
+ * пикере целиком и точечно перекрывается на колонке.
+ */
 export const Picker = memo(
   ({
-    curtainColor = "hsla(0, 0%, 0%, 0.1)",
-    hasCurtain = true,
-    hasIndicator = true,
-    indicatorColor = "hsla(0, 0%, 0%, 0.1)",
-    indicatorSize = 1,
-    itemSpace = 12,
-    textColor: _textColor,
-    textSize = 20,
-    loop,
-    numberOfLines = 1,
-    onChange,
-    style,
     children,
+    style,
     testID,
-  }: PickerProps) => {
-    const { width: windowWidth } = useWindowDimensions();
-    const [viewWidth, setViewWidth] = useState(windowWidth);
-    const { colors } = useTheme();
+    onChange,
+    onScrollStateChange,
+    onScroll,
+    onItemPress,
+    ...appearance
+  }: PickerRootProps) => {
+    const { colors, isDark } = useTheme();
 
-    const textColor = _textColor ?? colors.textPrimary;
-
-    const { data, columnWidths, selectedIndexes } = useNativePickerColumns({
-      children,
-      textColor,
-      viewWidth,
-    });
-
-    const handleOnChange: NativeOnChange = useCallback(
-      ({ nativeEvent }) => {
-        if (onChange) {
-          onChange(nativeEvent);
-        }
-
-        Children.forEach(children, (columnChild, index) => {
-          if (index === nativeEvent.column && columnChild.props.onChange) {
-            columnChild.props.onChange(nativeEvent);
-          }
-        });
-      },
-      [onChange, children],
+    const resolveColor = useCallback(
+      (color?: PickerColor): ColorValue | undefined =>
+        color === undefined
+          ? undefined
+          : isThemeColor(color, colors)
+            ? colors[color]
+            : color,
+      [colors],
     );
 
-    const handleOnLayout = useCallback(
-      ({
-        nativeEvent: {
-          layout: { width },
-        },
-      }: LayoutChangeEvent) => setViewWidth(width),
-      [],
+    const columns = useMemo(
+      () => asChildren<PickerColumnProps>(children),
+      [children],
     );
 
-    if (Platform.OS === "ios") {
-      return (
-        <View onLayout={handleOnLayout} style={[styles.pickerWrap, style]}>
-          <NativePicker
-            selectedIndexes={selectedIndexes}
-            onChange={handleOnChange}
-            numberOfLines={numberOfLines}
-            data={data}
-            columnWidths={columnWidths}
-            loop={loop}
-            style={styles.picker}
-            testID={testID}
+    const height =
+      (appearance.itemHeight ?? DEFAULTS.itemHeight) *
+      (appearance.visibleItemCount ?? DEFAULTS.visibleItemCount);
+
+    return (
+      <View style={[styles.row, { height }, style]} testID={testID}>
+        {columns.map((column, columnIndex) => (
+          <PickerWheel
+            key={column.key ?? columnIndex}
+            column={column.props}
+            columnIndex={columnIndex}
+            appearance={appearance}
+            resolveColor={resolveColor}
+            defaultItemColor={colors.textPrimary}
+            defaultDisabledColor={colors.textDisabled}
+            defaultIndicatorColor={
+              isDark ? INDICATOR_FILL.dark : INDICATOR_FILL.light
+            }
+            onChange={onChange}
+            onScrollStateChange={onScrollStateChange}
+            onScroll={onScroll}
+            onItemPress={onItemPress}
           />
-        </View>
-      );
-    }
-
-    if (Platform.OS === "android") {
-      return (
-        <View
-          onLayout={handleOnLayout}
-          style={[styles.androidContainer, style]}
-        >
-          {data.map((componentData, index) => (
-            <View
-              key={`picker-component-${index}`}
-              style={{ width: columnWidths[index] + LABEL_INSET_SPACE }}
-            >
-              <NativePicker
-                column={index}
-                data={componentData}
-                loop={loop}
-                onChange={handleOnChange}
-                curtainColor={processColor(curtainColor)}
-                hasCurtain={hasCurtain}
-                hasIndicator={hasIndicator}
-                indicatorColor={processColor(indicatorColor)}
-                indicatorSize={indicatorSize}
-                itemSpace={itemSpace}
-                textColor={processColor(textColor)}
-                textSize={textSize}
-                selectedIndex={selectedIndexes[index]}
-                style={styles.picker}
-                testID={testID}
-              />
-            </View>
-          ))}
-        </View>
-      );
-    }
-
-    return null;
+        ))}
+      </View>
+    );
   },
 );
 
-const useNativePickerColumns = ({
-  viewWidth,
-  children,
-  textColor,
-}: Required<Pick<PickerProps, "children" | "textColor">> & {
-  viewWidth: number;
-}) =>
-  useMemo(() => {
-    let columnWidths: number[] = [];
-    const selectedIndexes: number[] = [];
-    const data: PickerItem[][] = [];
+interface PickerWheelProps extends Pick<
+  PickerProps,
+  "onChange" | "onScrollStateChange" | "onScroll" | "onItemPress"
+> {
+  appearance: PickerAppearance;
+  column: PickerColumnProps;
+  columnIndex: number;
+  defaultDisabledColor: ColorValue;
+  defaultIndicatorColor: ColorValue;
+  defaultItemColor: ColorValue;
+  resolveColor: (color?: PickerColor) => ColorValue | undefined;
+}
 
-    let availableSpace = viewWidth;
+const PickerWheel = memo(
+  ({
+    appearance,
+    column,
+    columnIndex,
+    defaultDisabledColor,
+    defaultIndicatorColor,
+    defaultItemColor,
+    resolveColor,
+    onChange,
+    onScrollStateChange,
+    onScroll,
+    onItemPress,
+  }: PickerWheelProps) => {
+    // Оформление колонки перекрывает общее оформление пикера.
+    const merged = useMemo<PickerAppearance>(
+      () => ({ ...appearance, ...stripUndefined(column) }),
+      [appearance, column],
+    );
 
-    Children.forEach(children, (columnChild, columnChildIndex) => {
-      const columnItems: PickerItem[] = [];
+    const values = useMemo(
+      () =>
+        asChildren<PickerItemProps>(column.children).map(
+          item => item.props.value,
+        ),
+      [column.children],
+    );
 
-      Children.forEach(
-        columnChild.props.children,
-        (itemChild, itemChildIndex) => {
-          if (
-            columnChild.props.selectedValue &&
-            itemChild.props.value === columnChild.props.selectedValue &&
-            selectedIndexes.length <= columnChildIndex
-          ) {
-            selectedIndexes.push(itemChildIndex);
-          }
+    const items = useMemo<NativeWheelPickerItem[]>(
+      () =>
+        asChildren<PickerItemProps>(column.children).map(({ props }) => ({
+          label: props.label,
+          value: String(props.value),
+          disabled: props.disabled,
+          color: resolveColor(props.color),
+          testID: props.testID,
+        })),
+      [column.children, resolveColor],
+    );
 
-          columnItems.push({
-            label: itemChild.props.label,
-            value: itemChild.props.value,
-            textColor: processColor(itemChild.props.color ?? textColor),
-            testID: itemChild.props.testID,
-          });
-        },
-      );
+    const selectedIndex = useMemo(() => {
+      const index = values.indexOf(column.selectedValue as PickerItemValue);
 
-      if (selectedIndexes.length <= columnChildIndex) {
-        selectedIndexes.push(0);
-      }
+      return index < 0 ? 0 : index;
+    }, [column.selectedValue, values]);
 
-      if (typeof columnChild.props.width === "number") {
-        const w = Math.max(columnChild.props.width - LABEL_INSET_SPACE, 0);
+    const handleChange = useCallback(
+      ({
+        nativeEvent,
+      }: {
+        nativeEvent: { index: number; fromUser: boolean };
+      }) => {
+        const item = {
+          column: columnIndex,
+          index: nativeEvent.index,
+          value: values[nativeEvent.index],
+          fromUser: nativeEvent.fromUser,
+        };
 
-        availableSpace -= columnChild.props.width;
+        onChange?.(item);
+        column.onChange?.(item);
+      },
+      [column, columnIndex, onChange, values],
+    );
 
-        columnWidths.push(w);
-      } else {
-        columnWidths.push(-1);
-      }
+    const handleScrollState = useCallback(
+      ({ nativeEvent }: { nativeEvent: { state: number; index: number } }) => {
+        const event = {
+          column: columnIndex,
+          state: SCROLL_STATES[nativeEvent.state] ?? "idle",
+          index: nativeEvent.index,
+          value: values[nativeEvent.index],
+        };
 
-      data.push(columnItems);
-    });
+        onScrollStateChange?.(event);
+        column.onScrollStateChange?.(event);
+      },
+      [column, columnIndex, onScrollStateChange, values],
+    );
 
-    // Automatically set width for remaining columns to the available space
-    const columnsWithoutWidth = columnWidths.filter(w => w < 0);
+    const handleScroll = useCallback(
+      ({ nativeEvent }: { nativeEvent: { offset: number; index: number } }) => {
+        const event = {
+          column: columnIndex,
+          offset: nativeEvent.offset,
+          index: nativeEvent.index,
+        };
 
-    if (columnsWithoutWidth.length) {
-      columnWidths = columnWidths.map(w =>
-        w < 0
-          ? Math.max(
-              availableSpace / columnsWithoutWidth.length - LABEL_INSET_SPACE,
-              0,
-            )
-          : w,
-      );
+        onScroll?.(event);
+        column.onScroll?.(event);
+      },
+      [column, columnIndex, onScroll],
+    );
+
+    const handleItemPress = useCallback(
+      ({ nativeEvent }: { nativeEvent: { index: number } }) => {
+        const event = {
+          column: columnIndex,
+          index: nativeEvent.index,
+          value: values[nativeEvent.index],
+        };
+
+        onItemPress?.(event);
+        column.onItemPress?.(event);
+      },
+      [column, columnIndex, onItemPress, values],
+    );
+
+    const { indicator, curtain } = merged;
+
+    return (
+      <NativeWheelPicker
+        style={
+          column.width === undefined ? styles.flexible : { width: column.width }
+        }
+        items={items}
+        selectedIndex={selectedIndex}
+        loop={merged.loop}
+        enabled={merged.enabled ?? true}
+        stopAtDisabled={merged.stopAtDisabled ?? true}
+        haptics={merged.haptics ?? DEFAULTS.haptics}
+        scrollEventThrottle={merged.scrollEventThrottle ?? 0}
+        itemHeight={merged.itemHeight ?? DEFAULTS.itemHeight}
+        visibleItemCount={merged.visibleItemCount ?? DEFAULTS.visibleItemCount}
+        itemSpacing={merged.itemSpacing ?? DEFAULTS.itemSpacing}
+        itemColor={resolveColor(merged.itemColor) ?? defaultItemColor}
+        selectedItemColor={
+          resolveColor(merged.selectedItemColor) ?? defaultItemColor
+        }
+        disabledItemColor={
+          resolveColor(merged.disabledItemColor) ?? defaultDisabledColor
+        }
+        fontSize={merged.fontSize ?? DEFAULTS.fontSize}
+        selectedFontSize={merged.selectedFontSize ?? DEFAULTS.selectedFontSize}
+        fontFamily={merged.fontFamily}
+        fontWeight={merged.fontWeight ?? DEFAULTS.fontWeight}
+        selectedFontWeight={
+          merged.selectedFontWeight ?? DEFAULTS.selectedFontWeight
+        }
+        textAlign={merged.textAlign ?? DEFAULTS.textAlign}
+        numberOfLines={merged.numberOfLines ?? DEFAULTS.numberOfLines}
+        itemPaddingHorizontal={
+          merged.itemPaddingHorizontal ?? DEFAULTS.itemPaddingHorizontal
+        }
+        curvature={merged.curvature ?? DEFAULTS.curvature}
+        edgeOpacity={merged.edgeOpacity ?? DEFAULTS.edgeOpacity}
+        edgeScale={merged.edgeScale ?? DEFAULTS.edgeScale}
+        indicatorVisible={indicator?.visible ?? true}
+        indicatorColor={resolveColor(indicator?.color) ?? defaultIndicatorColor}
+        indicatorSize={indicator?.size ?? DEFAULTS.indicatorSize}
+        indicatorStyle={indicator?.style ?? DEFAULTS.indicatorStyle}
+        indicatorRadius={indicator?.radius ?? DEFAULTS.indicatorRadius}
+        indicatorInset={indicator?.inset ?? DEFAULTS.indicatorInset}
+        curtainVisible={curtain?.visible ?? false}
+        curtainColor={resolveColor(curtain?.color)}
+        curtainRadius={curtain?.radius ?? 0}
+        onValueChange={handleChange}
+        onScrollStateChange={handleScrollState}
+        onScroll={merged.scrollEventThrottle ? handleScroll : undefined}
+        onItemPress={handleItemPress}
+      />
+    );
+  },
+);
+
+/** Props колонки без незаданных ключей: они не должны затирать общие. */
+const stripUndefined = (column: PickerColumnProps): PickerAppearance => {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(column)) {
+    if (
+      value !== undefined &&
+      key !== "children" &&
+      key !== "width" &&
+      key !== "selectedValue" &&
+      key !== "onChange" &&
+      key !== "onScrollStateChange" &&
+      key !== "onScroll" &&
+      key !== "onItemPress"
+    ) {
+      result[key] = value;
     }
+  }
 
-    return { data, columnWidths, selectedIndexes };
-  }, [children, textColor, viewWidth]);
-
-const LABEL_INSET_SPACE = 8;
+  return result as PickerAppearance;
+};
 
 const styles = StyleSheet.create({
-  androidContainer: {
+  row: {
     flexDirection: "row",
-    marginLeft: 8,
-    marginRight: 8,
   },
-  pickerWrap: { flexGrow: 1 },
-  picker: {
-    height: 216,
+  flexible: {
+    flexGrow: 1,
+    flexBasis: 0,
   },
 });

@@ -11,9 +11,19 @@ type: project
   (`ios/Podfile`: `pod 'IOSChatView', :path => '../../../rn-chat-view'` — sibling repo).
   Android-native нет — на Android/non-iOS работают JS-порты
   `JsChatView`/`JsInputBar`/`JsContextMenuView`.
-- **Picker/WheelPicker** — на обеих платформах: iOS `ios/Picker/`, Android `rnwheelpicker/`.
-- **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`;
-  `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"`. Имена фиксированы RN.
+- **WheelPicker** (`RNWheelPicker`) — колесо выбора на обеих платформах, один нативный вью =
+  одна колонка. Единый API — спека `shared/ui/picker/native/NativeWheelPickerSpec.ts`.
+  iOS: `ios/Picker/` — Swift/UIKit, `UICollectionView` + кастомный `UICollectionViewFlowLayout`
+  (цилиндрическая развёртка в `transform3D`), снап в `scrollViewWillEndDragging`.
+  Android: `rnwheelpicker/` — Kotlin, `RecyclerView` + `LinearSnapHelper`, изгиб —
+  `rotationX/scale/alpha` детей, прокрутку ограничивает `ClampingLayoutManager`.
+  Возможности: `disabled`-элементы с жёстким упором прокрутки (`stopAtDisabled`),
+  бесконечная прокрутка (`loop`), события `onChange`/`onScrollStateChange`/`onScroll`,
+  команда `scrollToIndex`, стилизация текста, индикатора (`lines|box|fill`) и шторки.
+- **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/
+  `NativeWheelPickerSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"` —
+  одна библиотека на все спеки. Имена файлов фиксированы RN (исключение в `eslint.naming.mjs`).
+  Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager` через interop-слой New Arch.
 - **InputBar**: высота приходит через `onHeightChange`, хост применяет к style.
 
 ## JS-архитектура чата (`shared/ui/chat-view/`)

@@ -1,17 +1,18 @@
 import React from "react";
-import { ColorValue, Text } from "react-native";
+
+import type { PickerColor, PickerItemValue } from "./types";
 
 export interface PickerItemProps {
   label: string;
-  value: string | number;
-  color?: ColorValue;
+  value: PickerItemValue;
+  /** Недоступен для выбора: прокрутка соседа упирается в него */
+  disabled?: boolean;
+  /** Цвет подписи, перекрывает `itemColor` колеса */
+  color?: PickerColor;
   testID?: string;
 }
 
-export const PickerItem = ({ color, label, ...props }: PickerItemProps) => {
-  return (
-    <Text style={{ color }} {...props}>
-      {label}
-    </Text>
-  );
-};
+/** Декларация элемента: сам не рендерится, читается родительским `Picker`. */
+export const PickerItem = (_props: PickerItemProps) => null;
+
+PickerItem.displayName = "PickerItem";

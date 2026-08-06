@@ -8,7 +8,7 @@ import { FlexProps, Row } from "../flex-view";
 import { Icon, IIconProps } from "../icon";
 import { Text } from "../text";
 
-const hitSlop = { top: 16, right: 16, bottom: 16, left: 16 };
+const hitSlop = { top: 24, right: 24, bottom: 24, left: 24 };
 
 export interface BottomSheetHeaderProps extends FlexProps, ViewProps {
   /** Заголовок строго по центру: слева резервируется ширина правой области. */

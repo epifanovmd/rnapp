@@ -17,9 +17,9 @@ const SLICE_GLOBS = [
 // случайные совпадающие префиксы в обычных kebab-словах.
 const VERB_PREFIX = "@(use[A-Z]*|create[A-Z]*|build[A-Z]*)";
 
-// RN codegen (TurboModule/Fabric) требует конкретное имя файла для спек-модулей —
-// это framework-соглашение, не наша конвенция, поэтому исключаем из проверки.
-const NATIVE_SPEC = "@(NativeChatViewSpec|NativeInputBarSpec|NativeContextMenuViewSpec)";
+// RN codegen (TurboModule/Fabric) требует конкретное имя файла для спек-модулей
+const NATIVE_SPEC =
+  "@(NativeChatViewSpec|NativeInputBarSpec|NativeContextMenuViewSpec|NativeWheelPickerSpec)";
 
 const NOT_VERB_PREFIX = `!(${VERB_PREFIX.slice(2, -1)}|${NATIVE_SPEC.slice(2, -1)})`;
 
