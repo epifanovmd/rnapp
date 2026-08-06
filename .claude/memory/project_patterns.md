@@ -9,7 +9,8 @@ type: project
 | Entity store (DI + MobX) | `entities/auth/model/{types,store}.ts` + `auth.module.ts` |
 | Feature-хук | `features/sign-in/model/useSignInVM.ts` (+ `validation.ts`) |
 | Страница | `pages/sign-in/SignIn.tsx` → регистрация в `App.screens.ts` |
-| Compound via slots | `shared/ui/navbar/Navbar.tsx` (`createSlot` + `useSlotProps`) |
+| Compound via slots | `shared/ui/navbar/Navbar.tsx` (`slot.of` + `createCompound`) |
+| Многоуровневые слоты + инъекция props | `shared/ui/bottom-sheet/` |
 | Форма (RHF + Zod) | `useForm({ resolver: zodResolver(schema) })`; schema в `model/validation.ts` |
 
 Правила:

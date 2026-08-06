@@ -1,6 +1,6 @@
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
-import React, { memo, useCallback, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {
   interpolate,
@@ -15,84 +15,64 @@ export interface IHiddenNavbarProps extends ViewProps {
 }
 
 const hiddenBarSlots = {
-  stickyContent: slot<ViewProps>({ component: View }),
+  stickyContent: slot.of(View),
 };
 
-const HiddenBarRoot = memo(
-  ({
-    props,
-    slots,
-    content,
-  }: CompoundRootProps<IHiddenNavbarProps, never, typeof hiddenBarSlots>) => {
-    const { safeArea, style, ...rest } = props;
-    const { colors } = useTheme();
-    const [contentHeight, setContentHeight] = useState(0);
-    const { navbarHeight, onLayoutNavBar, navbarOffset } = useTransition();
-    const insets = useSafeAreaInsets();
-    const { stickyContent } = slots;
+const HiddenBarRoot = ({
+  props,
+  slots,
+  content,
+}: CompoundRootProps<IHiddenNavbarProps, typeof hiddenBarSlots>) => {
+  const { safeArea, style, ...rest } = props;
+  const { colors } = useTheme();
+  const [contentHeight, setContentHeight] = useState(0);
+  const { navbarHeight, onLayoutNavBar, navbarOffset } = useTransition();
+  const insets = useSafeAreaInsets();
+  const { stickyContent } = slots;
 
-    const top = safeArea ? insets.top : 0;
+  const top = safeArea ? insets.top : 0;
 
-    const navHeight =
-      navbarHeight - (stickyContent.present ? contentHeight : 0);
+  const navHeight = navbarHeight - (stickyContent.present ? contentHeight : 0);
 
-    const animatedStyle = useAnimatedStyle(() => {
-      const translateY = interpolate(
-        navbarOffset.value,
-        [navHeight, 0],
-        [-navHeight, 0],
-        "clamp",
-      );
-
-      return {
-        top,
-        transform: [{ translateY }],
-      };
-    }, [top, navHeight]);
-
-    const opacityStyle = useAnimatedStyle(() => {
-      const opacity = interpolate(
-        navbarOffset.value,
-        [0, navHeight / 3, navHeight],
-        [1, 0, 0],
-        "clamp",
-      );
-
-      return {
-        opacity,
-      };
-    });
-
-    const backgroundColor = colors.background;
-    const onLayout = useCallback((e: LayoutChangeEvent) => {
-      setContentHeight(e.nativeEvent.layout.height);
-    }, []);
-
-    return (
-      <View
-        style={[styles.container, { backgroundColor, paddingTop: top }, style]}
-        {...rest}
-      >
-        {safeArea && (
-          <View
-            style={[styles.overlay, { backgroundColor, paddingTop: top }]}
-          />
-        )}
-        <Animated.View
-          onLayout={onLayoutNavBar}
-          style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
-        >
-          {content}
-          {stickyContent.present && (
-            <View onLayout={onLayout} {...stickyContent.props} />
-          )}
-        </Animated.View>
-      </View>
+  const animatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      navbarOffset.value,
+      [navHeight, 0],
+      [-navHeight, 0],
+      "clamp",
     );
-  },
-);
 
-export const HiddenBar = createCompound<IHiddenNavbarProps, never>()({
+    return {
+      top,
+      transform: [{ translateY }],
+    };
+  }, [top, navHeight]);
+
+  const backgroundColor = colors.background;
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    setContentHeight(e.nativeEvent.layout.height);
+  }, []);
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor, paddingTop: top }, style]}
+      {...rest}
+    >
+      {safeArea && (
+        <View style={[styles.overlay, { backgroundColor, paddingTop: top }]} />
+      )}
+      <Animated.View
+        onLayout={onLayoutNavBar}
+        style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
+      >
+        {content}
+        {stickyContent.render({ inject: { onLayout } })}
+      </Animated.View>
+    </View>
+  );
+};
+
+export const HiddenBar = createCompound<IHiddenNavbarProps>()({
   name: "HiddenBar",
   render: HiddenBarRoot,
   slots: hiddenBarSlots,

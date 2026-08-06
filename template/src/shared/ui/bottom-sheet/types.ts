@@ -1,10 +1,15 @@
-import { BottomSheetModalProps } from "@gorhom/bottom-sheet";
-import { ScrollViewProps } from "react-native";
+import {
+  BottomSheetModalProps,
+  BottomSheetScrollView,
+} from "@gorhom/bottom-sheet";
+import { ComponentProps } from "react";
 
-import { BottomSheetFooterProps } from "./BottomSheetFooter";
-import { BottomSheetHeaderProps } from "./BottomSheetHeader";
+import { BottomSheetFooter } from "./BottomSheetFooter";
+import { BottomSheetHeader } from "./BottomSheetHeader";
 
 export type TBottomSheetProps = BottomSheetModalProps & { haptic?: boolean };
-export type TBottomSheetHeaderProps = BottomSheetHeaderProps;
-export type TBottomSheetContentProps = ScrollViewProps;
-export type TBottomSheetFooterProps = BottomSheetFooterProps;
+export type TBottomSheetHeaderProps = ComponentProps<typeof BottomSheetHeader>;
+export type TBottomSheetContentProps = ComponentProps<
+  typeof BottomSheetScrollView
+>;
+export type TBottomSheetFooterProps = ComponentProps<typeof BottomSheetFooter>;

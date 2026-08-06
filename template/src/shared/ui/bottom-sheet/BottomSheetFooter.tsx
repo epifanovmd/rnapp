@@ -1,65 +1,52 @@
-import React, { memo } from "react";
+import React from "react";
 import { ViewProps } from "react-native";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
-import { Button, IButtonProps } from "../button";
+import { Button } from "../button";
 import { FlexProps, Row } from "../flex-view";
 
 export interface BottomSheetFooterProps extends FlexProps, ViewProps {}
 
 const bottomSheetFooterSlots = {
-  secondaryButton: slot<IButtonProps>({ component: Button }),
-  primaryButton: slot<IButtonProps>({ component: Button }),
+  secondaryButton: slot.of(Button, {
+    defaultProps: {
+      type: "secondaryFilled",
+      size: "small",
+      flex: 1,
+      flexBasis: 0,
+      title: "Отмена",
+    },
+  }),
+  primaryButton: slot.of(Button, {
+    defaultProps: {
+      type: "primaryFilled",
+      size: "small",
+      flex: 1,
+      flexBasis: 0,
+      marginLeft: "auto",
+      title: "Применить",
+    },
+  }),
 };
 
-const BottomSheetFooterRoot = memo(
-  ({
-    props,
-    slots,
-  }: CompoundRootProps<
-    BottomSheetFooterProps,
-    never,
-    typeof bottomSheetFooterSlots
-  >) => {
-    const { primaryButton, secondaryButton } = slots;
-
-    return (
-      <Row
-        marginTop={"auto"}
-        gap={8}
-        justifyContent={"space-between"}
-        {...props}
-      >
-        {secondaryButton.present && (
-          <Button
-            type={"secondaryFilled"}
-            size={"small"}
-            flex={1}
-            flexBasis={0}
-            title={"Отмена"}
-            {...secondaryButton.props}
-          />
-        )}
-        {primaryButton.present && (
-          <Button
-            type={"primaryFilled"}
-            size={"small"}
-            flex={1}
-            flexBasis={0}
-            marginLeft={"auto"}
-            title={"Применить"}
-            {...primaryButton.props}
-          />
-        )}
-      </Row>
-    );
-  },
-);
-
-export const BottomSheetFooter = createCompound<
+const BottomSheetFooterRoot = ({
+  props,
+  slots,
+}: CompoundRootProps<
   BottomSheetFooterProps,
-  never
->()({
+  typeof bottomSheetFooterSlots
+>) => {
+  const { primaryButton, secondaryButton } = slots;
+
+  return (
+    <Row marginTop={"auto"} gap={8} justifyContent={"space-between"} {...props}>
+      {secondaryButton.render()}
+      {primaryButton.render()}
+    </Row>
+  );
+};
+
+export const BottomSheetFooter = createCompound<BottomSheetFooterProps>()({
   name: "BottomSheetFooter",
   render: BottomSheetFooterRoot,
   slots: bottomSheetFooterSlots,

@@ -1,30 +1,36 @@
 import type {
-  ComponentType,
+  ComponentProps,
   ElementType,
-  FC,
   ForwardedRef,
   ForwardRefExoticComponent,
+  FunctionComponent,
   Key,
   MemoExoticComponent,
-  PropsWithChildren,
   PropsWithoutRef,
   ReactNode,
   RefAttributes,
 } from "react";
 
-/** Политика слияния: значения по умолчанию + props потребителя. */
+/** Props, с которыми слот отдаётся компоненту или render-функции. */
+export type MergedSlotProps<P extends object> = Omit<P, "children"> & {
+  children?: ReactNode;
+};
+
+/** Политика слияния: props потребителя + инъекция владельца (инъекция приоритетнее). */
 export type SlotMergeProps<P extends object> = (
-  defaults: Partial<PropsWithChildren<P>>,
-  props: PropsWithChildren<P>,
-) => PropsWithChildren<P>;
+  props: MergedSlotProps<P>,
+  inject: Partial<MergedSlotProps<P>>,
+) => MergedSlotProps<P>;
 
 export interface SlotOptions<
   P extends object,
   Multiple extends boolean = false,
   Required extends boolean = false,
 > {
-  component?: ElementType<PropsWithChildren<P>>;
-  defaultProps?: Partial<PropsWithChildren<P>>;
+  /** Слот рендерится даже без объявления потребителем — на defaults и инъекции. */
+  always?: boolean;
+  component?: ElementType<any>;
+  defaultProps?: Partial<MergedSlotProps<P>>;
   mergeProps?: SlotMergeProps<P>;
   multiple?: Multiple;
   required?: Required;
@@ -35,34 +41,68 @@ export interface SlotDefinition<
   P extends object,
   Multiple extends boolean = false,
   Required extends boolean = false,
+  Nested = {},
 > extends SlotOptions<P, Multiple, Required> {
-  readonly __slot: [P, Multiple, Required];
+  readonly __slot: [P, Multiple, Required, Nested];
 }
 
-export type AnySlotDefinition = SlotDefinition<any, boolean, boolean>;
+export type AnySlotDefinition = SlotDefinition<any, boolean, boolean, any>;
 export type SlotSchema = Record<string, AnySlotDefinition>;
 
-export type SlotProps<D> = D extends {
-  __slot: [infer P extends object, boolean, boolean];
+type SlotOwnProps<D> = D extends {
+  __slot: [infer P extends object, boolean, boolean, unknown];
 }
-  ? PropsWithChildren<P>
+  ? P
   : never;
 
 type SlotIsMultiple<D> = D extends {
-  __slot: [object, infer Multiple extends boolean, boolean];
+  __slot: [object, infer Multiple extends boolean, boolean, unknown];
 }
   ? Multiple
   : never;
 
 type SlotIsRequired<D> = D extends {
-  __slot: [object, boolean, infer Required extends boolean];
+  __slot: [object, boolean, infer Required extends boolean, unknown];
 }
   ? Required
   : never;
 
+type SlotNested<D> = D extends {
+  __slot: [object, boolean, boolean, infer Nested];
+}
+  ? Nested
+  : {};
+
+/**
+ * Props слота: собственные props компонента, где `children` дополнительно может
+ * быть render-функцией — она получает уже слитые props владельца.
+ */
+export type SlotProps<D> = Omit<SlotOwnProps<D>, "children"> & {
+  children?:
+    ReactNode | ((props: MergedSlotProps<SlotOwnProps<D>>) => ReactNode);
+};
+
+/** Маркер слота: компонент-декларация со статиками вложенного compound. */
+export type SlotMarker<D> = FunctionComponent<SlotProps<D>> & SlotNested<D>;
+
+export type CompoundStatics<S extends SlotSchema> = {
+  readonly [K in keyof S as Capitalize<string & K>]: SlotMarker<S[K]>;
+};
+
+/** Схема compound-компонента, снятая с его типа (для вложенных слотов). */
+export type CompoundSchemaOf<C> = C extends { readonly __schema?: infer S }
+  ? NonNullable<S> extends SlotSchema
+    ? NonNullable<S>
+    : never
+  : never;
+
+export type CompoundStaticsOf<C> = [CompoundSchemaOf<C>] extends [never]
+  ? {}
+  : CompoundStatics<CompoundSchemaOf<C>>;
+
 export interface SlotObjectEntry<P extends object> {
   key?: Key | null;
-  props: PropsWithChildren<P>;
+  props: P;
 }
 
 type SlotInputValue<D> =
@@ -81,19 +121,23 @@ export type CompoundSlotInput<S extends SlotSchema> = {
 };
 
 export interface RenderSlotOptions<P extends object> {
-  defaultProps?: Partial<PropsWithChildren<P>>;
+  /** Значения по умолчанию: props потребителя перебивают их. */
+  defaults?: Partial<MergedSlotProps<P>>;
+  /** Узел на случай, когда слот не объявлен. */
   fallback?: ReactNode;
+  /** Props владельца: перебивают потребителя по политике слияния слота. */
+  inject?: Partial<MergedSlotProps<P>>;
 }
 
 export interface ResolvedSingleSlot<P extends object> {
   readonly present: boolean;
-  readonly props: Readonly<PropsWithChildren<P>> | undefined;
+  readonly props: Readonly<SlotProps<SlotDefinition<P>>> | undefined;
   render(options?: RenderSlotOptions<P>): ReactNode;
 }
 
 export interface ResolvedMultipleSlot<P extends object> {
   readonly present: boolean;
-  readonly items: readonly SlotObjectEntry<P>[];
+  readonly items: readonly SlotObjectEntry<SlotProps<SlotDefinition<P>>>[];
   renderAll(
     options?: RenderSlotOptions<P> & { separator?: ReactNode },
   ): ReactNode;
@@ -101,56 +145,71 @@ export interface ResolvedMultipleSlot<P extends object> {
 
 export type ResolvedSlots<S extends SlotSchema> = {
   readonly [K in keyof S]: SlotIsMultiple<S[K]> extends true
-    ? ResolvedMultipleSlot<SlotProps<S[K]>>
-    : ResolvedSingleSlot<SlotProps<S[K]>>;
+    ? ResolvedMultipleSlot<SlotOwnProps<S[K]>>
+    : ResolvedSingleSlot<SlotOwnProps<S[K]>>;
 };
 
 export interface CompoundResolution<S extends SlotSchema> {
+  /** Дети, не попавшие ни в один слот. */
   content: ReactNode;
-  contentItems: readonly ReactNode[];
+  hasContent: boolean;
   slots: ResolvedSlots<S>;
 }
 
 export type CompoundRootProps<
   P extends object,
-  R,
   S extends SlotSchema,
+  R = never,
 > = CompoundResolution<S> & {
-  props: Omit<P, "children" | "slots">;
   forwardedRef: ForwardedRef<R>;
+  props: Omit<P, "children" | "slots">;
 };
 
 export type CompoundProps<P extends object, S extends SlotSchema> = Omit<
   P,
   "children" | "slots"
-> &
-  (
-    | { children?: ReactNode; slots?: never }
-    | { children?: ReactNode; slots: CompoundSlotInput<S> }
-  );
-
-type CompoundStatics<S extends SlotSchema> = {
-  readonly [K in keyof S as Capitalize<string & K>]: FC<SlotProps<S[K]>>;
+> & {
+  children?: ReactNode;
+  slots?: CompoundSlotInput<S>;
 };
 
 export type CompoundComponent<
   P extends object,
-  R,
   S extends SlotSchema,
+  R = never,
 > = MemoExoticComponent<
   ForwardRefExoticComponent<
     PropsWithoutRef<CompoundProps<P, S>> & RefAttributes<R>
   >
 > &
   CompoundStatics<S> & {
+    readonly __schema?: S;
     resolveSlots(
-      children: ReactNode,
+      children?: ReactNode,
       slots?: CompoundSlotInput<S>,
     ): CompoundResolution<S>;
   };
 
-export interface CompoundConfig<P extends object, R, S extends SlotSchema> {
+export interface CompoundConfig<
+  P extends object,
+  S extends SlotSchema,
+  R = never,
+> {
   name: string;
-  render: ComponentType<CompoundRootProps<P, R, S>>;
+  /** Корень вызывается функцией, без промежуточного фибера. */
+  render: (props: CompoundRootProps<P, S, R>) => ReactNode;
   slots: S;
 }
+
+/** Опции слота, объявленного через `slot.of` — компонент задан аргументом. */
+export type SlotComponentOptions<
+  C extends ElementType,
+  Multiple extends boolean,
+  Required extends boolean,
+> = Omit<
+  SlotOptions<ComponentProps<C>, Multiple, Required>,
+  "component" | "multiple" | "required"
+> & {
+  multiple?: Multiple;
+  required?: Required;
+};

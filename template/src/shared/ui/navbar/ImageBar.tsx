@@ -1,7 +1,7 @@
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
-import React, { memo } from "react";
-import { ImageProps, StyleSheet, ViewProps } from "react-native";
+import React from "react";
+import { StyleSheet, ViewProps } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -20,80 +20,73 @@ export interface IImageBarProps extends ViewProps {
 }
 
 const imageBarSlots = {
-  image: slot<ImageProps>({ component: Animated.Image }),
+  image: slot.of(Animated.Image, { always: true }),
 };
 
-const ImageBarRoot = memo(
-  ({
-    props,
-    slots,
-    content,
-  }: CompoundRootProps<IImageBarProps, never, typeof imageBarSlots>) => {
-    const {
-      uri,
-      height = 250,
-      activeScrollOpacity = 0.4,
-      safeArea,
-      style,
-      ...rest
-    } = props;
-    const { colors } = useTheme();
-    const { navbarHeight, onLayoutNavBar, transitionY } = useTransition();
-    const insets = useSafeAreaInsets();
-    const { image } = slots;
+const ImageBarRoot = ({
+  props,
+  slots,
+  content,
+}: CompoundRootProps<IImageBarProps, typeof imageBarSlots>) => {
+  const {
+    uri,
+    height = 250,
+    activeScrollOpacity = 0.4,
+    safeArea,
+    style,
+    ...rest
+  } = props;
+  const { colors } = useTheme();
+  const { navbarHeight, onLayoutNavBar, transitionY } = useTransition();
+  const insets = useSafeAreaInsets();
+  const { image } = slots;
 
-    const top = safeArea ? insets.top : 0;
+  const top = safeArea ? insets.top : 0;
 
-    const animatedStyles = useAnimatedStyle(() => {
-      return {
-        height: interpolate(
-          transitionY.value,
-          [0, height - navbarHeight, height - navbarHeight],
-          [height, navbarHeight, navbarHeight],
-        ),
-        opacity: interpolate(
-          transitionY.value,
-          [0, (height - navbarHeight) / 2, height - navbarHeight],
-          [1, 1, activeScrollOpacity],
-          Extrapolation.CLAMP,
-        ),
-      };
-    }, [navbarHeight, activeScrollOpacity]);
+  const animatedStyles = useAnimatedStyle(() => {
+    return {
+      height: interpolate(
+        transitionY.value,
+        [0, height - navbarHeight, height - navbarHeight],
+        [height, navbarHeight, navbarHeight],
+      ),
+      opacity: interpolate(
+        transitionY.value,
+        [0, (height - navbarHeight) / 2, height - navbarHeight],
+        [1, 1, activeScrollOpacity],
+        Extrapolation.CLAMP,
+      ),
+    };
+  }, [navbarHeight, activeScrollOpacity]);
 
-    const backgroundColor = colors.background;
+  const backgroundColor = colors.background;
 
-    return (
-      <Animated.View
-        onLayout={onLayoutNavBar}
-        style={[
-          StyleSheet.absoluteFill,
-          SS.containerStyle,
-          {
-            backgroundColor,
-            paddingTop: top,
+  return (
+    <Animated.View
+      onLayout={onLayoutNavBar}
+      style={[
+        StyleSheet.absoluteFill,
+        SS.containerStyle,
+        {
+          backgroundColor,
+          paddingTop: top,
+        },
+      ]}
+      {...rest}
+    >
+      {(!!uri || image.present) &&
+        image.render({
+          defaults: {
+            source: { uri },
+            style: [StyleSheet.absoluteFill, SS.image, animatedStyles],
           },
-        ]}
-        {...rest}
-      >
-        {(uri || image.present) && (
-          <Animated.Image
-            source={{ uri }}
-            {...image.props}
-            style={[
-              StyleSheet.absoluteFill,
-              SS.image,
-              animatedStyles,
-              image.props?.style,
-            ]}
-          />
-        )}
-        {content}
-      </Animated.View>
-    );
-  },
-);
+        })}
+      {content}
+    </Animated.View>
+  );
+};
 
-export const ImageBar = createCompound<IImageBarProps, never>()({
+export const ImageBar = createCompound<IImageBarProps>()({
   name: "ImageBar",
   render: ImageBarRoot,
   slots: imageBarSlots,

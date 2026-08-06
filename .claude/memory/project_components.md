@@ -6,16 +6,27 @@ type: project
 
 Весь UI — в `src/shared/ui/` (кроме `TabBar` в `widgets/app-shell/`):
 layout, navbar (compound: BackButton/Title/Subtitle/Right...), button, input (+TextField),
-bottom-sheet (@gorhom), dialog (Dialog.Host в App.tsx), text, icon (lucide), picker (нативный
+bottom-sheet (@gorhom), balanced-row (три зоны, боковые уравнены по ширине — центр строго по
+центру; используют Navbar и BottomSheetHeader), dialog (Dialog.Host в App.tsx), text, icon (lucide), picker (нативный
 WheelPicker), chart (Skia), carousel, flex-view, context-menu-view (JS-порт на Reanimated,
 синглтон Host в App.tsx), image-viewing, keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable, field, image, scroll-view, switch, tabs, ticket, title, touchable.
 
-**Compound-компоненты — через slots**: схема `slot<Props>()` + `createCompound<P, Ref>()({ name,
-render, slots })` (`shared/lib/slots/`: `slots.ts` — публичный рантайм, `slot-runtime.ts` —
-внутренности, `resolve-children.ts`/`resolve-object.ts` — две стратегии разбора,
-`slot.types.ts` — типы). Слоты распознаются по метаданным владельца, не по имени; корень
-получает `props/slots/content/contentItems/forwardedRef`. Пример — `shared/ui/navbar/Navbar.tsx`.
+**Compound-компоненты — через slots**: схема `slot.of(Component)` / `slot<Props>()` +
+`createCompound<P, Ref>()({ name, render, slots })`. Модули `shared/lib/slots/`: `slot.ts`
+(декларация), `slot-entries.ts`, `slot-markers.ts`, `slot-handle.ts`, `slot-merge.ts`,
+`slot-meta.ts`, `slot-validate.ts` (проверки только под `__DEV__`),
+`resolve-children.ts`/`resolve-object.ts` (стратегии), `create-compound.ts`, `slot.types.ts`.
+Слоты распознаются по метаданным владельца, не по имени; корень получает
+`props/slots/content/hasContent/forwardedRef` и вызывается функцией — лишнего фибера нет.
+Слот рендерится через `render({ defaults, inject, fallback })`: инъекция props владельца
+идёт поверх props потребителя по политике `mergeSlotProps` (`style` склеивается, `on*`
+вызываются оба). `children` слота может быть render-функцией — свой рендер получает те же
+слитые props. Слот, чей компонент сам compound, наследует его статики
+(`BottomSheet.Footer.PrimaryButton`) и настраивается вложенным объектом
+`slots={{ footer: { slots: { primaryButton: {...} } } }}`. Режимы совмещаются: `slots` — база,
+JSX-маркеры перекрывают. Примеры — `shared/ui/navbar/Navbar.tsx`,
+`shared/ui/bottom-sheet/`. Детали — `shared/lib/slots/README.md`.
 
 Chat: `widgets/chat-room/` — `ChatRoom.tsx` (мок-данные, `useChatRoomMock`).
 ChatView/InputBar — `shared/ui/chat-view`, `shared/ui/input-bar` (iOS → native, иначе JS-порты).

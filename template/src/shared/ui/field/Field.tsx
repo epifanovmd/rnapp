@@ -1,8 +1,8 @@
-import React, { memo } from "react";
+import React from "react";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { Col, Row } from "../flex-view";
-import { ITextProps, Text } from "../text";
+import { Text } from "../text";
 import { ITouchableProps, Touchable } from "../touchable";
 
 export interface FieldProps extends ITouchableProps {
@@ -12,61 +12,53 @@ export interface FieldProps extends ITouchableProps {
 }
 
 const fieldSlots = {
-  label: slot<ITextProps>(),
-  description: slot<ITextProps>(),
-  error: slot<ITextProps>(),
+  label: slot.of(Text, {
+    always: true,
+    defaultProps: { mb: 4, fontSize: 11, ellipsizeMode: "tail" },
+  }),
+  description: slot.of(Text, { always: true, defaultProps: { mt: 2 } }),
+  error: slot.of(Text, {
+    always: true,
+    defaultProps: { mt: 2, color: "red500" },
+  }),
 };
 
-const FieldRoot = memo(
-  ({
-    props,
-    slots,
-    content,
-  }: CompoundRootProps<FieldProps, never, typeof fieldSlots>) => {
-    const {
-      label: _label,
-      error: _error,
-      description: _description,
-      ...rest
-    } = props;
-    const { label, description, error } = slots;
+const FieldRoot = ({
+  props,
+  slots,
+  content,
+}: CompoundRootProps<FieldProps, typeof fieldSlots>) => {
+  const {
+    label: labelProp,
+    error: errorProp,
+    description: descriptionProp,
+    ...rest
+  } = props;
+  const { label, description, error } = slots;
 
-    const labelText = label.props?.text || _label;
-    const errorText = (error.props?.text || _error || "").trim();
-    const descriptionText = (
-      description.props?.text ||
-      _description ||
-      ""
-    ).trim();
+  const labelText = label.props?.text || labelProp;
+  const errorText = (error.props?.text || errorProp || "").trim();
+  const descriptionText = (
+    description.props?.text ||
+    descriptionProp ||
+    ""
+  ).trim();
 
-    return (
-      <Touchable flexShrink={1} {...rest}>
-        <Col flexGrow={1} flexShrink={1}>
-          {!!labelText && (
-            <Text
-              mb={4}
-              fontSize={11}
-              ellipsizeMode={"tail"}
-              text={labelText}
-              {...label.props}
-            />
-          )}
-          <Row>{content}</Row>
-        </Col>
-        {!!(errorText || descriptionText) && (
-          <Text
-            mt={2}
-            color={errorText ? "red500" : undefined}
-            text={errorText || descriptionText}
-            {...(errorText ? error.props : description.props)}
-          />
-        )}
-      </Touchable>
-    );
-  },
-);
+  return (
+    <Touchable flexShrink={1} {...rest}>
+      <Col flexGrow={1} flexShrink={1}>
+        {!!labelText && label.render({ defaults: { text: labelText } })}
+        <Row>{content}</Row>
+      </Col>
+      {errorText
+        ? error.render({ defaults: { text: errorText } })
+        : !!descriptionText &&
+          description.render({ defaults: { text: descriptionText } })}
+    </Touchable>
+  );
+};
 
-export const Field = createCompound<FieldProps, never>()({
+export const Field = createCompound<FieldProps>()({
   name: "Field",
   render: FieldRoot,
   slots: fieldSlots,

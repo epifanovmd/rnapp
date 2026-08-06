@@ -1,2 +1,4 @@
+export * from "./create-compound";
+export * from "./slot";
 export * from "./slot.types";
-export * from "./slots";
+export * from "./slot-merge";

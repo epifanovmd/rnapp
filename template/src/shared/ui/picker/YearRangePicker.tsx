@@ -14,6 +14,13 @@ const years = Array.from({ length: count }, (_, i) => {
 });
 
 export const YearRangePicker: FC<PropsWithChildren<YearRangePickerProps>> =
-  memo(props => {
-    return <RangePicker<number> {...props} items={years} reverse={true} />;
+  memo(({ title = "Годы", ...props }) => {
+    return (
+      <RangePicker<number>
+        title={title}
+        {...props}
+        items={years}
+        reverse={true}
+      />
+    );
   });

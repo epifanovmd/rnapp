@@ -1,5 +1,6 @@
 export * from "./actions";
 export * from "./animated-refreshing";
+export * from "./balanced-row";
 export * from "./bottom-sheet";
 export * from "./button";
 export * from "./carousel";

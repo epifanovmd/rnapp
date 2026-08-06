@@ -1,4 +1,3 @@
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
   JSX,
   memo,
@@ -13,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   BottomSheet,
+  TBottomSheetHeaderProps,
   TBottomSheetProps,
   useBottomSheetRef,
 } from "../bottom-sheet";
@@ -34,12 +34,14 @@ export interface RangePickerProps<
   onChange?: (range: [T, T]) => void;
   emptyLabel?: [string, string];
   reverse?: boolean;
+  /** Заголовок шапки листа. */
+  title?: string;
 
   pickerProps?: Omit<PickerProps, "onChange">;
   bottomSheetProps?: TBottomSheetProps;
   containerProps?: ViewProps;
+  headerProps?: TBottomSheetHeaderProps;
 
-  renderHeader?: (onClose: () => void) => JSX.Element | null;
   renderFooter?: (params: {
     onReset: () => void;
     onApply: () => void;
@@ -61,11 +63,12 @@ export const RangePicker: RangePicker = memo(
     onChange,
     emptyLabel = ["от", "до"],
     reverse = false,
+    title = "Диапазон",
     children,
     pickerProps,
     bottomSheetProps,
     containerProps,
-    renderHeader,
+    headerProps,
     renderFooter,
     ...rest
   }: PropsWithChildren<RangePickerProps<any>>) => {
@@ -149,19 +152,15 @@ export const RangePicker: RangePicker = memo(
       modalRef.current?.present();
     }, [modalRef, onUpdate]);
 
-    const onClose = useCallback(() => {
-      modalRef.current?.close();
-    }, [modalRef]);
-
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheet.Content {...containerProps}>
-            {renderHeader?.(onClose)}
+          <BottomSheet.Header centered={true} label={title} {...headerProps} />
 
-            <Row pv={16} ph={8} justifyContent={"space-around"}>
+          <BottomSheet.Content {...containerProps}>
+            <Row pb={16} ph={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker
                   hasCurtain={false}

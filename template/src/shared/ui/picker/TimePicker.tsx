@@ -1,4 +1,3 @@
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import React, {
   FC,
   JSX,
@@ -14,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   BottomSheet,
+  TBottomSheetHeaderProps,
   TBottomSheetProps,
   useBottomSheetRef,
 } from "../bottom-sheet";
@@ -30,12 +30,14 @@ import {
 export interface TimePickerProps extends ITouchableProps {
   time?: string;
   onChange?: (time: string) => void;
+  /** Заголовок шапки листа. */
+  title?: string;
 
   pickerProps?: PickerProps;
   bottomSheetProps?: TBottomSheetProps;
   containerProps?: ViewProps;
+  headerProps?: TBottomSheetHeaderProps;
 
-  renderHeader?: (onClose: () => void) => JSX.Element | null;
   renderFooter?: (params: {
     onReset: () => void;
     onApply: () => void;
@@ -61,11 +63,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
   ({
     time,
     onChange,
+    title = "Время",
     children,
     pickerProps,
     bottomSheetProps,
     containerProps,
-    renderHeader,
+    headerProps,
     renderFooter,
     ...rest
   }) => {
@@ -108,22 +111,22 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
 
     const handleFirst = useCallback(
       ({ value }: PickerChangeItem) => {
-        if (onChange && !renderHeader) {
+        if (onChange && !renderFooter) {
           onChange(`${value}:${currentSecondItem}`);
         }
         setCurrentFirstItem(value as string);
       },
-      [currentSecondItem, onChange, renderHeader],
+      [currentSecondItem, onChange, renderFooter],
     );
 
     const handleSecond = useCallback(
       ({ value }: PickerChangeItem) => {
-        if (onChange && !renderHeader) {
+        if (onChange && !renderFooter) {
           onChange(`${currentFirstItem}:${value}`);
         }
         setCurrentSecondItem(value as string);
       },
-      [currentFirstItem, onChange, renderHeader],
+      [currentFirstItem, onChange, renderFooter],
     );
 
     const renderFirstItems = useMemo(
@@ -172,19 +175,15 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       [currentSecondItem, handleSecond, renderSecondItems],
     );
 
-    const onClose = useCallback(() => {
-      modalRef.current?.close();
-    }, [modalRef]);
-
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheet.Content {...containerProps}>
-            {renderHeader?.(onClose)}
+          <BottomSheet.Header centered={true} label={title} {...headerProps} />
 
-            <Row pa={8} justifyContent={"space-around"}>
+          <BottomSheet.Content {...containerProps}>
+            <Row ph={8} pb={8} justifyContent={"space-around"}>
               <Col flexGrow={1} flexBasis={0} pr={8}>
                 <Picker {...pickerProps}>{first}</Picker>
               </Col>

@@ -1,79 +1,95 @@
-import React, { FC, PropsWithChildren } from "react";
-import {
-  ColorValue,
-  StyleProp,
-  StyleSheet,
-  TextStyle,
-  TouchableOpacity,
-  TouchableOpacityProps,
-  ViewProps,
-  ViewStyle,
-} from "react-native";
+import { useBottomSheet } from "@gorhom/bottom-sheet";
+import React, { useCallback } from "react";
+import { StyleSheet, TouchableOpacity, ViewProps } from "react-native";
 
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { BalancedRow } from "../balanced-row";
 import { FlexProps, Row } from "../flex-view";
-import { Icon } from "../icon";
+import { Icon, IIconProps } from "../icon";
 import { Text } from "../text";
 
 const hitSlop = { top: 16, right: 16, bottom: 16, left: 16 };
 
 export interface BottomSheetHeaderProps extends FlexProps, ViewProps {
+  /** Заголовок строго по центру: слева резервируется ширина правой области. */
+  centered?: boolean;
   label?: string;
-  textStyle?: StyleProp<TextStyle>;
-  touchableStyle?: StyleProp<ViewStyle>;
-  touchableProps?: TouchableOpacityProps;
+  /** По умолчанию закрывает лист, в котором находится шапка. */
   onClose?: () => void;
-  iconColor?: ColorValue;
-  color?: ColorValue;
-  renderCloseIcon?: (fill?: ColorValue) => React.JSX.Element | null;
 }
 
-export const BottomSheetHeader: FC<
-  PropsWithChildren<BottomSheetHeaderProps>
-> = ({
-  label,
-  textStyle,
-  touchableStyle,
-  touchableProps,
-  onClose,
-  iconColor,
-  color,
-  renderCloseIcon = (fill?: ColorValue) => (
-    <Icon name={"closeCircle"} fill={fill} />
-  ),
-  style,
-  children,
-  ...rest
-}) => {
-  return (
-    <Row style={[s.viewStyle, style]} {...rest}>
-      {children ?? (
-        <Text textStyle={"Title_L"} style={[{ color }, textStyle]}>
-          {label}
-        </Text>
-      )}
-      {!!onClose && (
-        <TouchableOpacity
-          {...touchableProps}
-          hitSlop={hitSlop}
-          style={[s.touchableStyle, touchableStyle, touchableProps?.style]}
-          onPress={onClose}
-        >
-          {renderCloseIcon(
-            color ?? iconColor ?? StyleSheet.flatten(textStyle)?.color,
-          )}
-        </TouchableOpacity>
-      )}
+const bottomSheetHeaderSlots = {
+  title: slot.of(Text, {
+    always: true,
+    defaultProps: { textStyle: "Title_L" },
+  }),
+  closeButton: slot.of(TouchableOpacity, {
+    always: true,
+    defaultProps: { hitSlop },
+  }),
+  // Partial: `name` приходит из defaultProps, снаружи его указывать не нужно.
+  closeIcon: slot<Partial<IIconProps>>({
+    always: true,
+    component: Icon,
+    defaultProps: { name: "closeCircle" },
+  }),
+};
+
+const BottomSheetHeaderRoot = ({
+  props,
+  slots,
+  content,
+  hasContent,
+}: CompoundRootProps<
+  BottomSheetHeaderProps,
+  typeof bottomSheetHeaderSlots
+>) => {
+  const { centered, label, onClose, style, ...rest } = props;
+  const { closeButton, closeIcon, title } = slots;
+  const { close: closeSheet } = useBottomSheet();
+
+  // Без аргументов: обработчик нажатия не должен утечь в animationConfigs.
+  const onPress = useCallback(() => {
+    if (onClose) {
+      onClose();
+    } else {
+      closeSheet();
+    }
+  }, [closeSheet, onClose]);
+
+  const heading = hasContent
+    ? content
+    : title.render({ defaults: { text: label } });
+
+  const close = closeButton.render({
+    defaults: { children: closeIcon.render() },
+    inject: { onPress, style: centered ? undefined : SS.push },
+  });
+
+  return centered ? (
+    <BalancedRow style={[SS.container, style]} rightContent={close} {...rest}>
+      {heading}
+    </BalancedRow>
+  ) : (
+    <Row style={[SS.container, style]} {...rest}>
+      {heading}
+      {close}
     </Row>
   );
 };
 
-const s = StyleSheet.create({
-  viewStyle: {
+export const BottomSheetHeader = createCompound<BottomSheetHeaderProps>()({
+  name: "BottomSheetHeader",
+  render: BottomSheetHeaderRoot,
+  slots: bottomSheetHeaderSlots,
+});
+
+const SS = StyleSheet.create({
+  container: {
     minHeight: 24,
-    flexDirection: "row",
     alignItems: "center",
   },
-  touchableStyle: {
+  push: {
     marginLeft: "auto",
   },
 });

@@ -1,37 +1,26 @@
-import type { ReactNode } from "react";
-
-import type {
-  AnyProps,
-  SlotEntry,
-  SlotResolution,
-  SlotValue,
-  SlotValues,
-} from "./slot-runtime";
-import { eachChild } from "./slot-runtime";
+import type { AnyProps, SlotEntry, SlotValue, SlotValues } from "./slot-meta";
 
 /**
- * Object-стратегия: значения берутся из prop `slots`, дети целиком уходят в
- * контент — маркеры среди них не ищутся, обход детей не рекурсивный по слотам.
+ * Object-стратегия: значения берутся из prop `slots` и служат базой — значения
+ * из детей их перекрывают. Дети здесь не обходятся.
  */
 export const resolveFromObject = (
-  children: ReactNode,
-  objectSlots: Record<string, unknown>,
+  input: Record<string, unknown>,
   entries: readonly SlotEntry[],
-): SlotResolution => {
+): SlotValues => {
   const values: SlotValues = {};
-  const contentItems: ReactNode[] = [];
 
   for (const entry of entries) {
-    const input = objectSlots[entry.key];
+    const value = input[entry.key];
 
-    if (input !== undefined) {
-      values[entry.key] = entry.multiple
-        ? (input as SlotValue[])
-        : { props: input as AnyProps };
+    if (value === undefined) {
+      continue;
     }
+
+    values[entry.key] = entry.multiple
+      ? (value as SlotValue[])
+      : { props: value as AnyProps };
   }
 
-  eachChild(children, node => contentItems.push(node));
-
-  return { contentItems, values };
+  return values;
 };

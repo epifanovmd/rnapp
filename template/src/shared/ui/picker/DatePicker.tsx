@@ -1,4 +1,3 @@
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import dayjs from "dayjs";
 import localeData from "dayjs/plugin/localeData";
 import React, {
@@ -12,10 +11,10 @@ import React, {
   useState,
 } from "react";
 import { ViewProps } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
   BottomSheet,
+  TBottomSheetHeaderProps,
   TBottomSheetProps,
   useBottomSheetRef,
 } from "../bottom-sheet";
@@ -65,12 +64,14 @@ const generateDays = (month: number, year: number) => {
 export interface DatePickerProps extends ITouchableProps {
   date?: dayjs.Dayjs | null;
   onChange: (date: dayjs.Dayjs) => void;
+  /** Заголовок шапки листа. */
+  title?: string;
 
   pickerProps?: PickerProps;
   bottomSheetProps?: TBottomSheetProps;
   containerProps?: ViewProps;
+  headerProps?: TBottomSheetHeaderProps;
 
-  renderHeader?: (onClose: () => void) => JSX.Element | null;
   renderFooter?: (params: {
     onReset: () => void;
     onApply: () => void;
@@ -81,10 +82,11 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   ({
     date,
     onChange,
+    title = "Дата",
     pickerProps,
     bottomSheetProps,
     containerProps,
-    renderHeader,
+    headerProps,
     renderFooter,
     children,
     ...rest
@@ -210,10 +212,6 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       [],
     );
 
-    const onClose = useCallback(() => {
-      modalRef.current?.close();
-    }, [modalRef]);
-
     const handleOpen = useCallback(() => {
       onReset();
       modalRef.current?.present();
@@ -224,10 +222,10 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         {children}
 
         <BottomSheet ref={modalRef} {...bottomSheetProps}>
-          <BottomSheet.Content {...containerProps}>
-            {renderHeader?.(onClose)}
+          <BottomSheet.Header centered={true} label={title} {...headerProps} />
 
-            <Row pa={8} justifyContent={"space-between"}>
+          <BottomSheet.Content {...containerProps}>
+            <Row ph={8} pb={8} justifyContent={"space-between"}>
               <Col flexGrow={1} flexBasis={0} minWidth={20}>
                 <Picker {...pickerProps}>
                   <PickerColumn selectedValue={day} onChange={handleDay}>
