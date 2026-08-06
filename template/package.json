@@ -6,6 +6,7 @@
   "scripts": {
     "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && pod install && cd ..",
     "generate:orval": "orval --config ./orval.config.ts",
+    "splash": "node scripts/splash/generate.mjs",
     "start": "react-native start --reset-cache",
     "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
     "android:Dev-Release": "react-native run-android --mode=developmentRelease",
@@ -59,7 +60,6 @@
     "react-native-audio-api": "0.13.2",
     "react-native-biometrics": "^3.0.1",
     "react-native-blob-util": "^0.24.6",
-    "react-native-bootsplash": "^7.3.2",
     "react-native-config": "^1.6.1",
     "react-native-device-info": "^15.0.2",
     "react-native-fast-image": "^8.6.3",
@@ -113,6 +113,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.2.0",
     "prettier": "^3.5.3",
+    "sharp": "^0.35.3",
     "typescript": "^5.9.3"
   },
   "engines": {

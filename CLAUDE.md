@@ -68,6 +68,8 @@ ChatView/InputBar/ContextMenu — iOS-бриджи к поду `IOSChatView` (si
 `../../../rn-chat-view`). Android/non-iOS — JS-порты (`JsChatView`/`JsInputBar`/`JsContextMenuView`).
 WheelPicker (`RNWheelPicker`) — на обеих платформах, единый API из одной codegen-спеки:
 iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
+AppSplash — свой splash-экран на обеих платформах, ассеты генерируются `npm run splash`
+из `splash.config.mjs`.
 
 `JsChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
 `stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,

@@ -2443,28 +2443,6 @@ PODS:
     - ReactNativeDependencies
     - RNWorklets
     - Yoga
-  - RNBootSplash (7.3.2):
-    - hermes-engine
-    - RCTRequired
-    - RCTTypeSafety
-    - React-Core
-    - React-Core-prebuilt
-    - React-debug
-    - React-Fabric
-    - React-featureflags
-    - React-graphics
-    - React-ImageManager
-    - React-jsi
-    - React-NativeModulesApple
-    - React-RCTFabric
-    - React-renderercss
-    - React-rendererdebug
-    - React-utils
-    - ReactCodegen
-    - ReactCommon/turbomodule/bridging
-    - ReactCommon/turbomodule/core
-    - ReactNativeDependencies
-    - Yoga
   - RNDeviceInfo (15.0.2):
     - React-Core
   - RNFastImage (8.6.3):
@@ -2910,7 +2888,6 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeDependencies (from `../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec`)
   - RNAudioAPI (from `../node_modules/react-native-audio-api`)
-  - RNBootSplash (from `../node_modules/react-native-bootsplash`)
   - RNDeviceInfo (from `../node_modules/react-native-device-info`)
   - RNFastImage (from `../node_modules/react-native-fast-image`)
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
@@ -3129,8 +3106,6 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/react-native/third-party-podspecs/ReactNativeDependencies.podspec"
   RNAudioAPI:
     :path: "../node_modules/react-native-audio-api"
-  RNBootSplash:
-    :path: "../node_modules/react-native-bootsplash"
   RNDeviceInfo:
     :path: "../node_modules/react-native-device-info"
   RNFastImage:
@@ -3258,11 +3233,10 @@ SPEC CHECKSUMS:
   React-viewtransitionnativemodule: 6c82bccff3c5649a27134b660bfe7106f741b1f8
   React-webperformancenativemodule: f07a77f0b2407765f3b4e1e71bcb421093ccd35f
   ReactAppDependencyProvider: dcdd0e1b9559a6d8d8aea05286f4ed085091978e
-  ReactCodegen: 873ef47fdf9cea3d86af27a88c4e8331b11140e4
+  ReactCodegen: f58748d690cea367510b66d7a72289f8a8ee1a3d
   ReactCommon: d5c1bb4427bf51c443de5926aac332c89ddd9363
   ReactNativeDependencies: fa0a54b3f5319ae0e3b9aff32bfee7a424b88e66
   RNAudioAPI: 2b32302dd10791682b13b6552e6a71d0d234b0c3
-  RNBootSplash: 896e77f6b01c459249d3259c052ac97a2403a576
   RNDeviceInfo: 4c852998208b60dc192ae3529e5867817719ad1e
   RNFastImage: 462a183c4b0b6b26fdfd639e1ed6ba37536c3b87
   RNGestureHandler: f07022ab7ca42692c1cd3364f4aab2eebe66dc0d

@@ -31,7 +31,9 @@
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="@string/DEEPLINK_BASE_URL" android:host="*" />
+        <data
+          android:scheme="@string/DEEPLINK_BASE_URL"
+          android:host="*" />
       </intent-filter>
     </activity>
   </application>

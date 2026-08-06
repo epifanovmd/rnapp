@@ -11,11 +11,11 @@ import {
   StackNavigation,
   StackScreenOption,
 } from "@shared/lib/navigation";
+import { AppSplash } from "@shared/lib/splash";
 import { Navbar, SwitchTheme } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { forwardRef, useCallback, useMemo } from "react";
 import { View } from "react-native";
-import BootSplash from "react-native-bootsplash";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
 
 import { linking } from "./App.linking";
@@ -73,7 +73,7 @@ export const AppNavigator = observer(
 
         setTimeout(() => {
           trigger(HapticFeedbackTypes.impactLight);
-          BootSplash.hide({ fade: true });
+          AppSplash.hide({ fade: true });
         }, 500);
       }, [authorization, available, authStore]);
 

@@ -2,7 +2,6 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
-import RNBootSplash
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -30,6 +29,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
+    if let window {
+      AppSplash.show(storyboard: "Splash", over: window)
+    }
+
     return true
   }
 
@@ -54,9 +57,7 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
   override func customize(_ rootView: RCTRootView) {
     super.customize(rootView)
-     RNBootSplash.initWithStoryboard("BootSplash", rootView: rootView)
   }
-
 
   override func bundleURL() -> URL? {
 #if DEBUG

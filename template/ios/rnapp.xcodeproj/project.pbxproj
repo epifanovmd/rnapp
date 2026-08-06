@@ -23,7 +23,7 @@
 		5371459C5F8B543F878ADAE4 /* Pods_rnapp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CC97F6DEBEB5E6B20C93707 /* Pods_rnapp.framework */; };
 		6B8EDE08DB6C47E9A3C312B9 /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC6B77CA1F5423B9554D5D7 /* Colors.xcassets */; };
 		CC603F782703C362796B786E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A42C0DDD9A39810F081B5EB6 /* PrivacyInfo.xcprivacy */; };
-		F30E838A41764B0FB4F0A4CF /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC02A0B7016748448EED9C9D /* BootSplash.storyboard */; };
+		F30E838A41764B0FB4F0A4CF /* Splash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC02A0B7016748448EED9C9D /* Splash.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,7 +47,7 @@
 		6FC6B77CA1F5423B9554D5D7 /* Colors.xcassets */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = rnapp/Colors.xcassets; sourceTree = "<group>"; };
 		9553AEA99DF4D58E8AAA7053 /* Pods-rnapp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-rnapp.release.xcconfig"; path = "Target Support Files/Pods-rnapp/Pods-rnapp.release.xcconfig"; sourceTree = "<group>"; };
 		A42C0DDD9A39810F081B5EB6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = rnapp/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		BC02A0B7016748448EED9C9D /* BootSplash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = BootSplash.storyboard; path = rnapp/BootSplash.storyboard; sourceTree = "<group>"; };
+		BC02A0B7016748448EED9C9D /* Splash.storyboard */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Splash.storyboard; path = rnapp/Splash.storyboard; sourceTree = "<group>"; };
 		E82E03AC1EB355290C35125E /* Pods-rnapp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-rnapp.debug.xcconfig"; path = "Target Support Files/Pods-rnapp/Pods-rnapp.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -62,6 +62,17 @@
 			explicitFolders = (
 			);
 			path = Picker;
+			sourceTree = "<group>";
+		};
+		1AAPPSPLASH2F00000000001 /* AppSplash */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = AppSplash;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -85,12 +96,13 @@
 				1A9C41292F5AE0B600694F32 /* ContextMenu */,
 				1A8368022F13070100FB3432 /* GoogleService-Info.plist */,
 				1A881F2A2E47D2E80057B776 /* Picker */,
+				1AAPPSPLASH2F00000000001 /* AppSplash */,
 				1A8169D92D8B10590020AC31 /* AppDelegate.swift */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				1AF66A752985C92A00C0291A /* Config.xcconfig */,
 				A42C0DDD9A39810F081B5EB6 /* PrivacyInfo.xcprivacy */,
-				BC02A0B7016748448EED9C9D /* BootSplash.storyboard */,
+				BC02A0B7016748448EED9C9D /* Splash.storyboard */,
 				6FC6B77CA1F5423B9554D5D7 /* Colors.xcassets */,
 				1AC1B12A2D94A0FB001F55D3 /* rnapp-Bridging-Header.h */,
 				1A947D3A2F802EA1001D82F5 /* InputBar */,
@@ -221,6 +233,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				1A881F2A2E47D2E80057B776 /* Picker */,
+				1AAPPSPLASH2F00000000001 /* AppSplash */,
 			);
 			name = rnapp;
 			productName = rnapp;
@@ -266,7 +279,7 @@
 				1AF66A762985C92A00C0291A /* Config.xcconfig in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				CC603F782703C362796B786E /* PrivacyInfo.xcprivacy in Resources */,
-				F30E838A41764B0FB4F0A4CF /* BootSplash.storyboard in Resources */,
+				F30E838A41764B0FB4F0A4CF /* Splash.storyboard in Resources */,
 				6B8EDE08DB6C47E9A3C312B9 /* Colors.xcassets in Resources */,
 				1A8368032F13070100FB3432 /* GoogleService-Info.plist in Resources */,
 			);

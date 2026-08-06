@@ -20,6 +20,15 @@ type: project
   Возможности: `disabled`-элементы с жёстким упором прокрутки (`stopAtDisabled`),
   бесконечная прокрутка (`loop`), события `onChange`/`onScrollStateChange`/`onScroll`,
   команда `scrollToIndex`, стилизация текста, индикатора (`lines|box|fill`) и шторки.
+- **AppSplash** — свой нативный splash-экран (библиотека `react-native-bootsplash` убрана).
+  Android: `com/rnapp/appsplash/` (Kotlin) — тема запуска `BootTheme` (`values/styles.xml` +
+  `values-v31/`), до Android 12 картинку рисует `drawable/splash_compat.xml`, с 12 — системный
+  SplashScreen API; после старта activity поверх окна остаётся `AppSplashView`, он убирается по
+  `hide()` из JS. iOS: `ios/AppSplash/` (Swift) — сториборд `Splash.storyboard` инстанцируется
+  повторно поверх RN-контента. JS: `@shared/lib/splash` → `AppSplash.hide({ fade })`.
+  Ассеты (логотип, бренд, светлая/тёмная темы) генерируются `npm run splash` из
+  `splash.config.mjs` скриптом `scripts/splash/` (sharp): Android — `drawable-*`,
+  `drawable-night-*`, `values*/colors.xml`; iOS — xcassets + сториборд.
 - **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/
   `NativeWheelPickerSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"` —
   одна библиотека на все спеки. Имена файлов фиксированы RN (исключение в `eslint.naming.mjs`).

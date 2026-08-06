@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Splash для Android < 12: повторяет раскладку системного SplashScreen API —
+  иконка в слоте 288dp по центру и бренд 200x80dp у нижнего края.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android" android:opacity="opaque">
+    <item android:gravity="fill">
+        <color android:color="?attr/splashBackground" />
+    </item>
+
+    <item
+        android:drawable="?attr/splashLogo"
+        android:gravity="center"
+        android:width="288dp"
+        android:height="288dp" />
+
+    <item
+        android:drawable="?attr/splashBrand"
+        android:gravity="bottom|center_horizontal"
+        android:width="200dp"
+        android:height="80dp"
+        android:bottom="60dp" />
+</layer-list>

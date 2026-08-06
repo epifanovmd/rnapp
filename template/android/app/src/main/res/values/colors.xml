@@ -1,5 +1,5 @@
 <resources>
     <color name="white">#ffffff</color>
     <color name="transparent">#00000000</color>
-    <color name="bootsplash_background">#b84020</color>
+    <color name="splash_background">#b84020</color>
 </resources>
