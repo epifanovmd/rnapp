@@ -5,11 +5,14 @@ import UIKit
  Splash-экран приложения.
 
  Launch screen iOS исчезает сразу после старта процесса, поэтому его сториборд
- инстанцируется ещё раз и кладётся поверх RN-контента — так картинка держится до
- вызова `hide()` из JS.
+ инстанцируется ещё раз и отдаётся RN как `loadingView`: RN держит его поверх
+ surface и не рисует свой фон, пока splash не убрали вызовом `hide()` из JS.
  */
 @objc(AppSplash)
 public final class AppSplash: NSObject {
+
+  /// Имя цвета в `Colors.xcassets`; совпадает с `ios.names.background` конфига.
+  private static let backgroundColorName = "SplashBackground"
 
   private static let fadeDuration: TimeInterval = 0.25
 
@@ -17,18 +20,23 @@ public final class AppSplash: NSObject {
   private static let launchScreenDelay: TimeInterval = 0.35
 
   private static var splashView: UIView?
+  private static weak var hostRootView: UIView?
   private static var isLaunchScreenGone = false
   private static var pendingHide: (fade: Bool, completion: () -> Void)?
 
   @objc public static var isVisible: Bool { splashView != nil }
 
-  /**
-   Вызывается из `AppDelegate` сразу после старта RN.
+  /// Фон splash: им красится root view, чтобы между системным launch screen и
+  /// первым кадром RN не мелькал `systemBackgroundColor`.
+  @objc public static var backgroundColor: UIColor? {
+    UIColor(named: backgroundColorName)
+  }
 
-   Оверлей вешается на окно, а не на RN root view: тот пересобирает свои
-   сабвью при монтировании surface и перекрыл бы splash своим контентом.
+  /**
+   Вызывается из `customize(_:)` — RN уже создал root view, но окно ещё не
+   показано, поэтому splash попадает в самый первый кадр.
    */
-  @objc public static func show(storyboard name: String, over window: UIWindow) {
+  @objc public static func attach(storyboard name: String, to rootView: UIView) {
     guard !RCTRunningInAppExtension(), splashView == nil else {
       return
     }
@@ -39,18 +47,21 @@ public final class AppSplash: NSObject {
       return
     }
 
-    // Констрейнты, а не frame: на момент вызова bounds окна ещё может быть пустым.
-    view.translatesAutoresizingMaskIntoConstraints = false
-    window.addSubview(view)
+    view.frame = rootView.bounds
+    view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
-    NSLayoutConstraint.activate([
-      view.topAnchor.constraint(equalTo: window.topAnchor),
-      view.bottomAnchor.constraint(equalTo: window.bottomAnchor),
-      view.leadingAnchor.constraint(equalTo: window.leadingAnchor),
-      view.trailingAnchor.constraint(equalTo: window.trailingAnchor),
-    ])
+    // Каст через AnyObject: статический тип хука — legacy RCTRootView, а
+    // фактически на New Architecture приходит surface-hosting root view.
+    if let hosting = rootView as AnyObject as? RCTSurfaceHostingProxyRootView {
+      // Иначе RN уберёт splash сам, как только смонтируется surface.
+      hosting.disableActivityIndicatorAutoHide(true)
+      hosting.loadingView = view
+    } else {
+      rootView.addSubview(view)
+    }
 
     splashView = view
+    hostRootView = rootView
 
     Timer.scheduledTimer(withTimeInterval: launchScreenDelay, repeats: false) { _ in
       isLaunchScreenGone = true
@@ -82,10 +93,8 @@ public final class AppSplash: NSObject {
       return
     }
 
-    splashView = nil
-
     guard fade else {
-      view.removeFromSuperview()
+      detach(view)
       completion()
 
       return
@@ -97,9 +106,18 @@ public final class AppSplash: NSObject {
       options: [.curveEaseOut],
       animations: { view.alpha = 0 },
       completion: { _ in
-        view.removeFromSuperview()
+        detach(view)
         completion()
       },
     )
+  }
+
+  /// RN держит ссылку в `loadingView`, но она non-optional — вью просто
+  /// снимается с иерархии, как это делает и сама библиотека.
+  private static func detach(_ view: UIView) {
+    view.isHidden = true
+    view.removeFromSuperview()
+    splashView = nil
+    hostRootView = nil
   }
 }

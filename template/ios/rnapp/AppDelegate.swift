@@ -29,10 +29,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       launchOptions: launchOptions
     )
 
-    if let window {
-      AppSplash.show(storyboard: "Splash", over: window)
-    }
-
     return true
   }
 
@@ -57,6 +53,8 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
 
   override func customize(_ rootView: RCTRootView) {
     super.customize(rootView)
+    rootView.backgroundColor = AppSplash.backgroundColor
+    AppSplash.attach(storyboard: "Splash", to: rootView)
   }
 
   override func bundleURL() -> URL? {
