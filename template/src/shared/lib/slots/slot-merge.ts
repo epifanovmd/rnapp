@@ -10,11 +10,13 @@ const composeHandlers = (
   };
 };
 
+/** Обработчик события по конвенции RN: `on` + заглавная буква. */
+const HANDLER_KEY = /^on[A-Z]/;
+
 const isHandler = (key: string, prev: unknown, next: unknown) =>
   typeof prev === "function" &&
   typeof next === "function" &&
-  key.charCodeAt(0) === 111 &&
-  key.charCodeAt(1) === 110;
+  HANDLER_KEY.test(key);
 
 /**
  * Политики инъекции props владельца в слот. Применяются к паре
