@@ -1,113 +1,158 @@
-import { stringUnCapitalize } from "@shared/lib/utils/string";
-import * as React from "react";
-import { FC, PropsWithChildren, useMemo } from "react";
+import type {
+  ComponentType,
+  ElementType,
+  ReactElement,
+  ReactNode,
+} from "react";
+import React, { forwardRef, memo, useMemo } from "react";
 
-type ReactComponent<P = any> = (
-  | React.FC<P>
-  | React.FunctionComponent<P>
-  | React.ComponentClass<P>
-  | React.ClassicComponentClass<P>
-) & { readonly $$typeof?: symbol };
+import { resolveFromChildren } from "./resolve-children";
+import { resolveFromObject } from "./resolve-object";
+import type {
+  CompoundComponent,
+  CompoundConfig,
+  CompoundProps,
+  CompoundResolution,
+  CompoundSlotInput,
+  SlotDefinition,
+  SlotOptions,
+  SlotSchema,
+} from "./slot.types";
+import type { SlotMarker, Tagged } from "./slot-runtime";
+import {
+  COMPOUND_META,
+  createSlotEntries,
+  isSameOwner,
+  resolveHandles,
+  SLOT_META,
+} from "./slot-runtime";
 
-type ReactComponentProps<TComponent> =
-  TComponent extends React.FunctionComponent<infer P>
-    ? P
-    : TComponent extends React.ComponentClass<infer P>
-      ? P
-      : never;
+export { mergeSlotProps } from "./slot-runtime";
 
-type SlotsProps<TComponent> = {
-  [
-    K in Exclude<keyof TComponent, keyof ReactComponent> as `${Uncapitalize<
-      string & K
-    >}`
-  ]?: ReactComponentProps<TComponent[K]>;
-};
-
-interface RestChildren {
-  $children?: React.ReactNode[];
+/** Объявление слота: типы props задаются явно, флаги — литералами опций. */
+export function slot<P extends object>(): SlotDefinition<P>;
+export function slot<P extends object>(
+  options: SlotOptions<P>,
+): SlotDefinition<P>;
+export function slot<P extends object>(
+  options: SlotOptions<P, true> & { multiple: true },
+): SlotDefinition<P, true>;
+export function slot<P extends object>(
+  options: SlotOptions<P, false, true> & { required: true },
+): SlotDefinition<P, false, true>;
+export function slot<P extends object>(
+  options: SlotOptions<P, true, true> & { multiple: true; required: true },
+): SlotDefinition<P, true, true>;
+export function slot<P extends object>(
+  options: SlotOptions<P, boolean, boolean> = {},
+): SlotDefinition<P, boolean, boolean> {
+  return options as SlotDefinition<P, boolean, boolean>;
 }
 
-export type SlotType<P extends {}> = React.ComponentType<PropsWithChildren<P>>;
-
-const keyIsSlot = (key: string) => {
-  return (
-    new RegExp(/^[A-Za-z]$/).test(key[0]) && key[0] === key[0].toUpperCase()
-  );
-};
-
-export const createSlot = <P extends {}, ST extends SlotType<P> = SlotType<P>>(
-  name: string,
-  Slot: ST = (({ children }) => children ?? null) as ST,
-): ST => {
-  Slot.displayName = name;
-
-  return Slot;
-};
-
-export function getSlotsProps<
-  TComponent extends ReactComponent & {
-    [key in keyof Omit<TComponent, keyof ReactComponent>]: SlotType<any>;
-  },
->(
-  Component: TComponent,
-  children: React.ReactNode | React.ReactNode[],
-): SlotsProps<TComponent> & RestChildren {
-  const result: SlotsProps<TComponent> & RestChildren = {};
-  const tmp: any = {};
-  const $children: React.ReactNode[] = [];
-
-  for (const child of React.Children.toArray(children)) {
-    let isCompound = false;
-
-    if (React.isValidElement(child) && child.type) {
-      const displayName = (child.type as FC).displayName;
-
-      if (displayName) {
-        if (tmp[displayName]) {
-          throw new Error(
-            `Duplicate slot detected - ${Component.name}.${displayName}`,
-          );
-        }
-        tmp[displayName] = (child.type as FC).displayName;
-      }
-
-      const keys = Object.keys(Component) as (keyof typeof Component &
-        string)[];
-
-      for (const key of keys) {
-        if (keyIsSlot(key)) {
-          if (
-            child.type === Component[key] ||
-            (child.type as FC)?.displayName === Component[key]?.displayName
-          ) {
-            (result as any)[stringUnCapitalize(key)] = child.props;
-            isCompound = true;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!isCompound) {
-      $children.push(child);
-    }
+/** Принадлежит ли узел слоту (опционально — слоту конкретного компонента). */
+export const isSlotElement = (
+  node: ReactNode,
+  compound?: ElementType,
+): node is ReactElement => {
+  if (!React.isValidElement(node)) {
+    return false;
   }
 
-  return { ...result, $children };
-}
+  const meta = (node.type as Tagged)[SLOT_META];
+  const compoundMeta = (compound as Tagged | undefined)?.[COMPOUND_META];
 
-export function useSlotProps<
-  TComponent extends ReactComponent & {
-    [key in keyof Omit<TComponent, keyof ReactComponent>]: SlotType<any>;
-  },
->(
-  Component: TComponent,
-  children: React.ReactNode | React.ReactNode[],
-): SlotsProps<TComponent> & RestChildren {
-  return useMemo(
-    () => getSlotsProps(Component, children),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [children],
+  return (
+    !!meta &&
+    (!compoundMeta || isSameOwner(compoundMeta.owner, compoundMeta.name, meta))
   );
-}
+};
+
+/**
+ * Создаёт compound-компонент: слоты объявляются схемой, распознаются по
+ * метаданным владельца (не по имени) и резолвятся за один проход по детям.
+ */
+export const createCompound =
+  <P extends object, R = unknown>() =>
+  <const S extends SlotSchema>(
+    config: CompoundConfig<P, R, S>,
+  ): CompoundComponent<P, R, S> => {
+    const owner = Symbol(config.name);
+    const entries = createSlotEntries(config.slots);
+    const statics: Record<string, SlotMarker> = {};
+
+    for (const entry of entries) {
+      const { name } = entry;
+
+      if (statics[name]) {
+        throw new Error(
+          `${config.name} declares more than one slot named "${name}".`,
+        );
+      }
+
+      const Marker = (() => {
+        throw new Error(
+          `${config.name}.${name} cannot be rendered standalone. ` +
+            `Use it as a direct child of ${config.name}.`,
+        );
+      }) as unknown as SlotMarker;
+
+      Marker.displayName = `${config.name}.${name}`;
+      Marker[SLOT_META] = { entry, owner, ownerName: config.name };
+      statics[name] = Marker;
+    }
+
+    const resolveSlots = (
+      children: ReactNode,
+      objectSlots?: CompoundSlotInput<S>,
+    ): CompoundResolution<S> => {
+      const { contentItems, values } = objectSlots
+        ? resolveFromObject(
+            children,
+            objectSlots as Record<string, unknown>,
+            entries,
+          )
+        : resolveFromChildren(children, owner, config.name, entries);
+
+      return {
+        content: contentItems.length > 0 ? contentItems : undefined,
+        contentItems,
+        slots: resolveHandles<S>(config.name, entries, values),
+      };
+    };
+
+    const CompoundImpl = forwardRef<R, CompoundProps<P, S>>(
+      (publicProps, forwardedRef) => {
+        const {
+          children,
+          slots: objectSlots,
+          ...props
+        } = publicProps as unknown as CompoundProps<P, S> & {
+          children?: ReactNode;
+          slots?: CompoundSlotInput<S>;
+        };
+        const resolved = useMemo(
+          () => resolveSlots(children, objectSlots),
+          [children, objectSlots],
+        );
+
+        return React.createElement(config.render as ComponentType<any>, {
+          content: resolved.content,
+          contentItems: resolved.contentItems,
+          forwardedRef,
+          props,
+          slots: resolved.slots,
+        });
+      },
+    );
+
+    CompoundImpl.displayName = config.name;
+
+    const Compound = memo(CompoundImpl);
+
+    Compound.displayName = config.name;
+
+    return Object.assign(Compound, statics, {
+      [COMPOUND_META]: { name: config.name, owner },
+      resolveSlots,
+    }) as unknown as CompoundComponent<P, R, S>;
+  };

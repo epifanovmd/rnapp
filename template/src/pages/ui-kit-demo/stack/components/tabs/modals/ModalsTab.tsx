@@ -2,7 +2,6 @@ import { TabProps } from "@shared/lib/navigation";
 import { useTransition } from "@shared/lib/transition";
 import {
   BottomSheet,
-  BottomSheetFooter,
   Button,
   Col,
   Dialog,
@@ -87,9 +86,8 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
 
       <BottomSheet
         ref={modalRefScroll}
-        snapPoints={[200, "80%"]}
-        enableDynamicSizing={false}
-        maxDynamicContentSize={300}
+        snapPoints={[300, 500]}
+        maxDynamicContentSize={500}
       >
         <BottomSheet.Header
           label={"Заголовок"}
@@ -105,15 +103,15 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
           ))}
         </BottomSheet.Content>
 
-        <BottomSheetFooter>
-          <BottomSheetFooter.PrimaryButton title={"Готово"} />
-          <BottomSheetFooter.SecondaryButton
+        <BottomSheet.Footer>
+          <BottomSheet.Footer.PrimaryButton title={"Готово"} />
+          <BottomSheet.Footer.SecondaryButton
             title={"Отмена"}
             onPress={() => {
               modalRefScroll.current?.dismiss();
             }}
           />
-        </BottomSheetFooter>
+        </BottomSheet.Footer>
       </BottomSheet>
 
       <BottomSheet ref={modalRefView} maxDynamicContentSize={300}>
@@ -131,15 +129,15 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
             </Row>
           ))}
         </BottomSheet.Content>
-        <BottomSheetFooter>
-          <BottomSheetFooter.PrimaryButton title={"Готово"} />
-          <BottomSheetFooter.SecondaryButton
+        <BottomSheet.Footer>
+          <BottomSheet.Footer.PrimaryButton title={"Готово"} />
+          <BottomSheet.Footer.SecondaryButton
             title={"Отмена"}
             onPress={() => {
               modalRefView.current?.dismiss();
             }}
           />
-        </BottomSheetFooter>
+        </BottomSheet.Footer>
       </BottomSheet>
     </Col>
   );

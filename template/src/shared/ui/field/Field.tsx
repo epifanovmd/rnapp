@@ -1,6 +1,6 @@
-import React, { FC, memo, PropsWithChildren } from "react";
+import React, { memo } from "react";
 
-import { createSlot, useSlotProps } from "../../lib/slots";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { Col, Row } from "../flex-view";
 import { ITextProps, Text } from "../text";
 import { ITouchableProps, Touchable } from "../touchable";
@@ -11,26 +11,33 @@ export interface FieldProps extends ITouchableProps {
   description?: string;
 }
 
-const Label = createSlot<ITextProps>("Label");
-const Description = createSlot<ITextProps>("Description");
-const Error = createSlot<ITextProps>("Error");
+const fieldSlots = {
+  label: slot<ITextProps>(),
+  description: slot<ITextProps>(),
+  error: slot<ITextProps>(),
+};
 
-const FieldImpl: FC<PropsWithChildren<FieldProps>> = memo(
+const FieldRoot = memo(
   ({
-    label: _label,
-    error: _error,
-    description: _description,
-    children,
-    ...rest
-  }) => {
-    const { $children, label, description, error } = useSlotProps(
-      Field,
-      children,
-    );
+    props,
+    slots,
+    content,
+  }: CompoundRootProps<FieldProps, never, typeof fieldSlots>) => {
+    const {
+      label: _label,
+      error: _error,
+      description: _description,
+      ...rest
+    } = props;
+    const { label, description, error } = slots;
 
-    const labelText = label?.text || _label;
-    const errorText = (error?.text || _error || "").trim();
-    const descriptionText = (description?.text || _description || "").trim();
+    const labelText = label.props?.text || _label;
+    const errorText = (error.props?.text || _error || "").trim();
+    const descriptionText = (
+      description.props?.text ||
+      _description ||
+      ""
+    ).trim();
 
     return (
       <Touchable flexShrink={1} {...rest}>
@@ -41,17 +48,17 @@ const FieldImpl: FC<PropsWithChildren<FieldProps>> = memo(
               fontSize={11}
               ellipsizeMode={"tail"}
               text={labelText}
-              {...label}
+              {...label.props}
             />
           )}
-          <Row>{$children}</Row>
+          <Row>{content}</Row>
         </Col>
         {!!(errorText || descriptionText) && (
           <Text
             mt={2}
             color={errorText ? "red500" : undefined}
             text={errorText || descriptionText}
-            {...(errorText ? error : description)}
+            {...(errorText ? error.props : description.props)}
           />
         )}
       </Touchable>
@@ -59,8 +66,8 @@ const FieldImpl: FC<PropsWithChildren<FieldProps>> = memo(
   },
 );
 
-export const Field = Object.assign(FieldImpl, {
-  Label,
-  Description,
-  Error,
+export const Field = createCompound<FieldProps, never>()({
+  name: "Field",
+  render: FieldRoot,
+  slots: fieldSlots,
 });

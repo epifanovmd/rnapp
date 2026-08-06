@@ -1,40 +1,46 @@
-import React, { FC, memo } from "react";
+import React, { memo } from "react";
 import { ViewProps } from "react-native";
 
-import { createSlot, useSlotProps } from "../../lib/slots";
-import { Button, IButtonProps } from "..";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { Button, IButtonProps } from "../button";
 import { FlexProps, Row } from "../flex-view";
 
 export interface BottomSheetFooterProps extends FlexProps, ViewProps {}
 
-const SecondaryButton = createSlot<IButtonProps>("SecondaryButton");
-const PrimaryButton = createSlot<IButtonProps>("PrimaryButton");
+const bottomSheetFooterSlots = {
+  secondaryButton: slot<IButtonProps>({ component: Button }),
+  primaryButton: slot<IButtonProps>({ component: Button }),
+};
 
-export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
-  ({ children, ...rest }) => {
-    const { primaryButton, secondaryButton } = useSlotProps(
-      BottomSheetFooter,
-      children,
-    );
+const BottomSheetFooterRoot = memo(
+  ({
+    props,
+    slots,
+  }: CompoundRootProps<
+    BottomSheetFooterProps,
+    never,
+    typeof bottomSheetFooterSlots
+  >) => {
+    const { primaryButton, secondaryButton } = slots;
 
     return (
       <Row
         marginTop={"auto"}
         gap={8}
         justifyContent={"space-between"}
-        {...rest}
+        {...props}
       >
-        {!!secondaryButton && (
+        {secondaryButton.present && (
           <Button
             type={"secondaryFilled"}
             size={"small"}
             flex={1}
             flexBasis={0}
             title={"Отмена"}
-            {...secondaryButton}
+            {...secondaryButton.props}
           />
         )}
-        {!!primaryButton && (
+        {primaryButton.present && (
           <Button
             type={"primaryFilled"}
             size={"small"}
@@ -42,7 +48,7 @@ export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
             flexBasis={0}
             marginLeft={"auto"}
             title={"Применить"}
-            {...primaryButton}
+            {...primaryButton.props}
           />
         )}
       </Row>
@@ -50,7 +56,11 @@ export const _BottomSheetFooter: FC<BottomSheetFooterProps> = memo(
   },
 );
 
-export const BottomSheetFooter = Object.assign(_BottomSheetFooter, {
-  SecondaryButton,
-  PrimaryButton,
+export const BottomSheetFooter = createCompound<
+  BottomSheetFooterProps,
+  never
+>()({
+  name: "BottomSheetFooter",
+  render: BottomSheetFooterRoot,
+  slots: bottomSheetFooterSlots,
 });

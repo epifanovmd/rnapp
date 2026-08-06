@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { NavbarIcon } from "./NavbarIcon";
 import { INavbarSubTitleProps, NavbarSubTitle } from "./NavbarSubTitle";
 import { INavbarTitleProps, NavbarTitle } from "./NavbarTitle";
@@ -22,15 +22,23 @@ export interface INavbarProps extends ViewProps {
   transparent?: boolean;
 }
 
-const BackButton = createSlot<TouchableOpacityProps>("BackButton");
-const Left = createSlot<ViewProps>("Left");
-const Content = createSlot<ViewProps>("Content");
-const Title = createSlot<INavbarTitleProps>("Title");
-const Subtitle = createSlot<INavbarSubTitleProps>("Subtitle");
-const Right = createSlot<ViewProps>("Right");
+const navbarSlots = {
+  backButton: slot<TouchableOpacityProps>({ component: TouchableOpacity }),
+  left: slot<ViewProps>({ component: View }),
+  content: slot<ViewProps>({ component: View }),
+  title: slot<INavbarTitleProps>({ component: NavbarTitle }),
+  subtitle: slot<INavbarSubTitleProps>({ component: NavbarSubTitle }),
+  right: slot<ViewProps>({ component: View }),
+};
 
-const NavbarImpl = memo<INavbarProps>(
-  ({ title: titleText, style, safeArea, transparent, children, ...rest }) => {
+const NavbarRoot = memo(
+  ({
+    props,
+    slots,
+    content: restContent,
+    contentItems,
+  }: CompoundRootProps<INavbarProps, never, typeof navbarSlots>) => {
+    const { title: titleText, style, safeArea, transparent, ...rest } = props;
     const { colors } = useTheme();
     const leftRef = useRef<View>(null);
     const rightRef = useRef<View>(null);
@@ -38,18 +46,18 @@ const NavbarImpl = memo<INavbarProps>(
     const [isCanGoBack, setIsCanGoBack] = useState(false);
     const { top } = useSafeAreaInsets();
 
-    const { $children, left, backButton, content, title, subtitle, right } =
-      useSlotProps(Navbar, children);
+    const { left, backButton, content, title, subtitle, right } = slots;
 
     const { canGoBack, goBack } = useNavigation();
 
     useFocusEffect(() => {
-      if (backButton && !backButton.onPress) {
+      if (backButton.present && !backButton.props?.onPress) {
         setIsCanGoBack(canGoBack());
       }
     });
 
-    const showBackButton = backButton && (isCanGoBack || !!backButton.onPress);
+    const showBackButton =
+      backButton.present && (isCanGoBack || !!backButton.props?.onPress);
 
     const onUpdateWidth = useCallback(() => {
       if (leftRef.current && rightRef.current) {
@@ -65,13 +73,13 @@ const NavbarImpl = memo<INavbarProps>(
 
     const handleBackPress = useCallback(
       (e: GestureResponderEvent) => {
-        if (backButton?.onPress) {
-          backButton.onPress(e);
+        if (backButton.props?.onPress) {
+          backButton.props.onPress(e);
         } else if (isCanGoBack) {
           goBack();
         }
       },
-      [backButton, isCanGoBack, goBack],
+      [backButton.props, isCanGoBack, goBack],
     );
 
     const backgroundColor = transparent ? undefined : colors.background;
@@ -85,32 +93,32 @@ const NavbarImpl = memo<INavbarProps>(
         <View style={[SS.left, { minWidth: width }]}>
           <View ref={leftRef} style={SS.row} onLayout={onUpdateWidth}>
             {showBackButton && (
-              <TouchableOpacity onPress={handleBackPress}>
+              <TouchableOpacity {...backButton.props} onPress={handleBackPress}>
                 <NavbarIcon name={"back"} />
               </TouchableOpacity>
             )}
-            <View {...left} />
+            {left.present && <View {...left.props} />}
           </View>
         </View>
         <View style={SS.center}>
           <View style={[SS.content]}>
-            {$children?.length ? (
-              $children
-            ) : content ? (
-              <View {...content} />
+            {contentItems.length ? (
+              restContent
+            ) : content.present ? (
+              <View {...content.props} />
             ) : (
               <>
-                {!!(title || titleText) && (
-                  <NavbarTitle text={titleText} {...title} />
+                {!!(title.present || titleText) && (
+                  <NavbarTitle text={titleText} {...title.props} />
                 )}
-                {!!subtitle && <NavbarSubTitle {...subtitle} />}
+                {subtitle.present && <NavbarSubTitle {...subtitle.props} />}
               </>
             )}
           </View>
         </View>
         <View style={[SS.right, { minWidth: width }]}>
           <View ref={rightRef} style={SS.row} onLayout={onUpdateWidth}>
-            <View {...right} />
+            {right.present && <View {...right.props} />}
           </View>
         </View>
       </View>
@@ -118,13 +126,10 @@ const NavbarImpl = memo<INavbarProps>(
   },
 );
 
-export const Navbar = Object.assign(NavbarImpl, {
-  BackButton,
-  Left,
-  Content,
-  Title,
-  Subtitle,
-  Right,
+export const Navbar = createCompound<INavbarProps, never>()({
+  name: "Navbar",
+  render: NavbarRoot,
+  slots: navbarSlots,
 });
 
 const SS = StyleSheet.create({

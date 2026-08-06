@@ -1,13 +1,13 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMergedCallback } from "@shared/lib/hooks";
-import React, { forwardRef, memo, PropsWithChildren, useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import haptic from "react-native-haptic-feedback";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
-import { BottomSheetContent } from "./BottomSheetContent";
-import { BottomSheetFooter } from "./BottomSheetFooter";
+import { BottomSheetFooter, BottomSheetFooterProps } from "./BottomSheetFooter";
+import { BottomSheetScrollView } from "./BottomSheetScrollView";
 import { useBottomSheetStyles } from "./hooks";
 import { BottomSheetStyles } from "./styles";
 import {
@@ -16,58 +16,78 @@ import {
   TBottomSheetProps,
 } from "./types";
 
-const Header = createSlot<TBottomSheetHeaderProps>("Header");
-const Content = createSlot<TBottomSheetContentProps>("Content");
-const Footer = BottomSheetFooter;
+const bottomSheetSlots = {
+  header: slot<TBottomSheetHeaderProps>(),
+  content: slot<TBottomSheetContentProps>(),
+  footer: slot<BottomSheetFooterProps>(),
+};
 
 export type BottomSheet = BottomSheetModal;
 
-const BottomSheetImpl = memo(
-  forwardRef<BottomSheetModal, PropsWithChildren<TBottomSheetProps>>(
-    ({ haptic: hapticEnable, ...props }, ref) => {
-      const modalStyles = useBottomSheetStyles();
-      const { top } = useSafeAreaInsets();
-      const { header, content, footer } = useSlotProps(
-        BottomSheet,
-        props.children,
-      );
+const BottomSheetRoot = memo(
+  ({
+    props,
+    slots,
+    forwardedRef,
+  }: CompoundRootProps<
+    TBottomSheetProps,
+    BottomSheetModal,
+    typeof bottomSheetSlots
+  >) => {
+    const { haptic: hapticEnable, ...modalProps } = props;
+    const modalStyles = useBottomSheetStyles();
+    const { top } = useSafeAreaInsets();
+    const { header, content, footer } = slots;
 
-      const animateWithHaptic = useCallback(
-        (fromIndex: number) => {
-          if (fromIndex === -1 && hapticEnable) {
-            haptic.trigger();
-          }
-        },
-        [hapticEnable],
-      );
+    const animateWithHaptic = useCallback(
+      (fromIndex: number) => {
+        if (fromIndex === -1 && hapticEnable) {
+          haptic.trigger();
+        }
+      },
+      [hapticEnable],
+    );
 
-      const onAnimate = useMergedCallback(props.onAnimate, animateWithHaptic);
+    const onAnimate = useMergedCallback(
+      modalProps.onAnimate,
+      animateWithHaptic,
+    );
 
-      return (
-        <BottomSheetModal
-          ref={ref}
-          {...modalStyles}
-          topInset={top}
-          keyboardBlurBehavior={"restore"}
-          backdropComponent={BottomSheetBackdrop}
-          {...props}
-          onAnimate={onAnimate}
-          style={[BottomSheetStyles.container, props.style]}
-        >
-          <BottomSheetContent
-            header={header}
-            footer={footer}
-            bounces={false}
-            {...content}
-          />
-        </BottomSheetModal>
-      );
-    },
-  ),
+    return (
+      <BottomSheetModal
+        ref={forwardedRef}
+        {...modalStyles}
+        topInset={top}
+        keyboardBlurBehavior={"restore"}
+        backdropComponent={BottomSheetBackdrop}
+        {...modalProps}
+        onAnimate={onAnimate}
+        style={[BottomSheetStyles.container, modalProps.style]}
+      >
+        <BottomSheetScrollView
+          bounces={false}
+          header={header.props}
+          footer={footer.props}
+          {...content.props}
+          children={content.props?.children}
+        />
+      </BottomSheetModal>
+    );
+  },
 );
 
-export const BottomSheet = Object.assign(BottomSheetImpl, {
-  Header,
-  Content,
-  Footer,
+const BottomSheetCompound = createCompound<
+  TBottomSheetProps,
+  BottomSheetModal
+>()({
+  name: "BottomSheet",
+  render: BottomSheetRoot,
+  slots: bottomSheetSlots,
+});
+
+export const BottomSheet = Object.assign(BottomSheetCompound, {
+  Footer: Object.assign(BottomSheetCompound.Footer, {
+    PrimaryButton: BottomSheetFooter.PrimaryButton,
+    SecondaryButton: BottomSheetFooter.SecondaryButton,
+  }),
 });

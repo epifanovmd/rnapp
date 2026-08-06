@@ -1,6 +1,6 @@
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
-import React, { memo, PropsWithChildren } from "react";
+import React, { memo } from "react";
 import { ImageProps, StyleSheet, ViewProps } from "react-native";
 import Animated, {
   Extrapolation,
@@ -10,7 +10,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import absoluteFill = StyleSheet.absoluteFill;
 
-import { createSlot, useSlotProps } from "../../lib/slots";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 
 export interface IImageBarProps extends ViewProps {
   uri?: string;
@@ -19,20 +19,28 @@ export interface IImageBarProps extends ViewProps {
   activeScrollOpacity?: number;
 }
 
-const ImageBarImpl = memo<PropsWithChildren<IImageBarProps>>(
+const imageBarSlots = {
+  image: slot<ImageProps>({ component: Animated.Image }),
+};
+
+const ImageBarRoot = memo(
   ({
-    uri,
-    height = 250,
-    activeScrollOpacity = 0.4,
-    safeArea,
-    style,
-    children,
-    ...rest
-  }) => {
+    props,
+    slots,
+    content,
+  }: CompoundRootProps<IImageBarProps, never, typeof imageBarSlots>) => {
+    const {
+      uri,
+      height = 250,
+      activeScrollOpacity = 0.4,
+      safeArea,
+      style,
+      ...rest
+    } = props;
     const { colors } = useTheme();
     const { navbarHeight, onLayoutNavBar, transitionY } = useTransition();
     const insets = useSafeAreaInsets();
-    const { $children, image } = useSlotProps(ImageBar, children);
+    const { image } = slots;
 
     const top = safeArea ? insets.top : 0;
 
@@ -63,36 +71,38 @@ const ImageBarImpl = memo<PropsWithChildren<IImageBarProps>>(
           {
             backgroundColor,
             paddingTop: top,
-            borderRadius: 24,
           },
         ]}
         {...rest}
       >
-        {(uri || image) && (
+        {(uri || image.present) && (
           <Animated.Image
             source={{ uri }}
-            {...image}
+            {...image.props}
             style={[
               StyleSheet.absoluteFill,
               SS.image,
               animatedStyles,
-              image?.style,
+              image.props?.style,
             ]}
           />
         )}
-        {$children}
+        {content}
       </Animated.View>
     );
   },
 );
 
-export const ImageBar = Object.assign(ImageBarImpl, {
-  Image: createSlot<ImageProps>("Image"),
+export const ImageBar = createCompound<IImageBarProps, never>()({
+  name: "ImageBar",
+  render: ImageBarRoot,
+  slots: imageBarSlots,
 });
 
 const SS = StyleSheet.create({
   containerStyle: {
     bottom: "auto",
+    borderRadius: 24,
     zIndex: 1,
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,

@@ -48,7 +48,7 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
             title={"Components"}
             onPress={() =>
               navigation.navigate("Components", {
-                initialRouteName: "Notifications",
+                initialRouteName: "Modals",
               })
             }
           />

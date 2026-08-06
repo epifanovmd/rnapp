@@ -1,6 +1,6 @@
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
-import React, { memo, PropsWithChildren, useCallback, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {
   interpolate,
@@ -8,23 +8,33 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createSlot, useSlotProps } from "../../lib/slots";
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 
 export interface IHiddenNavbarProps extends ViewProps {
   safeArea?: boolean;
 }
 
-const HiddenBarImpl = memo<PropsWithChildren<IHiddenNavbarProps>>(
-  ({ safeArea, style, children, ...rest }) => {
+const hiddenBarSlots = {
+  stickyContent: slot<ViewProps>({ component: View }),
+};
+
+const HiddenBarRoot = memo(
+  ({
+    props,
+    slots,
+    content,
+  }: CompoundRootProps<IHiddenNavbarProps, never, typeof hiddenBarSlots>) => {
+    const { safeArea, style, ...rest } = props;
     const { colors } = useTheme();
     const [contentHeight, setContentHeight] = useState(0);
     const { navbarHeight, onLayoutNavBar, navbarOffset } = useTransition();
     const insets = useSafeAreaInsets();
-    const { $children, stickyContent } = useSlotProps(HiddenBar, children);
+    const { stickyContent } = slots;
 
     const top = safeArea ? insets.top : 0;
 
-    const navHeight = navbarHeight - (stickyContent ? contentHeight : 0);
+    const navHeight =
+      navbarHeight - (stickyContent.present ? contentHeight : 0);
 
     const animatedStyle = useAnimatedStyle(() => {
       const translateY = interpolate(
@@ -72,16 +82,20 @@ const HiddenBarImpl = memo<PropsWithChildren<IHiddenNavbarProps>>(
           onLayout={onLayoutNavBar}
           style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
         >
-          {$children}
-          <View onLayout={onLayout} {...stickyContent} />
+          {content}
+          {stickyContent.present && (
+            <View onLayout={onLayout} {...stickyContent.props} />
+          )}
         </Animated.View>
       </View>
     );
   },
 );
 
-export const HiddenBar = Object.assign(HiddenBarImpl, {
-  StickyContent: createSlot<ViewProps>("StickyContent"),
+export const HiddenBar = createCompound<IHiddenNavbarProps, never>()({
+  name: "HiddenBar",
+  render: HiddenBarRoot,
+  slots: hiddenBarSlots,
 });
 
 const styles = StyleSheet.create({
