@@ -6,6 +6,7 @@ import { DEFAULT_LIGHT_THEME } from "./variants";
 export const ThemeContext = React.createContext<IThemeContext>({
   name: "Light",
   colors: DEFAULT_LIGHT_THEME.colors,
+  preference: "System",
   toggleTheme: () => {
     console.error("ThemeProvider is not rendered!");
   },

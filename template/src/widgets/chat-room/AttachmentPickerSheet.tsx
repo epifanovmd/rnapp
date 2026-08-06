@@ -72,7 +72,7 @@ export const AttachmentPickerSheet: FC<AttachmentPickerSheetProps> = ({
   }, [onClose, onFilePress]);
 
   const iconColor = colors.textPrimary;
-  const cancelColor = colors.red500;
+  const cancelColor = colors.danger;
 
   return (
     <BottomSheet
@@ -83,11 +83,11 @@ export const AttachmentPickerSheet: FC<AttachmentPickerSheetProps> = ({
       onChange={handleSheetChanges}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.surface }}
-      handleIndicatorStyle={{ backgroundColor: colors.slate300 }}
+      handleIndicatorStyle={{ backgroundColor: colors.textTertiary }}
     >
       <BottomSheetView style={styles.content}>
         <Pressable
-          style={[styles.option, { borderBottomColor: colors.slate200 }]}
+          style={[styles.option, { borderBottomColor: colors.border }]}
           onPress={handleCamera}
         >
           <Camera size={22} color={iconColor} />
@@ -97,7 +97,7 @@ export const AttachmentPickerSheet: FC<AttachmentPickerSheetProps> = ({
         </Pressable>
 
         <Pressable
-          style={[styles.option, { borderBottomColor: colors.slate200 }]}
+          style={[styles.option, { borderBottomColor: colors.border }]}
           onPress={handleGallery}
         >
           <Image size={22} color={iconColor} />
@@ -107,7 +107,7 @@ export const AttachmentPickerSheet: FC<AttachmentPickerSheetProps> = ({
         </Pressable>
 
         <Pressable
-          style={[styles.option, { borderBottomColor: colors.slate200 }]}
+          style={[styles.option, { borderBottomColor: colors.border }]}
           onPress={handleFile}
         >
           <File size={22} color={iconColor} />

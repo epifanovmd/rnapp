@@ -1,5 +1,6 @@
 import { useMergedCallback } from "@shared/lib/hooks";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { useTheme } from "@shared/lib/theme";
 import React, {
   forwardRef,
   memo,
@@ -79,28 +80,23 @@ export const TextField = memo(
       const [localValue, setLocalValue] = useState("");
       const [secureTextEntry, setsSecureTextEntry] = useState(_secureTextEntry);
 
+      const { colors } = useTheme();
+
       const ss = useMemo(() => {
         const captionMTextStyle = { fontSize: 12, lineHeight: 16 };
         const bodyMTextStyle = { fontSize: 16, lineHeight: 20 };
 
-        const elevationColor = "#F5F5F7";
-        const primaryColor = "#007AFF";
-        const primaryTextColor = "#18191C";
-        const secondaryColor = "#75767F";
-        const redColor = "#D73434";
-        const tertiaryTextColor = "#B2B2B7";
-
         return {
-          elevationColor,
+          elevationColor: colors.onSurface,
           captionMTextStyle,
           bodyMTextStyle,
-          primaryColor,
-          primaryTextColor,
-          secondaryColor,
-          redColor,
-          tertiaryTextColor,
+          primaryColor: colors.primary,
+          primaryTextColor: colors.textPrimary,
+          secondaryColor: colors.textSecondary,
+          redColor: colors.danger,
+          tertiaryTextColor: colors.textTertiary,
         };
-      }, []);
+      }, [colors]);
 
       useEffect(() => {
         setLocalValue("");

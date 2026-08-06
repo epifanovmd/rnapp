@@ -55,7 +55,7 @@ export const SignIn: FC<StackProps<"SignIn">> = observer(() => {
               secureTextEntry={true}
             />
 
-            {!!error && <Text color={"red500"}>{error}</Text>}
+            {!!error && <Text color={"danger"}>{error}</Text>}
 
             <Button
               flex={1}
@@ -87,7 +87,7 @@ export const SignIn: FC<StackProps<"SignIn">> = observer(() => {
             secureTextEntry={true}
           />
 
-          {!!error && <Text color={"red500"}>{error}</Text>}
+          {!!error && <Text color={"danger"}>{error}</Text>}
 
           <Row gap={8} mt={8} alignItems={"center"}>
             <Button

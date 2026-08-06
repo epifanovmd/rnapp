@@ -63,6 +63,13 @@ export const DARK_COLOR_THEME = {
   danger: "#F9423D",
   dangerForeground: "#FFFFFF",
 
+  success: "#16A22F",
+  warning: "#EB9900",
+  info: "#5282FF",
+
+  border: "#454545",
+  textLink: "#5282FF",
+
   // Фоновые цвета
   background: "#0A0A0A",
   surface: "#121212",

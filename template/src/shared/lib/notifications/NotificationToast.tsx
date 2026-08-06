@@ -196,17 +196,17 @@ export const NotificationToast = memo(
       }
     }
 
-    let backgroundColor = normalColor || colors.blue500;
+    let backgroundColor = normalColor || colors.info;
 
     switch (type) {
       case "success":
-        backgroundColor = successColor || colors.green500;
+        backgroundColor = successColor || colors.success;
         break;
       case "danger":
-        backgroundColor = dangerColor || colors.red500;
+        backgroundColor = dangerColor || colors.danger;
         break;
       case "warning":
-        backgroundColor = warningColor || colors.orange500;
+        backgroundColor = warningColor || colors.warning;
         break;
     }
 

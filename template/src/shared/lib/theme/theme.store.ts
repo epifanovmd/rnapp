@@ -1,10 +1,9 @@
 import { injectable } from "inversify";
-import { makeAutoObservable, observable } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import { IStorageService } from "../storage";
 import { IColorSchemeProvider } from "./color-scheme.types";
-import { IThemeStore } from "./theme.types";
-import { ITheme, TColorTheme, TThemeName } from "./types";
+import { ITheme, IThemeStore, TThemeName, TThemePreference } from "./types";
 import { DARK_THEME, DEFAULT_LIGHT_THEME } from "./variants";
 
 const THEME_STORAGE_KEY = "themeName";
@@ -14,57 +13,60 @@ const THEMES: { [key in TThemeName]: ITheme } = {
   Light: DEFAULT_LIGHT_THEME,
 };
 
-const isThemeName = (value: string | null): value is TThemeName =>
-  value === "Light" || value === "Dark";
+const isThemePreference = (value: string | null): value is TThemePreference =>
+  value === "Light" || value === "Dark" || value === "System";
 
 @injectable()
 export class ThemeStore implements IThemeStore {
-  private _theme: ITheme;
+  private _preference: TThemePreference;
+  private _systemScheme: TThemeName;
 
   constructor(
     @IStorageService() private _storage: IStorageService,
     @IColorSchemeProvider() private _colorScheme: IColorSchemeProvider,
   ) {
     const saved = this._storage.getItem(THEME_STORAGE_KEY);
-    const name = isThemeName(saved)
-      ? saved
-      : this._colorScheme.getPreferredScheme();
 
-    this._theme = THEMES[name];
+    this._preference = isThemePreference(saved) ? saved : "System";
+    this._systemScheme = this._colorScheme.getPreferredScheme();
 
-    if (!isThemeName(saved)) {
-      this._storage.setItem(THEME_STORAGE_KEY, name);
-    }
+    makeAutoObservable(this, {}, { autoBind: true });
 
-    makeAutoObservable<this, "_theme">(
-      this,
-      { _theme: observable.ref },
-      { autoBind: true },
-    );
+    this._colorScheme.onSchemeChange(this._onSystemSchemeChange);
+  }
+
+  get preference(): TThemePreference {
+    return this._preference;
   }
 
   get name(): TThemeName {
-    return this._theme.name;
+    return this._preference === "System"
+      ? this._systemScheme
+      : this._preference;
   }
 
-  get colors(): TColorTheme {
-    return this._theme.colors;
+  get colors() {
+    return THEMES[this.name].colors;
   }
 
   get isDark(): boolean {
-    return this._theme.name === "Dark";
+    return this.name === "Dark";
   }
 
   get isLight(): boolean {
-    return this._theme.name === "Light";
+    return this.name === "Light";
   }
 
-  setTheme(name: TThemeName): void {
-    this._theme = THEMES[name];
-    this._storage.setItem(THEME_STORAGE_KEY, name);
+  setTheme(preference: TThemePreference): void {
+    this._preference = preference;
+    this._storage.setItem(THEME_STORAGE_KEY, preference);
   }
 
   toggleTheme(): void {
-    this.setTheme(this._theme.name === "Dark" ? "Light" : "Dark");
+    this.setTheme(this.isDark ? "Light" : "Dark");
+  }
+
+  private _onSystemSchemeChange(scheme: TThemeName): void {
+    this._systemScheme = scheme;
   }
 }

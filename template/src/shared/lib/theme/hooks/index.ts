@@ -1,2 +1,2 @@
+export * from "./make-theme-styles";
 export * from "./use-theme";
-export * from "./use-theme-aware-object";

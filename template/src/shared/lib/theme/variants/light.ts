@@ -63,6 +63,13 @@ export const LIGHT_COLOR_THEME = {
   danger: "#D4183D",
   dangerForeground: "#FFFFFF",
 
+  success: "#278733",
+  warning: "#E49E22",
+  info: "#2965FF",
+
+  border: "#DBDBDB",
+  textLink: "#0042EB",
+
   // Фоновые цвета
   background: "#FFFFFF",
   surface: "#F9F9FB",

@@ -2,7 +2,7 @@ import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { navigationRef } from "@shared/lib/navigation";
 import { ThemeProvider } from "@shared/lib/theme";
 import { disposer } from "@shared/lib/utils";
-import { ContextMenuView, Dialog } from "@shared/ui";
+import { ContextMenuView, Dialog, StatusBar } from "@shared/ui";
 import { setDefaultOptions } from "date-fns";
 import { ru } from "date-fns/locale";
 import { configure } from "mobx";
@@ -39,6 +39,7 @@ export const App: FC = observer(() => {
   return (
     <GestureHandlerRootView style={ss.container}>
       <ThemeProvider>
+        <StatusBar />
         <SafeAreaProvider>
           <BottomSheetModalProvider>
             <AppNotifications>

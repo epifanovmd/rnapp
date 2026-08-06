@@ -100,15 +100,15 @@ export const ChatRoom: FC<StackProps> = observer(() => {
         <Navbar.Subtitle>
           <View style={styles.subtitleContainer}>
             {isRefreshing ? (
-              <Text textStyle={"Body_S1"} color={"blue600"}>
+              <Text textStyle={"Body_S1"} color={"textLink"}>
                 {"обновление..."}
               </Text>
             ) : typingText ? (
-              <Text textStyle={"Body_S1"} color={"blue600"}>
+              <Text textStyle={"Body_S1"} color={"textLink"}>
                 {typingText}
               </Text>
             ) : (
-              <Text textStyle={"Body_S1"} color={"blue600"}>
+              <Text textStyle={"Body_S1"} color={"textLink"}>
                 {subtitle}
               </Text>
             )}

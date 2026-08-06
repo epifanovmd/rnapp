@@ -147,7 +147,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
             <Col bg={"surface"} radius={16}>
               <Row centerContent={true} pa={16}>
-                <Button color={"red500"} type={"text"} onPress={signOut}>
+                <Button color={"danger"} type={"text"} onPress={signOut}>
                   {"Выйти"}
                 </Button>
               </Row>

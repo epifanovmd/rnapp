@@ -77,7 +77,7 @@ export const Switch = memo<PropsWithChildren<ISwitchProps>>(
         interpolateColor(
           disabled ? 0 : 1,
           [0, 1],
-          [colors.slate400, colors.slate600],
+          [colors.textTertiary, colors.textSecondary],
         ),
       ),
     }));

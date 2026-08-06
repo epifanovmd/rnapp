@@ -62,7 +62,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     const backgroundColor = interpolateColor(
       animatedActive.value,
       [0, 1],
-      [colors.transparent, colors.blue500],
+      [colors.transparent, colors.primary],
     );
 
     const opacity = withTiming(
@@ -73,7 +73,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     return {
       borderWidth,
       backgroundColor,
-      borderColor: colors.slate400,
+      borderColor: colors.textTertiary,
       opacity,
     };
   }, [disabled, colors, duration]);

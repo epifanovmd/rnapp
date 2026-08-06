@@ -38,13 +38,13 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
       width="90%"
       enableBackdropClose
     >
-      <View style={[styles.container, { backgroundColor: colors.white }]}>
-        <Text style={[styles.question, { color: colors.black }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <Text style={[styles.question, { color: colors.textPrimary }]}>
           {poll.question}
         </Text>
 
         {poll.isMultipleChoice && (
-          <Text style={[styles.badge, { color: colors.gray500 }]}>
+          <Text style={[styles.badge, { color: colors.textSecondary }]}>
             Multiple choice
           </Text>
         )}
@@ -65,7 +65,7 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                   <Text
                     style={[
                       styles.optionText,
-                      { color: colors.black },
+                      { color: colors.textPrimary },
                       isSelected && { fontWeight: "700" },
                     ]}
                   >
@@ -74,7 +74,10 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                   </Text>
                   {hasVoted && (
                     <Text
-                      style={[styles.percentage, { color: colors.gray500 }]}
+                      style={[
+                        styles.percentage,
+                        { color: colors.textSecondary },
+                      ]}
                     >
                       {percentage}%
                     </Text>
@@ -85,7 +88,7 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                   <View
                     style={[
                       styles.progressBg,
-                      { backgroundColor: colors.gray100 },
+                      { backgroundColor: colors.onSurface },
                     ]}
                   >
                     <View
@@ -94,15 +97,17 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                         {
                           width: `${percentage}%`,
                           backgroundColor: isSelected
-                            ? colors.blue500
-                            : colors.gray300,
+                            ? colors.primary
+                            : colors.border,
                         },
                       ]}
                     />
                   </View>
                 )}
 
-                <Text style={[styles.voteCount, { color: colors.gray500 }]}>
+                <Text
+                  style={[styles.voteCount, { color: colors.textSecondary }]}
+                >
                   {option.voterCount}{" "}
                   {option.voterCount === 1 ? "vote" : "votes"}
                 </Text>
@@ -110,7 +115,9 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                 {!poll.isAnonymous &&
                   "voterIds" in option &&
                   (option as any).voterIds?.length > 0 && (
-                    <Text style={[styles.voters, { color: colors.gray300 }]}>
+                    <Text
+                      style={[styles.voters, { color: colors.textDisabled }]}
+                    >
                       {(option as any).voterIds.join(", ")}
                     </Text>
                   )}
@@ -119,12 +126,12 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
           })}
         </ScrollView>
 
-        <View style={[styles.footer, { borderTopColor: colors.gray100 }]}>
-          <Text style={[styles.totalVotes, { color: colors.gray500 }]}>
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          <Text style={[styles.totalVotes, { color: colors.textSecondary }]}>
             Total: {poll.totalVotes} {poll.totalVotes === 1 ? "vote" : "votes"}
           </Text>
           {poll.isClosed && (
-            <Text style={[styles.closedBadge, { color: colors.red500 }]}>
+            <Text style={[styles.closedBadge, { color: colors.danger }]}>
               Closed
             </Text>
           )}

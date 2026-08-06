@@ -19,7 +19,7 @@ const fieldSlots = {
   description: slot.of(Text, { always: true, defaultProps: { mt: 2 } }),
   error: slot.of(Text, {
     always: true,
-    defaultProps: { mt: 2, color: "red500" },
+    defaultProps: { mt: 2, color: "danger" },
   }),
 };
 

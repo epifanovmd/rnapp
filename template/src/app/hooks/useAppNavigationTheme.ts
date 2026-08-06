@@ -3,27 +3,20 @@ import { useTheme } from "@shared/lib/theme";
 import { useMemo } from "react";
 
 export const useAppNavigationTheme = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return useMemo<ReactNavigation.Theme>(() => {
     return {
-      dark: true, // Обратите внимание: если используете обе темы, нужно сделать это динамическим
+      dark: isDark,
       colors: {
-        primary: colors.blue500,
+        primary: colors.primary,
         background: colors.background,
         card: colors.surface,
         text: colors.textPrimary,
-        border: colors.slate400,
-        notification: colors.red500,
+        border: colors.border,
+        notification: colors.danger,
       },
       fonts: DefaultTheme.fonts,
     };
-  }, [
-    colors.blue500,
-    colors.background,
-    colors.surface,
-    colors.textPrimary,
-    colors.slate400,
-    colors.red500,
-  ]);
+  }, [colors, isDark]);
 };

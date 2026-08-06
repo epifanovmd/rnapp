@@ -2,66 +2,71 @@ import {
   NotificationProvider,
   NotificationToastProps,
 } from "@shared/lib/notifications";
+import { makeThemeStyles } from "@shared/lib/theme";
 import React, { FC, PropsWithChildren, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const useThemeStyles = makeThemeStyles(({ colors }) => ({
+  customToast: {
+    backgroundColor: colors.surface,
+    borderLeftColor: colors.success,
+  },
+  customToastTitle: {
+    color: colors.textPrimary,
+  },
+  customToastText: {
+    color: colors.textSecondary,
+  },
+}));
+
 export const AppNotifications: FC<PropsWithChildren> = ({ children }) => {
   const { top } = useSafeAreaInsets();
+  const ts = useThemeStyles();
+
   const renderType = useMemo(
     () => ({
       custom_toast: (toast: NotificationToastProps) => (
-        <View style={[styles.customToast, { marginTop: top }]}>
-          <Text style={styles.customToastTitle}>{toast.data?.title}</Text>
-          <Text style={styles.customToastText}>{toast.message}</Text>
+        <View style={[styles.customToast, ts.customToast, { marginTop: top }]}>
+          <Text style={[styles.customToastTitle, ts.customToastTitle]}>
+            {toast.data?.title}
+          </Text>
+          <Text style={[styles.customToastText, ts.customToastText]}>
+            {toast.message}
+          </Text>
         </View>
       ),
     }),
-    [top],
+    [top, ts],
   );
 
   return (
-    <NotificationProvider
-      style={styles.toast}
-      // safeArea={true}
-      // onPress={() => {
-      //   console.log("press");
-      // }}
-      // onClose={() => {
-      //   console.log("onClose");
-      // }}
-      renderType={renderType}
-    >
+    <NotificationProvider style={styles.toast} renderType={renderType}>
       {children}
     </NotificationProvider>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   toast: {
     minHeight: 60,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
-    // paddingTop: 60,
   },
   customToast: {
     marginHorizontal: 10,
     paddingHorizontal: 60,
     paddingVertical: 10,
-    backgroundColor: "#fff",
     borderRadius: 8,
-    borderLeftColor: "#00C851",
     borderLeftWidth: 6,
     justifyContent: "center",
     paddingLeft: 16,
   },
   customToastTitle: {
     fontSize: 14,
-    color: "#333",
     fontWeight: "bold",
   },
-  customToastText: { color: "#a3a3a3", marginTop: 2 },
+  customToastText: {
+    marginTop: 2,
+  },
 });

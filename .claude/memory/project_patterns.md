@@ -19,5 +19,7 @@ type: project
 - Общая логика слайсов одного слоя — слоем ниже (`loginValidation` в `entities/auth`).
 - Async-state — через холдеры `shared/lib/holders/`.
 - `shared/api/gen/` не редактировать.
-- Стили: `useTheme`/`useThemeAwareObject`.
+- Стили: `useTheme`; тем-зависимые style-объекты — `makeThemeStyles` (фабрика уровня
+  модуля, кэш по имени темы). Тема: предпочтение `Light | Dark | System` (дефолт System,
+  следует схеме ОС), в MMKV сохраняется только явный выбор.
 - Внутри слайса/сегмента — только относительные импорты.

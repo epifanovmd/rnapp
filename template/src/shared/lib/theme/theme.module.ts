@@ -3,7 +3,7 @@ import { ContainerModule } from "inversify";
 import { ColorSchemeService } from "./color-scheme.service";
 import { IColorSchemeProvider } from "./color-scheme.types";
 import { ThemeStore } from "./theme.store";
-import { IThemeStore } from "./theme.types";
+import { IThemeStore } from "./types";
 
 export const themeModule = new ContainerModule(({ bind }) => {
   bind(IColorSchemeProvider.Tid).to(ColorSchemeService).inSingletonScope();

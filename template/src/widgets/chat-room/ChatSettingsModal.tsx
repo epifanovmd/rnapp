@@ -128,8 +128,8 @@ export const ChatSettingsModal = forwardRef<
                       styles.modeButton,
                       {
                         backgroundColor: isActive
-                          ? colors.blue500
-                          : colors.gray100,
+                          ? colors.primary
+                          : colors.onSurface,
                       },
                     ]}
                     onPress={() => onUpdate({ senderNameMode: mode.value })}

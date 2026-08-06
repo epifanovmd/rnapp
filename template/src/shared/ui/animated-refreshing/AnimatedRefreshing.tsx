@@ -1,3 +1,4 @@
+import { useTheme } from "@shared/lib/theme";
 import React, { forwardRef, memo } from "react";
 import { PixelRatio } from "react-native";
 import Animated, {
@@ -17,10 +18,9 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export const AnimatedRefreshing = memo(
   forwardRef<Svg, AnimatedCircularProgressProps>(
-    (
-      { radius = 16, color = "#458fff", percentage, borderWidth = 4, ...rest },
-      ref,
-    ) => {
+    ({ radius = 16, color, percentage, borderWidth = 4, ...rest }, ref) => {
+      const { colors } = useTheme();
+      const strokeColor = color ?? colors.primary;
       const loaderRadius = PixelRatio.roundToNearestPixel(radius);
       const innerCircleRadii = loaderRadius - borderWidth / 2;
       const circumference = 2 * Math.PI * innerCircleRadii;
@@ -56,7 +56,7 @@ export const AnimatedRefreshing = memo(
             cy={radius}
             fill="transparent"
             r={innerCircleRadii}
-            stroke={color}
+            stroke={strokeColor}
             strokeWidth={borderWidth}
             animatedProps={animatedProps}
             strokeDasharray={circumference}

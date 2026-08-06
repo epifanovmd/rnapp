@@ -1,10 +1,8 @@
 import { observer } from "mobx-react-lite";
 import React, { PropsWithChildren, useMemo } from "react";
-import { StatusBar } from "react-native";
 
-import { IThemeStore } from "./theme.types";
 import { ThemeContext } from "./theme-context";
-import { IThemeContext } from "./types";
+import { IThemeContext, IThemeStore } from "./types";
 
 export const ThemeProvider = observer<PropsWithChildren>(({ children }) => {
   const store = IThemeStore.useInstance();
@@ -13,6 +11,7 @@ export const ThemeProvider = observer<PropsWithChildren>(({ children }) => {
     () => ({
       name: store.name,
       colors: store.colors,
+      preference: store.preference,
       isLight: store.isLight,
       isDark: store.isDark,
       setTheme: store.setTheme,
@@ -21,6 +20,7 @@ export const ThemeProvider = observer<PropsWithChildren>(({ children }) => {
     [
       store.name,
       store.colors,
+      store.preference,
       store.isLight,
       store.isDark,
       store.setTheme,
@@ -29,9 +29,6 @@ export const ThemeProvider = observer<PropsWithChildren>(({ children }) => {
   );
 
   return (
-    <ThemeContext.Provider value={value}>
-      <StatusBar barStyle={value.isDark ? "light-content" : "dark-content"} />
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 });
