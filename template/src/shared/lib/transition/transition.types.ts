@@ -1,24 +1,32 @@
 import { LayoutChangeEvent } from "react-native";
-import { ScrollHandlerProcessed, SharedValue } from "react-native-reanimated";
+import { SharedValue } from "react-native-reanimated";
 
-export type TTransitionDirection = "up" | "down" | "left" | "right" | null;
+/**
+ * Управление видимостью бара (navbar, tabbar, любая скрываемая панель).
+ * Чистая state machine: ничего не знает ни про скролл, ни про визуал —
+ * компонент бара применяет offset к своему transform.
+ */
+export interface IBarHandle {
+  /** Текущая высота бара; 0 — ещё не измерена */
+  height: number;
+  /** 0 — бар показан; height — скрыт */
+  offset: SharedValue<number>;
+  /** worklet: показать */
+  show: () => void;
+  /** worklet: скрыть */
+  hide: () => void;
+  /** worklet: доводка до ближайшего состояния (показан/скрыт) */
+  snap: () => void;
+  /** worklet: сдвиг offset на delta в пределах [0, height] */
+  shift: (delta: number) => void;
+  setHeight: (height: number) => void;
+  onLayout: (event: LayoutChangeEvent) => void;
+}
+
+/** Режим реакции бара на скролл */
+export type TBarSyncMode = "follow" | "toggle";
 
 export interface ITransitionContext {
-  navbarHeight: number;
-  tabBarHeight: number;
-  isDrag: SharedValue<boolean>;
-  transitionX: SharedValue<number>;
-  transitionY: SharedValue<number>;
-  onScroll: ScrollHandlerProcessed;
-  scrollDirection: SharedValue<TTransitionDirection>;
-  navbarOffset: SharedValue<number>;
-  tabBarOffset: SharedValue<number>;
-  showNavbar: () => void;
-  hideNavbar: () => void;
-  showTabBar: () => void;
-  hideTabBar: () => void;
-  setNavbarHeight: (height: number) => void;
-  onLayoutNavBar: (event: LayoutChangeEvent) => void;
-  setTabBarHeight: (height: number) => void;
-  onLayoutTabBar: (event: LayoutChangeEvent) => void;
+  navbar: IBarHandle;
+  tabBar: IBarHandle;
 }

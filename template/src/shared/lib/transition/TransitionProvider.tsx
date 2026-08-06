@@ -1,16 +1,24 @@
-import { FC, PropsWithChildren } from "react";
+import React, { FC, PropsWithChildren, useMemo } from "react";
 
-import { useTransitionContext } from "./hooks";
+import { useBarHandle } from "./hooks/use-bar-handle";
 import { ITransitionContext } from "./transition.types";
 import { TransitionContext } from "./transition-context";
 
-export const TransitionProvider: FC<
-  PropsWithChildren<{ context?: ITransitionContext }>
-> = ({ children, context: propsContext }) => {
-  const context = useTransitionContext();
+/**
+ * Создаёт и предоставляет бары приложения (navbar, tabbar).
+ * Экраны привязывают их к своему скроллу через useBarsScrollSync(telemetry).
+ */
+export const TransitionProvider: FC<PropsWithChildren> = ({ children }) => {
+  const navbar = useBarHandle();
+  const tabBar = useBarHandle();
+
+  const value = useMemo<ITransitionContext>(
+    () => ({ navbar, tabBar }),
+    [navbar, tabBar],
+  );
 
   return (
-    <TransitionContext.Provider value={propsContext ?? context}>
+    <TransitionContext.Provider value={value}>
       {children}
     </TransitionContext.Provider>
   );

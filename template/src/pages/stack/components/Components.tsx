@@ -3,9 +3,11 @@ import {
   TabScreens,
   TopTabNavigation,
 } from "@shared/lib/navigation";
+import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import {
   TransitionProvider,
-  useTransitionContext,
+  useBarScrollSync,
+  useTransition,
 } from "@shared/lib/transition";
 import { HiddenBar, Navbar } from "@shared/ui";
 import { Tabs } from "@shared/ui/tabs";
@@ -29,13 +31,22 @@ const routes: TabScreens = {
   Ticket: { screen: TicketTab },
 };
 
-export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
-  const context = useTransitionContext();
+type TComponentsParams = StackProps<"Components">["route"]["params"];
+
+interface IInnerProps {
+  initialRouteName?: NonNullable<TComponentsParams>["initialRouteName"];
+}
+
+const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
+  const { navbar } = useTransition();
+  const telemetry = useScrollTelemetry();
+
+  useBarScrollSync(telemetry, navbar, { mode: "follow" });
 
   return (
-    <TransitionProvider context={context}>
+    <ScrollProvider telemetry={telemetry}>
       <TopTabNavigation
-        tabBar={({ state: { routes, index }, navigation }) => {
+        tabBar={({ state: { routes: tabRoutes, index }, navigation }) => {
           return (
             <HiddenBar safeArea>
               <Navbar title={"Компоненты"}>
@@ -47,7 +58,7 @@ export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
                   onPress={routeName => {
                     navigation.navigate(routeName);
                   }}
-                  items={routes.map(route => ({
+                  items={tabRoutes.map(route => ({
                     title: route.name,
                     value: route.name,
                   }))}
@@ -56,17 +67,25 @@ export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
             </HiddenBar>
           );
         }}
-        initialRouteName={route.params?.initialRouteName}
+        initialRouteName={initialRouteName}
         routes={routes}
         screenListeners={{
-          blur: e => {
-            context.showNavbar();
+          blur: () => {
+            navbar.show();
           },
-          focus: e => {
-            context.showNavbar();
+          focus: () => {
+            navbar.show();
           },
         }}
       />
+    </ScrollProvider>
+  );
+};
+
+export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
+  return (
+    <TransitionProvider>
+      <ComponentsNavigator initialRouteName={route.params?.initialRouteName} />
     </TransitionProvider>
   );
 });

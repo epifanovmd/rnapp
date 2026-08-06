@@ -18,7 +18,7 @@ const data = {
 };
 
 export const TicketTab: FC<TabProps> = memo(({ route }) => {
-  const { navbarHeight } = useTransition();
+  const { navbar } = useTransition();
   const topContent = (
     <View>
       <Text style={styles.title}>ЭЛЕКТРОННЫЙ БИЛЕТ</Text>
@@ -76,7 +76,7 @@ export const TicketTab: FC<TabProps> = memo(({ route }) => {
   );
 
   return (
-    <ScrollView ph={16} gap={8} pt={navbarHeight}>
+    <ScrollView ph={16} gap={8} pt={navbar.height}>
       <Ticket topContent={topContent} bottomContent={bottomContent} />
     </ScrollView>
   );

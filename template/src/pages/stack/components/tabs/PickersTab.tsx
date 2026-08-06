@@ -12,10 +12,10 @@ import {
 import React, { FC, memo } from "react";
 
 export const PickersTab: FC<TabProps> = memo(({ route }) => {
-  const { navbarHeight } = useTransition();
+  const { navbar } = useTransition();
 
   return (
-    <Col ph={16} gap={8} pt={navbarHeight}>
+    <Col ph={16} gap={8} pt={navbar.height}>
       <RangePicker items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>
         <Button>{"Range picker"}</Button>
       </RangePicker>

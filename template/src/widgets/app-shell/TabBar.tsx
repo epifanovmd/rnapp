@@ -25,11 +25,11 @@ export const TabBar = memo<BottomTabBarProps>(
     const [width, setWidth] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
     const animatedIndex = useSharedValue(index);
-    const { setTabBarHeight, tabBarOffset, showTabBar } = useTransition();
+    const { tabBar } = useTransition();
     const { isLight } = useTheme();
 
     React.useEffect(() => {
-      showTabBar();
+      tabBar.show();
       animatedIndex.set(index);
 
       return () => {
@@ -77,17 +77,17 @@ export const TabBar = memo<BottomTabBarProps>(
 
     const onLayout = useCallback(
       ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
-        setTabBarHeight(layout.height + bottom);
+        tabBar.setHeight(layout.height + bottom);
         setWidth(layout.width - 16);
       },
-      [bottom, setTabBarHeight],
+      [bottom, tabBar],
     );
 
     const as = useAnimatedStyle(() => {
       return {
         transform: [
           {
-            translateY: tabBarOffset.value,
+            translateY: tabBar.offset.value,
           },
         ],
       };

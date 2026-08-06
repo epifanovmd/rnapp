@@ -7,7 +7,7 @@ import React, { FC, memo } from "react";
 
 export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
   const { show, hide } = useNotification();
-  const { navbarHeight } = useTransition();
+  const { navbar } = useTransition();
 
   const onDisplayNotification = async () => {
     const channelId = await notifee.createChannel({
@@ -61,7 +61,7 @@ export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
   // );
 
   return (
-    <Col ph={16} gap={8} pt={navbarHeight}>
+    <Col ph={16} gap={8} pt={navbar.height}>
       <Button title={"normal"} onPress={() => show("normal")} />
 
       <Button

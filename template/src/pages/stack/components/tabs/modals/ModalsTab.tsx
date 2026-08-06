@@ -17,7 +17,7 @@ import React, { FC, memo } from "react";
 import { CustomFilter } from "./CustomFilter";
 
 export const ModalsTab: FC<TabProps> = memo(({ route }) => {
-  const { navbarHeight } = useTransition();
+  const { navbar } = useTransition();
 
   const filterRef = useBottomSheetRef();
   const modalRefScroll = useBottomSheetRef();
@@ -26,7 +26,7 @@ export const ModalsTab: FC<TabProps> = memo(({ route }) => {
   const [isVisible, setVisible] = React.useState(false);
 
   return (
-    <Col ph={16} gap={8} pt={navbarHeight}>
+    <Col ph={16} gap={8} pt={navbar.height}>
       <Button
         title={"Open filter"}
         onPress={() => filterRef.current?.present()}

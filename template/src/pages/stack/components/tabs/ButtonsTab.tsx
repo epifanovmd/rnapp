@@ -1,4 +1,5 @@
 import { TabProps } from "@shared/lib/navigation";
+import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
 import { Button, Col, Row, ScrollView, SwitchTheme } from "@shared/ui";
 import { memo, useCallback } from "react";
@@ -7,7 +8,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export const ButtonsTab = memo<TabProps>(() => {
   const { bottom } = useSafeAreaInsets();
-  const { onScroll, navbarHeight } = useTransition();
+  const { navbar } = useTransition();
+  const scroll = useScroll();
 
   const onPress = useCallback(() => {
     console.log("Press button");
@@ -20,9 +22,10 @@ export const ButtonsTab = memo<TabProps>(() => {
           paddingHorizontal: 16,
           gap: 8,
           paddingBottom: bottom,
-          paddingTop: navbarHeight,
+          paddingTop: navbar.height,
         }}
-        onScroll={onScroll}
+        onScroll={scroll?.scrollHandler}
+        scrollEventThrottle={16}
       >
         <SwitchTheme />
         <Button size={"small"} title={"Size sm"} onPress={onPress} />

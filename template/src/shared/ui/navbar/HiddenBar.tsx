@@ -26,7 +26,12 @@ const HiddenBarRoot = ({
   const { safeArea, style, ...rest } = props;
   const { colors } = useTheme();
   const [contentHeight, setContentHeight] = useState(0);
-  const { navbarHeight, onLayoutNavBar, navbarOffset } = useTransition();
+  const { navbar } = useTransition();
+  const {
+    height: navbarHeight,
+    onLayout: onLayoutNavBar,
+    offset: navbarOffset,
+  } = navbar;
   const insets = useSafeAreaInsets();
   const { stickyContent } = slots;
 

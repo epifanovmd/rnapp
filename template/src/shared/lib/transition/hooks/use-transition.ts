@@ -2,12 +2,14 @@ import { useContext } from "react";
 
 import { ITransitionContext } from "../transition.types";
 import { TransitionContext } from "../transition-context";
-import { useTransitionContext } from "./use-transition-context";
 
+/** Бары приложения из контекста; требует TransitionProvider выше по дереву. */
 export const useTransition = (): ITransitionContext => {
   const context = useContext(TransitionContext);
 
-  const localContext = useTransitionContext();
+  if (!context) {
+    throw new Error("useTransition must be used within TransitionProvider");
+  }
 
-  return context ?? localContext;
+  return context;
 };

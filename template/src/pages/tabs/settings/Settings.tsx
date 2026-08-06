@@ -2,11 +2,9 @@ import { IAuthStore } from "@entities/auth";
 import { IUserStore } from "@entities/user";
 import { useBiometric } from "@features/biometric";
 import { AppScreenProps } from "@shared/lib/navigation";
+import { useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
-import {
-  TransitionProvider,
-  useTransitionContext,
-} from "@shared/lib/transition";
+import { useTransition } from "@shared/lib/transition";
 import {
   Button,
   Col,
@@ -20,7 +18,8 @@ import {
 } from "@shared/ui";
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
+import React, { FC, useCallback, useState } from "react";
+import { LayoutChangeEvent } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -35,18 +34,23 @@ const height = 250;
 export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
   const { signOut } = IAuthStore.useInstance();
   const { user } = IUserStore.useInstance();
-  const context = useTransitionContext();
+  const { tabBar } = useTransition();
+  const telemetry = useScrollTelemetry();
+  const [navbarLayoutHeight, setNavbarLayoutHeight] = useState(0);
+  const onLayoutNavBar = useCallback((event: LayoutChangeEvent) => {
+    setNavbarLayoutHeight(event.nativeEvent.layout.height);
+  }, []);
   const { support, registration, available, onRemoveBiometric } =
     useBiometric();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
 
-  const navbarHeight = context.navbarHeight + insets.top;
+  const navbarHeight = navbarLayoutHeight + insets.top;
 
   const animatedStyles = useAnimatedStyle(() => {
     return {
       height: interpolate(
-        context.transitionY.value,
+        telemetry.offsetY.value,
         [0, height - navbarHeight],
         [height, navbarHeight],
         Extrapolation.CLAMP,
@@ -56,7 +60,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
 
   const animatedAvatarStyles = useAnimatedStyle(() => {
     const size = interpolate(
-      context.transitionY.value,
+      telemetry.offsetY.value,
       [0, height - navbarHeight],
       [100, 0],
       Extrapolation.CLAMP,
@@ -66,7 +70,7 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
       height: size,
       width: size,
       opacity: interpolate(
-        context.transitionY.value,
+        telemetry.offsetY.value,
         [0, height / 3, height],
         [1, 0, 0],
         Extrapolation.CLAMP,
@@ -75,86 +79,77 @@ export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
   });
 
   return (
-    <TransitionProvider context={context}>
-      <Container>
-        <Content>
-          <AnimatedCol
-            style={animatedStyles}
-            zIndex={9999}
-            absolute
-            left={0}
-            right={0}
-            centerContent={true}
-            pt={insets.top}
-            bottomRadius={24}
-            bg={"surface"}
-            pointerEvents={"none"}
-          >
-            <Col alignItems={"center"}>
-              <AnimatedCol
-                style={animatedAvatarStyles}
-                circle={80}
-                overflow={"hidden"}
-                centerContent={true}
-                bg={"onSurface"}
-              >
-                <User color={colors.textPrimary} />
-              </AnimatedCol>
+    <Container>
+      <Content>
+        <AnimatedCol
+          style={animatedStyles}
+          zIndex={9999}
+          absolute
+          left={0}
+          right={0}
+          centerContent={true}
+          pt={insets.top}
+          bottomRadius={24}
+          bg={"surface"}
+          pointerEvents={"none"}
+        >
+          <Col alignItems={"center"}>
+            <AnimatedCol
+              style={animatedAvatarStyles}
+              circle={80}
+              overflow={"hidden"}
+              centerContent={true}
+              bg={"onSurface"}
+            >
+              <User color={colors.textPrimary} />
+            </AnimatedCol>
 
-              <Navbar
-                title={user?.email ?? undefined}
-                transparent={true}
-                onLayout={context.onLayoutNavBar}
-              />
-            </Col>
-          </AnimatedCol>
+            <Navbar
+              title={user?.email ?? undefined}
+              transparent={true}
+              onLayout={onLayoutNavBar}
+            />
+          </Col>
+        </AnimatedCol>
 
-          <Animated.ScrollView
-            onScroll={context.onScroll}
-            contentContainerStyle={{
-              paddingTop: 250 + 16,
-              paddingBottom: context.tabBarHeight,
-              gap: 16,
-            }}
-            showsVerticalScrollIndicator={false}
-          >
-            <Col bg={"surface"} radius={16}>
-              <Row
-                alignItems={"center"}
-                justifyContent={"space-between"}
-                pa={16}
-              >
-                <Text textStyle={"Title_S1"}>{"Тема"}</Text>
-                <SwitchTheme />
-              </Row>
+        <Animated.ScrollView
+          onScroll={telemetry.scrollHandler}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            paddingTop: 250 + 16,
+            paddingBottom: tabBar.height,
+            gap: 16,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          <Col bg={"surface"} radius={16}>
+            <Row alignItems={"center"} justifyContent={"space-between"} pa={16}>
+              <Text textStyle={"Title_S1"}>{"Тема"}</Text>
+              <SwitchTheme />
+            </Row>
 
-              <Row
-                alignItems={"center"}
-                justifyContent={"space-between"}
-                pa={16}
-              >
-                <Text textStyle={"Title_S1"}>{"Подключить Face ID"}</Text>
-                {support && (
-                  <Switch
-                    isActive={available}
-                    onChange={active => {
-                      active ? registration() : onRemoveBiometric();
-                    }}
-                  />
-                )}
-              </Row>
-            </Col>
+            <Row alignItems={"center"} justifyContent={"space-between"} pa={16}>
+              <Text textStyle={"Title_S1"}>{"Подключить Face ID"}</Text>
+              {support && (
+                <Switch
+                  isActive={available}
+                  onChange={active => {
+                    active ? registration() : onRemoveBiometric();
+                  }}
+                />
+              )}
+            </Row>
+          </Col>
 
-            <Col bg={"surface"} radius={16}>
-              <Row centerContent={true} pa={16}>
-                <Button color={"danger"} type={"text"} onPress={signOut}>
-                  {"Выйти"}
-                </Button>
-              </Row>
-            </Col>
-          </Animated.ScrollView>
-        </Content>
-      </Container>
-    </TransitionProvider>
+          <Col bg={"surface"} radius={16}>
+            <Row centerContent={true} pa={16}>
+              <Button color={"danger"} type={"text"} onPress={signOut}>
+                {"Выйти"}
+              </Button>
+            </Row>
+          </Col>
+        </Animated.ScrollView>
+      </Content>
+    </Container>
   );
 });

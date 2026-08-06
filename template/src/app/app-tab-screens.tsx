@@ -11,7 +11,7 @@ import {
   ScreenName,
   StackProps,
 } from "@shared/lib/navigation";
-import { TransitionProvider, useTransition } from "@shared/lib/transition";
+import { TransitionProvider } from "@shared/lib/transition";
 import { Navbar } from "@shared/ui";
 import { TabBar } from "@widgets/app-shell";
 import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
@@ -55,10 +55,8 @@ const screenOptions: BottomTabNavigationOptions = {
 };
 
 export const TabScreens: FC<IProps> = memo(() => {
-  const context = useTransition();
-
   return (
-    <TransitionProvider context={context}>
+    <TransitionProvider>
       <AppNavigation
         tabBar={props => <TabBar {...props} />}
         routes={TAB_SCREENS}

@@ -1,3 +1,4 @@
+import { useScroll } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
 import React from "react";
@@ -6,6 +7,7 @@ import Animated, {
   Extrapolation,
   interpolate,
   useAnimatedStyle,
+  useSharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import absoluteFill = StyleSheet.absoluteFill;
@@ -37,7 +39,11 @@ const ImageBarRoot = ({
     ...rest
   } = props;
   const { colors } = useTheme();
-  const { navbarHeight, onLayoutNavBar, transitionY } = useTransition();
+  const { navbar } = useTransition();
+  const { height: navbarHeight, onLayout: onLayoutNavBar } = navbar;
+  const staticOffsetY = useSharedValue(0);
+  // вне ScrollProvider бар остаётся статичным
+  const scrollY = useScroll()?.offsetY ?? staticOffsetY;
   const insets = useSafeAreaInsets();
   const { image } = slots;
 
@@ -46,12 +52,12 @@ const ImageBarRoot = ({
   const animatedStyles = useAnimatedStyle(() => {
     return {
       height: interpolate(
-        transitionY.value,
+        scrollY.value,
         [0, height - navbarHeight, height - navbarHeight],
         [height, navbarHeight, navbarHeight],
       ),
       opacity: interpolate(
-        transitionY.value,
+        scrollY.value,
         [0, (height - navbarHeight) / 2, height - navbarHeight],
         [1, 1, activeScrollOpacity],
         Extrapolation.CLAMP,

@@ -6,10 +6,10 @@ import React, { FC, memo, useState } from "react";
 export const ElementsTab: FC<TabProps> = memo(({ route }) => {
   const [disabled, setDisabled] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const { navbarHeight } = useTransition();
+  const { navbar } = useTransition();
 
   return (
-    <Col ph={16} gap={8} pt={navbarHeight}>
+    <Col ph={16} gap={8} pt={navbar.height}>
       <SwitchTheme />
       <Switch isActive={disabled} onChange={setDisabled} />
 
