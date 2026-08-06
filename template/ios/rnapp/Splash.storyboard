@@ -50,6 +50,8 @@
     <resources>
         <image name="SplashLogo" width="100" height="89"/>
         <image name="SplashBrand" width="200" height="80"/>
-        <namedColor name="SplashBackground"/>
+        <namedColor name="SplashBackground">
+            <color red="0.7215686274509804" green="0.25098039215686274" blue="0.12549019607843137" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
     </resources>
 </document>

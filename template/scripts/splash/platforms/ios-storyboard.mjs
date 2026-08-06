@@ -1,5 +1,22 @@
+import { hexToRgb } from "../utils.mjs";
+
 /** Размер эталонного устройства сториборда (retina4_7). */
 const DEVICE = { width: 375, height: 667 };
+
+/**
+ * Значение named color прямо в сториборде.
+ *
+ * Системный launch screen рисуется до старта приложения и не разрешает ссылку
+ * на каталог ассетов — без вложенного значения фон падает в чёрный. Xcode
+ * пишет этот фолбэк всегда, поэтому пишем и мы.
+ */
+const namedColor = (name, hex) => {
+  const { r, g, b } = hexToRgb(hex);
+
+  return `<namedColor name="${name}">
+            <color red="${r / 255}" green="${g / 255}" blue="${b / 255}" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>`;
+};
 
 /**
  * Сториборд: логотип по центру, бренд прижат к низу safe area.
@@ -8,7 +25,13 @@ const DEVICE = { width: 375, height: 667 };
  * использует системный launch screen, который рисует сториборд по сохранённой
  * раскладке, а не пересчитывает Auto Layout.
  */
-export const buildStoryboard = ({ names, logo, brand, offsetY }) => {
+export const buildStoryboard = ({
+  names,
+  background,
+  logo,
+  brand,
+  offsetY,
+}) => {
   const logoFrame = {
     x: (DEVICE.width - logo.width) / 2,
     y: (DEVICE.height - logo.height) / 2 + offsetY,
@@ -79,7 +102,7 @@ ${logoView}${brandView}
     </scenes>
     <resources>
         <image name="${names.logo}" width="${logo.width}" height="${logo.height}"/>${brandResource}
-        <namedColor name="${names.background}"/>
+        ${namedColor(names.background, background)}
     </resources>
 </document>
 `;

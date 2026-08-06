@@ -133,6 +133,7 @@ export const generateIos = async (config, artworks) => {
     join(projectPath, `${config.ios.storyboardName}.storyboard`),
     buildStoryboard({
       names,
+      background: config.light.background,
       logo: {
         width: logo.widthDp,
         height: Math.round((logo.height / logo.width) * logo.widthDp),
