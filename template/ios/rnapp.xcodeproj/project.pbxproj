@@ -57,20 +57,12 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
 			path = Picker;
 			sourceTree = "<group>";
 		};
 		1AAPPSPLASH2F00000000001 /* AppSplash */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
 			);
 			path = AppSplash;
 			sourceTree = "<group>";
@@ -254,7 +246,6 @@
 				};
 			};
 			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "rnapp" */;
-			compatibilityVersion = "Xcode 16.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -262,6 +253,7 @@
 				Base,
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
+			preferredProjectObjectVersion = 77;
 			productRefGroup = 83CBBA001A601CBA00E9B192 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -560,7 +552,7 @@
 					"\"$(inherited)\"",
 				);
 				MTL_ENABLE_DEBUG_INFO = YES;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = (
 					"$(inherited)",
 					"-DRCT_REMOVE_LEGACY_ARCH=1",
