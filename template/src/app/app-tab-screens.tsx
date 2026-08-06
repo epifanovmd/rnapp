@@ -1,5 +1,6 @@
-import { Settings } from "@pages/settings";
-import { Main, Playground } from "@pages/ui-kit-demo";
+import { Main } from "@pages/tabs/main";
+import { Playground } from "@pages/tabs/playground";
+import { Settings } from "@pages/tabs/settings";
 import {
   BottomTabHeaderProps,
   BottomTabNavigationOptions,

@@ -36,7 +36,8 @@ export const boundariesConfig = {
       { type: "entities", pattern: "src/entities/*/**", capture: ["slice"] },
       { type: "features", pattern: "src/features/*/**", capture: ["slice"] },
       { type: "widgets", pattern: "src/widgets/*/**", capture: ["slice"] },
-      { type: "pages", pattern: "src/pages/*/**", capture: ["slice"] },
+      // pages сгруппированы по навигаторам: src/pages/{tabs,stack}/<slice>/
+      { type: "pages", pattern: "src/pages/*/*/**", capture: ["group", "slice"] },
       { type: "app", pattern: "src/app/**" },
     ],
   },
@@ -106,7 +107,10 @@ export const boundariesConfig = {
               {
                 element: {
                   type: "pages",
-                  captured: { slice: "{{from.element.captured.slice}}" },
+                  captured: {
+                    group: "{{from.element.captured.group}}",
+                    slice: "{{from.element.captured.slice}}",
+                  },
                 },
               },
             ],

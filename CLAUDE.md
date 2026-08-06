@@ -7,8 +7,8 @@
 ## Проект
 
 RN template app (messenger demo): auth (sign-in/up/recovery, 2FA, biometrics, passkeys), чат
-(мок-данные), settings, ui-kit-demo. Код — в `template/` (корневые `package.json`/`template.config.js`
-принадлежат scaffold-утилите, не приложению).
+(мок-данные), settings, ui-kit-плейграунд. Код — в `template/` (корневые
+`package.json`/`template.config.js` принадлежат scaffold-утилите, не приложению).
 
 ## Стек
 
@@ -20,7 +20,9 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 
 - `app/` — композиционный корень: App.tsx, App.navigator.tsx, App.screens.ts, app-tab-screens.tsx,
   App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
-- `pages/` — sign-in, sign-up, recovery-password, chat, settings, ui-kit-demo
+- `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
+  `stack/` (sign-in, sign-up, recovery-password, chat, carousel, charts, components,
+  context-menu, input-bar, pdf-view, web-view)
 - `widgets/` — chat-room, app-shell
 - `features/` — sign-in, sign-up, recovery-password, biometric
 - `entities/` — auth, user

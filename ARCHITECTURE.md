@@ -26,9 +26,12 @@ template/src/
     app.module.ts         ←   регистрация всех *.module.ts (DI)
     app-data-*            ←   стор данных приложения
 
-  pages/                  ← экраны — композиция widgets/features/entities под роут
-    sign-in/, sign-up/, recovery-password/, chat/, settings/
-    ui-kit-demo/          ←   плейграунд (stack/ + tabs/)
+  pages/                  ← экраны — композиция widgets/features/entities под роут;
+                            сгруппированы по навигаторам
+    tabs/                 ←   экраны таб-навигатора: main/, playground/, settings/
+    stack/                ←   экраны стека: sign-in/, sign-up/, recovery-password/, chat/,
+                              carousel/, charts/, components/, context-menu/, input-bar/,
+                              pdf-view/, web-view/
 
   widgets/                ← крупные самостоятельные блоки UI
     chat-room/            ←   ChatRoom + useChatRoomMock (мок-данные)

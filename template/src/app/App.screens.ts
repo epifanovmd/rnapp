@@ -1,16 +1,14 @@
-import { ChatRoom } from "@pages/chat";
-import { RecoveryPassword } from "@pages/recovery-password";
-import { SignIn } from "@pages/sign-in";
-import { SignUp } from "@pages/sign-up";
-import {
-  CarouselScreen,
-  Charts,
-  Components,
-  ContextMenu,
-  InputBar,
-  PdfView,
-  WebView,
-} from "@pages/ui-kit-demo";
+import { CarouselScreen } from "@pages/stack/carousel";
+import { Charts } from "@pages/stack/charts";
+import { ChatRoom } from "@pages/stack/chat";
+import { Components } from "@pages/stack/components";
+import { ContextMenu } from "@pages/stack/context-menu";
+import { InputBar } from "@pages/stack/input-bar";
+import { PdfView } from "@pages/stack/pdf-view";
+import { RecoveryPassword } from "@pages/stack/recovery-password";
+import { SignIn } from "@pages/stack/sign-in";
+import { SignUp } from "@pages/stack/sign-up";
+import { WebView } from "@pages/stack/web-view";
 import { CardStyleInterpolators } from "@react-navigation/stack";
 import { StackScreens } from "@shared/lib/navigation";
 
