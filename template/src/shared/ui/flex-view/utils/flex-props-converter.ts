@@ -1,7 +1,15 @@
+import { TColorTheme } from "@shared/lib/theme";
 import { StyleSheet, TextStyle, ViewStyle } from "react-native";
 
 import { FlexProps } from "../types";
-import { flexPropsMap } from "./flex-props-map";
+import {
+  flexBooleanValuesMap,
+  themeColorFlexPropsSet,
+  transformFlexPropsSet,
+  TStyleKeysMap,
+  viewStyleKeysMap,
+} from "./flex-props-map";
+import { shadowStyle } from "./shadow-style";
 
 export const flexPropsConverter = <
   TProps extends FlexProps,
@@ -9,46 +17,63 @@ export const flexPropsConverter = <
   TStyleSource extends TextStyle & ViewStyle = TextStyle & ViewStyle,
 >(
   props: TProps,
-  flexProps: Omit<FlexProps, "style">,
   outOwnProps: TOwnProps,
   outStyleSource: TStyleSource,
+  colors?: TColorTheme,
+  styleKeysMap: TStyleKeysMap = viewStyleKeysMap,
 ) => {
-  const fp = flexProps as any;
   const op = outOwnProps as any;
   const os = outStyleSource as any;
+  const c = colors as Record<string, unknown> | undefined;
 
   for (const key in props) {
-    const flexTransformer =
-      flexPropsMap[
-        key as keyof Omit<
-          FlexProps,
-          "style" | "rotate" | "translateX" | "translateY" | "scale"
-        >
-      ];
+    if (!Object.prototype.hasOwnProperty.call(props, key) || key === "style") {
+      continue;
+    }
 
-    if (Object.prototype.hasOwnProperty.call(props, key)) {
-      if (flexTransformer) {
-        const propValue = props[key];
-        const styleParams = flexTransformer(propValue as any);
+    const value: any = props[key];
 
-        for (const styleKey in styleParams) {
-          if (Object.prototype.hasOwnProperty.call(styleParams, styleKey)) {
-            if (styleKey === "transform") {
-              os[styleKey] = [
-                ...(os[styleKey] || []),
-                ...styleParams[styleKey],
-              ];
-            } else {
-              os[styleKey] = styleParams[styleKey];
-            }
-          }
-        }
-        if (key !== "style") {
-          fp[key] = props[key];
-        }
-      } else if (key !== "style") {
-        op[key] = props[key];
+    if (value === undefined) {
+      continue;
+    }
+
+    const styleKeys = styleKeysMap[key];
+
+    if (styleKeys) {
+      let styleValue =
+        typeof value === "boolean"
+          ? (flexBooleanValuesMap[key] ?? value)
+          : value;
+
+      if (c && themeColorFlexPropsSet.has(key)) {
+        styleValue = c[styleValue] ?? styleValue;
       }
+
+      for (const styleKey of styleKeys) {
+        os[styleKey] = styleValue;
+      }
+    } else if (transformFlexPropsSet.has(key)) {
+      (os.transform ??= []).push({ [key]: value });
+    } else if (key === "elevation") {
+      Object.assign(os, shadowStyle(value));
+    } else if (key === "circle") {
+      os.width = value;
+      os.height = value;
+      os.borderRadius = value / 2;
+    } else if (key === "absoluteFill") {
+      if (value === true) {
+        os.position = "absolute";
+        os.left = 0;
+        os.right = 0;
+        os.top = 0;
+        os.bottom = 0;
+      }
+    } else if (key === "debug") {
+      if (value === true) {
+        os.backgroundColor = "red";
+      }
+    } else {
+      op[key] = value;
     }
   }
 

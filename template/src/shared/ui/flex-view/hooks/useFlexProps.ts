@@ -1,9 +1,8 @@
 import { useTheme } from "@shared/lib/theme";
-import { useMemo } from "react";
-import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
+import { ImageStyle, TextStyle, ViewStyle } from "react-native";
 
 import { FlexProps } from "../types";
-import { flexPropsConverter } from "../utils";
+import { flexPropsConverter, TStyleKeysMap } from "../utils";
 
 export const useFlexProps = <
   OwnProps extends Object,
@@ -11,44 +10,36 @@ export const useFlexProps = <
 >(
   props: FlexProps<TStyleSource> & OwnProps,
   defaultProps?: Partial<FlexProps<TStyleSource>>,
+  styleKeysMap?: TStyleKeysMap,
 ) => {
   const { colors } = useTheme();
 
-  return useMemo(() => {
-    const flexProps = {} as Omit<FlexProps, "style">;
-    const ownProps = {} as Omit<
-      FlexProps<TStyleSource> & OwnProps,
-      keyof FlexProps<TStyleSource>
-    >;
-    const styleSource = {} as TStyleSource;
+  const ownProps = {} as Omit<
+    FlexProps<TStyleSource> & OwnProps,
+    keyof FlexProps<TStyleSource>
+  >;
+  const styleSource = {} as TStyleSource;
 
-    const p: any = props;
-    const c: any = colors;
-
+  if (defaultProps) {
     flexPropsConverter(
-      {
-        ...defaultProps,
-        ...p,
-        bg: c[p.bg] ?? p.bg,
-        color: c[p.color] ?? p.color,
-        borderColor: c[p.borderColor] ?? p.borderColor,
-        textDecorationColor: c[p.textDecorationColor] ?? p.textDecorationColor,
-      },
-      flexProps,
+      defaultProps as any,
       ownProps,
-      styleSource,
+      styleSource as any,
+      colors,
+      styleKeysMap,
     );
-    const style = StyleSheet.create({ style: styleSource });
+  }
+  flexPropsConverter(
+    props as any,
+    ownProps,
+    styleSource as any,
+    colors,
+    styleKeysMap,
+  );
 
-    if (typeof props.debug === "string") {
-      console.log(`FlexView::render ${props.debug}`); // 🐞 ✅
-    }
+  if (__DEV__ && typeof props.debug === "string") {
+    console.log(`FlexView::render ${props.debug}`); // 🐞 ✅
+  }
 
-    return {
-      style: style.style,
-      flexProps,
-      ownProps,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props]);
+  return { style: styleSource, ownProps };
 };

@@ -6,7 +6,7 @@ import {
   TextStyle,
 } from "react-native";
 
-import { FlexProps, useFlexProps } from "../flex-view";
+import { FlexProps, useTextFlexProps } from "../flex-view";
 import { getTextStyle, TTextStyle } from "./text-styles";
 
 export interface ITextProps
@@ -19,7 +19,7 @@ export interface ITextProps
 export const Text: FC<ITextProps> = memo(
   ({ text, color: _color, textStyle = "Body_S2", children, ...rest }) => {
     const { colors } = useTheme();
-    const { ownProps, style } = useFlexProps(rest);
+    const { ownProps, style } = useTextFlexProps(rest);
     const _textStyle = getTextStyle(textStyle);
 
     const color = style.color ?? colors[_color ?? "textPrimary"];

@@ -12,6 +12,9 @@ WheelPicker), chart (Skia), carousel, flex-view, context-menu-view (JS-порт 
 синглтон Host в App.tsx), image-viewing, keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable, field, image, scroll-view, switch, tabs, ticket, title, touchable.
 
+**flex-view** — layout-пропсы поверх style (`<Row pa={16} bg="surface">`); устройство,
+применение и инструкция добавления новых пропсов — `src/shared/ui/flex-view/README.md`.
+
 **Compound-компоненты — через slots**: схема `slot.of(Component)` / `slot<Props>()` +
 `createCompound<P, Ref>()({ name, render, slots })`. Модули `shared/lib/slots/`: `slot.ts`
 (декларация), `slot-entries.ts`, `slot-markers.ts`, `slot-handle.ts`, `slot-merge.ts`,

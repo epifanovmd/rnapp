@@ -1,115 +1,169 @@
 import { FlexProps, FlexStyle } from "../types";
-import { shadowStyle } from "./shadow-style";
-import { smg, tSmg } from "./style-map-generator";
 
-export const flexPropsMap = {
-  ...smg(["paddingLeft", "pl"], ["paddingLeft"]),
-  ...smg(["paddingRight", "pr"], ["paddingRight"]),
-  ...smg(["paddingTop", "pt"], ["paddingTop"]),
-  ...smg(["paddingBottom", "pb"], ["paddingBottom"]),
-  ...smg(["paddingVertical", "pv"], ["paddingVertical"]),
-  ...smg(["paddingHorizontal", "ph"], ["paddingHorizontal"]),
-  ...smg(["padding", "pa"], ["padding"]),
-  ...smg(["paddingStart"], ["paddingStart"]),
-  ...smg(["paddingEnd"], ["paddingEnd"]),
+type FlexStyleKeys = readonly (keyof FlexStyle)[];
 
-  ...smg(["marginLeft", "ml"], ["marginLeft"]),
-  ...smg(["marginRight", "mr"], ["marginRight"]),
-  ...smg(["marginTop", "mt"], ["marginTop"]),
-  ...smg(["marginBottom", "mb"], ["marginBottom"]),
-  ...smg(["marginVertical", "mv"], ["marginVertical"]),
-  ...smg(["marginHorizontal", "mh"], ["marginHorizontal"]),
-  ...smg(["margin", "ma"], ["margin"]),
+/**
+ * Пропсы view-слоя, транслируемые в style прямым переименованием
+ * (без функций-трансформеров и промежуточных объектов).
+ */
+export const viewStyleKeysMap = {
+  paddingLeft: ["paddingLeft"],
+  pl: ["paddingLeft"],
+  paddingRight: ["paddingRight"],
+  pr: ["paddingRight"],
+  paddingTop: ["paddingTop"],
+  pt: ["paddingTop"],
+  paddingBottom: ["paddingBottom"],
+  pb: ["paddingBottom"],
+  paddingVertical: ["paddingVertical"],
+  pv: ["paddingVertical"],
+  paddingHorizontal: ["paddingHorizontal"],
+  ph: ["paddingHorizontal"],
+  padding: ["padding"],
+  pa: ["padding"],
+  paddingStart: ["paddingStart"],
+  paddingEnd: ["paddingEnd"],
 
-  ...smg(["left"], ["left"], 0),
-  ...smg(["right"], ["right"], 0),
-  ...smg(["top"], ["top"], 0),
-  ...smg(["bottom"], ["bottom"], 0),
+  marginLeft: ["marginLeft"],
+  ml: ["marginLeft"],
+  marginRight: ["marginRight"],
+  mr: ["marginRight"],
+  marginTop: ["marginTop"],
+  mt: ["marginTop"],
+  marginBottom: ["marginBottom"],
+  mb: ["marginBottom"],
+  marginVertical: ["marginVertical"],
+  mv: ["marginVertical"],
+  marginHorizontal: ["marginHorizontal"],
+  mh: ["marginHorizontal"],
+  margin: ["margin"],
+  ma: ["margin"],
 
-  ...smg(["height"], ["height"], "100%"),
-  ...smg(["minHeight"]),
-  ...smg(["maxHeight"]),
-  ...smg(["width"], ["width"], "100%"),
-  ...smg(["minWidth"]),
-  ...smg(["maxWidth"]),
+  left: ["left"],
+  right: ["right"],
+  top: ["top"],
+  bottom: ["bottom"],
 
-  ...smg(["flex"]),
-  ...smg(["flexGrow"], ["flexGrow"], 1),
-  ...smg(["flexBasis"]),
-  ...smg(["flexWrap"]),
-  ...smg(["flexShrink"], ["flexShrink"], 1),
-  ...smg(["gap"], ["gap"]),
+  height: ["height"],
+  minHeight: ["minHeight"],
+  maxHeight: ["maxHeight"],
+  width: ["width"],
+  minWidth: ["minWidth"],
+  maxWidth: ["maxWidth"],
 
-  ...smg(["row"], ["flexDirection"], "row"),
-  ...smg(["col"], ["flexDirection"], "column"),
-  ...smg(["wrap"], ["flexWrap"], "wrap"),
+  flex: ["flex"],
+  flexGrow: ["flexGrow"],
+  flexBasis: ["flexBasis"],
+  flexWrap: ["flexWrap"],
+  flexShrink: ["flexShrink"],
+  gap: ["gap"],
 
-  ...smg(["alignItems"]),
-  ...smg(["alignSelf"]),
-  ...smg(["justifyContent"]),
-  ...smg(["centerContent"], ["alignItems", "justifyContent"], "center"),
-  ...smg(["alignContent"]),
+  row: ["flexDirection"],
+  col: ["flexDirection"],
+  wrap: ["flexWrap"],
 
-  ...smg(["absolute"], ["position"], "absolute"),
-  absoluteFill: (value: FlexProps<FlexStyle>["absoluteFill"]): FlexStyle =>
-    value ? { position: "absolute", left: 0, right: 0, top: 0, bottom: 0 } : {},
-  ...smg(["zIndex"]),
-  ...smg(["radius"], ["borderRadius"]),
-  ...smg(["topRadius"], ["borderTopLeftRadius", "borderTopRightRadius"]),
-  ...smg(
-    ["bottomRadius"],
-    ["borderBottomLeftRadius", "borderBottomRightRadius"],
-  ),
-  ...smg(["leftRadius"], ["borderBottomLeftRadius", "borderTopLeftRadius"]),
-  ...smg(["rightRadius"], ["borderBottomRightRadius", "borderTopRightRadius"]),
-  circle: (value: FlexProps<FlexStyle>["circle"]): FlexStyle => ({
-    width: value,
-    height: value,
-    borderRadius: (value || 0) / 2,
-  }),
-  ...smg(["overflow"]),
-  ...smg(["borderColor"]),
-  ...smg(["borderWidth"]),
-  ...smg(["borderBottomWidth"]),
-  ...smg(["borderTopWidth"]),
-  ...smg(["borderLeftWidth"]),
-  ...smg(["borderRightWidth"]),
+  alignItems: ["alignItems"],
+  alignSelf: ["alignSelf"],
+  justifyContent: ["justifyContent"],
+  centerContent: ["alignItems", "justifyContent"],
+  alignContent: ["alignContent"],
 
-  ...tSmg("rotate"),
-  ...tSmg("translateX"),
-  ...tSmg("translateY"),
-  ...tSmg("scale"),
+  absolute: ["position"],
+  zIndex: ["zIndex"],
 
-  elevation: shadowStyle as any,
+  radius: ["borderRadius"],
+  topRadius: ["borderTopLeftRadius", "borderTopRightRadius"],
+  bottomRadius: ["borderBottomLeftRadius", "borderBottomRightRadius"],
+  leftRadius: ["borderBottomLeftRadius", "borderTopLeftRadius"],
+  rightRadius: ["borderBottomRightRadius", "borderTopRightRadius"],
 
-  ...smg(["debug"], ["backgroundColor"], "red"),
-  ...smg(["bg"], ["backgroundColor"]),
-  ...smg(["opacity"], ["opacity"]),
+  overflow: ["overflow"],
+  borderColor: ["borderColor"],
+  borderWidth: ["borderWidth"],
+  borderBottomWidth: ["borderBottomWidth"],
+  borderTopWidth: ["borderTopWidth"],
+  borderLeftWidth: ["borderLeftWidth"],
+  borderRightWidth: ["borderRightWidth"],
 
-  ...smg(["color"]),
-  ...smg(["fontFamily"]),
-  ...smg(["fontSize"]),
-  ...smg(["fontStyle"]),
-  ...smg(["fontWeight"]),
-  ...smg(["letterSpacing"]),
-  ...smg(["lineHeight"]),
-  ...smg(["textAlign"]),
-  ...smg(["textDecorationLine"]),
-  ...smg(["textDecorationStyle"]),
-  ...smg(["textDecorationColor"]),
-  ...smg(["textTransform"]),
+  bg: ["backgroundColor"],
+  opacity: ["opacity"],
+} as const satisfies Record<string, FlexStyleKeys>;
+
+/**
+ * Текстовые пропсы поверх view-карты — используется Text-компонентами
+ * (useTextFlexProps).
+ */
+export const textStyleKeysMap = {
+  ...viewStyleKeysMap,
+  color: ["color"],
+  fontFamily: ["fontFamily"],
+  fontSize: ["fontSize"],
+  fontStyle: ["fontStyle"],
+  fontWeight: ["fontWeight"],
+  letterSpacing: ["letterSpacing"],
+  lineHeight: ["lineHeight"],
+  textAlign: ["textAlign"],
+  textDecorationLine: ["textDecorationLine"],
+  textDecorationStyle: ["textDecorationStyle"],
+  textDecorationColor: ["textDecorationColor"],
+  textTransform: ["textTransform"],
+} as const satisfies Record<string, FlexStyleKeys>;
+
+export type TStyleKeysMap = Record<string, FlexStyleKeys>;
+
+/** Значения, подставляемые вместо boolean (<Col flex /> → flex: 1). */
+export const flexBooleanValuesMap: Record<string, unknown> = {
+  left: 0,
+  right: 0,
+  top: 0,
+  bottom: 0,
+  height: "100%",
+  width: "100%",
+  flex: 1,
+  flexGrow: 1,
+  flexShrink: 1,
+  row: "row",
+  col: "column",
+  wrap: "wrap",
+  centerContent: "center",
+  absolute: "absolute",
 };
 
+/** Пропсы, значение которых резолвится через цвета темы. */
+export const themeColorFlexPropsSet = new Set([
+  "bg",
+  "color",
+  "borderColor",
+  "textDecorationColor",
+]);
+
+/** Пропсы, накапливаемые в style.transform. */
+export const transformFlexPropsSet = new Set([
+  "rotate",
+  "translateX",
+  "translateY",
+  "scale",
+]);
+
+// пропсы с нетривиальной трансформацией — обрабатываются в конвертере явно
+type SpecialFlexPropKeys =
+  | "style"
+  | "rotate"
+  | "translateX"
+  | "translateY"
+  | "scale"
+  | "absoluteFill"
+  | "circle"
+  | "elevation"
+  | "debug";
+
 // проверка, все ли ключи FlexProps включены в мапу
-type LostScreenParamsTypes =
+type LostFlexPropsKeys =
   Exclude<
-    keyof Omit<
-      FlexProps<FlexStyle>,
-      "style" | "rotate" | "translateX" | "translateY" | "scale"
-    >,
-    keyof typeof flexPropsMap
+    keyof FlexProps<FlexStyle>,
+    SpecialFlexPropKeys | keyof typeof textStyleKeysMap
   > extends never
     ? true
     : false;
 
-const CheckError: LostScreenParamsTypes = true;
+const CheckError: LostFlexPropsKeys = true;

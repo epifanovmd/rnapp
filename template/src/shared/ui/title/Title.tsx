@@ -2,7 +2,7 @@ import { useRoute } from "@shared/lib/navigation";
 import { observer } from "mobx-react-lite";
 import React, { FC, PropsWithChildren } from "react";
 
-import { Col, FlexProps, Row, useFlexProps } from "../flex-view";
+import { Col, FlexProps, Row } from "../flex-view";
 import { ITextProps, Text } from "../text";
 
 export interface ITitleProps extends FlexProps {
@@ -13,7 +13,6 @@ export interface ITitleProps extends FlexProps {
 
 export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
   ({ title, rightSlot, textProps, children, ...rest }) => {
-    const { flexProps } = useFlexProps(rest);
     const route = useRoute();
 
     return (
@@ -23,7 +22,7 @@ export const Title: FC<PropsWithChildren<ITitleProps>> = observer(
         mb={4}
         alignItems={"center"}
         justifyContent={"space-between"}
-        {...flexProps}
+        {...rest}
       >
         {children ?? (
           <Text textStyle={"Title_L"} {...textProps}>
