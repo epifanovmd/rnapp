@@ -201,23 +201,36 @@ export function extractContainerCandidates(
     collectFromSource(sources[sources.length - 1], candidates);
   }
 
+  // В склейке участвуют только фрагментоподобные области (1–8 символов:
+  // владелец, серийник, цифра в рамке) — иначе бюджет комбинаций сгорает
+  // на постороннем длинном тексте, попавшем в кадр.
+  const fragments = sources.filter(source => {
+    const length = source.text.replace(/[^A-Za-z0-9]/g, "").length;
+
+    return length >= 1 && length <= 8;
+  });
+
   // пары соседних областей: "MSCU" + "123456 7"
   let combinations = 0;
 
-  for (let i = 0; i < sources.length && combinations < MAX_COMBINATIONS; i++) {
+  for (
+    let i = 0;
+    i < fragments.length && combinations < MAX_COMBINATIONS;
+    i++
+  ) {
     for (
       let j = 0;
-      j < sources.length && combinations < MAX_COMBINATIONS;
+      j < fragments.length && combinations < MAX_COMBINATIONS;
       j++
     ) {
-      if (i === j || !areAdjacent(sources[i].rect, sources[j].rect)) {
+      if (i === j || !areAdjacent(fragments[i].rect, fragments[j].rect)) {
         continue;
       }
       combinations++;
       const pairSource: ISource = {
-        text: sources[i].text + sources[j].text,
-        confidence: Math.min(sources[i].confidence, sources[j].confidence),
-        rect: unionRect(sources[i].rect, sources[j].rect),
+        text: fragments[i].text + fragments[j].text,
+        confidence: Math.min(fragments[i].confidence, fragments[j].confidence),
+        rect: unionRect(fragments[i].rect, fragments[j].rect),
       };
 
       collectFromSource(pairSource, candidates);
@@ -226,27 +239,30 @@ export function extractContainerCandidates(
       // цифра в отдельной рамке — доклеиваем короткий соседний фрагмент
       for (
         let k = 0;
-        k < sources.length && combinations < MAX_COMBINATIONS;
+        k < fragments.length && combinations < MAX_COMBINATIONS;
         k++
       ) {
         if (k === i || k === j) {
           continue;
         }
-        const fragment = sources[k].text.replace(/[^A-Za-z0-9]/g, "");
+        const fragment = fragments[k].text.replace(/[^A-Za-z0-9]/g, "");
 
         if (
           fragment.length === 0 ||
           fragment.length > 2 ||
-          !areAdjacent(pairSource.rect, sources[k].rect)
+          !areAdjacent(pairSource.rect, fragments[k].rect)
         ) {
           continue;
         }
         combinations++;
         collectFromSource(
           {
-            text: pairSource.text + sources[k].text,
-            confidence: Math.min(pairSource.confidence, sources[k].confidence),
-            rect: unionRect(pairSource.rect, sources[k].rect),
+            text: pairSource.text + fragments[k].text,
+            confidence: Math.min(
+              pairSource.confidence,
+              fragments[k].confidence,
+            ),
+            rect: unionRect(pairSource.rect, fragments[k].rect),
           },
           candidates,
         );
@@ -255,7 +271,7 @@ export function extractContainerCandidates(
   }
 
   // вертикальная стопка коротких фрагментов (код, нанесённый столбцом)
-  const shortSources = sources.filter(
+  const shortSources = fragments.filter(
     source => source.text.replace(/[^A-Za-z0-9]/g, "").length <= 4,
   );
 
