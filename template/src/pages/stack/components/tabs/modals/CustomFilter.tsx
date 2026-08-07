@@ -142,23 +142,23 @@ export const CustomFilter = observer(
         />
 
         <BottomSheet.Content>
-          {filter.filters.map((filter, index) => {
+          {filter.filters.map((item, index) => {
             return (
               <Col key={index} gap={8} mb={16}>
                 <Row alignItems={"center"} justifyContent={"space-between"}>
-                  <Text textStyle={"Title_S1"}>{filter.title}</Text>
-                  {!filter.isEqual && (
+                  <Text textStyle={"Title_S1"}>{item.title}</Text>
+                  {!item.isEqual && (
                     <Button
                       type={"text"}
                       title={"Сбросить"}
-                      onPress={() => filter.reset()}
+                      onPress={() => item.reset()}
                     />
                   )}
                 </Row>
 
                 <Row alignItems={"center"} gap={8} wrap>
-                  {filter.isLoading && <Chip>{"Загрузка..."}</Chip>}
-                  {filter.options.map((option, ind) => {
+                  {item.isLoading && <Chip>{"Загрузка..."}</Chip>}
+                  {item.options.map((option, ind) => {
                     return (
                       <Chip
                         key={ind}
@@ -169,11 +169,11 @@ export const CustomFilter = observer(
                     );
                   })}
 
-                  {filter.expandable && !filter.expanded && (
+                  {item.expandable && !item.expanded && (
                     <Button
                       type={"text"}
                       title={"Еще..."}
-                      onPress={filter.toggleExpand}
+                      onPress={item.toggleExpand}
                     />
                   )}
                 </Row>

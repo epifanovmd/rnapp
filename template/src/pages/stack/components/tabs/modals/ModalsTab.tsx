@@ -1,7 +1,7 @@
 import { TabProps } from "@shared/lib/navigation";
 import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
-import { BottomSheet, Button, Text } from "@shared/ui";
+import { BottomSheet, Button, Text, useBottomSheetStack } from "@shared/ui";
 import React, { memo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CustomFilter } from "./CustomFilter";
 import { DemoSheet, IDemoSheetProps } from "./DemoSheet";
 import { SheetKeyboardDemo } from "./SheetKeyboardDemo";
+import { StackDemoSheet } from "./StackDemoSheet";
 
 interface ISheetVariant {
   key: string;
@@ -60,6 +61,8 @@ export const ModalsTab = memo<TabProps>(() => {
   const keyboardRef = useRef<BottomSheet>(null);
   const filterRef = useRef<BottomSheet>(null);
 
+  const stack = useBottomSheetStack({ first: {}, second: {}, third: {} });
+
   return (
     <>
       <Animated.ScrollView
@@ -85,6 +88,12 @@ export const ModalsTab = memo<TabProps>(() => {
           onPress={() => keyboardRef.current?.present()}
         />
 
+        <Text textStyle={"Title_S1"}>{"Стек шторок"}</Text>
+        <Button
+          title={"Открыть стек (present / back)"}
+          onPress={() => stack.present("first")}
+        />
+
         <Text textStyle={"Title_S1"}>{"Практический пример"}</Text>
         <Button
           title={"Фильтр с чипами"}
@@ -103,6 +112,35 @@ export const ModalsTab = memo<TabProps>(() => {
       ))}
       <SheetKeyboardDemo ref={keyboardRef} />
       <CustomFilter ref={filterRef} />
+
+      <StackDemoSheet
+        {...stack.sheets.first}
+        label={"Шаг 1 из 3"}
+        description={
+          "Первый лист стека. «Дальше» откроет следующий лист поверх текущего."
+        }
+        primaryTitle={"Дальше"}
+        onPrimary={() => stack.present("second")}
+        onBack={stack.back}
+      />
+      <StackDemoSheet
+        {...stack.sheets.second}
+        label={"Шаг 2 из 3"}
+        description={
+          "Второй лист. «Назад» вернёт к первому, свайп вниз закроет весь стек."
+        }
+        primaryTitle={"Дальше"}
+        onPrimary={() => stack.present("third")}
+        onBack={stack.back}
+      />
+      <StackDemoSheet
+        {...stack.sheets.third}
+        label={"Шаг 3 из 3"}
+        description={"Последний лист. «Готово» закрывает весь стек."}
+        primaryTitle={"Готово"}
+        onPrimary={stack.dismiss}
+        onBack={stack.back}
+      />
     </>
   );
 });

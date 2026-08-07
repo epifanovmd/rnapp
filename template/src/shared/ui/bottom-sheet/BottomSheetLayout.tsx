@@ -1,7 +1,6 @@
 import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
-import React, { ReactNode, useCallback } from "react";
+import React, { ReactNode, useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, View } from "react-native";
-import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ResolvedSingleSlot } from "../../lib/slots";
@@ -23,6 +22,11 @@ export interface BottomSheetLayoutProps {
  * Раскладка листа: слоты рендерятся здесь, потому что замер высот требует
  * контекста BottomSheetModal. Колбэки замера уходят в слоты инъекцией и не
  * затирают одноимённые props потребителя.
+ *
+ * Полная высота (контент + шапка + футер) пишется в animatedLayoutState одним
+ * значением сразу после штатной записи BottomSheetScrollView (тот же JS-тик) и
+ * только когда контент уже замерен — иначе detents пересчитываются на
+ * промежуточных значениях и анимация открытия дёргается.
  */
 export const BottomSheetLayout = ({
   children,
@@ -30,66 +34,74 @@ export const BottomSheetLayout = ({
   footer,
   header,
 }: BottomSheetLayoutProps) => {
-  const headerH = useSharedValue(0);
-  const footerH = useSharedValue(0);
-  const contentH = useSharedValue(0);
-
   const { bottom: paddingBottom } = useSafeAreaInsets();
   const { enableDynamicSizing, animatedLayoutState } = useBottomSheetInternal();
 
   const hasHeader = header.present;
   const hasFooter = footer.present;
 
-  useAnimatedReaction(
-    () => ({
-      header: headerH.value,
-      footer: footerH.value,
-      content: contentH.value,
-    }),
-    (current, previous) => {
-      if (
-        !enableDynamicSizing ||
-        (current.header === previous?.header &&
-          current.footer === previous?.footer &&
-          current.content === previous?.content)
-      ) {
-        return;
-      }
+  const sizesRef = useRef({ header: 0, footer: 0, content: -1 });
 
-      const gap = BottomSheetStyles.content.gap;
+  const commit = useCallback(() => {
+    const {
+      header: headerH,
+      footer: footerH,
+      content: contentH,
+    } = sizesRef.current;
 
-      animatedLayoutState.modify(state => {
-        state.contentHeight =
-          current.content +
-          paddingBottom +
-          (hasHeader ? current.header + gap : 0) +
-          (hasFooter ? current.footer + gap : 0);
+    // До первого замера контента не пишем: штатная запись тоже ещё не было.
+    if (!enableDynamicSizing || contentH < 0) {
+      return;
+    }
 
-        return state;
-      });
-    },
-    [enableDynamicSizing, hasHeader, hasFooter, paddingBottom],
-  );
+    const gap = BottomSheetStyles.content.gap;
+    const fullHeight =
+      contentH +
+      paddingBottom +
+      (hasHeader ? headerH + gap : 0) +
+      (hasFooter ? footerH + gap : 0);
+
+    animatedLayoutState.modify(state => {
+      "worklet";
+      state.contentHeight = fullHeight;
+
+      return state;
+    });
+  }, [
+    enableDynamicSizing,
+    paddingBottom,
+    hasHeader,
+    hasFooter,
+    animatedLayoutState,
+  ]);
+
+  // Изменение insets/наличия слотов меняет формулу — перезаписать высоту.
+  useEffect(() => {
+    commit();
+  }, [commit]);
 
   const onContentSizeChange = useCallback(
     (_width: number, height: number) => {
-      contentH.value = height;
+      sizesRef.current.content = height;
+      commit();
     },
-    [contentH],
+    [commit],
   );
 
   const onHeaderLayout = useCallback(
     ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
-      headerH.value = layout.height;
+      sizesRef.current.header = layout.height;
+      commit();
     },
-    [headerH],
+    [commit],
   );
 
   const onFooterLayout = useCallback(
     ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
-      footerH.value = layout.height;
+      sizesRef.current.footer = layout.height;
+      commit();
     },
-    [footerH],
+    [commit],
   );
 
   return (
