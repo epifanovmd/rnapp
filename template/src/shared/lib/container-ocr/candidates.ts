@@ -32,7 +32,7 @@ const TO_DIGIT: Record<string, string> = {
 };
 
 /** Максимум комбинаций областей, проверяемых на одном кадре */
-const MAX_COMBINATIONS = 24;
+const MAX_COMBINATIONS = 48;
 const MAX_CANDIDATES = 5;
 /** Максимум вариантов нормализации одного окна */
 const MAX_WINDOW_VARIANTS = 32;
@@ -214,14 +214,43 @@ export function extractContainerCandidates(
         continue;
       }
       combinations++;
-      collectFromSource(
-        {
-          text: sources[i].text + sources[j].text,
-          confidence: Math.min(sources[i].confidence, sources[j].confidence),
-          rect: unionRect(sources[i].rect, sources[j].rect),
-        },
-        candidates,
-      );
+      const pairSource: ISource = {
+        text: sources[i].text + sources[j].text,
+        confidence: Math.min(sources[i].confidence, sources[j].confidence),
+        rect: unionRect(sources[i].rect, sources[j].rect),
+      };
+
+      collectFromSource(pairSource, candidates);
+
+      // код часто разбит на ТРИ области: владелец + серийник + контрольная
+      // цифра в отдельной рамке — доклеиваем короткий соседний фрагмент
+      for (
+        let k = 0;
+        k < sources.length && combinations < MAX_COMBINATIONS;
+        k++
+      ) {
+        if (k === i || k === j) {
+          continue;
+        }
+        const fragment = sources[k].text.replace(/[^A-Za-z0-9]/g, "");
+
+        if (
+          fragment.length === 0 ||
+          fragment.length > 2 ||
+          !areAdjacent(pairSource.rect, sources[k].rect)
+        ) {
+          continue;
+        }
+        combinations++;
+        collectFromSource(
+          {
+            text: pairSource.text + sources[k].text,
+            confidence: Math.min(pairSource.confidence, sources[k].confidence),
+            rect: unionRect(pairSource.rect, sources[k].rect),
+          },
+          candidates,
+        );
+      }
     }
   }
 

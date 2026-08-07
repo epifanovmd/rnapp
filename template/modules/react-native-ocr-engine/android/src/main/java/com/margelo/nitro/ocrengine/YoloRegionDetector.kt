@@ -8,7 +8,7 @@ import java.nio.ByteOrder
 import kotlin.math.max
 import kotlin.math.min
 
-/** Нормализованный [0..1] регион кода контейнера, найденный детектором */
+/** Нормализованный [0..1] регион, найденный детектором */
 internal data class DetectedRegion(
   val x: Float,
   val y: Float,
@@ -18,15 +18,26 @@ internal data class DetectedRegion(
 )
 
 /**
- * TFLite-детектор регионов (YOLO, ultralytics-экспорт).
- * Вход: `[1, S, S, 3]` float32 RGB [0..1]; выход: `[1, 4+nc, N]` либо
- * `[1, N, 4+nc]`, боксы `cx,cy,w,h` нормализованы к [0..1].
+ * TFLite-детектор регионов (YOLO, ultralytics-экспорт). Поддерживает два
+ * поколения формата выхода, различаемых по размерности тензора:
+ * - классический (v8/11/12): `[1, 4+nc, N]` или `[1, N, 4+nc]`, тысячи
+ *   сырых кандидатов `cx,cy,w,h` — фильтр по score + собственный NMS;
+ * - end-to-end (v10/26): `[1, N, 6]` с малым N — готовые боксы
+ *   `x1,y1,x2,y2,score,class`, NMS не требуется.
+ * Координаты нормализуются адаптивно: значения крупнее 1.5 считаются
+ * пикселями входа модели.
  */
 internal class YoloRegionDetector private constructor(
   private val interpreter: Interpreter,
 ) {
   private val inputSize: Int = interpreter.getInputTensor(0).shape()[1]
   private val outputShape: IntArray = interpreter.getOutputTensor(0).shape()
+
+  /** `[1, N, 6]` с небольшим N — сеть уже вернула финальные детекции */
+  private val isEndToEnd: Boolean =
+    outputShape.size == 3 &&
+      outputShape[2] == 6 &&
+      outputShape[1] <= MAX_END_TO_END_DETECTIONS
 
   fun detect(upright: Bitmap, minScore: Float, iouThreshold: Float): List<DetectedRegion> {
     val scaled = Bitmap.createScaledBitmap(upright, inputSize, inputSize, true)
@@ -38,9 +49,11 @@ internal class YoloRegionDetector private constructor(
     val output = Array(outputShape[1]) { FloatArray(outputShape[2]) }
     interpreter.run(input, arrayOf(output))
 
-    val candidates = decode(output, minScore)
-
-    return nms(candidates, iouThreshold)
+    return if (isEndToEnd) {
+      decodeEndToEnd(output, minScore)
+    } else {
+      nms(decodeClassic(output, minScore), iouThreshold)
+    }
   }
 
   fun close() {
@@ -63,8 +76,13 @@ internal class YoloRegionDetector private constructor(
     return buffer
   }
 
-  private fun decode(output: Array<FloatArray>, minScore: Float): List<DetectedRegion> {
-    // [C, N] (ultralytics: каналы первыми) либо [N, C]
+  /** Значение > 1.5 — координата в пикселях входа модели, а не [0..1] */
+  private fun normalized(value: Float): Float {
+    return if (value > 1.5f) value / inputSize else value
+  }
+
+  /** Классический выход: `[C, N]` (каналы первыми) либо `[N, C]`, cx,cy,w,h */
+  private fun decodeClassic(output: Array<FloatArray>, minScore: Float): List<DetectedRegion> {
     val channelsFirst = output.size < (output.firstOrNull()?.size ?: 0)
     val count = if (channelsFirst) output[0].size else output.size
     val channels = if (channelsFirst) output.size else output[0].size
@@ -81,10 +99,10 @@ internal class YoloRegionDetector private constructor(
       if (score < minScore) {
         continue
       }
-      val cx = value(0, i)
-      val cy = value(1, i)
-      val w = value(2, i)
-      val h = value(3, i)
+      val cx = normalized(value(0, i))
+      val cy = normalized(value(1, i))
+      val w = normalized(value(2, i))
+      val h = normalized(value(3, i))
       val x = (cx - w / 2f).coerceIn(0f, 1f)
       val y = (cy - h / 2f).coerceIn(0f, 1f)
       regions.add(
@@ -97,6 +115,36 @@ internal class YoloRegionDetector private constructor(
         ),
       )
     }
+
+    return regions
+  }
+
+  /** End-to-end выход: строки `x1,y1,x2,y2,score,class`, дублей нет */
+  private fun decodeEndToEnd(output: Array<FloatArray>, minScore: Float): List<DetectedRegion> {
+    val regions = ArrayList<DetectedRegion>()
+    for (row in output) {
+      val score = row[4]
+      if (score < minScore) {
+        continue
+      }
+      val x1 = normalized(row[0]).coerceIn(0f, 1f)
+      val y1 = normalized(row[1]).coerceIn(0f, 1f)
+      val x2 = normalized(row[2]).coerceIn(0f, 1f)
+      val y2 = normalized(row[3]).coerceIn(0f, 1f)
+      if (x2 <= x1 || y2 <= y1) {
+        continue
+      }
+      regions.add(
+        DetectedRegion(
+          x = x1,
+          y = y1,
+          width = x2 - x1,
+          height = y2 - y1,
+          score = score,
+        ),
+      )
+    }
+    regions.sortByDescending { it.score }
 
     return regions
   }
@@ -128,6 +176,9 @@ internal class YoloRegionDetector private constructor(
   }
 
   companion object {
+    /** Верхняя граница числа детекций у end-to-end моделей (обычно 300) */
+    private const val MAX_END_TO_END_DETECTIONS = 512
+
     fun load(context: Context, assetName: String): YoloRegionDetector? {
       val bytes = try {
         context.assets.open(assetName).use { it.readBytes() }

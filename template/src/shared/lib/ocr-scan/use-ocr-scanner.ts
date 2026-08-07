@@ -232,6 +232,13 @@ export const useOcrScanner = <TAttributes>({
           revision: prev.revision + 1,
         }));
 
+        // межкадровое накопление свидетельств кандидатов (голоса за код и т.п.)
+        if (domain.accumulateCandidates !== null && candidates.length > 0) {
+          const accumulate = domain.accumulateCandidates;
+
+          attributes.setBlocking(prev => accumulate(prev, candidates));
+        }
+
         const best =
           candidates.length > 0 && candidates[0].isValid ? candidates[0] : null;
 
@@ -240,28 +247,47 @@ export const useOcrScanner = <TAttributes>({
           const count = previous.code === best.value ? previous.count + 1 : 1;
 
           streak.setBlocking({ code: best.value, count });
-          // серия набрана, но домен может отложить подтверждение, пока не
-          // накоплены все атрибуты (тип, веса, …) — сканирование продолжается
-          const attributesReady =
-            domain.isComplete === null ||
-            domain.isComplete(attributes.getBlocking());
+        }
 
-          if (count >= domain.confirmStreak && attributesReady) {
-            suspended.setBlocking(true);
-            streak.setBlocking({ code: "", count: 0 });
-            overlay.setBlocking(prev => ({
-              boxes: [],
-              imageWidth: result.imageWidth,
-              imageHeight: result.imageHeight,
-              revision: prev.revision + 1,
-            }));
-            scheduleOnRN(
-              handleConfirmed,
-              best.value,
-              best.confidence,
-              attributes.getBlocking(),
-            );
+        // подтверждение: серия одинаковых сканов подряд ЛИБО вывод домена
+        // из накопленных свидетельств; гейт полноты атрибутов — общий
+        let confirmedValue: string | null = null;
+        let confirmedConfidence = 0;
+
+        if (
+          best !== null &&
+          streak.getBlocking().count >= domain.confirmStreak
+        ) {
+          confirmedValue = best.value;
+          confirmedConfidence = best.confidence;
+        } else if (domain.resolveAccumulated !== null) {
+          const resolved = domain.resolveAccumulated(attributes.getBlocking());
+
+          if (resolved !== null) {
+            confirmedValue = resolved.value;
+            confirmedConfidence = resolved.confidence;
           }
+        }
+
+        const attributesReady =
+          domain.isComplete === null ||
+          domain.isComplete(attributes.getBlocking());
+
+        if (confirmedValue !== null && attributesReady) {
+          suspended.setBlocking(true);
+          streak.setBlocking({ code: "", count: 0 });
+          overlay.setBlocking(prev => ({
+            boxes: [],
+            imageWidth: result.imageWidth,
+            imageHeight: result.imageHeight,
+            revision: prev.revision + 1,
+          }));
+          scheduleOnRN(
+            handleConfirmed,
+            confirmedValue,
+            confirmedConfidence,
+            attributes.getBlocking(),
+          );
         }
       } finally {
         frame.dispose();

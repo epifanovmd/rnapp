@@ -1,9 +1,11 @@
 import {
+  accumulateContainerCandidates,
   EMPTY_CONTAINER_ATTRIBUTES,
   extractContainerAttributes,
   extractContainerCandidates,
   IContainerAttributes,
   mergeContainerAttributes,
+  resolveContainerCode,
 } from "@shared/lib/container-ocr";
 import {
   IOcrScanCandidate,
@@ -56,4 +58,8 @@ export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
   extractAttributes: extractContainerAttributes,
   mergeAttributes: mergeContainerAttributes,
   isComplete,
+  // код подтверждается и межкадровыми голосами — не требуется полное
+  // чтение в трёх сканах подряд
+  accumulateCandidates: accumulateContainerCandidates,
+  resolveAccumulated: resolveContainerCode,
 };

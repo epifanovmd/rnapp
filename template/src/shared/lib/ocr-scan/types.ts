@@ -51,6 +51,31 @@ export interface IOcrScanDomain<TAttributes> {
    * не вернёт true (worklet). null — подтверждать по одному кандидату.
    */
   isComplete: ((attributes: TAttributes) => boolean) | null;
+  /**
+   * Межкадровое накопление кандидатов в атрибутах (worklet): вызывается
+   * после извлечения кандидатов кадра — домен может копить свидетельства
+   * (например, голоса за код), чтобы подтверждение не требовало полного
+   * чтения в сканах подряд. null — кандидаты между кадрами не копятся.
+   */
+  accumulateCandidates:
+    | ((
+        accumulated: TAttributes,
+        candidates: IOcrScanCandidate[],
+      ) => TAttributes)
+    | null;
+  /**
+   * Вывод подтверждения из накопленного состояния (worklet): ненулевой
+   * результат срабатывает как альтернатива серийной стабилизации
+   * (гейт `isComplete` применяется и к нему). null — только серия.
+   */
+  resolveAccumulated:
+    ((attributes: TAttributes) => IOcrScanResolved | null) | null;
+}
+
+/** Подтверждение, выведенное доменом из накопленных свидетельств */
+export interface IOcrScanResolved {
+  value: string;
+  confidence: number;
 }
 
 /** Бокс оверлея в нормализованных координатах кадра */

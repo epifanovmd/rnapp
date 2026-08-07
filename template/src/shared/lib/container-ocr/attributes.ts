@@ -1,3 +1,4 @@
+import type { IOcrScanCandidate, IOcrScanResolved } from "@shared/lib/ocr-scan";
 import type { OcrObservation } from "react-native-ocr-engine";
 
 import { IContainerRect } from "./types";
@@ -19,6 +20,10 @@ export interface IContainerAttributes {
   /** Size-type код ISO 6346, например "45G1" */
   sizeTypeCode: string | null;
   weights: IContainerWeights;
+  /** Голоса за валидные коды между кадрами (код → сколько раз прочитан) */
+  codeVotes: Record<string, number>;
+  /** Лучшая уверенность OCR по каждому коду */
+  codeConfidence: Record<string, number>;
 }
 
 export const EMPTY_CONTAINER_ATTRIBUTES: IContainerAttributes = {
@@ -29,7 +34,12 @@ export const EMPTY_CONTAINER_ATTRIBUTES: IContainerAttributes = {
     netKg: null,
     cubicCapacityM3: null,
   },
+  codeVotes: {},
+  codeConfidence: {},
 };
+
+/** Сколько голосов (не обязательно подряд) подтверждают код */
+const CODE_CONFIRM_VOTES = 3;
 
 /** Символы длины size-type (первый знак) */
 const SIZE_LENGTH_CHARS = "123456789ABCDEFGHKLMNP";
@@ -198,6 +208,8 @@ export function extractContainerAttributes(
       netKg: null,
       cubicCapacityM3: null,
     },
+    codeVotes: {},
+    codeConfidence: {},
   };
   const lines = joinLines(observations);
 
@@ -239,5 +251,70 @@ export function mergeContainerAttributes(
       cubicCapacityM3:
         next.weights.cubicCapacityM3 ?? accumulated.weights.cubicCapacityM3,
     },
+    codeVotes: accumulated.codeVotes,
+    codeConfidence: accumulated.codeConfidence,
+  };
+}
+
+/**
+ * Межкадровое голосование: каждый валидный кандидат кадра добавляет голос
+ * своему коду — код не обязан читаться целиком в сканах подряд.
+ */
+export function accumulateContainerCandidates(
+  accumulated: IContainerAttributes,
+  candidates: IOcrScanCandidate[],
+): IContainerAttributes {
+  "worklet";
+
+  const codeVotes: Record<string, number> = { ...accumulated.codeVotes };
+  const codeConfidence: Record<string, number> = {
+    ...accumulated.codeConfidence,
+  };
+
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i];
+
+    if (!candidate.isValid) {
+      continue;
+    }
+    codeVotes[candidate.value] = (codeVotes[candidate.value] ?? 0) + 1;
+    codeConfidence[candidate.value] = Math.max(
+      codeConfidence[candidate.value] ?? 0,
+      candidate.confidence,
+    );
+  }
+
+  return { ...accumulated, codeVotes, codeConfidence };
+}
+
+/**
+ * Вывод кода из накопленных голосов: побеждает код, набравший
+ * CODE_CONFIRM_VOTES (валидность каждого голоса уже проверена
+ * контрольной цифрой). null — голосов пока недостаточно.
+ */
+export function resolveContainerCode(
+  attributes: IContainerAttributes,
+): IOcrScanResolved | null {
+  "worklet";
+
+  let bestCode: string | null = null;
+  let bestVotes = 0;
+  const codes = Object.keys(attributes.codeVotes);
+
+  for (let i = 0; i < codes.length; i++) {
+    const votes = attributes.codeVotes[codes[i]];
+
+    if (votes > bestVotes) {
+      bestVotes = votes;
+      bestCode = codes[i];
+    }
+  }
+  if (bestCode === null || bestVotes < CODE_CONFIRM_VOTES) {
+    return null;
+  }
+
+  return {
+    value: bestCode,
+    confidence: attributes.codeConfidence[bestCode] ?? 0,
   };
 }
