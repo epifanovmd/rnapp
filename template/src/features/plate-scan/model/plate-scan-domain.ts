@@ -5,6 +5,7 @@ import {
 } from "@shared/lib/ocr-scan";
 import { extractPlateCandidates } from "@shared/lib/plate-ocr";
 
+/** OCR-области → кандидаты автономера (адаптер библиотеки к контракту домена) */
 function extractCandidates(
   observations: IOcrScanObservation[],
 ): IOcrScanCandidate[] {

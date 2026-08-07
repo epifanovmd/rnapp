@@ -1,10 +1,7 @@
+import type { IScanRect } from "@shared/lib/scan-overlay";
+
 /** Нормализованный [0..1] прямоугольник выпрямленного кадра, top-left origin */
-export interface IOcrScanRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+export type IOcrScanRect = IScanRect;
 
 /** OCR-область кадра в выпрямленных координатах */
 export interface IOcrScanObservation {
@@ -77,26 +74,3 @@ export interface IOcrScanResolved {
   value: string;
   confidence: number;
 }
-
-/** Бокс оверлея в нормализованных координатах кадра */
-export interface IOcrOverlayBox {
-  rect: IOcrScanRect;
-  /** null — обычная OCR-область; иначе кандидат (валидный/нет) */
-  isValidCandidate: boolean | null;
-}
-
-/** Снимок распознавания одного кадра для отрисовки оверлея */
-export interface IOcrOverlaySnapshot {
-  boxes: IOcrOverlayBox[];
-  imageWidth: number;
-  imageHeight: number;
-  /** Монотонный номер снимка — оверлей перерисовывается только по изменению */
-  revision: number;
-}
-
-export const EMPTY_OCR_OVERLAY: IOcrOverlaySnapshot = {
-  boxes: [],
-  imageWidth: 0,
-  imageHeight: 0,
-  revision: 0,
-};

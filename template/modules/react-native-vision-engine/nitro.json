@@ -1,0 +1,24 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": ["visionengine"],
+  "ios": {
+    "iosModuleName": "VisionEngine"
+  },
+  "android": {
+    "androidNamespace": ["visionengine"],
+    "androidCxxLibName": "VisionEngine"
+  },
+  "autolinking": {
+    "VisionEngine": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridVisionEngine"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridVisionEngine"
+      }
+    }
+  },
+  "ignorePaths": ["**/node_modules"]
+}

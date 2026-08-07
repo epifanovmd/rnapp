@@ -4,6 +4,7 @@ import {
   IOcrScanObservation,
 } from "@shared/lib/ocr-scan";
 
+/** Кандидатов нет — домен только стримит OCR-области */
 function extractCandidates(
   _observations: IOcrScanObservation[],
 ): IOcrScanCandidate[] {

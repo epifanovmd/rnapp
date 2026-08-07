@@ -41,6 +41,7 @@ export enum StackScreenName {
   ContainerScanner = "ContainerScanner",
   PlateScanner = "PlateScanner",
   TextScanner = "TextScanner",
+  ObjectScanner = "ObjectScanner",
 }
 
 interface StackScreenParams {
@@ -60,6 +61,7 @@ interface StackScreenParams {
   ContainerScanner: undefined;
   PlateScanner: undefined;
   TextScanner: undefined;
+  ObjectScanner: undefined;
 }
 
 export enum ComponentsScreenName {

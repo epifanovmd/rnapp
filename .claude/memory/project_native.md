@@ -29,13 +29,13 @@ type: project
   Ассеты (логотип, бренд, светлая/тёмная темы) генерируются `npm run splash` из
   `splash.config.mjs` скриптом `scripts/splash/` (sharp): Android — `drawable-*`,
   `drawable-night-*`, `values*/colors.xml`; iOS — xcassets + сториборд.
-- **OcrEngine** (`template/modules/react-native-ocr-engine`) — локальный Nitro-модуль
+- **VisionEngine** (`template/modules/react-native-vision-engine`) — локальный Nitro-модуль
   (link:-зависимость в package.json, symlink в node_modules): универсальный on-device OCR для
   **VisionCamera v5** (Nitro-архитектура, `useFrameOutput` + `react-native-vision-camera-worklets`),
   предметной области не знает — домены в JS.
-  Спека `src/specs/OcrEngine.nitro.ts` (кодоген: `npx nitrogen@0.36.5`, генерат закоммичен в
+  Спека `src/specs/VisionEngine.nitro.ts` (кодоген: `npx nitrogen@0.36.5`, генерат закоммичен в
   `nitrogen/generated/`), принимает `Frame` VisionCamera как внешний nitro-тип.
-  iOS: `ios/HybridOcrEngine.swift` — `VNRecognizeTextRequest` + опц. CoreML-детектор регионов
+  iOS: `ios/HybridVisionEngine.swift` — `VNRecognizeTextRequest` + опц. CoreML-детектор регионов
   (`ios/MLModels/container_code_detector.mlpackage`, synchronized group в pbxproj).
   Android: Kotlin — ML Kit text-recognition + опц. TFLite YOLO-детектор
   (`android/app/src/main/assets/container_code_detector.tflite`), `YoloRegionDetector` — декодер+NMS;
@@ -43,17 +43,41 @@ type: project
   через `NitroModules.box`/`unbox`. Модели детекторов (YOLO → CoreML c NMS /
   TFLite) кладутся в приложение вручную (`ios/MLModels/`, `android/.../assets/`);
   без модели OCR работает полнокадрово.
-  JS-архитектура мультидоменная: универсальный пайплайн — `shared/lib/ocr-scan`
-  (`useOcrScanner` параметризуется `IOcrScanDomain`: worklet `extractCandidates`,
-  `confirmStreak`, имя модели детектора, опц. атрибуты; выпрямление координат,
-  сглаживание оверлея) + `shared/ui/ocr-scan` (`OcrScanCamera`/`OcrScanOverlay` —
-  камера создаёт frame-output на каждый маунт: переиспользование между сессиями
-  роняет AVFoundation). Домены: `shared/lib/container-ocr` (ISO 6346: контрольная
+  Нативный слой разбит по SRP, платформы зеркальны (таблица — README модуля):
+  фасад `HybridVisionEngine` + `{CoreML,Tflite}ModelLoader` + чистый
+  `YoloOutputDecoder` + `{CoreMLObjectDetector,TfliteDetector}` +
+  `{VisionTextRecognizer,MlKitTextRecognizer}` + `FrameGeometry`.
+  JS-архитектура мультидоменная: примитивы кадрового конвейера —
+  `shared/lib/ocr-scan/use-frame-pipeline` (`getWorkletEngine`, `shouldEmit`,
+  `publishOverlay`, `useOverlayChannel`, `useStableCallback`,
+  `useVisionFrameOutput`) — на них построены `useOcrScanner`
+  (параметризуется `IOcrScanDomain`) и `useObjectScanner`. UI-каркас камеры —
+  `shared/ui/scan/ScanCameraShell` (девайс, разрешения, фонарик,
+  заглушки; конвейер и оверлеи — через `outputs`/`children`), поверх него
+  `OcrScanCamera` (проп `overlayLayers` — доп. слои оверлея) и фичевые камеры. Frame-output создаётся на каждый маунт:
+  переиспользование между сессиями роняет AVFoundation. Домены: `shared/lib/container-ocr` (ISO 6346: контрольная
   цифра, перебор OCR-подстановок, веса/типоразмер), `shared/lib/plate-ocr`
   (РФ-номера: формат ГОСТ, латинско-кириллические подстановки). Фичи-обвязки:
   `features/container-scan`, `features/plate-scan`, `features/text-scan`
-  (произвольный текст через `onObservations`). Экраны с BottomSheet-камерой —
-  `pages/stack/{container,plate,text}-scanner`.
+  (произвольный текст через `onObservations`). Детекция объектов: методы
+  `loadObjectModel`/`detectObjects` (отдельный слот модели `object_detector`,
+  декодеры classic+end-to-end YOLO с classIndex/label), ядро —
+  `shared/lib/object-scan` (`useObjectScanner`, COCO-метки), пример —
+  `features/object-scan` + `pages/stack/object-scanner`. `scan(...).regions` —
+  детекции наведения OCR (та же форма `DetectedObject`);
+  `analyze(frame, {ocr?, objects?})` — комбинированный проход с общим
+  upright-битмапом (Android). Оверлей — хост + слои:
+  `shared/lib/scan-overlay` — данные (типы `IScanOverlayBox`
+  `{rect, kind: text|candidate|valid|region, label?}`, cover-маппинг,
+  сглаживание); `shared/ui/scan/overlay/` — `ScanOverlayHost` (опрос
+  Synchronizable на UI-потоке, анти-мигание, маппинг в пиксели один раз,
+  слои-children получают `IScanOverlayApi` render-prop'ом, не контекстом),
+  слои `OverlayFrames` (рамки/уголки категории), `OverlayLabels` (подписи
+  SkPicture: метка класса / значение кандидата из `label`), `OverlayDim`
+  (затемнение вне боксов, even-odd), хук `useOverlayPath` для своей
+  геометрии; `ScanOverlay` — стандартный пресет (регион — синие уголки).
+  Экраны с BottomSheet-камерой —
+  `pages/stack/{container,plate,text,object}-scanner`.
   Важно worklet'ам: module-scope RegExp не сериализуется в worklet-рантайм
   (объект без методов) — литералы только внутри тел функций.
 - **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/

@@ -10,7 +10,8 @@ type: project
 - **Private — табы** (`MAIN`, `src/app/app-tab-screens.tsx`, `pages/tabs/`): Main, Playground,
   Settings.
 - **Private — стек** (`src/app/App.screens.ts`, `pages/stack/`): MAIN + Components/Carousel/
-  Chat/Charts/ContainerScanner/ContextMenu/InputBar/PdfView/PlateScanner/TextScanner/WebView.
+  Chat/Charts/ContainerScanner/ContextMenu/InputBar/ObjectScanner/PdfView/PlateScanner/
+  TextScanner/WebView.
 - `App.navigator.tsx`: unauth → PUBLIC, auth → `{...PRIVATE, ...PUBLIC}`.
 - `NavigationService` (`shared/lib/navigation/navigation.service.ts`) — императивная навигация.
 - Deep linking — `app/App.linking.ts`.

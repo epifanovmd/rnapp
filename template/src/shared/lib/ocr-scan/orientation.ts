@@ -1,4 +1,4 @@
-import type { OcrBufferOrientation } from "react-native-ocr-engine";
+import type { OcrBufferOrientation } from "react-native-vision-engine";
 
 import { IOcrScanRect } from "./types";
 

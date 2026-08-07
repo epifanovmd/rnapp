@@ -23,10 +23,11 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
   App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
 - `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
   `stack/` (sign-in, sign-up, recovery-password, chat, carousel, charts, components,
-  container-scanner, context-menu, input-bar, pdf-view, plate-scanner, text-scanner, web-view)
+  container-scanner, context-menu, input-bar, object-scanner, pdf-view, plate-scanner,
+  text-scanner, web-view)
 - `widgets/` — chat-room, app-shell
 - `features/` — sign-in, sign-up, recovery-password, biometric, container-scan,
-  plate-scan, text-scan
+  object-scan, plate-scan, text-scan
 - `entities/` — auth, user
 - `shared/` — ui | api | config | lib (di, holders, navigation, theme, socket, keyboard, ...)
 
@@ -74,8 +75,8 @@ WheelPicker (`RNWheelPicker`) — на обеих платформах, един
 iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
 AppSplash — свой splash-экран на обеих платформах, ассеты генерируются `npm run splash`
 из `splash.config.mjs`.
-OcrEngine (`template/modules/react-native-ocr-engine`) — локальный Nitro-модуль
-(link:-зависимость) generic-OCR для VisionCamera v5: iOS — Apple Vision + опц.
+VisionEngine (`template/modules/react-native-vision-engine`) — локальный Nitro-модуль
+(link:-зависимость) generic-OCR + детекция объектов (`detectObjects`) для VisionCamera v5: iOS — Apple Vision + опц.
 CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. Модели детекторов
 (YOLO → CoreML со встроенным NMS / TFLite) кладутся вручную в
 `template/ios/MLModels/` и `template/android/app/src/main/assets/`

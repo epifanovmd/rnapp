@@ -5,6 +5,7 @@ import { Components } from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
 import { ContextMenu } from "@pages/stack/context-menu";
 import { InputBar } from "@pages/stack/input-bar";
+import { ObjectScanner } from "@pages/stack/object-scanner";
 import { PdfView } from "@pages/stack/pdf-view";
 import { PlateScanner } from "@pages/stack/plate-scanner";
 import { RecoveryPassword } from "@pages/stack/recovery-password";
@@ -32,6 +33,7 @@ export const PRIVATE_SCREENS: StackScreens = {
   },
   PlateScanner: { screen: PlateScanner, options: { headerShown: false } },
   TextScanner: { screen: TextScanner, options: { headerShown: false } },
+  ObjectScanner: { screen: ObjectScanner, options: { headerShown: false } },
   PdfView: {
     screen: PdfView,
     options: {

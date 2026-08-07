@@ -1,4 +1,4 @@
-import type { OcrObservation } from "react-native-ocr-engine";
+import type { OcrObservation } from "react-native-vision-engine";
 
 import { computeIso6346CheckDigit } from "./iso6346";
 import { IContainerCandidate, IContainerRect } from "./types";

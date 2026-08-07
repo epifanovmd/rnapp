@@ -13,6 +13,7 @@ import {
   IOcrScanObservation,
 } from "@shared/lib/ocr-scan";
 
+/** OCR-области → кандидаты ISO 6346 (адаптер библиотеки к контракту домена) */
 function extractCandidates(
   observations: IOcrScanObservation[],
 ): IOcrScanCandidate[] {

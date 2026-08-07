@@ -6511,10 +6511,6 @@ react-native-nitro-modules@^0.36.1:
   resolved "https://registry.yarnpkg.com/react-native-nitro-modules/-/react-native-nitro-modules-0.36.5.tgz#438c77e4f1e77bd1d3e901eb5b4953762e68a078"
   integrity sha512-SJby84+hovD70JmQ1fq+56tw3oapJeChehUqXA4Gqjm+ktJhMAcj8LGwoAjStSOUwRaK7czbzBPB0Widj+EDoQ==
 
-"react-native-ocr-engine@link:./modules/react-native-ocr-engine":
-  version "0.0.0"
-  uid ""
-
 react-native-pager-view@^8.0.4:
   version "8.0.4"
   resolved "https://registry.yarnpkg.com/react-native-pager-view/-/react-native-pager-view-8.0.4.tgz#b5cc01b11cd92273b39b656fc138e0e935d464be"
@@ -6603,6 +6599,10 @@ react-native-vision-camera@^5.2.2:
   version "5.2.2"
   resolved "https://registry.yarnpkg.com/react-native-vision-camera/-/react-native-vision-camera-5.2.2.tgz#e0a46819d68c4bbcfe4c884b6efbae0a18a80adf"
   integrity sha512-oPSWDsKqZ6nmwulV0MqD0CeqDePvvq0yvC1rWUiintcBjWzqL4YXFmX4wTKwgFZ8LvwWkEMqcnOTennKQmvvdg==
+
+"react-native-vision-engine@link:./modules/react-native-vision-engine":
+  version "0.0.0"
+  uid ""
 
 react-native-webrtc@^124.0.8:
   version "124.0.8"

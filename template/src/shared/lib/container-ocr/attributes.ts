@@ -1,5 +1,5 @@
 import type { IOcrScanCandidate, IOcrScanResolved } from "@shared/lib/ocr-scan";
-import type { OcrObservation } from "react-native-ocr-engine";
+import type { OcrObservation } from "react-native-vision-engine";
 
 import { IContainerRect } from "./types";
 

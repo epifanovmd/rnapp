@@ -12,10 +12,16 @@ export interface INavLinkProps extends ITouchableProps {
 
 export const NavLink: FC<INavLinkProps> = memo(
   ({ children, to, params, screen, ...rest }) => {
-    const { navigate } = useNavigation<NavigationProp<any>>();
+    const { navigate } = useNavigation<NavigationProp<object>>();
+
+    // Ссылка динамическая: экран приходит union-строкой, а `navigate`
+    // типизирован кортежами перегрузок на каждый экран — union по ним
+    // не дистрибутируется. Сужаем сигнатуру: безопасность обеспечивает
+    // тип `to: ScreenName` на пропсах.
+    const navigateTo = navigate as (name: ScreenName, params?: object) => void;
 
     const onPress = useCallback(() => {
-      navigate(
+      navigateTo(
         to,
         screen
           ? {
@@ -24,7 +30,7 @@ export const NavLink: FC<INavLinkProps> = memo(
             }
           : params,
       );
-    }, [navigate, params, screen, to]);
+    }, [navigateTo, params, screen, to]);
 
     return (
       <Touchable {...rest} onPress={onPress}>
