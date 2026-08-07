@@ -82,6 +82,24 @@ export const Playground: FC<IProps> = observer(({ navigation, route }) => {
             title={"Input bar"}
             onPress={() => navigation.navigate("InputBar")}
           />
+
+          <Button
+            mt={8}
+            title={"Container scanner"}
+            onPress={() => navigation.navigate("ContainerScanner")}
+          />
+
+          <Button
+            mt={8}
+            title={"Plate scanner"}
+            onPress={() => navigation.navigate("PlateScanner")}
+          />
+
+          <Button
+            mt={8}
+            title={"Text scanner"}
+            onPress={() => navigation.navigate("TextScanner")}
+          />
         </Content>
       </ScrollView>
     </Container>

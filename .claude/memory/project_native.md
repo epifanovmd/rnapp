@@ -29,6 +29,33 @@ type: project
   Ассеты (логотип, бренд, светлая/тёмная темы) генерируются `npm run splash` из
   `splash.config.mjs` скриптом `scripts/splash/` (sharp): Android — `drawable-*`,
   `drawable-night-*`, `values*/colors.xml`; iOS — xcassets + сториборд.
+- **OcrEngine** (`template/modules/react-native-ocr-engine`) — локальный Nitro-модуль
+  (link:-зависимость в package.json, symlink в node_modules): универсальный on-device OCR для
+  **VisionCamera v5** (Nitro-архитектура, `useFrameOutput` + `react-native-vision-camera-worklets`),
+  предметной области не знает — домены в JS.
+  Спека `src/specs/OcrEngine.nitro.ts` (кодоген: `npx nitrogen@0.36.5`, генерат закоммичен в
+  `nitrogen/generated/`), принимает `Frame` VisionCamera как внешний nitro-тип.
+  iOS: `ios/HybridOcrEngine.swift` — `VNRecognizeTextRequest` + опц. CoreML-детектор регионов
+  (`ios/MLModels/container_code_detector.mlpackage`, synchronized group в pbxproj).
+  Android: Kotlin — ML Kit text-recognition + опц. TFLite YOLO-детектор
+  (`android/app/src/main/assets/container_code_detector.tflite`), `YoloRegionDetector` — декодер+NMS;
+  cast `frame as NativeFrame` → `ImageProxy`. `scan` синхронный, вызывается из frame-worklet'а
+  через `NitroModules.box`/`unbox`. Модели детекторов (YOLO → CoreML c NMS /
+  TFLite) кладутся в приложение вручную (`ios/MLModels/`, `android/.../assets/`);
+  без модели OCR работает полнокадрово.
+  JS-архитектура мультидоменная: универсальный пайплайн — `shared/lib/ocr-scan`
+  (`useOcrScanner` параметризуется `IOcrScanDomain`: worklet `extractCandidates`,
+  `confirmStreak`, имя модели детектора, опц. атрибуты; выпрямление координат,
+  сглаживание оверлея) + `shared/ui/ocr-scan` (`OcrScanCamera`/`OcrScanOverlay` —
+  камера создаёт frame-output на каждый маунт: переиспользование между сессиями
+  роняет AVFoundation). Домены: `shared/lib/container-ocr` (ISO 6346: контрольная
+  цифра, перебор OCR-подстановок, веса/типоразмер), `shared/lib/plate-ocr`
+  (РФ-номера: формат ГОСТ, латинско-кириллические подстановки). Фичи-обвязки:
+  `features/container-scan`, `features/plate-scan`, `features/text-scan`
+  (произвольный текст через `onObservations`). Экраны с BottomSheet-камерой —
+  `pages/stack/{container,plate,text}-scanner`.
+  Важно worklet'ам: module-scope RegExp не сериализуется в worklet-рантайм
+  (объект без методов) — литералы только внутри тел функций.
 - **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/
   `NativeWheelPickerSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"` —
   одна библиотека на все спеки. Имена файлов фиксированы RN (исключение в `eslint.naming.mjs`).

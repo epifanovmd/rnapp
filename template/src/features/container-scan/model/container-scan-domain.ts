@@ -1,0 +1,43 @@
+import {
+  EMPTY_CONTAINER_ATTRIBUTES,
+  extractContainerAttributes,
+  extractContainerCandidates,
+  IContainerAttributes,
+  mergeContainerAttributes,
+} from "@shared/lib/container-ocr";
+import {
+  IOcrScanCandidate,
+  IOcrScanDomain,
+  IOcrScanObservation,
+} from "@shared/lib/ocr-scan";
+
+function extractCandidates(
+  observations: IOcrScanObservation[],
+): IOcrScanCandidate[] {
+  "worklet";
+
+  const candidates = extractContainerCandidates(observations);
+  const result: IOcrScanCandidate[] = [];
+
+  for (let i = 0; i < candidates.length; i++) {
+    result.push({
+      value: candidates[i].code,
+      isValid: candidates[i].isValid,
+      confidence: candidates[i].confidence,
+      rect: candidates[i].rect,
+    });
+  }
+
+  return result;
+}
+
+/** Домен сканирования кодов морских контейнеров (ISO 6346) */
+export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
+  extractCandidates,
+  /** Контрольная цифра надёжно отсекает ложные коды — хватает трёх сканов */
+  confirmStreak: 3,
+  detectorModelName: "container_code_detector",
+  emptyAttributes: EMPTY_CONTAINER_ATTRIBUTES,
+  extractAttributes: extractContainerAttributes,
+  mergeAttributes: mergeContainerAttributes,
+};

@@ -65,6 +65,8 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>Разрешите доступ к камере для сканирования кодов контейнеров</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Enabling Face ID allows you quick access to RealApp</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

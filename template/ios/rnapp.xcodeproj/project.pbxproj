@@ -67,6 +67,13 @@
 			path = AppSplash;
 			sourceTree = "<group>";
 		};
+		1AMLMODELS2F000000000001 /* MLModels */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = MLModels;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -89,6 +96,7 @@
 				1A8368022F13070100FB3432 /* GoogleService-Info.plist */,
 				1A881F2A2E47D2E80057B776 /* Picker */,
 				1AAPPSPLASH2F00000000001 /* AppSplash */,
+				1AMLMODELS2F000000000001 /* MLModels */,
 				1A8169D92D8B10590020AC31 /* AppDelegate.swift */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
@@ -226,6 +234,7 @@
 			fileSystemSynchronizedGroups = (
 				1A881F2A2E47D2E80057B776 /* Picker */,
 				1AAPPSPLASH2F00000000001 /* AppSplash */,
+				1AMLMODELS2F000000000001 /* MLModels */,
 			);
 			name = rnapp;
 			productName = rnapp;

@@ -38,6 +38,9 @@ export enum StackScreenName {
   InputBar = "InputBar",
   PdfView = "PdfView",
   WebView = "WebView",
+  ContainerScanner = "ContainerScanner",
+  PlateScanner = "PlateScanner",
+  TextScanner = "TextScanner",
 }
 
 interface StackScreenParams {
@@ -54,6 +57,9 @@ interface StackScreenParams {
   InputBar: undefined;
   PdfView: IPdfViewProps;
   WebView: IWebViewProps;
+  ContainerScanner: undefined;
+  PlateScanner: undefined;
+  TextScanner: undefined;
 }
 
 export enum ComponentsScreenName {

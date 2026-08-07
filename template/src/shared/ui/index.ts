@@ -21,6 +21,7 @@ export * from "./input-bar";
 export * from "./keyboard-scroll-view";
 export * from "./layouts";
 export * from "./navbar";
+export * from "./ocr-scan";
 export * from "./picker";
 export * from "./scroll-view";
 export * from "./switch";

@@ -1,0 +1,31 @@
+{
+  "name": "react-native-ocr-engine",
+  "version": "0.1.0",
+  "description": "Generic on-device OCR (Apple Vision / ML Kit) with optional region detectors — frame processing plugin for react-native-vision-camera v5 (Nitro)",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "license": "MIT",
+  "files": [
+    "src",
+    "ios",
+    "android",
+    "cpp",
+    "nitrogen",
+    "nitro.json",
+    "react-native.config.js",
+    "*.podspec"
+  ],
+  "scripts": {
+    "specs": "nitrogen"
+  },
+  "peerDependencies": {
+    "react-native": "*",
+    "react-native-nitro-modules": "*",
+    "react-native-vision-camera": "*"
+  },
+  "devDependencies": {
+    "nitrogen": "0.36.5"
+  }
+}
