@@ -15,6 +15,7 @@ import React, { FC, memo } from "react";
 
 import {
   ButtonsTab,
+  DialogsTab,
   ElementsTab,
   ModalsTab,
   NotificationsTab,
@@ -26,6 +27,7 @@ const routes: TabScreens = {
   Buttons: { screen: ButtonsTab },
   Notifications: { screen: NotificationsTab },
   Modals: { screen: ModalsTab },
+  Dialogs: { screen: DialogsTab },
   Pickers: { screen: PickersTab },
   Elements: { screen: ElementsTab },
   Ticket: { screen: TicketTab },

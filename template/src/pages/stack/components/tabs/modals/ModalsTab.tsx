@@ -1,144 +1,122 @@
 import { TabProps } from "@shared/lib/navigation";
+import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
-import {
-  BottomSheet,
-  Button,
-  Col,
-  Dialog,
-  Row,
-  ScrollView,
-  Text,
-  Touchable,
-  useBottomSheetRef,
-} from "@shared/ui";
-import { Icon } from "@shared/ui/icon";
-import React, { FC, memo } from "react";
+import { BottomSheet, Button, Text } from "@shared/ui";
+import React, { memo, useRef } from "react";
+import { StyleSheet } from "react-native";
+import Animated from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CustomFilter } from "./CustomFilter";
+import { DemoSheet, IDemoSheetProps } from "./DemoSheet";
+import { SheetKeyboardDemo } from "./SheetKeyboardDemo";
+import { SheetStackDemo } from "./SheetStackDemo";
 
-export const ModalsTab: FC<TabProps> = memo(({ route }) => {
+interface ISheetVariant {
+  key: string;
+  button: string;
+  props: IDemoSheetProps;
+}
+
+/** Варианты настроек листа; контент во всех шторках одинаковый. */
+const SHEET_VARIANTS: ISheetVariant[] = [
+  {
+    key: "dynamic",
+    button: "Dynamic sizing — высота по контенту",
+    props: { maxDynamicContentSize: 500 },
+  },
+  {
+    key: "snap",
+    button: "Snap points [300, 60%]",
+    props: { snapPoints: [300, "60%"], enableDynamicSizing: false },
+  },
+  {
+    key: "no-pan",
+    button: "Без свайпа вниз (enablePanDownToClose: false)",
+    props: { enablePanDownToClose: false, maxDynamicContentSize: 450 },
+  },
+  {
+    key: "haptic",
+    button: "Haptic при открытии",
+    props: { haptic: true, maxDynamicContentSize: 450 },
+  },
+  {
+    key: "detached",
+    button: "Detached — плавающая карточка",
+    props: {
+      detached: true,
+      bottomInset: 24,
+      maxDynamicContentSize: 420,
+      style: { marginHorizontal: 16 },
+    },
+  },
+];
+
+export const ModalsTab = memo<TabProps>(() => {
+  const { bottom } = useSafeAreaInsets();
   const { navbar } = useTransition();
+  const scroll = useScroll();
 
-  const filterRef = useBottomSheetRef();
-  const modalRefScroll = useBottomSheetRef();
-  const modalRefView = useBottomSheetRef();
-
-  const [isVisible, setVisible] = React.useState(false);
+  const sheetRefs = useRef<Record<string, BottomSheet | null>>({});
+  const stackRef = useRef<BottomSheet>(null);
+  const keyboardRef = useRef<BottomSheet>(null);
+  const filterRef = useRef<BottomSheet>(null);
 
   return (
-    <Col ph={16} gap={8} pt={navbar.height}>
-      <Button
-        title={"Open filter"}
-        onPress={() => filterRef.current?.present()}
-      />
-      <Button
-        title={"View bottom sheet with snap point"}
-        onPress={() => modalRefScroll.current?.present()}
-      />
-      <Button
-        title={"View bottom sheet"}
-        onPress={() => {
-          modalRefView.current?.present();
-        }}
-      />
-
-      <Button
-        title={"View dialog"}
-        onPress={() => {
-          setVisible(true);
-        }}
-      />
-
-      <CustomFilter ref={filterRef} />
-
-      <Dialog
-        isVisible={isVisible}
-        onClose={() => setVisible(false)}
-        enableBackdropClose={false}
-        enableSwipeClose={true}
+    <>
+      <Animated.ScrollView
+        contentContainerStyle={[
+          SS.container,
+          { paddingBottom: bottom + 16, paddingTop: navbar.height },
+        ]}
+        onScroll={scroll?.scrollHandler}
+        scrollEventThrottle={16}
       >
-        <Row
-          alignItems={"center"}
-          gap={8}
-          justifyContent={"space-between"}
-          pb={16}
-        >
-          <Text textStyle={"Title_L"}>{"Заголовок"}</Text>
-          <Touchable onPress={() => setVisible(false)}>
-            <Icon name={"closeCircle"} />
-          </Touchable>
-        </Row>
-        <ScrollView>
-          {new Array(20).fill(0).map((_, i) => (
-            <Row key={i}>
-              <Text>{`Item B - ${i + 1}`}</Text>
-            </Row>
-          ))}
-        </ScrollView>
+        <Text textStyle={"Title_S1"}>{"Настройки листа"}</Text>
+        {SHEET_VARIANTS.map(variant => (
+          <Button
+            key={variant.key}
+            title={variant.button}
+            onPress={() => sheetRefs.current[variant.key]?.present()}
+          />
+        ))}
+
+        <Text textStyle={"Title_S1"}>{"Поведение"}</Text>
         <Button
-          mt={8}
-          title={"Close modal"}
-          onPress={() => {
-            setVisible(false);
-          }}
+          title={"Стек модалок (stackBehavior)"}
+          onPress={() => stackRef.current?.present()}
         />
-      </Dialog>
-
-      <BottomSheet
-        ref={modalRefScroll}
-        snapPoints={[300, 500]}
-        maxDynamicContentSize={500}
-      >
-        <BottomSheet.Header
-          label={"Заголовок"}
-          onClose={() => {
-            modalRefScroll.current?.dismiss();
-          }}
+        <Button
+          title={"Клавиатура (keyboardBehavior)"}
+          onPress={() => keyboardRef.current?.present()}
         />
-        <BottomSheet.Content>
-          {new Array(90).fill(0).map((_, i) => (
-            <Row key={i}>
-              <Text>{`Item B - ${i + 1}`}</Text>
-            </Row>
-          ))}
-        </BottomSheet.Content>
 
-        <BottomSheet.Footer>
-          <BottomSheet.Footer.PrimaryButton title={"Готово"} />
-          <BottomSheet.Footer.SecondaryButton
-            title={"Отмена"}
-            onPress={() => {
-              modalRefScroll.current?.dismiss();
-            }}
-          />
-        </BottomSheet.Footer>
-      </BottomSheet>
-
-      <BottomSheet ref={modalRefView} maxDynamicContentSize={300}>
-        <BottomSheet.Header
-          label={"Заголовок"}
-          onClose={() => {
-            modalRefView.current?.dismiss();
-          }}
+        <Text textStyle={"Title_S1"}>{"Практический пример"}</Text>
+        <Button
+          title={"Фильтр с чипами"}
+          onPress={() => filterRef.current?.present()}
         />
-        <BottomSheet.Content>
-          <Text>{"Контент"}</Text>
-          {new Array(50).fill(0).map((_, i) => (
-            <Row key={i}>
-              <Text>{`Item B - ${i + 1}`}</Text>
-            </Row>
-          ))}
-        </BottomSheet.Content>
-        <BottomSheet.Footer>
-          <BottomSheet.Footer.PrimaryButton title={"Готово"} />
-          <BottomSheet.Footer.SecondaryButton
-            title={"Отмена"}
-            onPress={() => {
-              modalRefView.current?.dismiss();
-            }}
-          />
-        </BottomSheet.Footer>
-      </BottomSheet>
-    </Col>
+      </Animated.ScrollView>
+
+      {SHEET_VARIANTS.map(variant => (
+        <DemoSheet
+          key={variant.key}
+          ref={sheet => {
+            sheetRefs.current[variant.key] = sheet;
+          }}
+          {...variant.props}
+        />
+      ))}
+      <SheetStackDemo ref={stackRef} />
+      <SheetKeyboardDemo ref={keyboardRef} />
+      <CustomFilter ref={filterRef} />
+    </>
   );
+});
+
+const SS = StyleSheet.create({
+  container: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
 });

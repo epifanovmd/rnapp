@@ -1,361 +1,198 @@
 import { Portal } from "@gorhom/portal";
-import { useTheme } from "@shared/lib/theme";
-import React, {
-  memo,
-  PropsWithChildren,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-import {
-  Dimensions,
-  Keyboard,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewProps,
-  ViewStyle,
-} from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { useMergedCallback } from "@shared/lib/hooks";
+import React, { useImperativeHandle, useMemo } from "react";
+import { StyleProp, View, ViewStyle } from "react-native";
+import { GestureDetector } from "react-native-gesture-handler";
+import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { scheduleOnRN } from "react-native-worklets";
 
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { ScrollView } from "../scroll-view";
+import { DEFAULT_DURATION } from "./constants";
+import { DialogContext, IDialogContext } from "./dialog-context";
+import { DialogBackdrop } from "./DialogBackdrop";
+import { DialogFooter } from "./DialogFooter";
+import { DialogHeader } from "./DialogHeader";
 import { DIALOG_HOST_NAME, DialogHost } from "./DialogHost";
+import {
+  useDialogAnimatedStyles,
+  useDialogAnimation,
+  useDialogBackButton,
+  useDialogGestures,
+  useDialogStyles,
+  useDialogVisibility,
+} from "./hooks";
+import { DialogStyles } from "./styles";
+import { IDialogProps, IDialogRef, TDialogPlacement } from "./types";
 
-const { height: SCREEN_HEIGHT, width: SCREEN_WIDTH } = Dimensions.get("window");
+const dialogSlots = {
+  header: slot.of(DialogHeader),
+  content: slot.of(ScrollView, {
+    defaultProps: { bounces: false, flexShrink: 1 },
+  }),
+  footer: slot.of(DialogFooter),
+};
 
-export type AnimationType = "scale" | "slide" | "fade" | "scaleSlide";
-export type PlacementType = "top" | "center" | "bottom";
+const placementStyles: Record<TDialogPlacement, ViewStyle> = {
+  top: DialogStyles.topContainer,
+  center: DialogStyles.centerContainer,
+  bottom: DialogStyles.bottomContainer,
+};
 
-export interface CenterModalProps extends ViewProps {
-  isVisible: boolean;
-  width?: ViewStyle["width"];
-  height?: ViewStyle["height"];
-  offset?: number;
-  placement?: PlacementType;
-  animationType?: AnimationType;
-  animationDuration?: number;
-  animationDirection?: "up" | "down" | "left" | "right";
-  enableBackdropClose?: boolean;
-  enableSwipeClose?: boolean;
-  swipeThreshold?: number;
-  backdropOpacity?: number;
-  backdropColor?: string;
-  onClose?: () => void;
-}
+export type Dialog = IDialogRef;
 
-const DialogImpl: React.FC<PropsWithChildren<CenterModalProps>> = memo(
-  ({
-    isVisible,
-    width = "85%",
-    height = "auto",
-    offset = 50,
+const DialogRoot = ({
+  props,
+  slots,
+  content,
+  forwardedRef,
+}: CompoundRootProps<IDialogProps, typeof dialogSlots, IDialogRef>) => {
+  const {
+    isVisible: isVisibleProp,
+    onClose,
+    onOpened,
+    onClosed,
     placement = "center",
     animationType = "slide",
-    animationDuration: duration = 250,
     animationDirection = "down",
+    animationDuration: duration = DEFAULT_DURATION,
+    width = "85%",
+    height = "auto",
+    maxWidth = "90%",
+    maxHeight = "85%",
+    offset = 50,
     enableBackdropClose = true,
     enableSwipeClose = true,
+    swipeDirection = animationDirection,
     swipeThreshold = 0.3,
+    enableBackButtonClose = true,
     backdropOpacity = 0.6,
     backdropColor = "#000000",
-    onClose,
-    children,
+    backdropComponent: BackdropComponent,
+    haptic: hapticEnabled = false,
+    style,
     ...rest
-  }) => {
-    const { colors } = useTheme();
-    const { top, bottom } = useSafeAreaInsets();
+  } = props;
 
-    const [isRenderDialog, setIsRenderDialog] = useState(false);
-    const modalVisible = useSharedValue(0);
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
+  const { top, bottom } = useSafeAreaInsets();
 
-    const backdropAnimatedStyle = useAnimatedStyle(() => {
-      const opacity = interpolate(
-        modalVisible.value,
-        [0, 1],
-        [0, backdropOpacity],
-        Extrapolation.CLAMP,
-      );
+  const { isVisible, present, requestClose } = useDialogVisibility(
+    isVisibleProp,
+    onClose,
+  );
 
-      return {
-        opacity,
-        backgroundColor: backdropColor,
-      };
-    }, [backdropColor]);
+  const { mounted, measureCard, ...values } = useDialogAnimation({
+    isVisible,
+    duration,
+    swipeDirection,
+    hapticEnabled,
+    onOpened,
+    onClosed,
+  });
 
-    const modalAnimatedStyle = useAnimatedStyle(() => {
-      const scale =
-        animationType === "scale" || animationType === "scaleSlide"
-          ? interpolate(
-              modalVisible.value,
-              [0, 1],
-              [0.7, 1],
-              Extrapolation.CLAMP,
-            )
-          : 1;
+  const { backdropProgress, cardAnimatedStyle } = useDialogAnimatedStyles({
+    values,
+    animationType,
+    animationDirection,
+    swipeDirection,
+  });
 
-      // Базовое смещение для анимации появления
-      let baseTranslate = 0;
+  const { tapGesture, panGesture } = useDialogGestures({
+    values,
+    enableBackdropClose,
+    enableSwipeClose,
+    swipeDirection,
+    swipeThreshold,
+    duration,
+    requestClose,
+  });
 
-      if (animationType === "slide" || animationType === "scaleSlide") {
-        baseTranslate = interpolate(
-          modalVisible.value,
-          [0, 1],
-          [
-            animationDirection === "left" || animationDirection === "up"
-              ? -50
-              : 50,
-            0,
-          ],
-          Extrapolation.CLAMP,
-        );
-      }
+  useDialogBackButton(isVisible && enableBackButtonClose, requestClose);
 
-      const opacity = interpolate(
-        modalVisible.value,
-        [0, 1],
-        [0, 1],
-        Extrapolation.CLAMP,
-      );
-      const isLeftOrRight =
-        animationDirection === "left" || animationDirection === "right";
-      const isTopOrBottom =
-        animationDirection === "up" || animationDirection === "down";
+  const { cardStyle: themeCardStyle } = useDialogStyles();
 
-      return {
-        opacity,
-        transform: [
-          { scale },
-          {
-            translateY: isTopOrBottom
-              ? baseTranslate + translateY.value
-              : translateY.value,
-          },
-          {
-            translateX: isLeftOrRight
-              ? baseTranslate + translateX.value
-              : translateX.value,
-          },
-        ],
-      };
-    });
+  useImperativeHandle(
+    forwardedRef,
+    () => ({ present, dismiss: requestClose }),
+    [present, requestClose],
+  );
 
-    const openModal = (): void => {
-      "worklet";
-      scheduleOnRN(setIsRenderDialog, true);
-      translateX.value = 0;
-      translateY.value = 0;
-      modalVisible.value = withTiming(1, {
-        duration,
-      });
-    };
+  const onCardLayout = useMergedCallback(rest.onLayout, measureCard);
 
-    const closeModal = (callback?: () => void): void => {
-      "worklet";
-      modalVisible.value = withTiming(
-        0,
-        {
-          duration,
-        },
-        () => {
-          scheduleOnRN(setIsRenderDialog, false);
-          if (callback) {
-            scheduleOnRN(callback);
-          }
-        },
-      );
-    };
+  const containerStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [
+      placementStyles[placement],
+      { paddingTop: top || offset, paddingBottom: bottom || offset },
+    ],
+    [placement, top, bottom, offset],
+  );
 
-    const tapGesture = Gesture.Tap()
-      .enabled(enableBackdropClose)
-      .onEnd(() => {
-        closeModal(onClose);
-      });
+  const cardStyle = useMemo<StyleProp<ViewStyle>>(
+    () => [
+      DialogStyles.card,
+      themeCardStyle,
+      { width, height, maxWidth, maxHeight },
+    ],
+    [themeCardStyle, width, height, maxWidth, maxHeight],
+  );
 
-    // Жест для модалки (свайп)
-    const panGesture = Gesture.Pan()
-      .enabled(enableSwipeClose)
-      .onUpdate(event => {
-        "worklet";
-        const { translationX, translationY } = event;
+  const dialogContext = useMemo<IDialogContext>(
+    () => ({ close: requestClose }),
+    [requestClose],
+  );
 
-        if (animationDirection === "down" || animationDirection === "up") {
-          translateX.value = 0;
-          translateY.value = translationY;
-        } else if (
-          animationDirection === "left" ||
-          animationDirection === "right"
-        ) {
-          translateX.value = translationX;
-          translateY.value = 0;
-        }
-      })
-      .onEnd(event => {
-        "worklet";
+  if (!mounted) {
+    return null;
+  }
 
-        const { translationX, translationY, velocityY, velocityX } = event;
+  return (
+    <Portal hostName={DIALOG_HOST_NAME}>
+      <View style={DialogStyles.overlay}>
+        <View style={containerStyle}>
+          <GestureDetector gesture={tapGesture}>
+            {BackdropComponent ? (
+              <BackdropComponent
+                progress={backdropProgress}
+                style={DialogStyles.backdrop}
+              />
+            ) : (
+              <DialogBackdrop
+                progress={backdropProgress}
+                color={backdropColor}
+                opacity={backdropOpacity}
+                style={DialogStyles.backdrop}
+              />
+            )}
+          </GestureDetector>
 
-        const modalHeight =
-          typeof height === "number" ? height : SCREEN_HEIGHT * 0.85;
-        const modalWidth =
-          typeof width === "number" ? width : SCREEN_WIDTH * 0.8;
-
-        let shouldClose = false;
-
-        // Проверяем условия для закрытия в зависимости от направления
-        if (animationDirection === "down") {
-          const dragToss = 0.05;
-          const endOffset = translationY + velocityY * dragToss;
-
-          shouldClose =
-            endOffset > modalHeight * swipeThreshold || velocityY > 500;
-        } else if (animationDirection === "up") {
-          const dragToss = 0.05;
-          const endOffset = translationY + velocityY * dragToss;
-
-          shouldClose =
-            endOffset < -modalHeight * swipeThreshold || velocityY < -500;
-        } else if (animationDirection === "left") {
-          const dragToss = 0.05;
-          const endOffset = translationX + velocityX * dragToss;
-
-          shouldClose =
-            endOffset < -modalWidth * swipeThreshold || velocityX < -500;
-        } else if (animationDirection === "right") {
-          const dragToss = 0.05;
-          const endOffset = translationX + velocityX * dragToss;
-
-          shouldClose =
-            endOffset > modalWidth * swipeThreshold || velocityX > 500;
-        }
-
-        if (shouldClose && onClose) {
-          closeModal(onClose);
-        } else {
-          // Возвращаем модалку на место
-          translateX.value = withTiming(0, { duration });
-          translateY.value = withTiming(0, { duration });
-        }
-      });
-
-    useEffect(() => {
-      if (isVisible && !modalVisible.value) {
-        Keyboard.dismiss();
-        openModal();
-      } else if (!isVisible && modalVisible.value) {
-        closeModal();
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isVisible]);
-
-    // Рассчитываем стили для модалки с учетом placement
-    const contentStyle = useMemo<StyleProp<ViewStyle>>(() => {
-      const baseStyle: ViewStyle = {
-        backgroundColor: colors.surface,
-        width,
-        height,
-      };
-
-      // Ограничения
-      baseStyle.maxWidth = "90%";
-      baseStyle.maxHeight = "85%";
-
-      return [styles.content, baseStyle];
-    }, [colors.surface, height, width]);
-
-    // Стиль контейнера для размещения
-    const contentContainerStyle = useMemo<StyleProp<ViewStyle>>(() => {
-      const baseStyle = {
-        paddingTop: top || offset,
-        paddingBottom: bottom || offset,
-      };
-
-      switch (placement) {
-        case "top":
-          return [baseStyle, styles.topContainer];
-        case "bottom":
-          return [baseStyle, styles.bottomContainer];
-        case "center":
-        default:
-          return [baseStyle, styles.centerContainer];
-      }
-    }, [bottom, offset, placement, top]);
-
-    // Не рендерим если модалка полностью скрыта
-    if (!isRenderDialog) {
-      return null;
-    }
-
-    return (
-      <Portal hostName={DIALOG_HOST_NAME}>
-        <View style={styles.container}>
           <GestureDetector gesture={panGesture}>
-            <View style={contentContainerStyle}>
-              <GestureDetector gesture={tapGesture}>
-                <Animated.View
-                  style={[styles.backdrop, backdropAnimatedStyle]}
-                />
-              </GestureDetector>
-
-              <Animated.View
-                {...rest}
-                style={[contentStyle, modalAnimatedStyle, rest.style]}
-              >
-                {children}
-              </Animated.View>
-            </View>
+            <Animated.View
+              role={"dialog"}
+              accessibilityViewIsModal
+              {...rest}
+              onLayout={onCardLayout}
+              style={[cardStyle, cardAnimatedStyle, style]}
+            >
+              <DialogContext.Provider value={dialogContext}>
+                {slots.header.render()}
+                {slots.content.present
+                  ? slots.content.render({ defaults: { children: content } })
+                  : content}
+                {slots.footer.render()}
+              </DialogContext.Provider>
+            </Animated.View>
           </GestureDetector>
         </View>
-      </Portal>
-    );
-  },
+      </View>
+    </Portal>
+  );
+};
+
+export const Dialog = Object.assign(
+  createCompound<IDialogProps, IDialogRef>()({
+    name: "Dialog",
+    render: DialogRoot,
+    slots: dialogSlots,
+  }),
+  { Host: DialogHost },
 );
-
-export const Dialog = Object.assign(DialogImpl, { Host: DialogHost });
-
-const styles = StyleSheet.create({
-  container: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 99999,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  topContainer: {
-    flex: 1,
-    justifyContent: "flex-start",
-    alignItems: "center",
-  },
-  bottomContainer: {
-    flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "center",
-  },
-  backdrop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  content: {
-    overflow: "hidden",
-    padding: 16,
-    borderRadius: 16,
-  },
-});

@@ -7,7 +7,11 @@ type: project
 Весь UI — в `src/shared/ui/` (кроме `TabBar` в `widgets/app-shell/`):
 layout, navbar (compound: BackButton/Title/Subtitle/Right...), button, input (+TextField),
 bottom-sheet (@gorhom), balanced-row (три зоны, боковые уравнены по ширине — центр строго по
-центру; используют Navbar и BottomSheetHeader), dialog (Dialog.Host в App.tsx), text, icon (lucide), picker (нативный
+центру; используют Navbar, BottomSheetHeader и DialogHeader), dialog (compound
+Dialog.Header/Content/Footer; управляемый `isVisible`/`onClose` или императивный через
+`useDialogRef` → present/dismiss; логика в `dialog/hooks/` — visibility, animation,
+animated-styles, gestures, back-button, styles; заменяемый `backdropComponent`; Portal +
+Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scale-анимации), text, icon (lucide), picker (нативный
 WheelPicker), chart (Skia), carousel, flex-view, context-menu-view (JS-порт на Reanimated,
 синглтон Host в App.tsx), image-viewing, keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable, field, image, scroll-view, switch, tabs, ticket, title, touchable.

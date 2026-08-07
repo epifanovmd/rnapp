@@ -60,6 +60,7 @@ export enum ComponentsScreenName {
   Buttons = "Buttons",
   Notifications = "Notifications",
   Modals = "Modals",
+  Dialogs = "Dialogs",
   Pickers = "Pickers",
   Elements = "Elements",
   Ticket = "Elements",
@@ -69,6 +70,7 @@ interface ComponentsScreenParams {
   Buttons: undefined;
   Notifications: undefined;
   Modals: undefined;
+  Dialogs: undefined;
   Pickers: undefined;
   Elements: undefined;
   Ticket: undefined;

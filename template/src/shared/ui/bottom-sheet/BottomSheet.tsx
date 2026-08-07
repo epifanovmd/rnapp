@@ -56,6 +56,7 @@ const BottomSheetRoot = ({
       topInset={top}
       keyboardBlurBehavior={"restore"}
       backdropComponent={BottomSheetBackdrop}
+      stackBehavior={"replace"}
       {...modalProps}
       onAnimate={onAnimate}
       style={[BottomSheetStyles.container, modalProps.style]}
