@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CustomFilter } from "./CustomFilter";
 import { DemoSheet, IDemoSheetProps } from "./DemoSheet";
 import { SheetKeyboardDemo } from "./SheetKeyboardDemo";
-import { SheetStackDemo } from "./SheetStackDemo";
 
 interface ISheetVariant {
   key: string;
@@ -58,7 +57,6 @@ export const ModalsTab = memo<TabProps>(() => {
   const scroll = useScroll();
 
   const sheetRefs = useRef<Record<string, BottomSheet | null>>({});
-  const stackRef = useRef<BottomSheet>(null);
   const keyboardRef = useRef<BottomSheet>(null);
   const filterRef = useRef<BottomSheet>(null);
 
@@ -83,10 +81,6 @@ export const ModalsTab = memo<TabProps>(() => {
 
         <Text textStyle={"Title_S1"}>{"Поведение"}</Text>
         <Button
-          title={"Стек модалок (stackBehavior)"}
-          onPress={() => stackRef.current?.present()}
-        />
-        <Button
           title={"Клавиатура (keyboardBehavior)"}
           onPress={() => keyboardRef.current?.present()}
         />
@@ -107,7 +101,6 @@ export const ModalsTab = memo<TabProps>(() => {
           {...variant.props}
         />
       ))}
-      <SheetStackDemo ref={stackRef} />
       <SheetKeyboardDemo ref={keyboardRef} />
       <CustomFilter ref={filterRef} />
     </>

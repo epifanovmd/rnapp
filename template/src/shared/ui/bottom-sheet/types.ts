@@ -7,7 +7,13 @@ import { ComponentProps } from "react";
 import { BottomSheetFooter } from "./BottomSheetFooter";
 import { BottomSheetHeader } from "./BottomSheetHeader";
 
-export type TBottomSheetProps = BottomSheetModalProps & { haptic?: boolean };
+/**
+ * `stackBehavior` не пробрасывается: стек модалок не используется, лист всегда
+ * закрывает предыдущий (`replace`).
+ */
+export type TBottomSheetProps = Omit<BottomSheetModalProps, "stackBehavior"> & {
+  haptic?: boolean;
+};
 export type TBottomSheetHeaderProps = ComponentProps<typeof BottomSheetHeader>;
 export type TBottomSheetContentProps = ComponentProps<
   typeof BottomSheetScrollView
