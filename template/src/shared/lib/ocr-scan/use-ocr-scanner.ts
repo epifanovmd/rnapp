@@ -195,6 +195,7 @@ export const useOcrScanner = <TAttributes>({
           boxes.push({
             rect: observations[i].rect,
             kind: "text",
+            label: observations[i].text,
           });
         }
         publishOverlay(overlay, boxes, result.imageWidth, result.imageHeight);

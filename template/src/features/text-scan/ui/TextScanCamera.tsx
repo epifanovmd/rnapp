@@ -1,9 +1,14 @@
-import { OcrScanCamera } from "@shared/ui";
-import React, { FC, memo } from "react";
+import { IScanOverlayApi, OcrScanCamera, OverlayLabels } from "@shared/ui";
+import React, { FC, memo, ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
 import { TEXT_SCAN_DOMAIN } from "../model/text-scan-domain";
 import { ITextScanVM } from "../model/useTextScanVM";
+
+/** Распознанный текст — подписью над каждой OCR-областью */
+const renderTextLabels = (api: IScanOverlayApi): ReactNode => (
+  <OverlayLabels api={api} kind={"text"} />
+);
 
 export interface ITextScanCameraProps {
   vm: ITextScanVM;
@@ -24,6 +29,7 @@ export const TextScanCamera: FC<ITextScanCameraProps> = memo(
       canRequestPermission={vm.canRequestPermission}
       requestPermission={vm.requestPermission}
       onObservations={vm.handleObservations}
+      overlayLayers={renderTextLabels}
       style={style}
     />
   ),

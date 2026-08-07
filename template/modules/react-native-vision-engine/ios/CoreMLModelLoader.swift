@@ -26,7 +26,17 @@ enum CoreMLModelLoader {
     }
 
     let configuration = MLModelConfiguration()
-    configuration.computeUnits = .all
+    // GPU исключён намеренно: MPSGraph падает ассертом «MLIR pass manager
+    // failed» на attention-опах YOLO-экспортов; ANE для свёрток быстрее GPU
+    #if targetEnvironment(simulator)
+    configuration.computeUnits = .cpuOnly
+    #else
+    if #available(iOS 16.0, *) {
+      configuration.computeUnits = .cpuAndNeuralEngine
+    } else {
+      configuration.computeUnits = .cpuOnly
+    }
+    #endif
     let model = try MLModel(contentsOf: modelUrl, configuration: configuration)
     var inputSide: CGFloat = 640
     if let imageInput = model.modelDescription.inputDescriptionsByName.values
