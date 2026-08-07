@@ -46,6 +46,11 @@ export interface IOcrScanDomain<TAttributes> {
   /** Слияние атрибутов между кадрами */
   mergeAttributes:
     ((accumulated: TAttributes, next: TAttributes) => TAttributes) | null;
+  /**
+   * Готовность накопленных атрибутов: подтверждение откладывается, пока
+   * не вернёт true (worklet). null — подтверждать по одному кандидату.
+   */
+  isComplete: ((attributes: TAttributes) => boolean) | null;
 }
 
 /** Бокс оверлея в нормализованных координатах кадра */

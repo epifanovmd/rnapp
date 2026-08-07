@@ -29,13 +29,21 @@ export interface IContainerCandidate {
   rect: IContainerRect;
 }
 
-/** Расшифровка size-type кода (ISO 6346, необязательная строка под номером) */
+/** Посимвольная расшифровка size-type кода (ISO 6346) */
 export interface IContainerSizeType {
   code: string;
-  /** Длина, например "40 футов" */
+  /** Первый знак кода ("4") */
+  lengthCode: string;
+  /** Длина, например "40 футов (12 192 мм)" */
   length: string;
-  /** Высота, например "9'6\" (high cube)" */
+  /** Второй знак кода ("5") */
+  heightCode: string;
+  /** Высота и ширина, например "9'6\" (2896 мм) — high cube" */
   height: string;
-  /** Тип, например "универсальный (general purpose)" */
-  type: string;
+  /** Пара знаков типа ("G1") */
+  typeCode: string;
+  /** Группа типа по букве, например "универсальный (general purpose)" */
+  typeGroup: string;
+  /** Точный тип по паре знаков; при неизвестной паре — группа */
+  typeDetail: string;
 }

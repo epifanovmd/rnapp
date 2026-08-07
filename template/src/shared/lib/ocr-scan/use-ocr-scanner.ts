@@ -240,7 +240,13 @@ export const useOcrScanner = <TAttributes>({
           const count = previous.code === best.value ? previous.count + 1 : 1;
 
           streak.setBlocking({ code: best.value, count });
-          if (count >= domain.confirmStreak) {
+          // серия набрана, но домен может отложить подтверждение, пока не
+          // накоплены все атрибуты (тип, веса, …) — сканирование продолжается
+          const attributesReady =
+            domain.isComplete === null ||
+            domain.isComplete(attributes.getBlocking());
+
+          if (count >= domain.confirmStreak && attributesReady) {
             suspended.setBlocking(true);
             streak.setBlocking({ code: "", count: 0 });
             overlay.setBlocking(prev => ({

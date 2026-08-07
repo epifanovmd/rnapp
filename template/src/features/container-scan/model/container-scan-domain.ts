@@ -31,6 +31,21 @@ function extractCandidates(
   return result;
 }
 
+/**
+ * Скан считается полным, когда кроме кода прочитаны типоразмер и веса
+ * (MAX GROSS, TARE, NET/PAYLOAD) — до этого сканирование продолжается.
+ */
+function isComplete(attributes: IContainerAttributes): boolean {
+  "worklet";
+
+  return (
+    attributes.sizeTypeCode !== null &&
+    attributes.weights.maxGrossKg !== null &&
+    attributes.weights.tareKg !== null &&
+    attributes.weights.netKg !== null
+  );
+}
+
 /** Домен сканирования кодов морских контейнеров (ISO 6346) */
 export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
   extractCandidates,
@@ -40,4 +55,5 @@ export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
   emptyAttributes: EMPTY_CONTAINER_ATTRIBUTES,
   extractAttributes: extractContainerAttributes,
   mergeAttributes: mergeContainerAttributes,
+  isComplete,
 };

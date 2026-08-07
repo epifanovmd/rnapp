@@ -34,4 +34,5 @@ export const PLATE_SCAN_DOMAIN: IOcrScanDomain<null> = {
   emptyAttributes: null,
   extractAttributes: null,
   mergeAttributes: null,
+  isComplete: null,
 };
