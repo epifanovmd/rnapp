@@ -32,6 +32,7 @@
 namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
 
 #include "OcrRecognitionMode.hpp"
+#include <optional>
 
 namespace margelo::nitro::visionengine {
 
@@ -43,10 +44,11 @@ namespace margelo::nitro::visionengine {
     OcrRecognitionMode mode     SWIFT_PRIVATE;
     double minConfidence     SWIFT_PRIVATE;
     double maxObservations     SWIFT_PRIVATE;
+    std::optional<bool> fullFrameFallback     SWIFT_PRIVATE;
 
   public:
     OcrScanOptions() = default;
-    explicit OcrScanOptions(OcrRecognitionMode mode, double minConfidence, double maxObservations): mode(mode), minConfidence(minConfidence), maxObservations(maxObservations) {}
+    explicit OcrScanOptions(OcrRecognitionMode mode, double minConfidence, double maxObservations, std::optional<bool> fullFrameFallback): mode(mode), minConfidence(minConfidence), maxObservations(maxObservations), fullFrameFallback(fullFrameFallback) {}
 
   public:
     friend bool operator==(const OcrScanOptions& lhs, const OcrScanOptions& rhs) = default;
@@ -64,7 +66,8 @@ namespace margelo::nitro {
       return margelo::nitro::visionengine::OcrScanOptions(
         JSIConverter<margelo::nitro::visionengine::OcrRecognitionMode>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mode"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minConfidence"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObservations")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObservations"))),
+        JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::visionengine::OcrScanOptions& arg) {
@@ -72,6 +75,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "mode"), JSIConverter<margelo::nitro::visionengine::OcrRecognitionMode>::toJSI(runtime, arg.mode));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "minConfidence"), JSIConverter<double>::toJSI(runtime, arg.minConfidence));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxObservations"), JSIConverter<double>::toJSI(runtime, arg.maxObservations));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.fullFrameFallback));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -85,6 +89,7 @@ namespace margelo::nitro {
       if (!JSIConverter<margelo::nitro::visionengine::OcrRecognitionMode>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "mode")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minConfidence")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObservations")))) return false;
+      if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback")))) return false;
       return true;
     }
   };

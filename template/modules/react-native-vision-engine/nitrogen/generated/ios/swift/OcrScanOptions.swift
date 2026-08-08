@@ -18,8 +18,14 @@ public extension OcrScanOptions {
   /**
    * Create a new instance of `OcrScanOptions`.
    */
-  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double) {
-    self.init(mode, minConfidence, maxObservations)
+  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Bool?) {
+    self.init(mode, minConfidence, maxObservations, { () -> bridge.std__optional_bool_ in
+      if let __unwrappedValue = fullFrameFallback {
+        return bridge.create_std__optional_bool_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }())
   }
 
   @inline(__always)
@@ -35,5 +41,17 @@ public extension OcrScanOptions {
   @inline(__always)
   var maxObservations: Double {
     return self.__maxObservations
+  }
+  
+  @inline(__always)
+  var fullFrameFallback: Bool? {
+    return { () -> Bool? in
+      if bridge.has_value_std__optional_bool_(self.__fullFrameFallback) {
+        let __unwrapped = bridge.get_std__optional_bool_(self.__fullFrameFallback)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
   }
 }

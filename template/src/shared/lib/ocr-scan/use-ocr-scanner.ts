@@ -49,6 +49,8 @@ export interface IUseOcrScannerProps<TAttributes> {
   domain: IOcrScanDomain<TAttributes>;
   /** Режим нативного OCR (iOS): fast — быстрее, accurate — точнее */
   mode?: OcrRecognitionMode;
+  /** Читать полный кадр, когда кропы детектора не дали текста (по умолчанию нет) */
+  fullFrameFallback?: boolean;
   /** Стабилизированное значение подтверждено */
   onCandidateConfirmed?: (
     value: string,
@@ -76,6 +78,7 @@ export interface IOcrScanner {
 export const useOcrScanner = <TAttributes>({
   domain,
   mode = "accurate",
+  fullFrameFallback = false,
   onCandidateConfirmed,
   onObservations,
 }: IUseOcrScannerProps<TAttributes>): IOcrScanner => {
@@ -94,11 +97,21 @@ export const useOcrScanner = <TAttributes>({
   );
 
   useEffect(() => {
-    if (domain.detectorModelName !== null) {
+    const modelName = domain.detectorModelName;
+
+    if (modelName !== null) {
       // детектор опционален: без обученной модели работает полнокадровый OCR
       getVisionEngine()
-        .loadDetector(domain.detectorModelName)
-        .catch(() => false);
+        .loadDetector(modelName)
+        .then(loaded => {
+          if (!loaded) {
+            console.warn(
+              `[OcrScan] детектор «${modelName}» не найден в бандле/assets — ` +
+                "OCR работает полнокадрово",
+            );
+          }
+        })
+        .catch(error => console.warn("[OcrScan] loadDetector:", error));
     }
   }, [domain.detectorModelName]);
 
@@ -111,6 +124,7 @@ export const useOcrScanner = <TAttributes>({
       mode,
       minConfidence: 0.25,
       maxObservations: 12,
+      fullFrameFallback,
     };
 
     return (frame: Frame) => {
@@ -264,6 +278,7 @@ export const useOcrScanner = <TAttributes>({
     attributes,
     domain,
     mode,
+    fullFrameFallback,
     handleConfirmed,
     handleObservations,
     hasObservationsListener,

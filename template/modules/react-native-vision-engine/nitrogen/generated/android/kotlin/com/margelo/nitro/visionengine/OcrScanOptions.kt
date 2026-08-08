@@ -26,7 +26,10 @@ data class OcrScanOptions(
   val minConfidence: Double,
   @DoNotStrip
   @Keep
-  val maxObservations: Double
+  val maxObservations: Double,
+  @DoNotStrip
+  @Keep
+  val fullFrameFallback: Boolean?
 ) {
   /* primary constructor */
 
@@ -36,13 +39,15 @@ data class OcrScanOptions(
     return Objects.deepEquals(this.mode, other.mode)
       && Objects.deepEquals(this.minConfidence, other.minConfidence)
       && Objects.deepEquals(this.maxObservations, other.maxObservations)
+      && Objects.deepEquals(this.fullFrameFallback, other.fullFrameFallback)
   }
 
   override fun hashCode(): Int {
     return arrayOf<Any?>(
       mode,
       minConfidence,
-      maxObservations
+      maxObservations,
+      fullFrameFallback
     ).contentDeepHashCode()
   }
 
@@ -54,8 +59,8 @@ data class OcrScanOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double): OcrScanOptions {
-      return OcrScanOptions(mode, minConfidence, maxObservations)
+    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Boolean?): OcrScanOptions {
+      return OcrScanOptions(mode, minConfidence, maxObservations, fullFrameFallback)
     }
   }
 }

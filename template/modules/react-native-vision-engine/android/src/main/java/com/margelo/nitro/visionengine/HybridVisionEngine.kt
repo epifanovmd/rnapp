@@ -121,7 +121,10 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
         }
       }
     }
-    if (observations.isEmpty()) {
+    // без детектора полный кадр — единственный режим; с детектором полный
+    // кадр читается только при явном fullFrameFallback и пустых кропах
+    val fallbackAllowed = options.fullFrameFallback ?: false
+    if (detector == null || (observations.isEmpty() && fallbackAllowed)) {
       val mediaImage = context.proxy.image
         ?: throw Error("VisionEngine: Frame has no media Image — is it already disposed?")
       val text = MlKitTextRecognizer.recognize(mediaImage, context.rotation)

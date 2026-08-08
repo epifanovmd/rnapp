@@ -19,6 +19,8 @@ export interface IOcrScanCameraProps<TAttributes> {
   /** Камера активна (например, открыт лист сканера) */
   isActive: boolean;
   mode?: OcrRecognitionMode;
+  /** Читать полный кадр, когда кропы детектора не дали текста (по умолчанию нет) */
+  fullFrameFallback?: boolean;
   torchEnabled?: boolean;
   /** Показать кнопку фонарика поверх камеры (правый верхний угол) */
   onToggleTorch?: () => void;
@@ -49,6 +51,7 @@ export const OcrScanCamera = <TAttributes,>({
   domain,
   isActive,
   mode,
+  fullFrameFallback,
   torchEnabled = false,
   onToggleTorch,
   hasPermission,
@@ -65,6 +68,7 @@ export const OcrScanCamera = <TAttributes,>({
   const scanner = useOcrScanner({
     domain,
     mode,
+    fullFrameFallback,
     onCandidateConfirmed,
     onObservations,
   });

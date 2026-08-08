@@ -99,7 +99,7 @@ export const ContainerScanner: FC<IProps> = observer(({ route }) => {
 
 const styles = StyleSheet.create({
   camera: {
-    minHeight: 320,
+    minHeight: 600,
     borderRadius: 16,
   },
 });

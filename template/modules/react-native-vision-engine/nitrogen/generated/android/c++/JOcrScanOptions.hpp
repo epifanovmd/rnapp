@@ -12,6 +12,7 @@
 
 #include "JOcrRecognitionMode.hpp"
 #include "OcrRecognitionMode.hpp"
+#include <optional>
 
 namespace margelo::nitro::visionengine {
 
@@ -38,10 +39,13 @@ namespace margelo::nitro::visionengine {
       double minConfidence = this->getFieldValue(fieldMinConfidence);
       static const auto fieldMaxObservations = clazz->getField<double>("maxObservations");
       double maxObservations = this->getFieldValue(fieldMaxObservations);
+      static const auto fieldFullFrameFallback = clazz->getField<jni::JBoolean>("fullFrameFallback");
+      jni::local_ref<jni::JBoolean> fullFrameFallback = this->getFieldValue(fieldFullFrameFallback);
       return OcrScanOptions(
         mode->toCpp(),
         minConfidence,
-        maxObservations
+        maxObservations,
+        fullFrameFallback != nullptr ? std::make_optional(static_cast<bool>(fullFrameFallback->value())) : std::nullopt
       );
     }
 
@@ -51,14 +55,15 @@ namespace margelo::nitro::visionengine {
      */
     [[maybe_unused]]
     static jni::local_ref<JOcrScanOptions::javaobject> fromCpp(const OcrScanOptions& value) {
-      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double);
+      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double, jni::alias_ref<jni::JBoolean>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         JOcrRecognitionMode::fromCpp(value.mode),
         value.minConfidence,
-        value.maxObservations
+        value.maxObservations,
+        value.fullFrameFallback.has_value() ? jni::JBoolean::valueOf(value.fullFrameFallback.value()) : nullptr
       );
     }
   };

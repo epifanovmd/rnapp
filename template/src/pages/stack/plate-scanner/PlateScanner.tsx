@@ -123,7 +123,7 @@ const ResultRow: FC<{ label: string; value: string }> = ({ label, value }) => (
 
 const styles = StyleSheet.create({
   camera: {
-    minHeight: 320,
+    minHeight: 600,
     borderRadius: 16,
   },
 });

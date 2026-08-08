@@ -49,10 +49,10 @@ namespace margelo::nitro::visionengine { struct AnalyzeOptions; }
 #include <VisionCamera/HybridFrameSpec.hpp>
 #include "OcrScanOptions.hpp"
 #include "OcrRecognitionMode.hpp"
+#include <optional>
 #include "ObjectScanResult.hpp"
 #include "ObjectScanOptions.hpp"
 #include "AnalyzeResult.hpp"
-#include <optional>
 #include "AnalyzeOptions.hpp"
 
 #include "VisionEngine-Swift-Cxx-Umbrella.hpp"

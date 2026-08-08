@@ -107,7 +107,10 @@ class HybridVisionEngine: HybridVisionEngineSpec {
         )
       }
     }
-    if observations.isEmpty {
+    // без детектора полный кадр — единственный режим; с детектором полный
+    // кадр читается только при явном fullFrameFallback и пустых кропах
+    let fallbackAllowed = options.fullFrameFallback ?? false
+    if detector == nil || (observations.isEmpty && fallbackAllowed) {
       observations = try VisionTextRecognizer.recognize(
         in: context.pixelBuffer,
         orientation: context.orientation,

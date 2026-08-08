@@ -1,25 +1,24 @@
 import { AppScreenProps } from "@shared/lib/navigation";
-import {
-  Button,
-  Container,
-  Content,
-  Navbar,
-  Row,
-  ScrollView,
-  Text,
-} from "@shared/ui";
+import { useTransition } from "@shared/lib/transition";
+import { Button, Container, Content, Navbar, ScrollView } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
 interface IProps extends AppScreenProps {}
 
 export const Playground: FC<IProps> = observer(({ navigation, route }) => {
+  const { tabBar } = useTransition();
+
   return (
     <Container edges={["top"]}>
       <Navbar>
         <Navbar.Title text={route.name} />
       </Navbar>
-      <ScrollView>
+      <ScrollView
+        contentContainerStyle={{
+          paddingBottom: tabBar.height,
+        }}
+      >
         <Content>
           <Button
             mt={8}

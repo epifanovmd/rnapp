@@ -41,12 +41,7 @@ function extractCandidates(
 function isComplete(attributes: IContainerAttributes): boolean {
   "worklet";
 
-  return (
-    attributes.sizeTypeCode !== null &&
-    attributes.weights.maxGrossKg !== null &&
-    attributes.weights.tareKg !== null &&
-    attributes.weights.netKg !== null
-  );
+  return attributes.sizeTypeCode !== null;
 }
 
 /** Домен сканирования кодов морских контейнеров (ISO 6346) */

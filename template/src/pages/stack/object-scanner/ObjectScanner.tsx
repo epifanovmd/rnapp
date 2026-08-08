@@ -14,7 +14,7 @@ import {
 } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
 
 interface IProps extends StackProps<"ObjectScanner"> {}
 
@@ -118,7 +118,7 @@ export const ObjectScanner: FC<IProps> = observer(({ route }) => {
 
 const styles = StyleSheet.create({
   camera: {
-    minHeight: 280,
+    minHeight: 600,
     borderRadius: 16,
   },
 });
