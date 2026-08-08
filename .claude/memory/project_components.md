@@ -16,6 +16,19 @@ WheelPicker), chart (Skia), carousel, flex-view, context-menu-view (JS-порт 
 синглтон Host в App.tsx), image-viewing, keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable, field, image, scroll-view, switch, tabs, ticket, title, touchable.
 
+**camera** (`shared/ui/camera/`) — композиционная камерная система поверх VisionCamera 5.
+`core/`: узкие интерфейсы API (`ICameraApi` = status/device/zoom/focus/torch/exposure, `types.ts`),
+`CameraProvider` (композиционный корень: девайс, разрешение — внешний адаптер или встроенное,
+движки `use-camera-{zoom,focus,torch,exposure}.ts`; torch — controlled/uncontrolled),
+`camera-context.ts` (`useCameraApi` + внутренний контекст для адаптера). `CameraView` —
+единственное место рендера нативной `Camera` (зум/экспозиция — SharedValue на UI-потоке).
+`gestures/CameraGestureLayer` — pinch-zoom / tap-to-focus / double-tap-reset; контролы зависят
+только от `useCameraApi`: `CameraFocusRing`, `CameraZoomBadge` (нативный `text`-проп TextInput),
+`CameraZoomPresets` (чипы кратностей под девайс), `CameraTorchToggle`, `CameraFlipToggle`,
+`CameraExposureSlider` (вертикальный EV), `CameraGrid`, `CameraControlButton`,
+`CameraPermissionGate` (заглушки/renderFallback). `ScanCameraShell` (`shared/ui/scan`) собран из
+этой системы: зум и тап-фокус включены по умолчанию, опционально пресеты/сетка.
+
 **flex-view** — layout-пропсы поверх style (`<Row pa={16} bg="surface">`); устройство,
 применение и инструкция добавления новых пропсов — `src/shared/ui/flex-view/README.md`.
 

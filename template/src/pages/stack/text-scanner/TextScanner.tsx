@@ -104,7 +104,7 @@ export const TextScanner: FC<IProps> = observer(({ route }) => {
 
 const styles = StyleSheet.create({
   camera: {
-    minHeight: 280,
+    minHeight: 600,
     borderRadius: 16,
   },
 });
