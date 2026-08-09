@@ -1,43 +1,47 @@
 import {
   EMPTY_SCAN_OVERLAY,
-  IScanOverlayBox,
   IScanOverlaySnapshot,
 } from "@shared/lib/scan-overlay";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CameraFrameOutput, Frame } from "react-native-vision-camera";
 import type {
   OcrRecognitionMode,
   OcrScanOptions,
 } from "react-native-vision-engine";
 import {
-  getBoxedVisionEngine,
-  getVisionEngine,
+  createBoxedVisionEngine,
+  DETECTOR_DEFAULTS,
 } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable, scheduleOnRN } from "react-native-worklets";
 
-import { toUprightRect } from "./orientation";
-import { IOcrScanDomain, IOcrScanObservation } from "./types";
+import {
+  accumulateCandidateVotes,
+  collectOverlayBoxes,
+  IOcrStreak,
+  mergeFrameAttributes,
+  resolveConfirmation,
+  toUprightObservations,
+} from "./ocr-worklets";
+import { IOcrScanDomain, IOcrScanObservation, IScanDiagnostics } from "./types";
 import {
   getWorkletEngine,
   publishOverlay,
   shouldEmit,
   useOverlayChannel,
+  useScannerInstanceKey,
   useStableCallback,
   useVisionFrameOutput,
 } from "./use-frame-pipeline";
 
-/** Максимум боксов в снимке оверлея; регионы и кандидаты идут раньше текста */
-const MAX_OVERLAY_BOXES = 10;
-/** Период дебаг-лога сырых OCR-текстов, мс */
+/** Период дебаг-лога сырых OCR-текстов (__DEV__), мс */
 const TEXTS_LOG_INTERVAL_MS = 3000;
 /** Троттлинг потока наблюдений в JS (onObservations), мс */
 const OBSERVATIONS_INTERVAL_MS = 400;
-
-interface IStreak {
-  code: string;
-  count: number;
-}
+/** Троттлинг dev-диагностики кадра, мс */
+const DIAGNOSTICS_INTERVAL_MS = 500;
+/** Троттлинг сообщений об ошибках кадра, мс */
+const ERROR_INTERVAL_MS = 1000;
 
 /** Диагностика OCR — выполняется на RN-потоке */
 function logDiagnostics(message: string): void {
@@ -59,6 +63,8 @@ export interface IUseOcrScannerProps<TAttributes> {
   ) => void;
   /** Поток OCR-областей (троттлится) — для «сырых» сценариев */
   onObservations?: (observations: IOcrScanObservation[]) => void;
+  /** Ошибка обработки кадра (троттлится); без обработчика — console.warn */
+  onError?: (message: string) => void;
 }
 
 export interface IOcrScanner {
@@ -67,13 +73,16 @@ export interface IOcrScanner {
   overlay: Synchronizable<IScanOverlaySnapshot>;
   /** Сбросить стабилизацию и возобновить сканирование */
   resume: () => void;
+  /** Диагностика последнего кадра; заполняется только в __DEV__ */
+  diagnostics: IScanDiagnostics | null;
 }
 
 /**
  * Универсальный frame-пайплайн сканера: нативный OCR на worklet-потоке
  * камеры, доменное извлечение кандидатов, стабилизация серией одинаковых
  * результатов, накопление доменных атрибутов и публикация областей для
- * оверлея. Домен задаёт `IOcrScanDomain`.
+ * оверлея. Домен задаёт `IOcrScanDomain`, покадровые шаги — worklet-хелперы
+ * `ocr-worklets`.
  */
 export const useOcrScanner = <TAttributes>({
   domain,
@@ -81,11 +90,14 @@ export const useOcrScanner = <TAttributes>({
   fullFrameFallback = false,
   onCandidateConfirmed,
   onObservations,
+  onError,
 }: IUseOcrScannerProps<TAttributes>): IOcrScanner => {
-  const boxedEngine = useMemo(() => getBoxedVisionEngine(), []);
+  const instanceKey = useScannerInstanceKey("ocr");
+  // движок per-scanner: слоты моделей не делятся с другими сканерами
+  const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
   const streak = useMemo(
-    () => createSynchronizable<IStreak>({ code: "", count: 0 }),
+    () => createSynchronizable<IOcrStreak>({ code: "", count: 0 }),
     [],
   );
   const suspended = useMemo(() => createSynchronizable<boolean>(false), []);
@@ -95,13 +107,15 @@ export const useOcrScanner = <TAttributes>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+  const [diagnostics, setDiagnostics] = useState<IScanDiagnostics | null>(null);
 
   useEffect(() => {
     const modelName = domain.detectorModelName;
 
     if (modelName !== null) {
       // детектор опционален: без обученной модели работает полнокадровый OCR
-      getVisionEngine()
+      boxedEngine
+        .unbox()
         .loadDetector(modelName)
         .then(loaded => {
           if (!loaded) {
@@ -113,18 +127,26 @@ export const useOcrScanner = <TAttributes>({
         })
         .catch(error => console.warn("[OcrScan] loadDetector:", error));
     }
-  }, [domain.detectorModelName]);
+  }, [boxedEngine, domain.detectorModelName]);
 
   const handleConfirmed = useStableCallback(onCandidateConfirmed);
   const handleObservations = useStableCallback(onObservations);
+  const handleError = useStableCallback(
+    onError ?? (message => console.warn("[OcrScan]", message)),
+  );
   const hasObservationsListener = onObservations !== undefined;
 
   const onFrame = useMemo(() => {
+    const isDev = __DEV__;
     const scanOptions: OcrScanOptions = {
       mode,
       minConfidence: 0.25,
       maxObservations: 12,
       fullFrameFallback,
+      regionMinScore: DETECTOR_DEFAULTS.regionMinScore,
+      maxRegions: DETECTOR_DEFAULTS.maxRegions,
+      regionPadding: DETECTOR_DEFAULTS.regionPadding,
+      regionIouThreshold: DETECTOR_DEFAULTS.iouThreshold,
     };
 
     return (frame: Frame) => {
@@ -135,22 +157,24 @@ export const useOcrScanner = <TAttributes>({
           return;
         }
 
-        const engine = getWorkletEngine(boxedEngine);
+        const engine = getWorkletEngine(boxedEngine, instanceKey);
         const result = engine.scan(frame, scanOptions);
-
-        // rect'ы приходят в координатах буфера — выпрямляем по ориентации
-        const observations: IOcrScanObservation[] = result.observations.map(
-          observation => ({
-            text: observation.text,
-            confidence: observation.confidence,
-            fromDetector: observation.fromDetector,
-            rect: toUprightRect(observation.rect, result.bufferOrientation),
-          }),
-        );
+        const observations = toUprightObservations(result);
 
         if (
+          isDev &&
+          shouldEmit(`${instanceKey}:diag`, DIAGNOSTICS_INTERVAL_MS)
+        ) {
+          scheduleOnRN(setDiagnostics, {
+            durationMs: result.durationMs,
+            detectorUsed: result.detectorUsed,
+            resultCount: observations.length,
+          });
+        }
+        if (
+          isDev &&
           observations.length > 0 &&
-          shouldEmit("ocr.texts", TEXTS_LOG_INTERVAL_MS)
+          shouldEmit(`${instanceKey}:texts`, TEXTS_LOG_INTERVAL_MS)
         ) {
           let texts = "";
 
@@ -163,107 +187,47 @@ export const useOcrScanner = <TAttributes>({
               `image=${result.imageWidth}x${result.imageHeight} texts: ${texts}`,
           );
         }
-
         if (
           hasObservationsListener &&
-          shouldEmit("ocr.observations", OBSERVATIONS_INTERVAL_MS)
+          shouldEmit(`${instanceKey}:observations`, OBSERVATIONS_INTERVAL_MS)
         ) {
           scheduleOnRN(handleObservations, observations);
         }
 
-        if (
-          domain.extractAttributes !== null &&
-          domain.mergeAttributes !== null
-        ) {
-          const frameAttributes = domain.extractAttributes(observations);
-          const merge = domain.mergeAttributes;
-
-          attributes.setBlocking(prev => merge(prev, frameAttributes));
-        }
-
+        mergeFrameAttributes(domain, attributes, observations);
         const candidates = domain.extractCandidates(observations);
-        const boxes: IScanOverlayBox[] = [];
 
-        // регионы детектора — «прицел» вокруг зоны кода/номера
-        for (let i = 0; i < result.regions.length; i++) {
-          const region = result.regions[i];
+        publishOverlay(
+          overlay,
+          collectOverlayBoxes(result, observations, candidates),
+          result.imageWidth,
+          result.imageHeight,
+        );
+        accumulateCandidateVotes(domain, attributes, candidates);
 
-          boxes.push({
-            rect: toUprightRect(region.rect, result.bufferOrientation),
-            kind: "region",
-            label: region.label !== "" ? region.label : undefined,
-          });
-        }
-        for (let i = 0; i < candidates.length; i++) {
-          boxes.push({
-            rect: candidates[i].rect,
-            kind: candidates[i].isValid ? "valid" : "candidate",
-            label: candidates[i].value,
-          });
-        }
-        for (
-          let i = 0;
-          i < observations.length && boxes.length < MAX_OVERLAY_BOXES;
-          i++
-        ) {
-          boxes.push({
-            rect: observations[i].rect,
-            kind: "text",
-            label: observations[i].text,
-          });
-        }
-        publishOverlay(overlay, boxes, result.imageWidth, result.imageHeight);
+        const confirmed = resolveConfirmation(
+          domain,
+          candidates,
+          streak,
+          attributes,
+        );
 
-        // межкадровое накопление свидетельств кандидатов (голоса за код и т.п.)
-        if (domain.accumulateCandidates !== null && candidates.length > 0) {
-          const accumulate = domain.accumulateCandidates;
-
-          attributes.setBlocking(prev => accumulate(prev, candidates));
-        }
-
-        const best =
-          candidates.length > 0 && candidates[0].isValid ? candidates[0] : null;
-
-        if (best !== null) {
-          const previous = streak.getBlocking();
-          const count = previous.code === best.value ? previous.count + 1 : 1;
-
-          streak.setBlocking({ code: best.value, count });
-        }
-
-        // подтверждение: серия одинаковых сканов подряд ЛИБО вывод домена
-        // из накопленных свидетельств; гейт полноты атрибутов — общий
-        let confirmedValue: string | null = null;
-        let confirmedConfidence = 0;
-
-        if (
-          best !== null &&
-          streak.getBlocking().count >= domain.confirmStreak
-        ) {
-          confirmedValue = best.value;
-          confirmedConfidence = best.confidence;
-        } else if (domain.resolveAccumulated !== null) {
-          const resolved = domain.resolveAccumulated(attributes.getBlocking());
-
-          if (resolved !== null) {
-            confirmedValue = resolved.value;
-            confirmedConfidence = resolved.confidence;
-          }
-        }
-
-        const attributesReady =
-          domain.isComplete === null ||
-          domain.isComplete(attributes.getBlocking());
-
-        if (confirmedValue !== null && attributesReady) {
+        if (confirmed !== null) {
           suspended.setBlocking(true);
           streak.setBlocking({ code: "", count: 0 });
           publishOverlay(overlay, [], result.imageWidth, result.imageHeight);
           scheduleOnRN(
             handleConfirmed,
-            confirmedValue,
-            confirmedConfidence,
+            confirmed.value,
+            confirmed.confidence,
             attributes.getBlocking(),
+          );
+        }
+      } catch (error) {
+        if (shouldEmit(`${instanceKey}:error`, ERROR_INTERVAL_MS)) {
+          scheduleOnRN(
+            handleError,
+            error instanceof Error ? error.message : String(error),
           );
         }
       } finally {
@@ -271,6 +235,7 @@ export const useOcrScanner = <TAttributes>({
       }
     };
   }, [
+    instanceKey,
     boxedEngine,
     overlay,
     streak,
@@ -281,6 +246,7 @@ export const useOcrScanner = <TAttributes>({
     fullFrameFallback,
     handleConfirmed,
     handleObservations,
+    handleError,
     hasObservationsListener,
   ]);
 
@@ -296,5 +262,5 @@ export const useOcrScanner = <TAttributes>({
     suspended.setBlocking(false);
   }, [attributes, domain.emptyAttributes, overlay, streak, suspended]);
 
-  return { frameOutput, overlay, resume };
+  return { frameOutput, overlay, resume, diagnostics };
 };

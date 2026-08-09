@@ -1,6 +1,6 @@
 import {
+  createOcrDomain,
   IOcrScanCandidate,
-  IOcrScanDomain,
   IOcrScanObservation,
 } from "@shared/lib/ocr-scan";
 import { extractPlateCandidates } from "@shared/lib/plate-ocr";
@@ -27,15 +27,9 @@ function extractCandidates(
 }
 
 /** Домен сканирования российских автономеров */
-export const PLATE_SCAN_DOMAIN: IOcrScanDomain<null> = {
+export const PLATE_SCAN_DOMAIN = createOcrDomain({
   extractCandidates,
   /** У номера нет контрольной цифры — серия подтверждения длиннее */
   confirmStreak: 4,
   detectorModelName: "plate_detector",
-  emptyAttributes: null,
-  extractAttributes: null,
-  mergeAttributes: null,
-  isComplete: null,
-  accumulateCandidates: null,
-  resolveAccumulated: null,
-};
+});

@@ -19,7 +19,9 @@ internal object TfliteModelLoader {
       .order(ByteOrder.nativeOrder())
       .put(bytes)
     model.rewind()
-    val options = Interpreter.Options().apply { numThreads = 2 }
+    val options = Interpreter.Options().apply {
+      numThreads = Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
+    }
 
     return Interpreter(model, options)
   }

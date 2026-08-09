@@ -8,8 +8,8 @@ import {
   resolveContainerCode,
 } from "@shared/lib/container-ocr";
 import {
+  createOcrDomain,
   IOcrScanCandidate,
-  IOcrScanDomain,
   IOcrScanObservation,
 } from "@shared/lib/ocr-scan";
 
@@ -45,7 +45,7 @@ function isComplete(attributes: IContainerAttributes): boolean {
 }
 
 /** Домен сканирования кодов морских контейнеров (ISO 6346) */
-export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
+export const CONTAINER_SCAN_DOMAIN = createOcrDomain<IContainerAttributes>({
   extractCandidates,
   /** Контрольная цифра надёжно отсекает ложные коды — хватает трёх сканов */
   confirmStreak: 3,
@@ -58,4 +58,4 @@ export const CONTAINER_SCAN_DOMAIN: IOcrScanDomain<IContainerAttributes> = {
   // чтение в трёх сканах подряд
   accumulateCandidates: accumulateContainerCandidates,
   resolveAccumulated: resolveContainerCode,
-};
+});

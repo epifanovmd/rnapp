@@ -12,9 +12,34 @@ struct LoadedCoreMLModel {
 /// Поиск и загрузка CoreML-моделей из бандла приложения.
 /// Понимает и скомпилированный `.mlmodelc`, и сырой `.mlpackage`
 /// (компилируется на устройстве при первом обращении).
+/// Модели кэшируются по имени на время жизни приложения: повторный
+/// `load` (ремоунт сканера, второй экземпляр движка) не перечитывает
+/// и не перекомпилирует модель.
 enum CoreMLModelLoader {
+  private static let lock = NSLock()
+  private static var cache: [String: LoadedCoreMLModel] = [:]
+
+  // lock/unlock недоступны из async-контекста (Swift 6) — доступ к кэшу
+  // инкапсулирован в синхронные функции без точек прерывания под локом
+
+  private static func cached(_ modelName: String) -> LoadedCoreMLModel? {
+    lock.lock()
+    defer { lock.unlock() }
+    return cache[modelName]
+  }
+
+  private static func store(_ model: LoadedCoreMLModel, named modelName: String) {
+    lock.lock()
+    cache[modelName] = model
+    lock.unlock()
+  }
+
   /// nil — модель не найдена в бандле
   static func load(named modelName: String) async throws -> LoadedCoreMLModel? {
+    if let cached = cached(modelName) {
+      return cached
+    }
+
     var modelUrl = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc")
     if modelUrl == nil,
        #available(iOS 16.0, *),
@@ -45,6 +70,10 @@ enum CoreMLModelLoader {
       inputSide = CGFloat(constraint.pixelsWide)
     }
 
-    return LoadedCoreMLModel(model: try VNCoreMLModel(for: model), inputSide: inputSide)
+    let loaded = LoadedCoreMLModel(model: try VNCoreMLModel(for: model), inputSide: inputSide)
+    // параллельная загрузка того же имени просто перезапишет эквивалентную модель
+    store(loaded, named: modelName)
+
+    return loaded
   }
 }

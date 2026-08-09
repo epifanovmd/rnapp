@@ -11,33 +11,49 @@ import type { VisionEngine } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable } from "react-native-worklets";
 
-/** Кэш worklet-рантайма камеры: unbox-нутый движок и таймстемпы троттлинга */
+/** Кэш worklet-рантайма камеры: unbox-нутые движки и таймстемпы троттлинга */
 interface IFrameRuntimeCache {
-  __visionEngine?: VisionEngine;
+  __visionEngines?: Record<string, VisionEngine>;
   __scanThrottle?: Record<string, number>;
 }
 
+let scannerSequence = 0;
+
 /**
- * Движок в worklet-рантайме: unbox выполняется один раз на рантайм,
- * дальше берётся из глобального кэша.
+ * Уникальный ключ экземпляра сканера (стабилен на маунт): пространство
+ * имён для worklet-кэша движка и ключей троттлинга — одновременные
+ * сканеры не мешают друг другу.
+ */
+export function useScannerInstanceKey(prefix: string): string {
+  return useMemo(() => `${prefix}#${++scannerSequence}`, [prefix]);
+}
+
+/**
+ * Движок экземпляра в worklet-рантайме: unbox выполняется один раз на
+ * ключ, дальше берётся из глобального кэша. Записи размонтированных
+ * сканеров остаются в кэше — это тонкие обёртки, тяжёлые модели
+ * кэшируются нативно по имени.
  */
 export function getWorkletEngine(
   boxed: BoxedHybridObject<VisionEngine>,
+  instanceKey: string,
 ): VisionEngine {
   "worklet";
 
   const cache = globalThis as IFrameRuntimeCache;
+  const store = cache.__visionEngines ?? (cache.__visionEngines = {});
 
-  if (cache.__visionEngine == null) {
-    cache.__visionEngine = boxed.unbox();
+  if (store[instanceKey] == null) {
+    store[instanceKey] = boxed.unbox();
   }
 
-  return cache.__visionEngine;
+  return store[instanceKey];
 }
 
 /**
  * Worklet-троттлинг по ключу: true не чаще, чем раз в `intervalMs`.
- * Ключ должен быть уникален на потребителя ("ocr.texts", "object.emit", …).
+ * Ключ обязан включать `useScannerInstanceKey`-префикс потребителя
+ * ("ocr#1:texts", "object#2:emit", …), иначе экземпляры делят лимит.
  */
 export function shouldEmit(key: string, intervalMs: number): boolean {
   "worklet";

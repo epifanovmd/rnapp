@@ -17,12 +17,19 @@ import kotlin.math.roundToInt
  * сервисы (`MlKitTextRecognizer`, `TfliteDetector`, `FrameGeometry`).
  * Логики распознавания здесь нет. Все методы обработки синхронные —
  * вызываются с frame-потока VisionCamera (не main).
+ *
+ * Слоты моделей — per-instance (у каждого сканера свой движок); сами
+ * `TfliteDetector` кэшируются по имени на всё приложение, поэтому слот
+ * не владеет моделью и не закрывает её. Запись слота — из async-контекста
+ * загрузки, чтение — с frame-потока (`@Volatile`).
  */
 @DoNotStrip
 class HybridVisionEngine : HybridVisionEngineSpec() {
   /** Детектор регионов для наведения OCR (слот `loadDetector`) */
+  @Volatile
   private var detector: TfliteDetector? = null
   /** Модель детекции объектов (слот `loadObjectModel`) */
+  @Volatile
   private var objectDetector: TfliteDetector? = null
 
   override val isDetectorLoaded: Boolean
@@ -35,7 +42,6 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
     return Promise.async {
       val context = NitroModules.applicationContext ?: return@async false
       val loaded = TfliteDetector.load(context, "$modelName.tflite") ?: return@async false
-      detector?.close()
       detector = loaded
       true
     }
@@ -45,7 +51,6 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
     return Promise.async {
       val context = NitroModules.applicationContext ?: return@async false
       val loaded = TfliteDetector.load(context, "$modelName.tflite") ?: return@async false
-      objectDetector?.close()
       objectDetector = loaded
       true
     }
@@ -88,15 +93,20 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
     if (detector != null) {
       // детектор наводит OCR на регионы интереса — читаем только кропы
       val upright = context.upright()
+      val regionPadding = (options.regionPadding ?: DEFAULT_REGION_PADDING).toFloat()
 
       regions = detector
-        .detect(upright, minScore = DETECTOR_MIN_SCORE, iouThreshold = DETECTOR_NMS_IOU)
-        .take(MAX_DETECTOR_REGIONS)
+        .detect(
+          upright,
+          minScore = (options.regionMinScore ?: DEFAULT_REGION_MIN_SCORE).toFloat(),
+          iouThreshold = (options.regionIouThreshold ?: DEFAULT_NMS_IOU).toFloat(),
+        )
+        .take(max(0, (options.maxRegions ?: DEFAULT_MAX_REGIONS).roundToInt()))
       observations = regions.flatMap { region ->
         val crop = FrameGeometry.cropRegion(
           upright,
           region,
-          padding = REGION_PADDING,
+          padding = regionPadding,
           minSizePx = MIN_REGION_SIZE_PX,
         ) ?: return@flatMap emptyList()
         try {
@@ -160,7 +170,7 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
       .detect(
         context.upright(),
         minScore = options.minScore.toFloat(),
-        iouThreshold = DETECTOR_NMS_IOU,
+        iouThreshold = (options.iouThreshold ?: DEFAULT_NMS_IOU).toFloat(),
       )
       .take(max(0, options.maxObjects.roundToInt()))
       .map(::toDetectedObject)
@@ -229,14 +239,14 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
   }
 
   private companion object {
-    /** Максимум регионов детектора, прогоняемых через OCR за кадр */
-    const val MAX_DETECTOR_REGIONS = 3
-    /** Порог уверенности детектора регионов OCR */
-    const val DETECTOR_MIN_SCORE = 0.35f
-    /** IoU-порог NMS детекций */
-    const val DETECTOR_NMS_IOU = 0.45f
-    /** Расширение региона детектора перед OCR, доля от размеров региона */
-    const val REGION_PADDING = 0.18f
+    // Фолбэки порогов детектора для вызовов без соответствующих полей
+    // опций; обязаны совпадать с `DETECTOR_DEFAULTS` JS-модуля
+    // (рантайм-источник — значения, переданные в опциях)
+    const val DEFAULT_REGION_MIN_SCORE = 0.35
+    const val DEFAULT_MAX_REGIONS = 3.0
+    const val DEFAULT_REGION_PADDING = 0.18
+    const val DEFAULT_NMS_IOU = 0.45
+
     /** Минимальный размер кропа, при котором OCR имеет смысл */
     const val MIN_REGION_SIZE_PX = 32
   }

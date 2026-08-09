@@ -74,3 +74,13 @@ export interface IOcrScanResolved {
   value: string;
   confidence: number;
 }
+
+/** Диагностика кадра для dev-бейджа (собирается только в __DEV__) */
+export interface IScanDiagnostics {
+  /** Длительность нативной обработки кадра, мс */
+  durationMs: number;
+  /** Кадр обрабатывался через детектор регионов */
+  detectorUsed: boolean;
+  /** Число областей/объектов в результате */
+  resultCount: number;
+}

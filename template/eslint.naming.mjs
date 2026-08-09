@@ -70,7 +70,8 @@ export const namingConfig = {
     "check-file/folder-naming-convention": [
       "error",
       { "src/**/": "KEBAB_CASE" },
-      { ignoreWords: ["_app", "_auth"] },
+      // __tests__ — конвенция jest
+      { ignoreWords: ["_app", "_auth", "__tests__"] },
     ],
   },
 };

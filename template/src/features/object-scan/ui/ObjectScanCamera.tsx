@@ -4,6 +4,7 @@ import {
   Col,
   OverlayLabels,
   ScanCameraShell,
+  ScanDiagnosticsBadge,
   ScanOverlay,
   Text,
 } from "@shared/ui";
@@ -56,6 +57,9 @@ export const ObjectScanCamera: FC<IObjectScanCameraProps> = memo(
         >
           {api => <OverlayLabels api={api} kind={"region"} />}
         </ScanOverlay>
+        {scanner.diagnostics !== null && (
+          <ScanDiagnosticsBadge diagnostics={scanner.diagnostics} />
+        )}
         {scanner.isModelLoaded === false && (
           <Col style={styles.modelHint} pa={12} radius={12}>
             <Text color={"primaryForeground"} textStyle={"Caption_M2"}>

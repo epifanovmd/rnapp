@@ -22,13 +22,13 @@ struct RawDetection {
 enum YoloOutputDecoder {
   /// Верхняя граница числа детекций у end-to-end моделей (обычно 300)
   private static let maxEndToEndDetections = 512
-  private static let nmsIouThreshold: CGFloat = 0.45
 
   /// Тензор выхода модели → детекции, отсортированные по score
   static func decode(
     _ array: MLMultiArray,
     inputSide: CGFloat,
-    minConfidence: Float
+    minConfidence: Float,
+    iouThreshold: CGFloat
   ) -> [RawDetection] {
     var dims = array.shape.map { $0.intValue }
     var strides = array.strides.map { $0.intValue }
@@ -109,7 +109,7 @@ enum YoloOutputDecoder {
           label: ""
         ))
       }
-      detections = nonMaxSuppression(detections)
+      detections = nonMaxSuppression(detections, iouThreshold: iouThreshold)
     }
 
     return detections.sorted { $0.score > $1.score }
@@ -137,11 +137,14 @@ enum YoloOutputDecoder {
   }
 
   /// Жадный NMS: кандидат с IoU выше порога к уже принятым отбрасывается
-  private static func nonMaxSuppression(_ detections: [RawDetection]) -> [RawDetection] {
+  private static func nonMaxSuppression(
+    _ detections: [RawDetection],
+    iouThreshold: CGFloat
+  ) -> [RawDetection] {
     let sorted = detections.sorted { $0.score > $1.score }
     var kept: [RawDetection] = []
     for candidate in sorted {
-      let overlaps = kept.contains { iou($0.rect, candidate.rect) > nmsIouThreshold }
+      let overlaps = kept.contains { iou($0.rect, candidate.rect) > iouThreshold }
       if !overlaps {
         kept.append(candidate)
       }

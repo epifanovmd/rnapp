@@ -50,7 +50,8 @@ export interface OcrScanResult {
   /**
    * Регионы, найденные детектором и использованные для наведения OCR
    * (та же форма, что у `detectObjects`); пусто — детектора нет либо
-   * он ничего не нашёл. Пороги наведения внутренние (score ≥ 0.35, топ-3).
+   * он ничего не нашёл. Пороги наведения — `regionMinScore`/`maxRegions`
+   * из опций (дефолты — `DETECTOR_DEFAULTS`).
    */
   regions: DetectedObject[];
   /** Ориентация буфера; "up" — координаты уже выпрямлены (Android) */
@@ -77,6 +78,14 @@ export interface OcrScanOptions {
    * Без загруженного детектора OCR всегда полнокадровый.
    */
   fullFrameFallback?: boolean;
+  /** Порог уверенности детектора регионов (`DETECTOR_DEFAULTS.regionMinScore`) */
+  regionMinScore?: number;
+  /** Максимум регионов детектора, прогоняемых через OCR (`DETECTOR_DEFAULTS.maxRegions`) */
+  maxRegions?: number;
+  /** Расширение региона перед OCR, доля его размеров (`DETECTOR_DEFAULTS.regionPadding`) */
+  regionPadding?: number;
+  /** IoU-порог NMS детектора регионов (`DETECTOR_DEFAULTS.iouThreshold`) */
+  regionIouThreshold?: number;
 }
 
 /** Объект, найденный моделью детекции */
@@ -92,6 +101,8 @@ export interface DetectedObject {
 export interface ObjectScanOptions {
   minScore: number;
   maxObjects: number;
+  /** IoU-порог NMS детекций (`DETECTOR_DEFAULTS.iouThreshold`) */
+  iouThreshold?: number;
 }
 
 export interface ObjectScanResult {

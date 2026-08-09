@@ -18,8 +18,14 @@ public extension ObjectScanOptions {
   /**
    * Create a new instance of `ObjectScanOptions`.
    */
-  init(minScore: Double, maxObjects: Double) {
-    self.init(minScore, maxObjects)
+  init(minScore: Double, maxObjects: Double, iouThreshold: Double?) {
+    self.init(minScore, maxObjects, { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = iouThreshold {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }())
   }
 
   @inline(__always)
@@ -30,5 +36,17 @@ public extension ObjectScanOptions {
   @inline(__always)
   var maxObjects: Double {
     return self.__maxObjects
+  }
+  
+  @inline(__always)
+  var iouThreshold: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__iouThreshold) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__iouThreshold)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
   }
 }

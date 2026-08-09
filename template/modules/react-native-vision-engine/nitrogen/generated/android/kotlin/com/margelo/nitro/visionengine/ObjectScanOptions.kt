@@ -23,7 +23,10 @@ data class ObjectScanOptions(
   val minScore: Double,
   @DoNotStrip
   @Keep
-  val maxObjects: Double
+  val maxObjects: Double,
+  @DoNotStrip
+  @Keep
+  val iouThreshold: Double?
 ) {
   /* primary constructor */
 
@@ -32,12 +35,14 @@ data class ObjectScanOptions(
     if (other !is ObjectScanOptions) return false
     return Objects.deepEquals(this.minScore, other.minScore)
       && Objects.deepEquals(this.maxObjects, other.maxObjects)
+      && Objects.deepEquals(this.iouThreshold, other.iouThreshold)
   }
 
   override fun hashCode(): Int {
     return arrayOf<Any?>(
       minScore,
-      maxObjects
+      maxObjects,
+      iouThreshold
     ).contentDeepHashCode()
   }
 
@@ -49,8 +54,8 @@ data class ObjectScanOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(minScore: Double, maxObjects: Double): ObjectScanOptions {
-      return ObjectScanOptions(minScore, maxObjects)
+    private fun fromCpp(minScore: Double, maxObjects: Double, iouThreshold: Double?): ObjectScanOptions {
+      return ObjectScanOptions(minScore, maxObjects, iouThreshold)
     }
   }
 }

@@ -30,7 +30,7 @@
 
 
 
-
+#include <optional>
 
 namespace margelo::nitro::visionengine {
 
@@ -41,10 +41,11 @@ namespace margelo::nitro::visionengine {
   public:
     double minScore     SWIFT_PRIVATE;
     double maxObjects     SWIFT_PRIVATE;
+    std::optional<double> iouThreshold     SWIFT_PRIVATE;
 
   public:
     ObjectScanOptions() = default;
-    explicit ObjectScanOptions(double minScore, double maxObjects): minScore(minScore), maxObjects(maxObjects) {}
+    explicit ObjectScanOptions(double minScore, double maxObjects, std::optional<double> iouThreshold): minScore(minScore), maxObjects(maxObjects), iouThreshold(iouThreshold) {}
 
   public:
     friend bool operator==(const ObjectScanOptions& lhs, const ObjectScanOptions& rhs) = default;
@@ -61,13 +62,15 @@ namespace margelo::nitro {
       jsi::Object obj = arg.asObject(runtime);
       return margelo::nitro::visionengine::ObjectScanOptions(
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minScore"))),
-        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObjects")))
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObjects"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "iouThreshold")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::visionengine::ObjectScanOptions& arg) {
       jsi::Object obj(runtime);
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "minScore"), JSIConverter<double>::toJSI(runtime, arg.minScore));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxObjects"), JSIConverter<double>::toJSI(runtime, arg.maxObjects));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "iouThreshold"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.iouThreshold));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -80,6 +83,7 @@ namespace margelo::nitro {
       }
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "minScore")))) return false;
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxObjects")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "iouThreshold")))) return false;
       return true;
     }
   };

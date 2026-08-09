@@ -78,6 +78,25 @@ type: project
   геометрии; `ScanOverlay` — стандартный пресет (регион — синие уголки).
   Экраны с BottomSheet-камерой —
   `pages/stack/{container,plate,text,object}-scanner`.
+  Движки — per-scanner (`createVisionEngine`/`createBoxedVisionEngine`,
+  `useScannerInstanceKey` — namespaced worklet-кэш и ключи троттлинга);
+  модели кэшируются нативно по имени на всё приложение (iOS
+  `CoreMLModelLoader`, Android `TfliteDetector.load`), слоты фасадов
+  потокобезопасны (NSLock / @Volatile). Пороги детектора — опциональные
+  поля `OcrScanOptions`/`ObjectScanOptions`, рантайм-источник дефолтов —
+  `DETECTOR_DEFAULTS` модуля (нативные фолбэки совпадают). Android подаёт
+  кадр letterbox'ом (поля 114, обратный пересчёт координат), iOS —
+  `scaleFill` (конвенция ultralytics-CoreML); TFLite-буферы прогона
+  переиспользуются, `detect` synchronized. iOS OCR по регионам — батч
+  запросов одним `VNImageRequestHandler`. Покадровые шаги OCR-конвейера —
+  worklet-хелперы `shared/lib/ocr-scan/ocr-worklets`; домены создаются
+  фабрикой `createOcrDomain(partial)`. Сканеры отдают `onError`
+  (троттлится) и dev-диагностику (`durationMs`/`detectorUsed`,
+  `ScanDiagnosticsBadge`, только `__DEV__`); `useObjectScanner` имеет
+  `pause`/`resume`. Юнит-тесты чистой логики — jest
+  (`npm test`, `jest.config.js` + `babel-jest.config.js` без
+  Reanimated-плагина): iso6346, container-candidates, `toUprightRect`,
+  cover-маппинг, сглаживание.
   Важно worklet'ам: module-scope RegExp не сериализуется в worklet-рантайм
   (объект без методов) — литералы только внутри тел функций.
 - **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/

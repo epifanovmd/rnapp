@@ -1,5 +1,13 @@
-export { getBoxedVisionEngine, getVisionEngine } from "./engine";
+export { DETECTOR_DEFAULTS } from "./defaults";
+export {
+  createBoxedVisionEngine,
+  createVisionEngine,
+  getBoxedVisionEngine,
+  getVisionEngine,
+} from "./engine";
 export type {
+  AnalyzeOptions,
+  AnalyzeResult,
   DetectedObject,
   ObjectScanOptions,
   ObjectScanResult,

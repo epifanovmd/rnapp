@@ -7,18 +7,50 @@ import VisionCamera
 /// сервисы (`VisionTextRecognizer`, `CoreMLObjectDetector`,
 /// `CoreMLModelLoader`, `FrameGeometry`). Логики распознавания здесь нет.
 /// Все методы обработки синхронные — вызываются с frame-потока VisionCamera.
+///
+/// Слоты моделей — per-instance (у каждого сканера свой движок), сами
+/// модели кэшируются `CoreMLModelLoader` по имени на всё приложение.
 class HybridVisionEngine: HybridVisionEngineSpec {
-  /// Максимум регионов детектора, прогоняемых через OCR за кадр
-  private static let maxDetectorRegions = 3
-  /// Порог уверенности детектора регионов OCR
-  private static let detectorMinConfidence: Float = 0.35
-  /// Расширение региона детектора перед OCR, доля от размеров региона
-  private static let regionPadding: CGFloat = 0.18
+  /// Фолбэки порогов детектора для вызовов без соответствующих полей опций.
+  /// Обязаны совпадать с `DETECTOR_DEFAULTS` JS-модуля (рантайм-источник —
+  /// значения, переданные в опциях).
+  private enum DetectorDefaults {
+    static let regionMinScore = 0.35
+    static let maxRegions = 3.0
+    static let regionPadding = 0.18
+    static let iouThreshold = 0.45
+  }
 
-  /// Детектор регионов для наведения OCR (слот `loadDetector`)
-  private var detector: LoadedCoreMLModel?
-  /// Модель детекции объектов (слот `loadObjectModel`)
-  private var objectModel: LoadedCoreMLModel?
+  /// Запись слота — из async-контекста загрузки, чтение — с frame-потока;
+  /// доступ только под `modelLock`. lock/unlock недоступны из async-контекста
+  /// (Swift 6) — запись инкапсулирована в синхронные методы `store*`.
+  private let modelLock = NSLock()
+  private var detectorSlot: LoadedCoreMLModel?
+  private var objectModelSlot: LoadedCoreMLModel?
+
+  private var detector: LoadedCoreMLModel? {
+    modelLock.lock()
+    defer { modelLock.unlock() }
+    return detectorSlot
+  }
+
+  private var objectModel: LoadedCoreMLModel? {
+    modelLock.lock()
+    defer { modelLock.unlock() }
+    return objectModelSlot
+  }
+
+  private func storeDetector(_ model: LoadedCoreMLModel) {
+    modelLock.lock()
+    detectorSlot = model
+    modelLock.unlock()
+  }
+
+  private func storeObjectModel(_ model: LoadedCoreMLModel) {
+    modelLock.lock()
+    objectModelSlot = model
+    modelLock.unlock()
+  }
 
   var isDetectorLoaded: Bool {
     return detector != nil
@@ -33,7 +65,7 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       guard let loaded = try await CoreMLModelLoader.load(named: modelName) else {
         return false
       }
-      self.detector = loaded
+      self.storeDetector(loaded)
       return true
     }
   }
@@ -43,7 +75,7 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       guard let loaded = try await CoreMLModelLoader.load(named: modelName) else {
         return false
       }
-      self.objectModel = loaded
+      self.storeObjectModel(loaded)
       return true
     }
   }
@@ -75,13 +107,15 @@ class HybridVisionEngine: HybridVisionEngineSpec {
 
   // MARK: - Pipelines
 
-  /// OCR кадра: с детектором — только по его регионам (ROI + padding),
-  /// без детектора или при пустых регионах — полнокадрово
+  /// OCR кадра: с детектором — только по его регионам (ROI + padding,
+  /// батч запросов одним handler'ом), без детектора или при пустых
+  /// регионах — полнокадрово
   private func runOcr(
     _ context: FrameContext,
     options: OcrScanOptions
   ) throws -> OcrScanResult {
     let start = CACurrentMediaTime()
+    let detector = self.detector
 
     var regions: [RawDetection] = []
     var observations: [OcrObservation] = []
@@ -91,18 +125,20 @@ class HybridVisionEngine: HybridVisionEngineSpec {
         detector,
         pixelBuffer: context.pixelBuffer,
         orientation: context.orientation,
-        minScore: Self.detectorMinConfidence
+        minScore: Float(options.regionMinScore ?? DetectorDefaults.regionMinScore),
+        iouThreshold: CGFloat(options.regionIouThreshold ?? DetectorDefaults.iouThreshold)
       )
-      regions = Array(regions.prefix(Self.maxDetectorRegions))
-      for detection in regions {
-        let roi = FrameGeometry.pad(
-          FrameGeometry.toVisionROI(detection.rect),
-          by: Self.regionPadding
-        )
-        observations += try VisionTextRecognizer.recognize(
+      let maxRegions = Int(options.maxRegions ?? DetectorDefaults.maxRegions)
+      regions = Array(regions.prefix(max(0, maxRegions)))
+      if !regions.isEmpty {
+        let padding = CGFloat(options.regionPadding ?? DetectorDefaults.regionPadding)
+        let rois = regions.map { detection in
+          FrameGeometry.pad(FrameGeometry.toVisionROI(detection.rect), by: padding)
+        }
+        observations = try VisionTextRecognizer.recognize(
           in: context.pixelBuffer,
           orientation: context.orientation,
-          regionOfInterest: roi,
+          regionsOfInterest: rois,
           options: options
         )
       }
@@ -114,7 +150,7 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       observations = try VisionTextRecognizer.recognize(
         in: context.pixelBuffer,
         orientation: context.orientation,
-        regionOfInterest: nil,
+        regionsOfInterest: nil,
         options: options
       )
     }
@@ -146,7 +182,7 @@ class HybridVisionEngine: HybridVisionEngineSpec {
     options: ObjectScanOptions
   ) throws -> ObjectScanResult {
     let start = CACurrentMediaTime()
-    guard let objectModel else {
+    guard let objectModel = self.objectModel else {
       throw RuntimeError.error(withMessage: "VisionEngine: object model is not loaded — call loadObjectModel() first")
     }
 
@@ -154,7 +190,8 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       objectModel,
       pixelBuffer: context.pixelBuffer,
       orientation: context.orientation,
-      minScore: Float(options.minScore)
+      minScore: Float(options.minScore),
+      iouThreshold: CGFloat(options.iouThreshold ?? DetectorDefaults.iouThreshold)
     )
     let limit = max(0, Int(options.maxObjects))
     if detections.count > limit {

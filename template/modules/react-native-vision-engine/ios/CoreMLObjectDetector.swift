@@ -13,7 +13,8 @@ enum CoreMLObjectDetector {
     _ loaded: LoadedCoreMLModel,
     pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
-    minScore: Float
+    minScore: Float,
+    iouThreshold: CGFloat
   ) throws -> [RawDetection] {
     let request = VNCoreMLRequest(model: loaded.model)
     request.imageCropAndScaleOption = .scaleFill
@@ -33,7 +34,8 @@ enum CoreMLObjectDetector {
       return YoloOutputDecoder.decode(
         tensor,
         inputSide: loaded.inputSide,
-        minConfidence: minScore
+        minConfidence: minScore,
+        iouThreshold: iouThreshold
       )
     }
 

@@ -1,9 +1,11 @@
 import {
   getWorkletEngine,
+  IScanDiagnostics,
   publishOverlay,
   shouldEmit,
   toUprightRect,
   useOverlayChannel,
+  useScannerInstanceKey,
   useStableCallback,
   useVisionFrameOutput,
 } from "@shared/lib/ocr-scan";
@@ -11,12 +13,15 @@ import {
   IScanOverlayBox,
   IScanOverlaySnapshot,
 } from "@shared/lib/scan-overlay";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CameraFrameOutput, Frame } from "react-native-vision-camera";
-import type { ObjectScanOptions } from "react-native-vision-engine";
+import type {
+  DetectedObject,
+  ObjectScanOptions,
+} from "react-native-vision-engine";
 import {
-  getBoxedVisionEngine,
-  getVisionEngine,
+  createBoxedVisionEngine,
+  DETECTOR_DEFAULTS,
 } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable, scheduleOnRN } from "react-native-worklets";
@@ -25,6 +30,21 @@ import { IDetectedObjectInfo } from "./types";
 
 /** Троттлинг потока детекций в JS, мс */
 const DETECTIONS_INTERVAL_MS = 300;
+/** Троттлинг dev-диагностики кадра, мс */
+const DIAGNOSTICS_INTERVAL_MS = 500;
+/** Троттлинг сообщений об ошибках кадра, мс */
+const ERROR_INTERVAL_MS = 1000;
+
+/** Метка объекта: из модели (CoreML), из списка потребителя или "#<индекс>" */
+function resolveObjectLabel(object: DetectedObject, labels: string[]): string {
+  "worklet";
+
+  if (object.label !== "") {
+    return object.label;
+  }
+
+  return labels[object.classIndex] ?? `#${object.classIndex}`;
+}
 
 export interface IUseObjectScannerProps {
   /** Имя модели (без расширения) в `ios/MLModels` / `android assets` */
@@ -35,6 +55,8 @@ export interface IUseObjectScannerProps {
   maxObjects?: number;
   /** Троттлящийся поток обнаруженных объектов */
   onDetections?: (objects: IDetectedObjectInfo[]) => void;
+  /** Ошибка обработки кадра (троттлится); без обработчика — console.warn */
+  onError?: (message: string) => void;
 }
 
 export interface IObjectScanner {
@@ -43,6 +65,12 @@ export interface IObjectScanner {
   overlay: Synchronizable<IScanOverlaySnapshot>;
   /** null — модель ещё грузится; false — не найдена/несовместима */
   isModelLoaded: boolean | null;
+  /** Приостановить обработку кадров («нашёл → заморозь») */
+  pause: () => void;
+  /** Возобновить обработку кадров и очистить оверлей */
+  resume: () => void;
+  /** Диагностика последнего кадра; заполняется только в __DEV__ */
+  diagnostics: IScanDiagnostics | null;
 }
 
 /**
@@ -57,16 +85,22 @@ export const useObjectScanner = ({
   minScore = 0.4,
   maxObjects = 8,
   onDetections,
+  onError,
 }: IUseObjectScannerProps): IObjectScanner => {
-  const boxedEngine = useMemo(() => getBoxedVisionEngine(), []);
+  const instanceKey = useScannerInstanceKey("object");
+  // движок per-scanner: слоты моделей не делятся с другими сканерами
+  const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
   const modelReady = useMemo(() => createSynchronizable<boolean>(false), []);
+  const suspended = useMemo(() => createSynchronizable<boolean>(false), []);
   const [isModelLoaded, setModelLoaded] = useState<boolean | null>(null);
+  const [diagnostics, setDiagnostics] = useState<IScanDiagnostics | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    getVisionEngine()
+    boxedEngine
+      .unbox()
       .loadObjectModel(modelName)
       .then(loaded => {
         if (!cancelled) {
@@ -83,25 +117,44 @@ export const useObjectScanner = ({
     return () => {
       cancelled = true;
     };
-  }, [modelName, modelReady]);
+  }, [boxedEngine, modelName, modelReady]);
 
   const handleDetections = useStableCallback(onDetections);
+  const handleError = useStableCallback(
+    onError ?? (message => console.warn("[ObjectScan]", message)),
+  );
   const labelsList = useMemo(() => labels ?? [], [labels]);
 
   const onFrame = useMemo(() => {
-    const scanOptions: ObjectScanOptions = { minScore, maxObjects };
+    const isDev = __DEV__;
+    const scanOptions: ObjectScanOptions = {
+      minScore,
+      maxObjects,
+      iouThreshold: DETECTOR_DEFAULTS.iouThreshold,
+    };
     const classLabels = labelsList;
 
     return (frame: Frame) => {
       "worklet";
 
       try {
-        if (!modelReady.getDirty()) {
+        if (!modelReady.getDirty() || suspended.getDirty()) {
           return;
         }
 
-        const engine = getWorkletEngine(boxedEngine);
+        const engine = getWorkletEngine(boxedEngine, instanceKey);
         const result = engine.detectObjects(frame, scanOptions);
+
+        if (
+          isDev &&
+          shouldEmit(`${instanceKey}:diag`, DIAGNOSTICS_INTERVAL_MS)
+        ) {
+          scheduleOnRN(setDiagnostics, {
+            durationMs: result.durationMs,
+            detectorUsed: true,
+            resultCount: result.objects.length,
+          });
+        }
 
         const boxes: IScanOverlayBox[] = [];
 
@@ -111,41 +164,59 @@ export const useObjectScanner = ({
           boxes.push({
             rect: toUprightRect(object.rect, result.bufferOrientation),
             kind: "region",
-            label:
-              object.label !== ""
-                ? object.label
-                : (classLabels[object.classIndex] ?? `#${object.classIndex}`),
+            label: resolveObjectLabel(object, classLabels),
           });
         }
         publishOverlay(overlay, boxes, result.imageWidth, result.imageHeight);
 
-        if (shouldEmit("object.detections", DETECTIONS_INTERVAL_MS)) {
+        if (shouldEmit(`${instanceKey}:detections`, DETECTIONS_INTERVAL_MS)) {
           const infos: IDetectedObjectInfo[] = result.objects.map(object => ({
             classIndex: object.classIndex,
-            label:
-              object.label !== ""
-                ? object.label
-                : (classLabels[object.classIndex] ?? `#${object.classIndex}`),
+            label: resolveObjectLabel(object, classLabels),
             score: object.score,
           }));
 
           scheduleOnRN(handleDetections, infos);
+        }
+      } catch (error) {
+        if (shouldEmit(`${instanceKey}:error`, ERROR_INTERVAL_MS)) {
+          scheduleOnRN(
+            handleError,
+            error instanceof Error ? error.message : String(error),
+          );
         }
       } finally {
         frame.dispose();
       }
     };
   }, [
+    instanceKey,
     boxedEngine,
     overlay,
     modelReady,
+    suspended,
     minScore,
     maxObjects,
     labelsList,
     handleDetections,
+    handleError,
   ]);
 
   const frameOutput = useVisionFrameOutput(onFrame);
 
-  return { frameOutput, overlay, isModelLoaded };
+  const pause = useCallback(() => {
+    suspended.setBlocking(true);
+  }, [suspended]);
+
+  const resume = useCallback(() => {
+    overlay.setBlocking(prev => ({
+      boxes: [],
+      imageWidth: prev.imageWidth,
+      imageHeight: prev.imageHeight,
+      revision: prev.revision + 1,
+    }));
+    suspended.setBlocking(false);
+  }, [overlay, suspended]);
+
+  return { frameOutput, overlay, isModelLoaded, pause, resume, diagnostics };
 };

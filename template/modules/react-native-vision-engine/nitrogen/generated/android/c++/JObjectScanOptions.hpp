@@ -10,7 +10,7 @@
 #include <fbjni/fbjni.h>
 #include "ObjectScanOptions.hpp"
 
-
+#include <optional>
 
 namespace margelo::nitro::visionengine {
 
@@ -35,9 +35,12 @@ namespace margelo::nitro::visionengine {
       double minScore = this->getFieldValue(fieldMinScore);
       static const auto fieldMaxObjects = clazz->getField<double>("maxObjects");
       double maxObjects = this->getFieldValue(fieldMaxObjects);
+      static const auto fieldIouThreshold = clazz->getField<jni::JDouble>("iouThreshold");
+      jni::local_ref<jni::JDouble> iouThreshold = this->getFieldValue(fieldIouThreshold);
       return ObjectScanOptions(
         minScore,
-        maxObjects
+        maxObjects,
+        iouThreshold != nullptr ? std::make_optional(iouThreshold->value()) : std::nullopt
       );
     }
 
@@ -47,13 +50,14 @@ namespace margelo::nitro::visionengine {
      */
     [[maybe_unused]]
     static jni::local_ref<JObjectScanOptions::javaobject> fromCpp(const ObjectScanOptions& value) {
-      using JSignature = JObjectScanOptions(double, double);
+      using JSignature = JObjectScanOptions(double, double, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         value.minScore,
-        value.maxObjects
+        value.maxObjects,
+        value.iouThreshold.has_value() ? jni::JDouble::valueOf(value.iouThreshold.value()) : nullptr
       );
     }
   };

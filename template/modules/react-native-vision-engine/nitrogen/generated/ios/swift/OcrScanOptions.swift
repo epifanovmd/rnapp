@@ -18,10 +18,34 @@ public extension OcrScanOptions {
   /**
    * Create a new instance of `OcrScanOptions`.
    */
-  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Bool?) {
+  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Bool?, regionMinScore: Double?, maxRegions: Double?, regionPadding: Double?, regionIouThreshold: Double?) {
     self.init(mode, minConfidence, maxObservations, { () -> bridge.std__optional_bool_ in
       if let __unwrappedValue = fullFrameFallback {
         return bridge.create_std__optional_bool_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = regionMinScore {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = maxRegions {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = regionPadding {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = regionIouThreshold {
+        return bridge.create_std__optional_double_(__unwrappedValue)
       } else {
         return .init()
       }
@@ -48,6 +72,54 @@ public extension OcrScanOptions {
     return { () -> Bool? in
       if bridge.has_value_std__optional_bool_(self.__fullFrameFallback) {
         let __unwrapped = bridge.get_std__optional_bool_(self.__fullFrameFallback)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var regionMinScore: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__regionMinScore) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__regionMinScore)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var maxRegions: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__maxRegions) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__maxRegions)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var regionPadding: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__regionPadding) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__regionPadding)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var regionIouThreshold: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__regionIouThreshold) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__regionIouThreshold)
         return __unwrapped
       } else {
         return nil

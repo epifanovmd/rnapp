@@ -12,6 +12,7 @@ import type { OcrRecognitionMode } from "react-native-vision-engine";
 import { ScanOverlay } from "./overlay/ScanOverlay";
 import { IScanOverlayApi } from "./overlay/ScanOverlayHost";
 import { ScanCameraShell } from "./ScanCameraShell";
+import { ScanDiagnosticsBadge } from "./ScanDiagnosticsBadge";
 
 export interface IOcrScanCameraProps<TAttributes> {
   /** Домен распознавания (контейнеры, автономера, произвольный текст, …) */
@@ -35,6 +36,8 @@ export interface IOcrScanCameraProps<TAttributes> {
   ) => void;
   /** Троттлящийся поток OCR-областей — для «сырых» сценариев */
   onObservations?: (observations: IOcrScanObservation[]) => void;
+  /** Ошибка обработки кадра (троттлится) */
+  onError?: (message: string) => void;
   /** Сканер создаётся на маунт камеры — хук для `resume` со стороны VM */
   onScannerChanged?: (scanner: IOcrScanner | null) => void;
   /** Дополнительные слои оверлея (OverlayLabels, OverlayDim, …) */
@@ -59,6 +62,7 @@ export const OcrScanCamera = <TAttributes,>({
   requestPermission,
   onCandidateConfirmed,
   onObservations,
+  onError,
   onScannerChanged,
   overlayLayers,
   style,
@@ -71,6 +75,7 @@ export const OcrScanCamera = <TAttributes,>({
     fullFrameFallback,
     onCandidateConfirmed,
     onObservations,
+    onError,
   });
 
   useEffect(() => {
@@ -101,6 +106,9 @@ export const OcrScanCamera = <TAttributes,>({
       >
         {overlayLayers}
       </ScanOverlay>
+      {scanner.diagnostics !== null && (
+        <ScanDiagnosticsBadge diagnostics={scanner.diagnostics} />
+      )}
     </ScanCameraShell>
   );
 };

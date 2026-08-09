@@ -29,7 +29,19 @@ data class OcrScanOptions(
   val maxObservations: Double,
   @DoNotStrip
   @Keep
-  val fullFrameFallback: Boolean?
+  val fullFrameFallback: Boolean?,
+  @DoNotStrip
+  @Keep
+  val regionMinScore: Double?,
+  @DoNotStrip
+  @Keep
+  val maxRegions: Double?,
+  @DoNotStrip
+  @Keep
+  val regionPadding: Double?,
+  @DoNotStrip
+  @Keep
+  val regionIouThreshold: Double?
 ) {
   /* primary constructor */
 
@@ -40,6 +52,10 @@ data class OcrScanOptions(
       && Objects.deepEquals(this.minConfidence, other.minConfidence)
       && Objects.deepEquals(this.maxObservations, other.maxObservations)
       && Objects.deepEquals(this.fullFrameFallback, other.fullFrameFallback)
+      && Objects.deepEquals(this.regionMinScore, other.regionMinScore)
+      && Objects.deepEquals(this.maxRegions, other.maxRegions)
+      && Objects.deepEquals(this.regionPadding, other.regionPadding)
+      && Objects.deepEquals(this.regionIouThreshold, other.regionIouThreshold)
   }
 
   override fun hashCode(): Int {
@@ -47,7 +63,11 @@ data class OcrScanOptions(
       mode,
       minConfidence,
       maxObservations,
-      fullFrameFallback
+      fullFrameFallback,
+      regionMinScore,
+      maxRegions,
+      regionPadding,
+      regionIouThreshold
     ).contentDeepHashCode()
   }
 
@@ -59,8 +79,8 @@ data class OcrScanOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Boolean?): OcrScanOptions {
-      return OcrScanOptions(mode, minConfidence, maxObservations, fullFrameFallback)
+    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Boolean?, regionMinScore: Double?, maxRegions: Double?, regionPadding: Double?, regionIouThreshold: Double?): OcrScanOptions {
+      return OcrScanOptions(mode, minConfidence, maxObservations, fullFrameFallback, regionMinScore, maxRegions, regionPadding, regionIouThreshold)
     }
   }
 }

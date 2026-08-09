@@ -41,11 +41,23 @@ namespace margelo::nitro::visionengine {
       double maxObservations = this->getFieldValue(fieldMaxObservations);
       static const auto fieldFullFrameFallback = clazz->getField<jni::JBoolean>("fullFrameFallback");
       jni::local_ref<jni::JBoolean> fullFrameFallback = this->getFieldValue(fieldFullFrameFallback);
+      static const auto fieldRegionMinScore = clazz->getField<jni::JDouble>("regionMinScore");
+      jni::local_ref<jni::JDouble> regionMinScore = this->getFieldValue(fieldRegionMinScore);
+      static const auto fieldMaxRegions = clazz->getField<jni::JDouble>("maxRegions");
+      jni::local_ref<jni::JDouble> maxRegions = this->getFieldValue(fieldMaxRegions);
+      static const auto fieldRegionPadding = clazz->getField<jni::JDouble>("regionPadding");
+      jni::local_ref<jni::JDouble> regionPadding = this->getFieldValue(fieldRegionPadding);
+      static const auto fieldRegionIouThreshold = clazz->getField<jni::JDouble>("regionIouThreshold");
+      jni::local_ref<jni::JDouble> regionIouThreshold = this->getFieldValue(fieldRegionIouThreshold);
       return OcrScanOptions(
         mode->toCpp(),
         minConfidence,
         maxObservations,
-        fullFrameFallback != nullptr ? std::make_optional(static_cast<bool>(fullFrameFallback->value())) : std::nullopt
+        fullFrameFallback != nullptr ? std::make_optional(static_cast<bool>(fullFrameFallback->value())) : std::nullopt,
+        regionMinScore != nullptr ? std::make_optional(regionMinScore->value()) : std::nullopt,
+        maxRegions != nullptr ? std::make_optional(maxRegions->value()) : std::nullopt,
+        regionPadding != nullptr ? std::make_optional(regionPadding->value()) : std::nullopt,
+        regionIouThreshold != nullptr ? std::make_optional(regionIouThreshold->value()) : std::nullopt
       );
     }
 
@@ -55,7 +67,7 @@ namespace margelo::nitro::visionengine {
      */
     [[maybe_unused]]
     static jni::local_ref<JOcrScanOptions::javaobject> fromCpp(const OcrScanOptions& value) {
-      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double, jni::alias_ref<jni::JBoolean>);
+      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -63,7 +75,11 @@ namespace margelo::nitro::visionengine {
         JOcrRecognitionMode::fromCpp(value.mode),
         value.minConfidence,
         value.maxObservations,
-        value.fullFrameFallback.has_value() ? jni::JBoolean::valueOf(value.fullFrameFallback.value()) : nullptr
+        value.fullFrameFallback.has_value() ? jni::JBoolean::valueOf(value.fullFrameFallback.value()) : nullptr,
+        value.regionMinScore.has_value() ? jni::JDouble::valueOf(value.regionMinScore.value()) : nullptr,
+        value.maxRegions.has_value() ? jni::JDouble::valueOf(value.maxRegions.value()) : nullptr,
+        value.regionPadding.has_value() ? jni::JDouble::valueOf(value.regionPadding.value()) : nullptr,
+        value.regionIouThreshold.has_value() ? jni::JDouble::valueOf(value.regionIouThreshold.value()) : nullptr
       );
     }
   };
