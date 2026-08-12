@@ -43,7 +43,8 @@ export const MediaTab: FC = memo(() => {
       <DemoSection
         title={"ImageViewing"}
         description={
-          "Тап по превью — полноэкранный просмотр со свайпом и зумом"
+          "Полноэкранный просмотр: pinch/double-tap-зум, свайп-закрытие, " +
+          "тап скрывает бары, кастомный футер"
         }
       >
         <Row gap={8}>
@@ -58,6 +59,16 @@ export const MediaTab: FC = memo(() => {
           imageIndex={viewerIndex ?? 0}
           visible={viewerIndex !== null}
           onRequestClose={() => setViewerIndex(null)}
+          onLongPress={(_image, index) =>
+            console.log("ImageViewing long press:", index)
+          }
+          renderFooter={({ index, count }) => (
+            <Text
+              color={"white"}
+              textAlign={"center"}
+              pv={24}
+            >{`Подпись к изображению ${index + 1} из ${count}`}</Text>
+          )}
         />
       </DemoSection>
 
