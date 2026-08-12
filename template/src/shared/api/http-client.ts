@@ -132,13 +132,17 @@ export class HttpClient implements IHttpClient {
     return this._refreshPromise;
   }
 
+  /** key-дедупликация: шторм одинаковых ошибок обновляет один тост, а не плодит стек. */
   private _notifyError(error: ApiError): void {
     if (error.isNetworkError) {
       this._notifications.error("Нет соединения с сервером", {
         duration: 6000,
+        key: "http:network-error",
       });
     } else if (error.isServerError) {
-      this._notifications.error(error.message || "Внутренняя ошибка сервера");
+      this._notifications.error(error.message || "Внутренняя ошибка сервера", {
+        key: "http:server-error",
+      });
     }
   }
 }

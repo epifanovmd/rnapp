@@ -1,19 +1,24 @@
 import notifee from "@notifee/react-native";
 import { TabProps } from "@shared/lib/navigation";
-import { useNotificationActions as useNotification } from "@shared/lib/notifications";
+import { useNotifications } from "@shared/lib/notifications";
+import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
 import { Button, Col } from "@shared/ui";
 import React, { FC, memo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
-  const { show, hide } = useNotification();
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const NotificationsTab: FC<TabProps> = memo(() => {
+  const notifications = useNotifications();
   const { navbar } = useTransition();
+  const { colors } = useTheme();
 
   const onDisplayNotification = async () => {
     const channelId = await notifee.createChannel({
       id: "default",
       name: "Default Channel",
-      vibration: true, // Включение вибрации
+      vibration: true,
     });
 
     await notifee.displayNotification({
@@ -33,65 +38,121 @@ export const NotificationsTab: FC<TabProps> = memo(({ route, navigation }) => {
     });
   };
 
-  // React.useEffect(
-  //   () =>
-  //     navigation.addListener("beforeRemove", e => {
-  //       e.preventDefault();
-  //
-  //       Alert.alert(
-  //         "Отменить изменения?",
-  //         "У вас есть несохраненные изменения. Вы уверены, что хотите их отменить и выйти с экрана?",
-  //         [
-  //           {
-  //             text: "Остаться",
-  //             style: "cancel",
-  //             onPress: () => {
-  //               // Ничего не делать
-  //             },
-  //           },
-  //           {
-  //             text: "Выйти без сохранения",
-  //             style: "destructive",
-  //             onPress: () => navigation.dispatch(e.data.action),
-  //           },
-  //         ],
-  //       );
-  //     }),
-  //   [navigation],
-  // );
-
   return (
     <Col ph={16} gap={8} pt={navbar.height}>
-      <Button title={"normal"} onPress={() => show("normal")} />
+      <Button title={"info"} onPress={() => notifications.info("Информация")} />
 
       <Button
-        title={"success"}
-        onPress={() => show("success", { type: "success" })}
-      />
-
-      <Button
-        title={"warning"}
-        onPress={() => show("warning", { type: "warning" })}
-      />
-
-      <Button
-        title={"danger"}
-        onPress={() => show("danger", { type: "danger" })}
-      />
-
-      <Button
-        title={"custom_toast"}
+        title={"success + title"}
         onPress={() =>
-          show("custom_toast", {
-            type: "custom_toast",
-            data: { title: "Title" },
+          notifications.success("Изменения сохранены", { title: "Готово" })
+        }
+      />
+
+      <Button
+        title={"warning (bottom)"}
+        onPress={() =>
+          notifications.warning("Слабое соединение", { position: "bottom" })
+        }
+      />
+
+      <Button
+        title={"error (6s)"}
+        onPress={() => notifications.error("Что-то пошло не так")}
+      />
+
+      <Button
+        title={"sticky + action"}
+        onPress={() =>
+          notifications.info("Доступна новая версия приложения", {
+            duration: 0,
+            action: {
+              label: "Обновить",
+              onPress: () => notifications.success("Обновление запущено"),
+            },
           })
         }
       />
 
-      <Button title={"hideMessage"} onPress={() => hide()} />
+      <Button
+        title={"promise (loading → success)"}
+        onPress={() =>
+          notifications.promise(delay(2000), {
+            loading: "Загружаем данные…",
+            success: "Данные загружены",
+            error: "Не удалось загрузить",
+          })
+        }
+      />
+
+      <Button
+        title={"дедупликация (key)"}
+        onPress={() =>
+          notifications.warning(`Повтор в ${new Date().toLocaleTimeString()}`, {
+            key: "dedupe-demo",
+            title: "Один тост на key",
+          })
+        }
+      />
+
+      <Button
+        title={"очередь (6 подряд)"}
+        onPress={() => {
+          for (let index = 1; index <= 6; index += 1) {
+            notifications.info(`Уведомление №${index} из 6`);
+          }
+        }}
+      />
+
+      <Button
+        title={"кастомный рендер"}
+        onPress={() =>
+          notifications.show("Полностью свой контент", {
+            duration: 4000,
+            render: notification => (
+              <View
+                style={[
+                  styles.customToast,
+                  {
+                    backgroundColor: colors.surface,
+                    borderLeftColor: colors.success,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.customToastTitle,
+                    { color: colors.textPrimary },
+                  ]}
+                >
+                  Кастомный тост
+                </Text>
+                <Text style={{ color: colors.textSecondary }}>
+                  {notification.message}
+                </Text>
+              </View>
+            ),
+          })
+        }
+      />
+
+      <Button title={"скрыть все"} onPress={() => notifications.dismissAll()} />
 
       <Button title={"Push notification"} onPress={onDisplayNotification} />
     </Col>
   );
+});
+
+const styles = StyleSheet.create({
+  customToast: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderLeftWidth: 6,
+  },
+  customToastTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 2,
+  },
 });

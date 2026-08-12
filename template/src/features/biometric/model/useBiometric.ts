@@ -2,7 +2,7 @@ import { IAuthStore } from "@entities/auth";
 import { IUserStore } from "@entities/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IApiService } from "@shared/api";
-import { useNotificationActions as useNotification } from "@shared/lib/notifications";
+import { useNotifications } from "@shared/lib/notifications";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
 import { getDeviceName, getUniqueId } from "react-native-device-info";
@@ -16,7 +16,7 @@ export const useBiometric = () => {
   const api = IApiService.useInstance();
   const authStore = IAuthStore.useInstance();
   const userStore = IUserStore.useInstance();
-  const { show } = useNotification();
+  const notifications = useNotifications();
 
   const available = !!registeredUserId && support;
 
@@ -32,14 +32,14 @@ export const useBiometric = () => {
     await biometrics.deleteKeys();
     await AsyncStorage.removeItem("biometricUserId");
     setRegisteredUserId(null);
-    show("Биометрия успешно отключена.", { type: "success" });
-  }, [show]);
+    notifications.success("Биометрия успешно отключена.");
+  }, [notifications]);
 
   const getBiometricPublicKey = useCallback(async () => {
     const { keysExist } = await biometrics.biometricKeysExist();
 
     if (keysExist && registeredUserId) {
-      show("Биометрия уже подключена.", { type: "normal" });
+      notifications.info("Биометрия уже подключена.");
 
       return null;
     } else {
@@ -47,7 +47,7 @@ export const useBiometric = () => {
 
       return publicKey;
     }
-  }, [registeredUserId, show]);
+  }, [registeredUserId, notifications]);
 
   const registration = useCallback(async () => {
     const userId = userStore.user?.id;
@@ -68,14 +68,14 @@ export const useBiometric = () => {
       });
 
       if (response.error) {
-        show(response.error.message, { type: "danger" });
+        notifications.error(response.error.message);
       } else if (response.data) {
         if (response.data.registered) {
-          show("Биометрия успешно подключена.", { type: "success" });
+          notifications.success("Биометрия успешно подключена.");
           await AsyncStorage.setItem("biometricUserId", userId);
           setRegisteredUserId(userId);
         } else {
-          show("Не удалось подключить биометрию.", { type: "normal" });
+          notifications.warning("Не удалось подключить биометрию.");
           await biometrics.deleteKeys();
         }
 
@@ -84,7 +84,7 @@ export const useBiometric = () => {
     }
 
     return false;
-  }, [api, userStore.user?.id, getBiometricPublicKey, show]);
+  }, [api, userStore.user?.id, getBiometricPublicKey, notifications]);
 
   const authorization = useCallback(async () => {
     if (!registeredUserId) {
@@ -96,7 +96,7 @@ export const useBiometric = () => {
     const response = await api.generateNonce({ deviceId });
 
     if (response.error) {
-      show(response.error.message, { type: "danger" });
+      notifications.error(response.error.message);
     } else if (response.data) {
       const payload = response.data.nonce;
 
@@ -106,7 +106,7 @@ export const useBiometric = () => {
       });
 
       if (error) {
-        show(error, { type: "danger" });
+        notifications.error(error);
       } else if (success && signature) {
         const response = await api.verifySignature({
           deviceId,
@@ -115,7 +115,7 @@ export const useBiometric = () => {
 
         if (response.error) {
           await onRemoveBiometric();
-          show(response.error.message, { type: "danger" });
+          notifications.error(response.error.message);
         } else if (response.data?.verified) {
           await authStore.restore(response.data.tokens);
         }
@@ -123,7 +123,7 @@ export const useBiometric = () => {
     }
 
     return false;
-  }, [registeredUserId, api, onRemoveBiometric, show, authStore]);
+  }, [registeredUserId, api, onRemoveBiometric, notifications, authStore]);
 
   return {
     available,

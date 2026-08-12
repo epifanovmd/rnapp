@@ -22,7 +22,7 @@ template/src/
     App.screens.ts        ←   PUBLIC_SCREENS / PRIVATE_SCREENS
     app-tab-screens.tsx   ←   TAB_SCREENS (Main/Playground/Settings)
     App.linking.ts        ←   deep linking
-    App.notifications.tsx ←   push-уведомления
+    App.notifications.tsx ←   монтирует NotificationHost (in-app уведомления)
     app.module.ts         ←   регистрация всех *.module.ts (DI)
     app-data-*            ←   стор данных приложения
 
@@ -204,7 +204,24 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 - API-вызовы возвращают `{ data } | { error }`, исключений нет.
 - `ApiError` (`shared/api/api-error.ts`): `isUnauthorized`, `isForbidden`, `isNotFound`,
   `isServerError`, `isNetworkError`.
-- Toast (interceptor): сетевые ошибки и 5xx. 401 — не toast (обрабатывается refresh).
+- Toast (interceptor): сетевые ошибки и 5xx (key-дедупликация — шторм одинаковых ошибок
+  обновляет один тост). 401 — не toast (обрабатывается refresh).
+
+## In-app уведомления (`shared/lib/notifications/`)
+
+- Источник истины — MobX-стор `NotificationStore` (singleton в DI): видимый стек,
+  очередь при переполнении (`maxVisible`), таймеры автоскрытия с pause/resume.
+- Два контракта на один инстанс (ISP): `INotificationService` — публичный API
+  (`show/info/success/warning/error/loading/promise/update/dismiss/dismissAll/configure`),
+  `INotificationStore` — внутренний контракт UI-хоста (состояние, pause/resume, finalize).
+- Доступ: в компонентах — `useNotifications()`, вне React — `INotificationService.getInstance()`.
+- UI — `<NotificationHost />` (observer, монтируется в `App.notifications.tsx`), состояния
+  не имеет: уведомления, созданные до монтирования, отрисовываются при появлении хоста.
+- Фичи: варианты (info/success/warning/error/loading), позиции top/bottom, title,
+  action-кнопка, sticky (`duration: 0`), swipe-to-dismiss, tap-to-dismiss,
+  key-дедупликация, `promise()` (loading → success/error поверх одного тоста),
+  haptic + accessibility announce, кастомный рендер (`options.render` per-toast или
+  `renderContent` хоста).
 
 ## Конфигурация чата
 
