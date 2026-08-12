@@ -1,41 +1,43 @@
-import { NavigationProp, useNavigation } from "@react-navigation/native";
-import { ScreenName } from "@shared/lib/navigation";
-import React, { FC, memo, useCallback } from "react";
+import {
+  RootParamList,
+  RouteName,
+  useNavigation,
+} from "@shared/lib/navigation";
+import React, { memo, useCallback } from "react";
 
 import { ITouchableProps, Touchable } from "../touchable";
 
-export interface INavLinkProps extends ITouchableProps {
-  to: ScreenName;
-  screen?: ScreenName;
-  params?: { [key in string]: string | number | undefined };
+export interface INavLinkProps<Name extends RouteName> extends ITouchableProps {
+  to: Name;
+  params?: RootParamList[Name];
 }
 
-export const NavLink: FC<INavLinkProps> = memo(
-  ({ children, to, params, screen, ...rest }) => {
-    const { navigate } = useNavigation<NavigationProp<object>>();
+const NavLinkBase = <Name extends RouteName>({
+  children,
+  to,
+  params,
+  ...rest
+}: INavLinkProps<Name>) => {
+  const navigation = useNavigation();
 
-    // Ссылка динамическая: экран приходит union-строкой, а `navigate`
-    // типизирован кортежами перегрузок на каждый экран — union по ним
-    // не дистрибутируется. Сужаем сигнатуру: безопасность обеспечивает
-    // тип `to: ScreenName` на пропсах.
-    const navigateTo = navigate as (name: ScreenName, params?: object) => void;
+  // `navigate` типизирован перегрузками на каждый экран — union-вызов по ним
+  // не дистрибутируется. Сужаем сигнатуру: безопасность обеспечивает связка
+  // `to: Name` + `params: RootParamList[Name]` на пропсах.
+  const navigate = navigation.navigate as (
+    name: RouteName,
+    params?: object,
+  ) => void;
 
-    const onPress = useCallback(() => {
-      navigateTo(
-        to,
-        screen
-          ? {
-              screen,
-              params,
-            }
-          : params,
-      );
-    }, [navigateTo, params, screen, to]);
+  const onPress = useCallback(() => {
+    navigate(to, params);
+  }, [navigate, to, params]);
 
-    return (
-      <Touchable {...rest} onPress={onPress}>
-        {children}
-      </Touchable>
-    );
-  },
-);
+  return (
+    <Touchable {...rest} onPress={onPress}>
+      {children}
+    </Touchable>
+  );
+};
+
+/** Типизированная навигационная ссылка: `<NavLink to="PdfView" params={{ url }} />`. */
+export const NavLink = memo(NavLinkBase) as typeof NavLinkBase;

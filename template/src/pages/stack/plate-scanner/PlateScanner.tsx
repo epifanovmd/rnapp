@@ -3,7 +3,7 @@ import {
   PlateScanCamera,
   usePlateScanVM,
 } from "@features/plate-scan";
-import { StackProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import {
   BottomSheet,
   Button,
@@ -20,13 +20,12 @@ import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
 import { StyleSheet } from "react-native";
 
-interface IProps extends StackProps<"PlateScanner"> {}
-
 /**
  * Сканер российских автономеров: камера в BottomSheet, при стабильном
  * распознавании лист закрывается и номер выводится на странице.
  */
-export const PlateScanner: FC<IProps> = observer(({ route }) => {
+export const PlateScanner: FC = observer(() => {
+  const { name } = useRoute();
   const sheetRef = useBottomSheetRef();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [lastResult, setLastResult] = useState<IPlateScanResult | null>(null);
@@ -59,7 +58,7 @@ export const PlateScanner: FC<IProps> = observer(({ route }) => {
     <Container edges={["top"]}>
       <Navbar>
         <Navbar.BackButton />
-        <Navbar.Title text={route.name} />
+        <Navbar.Title text={name} />
       </Navbar>
 
       <ScrollView>

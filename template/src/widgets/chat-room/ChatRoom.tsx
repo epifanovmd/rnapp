@@ -1,4 +1,3 @@
-import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
   Col,
@@ -29,7 +28,7 @@ import { useChatRoomMock } from "./useChatRoomMock";
  * (`Chat`) кнопкой со страницы Playground, без списка диалогов — задача
  * экрана только показать возможности нативного ChatView-компонента.
  */
-export const ChatRoom: FC<StackProps> = observer(() => {
+export const ChatRoom: FC = observer(() => {
   const { isDark } = useTheme();
 
   const [useNative, setUseNative] = useState(false);

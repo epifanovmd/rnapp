@@ -1,8 +1,8 @@
 import {
-  StackProps,
-  TabScreens,
-  TopTabNavigation,
-} from "@shared/lib/navigation";
+  createMaterialTopTabNavigator,
+  MaterialTopTabBarProps,
+} from "@react-navigation/material-top-tabs";
+import { ScreenProps } from "@shared/lib/navigation";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import {
   TransitionProvider,
@@ -13,6 +13,7 @@ import { HiddenBar, Navbar } from "@shared/ui";
 import { Tabs } from "@shared/ui/tabs";
 import React, { FC, memo } from "react";
 
+import { ComponentsTabName, ComponentsTabsParamList } from "./components.types";
 import {
   ButtonsTab,
   DialogsTab,
@@ -23,20 +24,39 @@ import {
 } from "./tabs";
 import { TicketTab } from "./tabs/Ticket";
 
-const routes: TabScreens = {
-  Buttons: { screen: ButtonsTab },
-  Notifications: { screen: NotificationsTab },
-  Modals: { screen: ModalsTab },
-  Dialogs: { screen: DialogsTab },
-  Pickers: { screen: PickersTab },
-  Elements: { screen: ElementsTab },
-  Ticket: { screen: TicketTab },
+const TopTab = createMaterialTopTabNavigator<ComponentsTabsParamList>();
+
+const renderTabBar = ({
+  state: { routes: tabRoutes, index },
+  navigation,
+}: MaterialTopTabBarProps) => {
+  return (
+    <HiddenBar safeArea>
+      <Navbar title={"Компоненты"}>
+        <Navbar.BackButton />
+      </Navbar>
+      <HiddenBar.StickyContent>
+        <Tabs
+          activeIndex={index}
+          onPress={routeName => {
+            navigation.navigate(routeName);
+          }}
+          items={tabRoutes.map(route => ({
+            title: route.name,
+            value: route.name,
+          }))}
+        />
+      </HiddenBar.StickyContent>
+    </HiddenBar>
+  );
 };
 
-type TComponentsParams = StackProps<"Components">["route"]["params"];
+type ComponentsScreenProps = ScreenProps<
+  { initialRouteName?: ComponentsTabName } | undefined
+>;
 
 interface IInnerProps {
-  initialRouteName?: NonNullable<TComponentsParams>["initialRouteName"];
+  initialRouteName?: ComponentsTabName;
 }
 
 const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
@@ -47,30 +67,10 @@ const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
 
   return (
     <ScrollProvider telemetry={telemetry}>
-      <TopTabNavigation
-        tabBar={({ state: { routes: tabRoutes, index }, navigation }) => {
-          return (
-            <HiddenBar safeArea>
-              <Navbar title={"Компоненты"}>
-                <Navbar.BackButton />
-              </Navbar>
-              <HiddenBar.StickyContent>
-                <Tabs
-                  activeIndex={index}
-                  onPress={routeName => {
-                    navigation.navigate(routeName);
-                  }}
-                  items={tabRoutes.map(route => ({
-                    title: route.name,
-                    value: route.name,
-                  }))}
-                />
-              </HiddenBar.StickyContent>
-            </HiddenBar>
-          );
-        }}
+      <TopTab.Navigator
+        tabBar={renderTabBar}
         initialRouteName={initialRouteName}
-        routes={routes}
+        backBehavior={"none"}
         screenListeners={{
           blur: () => {
             navbar.show();
@@ -79,12 +79,20 @@ const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
             navbar.show();
           },
         }}
-      />
+      >
+        <TopTab.Screen name={"Buttons"} component={ButtonsTab} />
+        <TopTab.Screen name={"Notifications"} component={NotificationsTab} />
+        <TopTab.Screen name={"Modals"} component={ModalsTab} />
+        <TopTab.Screen name={"Dialogs"} component={DialogsTab} />
+        <TopTab.Screen name={"Pickers"} component={PickersTab} />
+        <TopTab.Screen name={"Elements"} component={ElementsTab} />
+        <TopTab.Screen name={"Ticket"} component={TicketTab} />
+      </TopTab.Navigator>
     </ScrollProvider>
   );
 };
 
-export const Components: FC<StackProps<"Components">> = memo(({ route }) => {
+export const Components: FC<ComponentsScreenProps> = memo(({ route }) => {
   return (
     <TransitionProvider>
       <ComponentsNavigator initialRouteName={route.params?.initialRouteName} />

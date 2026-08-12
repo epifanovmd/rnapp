@@ -1,5 +1,4 @@
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { navigationRef } from "@shared/lib/navigation";
 import { ThemeProvider } from "@shared/lib/theme";
 import { disposer } from "@shared/lib/utils";
 import { ContextMenuView, Dialog, StatusBar } from "@shared/ui";
@@ -46,7 +45,7 @@ export const App: FC = observer(() => {
               <Dialog.Host />
               <ContextMenuView.Host />
               <KeyboardProvider navigationBarTranslucent>
-                <AppNavigator ref={navigationRef} />
+                <AppNavigator />
               </KeyboardProvider>
             </AppNotifications>
           </BottomSheetModalProvider>

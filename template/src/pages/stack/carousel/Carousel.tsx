@@ -1,5 +1,4 @@
 import { useDimensions } from "@shared/lib/hooks";
-import { StackProps } from "@shared/lib/navigation";
 import { Container } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
@@ -40,7 +39,7 @@ const renderItem =
     />
   );
 
-export const CarouselScreen: FC<StackProps> = observer(() => {
+export const CarouselScreen: FC = observer(() => {
   const progress = useSharedValue<number>(0);
   const { width, height } = useDimensions();
   const ref = React.useRef<ICarouselInstance>(null);

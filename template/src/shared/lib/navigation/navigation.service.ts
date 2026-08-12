@@ -1,101 +1,122 @@
-import {
-  createNavigationContainerRef,
-  StackActions,
-} from "@react-navigation/native";
+import { StackActions } from "@react-navigation/native";
+import type { NavigationState, PartialState } from "@react-navigation/routers";
 import { injectable } from "inversify";
-import { identity, pickBy } from "lodash";
-import { makeAutoObservable, runInAction } from "mobx";
+import { action, makeObservable, observable } from "mobx";
 
 import { DebugVars } from "../../../../debugVars";
-import { ScreenName, ScreenParamList } from "./navigation.types";
-import { INavigationService } from "./navigation-service.types";
+import { navigationRef } from "./navigation.ref";
+import {
+  INavigationService,
+  NavigateArgs,
+  NavigationPathEntry,
+  RouteName,
+} from "./navigation.types";
 
-export const navigationRef = createNavigationContainerRef<ScreenParamList>();
+type AnyNavigationState =
+  NavigationState | PartialState<NavigationState> | undefined;
 
-const routesHistoryReduce = (arr: any[]) => {
-  return arr.reduce((acc, item) => {
-    acc.push(
-      pickBy(
-        {
-          screen: item.name,
-          params: item.params,
-        },
-        identity,
-      ),
-    );
+/** Цепочка сфокусированных маршрутов: от корня вниз по `routes[index]`. */
+const collectActivePath = (
+  state: AnyNavigationState,
+): NavigationPathEntry[] => {
+  const path: NavigationPathEntry[] = [];
+  let current: AnyNavigationState = state;
 
-    if (item.state) {
-      return [
-        ...acc,
-        ...routesHistoryReduce([item.state.routes[item.state.index]]),
-      ];
+  while (current) {
+    const route = current.routes[current.index ?? current.routes.length - 1];
+
+    if (!route) {
+      break;
     }
 
-    return acc;
-  }, []) as {
-    screen: ScreenName;
-    params: ScreenParamList[ScreenName];
-  }[];
-};
-
-@injectable()
-export class NavigationService implements INavigationService {
-  history: { screen: ScreenName; params: ScreenParamList[ScreenName] }[] = [];
-  private _navigationRef = navigationRef;
-  private _currentScreenName?: ScreenName = undefined;
-
-  constructor() {
-    makeAutoObservable(this, {}, { autoBind: true });
+    path.push({ screen: route.name, params: route.params });
+    current = route.state;
   }
 
-  subscribe() {
-    return this._navigationRef.addListener("state", e => {
-      runInAction(() => {
-        this._currentScreenName =
-          this._navigationRef?.current?.getCurrentRoute()?.name as ScreenName;
-        this.history = routesHistoryReduce(e.data.state?.routes || []);
-      });
+  return path;
+};
 
-      if (DebugVars.logNavHistory) {
-        console.log("Nav Current Screen", this._currentScreenName);
-        console.log("Nav History -> ", JSON.stringify(this.history));
-      }
+/**
+ * Императивная навигация поверх navigationRef. Типизация — из глобального
+ * RootParamList; `navigate` контейнера типизирован перегрузками по экранам,
+ * union-вызов по ним не дистрибутируется, поэтому внутри — суженная сигнатура
+ * (безопасность обеспечивают типы `NavigateArgs` публичного API).
+ */
+@injectable()
+export class NavigationService implements INavigationService {
+  currentRouteName: RouteName | undefined = undefined;
+  activePath: NavigationPathEntry[] = [];
+
+  constructor() {
+    makeObservable(this, {
+      currentRouteName: observable.ref,
+      activePath: observable.ref,
     });
   }
 
-  public get currentScreenName() {
-    return this._currentScreenName;
+  get isReady(): boolean {
+    return navigationRef.isReady();
   }
 
-  get isReady() {
-    return this._navigationRef.isReady();
+  get canGoBack(): boolean {
+    return this.isReady && navigationRef.canGoBack();
   }
 
-  get canGoBack() {
-    return this.isReady && this._navigationRef.canGoBack();
+  subscribe(): () => void {
+    this._syncState();
+
+    return navigationRef.addListener("state", this._syncState);
   }
 
-  goBack() {
+  navigate<Name extends RouteName>(
+    ...[name, params]: NavigateArgs<Name>
+  ): void {
+    if (this.isReady) {
+      const navigate = navigationRef.navigate as (
+        name: RouteName,
+        params?: object,
+      ) => void;
+
+      navigate(name, params);
+    }
+  }
+
+  push<Name extends RouteName>(...[name, params]: NavigateArgs<Name>): void {
+    if (this.isReady) {
+      navigationRef.dispatch(StackActions.push(name, params));
+    }
+  }
+
+  replace<Name extends RouteName>(...[name, params]: NavigateArgs<Name>): void {
+    if (this.isReady) {
+      navigationRef.dispatch(StackActions.replace(name, params));
+    }
+  }
+
+  goBack(): void {
     if (this.canGoBack) {
-      this._navigationRef.goBack();
+      navigationRef.goBack();
     }
   }
 
-  navigateTo: typeof navigationRef.navigate = (...args: any) => {
+  resetTo<Name extends RouteName>(...[name, params]: NavigateArgs<Name>): void {
     if (this.isReady) {
-      this._navigationRef.navigate(...args);
+      navigationRef.resetRoot({ index: 0, routes: [{ name, params }] });
     }
-  };
+  }
 
-  replaceTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
-    if (this.isReady) {
-      this._navigationRef.dispatch(StackActions.replace(name, params));
+  private readonly _syncState = action(() => {
+    if (!navigationRef.isReady()) {
+      return;
     }
-  };
 
-  pushTo = <T extends ScreenName>(name: T, params: ScreenParamList[T]) => {
-    if (this.isReady) {
-      this._navigationRef.dispatch(StackActions.push(name, params));
+    this.currentRouteName = navigationRef.getCurrentRoute()?.name as
+      RouteName | undefined;
+    this.activePath = collectActivePath(navigationRef.getRootState());
+
+    if (DebugVars.logNavHistory) {
+      console.log("Nav current screen ->", this.currentRouteName);
+      console.log("Nav active path ->", JSON.stringify(this.activePath));
     }
-  };
+  });
 }

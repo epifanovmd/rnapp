@@ -1,9 +1,7 @@
-import {
-  NavigationProp,
-  useNavigation as _useNavigation,
-} from "@react-navigation/native";
+import { useNavigation as useNavigationBase } from "@react-navigation/native";
 
-import { ScreenParamList } from "../navigation.types";
-
-export const useNavigation = () =>
-  _useNavigation<NavigationProp<ScreenParamList>>();
+/**
+ * Навигация в компонентах; типизирована глобальным RootParamList автоматически.
+ * Вне React — INavigationService.
+ */
+export const useNavigation = () => useNavigationBase();

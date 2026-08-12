@@ -1,4 +1,3 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
 import { BottomSheet, Button, Text, useBottomSheetStack } from "@shared/ui";
@@ -52,7 +51,7 @@ const SHEET_VARIANTS: ISheetVariant[] = [
   },
 ];
 
-export const ModalsTab = memo<TabProps>(() => {
+export const ModalsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const { navbar } = useTransition();
   const scroll = useScroll();

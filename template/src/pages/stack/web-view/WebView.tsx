@@ -1,4 +1,4 @@
-import { StackProps } from "@shared/lib/navigation";
+import { ScreenProps } from "@shared/lib/navigation";
 import { AnimatedRefreshing, Container, Navbar } from "@shared/ui";
 import React, { FC, memo, useEffect } from "react";
 import { StyleSheet } from "react-native";
@@ -10,7 +10,12 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView as RNWebView } from "react-native-webview";
 
-export const WebView: FC<StackProps<"WebView">> = memo(({ route }) => {
+export type TWebViewParams = {
+  title?: string;
+  url: string;
+};
+
+export const WebView: FC<ScreenProps<TWebViewParams>> = memo(({ route }) => {
   const params = route.params;
 
   const { bottom } = useSafeAreaInsets();

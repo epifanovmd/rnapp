@@ -1,4 +1,3 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useTransition } from "@shared/lib/transition";
 import {
   Button,
@@ -11,7 +10,9 @@ import {
 } from "@shared/ui";
 import React, { FC, memo } from "react";
 
-export const PickersTab: FC<TabProps> = memo(({ route }) => {
+import { ComponentsTabProps } from "../components.types";
+
+export const PickersTab: FC<ComponentsTabProps> = memo(({ route }) => {
   const { navbar } = useTransition();
 
   return (

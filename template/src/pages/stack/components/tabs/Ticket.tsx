@@ -1,8 +1,9 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useTransition } from "@shared/lib/transition";
 import { Col, ScrollView, Ticket } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+
+import { ComponentsTabProps } from "../components.types";
 
 const data = {
   eventTitle: "Футбольный матч",
@@ -17,7 +18,7 @@ const data = {
   price: "2500 ₽",
 };
 
-export const TicketTab: FC<TabProps> = memo(({ route }) => {
+export const TicketTab: FC<ComponentsTabProps> = memo(({ route }) => {
   const { navbar } = useTransition();
   const topContent = (
     <View>

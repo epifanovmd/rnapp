@@ -1,68 +1,50 @@
 import { Main } from "@pages/tabs/main";
 import { Playground } from "@pages/tabs/playground";
 import { Settings } from "@pages/tabs/settings";
-import {
-  BottomTabHeaderProps,
-  BottomTabNavigationOptions,
-} from "@react-navigation/bottom-tabs";
-import {
-  AppNavigation,
-  AppTabScreens,
-  ScreenName,
-  StackProps,
-} from "@shared/lib/navigation";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { TransitionProvider } from "@shared/lib/transition";
-import { Navbar } from "@shared/ui";
 import { TabBar } from "@widgets/app-shell";
 import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
-import React, { FC, memo } from "react";
+import React, { PropsWithChildren } from "react";
+import { Platform } from "react-native";
 
-interface IProps extends StackProps {}
+/** Layout экрана Tabs корневого стека: общие navbar/tabBar-бары для всех табов. */
+export const MainTabsLayout = ({ children }: PropsWithChildren) => (
+  <TransitionProvider>{children}</TransitionProvider>
+);
 
-const TabHeader = ({ options: { title } }: BottomTabHeaderProps) => {
-  return <Navbar title={title} safeArea={true} />;
-};
-
-export const TAB_SCREENS: AppTabScreens = {
-  Main: {
-    screen: Main,
-    options: {
-      tabBarIcon: ({ size, color }) => <HomeIcon size={size} color={color} />,
-      headerShown: false,
+/** Static-конфиг нижних табов (экран `Tabs` корневого стека). */
+export const MainTabs = createBottomTabNavigator({
+  initialRouteName: "Main",
+  tabBar: props => <TabBar {...props} />,
+  screenOptions: {
+    headerShown: false,
+    animation: "shift",
+    tabBarHideOnKeyboard: Platform.OS === "android",
+  },
+  screens: {
+    Main: {
+      screen: Main,
+      options: {
+        tabBarIcon: ({ size, color }) => <HomeIcon size={size} color={color} />,
+      },
+      linking: "main",
+    },
+    Playground: {
+      screen: Playground,
+      options: {
+        tabBarIcon: ({ size, color }) => <ListIcon size={size} color={color} />,
+      },
+      linking: "playground",
+    },
+    Settings: {
+      screen: Settings,
+      options: {
+        tabBarIcon: ({ size, color }) => (
+          <SettingsIcon size={size} color={color} />
+        ),
+      },
+      linking: "settings",
     },
   },
-  Playground: {
-    screen: Playground,
-    options: {
-      tabBarIcon: ({ size, color }) => <ListIcon size={size} color={color} />,
-      headerShown: false,
-    },
-  },
-  Settings: {
-    screen: Settings,
-    options: {
-      tabBarIcon: ({ size, color }) => (
-        <SettingsIcon size={size} color={color} />
-      ),
-      headerShown: false,
-    },
-  },
-};
-
-const screenOptions: BottomTabNavigationOptions = {
-  headerShown: true,
-  header: TabHeader,
-};
-
-export const TabScreens: FC<IProps> = memo(() => {
-  return (
-    <TransitionProvider>
-      <AppNavigation
-        tabBar={props => <TabBar {...props} />}
-        routes={TAB_SCREENS}
-        screenOptions={screenOptions}
-        initialRouteName={"Main"}
-      />
-    </TransitionProvider>
-  );
 });

@@ -1,4 +1,3 @@
-import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import { Container, Content, ScrollView, Text } from "@shared/ui";
 import {
@@ -33,8 +32,6 @@ import {
   nextLivePriceData,
   REVENUE_VS_EXPENSES,
 } from "./chart-mock-data";
-
-interface IProps extends StackProps {}
 
 const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
   datum.y > best.y ? datum : best,
@@ -152,7 +149,7 @@ const ChartCard: FC<
   );
 };
 
-export const Charts: FC<IProps> = observer(() => {
+export const Charts: FC = observer(() => {
   const { colors } = useTheme();
   const [touchStatus, setTouchStatus] = useState("Not touching");
   const [activePointLabel, setActivePointLabel] = useState(

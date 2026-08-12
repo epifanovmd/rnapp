@@ -1,5 +1,5 @@
 import { ObjectScanCamera, useObjectScanVM } from "@features/object-scan";
-import { StackProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import {
   BottomSheet,
   Button,
@@ -16,14 +16,13 @@ import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
 import { Dimensions, StyleSheet } from "react-native";
 
-interface IProps extends StackProps<"ObjectScanner"> {}
-
 /**
  * Пример «чистой» детекции объектов моделью из папок моделей приложения:
  * камера в BottomSheet, найденные объекты обновляются на лету; после
  * закрытия листа последний список остаётся на странице.
  */
-export const ObjectScanner: FC<IProps> = observer(({ route }) => {
+export const ObjectScanner: FC = observer(() => {
+  const { name } = useRoute();
   const sheetRef = useBottomSheetRef();
   const [isSheetOpen, setSheetOpen] = useState(false);
 
@@ -47,7 +46,7 @@ export const ObjectScanner: FC<IProps> = observer(({ route }) => {
     <Container edges={["top"]}>
       <Navbar>
         <Navbar.BackButton />
-        <Navbar.Title text={route.name} />
+        <Navbar.Title text={name} />
       </Navbar>
 
       <ScrollView>

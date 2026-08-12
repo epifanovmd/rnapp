@@ -1,6 +1,5 @@
 import { useBiometric } from "@features/biometric";
 import { useSignInVM } from "@features/sign-in";
-import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
   Button,
@@ -15,7 +14,7 @@ import { ScanFace } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 
-export const SignIn: FC<StackProps<"SignIn">> = observer(() => {
+export const SignIn: FC = observer(() => {
   const { colors } = useTheme();
 
   const {

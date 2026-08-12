@@ -1,5 +1,4 @@
 import notifee from "@notifee/react-native";
-import { TabProps } from "@shared/lib/navigation";
 import { useNotifications } from "@shared/lib/notifications";
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
@@ -9,7 +8,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export const NotificationsTab: FC<TabProps> = memo(() => {
+export const NotificationsTab: FC = memo(() => {
   const notifications = useNotifications();
   const { navbar } = useTransition();
   const { colors } = useTheme();
@@ -25,7 +24,7 @@ export const NotificationsTab: FC<TabProps> = memo(() => {
       title: "Уведомление",
       body: "Нажмите, чтобы открыть ссылку",
       data: {
-        url: "rnapp://Modals",
+        url: "rnapp://components?initialRouteName=Modals",
       },
       ios: {
         sound: "default",

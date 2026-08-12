@@ -1,4 +1,3 @@
-import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
   Col,
@@ -46,7 +45,7 @@ const LONG_TEXT =
   "канва становится выше экрана и прокручивается, а меню изначально " +
   "показывается прижатым к низу. ".repeat(4);
 
-export const ContextMenu: FC<StackProps> = observer(() => {
+export const ContextMenu: FC = observer(() => {
   const { isDark, colors } = useTheme();
 
   const [useNative, setUseNative] = useState(Platform.OS === "ios");

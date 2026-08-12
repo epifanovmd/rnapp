@@ -18,10 +18,11 @@ app → pages → widgets → features → entities → shared
 template/src/
   app/                    ← композиционный корень
     App.tsx               ←   DI + провайдеры (Theme, SafeArea, BottomSheetModal, Keyboard, Dialog, ContextMenu)
-    App.navigator.tsx     ←   выбор маршрутов по IAuthStore.isAuthenticated
-    App.screens.ts        ←   PUBLIC_SCREENS / PRIVATE_SCREENS
-    app-tab-screens.tsx   ←   TAB_SCREENS (Main/Playground/Settings)
-    App.linking.ts        ←   deep linking
+    App.navigator.tsx     ←   createStaticNavigation + регистрация RootParamList
+    App.screens.ts        ←   RootStack: static-конфиг, guard-группы Private/Public
+    App.header.tsx        ←   общий header экранов стека
+    app-tab-screens.tsx   ←   MainTabs: static-конфиг табов (Main/Playground/Settings)
+    App.linking.ts        ←   deep linking (prefixes; пути — в static-конфиге)
     App.notifications.tsx ←   монтирует NotificationHost (in-app уведомления)
     app.module.ts         ←   регистрация всех *.module.ts (DI)
     app-data-*            ←   стор данных приложения
@@ -114,15 +115,28 @@ shared/api/contract/token-source.contract.ts   ← ITokenSource
 entities/auth/api/token-source.ts              ← SessionService
 ```
 
-## Navigation (React Navigation 7)
+## Navigation (React Navigation 7, static API)
 
-Экраны — plain-манифесты:
-- `app/App.screens.ts` — `PUBLIC_SCREENS` (SignIn/SignUp/RecoveryPassword), `PRIVATE_SCREENS`
-  (`MAIN` = табы + демо-стек).
-- `app/app-tab-screens.tsx` — `TAB_SCREENS` (Main/Playground/Settings).
-- `app/App.navigator.tsx` — unauth → PUBLIC, auth → PRIVATE+PUBLIC.
-- `NavigationService` (IoC-синглтон, `shared/lib/navigation/`) — императивная навигация.
-- Deep linking — `app/App.linking.ts`.
+- `app/App.screens.ts` — `RootStack = createStackNavigator({ groups })`: группы `Private`
+  (`Tabs` = нижние табы + демо-стек) и `Public` (SignIn/SignUp/RecoveryPassword) с guard'ами
+  `if: useIsSignedIn / useIsSignedOut` (`app/hooks/useIsSignedIn.ts`, MobX →
+  `useSyncExternalStore`); при смене auth-состояния RN сам переключает стек, ручной
+  `navigate` после login/logout не нужен.
+- `app/app-tab-screens.tsx` — `MainTabs` (static-конфиг bottom tabs: Main/Playground/Settings)
+  + `MainTabsLayout` (TransitionProvider для баров).
+- `app/App.navigator.tsx` — `createStaticNavigation(RootStack)`; регистрирует корневой
+  навигатор в `RootNavigator` (`@react-navigation/core`) — глобальный
+  `ReactNavigation.RootParamList` выводится из static-конфига автоматически.
+  Бутстрап (restore-сессия, биометрия, splash) — `app/hooks/useAppBootstrap.ts` в `onReady`.
+- Типизация экранов: параметры объявляются рядом со страницей —
+  `FC<ScreenProps<{ url: string }>>` (`ScreenProps` из `shared/lib/navigation`); центральных
+  param-list'ов и enum'ов имён нет. Вложенные локальные навигаторы (top-tabs в
+  `pages/stack/components/`) типизируются собственным param list рядом с собой.
+- `shared/lib/navigation/` — инфраструктура без знания экранов: `navigationRef`,
+  `NavigationService` (IoC-синглтон: navigate/push/replace/goBack/resetTo, MobX
+  `currentRouteName`/`activePath`), хуки `useNavigation()`/`useRoute<Name>()`.
+- Deep linking: пути — в static-конфиге (`linking:` у экранов), конфиг генерируется
+  автоматически (`enabled: "auto"` в `app/App.linking.ts`; там же prefixes).
 
 ## State Management
 

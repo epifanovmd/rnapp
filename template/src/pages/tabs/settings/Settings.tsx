@@ -1,7 +1,7 @@
 import { IAuthStore } from "@entities/auth";
 import { IUserStore } from "@entities/user";
 import { useBiometric } from "@features/biometric";
-import { AppScreenProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import { useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
@@ -31,7 +31,8 @@ const AnimatedCol = Animated.createAnimatedComponent(Col);
 
 const height = 250;
 
-export const Settings: FC<AppScreenProps> = observer(({ route: { name } }) => {
+export const Settings: FC = observer(() => {
+  const { name } = useRoute();
   const { signOut } = IAuthStore.useInstance();
   const { user } = IUserStore.useInstance();
   const { tabBar } = useTransition();

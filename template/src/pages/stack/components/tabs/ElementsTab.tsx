@@ -1,9 +1,10 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useTransition } from "@shared/lib/transition";
 import { Checkbox, Col, Switch, SwitchTheme } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
 
-export const ElementsTab: FC<TabProps> = memo(({ route }) => {
+import { ComponentsTabProps } from "../components.types";
+
+export const ElementsTab: FC<ComponentsTabProps> = memo(({ route }) => {
   const [disabled, setDisabled] = useState(false);
   const [isActive, setIsActive] = useState(false);
   const { navbar } = useTransition();

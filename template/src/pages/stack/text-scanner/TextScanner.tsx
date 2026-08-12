@@ -1,5 +1,5 @@
 import { TextScanCamera, useTextScanVM } from "@features/text-scan";
-import { StackProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import {
   BottomSheet,
   Button,
@@ -15,14 +15,13 @@ import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
 import { StyleSheet } from "react-native";
 
-interface IProps extends StackProps<"TextScanner"> {}
-
 /**
  * Распознавание произвольного текста: камера в BottomSheet, распознанные
  * строки обновляются на лету; после закрытия листа последний результат
  * остаётся на странице.
  */
-export const TextScanner: FC<IProps> = observer(({ route }) => {
+export const TextScanner: FC = observer(() => {
+  const { name } = useRoute();
   const sheetRef = useBottomSheetRef();
   const [isSheetOpen, setSheetOpen] = useState(false);
 
@@ -46,7 +45,7 @@ export const TextScanner: FC<IProps> = observer(({ route }) => {
     <Container edges={["top"]}>
       <Navbar>
         <Navbar.BackButton />
-        <Navbar.Title text={route.name} />
+        <Navbar.Title text={name} />
       </Navbar>
 
       <ScrollView>

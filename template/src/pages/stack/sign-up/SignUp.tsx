@@ -1,10 +1,9 @@
 import { useSignUpVM } from "@features/sign-up";
-import { StackProps } from "@shared/lib/navigation";
 import { Button, Container, Content, ScrollView, TextField } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
-export const SignUp: FC<StackProps> = observer(() => {
+export const SignUp: FC = observer(() => {
   const { form, handleSignUp } = useSignUpVM();
 
   const login = form.watch("login");

@@ -2,7 +2,6 @@ import {
   useKeyboardInset,
   useKeyboardScrollCompensation,
 } from "@shared/lib/keyboard";
-import { StackProps } from "@shared/lib/navigation";
 import { useTheme } from "@shared/lib/theme";
 import {
   Col,
@@ -33,7 +32,7 @@ const now = () => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 };
 
-export const InputBarPage: FC<StackProps> = observer(() => {
+export const InputBarPage: FC = observer(() => {
   const { isDark } = useTheme();
 
   const [useNative, setUseNative] = useState(Platform.OS === "ios");

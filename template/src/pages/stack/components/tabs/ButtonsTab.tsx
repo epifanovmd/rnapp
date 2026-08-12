@@ -1,4 +1,3 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
 import { Button, Col, Row, ScrollView, SwitchTheme } from "@shared/ui";
@@ -6,7 +5,7 @@ import { memo, useCallback } from "react";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export const ButtonsTab = memo<TabProps>(() => {
+export const ButtonsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const { navbar } = useTransition();
   const scroll = useScroll();

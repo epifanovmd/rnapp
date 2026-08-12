@@ -1,4 +1,3 @@
-import { TabProps } from "@shared/lib/navigation";
 import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
 import {
@@ -86,7 +85,7 @@ const DialogDemoContent: FC<{ long?: boolean }> = ({ long }) => (
   </>
 );
 
-export const DialogsTab = memo<TabProps>(() => {
+export const DialogsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const { navbar } = useTransition();
   const scroll = useScroll();

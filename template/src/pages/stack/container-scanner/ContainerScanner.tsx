@@ -3,7 +3,7 @@ import {
   IContainerScanResult,
   useContainerScanVM,
 } from "@features/container-scan";
-import { StackProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import {
   BottomSheet,
   Button,
@@ -20,14 +20,13 @@ import { StyleSheet } from "react-native";
 
 import { ScanResultCard } from "./components";
 
-interface IProps extends StackProps<"ContainerScanner"> {}
-
 /**
  * Сканер кода морского контейнера (ISO 6346): камера открывается в
  * BottomSheet, при стабильном распознавании лист закрывается и данные
  * выводятся на странице.
  */
-export const ContainerScanner: FC<IProps> = observer(({ route }) => {
+export const ContainerScanner: FC = observer(() => {
+  const { name } = useRoute();
   const sheetRef = useBottomSheetRef();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [lastResult, setLastResult] = useState<IContainerScanResult | null>(
@@ -58,7 +57,7 @@ export const ContainerScanner: FC<IProps> = observer(({ route }) => {
     <Container edges={["top"]}>
       <Navbar>
         <Navbar.BackButton />
-        <Navbar.Title text={route.name} />
+        <Navbar.Title text={name} />
       </Navbar>
 
       <ScrollView>

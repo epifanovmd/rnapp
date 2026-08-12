@@ -1,4 +1,4 @@
-import { AppScreenProps } from "@shared/lib/navigation";
+import { useRoute } from "@shared/lib/navigation";
 import { usePullToRefreshScroll } from "@shared/lib/pull-to-refresh";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
@@ -16,7 +16,8 @@ import { RefreshIndicator } from "./RefreshIndicator";
 
 const armedHaptic = () => trigger("impactMedium");
 
-export const Main: FC<AppScreenProps> = observer(({ route: { name } }) => {
+export const Main: FC = observer(() => {
+  const { name } = useRoute();
   const { navbar, tabBar } = useTransition();
   const { colors } = useTheme();
 

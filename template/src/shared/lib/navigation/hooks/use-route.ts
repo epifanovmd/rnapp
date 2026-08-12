@@ -1,5 +1,7 @@
-import { RouteProp, useRoute as _useRoute } from "@react-navigation/native";
+import { RouteProp, useRoute as useRouteBase } from "@react-navigation/native";
 
-import { ScreenParamList } from "../navigation.types";
+import { RootParamList, RouteName } from "../navigation.types";
 
-export const useRoute = () => _useRoute<RouteProp<ScreenParamList>>();
+/** Текущий маршрут; для доступа к params сузить: `useRoute<"PdfView">()`. */
+export const useRoute = <Name extends RouteName = RouteName>() =>
+  useRouteBase<RouteProp<RootParamList, Name>>();

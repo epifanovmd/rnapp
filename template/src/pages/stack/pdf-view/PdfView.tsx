@@ -1,4 +1,4 @@
-import { StackProps } from "@shared/lib/navigation";
+import { ScreenProps } from "@shared/lib/navigation";
 import { Container, Navbar } from "@shared/ui";
 import React, { FC, memo, useEffect } from "react";
 import { StyleSheet } from "react-native";
@@ -10,7 +10,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export const PdfView: FC<StackProps<"PdfView">> = memo(({ route }) => {
+export type TPdfViewParams = {
+  title?: string;
+  url: string;
+};
+
+export const PdfView: FC<ScreenProps<TPdfViewParams>> = memo(({ route }) => {
   const params = route.params;
 
   const { bottom } = useSafeAreaInsets();
