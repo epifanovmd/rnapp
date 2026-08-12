@@ -12,9 +12,26 @@ Dialog.Header/Content/Footer; управляемый `isVisible`/`onClose` ил�
 `useDialogRef` → present/dismiss; логика в `dialog/hooks/` — visibility, animation,
 animated-styles, gestures, back-button, styles; заменяемый `backdropComponent`; Portal +
 Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scale-анимации), text, icon (lucide), picker (нативный
-WheelPicker), chart (Skia), carousel, flex-view, context-menu-view (JS-порт на Reanimated,
+WheelPicker), chart (Skia), flex-view, context-menu-view (JS-порт на Reanimated,
 синглтон Host в App.tsx), image-viewing, keyboard-scroll-view, actions, animated-refreshing,
-check-box, chip, collapsable, field, image, scroll-view, switch, tabs, ticket, title, touchable.
+check-box, chip, collapsable (Reanimated: высота/opacity на UI-потоке, обрезанное превью
+`collapsedHeight` или кросс-фейд `collapsedContent`, semi-controlled `collapsed` +
+императивный `ref.toggle`, авто-измерение динамического контента), field, image, scroll-view,
+switch, tabs, ticket, touchable,
+avatar (url/инициалы + детерминированный цвет, online-статус), badge (счётчик/max/dot,
+standalone или поверх children), divider (горизонтальный/вертикальный/с label),
+progress-bar (determinate/indeterminate, Reanimated), radio (Radio + generic RadioGroup),
+skeleton (пульсирующая заглушка, circle-режим). `icon` экспортирует `ICON_NAMES` для галерей.
+
+**Плейграунд** (`pages/stack/components/`, top-tabs): Buttons, Typography (все textStyle +
+цвета + Title), Icons (галерея ICON_NAMES), Inputs (TextField/Field-слоты),
+Controls (Switch/Checkbox/RadioGroup/Chip/NavLink/SwitchTheme), Layout (Row/Col/BalancedRow/
+Divider/Collapsable), Feedback (ProgressBar/Skeleton/Badge/Avatar/AnimatedRefreshing),
+Media (Image/ImageViewing/reanimated-carousel), Notifications, Modals, Dialogs, Pickers, Ticket.
+Своих carousel и title в ките нет: карусель — библиотека `react-native-reanimated-carousel`,
+заголовки — обычный `Text` с textStyle.
+Обёртка демо-таба — `tabs/DemoScreen.tsx` (`DemoScreen` — скролл с телеметрией HiddenBar,
+`DemoSection` — секция с заголовком/описанием).
 
 **camera** (`shared/ui/camera/`) — композиционная камерная система поверх VisionCamera 5.
 `core/`: узкие интерфейсы API (`ICameraApi` = status/device/zoom/focus/torch/exposure, `types.ts`),

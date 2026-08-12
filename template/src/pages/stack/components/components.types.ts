@@ -3,11 +3,17 @@ import type { MaterialTopTabScreenProps } from "@react-navigation/material-top-t
 /** Param list вложенного top-tab навигатора плейграунда компонентов. */
 export type ComponentsTabsParamList = {
   Buttons: undefined;
+  Typography: undefined;
+  Icons: undefined;
+  Inputs: undefined;
+  Controls: undefined;
+  Layout: undefined;
+  Feedback: undefined;
+  Media: undefined;
   Notifications: undefined;
   Modals: undefined;
   Dialogs: undefined;
   Pickers: undefined;
-  Elements: undefined;
   Ticket: undefined;
 };
 

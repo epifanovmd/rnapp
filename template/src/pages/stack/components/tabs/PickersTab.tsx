@@ -5,7 +5,6 @@ import {
   DatePicker,
   RangePicker,
   TimePicker,
-  Title,
   YearRangePicker,
 } from "@shared/ui";
 import React, { FC, memo } from "react";

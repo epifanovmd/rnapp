@@ -4,350 +4,199 @@ import React, {
   PropsWithChildren,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useRef,
   useState,
 } from "react";
-import {
-  Animated,
+import { LayoutChangeEvent, StyleSheet, ViewProps } from "react-native";
+import Animated, {
   Easing,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewProps,
-  ViewStyle,
-} from "react-native";
-import { LayoutChangeEvent } from "react-native/Libraries/Types/CoreEventTypes";
-
-import AnimatedProps = Animated.AnimatedProps;
+  EasingFunction,
+  EasingFunctionFactory,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 export interface ICollapsableProps extends ViewProps {
-  collapsed: boolean;
+  /** Свёрнутое состояние (semi-controlled: проп синхронизируется, ref.toggle работает поверх). */
+  collapsed?: boolean;
+  /** Высота свёрнутого превью: контент виден обрезанным сверху. */
   collapsedHeight?: number;
   duration?: number;
-  align?: "top" | "center" | "bottom";
-  easing?: Easing[keyof Easing] | ((n: number) => number);
+  easing?: EasingFunction | EasingFunctionFactory;
+  /**
+   * Фейд контента при сворачивании. Применяется только при полном сворачивании
+   * или кросс-фейде с collapsedContent — обрезанное превью остаётся видимым.
+   */
   opacityAnimation?: boolean;
-  enablePointerEvents?: boolean;
-  collapsedContent?: React.JSX.Element;
-  style?: StyleProp<ViewStyle>;
-  onAnimationEnd?: () => void;
+  /** Контент свёрнутого состояния; его высота становится высотой превью (кросс-фейд). */
+  collapsedContent?: React.ReactNode;
+  onAnimationEnd?: (collapsed: boolean) => void;
 }
 
-export interface Collapsable {
-  toggle: (value?: boolean) => void;
-  collapsed: boolean;
+export interface ICollapsableRef {
+  /** Переключить состояние; без аргумента — инвертировать. */
+  toggle: (collapsed?: boolean) => void;
+  readonly collapsed: boolean;
 }
 
+const DEFAULT_EASING = Easing.inOut(Easing.ease);
+
+/**
+ * Разворачиваемый блок на Reanimated: высота и прозрачность анимируются на
+ * UI-потоке. Контент измеряется в absolute-обёртке — вне высотного констрейнта
+ * контейнера, поэтому измерение всегда даёт полную высоту, а динамический
+ * контент (подгрузка, смена текста) подхватывается автоматически. До первого
+ * измерения развёрнутый блок рендерится в потоке (без кадра-вспышки).
+ */
 export const Collapsable = memo(
-  forwardRef<Collapsable, PropsWithChildren<ICollapsableProps>>(
+  forwardRef<ICollapsableRef, PropsWithChildren<ICollapsableProps>>(
     (
       {
-        collapsed: initialCollapsed = false,
-        collapsedHeight: _collapsedHeight = 0,
-        duration = 100,
-        align = "top",
-        easing = Easing.ease,
+        collapsed: collapsedProp = false,
+        collapsedHeight = 0,
+        duration = 200,
+        easing = DEFAULT_EASING,
         opacityAnimation = true,
-        enablePointerEvents = true,
         collapsedContent,
-        style,
-        onAnimationEnd = () => null,
+        onAnimationEnd,
         children,
+        style,
         ...rest
       },
       ref,
     ) => {
-      const contentRef = useRef<View>(null);
-      const insteadRef = useRef<View>(null);
+      const [collapsed, setCollapsed] = useState(collapsedProp);
+      const [measured, setMeasured] = useState(false);
+      const initialCollapsed = useRef(collapsedProp).current;
 
-      const collapsed = useRef<boolean>(initialCollapsed);
+      /** 0 — свёрнуто, 1 — развёрнуто. */
+      const progress = useSharedValue(collapsedProp ? 0 : 1);
+      const contentHeight = useSharedValue(0);
+      const previewHeight = useSharedValue(collapsedHeight);
 
-      const [measuring, setMeasuring] = useState<boolean>(false);
-      const [animating, setAnimating] = useState<boolean>(false);
-      const measured = useRef<boolean>(false);
+      /**
+       * Контент absolute (измерение без констрейнта высоты контейнера) везде,
+       * кроме первого рендера развёрнутого блока — там он в потоке, чтобы
+       * контейнер сразу взял auto-высоту. После измерения пиксельно идентичен.
+       */
+      const contentAbsolute = measured || initialCollapsed;
 
-      // const [contentHeight, setContentHeight] = useState<number>(0);
-      const contentHeight = useRef<number>(0);
-      const collapsedHeight = useRef<number>(_collapsedHeight);
-      const insteadHeight = useRef<number>(0);
-
-      const animatedHeight = useRef(
-        new Animated.Value(collapsedHeight.current),
-      ).current;
-
-      const animatedOpacityContent = useRef(
-        new Animated.Value(collapsed.current ? 0 : 1),
-      ).current;
-
-      const animatedOpacityCollapsedContent = useRef(
-        new Animated.Value(collapsed.current ? 1 : 0),
-      ).current;
+      /** Контент скрывается только когда его не видно в свёрнутом состоянии. */
+      const fadeContent =
+        opacityAnimation && (!!collapsedContent || collapsedHeight === 0);
 
       useEffect(() => {
-        const handleId = measureContent(h => {
-          contentHeight.current = h;
-
-          if (!collapsed.current && h !== undefined) {
-            animatedHeight.setValue(h);
-          }
-        });
-
-        return () => {
-          cancelAnimationFrame(handleId);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
+        setCollapsed(collapsedProp);
+      }, [collapsedProp]);
 
       useEffect(() => {
-        if (measured.current) {
-          _toggleCollapsed(initialCollapsed);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [initialCollapsed]);
+        const emitEnd = (value: boolean) => onAnimationEnd?.(value);
 
-      useEffect(() => {
-        if (collapsedContent && !_collapsedHeight) {
-          collapsedHeight.current = insteadHeight.current;
-          if (collapsed.current && !animating) {
-            animatedHeight.setValue(insteadHeight.current);
-          }
-        } else {
-          collapsedHeight.current = _collapsedHeight;
-          if (collapsed.current && !animating) {
-            animatedHeight.setValue(_collapsedHeight);
-          }
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [_collapsedHeight, collapsedContent]);
-
-      const measureContent = useCallback(
-        (callback?: (height: number) => void) => {
-          setMeasuring(true);
-
-          return requestAnimationFrame(() => {
-            if (!contentRef) {
-              setMeasuring(false);
-              callback?.(collapsedHeight.current);
-            } else {
-              contentRef.current?.measure((x, y, width, height) => {
-                measured.current = true;
-                setMeasuring(false);
-                callback?.(height);
-              });
+        progress.value = withTiming(
+          collapsed ? 0 : 1,
+          { duration, easing },
+          finished => {
+            if (finished) {
+              scheduleOnRN(emitEnd, collapsed);
             }
-          });
+          },
+        );
+      }, [collapsed, duration, easing, onAnimationEnd, progress]);
+
+      useEffect(() => {
+        if (!collapsedContent) {
+          previewHeight.value = collapsedHeight;
+        }
+      }, [collapsedHeight, collapsedContent, previewHeight]);
+
+      useImperativeHandle(
+        ref,
+        () => ({
+          toggle: value => setCollapsed(current => value ?? !current),
+          get collapsed() {
+            return collapsed;
+          },
+        }),
+        [collapsed],
+      );
+
+      const handleContentLayout = useCallback(
+        (event: LayoutChangeEvent) => {
+          contentHeight.value = event.nativeEvent.layout.height;
+          setMeasured(true);
         },
-        [],
+        [contentHeight],
       );
 
-      const transitionToHeight = useCallback(
-        (toValue = 0, toCollapsed: boolean) => {
-          setAnimating(true);
-          collapsed.current = toCollapsed;
-
-          Animated.timing(animatedOpacityContent, {
-            duration,
-            toValue: toCollapsed ? 0 : 1,
-            useNativeDriver: true,
-          }).start();
-          Animated.timing(animatedOpacityCollapsedContent, {
-            duration,
-            toValue: toCollapsed ? 1 : 0,
-            useNativeDriver: true,
-          }).start();
-
-          Animated.timing(animatedHeight, {
-            toValue,
-            duration,
-            easing: easing as any,
-            useNativeDriver: false,
-          }).start(() => {
-            setAnimating(false);
-            onAnimationEnd();
-          });
+      const handlePreviewLayout = useCallback(
+        (event: LayoutChangeEvent) => {
+          previewHeight.value = event.nativeEvent.layout.height;
         },
-        [
-          animatedHeight,
-          animatedOpacityCollapsedContent,
-          animatedOpacityContent,
-          duration,
-          easing,
-          onAnimationEnd,
-        ],
+        [previewHeight],
       );
 
-      const _toggleCollapsed = useCallback(
-        (_collapsed: boolean) => {
-          requestAnimationFrame(() => {
-            contentRef.current?.measure((x, y, width, height) => {
-              if (height) {
-                contentHeight.current = height;
-                if (_collapsed && !collapsed.current) {
-                  animatedHeight.setValue(height);
-                }
-              }
-              if (_collapsed) {
-                transitionToHeight(collapsedHeight.current, _collapsed);
-              } else {
-                transitionToHeight(contentHeight.current, _collapsed);
-              }
-            });
-          });
-        },
-        [animatedHeight, transitionToHeight],
-      );
+      const containerStyle = useAnimatedStyle(() => ({
+        height: interpolate(
+          progress.value,
+          [0, 1],
+          [previewHeight.value, contentHeight.value],
+        ),
+      }));
 
-      const onLayoutInsteadOf = useCallback(
-        (e: LayoutChangeEvent) => {
-          const height = e.nativeEvent.layout.height;
+      const contentStyle = useAnimatedStyle(() => ({
+        opacity: fadeContent
+          ? interpolate(progress.value, [0, 0.5, 1], [0, 0, 1])
+          : 1,
+      }));
 
-          if (collapsed.current && !insteadHeight.current) {
-            animatedHeight.setValue(_collapsedHeight || height);
-          }
-
-          insteadHeight.current = height;
-          collapsedHeight.current = _collapsedHeight || height;
-        },
-        [_collapsedHeight, animatedHeight],
-      );
-
-      const needHeight =
-        !measuring && measured.current && (collapsed.current || animating);
-
-      const rootStyle: AnimatedProps<StyleProp<ViewStyle>> = needHeight
-        ? { height: animatedHeight }
-        : undefined;
-
-      const collapsedContentStyle = getCollapsedContentStyle(
-        animatedOpacityCollapsedContent,
-        collapsed.current,
-        contentHeight.current,
-        opacityAnimation,
-      );
-
-      const contentStyle = getContentStyle(
-        animatedHeight,
-        animatedOpacityContent,
-        collapsed.current,
-        measuring,
-        collapsedHeight.current,
-        contentHeight.current,
-        !!collapsedContent,
-        opacityAnimation,
-        align,
-      );
-
-      React.useImperativeHandle(ref, () => ({
-        toggle: (value?: boolean) => {
-          _toggleCollapsed(value ?? !collapsed.current);
-        },
-        collapsed: collapsed.current,
+      const previewStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0, 0]),
       }));
 
       return (
         <Animated.View
-          style={[s.root, style, rootStyle]}
-          pointerEvents={
-            !enablePointerEvents && collapsed.current ? "none" : "auto"
-          }
+          accessibilityState={{ expanded: !collapsed }}
+          style={[
+            styles.container,
+            style,
+            contentAbsolute ? containerStyle : undefined,
+          ]}
           {...rest}
         >
+          <Animated.View
+            style={[contentAbsolute && styles.absolute, contentStyle]}
+            pointerEvents={collapsed ? "none" : "auto"}
+            onLayout={handleContentLayout}
+          >
+            {children}
+          </Animated.View>
           {!!collapsedContent && (
             <Animated.View
-              ref={insteadRef}
-              onLayout={onLayoutInsteadOf}
-              style={collapsedContentStyle}
+              style={[styles.absolute, previewStyle]}
+              pointerEvents={collapsed ? "auto" : "none"}
+              onLayout={handlePreviewLayout}
             >
               {collapsedContent}
             </Animated.View>
           )}
-
-          <Animated.View ref={contentRef} style={contentStyle}>
-            {children}
-          </Animated.View>
         </Animated.View>
       );
     },
   ),
 );
 
-const s = StyleSheet.create({
-  root: { overflow: "hidden" },
-  collapsedContentStyle: {
+const styles = StyleSheet.create({
+  container: {
+    overflow: "hidden",
+  },
+  absolute: {
     position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
   },
 });
-
-const getCollapsedContentStyle = (
-  animatedOpacityCollapsedContent: Animated.Value,
-  collapsed: boolean,
-  contentHeight: number,
-  opacityAnimation: boolean,
-) => {
-  return [
-    s.collapsedContentStyle,
-    {
-      zIndex: collapsed ? 2 : 1,
-      opacity:
-        contentHeight && opacityAnimation
-          ? animatedOpacityCollapsedContent
-          : collapsed
-            ? 1
-            : 0,
-    },
-  ];
-};
-
-const getContentStyle = (
-  animatedHeight: Animated.Value,
-  animatedOpacityContent: Animated.Value,
-  collapsed: boolean,
-  measuring: boolean,
-  collapsedHeight: number,
-  contentHeight: number,
-  hasCollapsedContent: boolean,
-  opacityAnimation: boolean,
-  align: string,
-) => {
-  const contentStyle: AnimatedProps<StyleProp<ViewStyle>> = {
-    zIndex: collapsed ? 1 : 2,
-    opacity: !hasCollapsedContent
-      ? 1
-      : contentHeight && opacityAnimation
-        ? animatedOpacityContent
-        : collapsed
-          ? 0
-          : 1,
-  };
-
-  if ((measuring && !collapsedHeight) || !contentHeight) {
-    if (collapsed) {
-      contentStyle.position = "absolute";
-      contentStyle.left = 0;
-      contentStyle.right = 0;
-      contentStyle.opacity = 0;
-    }
-  } else if (align === "center") {
-    contentStyle.transform = [
-      {
-        translateY: animatedHeight.interpolate({
-          inputRange: [0, contentHeight],
-          outputRange: [contentHeight / -2, 0],
-        }),
-      },
-    ];
-  } else if (align === "bottom") {
-    contentStyle.transform = [
-      {
-        translateY: animatedHeight.interpolate({
-          inputRange: [0, contentHeight],
-          outputRange: [-contentHeight, 0],
-        }),
-      },
-    ];
-  }
-
-  return contentStyle;
-};

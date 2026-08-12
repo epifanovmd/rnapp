@@ -41,6 +41,9 @@ const ICONS_MAP = {
 
 export type TIconName = keyof typeof ICONS_MAP;
 
+/** Все имена иконок набора (галереи, демо, итерация). */
+export const ICON_NAMES = Object.keys(ICONS_MAP) as TIconName[];
+
 export interface IIconProps extends TIconFlexProps, SvgProps {
   width?: string | number;
   height?: string | number;

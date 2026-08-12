@@ -16,11 +16,17 @@ import React, { FC, memo } from "react";
 import { ComponentsTabName, ComponentsTabsParamList } from "./components.types";
 import {
   ButtonsTab,
+  ControlsTab,
   DialogsTab,
-  ElementsTab,
+  FeedbackTab,
+  IconsTab,
+  InputsTab,
+  LayoutTab,
+  MediaTab,
   ModalsTab,
   NotificationsTab,
   PickersTab,
+  TypographyTab,
 } from "./tabs";
 import { TicketTab } from "./tabs/Ticket";
 
@@ -81,11 +87,17 @@ const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
         }}
       >
         <TopTab.Screen name={"Buttons"} component={ButtonsTab} />
+        <TopTab.Screen name={"Typography"} component={TypographyTab} />
+        <TopTab.Screen name={"Icons"} component={IconsTab} />
+        <TopTab.Screen name={"Inputs"} component={InputsTab} />
+        <TopTab.Screen name={"Controls"} component={ControlsTab} />
+        <TopTab.Screen name={"Layout"} component={LayoutTab} />
+        <TopTab.Screen name={"Feedback"} component={FeedbackTab} />
+        <TopTab.Screen name={"Media"} component={MediaTab} />
         <TopTab.Screen name={"Notifications"} component={NotificationsTab} />
         <TopTab.Screen name={"Modals"} component={ModalsTab} />
         <TopTab.Screen name={"Dialogs"} component={DialogsTab} />
         <TopTab.Screen name={"Pickers"} component={PickersTab} />
-        <TopTab.Screen name={"Elements"} component={ElementsTab} />
         <TopTab.Screen name={"Ticket"} component={TicketTab} />
       </TopTab.Navigator>
     </ScrollProvider>
