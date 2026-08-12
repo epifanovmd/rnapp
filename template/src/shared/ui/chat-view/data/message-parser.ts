@@ -1,6 +1,33 @@
 import type { ChatContentRegistry } from "../content";
 import { ChatAction, ChatMessage } from "../types";
-import { IParsedChatMessage, parseChatMessage } from "./chat-message";
+import {
+  IParsedChatMessage,
+  parseChatMessage,
+  resolveChatActions,
+} from "./chat-message";
+
+/** Действия равны, если совпадают по полям — хост часто строит их заново. */
+const actionsEqual = (a: ChatAction[], b: ChatAction[]): boolean => {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i++) {
+    const left = a[i];
+    const right = b[i];
+
+    if (left === right) continue;
+    if (
+      left.id !== right.id ||
+      left.title !== right.title ||
+      left.systemImage !== right.systemImage ||
+      left.isDestructive !== right.isDestructive
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 /**
  * Разбор входных сообщений с сохранением идентичности.
@@ -28,12 +55,14 @@ export class ChatMessageParser {
     messages: ChatMessage[],
     getActionsForMessage?: (message: ChatMessage) => ChatAction[],
   ): IParsedChatMessage[] {
-    // Действия считает хост и они могут зависеть от его состояния — сменился
-    // колбэк, значит прежние разборы больше не годятся.
-    if (this._getActions !== getActionsForMessage) {
-      this._getActions = getActionsForMessage;
-      this._cache.clear();
-    }
+    // Действия считает хост, и смена колбэка (в т.ч. инлайн-стрелка на каждый
+    // рендер) их инвалидирует. Но дорогая часть разбора — медиа, ссылки,
+    // эмодзи — от колбэка не зависит, поэтому кеш не сбрасывается: действия
+    // пересчитываются поверх готового разбора, и объект заменяется, только
+    // если они реально изменились. Идентичность неизменного сохраняется.
+    const actionsStale = this._getActions !== getActionsForMessage;
+
+    this._getActions = getActionsForMessage;
 
     const next = new Map<ChatMessage, IParsedChatMessage>();
     const result: IParsedChatMessage[] = new Array(messages.length);
@@ -42,13 +71,24 @@ export class ChatMessageParser {
 
     for (let i = 0; i < messages.length; i++) {
       const message = messages[i];
-      const parsed =
-        this._cache.get(message) ??
-        parseChatMessage(
+      let parsed = this._cache.get(message);
+
+      if (!parsed) {
+        parsed = parseChatMessage(
           message,
           this._contentTypes,
           getActionsForMessage?.(message),
         );
+      } else if (actionsStale) {
+        const actions = resolveChatActions(
+          message,
+          getActionsForMessage?.(message),
+        );
+
+        if (!actionsEqual(parsed.actions, actions)) {
+          parsed = { ...parsed, actions };
+        }
+      }
 
       next.set(message, parsed);
       result[i] = parsed;

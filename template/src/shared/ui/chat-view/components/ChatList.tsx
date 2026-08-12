@@ -38,6 +38,7 @@ export interface IChatListProps {
   };
   estimatedItemSize: number;
   drawDistance: number;
+  dateSeparatorRowHeight: number;
 
   startReachedThreshold: number;
   endReachedThreshold: number;
@@ -58,10 +59,6 @@ export interface IChatListProps {
 
 const keyExtractor = (row: ChatRow) => row.key;
 const getItemType = (row: ChatRow) => row.itemType;
-
-// Только у спиннера загрузки фиксированная высота — остальные строки меряются.
-const getFixedItemSize = (row: ChatRow) =>
-  row.type === "loading" ? LOADING_ROW_HEIGHT : undefined;
 
 const renderItem = ({ item, index }: LegendListRenderItemProps<ChatRow>) => (
   <ChatRowView row={item} index={index} />
@@ -93,6 +90,7 @@ export const ChatList = memo(
         initialScrollIndex,
         estimatedItemSize,
         drawDistance,
+        dateSeparatorRowHeight,
         startReachedThreshold,
         endReachedThreshold,
         maintainScrollAtEndThreshold,
@@ -109,6 +107,21 @@ export const ChatList = memo(
       },
       ref,
     ) => {
+      // Спиннер и плашки дат имеют известную высоту — их список не меряет.
+      // Кроме исчезающей плашки: схлопывание меняет высоту покадрово, а
+      // фиксированный размер заставил бы список игнорировать её замеры.
+      const getFixedItemSize = useMemo(
+        () => (row: ChatRow) => {
+          if (row.type === "loading") return LOADING_ROW_HEIGHT;
+          if (row.type === "dateSeparator" && !row.removing) {
+            return dateSeparatorRowHeight;
+          }
+
+          return undefined;
+        },
+        [dateSeparatorRowHeight],
+      );
+
       const adaptiveRender = useMemo(
         () => ({
           exitDelay: ADAPTIVE_RENDER_EXIT_DELAY,

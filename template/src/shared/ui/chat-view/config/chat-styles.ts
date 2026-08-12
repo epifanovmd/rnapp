@@ -20,6 +20,21 @@ const OWNERSHIPS: ChatMessageOwnership[] = [
   "pinned",
 ];
 
+/**
+ * Высота строки текста плашки даты. Явная — вместе с выключенным
+ * `allowFontScaling` она делает высоту плашки детерминированной.
+ */
+const dateSeparatorLineHeight = (l: IChatLayout): number =>
+  Math.round(l.dateSeparatorFont.fontSize * 1.25);
+
+/**
+ * Полная высота строки-разделителя дат: отступы строки, паддинги плашки,
+ * строка текста. Высота известна заранее, поэтому список получает её как
+ * фиксированную (`getFixedItemSize`) и не меряет каждую плашку.
+ */
+export const chatDateSeparatorRowHeight = (l: IChatLayout): number =>
+  2 * l.sectionSpacing + 2 * l.dateSeparatorVPad + dateSeparatorLineHeight(l);
+
 const font = (f: IChatFont, color: string, extra?: TextStyle): TextStyle => ({
   ...chatTextBase,
   fontSize: f.fontSize,
@@ -443,7 +458,9 @@ const sharedStyles = (
     paddingVertical: l.dateSeparatorVPad,
     paddingHorizontal: l.dateSeparatorHPad,
   },
-  dateSeparatorText: font(l.dateSeparatorFont, t.dateSeparatorText),
+  dateSeparatorText: font(l.dateSeparatorFont, t.dateSeparatorText, {
+    lineHeight: dateSeparatorLineHeight(l),
+  }),
   emptyStateText: font(l.emptyStateFont, t.emptyStateText, {
     textAlign: "center",
     paddingHorizontal: l.emptyStatePadding,

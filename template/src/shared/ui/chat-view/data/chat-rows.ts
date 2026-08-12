@@ -50,9 +50,9 @@ export type ChatRow =
     }
   | { type: "loading"; key: string; itemType: string };
 
-/** `localId` даёт pending→real обновление вместо delete+insert. */
+/** Ключ строки посчитан один раз при разборе — здесь только чтение. */
 export const chatMessageRowKey = (message: IParsedChatMessage): string =>
-  `m_${message.localId ?? message.id}`;
+  message.rowKey;
 
 /**
  * Тип контейнера сообщения: принадлежность плюс род контента.

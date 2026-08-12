@@ -47,6 +47,7 @@ export interface IResolvedReply {
 export interface IParsedChatMessage {
   id: string;
   localId?: string;
+  rowKey: string;
   body: IChatMessageBody;
   timestamp: number;
   senderName?: string;
@@ -66,6 +67,11 @@ export interface IParsedChatMessage {
 
 /** Общий пустой список действий — чтобы не плодить массивы на сообщение. */
 const EMPTY_ACTIONS: ChatAction[] = [];
+
+export const resolveChatActions = (
+  msg: ChatMessage,
+  actions?: ChatAction[],
+): ChatAction[] => actions ?? msg.actions ?? EMPTY_ACTIONS;
 
 const OWNERSHIPS: ChatMessageOwnership[] = [
   "mine",
@@ -101,6 +107,7 @@ export const parseChatMessage = (
   return {
     id: msg.id,
     localId: msg.localId,
+    rowKey: `m_${msg.localId ?? msg.id}`,
     body: {
       text,
       media,
@@ -118,7 +125,7 @@ export const parseChatMessage = (
     reactions: msg.reactions ?? [],
     thread: msg.thread,
     isEdited: msg.isEdited ?? false,
-    actions: actions ?? msg.actions ?? EMPTY_ACTIONS,
+    actions: resolveChatActions(msg, actions),
     raw: msg,
   };
 };

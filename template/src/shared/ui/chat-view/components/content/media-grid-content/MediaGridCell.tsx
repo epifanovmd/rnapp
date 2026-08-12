@@ -1,6 +1,6 @@
-import React, { FC, memo, useCallback, useMemo } from "react";
+import React, { FC, memo, useCallback, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import FastImage from "react-native-fast-image";
+import FastImage, { OnLoadEvent } from "react-native-fast-image";
 
 import { IChatMediaItem } from "../../../content";
 import { useChatAdaptiveRender } from "../../../hooks";
@@ -27,6 +27,7 @@ interface IMediaGridCellProps {
 export const MediaGridCell: FC<IMediaGridCellProps> = memo(
   ({ item, frame, index, remaining, onPress }) => {
     const { theme, layout, styles } = useChatViewContext();
+    const loadedRef = useRef(false);
 
     const cellStyle = useMemo(
       () => ({
@@ -44,7 +45,12 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
 
     const adaptiveRender = useChatAdaptiveRender();
 
-    const showsImage = !!item.thumbnailUrl && adaptiveRender === "normal";
+    const handleLoad = useCallback((event: OnLoadEvent) => {
+      loadedRef.current = true;
+    }, []);
+
+    const showsImage =
+      !!item.thumbnailUrl && (adaptiveRender === "normal" || loadedRef.current);
     const showsVideoBadges = item.isVideo && remaining === 0;
 
     return (
@@ -54,6 +60,7 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
             style={StyleSheet.absoluteFill}
             source={{ uri: item.thumbnailUrl }}
             resizeMode={FastImage.resizeMode.cover}
+            onLoad={handleLoad}
           />
         )}
 

@@ -31,6 +31,7 @@ import {
   KeyboardInputBar,
 } from "../input-bar";
 import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
+import { chatDateSeparatorRowHeight } from "./config";
 import { createChatContentRegistry } from "./content";
 import { CHAT_BUILTIN_CONTENT } from "./content/builtin";
 import {
@@ -305,6 +306,7 @@ export const JsChatView = memo(
               initialScrollIndex={initialPosition.scrollIndex}
               estimatedItemSize={layout.estimatedRowHeight}
               drawDistance={layout.drawDistance}
+              dateSeparatorRowHeight={chatDateSeparatorRowHeight(layout)}
               startReachedThreshold={pagination.startReachedThreshold}
               endReachedThreshold={pagination.endReachedThreshold}
               maintainScrollAtEndThreshold={pagination.scrollToBottomThreshold}

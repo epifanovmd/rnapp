@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { useShallowStable } from "../../../lib/hooks";
 import { IInputBarLayout } from "../../input-bar";
 import {
   createChatStyles,
@@ -24,9 +25,15 @@ export interface IChatConfig {
 /** Пропы `theme` / `layout` / `features` — в готовую конфигурацию и стили. */
 export const useChatConfig = ({
   theme: themeName,
-  layout: layoutProp,
-  features: featuresProp,
+  layout: rawLayoutProp,
+  features: rawFeaturesProp,
 }: ChatViewProps): IChatConfig => {
+  // Инлайн-объект в пропе — новая ссылка на каждый рендер. Без стабилизации
+  // это новые стили и новый контекст, то есть перерисовка всех ячеек чата.
+  // Конфиги плоские и маленькие — сравнение по значению стоит копейки.
+  const layoutProp = useShallowStable(rawLayoutProp);
+  const featuresProp = useShallowStable(rawFeaturesProp);
+
   const theme = useMemo(() => resolveChatTheme(themeName), [themeName]);
 
   const { chat: layout, inputBar: inputBarLayout } = useMemo(

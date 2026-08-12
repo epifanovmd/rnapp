@@ -9,8 +9,20 @@ const appendedIncomingIds = (
 ): string[] => {
   if (previous.length === 0 || next.length <= previous.length) return [];
 
-  const previousIds = new Set(previous.map(message => message.id));
   const appended: string[] = [];
+
+  // Типичное обновление — чистое дописывание в конец: прежний хвост стоит на
+  // том же месте той же ссылкой (конвейер сохраняет идентичность). Тогда новые
+  // сообщения — ровно всё после него, без построения множества прежних id.
+  if (next[previous.length - 1] === previous[previous.length - 1]) {
+    for (let i = previous.length; i < next.length; i++) {
+      if (next[i].ownership === "theirs") appended.push(next[i].id);
+    }
+
+    return appended;
+  }
+
+  const previousIds = new Set(previous.map(message => message.id));
 
   for (let i = next.length - 1; i >= 0; i--) {
     const message = next[i];
