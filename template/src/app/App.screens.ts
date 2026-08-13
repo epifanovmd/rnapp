@@ -1,4 +1,3 @@
-import { CarouselScreen } from "@pages/stack/carousel";
 import { Charts } from "@pages/stack/charts";
 import { ChatRoom } from "@pages/stack/chat";
 import { Components } from "@pages/stack/components";
@@ -68,7 +67,6 @@ export const RootStack = createStackNavigator({
           options: NO_HEADER,
           linking: "components",
         },
-        Carousel: { screen: CarouselScreen, linking: "carousel" },
         Chat: { screen: ChatRoom, options: NO_HEADER, linking: "chat" },
         Charts: { screen: Charts, linking: "charts" },
         ContextMenu: { screen: ContextMenu, linking: "contextmenu" },

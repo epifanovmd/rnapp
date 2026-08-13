@@ -31,7 +31,7 @@ template/src/
                             сгруппированы по навигаторам
     tabs/                 ←   экраны таб-навигатора: main/, playground/, settings/
     stack/                ←   экраны стека: sign-in/, sign-up/, recovery-password/, chat/,
-                              carousel/, charts/, components/, context-menu/, input-bar/,
+                              charts/, components/, context-menu/, input-bar/,
                               pdf-view/, web-view/
 
   widgets/                ← крупные самостоятельные блоки UI

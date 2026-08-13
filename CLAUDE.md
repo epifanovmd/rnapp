@@ -22,7 +22,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 - `app/` — композиционный корень: App.tsx, App.navigator.tsx, App.screens.ts, app-tab-screens.tsx,
   App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
 - `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
-  `stack/` (sign-in, sign-up, recovery-password, chat, carousel, charts, components,
+  `stack/` (sign-in, sign-up, recovery-password, chat, charts, components,
   container-scanner, context-menu, input-bar, object-scanner, pdf-view, plate-scanner,
   text-scanner, web-view)
 - `widgets/` — chat-room, app-shell

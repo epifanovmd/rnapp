@@ -2,8 +2,14 @@ import { useTheme } from "@shared/lib/theme";
 import { Image, ImageViewing, Row, Text, Touchable } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import { useSharedValue } from "react-native-reanimated";
-import Carousel, { Pagination } from "react-native-reanimated-carousel";
+import Animated, {
+  Extrapolation,
+  interpolate,
+  SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
+import Carousel from "react-native-reanimated-carousel";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
 
@@ -11,11 +17,46 @@ const GALLERY = [1, 12, 25, 33, 41].map(
   seed => `https://picsum.photos/id/${seed}/600/400`,
 );
 
+interface ICarouselDotProps {
+  index: number;
+  count: number;
+  progress: SharedValue<number>;
+}
+
+/**
+ * Точка пагинации карусели: активность — worklet по progress.
+ * Pagination.Basic из reanimated-carousel читает progress.value в рендере
+ * (strict-warning Reanimated) — поэтому свои точки.
+ */
+const CarouselDot: FC<ICarouselDotProps> = ({ index, count, progress }) => {
+  const { colors } = useTheme();
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const raw = Math.abs(progress.value - index);
+    // loop-карусель: расстояние с учётом перехода через край.
+    const distance = Math.min(raw, count - raw);
+
+    return {
+      opacity: interpolate(distance, [0, 1], [1, 0.35], Extrapolation.CLAMP),
+      transform: [
+        {
+          scale: interpolate(distance, [0, 1], [1.25, 1], Extrapolation.CLAMP),
+        },
+      ],
+    };
+  });
+
+  return (
+    <Animated.View
+      style={[styles.dot, { backgroundColor: colors.primary }, animatedStyle]}
+    />
+  );
+};
+
 const VIEWER_IMAGES = GALLERY.map(uri => ({ uri }));
 
 export const MediaTab: FC = memo(() => {
   const { width } = useWindowDimensions();
-  const { colors } = useTheme();
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const carouselProgress = useSharedValue(0);
 
@@ -95,16 +136,16 @@ export const MediaTab: FC = memo(() => {
             )}
           />
         </View>
-        <Pagination.Basic
-          progress={carouselProgress}
-          data={GALLERY}
-          dotStyle={StyleSheet.flatten([
-            styles.dot,
-            { backgroundColor: colors.textTertiary },
-          ])}
-          activeDotStyle={{ backgroundColor: colors.primary }}
-          containerStyle={styles.pagination}
-        />
+        <Row alignSelf={"center"} gap={6}>
+          {GALLERY.map((url, index) => (
+            <CarouselDot
+              key={url}
+              index={index}
+              count={GALLERY.length}
+              progress={carouselProgress}
+            />
+          ))}
+        </Row>
         <Text color={"textSecondary"} textStyle={"Caption_M3"}>
           Свайпайте слайды — соседние карточки уменьшены parallax-режимом
         </Text>
@@ -121,8 +162,5 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-  },
-  pagination: {
-    gap: 6,
   },
 });
