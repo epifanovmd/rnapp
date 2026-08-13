@@ -134,9 +134,9 @@ export const Settings: FC = observer(() => {
               {support && (
                 <Switch
                   isActive={available}
-                  onChange={active => {
-                    active ? registration() : onRemoveBiometric();
-                  }}
+                  onChange={active =>
+                    active ? registration() : onRemoveBiometric()
+                  }
                 />
               )}
             </Row>

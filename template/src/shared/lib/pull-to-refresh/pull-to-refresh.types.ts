@@ -2,9 +2,9 @@ import { SharedValue } from "react-native-reanimated";
 
 /**
  * Состояния pull-to-refresh:
- * idle → pulling → armed → refreshing → settling → idle
+ * idle → pulling → (armed →) refreshing → settling → idle
  *   - pulling: тянут, порог не достигнут;
- *   - armed: порог достигнут, отпускание запустит обновление;
+ *   - armed: только triggerOn="release" — порог достигнут, отпускание запустит;
  *   - refreshing: onRefresh выполняется;
  *   - settling: возврат индикатора в 0.
  */
@@ -23,7 +23,12 @@ export interface IPullToRefreshConfig {
   maxDistance?: number;
   /** Дистанция, на которой индикатор удерживается во время refreshing (default threshold) */
   holdDistance?: number;
-  /** Момент запуска: на отпускании (default) или сразу при пересечении порога */
+  /**
+   * Момент запуска: "threshold" (default, как классический iOS-паттерн) —
+   * сразу при пересечении порога, дистанция фиксируется на holdDistance
+   * (дальнейшая протяжка блокируется); "release" — при отпускании
+   * (состояние armed между порогом и отпусканием).
+   */
   triggerOn?: "release" | "threshold";
   /** Минимальная длительность refreshing, мс — защита от мерцания (default 300) */
   minRefreshDuration?: number;

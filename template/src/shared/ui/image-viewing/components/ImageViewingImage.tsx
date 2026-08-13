@@ -1,7 +1,8 @@
 import React, { FC, memo, useCallback, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import FastImage, { OnLoadEvent } from "react-native-fast-image";
 
+import { Spinner } from "../../spinner";
 import { Touchable } from "../../touchable";
 import { IImageViewingSource } from "../image-viewing.types";
 
@@ -53,7 +54,7 @@ export const ImageViewingImage: FC<IImageViewingImageProps> = memo(
           />
         )}
         {!loaded && !failed && (
-          <ActivityIndicator style={styles.center} color={"#FFFFFF"} />
+          <Spinner style={styles.center} size={28} color={"#FFFFFF"} />
         )}
         {failed && (
           <Touchable style={styles.center} onPress={handleRetry}>

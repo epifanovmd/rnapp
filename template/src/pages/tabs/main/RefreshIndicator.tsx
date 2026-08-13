@@ -1,21 +1,27 @@
 import { IPullToRefreshController } from "@shared/lib/pull-to-refresh";
 import { useTheme } from "@shared/lib/theme";
-import { AnimatedRefreshing } from "@shared/ui";
-import React, { FC, memo } from "react";
+import { ISpinnerBehavior, Spinner, WORM_SPINNER_BEHAVIOR } from "@shared/ui";
+import React, { FC, memo, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {
-  cancelAnimation,
   Easing,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
-  useSharedValue,
-  withRepeat,
-  withTiming,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 const INDICATOR_SIZE = 32;
-const SPIN_DURATION = 900;
+
+/**
+ * Дефолтный червяк кита со стартом с пика длины (initialPhase 0.5):
+ * переход от заполненного протяжкой круга бесшовный, первое движение —
+ * «конец стоит, начало уменьшается».
+ */
+const PTR_SPINNER_BEHAVIOR: ISpinnerBehavior = {
+  ...WORM_SPINNER_BEHAVIOR,
+  initialPhase: 0.5,
+};
 
 interface IProps {
   controller: IPullToRefreshController;
@@ -24,49 +30,32 @@ interface IProps {
 }
 
 /**
- * Визуал pull-to-refresh страницы Main: плавающее кольцо прогресса поверх
- * контента — заполняется при протяжке, вращается во время обновления.
+ * Визуал pull-to-refresh страницы Main: плавающее кольцо поверх контента —
+ * заполняется при протяжке (determinate), во время обновления — червяк.
  */
 export const RefreshIndicator: FC<IProps> = memo(
   ({ controller, topOffset = 0 }) => {
     const { colors } = useTheme();
     const { pullDistance, progress, state } = controller;
-    const rotation = useSharedValue(0);
+    const [spinning, setSpinning] = useState(false);
 
     useAnimatedReaction(
-      () => state.value === "refreshing",
-      (isRefreshing, prev) => {
-        if (isRefreshing === prev) {
-          return;
-        }
-
-        if (isRefreshing) {
-          rotation.value = 0;
-          rotation.value = withRepeat(
-            withTiming(360, { duration: SPIN_DURATION, easing: Easing.linear }),
-            -1,
-          );
-        } else {
-          cancelAnimation(rotation);
-          rotation.value = withTiming(0, { duration: 200 });
+      () => state.value === "refreshing" || state.value === "settling",
+      (isSpinning, previous) => {
+        if (isSpinning !== previous) {
+          scheduleOnRN(setSpinning, isSpinning);
         }
       },
     );
 
-    const percentage = useDerivedValue(() => {
-      const current = state.value;
-
-      return current === "refreshing" || current === "settling"
-        ? 75
-        : Math.min(100, progress.value * 100);
-    });
+    const pullProgress = useDerivedValue(() => Math.min(1, progress.value));
 
     const containerStyle = useAnimatedStyle(() => ({
-      opacity: Math.min(1, progress.value),
-      transform: [
-        { translateY: pullDistance.value - INDICATOR_SIZE * 2 },
-        { rotate: `${rotation.value}deg` },
-      ],
+      // refreshing — всегда видим (индикатор удерживается на holdDistance);
+      // pulling и settling — прозрачность следует за протяжкой: появляется
+      // по мере натяжения и так же плавно затухает при возврате вверх.
+      opacity: state.value === "refreshing" ? 1 : Math.min(1, progress.value),
+      transform: [{ translateY: pullDistance.value - INDICATOR_SIZE * 2 }],
     }));
 
     return (
@@ -78,10 +67,11 @@ export const RefreshIndicator: FC<IProps> = memo(
           containerStyle,
         ]}
       >
-        <AnimatedRefreshing
-          radius={INDICATOR_SIZE / 2}
-          percentage={percentage}
-        />
+        {spinning ? (
+          <Spinner size={INDICATOR_SIZE} behavior={PTR_SPINNER_BEHAVIOR} />
+        ) : (
+          <Spinner size={INDICATOR_SIZE} progress={pullProgress} />
+        )}
       </Animated.View>
     );
   },

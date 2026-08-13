@@ -1,8 +1,8 @@
 import { isString } from "@shared/lib/utils/type-guards";
 import React, { memo } from "react";
-import { ActivityIndicator } from "react-native";
 
 import { Icon } from "../icon";
+import { Spinner } from "../spinner";
 import { Text } from "../text";
 import { Touchable } from "../touchable";
 import { useButtonStyles } from "./hooks";
@@ -48,11 +48,7 @@ const ButtonImpl = <T extends any = unknown>({
       disabled={disabled || loading}
     >
       {loading ? (
-        <ActivityIndicator
-          size={"small"}
-          color={contentColor}
-          {...indicatorProps}
-        />
+        <Spinner size={20} color={contentColor} {...indicatorProps} />
       ) : (
         <>
           {leftIcon && (

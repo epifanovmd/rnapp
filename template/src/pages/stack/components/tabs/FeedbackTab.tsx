@@ -1,13 +1,15 @@
+import { useTheme } from "@shared/lib/theme";
 import {
-  AnimatedRefreshing,
   Avatar,
   Badge,
   Button,
+  CLASSIC_SPINNER_BEHAVIOR,
   Col,
   Icon,
   ProgressBar,
   Row,
   Skeleton,
+  Spinner,
   Text,
 } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
@@ -17,9 +19,10 @@ import { useSharedValue, withTiming } from "react-native-reanimated";
 import { DemoScreen, DemoSection } from "./DemoScreen";
 
 export const FeedbackTab: FC = memo(() => {
+  const { colors } = useTheme();
   const [progress, setProgress] = useState(0.3);
   const [loading, setLoading] = useState(true);
-  const percentage = useSharedValue(70);
+  const percentage = useSharedValue(0.7);
 
   return (
     <DemoScreen>
@@ -183,16 +186,26 @@ export const FeedbackTab: FC = memo(() => {
       </DemoSection>
 
       <DemoSection
-        title={"AnimatedRefreshing"}
-        description={"Круговой прогресс на shared value (0..100)"}
+        title={"Spinner"}
+        description={
+          "Стратегии: червяк (дефолт), классика; progress 0..1 — круговой"
+        }
       >
         <Row gap={16} alignItems={"center"}>
-          <AnimatedRefreshing percentage={percentage} />
+          <Spinner />
+          <Spinner size={32} />
+          <Spinner
+            size={32}
+            behavior={CLASSIC_SPINNER_BEHAVIOR}
+            color={colors.danger}
+            strokeWidth={2}
+          />
+          <Spinner size={32} progress={percentage} />
           <Button
             size={"small"}
             title={"Случайный прогресс"}
             onPress={() => {
-              percentage.value = withTiming(Math.random() * 100);
+              percentage.value = withTiming(Math.random());
             }}
           />
         </Row>

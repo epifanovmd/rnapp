@@ -7,12 +7,7 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
-import {
-  ActivityIndicator,
-  LayoutChangeEvent,
-  StyleSheet,
-  View,
-} from "react-native";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import Animated, {
   useDerivedValue,
   useSharedValue,
@@ -30,6 +25,7 @@ import {
   InputBarView,
   KeyboardInputBar,
 } from "../input-bar";
+import { Spinner } from "../spinner";
 import { ChatFab, ChatList, EmptyStateOverlay } from "./components";
 import { chatDateSeparatorRowHeight } from "./config";
 import { createChatContentRegistry } from "./content";
@@ -326,7 +322,7 @@ export const JsChatView = memo(
               features.showTopLoadingIndicator &&
               hasMessages && (
                 <View style={[ss.topSpinner, { top: 12 + collectionInsetTop }]}>
-                  <ActivityIndicator size="small" />
+                  <Spinner size={20} />
                 </View>
               )}
 

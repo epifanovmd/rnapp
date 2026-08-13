@@ -43,7 +43,7 @@ export interface IButtonStyles {
   styles: ViewStyle;
   /** Ключ цвета контента (для Text). */
   contentColorKey: keyof TColorTheme;
-  /** Резолвленный цвет контента (для Icon/ActivityIndicator). */
+  /** Резолвленный цвет контента (для Icon/Spinner). */
   contentColor: string;
   hitSlop?: Insets;
 }

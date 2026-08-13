@@ -1,10 +1,11 @@
 import React, { FC, memo, useCallback } from "react";
-import { ActivityIndicator, Keyboard, StyleSheet } from "react-native";
+import { Keyboard, StyleSheet } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
 
+import { Spinner } from "../../spinner";
 import { useChatViewContext } from "../model";
 import { ChatText } from "./ChatText";
 
@@ -42,7 +43,7 @@ export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
     return (
       <Animated.View style={[ss.wrap, wrapStyle]} onTouchEnd={handlePress}>
         {loading ? (
-          <ActivityIndicator size="large" />
+          <Spinner size={36} />
         ) : (
           <ChatText style={styles.shared.emptyStateText}>
             {text ?? DEFAULT_EMPTY_TEXT}

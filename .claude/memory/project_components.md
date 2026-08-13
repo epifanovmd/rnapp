@@ -29,7 +29,13 @@ double-tap в точку, swipe-to-dismiss; SRP-разделение: `use-zoom-
 `use-dismiss-gesture` (только смахивание, собственный translateY), `use-viewer-gestures`
 (композиция + animatedStyle + reset); кастомизация render-пропсами
 renderHeader/renderFooter/renderImage; FastImage + previewUri + префетч соседних),
-keyboard-scroll-view, actions, animated-refreshing,
+keyboard-scroll-view, actions,
+spinner (единый индикатор кита, бывший animated-refreshing; SRP-разделение: Spinner —
+разметка, `hooks/useSpinnerAnimation` — движок (фаза+вращение), поведение — worklet-стратегия
+`ISpinnerBehavior` (`spinner-behaviors.ts`: WORM_SPINNER_BEHAVIOR — дефолт-«червяк»,
+CLASSIC_SPINNER_BEHAVIOR — фикс-дуга; своё поведение = новый объект, компонент не меняется);
+`progress` 0..1 (число или shared value) — круговой прогресс; ActivityIndicator в ките не
+используется),
 check-box, chip, collapsable (Reanimated: высота/opacity на UI-потоке, обрезанное превью
 `collapsedHeight` или кросс-фейд `collapsedContent`, semi-controlled `collapsed` +
 императивный `ref.toggle`, авто-измерение динамического контента), field, image, scroll-view,
@@ -46,7 +52,7 @@ skeleton (компаунд: `Skeleton` — блок любой формы (width
 **Плейграунд** (`pages/stack/components/`, top-tabs): Buttons, Typography (все textStyle +
 цвета + Title), Icons (галерея ICON_NAMES), Inputs (TextField/Field-слоты),
 Controls (Switch/Checkbox/RadioGroup/Chip/NavLink/SwitchTheme), Layout (Row/Col/BalancedRow/
-Divider/Collapsable), Feedback (ProgressBar/Skeleton/Badge/Avatar/AnimatedRefreshing),
+Divider/Collapsable), Feedback (ProgressBar/Skeleton/Badge/Avatar/Spinner),
 Media (Image/ImageViewing/reanimated-carousel), Notifications, Modals, Dialogs, Pickers, Ticket.
 Своих carousel и title в ките нет: карусель — библиотека `react-native-reanimated-carousel`,
 заголовки — обычный `Text` с textStyle.

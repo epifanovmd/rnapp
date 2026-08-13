@@ -1,5 +1,6 @@
+import { Spinner } from "@shared/ui/spinner";
 import React, { FC, memo } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { TColorTheme, useTheme } from "../../theme";
 import {
@@ -57,7 +58,7 @@ export const NotificationContent: FC<NotificationContentProps> = memo(
         <View style={styles.icon}>
           {icon ??
             (variant === "loading" ? (
-              <ActivityIndicator size="small" color={accent} />
+              <Spinner size={20} color={accent} />
             ) : (
               <View style={[styles.glyph, { backgroundColor: accent }]}>
                 <Text style={[styles.glyphText, { color: colors.white }]}>

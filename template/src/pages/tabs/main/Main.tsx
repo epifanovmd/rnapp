@@ -33,9 +33,11 @@ export const Main: FC = observer(() => {
   const ptr = usePullToRefreshScroll({
     telemetry,
     onRefresh,
-    onStateChange: (_prev, next) => {
+    onStateChange: (prev, next) => {
       "worklet";
-      if (next === "armed") {
+      // Хаптика срабатывания: armed (release-режим) или мгновенный запуск
+      // из протяжки (threshold-режим); программный refresh() не вибрирует.
+      if (next === "armed" || (next === "refreshing" && prev === "pulling")) {
         scheduleOnRN(armedHaptic);
       }
     },

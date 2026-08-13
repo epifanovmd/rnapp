@@ -1,8 +1,9 @@
 import { TColorTheme } from "@shared/lib/theme";
 import React from "react";
-import { ActivityIndicatorProps, StyleProp, ViewStyle } from "react-native";
+import { StyleProp, ViewStyle } from "react-native";
 
 import { TIconName } from "../icon";
+import { ISpinnerProps } from "../spinner";
 import { ITouchableProps } from "../touchable";
 
 /** Смысловой цвет кнопки; новый вариант добавляется одной строкой палитры. */
@@ -22,7 +23,7 @@ export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
   color?: keyof TColorTheme;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
-  indicatorProps?: ActivityIndicatorProps;
+  indicatorProps?: Partial<ISpinnerProps>;
   leftIcon?: TIconName;
   rightIcon?: TIconName;
 }

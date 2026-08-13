@@ -1,5 +1,4 @@
 export * from "./actions";
-export * from "./animated-refreshing";
 export * from "./avatar";
 export * from "./badge";
 export * from "./balanced-row";
@@ -31,6 +30,7 @@ export * from "./radio";
 export * from "./scan";
 export * from "./scroll-view";
 export * from "./skeleton";
+export * from "./spinner";
 export * from "./switch";
 export * from "./tabs";
 export * from "./text";

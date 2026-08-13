@@ -19,8 +19,11 @@ const SIZES = [
   { label: "Недоступный", value: "xl", disabled: true },
 ];
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const ControlsTab: FC = memo(() => {
   const [disabled, setDisabled] = useState(false);
+  const [asyncOn, setAsyncOn] = useState(false);
   const [checked, setChecked] = useState(true);
   const [circleChecked, setCircleChecked] = useState(false);
   const [size, setSize] = useState("m");
@@ -49,6 +52,17 @@ export const ControlsTab: FC = memo(() => {
         <Row alignItems={"center"} gap={12}>
           <Switch isActive={disabled} onChange={setDisabled} />
           <Text>disabled для контролов ниже</Text>
+        </Row>
+        <Row alignItems={"center"} gap={12}>
+          <Switch
+            isActive={asyncOn}
+            disabled={disabled}
+            onChange={async value => {
+              await delay(1500);
+              setAsyncOn(value);
+            }}
+          />
+          <Text>async onChange — спиннер до завершения</Text>
         </Row>
       </DemoSection>
 

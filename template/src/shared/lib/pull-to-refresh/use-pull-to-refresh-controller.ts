@@ -40,7 +40,7 @@ export const usePullToRefreshController = (
     onRefresh,
     threshold = PULL_TO_REFRESH_DEFAULTS.threshold,
     holdDistance = threshold,
-    triggerOn = "release",
+    triggerOn = "threshold",
     minRefreshDuration = PULL_TO_REFRESH_DEFAULTS.minRefreshDuration,
     enabled = true,
     onStateChange,

@@ -1,5 +1,5 @@
 import { ScreenProps } from "@shared/lib/navigation";
-import { AnimatedRefreshing, Container, Navbar } from "@shared/ui";
+import { Container, Navbar, Spinner } from "@shared/ui";
 import React, { FC, memo, useEffect } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {
@@ -48,7 +48,7 @@ export const WebView: FC<ScreenProps<TWebViewParams>> = memo(({ route }) => {
         onLoadProgress={event => {
           percentage.value = event.nativeEvent.progress;
         }}
-        renderLoading={() => <AnimatedRefreshing percentage={percentage} />}
+        renderLoading={() => <Spinner size={32} progress={percentage} />}
         source={{ uri: params.url }}
         style={{ paddingBottom: bottom }}
         allowsBackForwardNavigationGestures={true}
