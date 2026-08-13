@@ -1,85 +1,114 @@
 import { TColorTheme, useTheme } from "@shared/lib/theme";
 import { useMemo } from "react";
-import { ColorValue, StyleSheet, ViewStyle } from "react-native";
+import { Insets, StyleSheet, ViewStyle } from "react-native";
 
-import { TButtonSize, TButtonType } from "../types";
+import { TButtonAppearance, TButtonSize, TButtonVariant } from "../types";
 
-const COLOR_MAP: Record<TButtonType, keyof TColorTheme> = {
-  primaryFilled: "primaryForeground",
-  primaryOutline: "primary",
-  secondaryFilled: "secondaryForeground",
-  secondaryOutline: "secondaryForeground",
-  dangerFilled: "dangerForeground",
-  dangerOutline: "danger",
-  text: "primary",
+interface IVariantPalette {
+  /** Фон filled-исполнения. */
+  background: keyof TColorTheme;
+  /** Рамка outline-исполнения. */
+  border: keyof TColorTheme;
+  /** Контент outline/ghost (может отличаться от border ради читаемости). */
+  content: keyof TColorTheme;
+  /** Контент поверх filled-фона. */
+  foreground: keyof TColorTheme;
+}
+
+/** Новый вариант кнопки — одна строка здесь. */
+const VARIANT_PALETTE: Record<TButtonVariant, IVariantPalette> = {
+  primary: {
+    background: "primary",
+    border: "primary",
+    content: "primary",
+    foreground: "primaryForeground",
+  },
+  secondary: {
+    background: "secondary",
+    border: "secondary",
+    content: "textSecondary",
+    foreground: "secondaryForeground",
+  },
+  danger: {
+    background: "danger",
+    border: "danger",
+    content: "danger",
+    foreground: "dangerForeground",
+  },
 };
 
+const GHOST_HIT_SLOP: Insets = { left: 8, right: 8, top: 8, bottom: 8 };
+
+export interface IButtonStyles {
+  styles: ViewStyle;
+  /** Ключ цвета контента (для Text). */
+  contentColorKey: keyof TColorTheme;
+  /** Резолвленный цвет контента (для Icon/ActivityIndicator). */
+  contentColor: string;
+  hitSlop?: Insets;
+}
+
+/**
+ * Стили кнопки: вариант и исполнение ортогональны, палитра — единый record.
+ * Disabled — токенами (нейтральный фон/рамка + textDisabled): opacity в
+ * style бесполезен — TouchableOpacity владеет прозрачностью контейнера.
+ */
 export const useButtonStyles = (
-  type: TButtonType,
+  variant: TButtonVariant,
+  appearance: TButtonAppearance,
   size: TButtonSize = "medium",
   disabled: boolean = false,
   customColor?: keyof TColorTheme,
-) => {
+): IButtonStyles => {
   const { colors } = useTheme();
 
   return useMemo(() => {
-    const isTextType = type === "text";
-    const sizeStyle = isTextType ? BUTTON_STYLES.textSize : BUTTON_STYLES[size];
-    const hitSlop = { left: 8, right: 8, top: 8, bottom: 8 };
+    const palette = VARIANT_PALETTE[variant];
+    const isGhost = appearance === "ghost";
 
-    const variantStyle = getVariantStyle(colors, disabled, type, customColor);
+    const contentColorKey = disabled
+      ? "textDisabled"
+      : (customColor ??
+        (appearance === "filled" ? palette.foreground : palette.content));
+
+    const appearanceStyle: ViewStyle =
+      appearance === "filled"
+        ? {
+            backgroundColor: disabled
+              ? colors.onSurface
+              : colors[palette.background],
+          }
+        : appearance === "outline"
+          ? {
+              borderWidth: 1,
+              borderColor: disabled
+                ? colors.border
+                : colors[customColor ?? palette.border],
+            }
+          : {};
 
     return {
-      colors,
       styles: {
         ...BUTTON_STYLES.base,
-        ...sizeStyle,
-        ...variantStyle,
+        ...(isGhost ? BUTTON_STYLES.ghostSize : BUTTON_STYLES[size]),
+        ...appearanceStyle,
       },
-      color: customColor ?? COLOR_MAP[type],
-      hitSlop: isTextType ? hitSlop : undefined,
+      contentColorKey,
+      contentColor: colors[contentColorKey],
+      hitSlop: isGhost ? GHOST_HIT_SLOP : undefined,
     };
-  }, [disabled, type, size, colors, customColor]);
-};
-
-const getVariantStyle = (
-  colors: TColorTheme,
-  disabled: boolean,
-  type: TButtonType,
-  customColor?: ColorValue,
-): ViewStyle => {
-  const styles: Record<TButtonType, ViewStyle> = {
-    primaryFilled: { backgroundColor: colors.primary },
-    primaryOutline: {
-      borderWidth: 1,
-      borderColor: customColor ?? colors.primary,
-    },
-    secondaryFilled: { backgroundColor: colors.secondary },
-    secondaryOutline: {
-      borderWidth: 1,
-      borderColor: customColor ?? colors.secondary,
-    },
-    dangerFilled: { backgroundColor: colors.danger },
-    dangerOutline: {
-      borderWidth: 1,
-      borderColor: customColor ?? colors.danger,
-    },
-    text: {},
-  };
-
-  return { ...styles[type], opacity: disabled ? 0.4 : 1 };
+  }, [variant, appearance, size, disabled, customColor, colors]);
 };
 
 const BUTTON_STYLES = StyleSheet.create({
   base: {
-    display: "flex",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 8,
-    gap: 4,
+    gap: 6,
   },
   medium: { paddingHorizontal: 16, paddingVertical: 8, minHeight: 48 },
   small: { paddingHorizontal: 12, paddingVertical: 4, minHeight: 40 },
-  textSize: { paddingHorizontal: 4 },
+  ghostSize: { paddingHorizontal: 4 },
 });

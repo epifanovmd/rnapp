@@ -10,7 +10,7 @@ export interface DialogFooterProps extends FlexProps, ViewProps {}
 const dialogFooterSlots = {
   secondaryButton: slot.of(Button, {
     defaultProps: {
-      type: "secondaryFilled",
+      variant: "secondary",
       size: "small",
       flex: 1,
       flexBasis: 0,
@@ -19,7 +19,7 @@ const dialogFooterSlots = {
   }),
   primaryButton: slot.of(Button, {
     defaultProps: {
-      type: "primaryFilled",
+      variant: "primary",
       size: "small",
       flex: 1,
       flexBasis: 0,

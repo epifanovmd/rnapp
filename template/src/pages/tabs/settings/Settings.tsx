@@ -144,7 +144,7 @@ export const Settings: FC = observer(() => {
 
           <Col bg={"surface"} radius={16}>
             <Row centerContent={true} pa={16}>
-              <Button color={"danger"} type={"text"} onPress={signOut}>
+              <Button color={"danger"} appearance={"ghost"} onPress={signOut}>
                 {"Выйти"}
               </Button>
             </Row>

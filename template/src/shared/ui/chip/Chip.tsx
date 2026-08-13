@@ -13,7 +13,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Icon, TIconName } from "../icon";
-import { Text } from "../text";
+import { getTextStyle } from "../text";
 
 export interface IChipProps extends TouchableOpacityProps {
   text?: string;
@@ -23,14 +23,22 @@ export interface IChipProps extends TouchableOpacityProps {
   iconSize?: number;
 }
 
+const ANIMATION_DURATION = 150;
+const TEXT_STYLE = getTextStyle("Body_S2");
+
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
 
+/**
+ * Чип-фильтр: неактивный — нейтральная плашка с основным текстом, активный —
+ * primary с контрастным контентом; фон и цвет текста анимируются синхронно.
+ */
 export const Chip = memo<PropsWithChildren<IChipProps>>(
   ({
     text,
     style,
     isActive,
+    disabled,
     leftIcon,
     rightIcon,
     iconSize = 14,
@@ -39,42 +47,52 @@ export const Chip = memo<PropsWithChildren<IChipProps>>(
   }) => {
     const { colors } = useTheme();
 
-    const active = useSharedValue(isActive ? 1 : 0);
+    const progress = useSharedValue(isActive ? 1 : 0);
 
-    const animatedStyle = useAnimatedStyle(() => ({
-      backgroundColor: withTiming(
-        interpolateColor(
-          active.value,
-          isActive ? [0, 1] : [1, 0],
-          isActive
-            ? [colors.secondary, colors.primary]
-            : [colors.primary, colors.secondary],
-        ),
-        {
-          duration: 150,
-        },
+    useEffect(() => {
+      progress.value = withTiming(isActive ? 1 : 0, {
+        duration: ANIMATION_DURATION,
+      });
+    }, [isActive, progress]);
+
+    const containerStyle = useAnimatedStyle(() => ({
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        [colors.onSurface, colors.primary],
       ),
     }));
 
-    useEffect(() => {
-      active.set(isActive ? 1 : 0);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActive]);
+    const textAnimatedStyle = useAnimatedStyle(() => ({
+      color: interpolateColor(
+        progress.value,
+        [0, 1],
+        [colors.textPrimary, colors.primaryForeground],
+      ),
+    }));
 
-    const iconProps = {
-      height: iconSize,
-      width: iconSize,
-    };
+    const iconColor = disabled
+      ? colors.textDisabled
+      : isActive
+        ? colors.primaryForeground
+        : colors.textPrimary;
 
     return (
       <AnimatedTouchableOpacity
+        accessibilityRole={"button"}
+        accessibilityState={{ selected: !!isActive, disabled: !!disabled }}
         activeOpacity={1}
-        style={[SS.container, style, animatedStyle]}
+        disabled={disabled}
+        style={[SS.container, disabled && SS.disabled, style, containerStyle]}
         {...rest}
       >
-        {leftIcon && <Icon name={leftIcon} {...iconProps} />}
-        <Text color={"white"}>{text ?? children}</Text>
-        {rightIcon && <Icon name={rightIcon} {...iconProps} />}
+        {leftIcon && <Icon name={leftIcon} size={iconSize} color={iconColor} />}
+        <Animated.Text style={[TEXT_STYLE, textAnimatedStyle]}>
+          {text ?? children}
+        </Animated.Text>
+        {rightIcon && (
+          <Icon name={rightIcon} size={iconSize} color={iconColor} />
+        )}
       </AnimatedTouchableOpacity>
     );
   },
@@ -88,6 +106,8 @@ const SS = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    // height: 32,
+  },
+  disabled: {
+    opacity: 0.5,
   },
 });

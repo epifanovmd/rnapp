@@ -149,7 +149,7 @@ export const CustomFilter = observer(
                   <Text textStyle={"Title_S1"}>{item.title}</Text>
                   {!item.isEqual && (
                     <Button
-                      type={"text"}
+                      appearance={"ghost"}
                       title={"Сбросить"}
                       onPress={() => item.reset()}
                     />
@@ -171,7 +171,7 @@ export const CustomFilter = observer(
 
                   {item.expandable && !item.expanded && (
                     <Button
-                      type={"text"}
+                      appearance={"ghost"}
                       title={"Еще..."}
                       onPress={item.toggleExpand}
                     />

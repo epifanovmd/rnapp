@@ -10,7 +10,7 @@ export interface BottomSheetFooterProps extends FlexProps, ViewProps {}
 const bottomSheetFooterSlots = {
   secondaryButton: slot.of(Button, {
     defaultProps: {
-      type: "secondaryFilled",
+      variant: "secondary",
       size: "small",
       flex: 1,
       flexBasis: 0,
@@ -19,7 +19,7 @@ const bottomSheetFooterSlots = {
   }),
   primaryButton: slot.of(Button, {
     defaultProps: {
-      type: "primaryFilled",
+      variant: "primary",
       size: "small",
       flex: 1,
       flexBasis: 0,

@@ -5,13 +5,22 @@ type: project
 ---
 
 Весь UI — в `src/shared/ui/` (кроме `TabBar` в `widgets/app-shell/`):
-layout, navbar (compound: BackButton/Title/Subtitle/Right...), button, input (+TextField),
+layout, navbar (compound: BackButton/Title/Subtitle/Right...),
+button (`variant` primary/secondary/danger × `appearance` filled/outline/ghost — ортогональны,
+палитра — один record в `hooks/useButtonStyles.ts`, новый вариант = одна строка; цвета
+контента резолвятся в реальные для Icon/ActivityIndicator),
+input (+TextField: состояние в `hooks/useTextFieldState.ts`, визуальные части в
+`components/` — TextFieldLabel/TextFieldAccessories/TextFieldFooter; `left`/`right`
+ReactNode-слоты, токены text-styles, визуальный disabled),
 bottom-sheet (@gorhom), balanced-row (три зоны, боковые уравнены по ширине — центр строго по
 центру; используют Navbar, BottomSheetHeader и DialogHeader), dialog (compound
 Dialog.Header/Content/Footer; управляемый `isVisible`/`onClose` или императивный через
 `useDialogRef` → present/dismiss; логика в `dialog/hooks/` — visibility, animation,
 animated-styles, gestures, back-button, styles; заменяемый `backdropComponent`; Portal +
-Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scale-анимации), text, icon (lucide), picker (нативный
+Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scale-анимации), text, icon (lucide-react-native через реестр `icon-registry.ts`: имя → компонент, `TIconName`
+и `ICON_NAMES` выводятся; кастомная SVG — компонент по контракту `IIconGlyphProps`
+(size/color, пример `icons/CheckBold.tsx`) + строка в реестре; пропы size/color/strokeWidth),
+picker (нативный
 WheelPicker), chart (Skia), flex-view, context-menu-view (JS-порт на Reanimated,
 синглтон Host в App.tsx), image-viewing (свой fullscreen-вьюер: Reanimated + **hook-API RNGH v3**
 (`usePinchGesture`/`usePanGesture`/... — builder `Gesture.*` в v3 деприкейтнут) — pinch с
@@ -24,7 +33,8 @@ keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable (Reanimated: высота/opacity на UI-потоке, обрезанное превью
 `collapsedHeight` или кросс-фейд `collapsedContent`, semi-controlled `collapsed` +
 императивный `ref.toggle`, авто-измерение динамического контента), field, image, scroll-view,
-switch, tabs, ticket, touchable,
+switch, tabs, ticket, touchable, field (label/description/error-слоты вокруг контента;
+горизонтальную раскладку контента НЕ навязывает — Row собирает вызывающий),
 avatar (url/инициалы + детерминированный цвет, online-статус), badge (счётчик/max/dot,
 standalone или поверх children), divider (горизонтальный/вертикальный/с label),
 progress-bar (determinate/indeterminate, Reanimated), radio (Radio + generic RadioGroup),

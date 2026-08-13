@@ -12,7 +12,7 @@ export const IconsTab: FC = memo(() => {
     <DemoScreen>
       <DemoSection
         title={"Иконки"}
-        description={`Набор Icon — ${ICON_NAMES.length} шт., проп name типизирован (TIconName)`}
+        description={`Реестр lucide + кастомные (checkBold) — ${ICON_NAMES.length} шт.; name типизирован (TIconName)`}
       >
         <Row flexWrap={"wrap"} gap={12}>
           {ICON_NAMES.map(name => (
@@ -31,23 +31,19 @@ export const IconsTab: FC = memo(() => {
       </DemoSection>
 
       <DemoSection
-        title={"Размер и цвет"}
-        description={"width/height и color управляют размером и цветом"}
+        title={"Размер, цвет, обводка"}
+        description={"size, color и strokeWidth (толщина lucide-обводки)"}
       >
         <Row alignItems={"center"} gap={16}>
-          <Icon name={"settings"} width={16} height={16} />
+          <Icon name={"settings"} size={16} />
           <Icon name={"settings"} />
-          <Icon name={"settings"} width={32} height={32} />
+          <Icon name={"settings"} size={32} />
+          <Icon name={"settings"} size={40} color={colors.primary} />
+          <Icon name={"settings"} size={40} strokeWidth={1} />
           <Icon
             name={"settings"}
-            width={40}
-            height={40}
-            color={colors.primary}
-          />
-          <Icon
-            name={"settings"}
-            width={40}
-            height={40}
+            size={40}
+            strokeWidth={2.5}
             color={colors.danger}
           />
         </Row>

@@ -1,20 +1,12 @@
 import { useMergedCallback } from "@shared/lib/hooks";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
 import { useTheme } from "@shared/lib/theme";
-import React, {
-  forwardRef,
-  memo,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { forwardRef, memo, useCallback, useRef, useState } from "react";
 import {
   LayoutChangeEvent,
   StyleProp,
   StyleSheet,
-  Text,
+  Text as RNText,
   TextInput as RNTextInput,
   TouchableOpacity,
   View,
@@ -26,9 +18,16 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { Icon, TIconName } from "../icon";
+import { getTextStyle } from "../text";
+import {
+  TextFieldAccessories,
+  TextFieldFooter,
+  TextFieldLabel,
+} from "./components";
+import { useTextFieldState } from "./hooks";
 import { TextInput, TextInputProps } from "./Input";
 
-export interface IRNVITextFieldProps extends Omit<TextInputProps, "style"> {
+export interface ITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly label?: string;
   readonly error?: string | boolean;
   readonly style?: StyleProp<ViewStyle>;
@@ -39,17 +38,30 @@ export interface IRNVITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly clearable?: boolean;
   readonly showSymbolCount?: boolean;
   readonly duration?: number;
+  /** Произвольный контент слева (после iconName). */
+  readonly left?: React.ReactNode;
+  /** Произвольный контент справа (до системных иконок). */
+  readonly right?: React.ReactNode;
 }
 
-const ANIMATION_DURATION = 150;
+/** @deprecated Используй ITextFieldProps. */
+export type IRNVITextFieldProps = ITextFieldProps;
 
+const ANIMATION_DURATION = 150;
+const BODY = getTextStyle("Body_M2");
+
+/**
+ * Поле ввода: плавающий label, secure/clear/error-аксессуары, счётчик,
+ * hint. Состояние — useTextFieldState, визуальные части — TextFieldLabel /
+ * TextFieldAccessories / TextFieldFooter; здесь — только layout и wiring.
+ */
 export const TextField = memo(
-  forwardRef<RNTextInput, IRNVITextFieldProps>(
+  forwardRef<RNTextInput, ITextFieldProps>(
     (
       {
         label,
         value,
-        placeholder: _placeholder,
+        placeholder: rawPlaceholder,
         error,
         style,
         iconName,
@@ -62,316 +74,204 @@ export const TextField = memo(
         duration = ANIMATION_DURATION,
         multiline,
         numberOfLines = multiline ? 6 : 1,
-        onFocus: _onFocus,
-        onBlur: _onBlur,
-        onChangeText: _onChangeText,
+        onFocus,
+        onBlur,
+        onChangeText,
         onLayout,
         editable,
-        secureTextEntry: _secureTextEntry,
+        secureTextEntry,
+        left,
+        right,
         ...otherProps
       },
       ref,
     ) => {
-      const inputRef = React.useRef<RNTextInput>(null);
-      const maxWidth = useRef(0);
-      const [width, setWidth] = useState(0);
-      const [isFocused, setFocused] = useState(false);
-      const [hasValue, setHasValue] = useState(false);
-      const [localValue, setLocalValue] = useState("");
-      const [secureTextEntry, setsSecureTextEntry] = useState(_secureTextEntry);
-
+      const inputRef = useRef<RNTextInput>(null);
+      const inputWidth = useRef(0);
+      const [valueWidth, setValueWidth] = useState(0);
       const { colors } = useTheme();
 
-      const ss = useMemo(() => {
-        const captionMTextStyle = { fontSize: 12, lineHeight: 16 };
-        const bodyMTextStyle = { fontSize: 16, lineHeight: 20 };
+      const showCounter = !!showSymbolCount && !!maxLength;
+      const showHintLeft = !!hint && hintPosition === "left" && !multiline;
+      const showHintRight = !!hint && hintPosition === "right" && !multiline;
 
-        return {
-          elevationColor: colors.onSurface,
-          captionMTextStyle,
-          bodyMTextStyle,
-          primaryColor: colors.primary,
-          primaryTextColor: colors.textPrimary,
-          secondaryColor: colors.textSecondary,
-          redColor: colors.danger,
-          tertiaryTextColor: colors.textTertiary,
-        };
-      }, [colors]);
+      const {
+        isFocused,
+        hasValue,
+        finalValue,
+        secure,
+        toggleSecure,
+        focusInput,
+        handleFocus,
+        handleBlur,
+        handleChangeText,
+        handleClear,
+      } = useTextFieldState({
+        value,
+        secureTextEntry,
+        trackLocalValue: showHintRight || showCounter || !!multiline,
+        inputRef,
+        onFocus,
+        onBlur,
+        onChangeText,
+      });
 
-      useEffect(() => {
-        setLocalValue("");
-        setHasValue(!!value);
-      }, [value]);
-
-      useEffect(() => {
-        setsSecureTextEntry(_secureTextEntry);
-      }, [_secureTextEntry]);
-
-      const isShowLabel = !!label;
-      const isShowSecureButton = _secureTextEntry;
-      const isShowError = !!error;
-      const isShowClear = clearable && hasValue && !isShowError;
-      const isShowCounter = !!showSymbolCount && !!maxLength;
-      const isShowRight = isShowClear || isShowError || isShowSecureButton;
-      const isActiveInput = (isFocused || hasValue) && isShowLabel;
-      const isLeftHint = hintPosition === "left";
-      const isRightHint = hintPosition === "right";
-      const isShowHintLeft = !!hint && isLeftHint && !multiline;
-      const isShowHintRight = !!hint && isRightHint && !multiline;
-      const isLocalValue =
-        value === undefined && (isShowHintRight || isShowCounter || multiline);
-      const finalValue = isLocalValue ? localValue : value;
-      const placeholder = _placeholder && isFocused ? _placeholder : undefined;
-      const valueLength = finalValue?.length ?? 0;
       const disabled = editable === false;
+      const showError = !!error;
+      const active = isFocused || hasValue;
+      const labelActive = active && !!label;
+      const showClear = !!clearable && hasValue && !showError;
+      const placeholder =
+        rawPlaceholder && (isFocused || !label) ? rawPlaceholder : undefined;
+      const valueLength = finalValue?.length ?? 0;
 
-      const labelStyles = useAnimatedStyle(() => {
-        const isActive = isFocused || hasValue;
-        const {
-          primaryColor,
-          secondaryColor,
-          redColor,
-          captionMTextStyle,
-          bodyMTextStyle,
-        } = ss;
-
-        const color = isShowError
-          ? redColor
-          : isActive
-            ? primaryColor
-            : secondaryColor;
-        const textStyle = isActive ? captionMTextStyle : bodyMTextStyle;
-
-        const fontSize = textStyle?.fontSize;
-
-        return {
-          ...textStyle,
-          fontSize: fontSize && withTiming(fontSize, { duration }),
-          top: withTiming(isActive ? 0 : 12, { duration }),
-          color: color && withTiming(color, { duration }),
-        };
-      }, [isFocused, hasValue, ss, isShowError, duration]);
-
-      const inputRowStyles = useAnimatedStyle(
+      const inputRowStyle = useAnimatedStyle(
         () => ({
-          paddingTop: withTiming(isActiveInput ? 16 : 0, { duration }),
+          paddingTop: withTiming(labelActive ? 16 : 0, { duration }),
         }),
-        [isActiveInput, duration],
+        [labelActive, duration],
       );
 
-      const bottomStyles = useAnimatedStyle(() => {
-        const isShow = isShowError || isShowCounter;
-
-        return {
-          marginTop: isShow ? 4 : 0,
-          height: withTiming(isShow ? 16 : 0, { duration }),
-        };
-      }, [isShowError, isShowCounter, duration]);
-
-      const animatedOpacity = useAnimatedStyle(
+      const hintStyle = useAnimatedStyle(
         () => ({
-          opacity: withTiming(isActiveInput ? 1 : 0, {
-            duration,
-          }),
+          opacity: withTiming(active ? 1 : 0, { duration }),
         }),
-        [isActiveInput],
+        [active, duration],
       );
 
-      const onFocus = useMergedCallback(
-        _onFocus,
-        useCallback(() => setFocused(true), []),
-      );
+      // Right-hint позиционируется сразу после текста: ширина значения
+      // измеряется невидимым Text-дублёром.
+      const handleValueWidth = useCallback(
+        (event: LayoutChangeEvent) => {
+          const width = !hasValue ? 0 : event.nativeEvent.layout.width;
 
-      const onBlur = useMergedCallback(
-        _onBlur,
-        useCallback(() => setFocused(false), []),
-      );
-
-      const onPressWrap = useCallback(() => {
-        inputRef.current?.focus();
-      }, []);
-
-      const handleChangeText = useCallback(
-        (text: string) => {
-          if (isLocalValue) {
-            setLocalValue(text);
-          }
-          setHasValue(!!text);
-        },
-        [isLocalValue],
-      );
-
-      const onChangeText = useMergedCallback(_onChangeText, handleChangeText);
-
-      const handleClear = useCallback(() => {
-        inputRef.current?.clear();
-        onChangeText?.("");
-      }, [onChangeText]);
-
-      const onLayoutFakeText = useCallback(
-        (e: LayoutChangeEvent) => {
-          const width = !hasValue ? 0 : e.nativeEvent.layout.width;
-
-          setWidth(width > maxWidth.current ? maxWidth.current : width);
+          setValueWidth(Math.min(width, inputWidth.current));
         },
         [hasValue],
       );
 
-      const handleMeasureMaxWidth = useCallback((e: LayoutChangeEvent) => {
-        maxWidth.current = e.nativeEvent.layout.width;
+      const handleInputWidth = useCallback((event: LayoutChangeEvent) => {
+        inputWidth.current = event.nativeEvent.layout.width;
       }, []);
 
-      const onLayoutTextInput = useMergedCallback(
-        onLayout,
-        handleMeasureMaxWidth,
-      );
-
-      const toggleSecureTextEntry = useCallback(() => {
-        setsSecureTextEntry(state => !state);
-      }, []);
-
-      const secureIcon: TIconName = secureTextEntry ? "eyeOff" : "eye";
-      const isLimLen = maxLength && valueLength > maxLength;
-      const selectionColor = isShowError ? ss.redColor : ss.primaryColor;
-      const counterColor = isLimLen ? ss.redColor : ss.tertiaryTextColor;
-      const counterText = `${valueLength} / ${maxLength}`;
-      const wrapStyles = [s.wrap, { backgroundColor: ss.elevationColor }];
-      const inputStyles = [ss.bodyMTextStyle, { color: ss.primaryTextColor }];
-      const hintStyles = [
-        ss.bodyMTextStyle,
-        { color: ss.tertiaryTextColor },
-        animatedOpacity,
-      ];
-      const transformHint = {
-        transform: [{ translateX: -(maxWidth.current - width) }],
-      };
-      const errorStyles = [ss.captionMTextStyle, { color: ss.redColor }];
-      const counterStyles = [ss.captionMTextStyle, { color: counterColor }];
+      const handleInputLayout = useMergedCallback(onLayout, handleInputWidth);
 
       return (
-        <View style={style}>
-          {isShowHintRight && (
-            <Text
-              style={[s.fakeText, ss.bodyMTextStyle]}
-              onLayout={onLayoutFakeText}
+        <View style={[style, disabled && styles.disabled]}>
+          {showHintRight && (
+            <RNText
+              style={[styles.valueMeasurer, BODY]}
+              onLayout={handleValueWidth}
             >
               {finalValue}
-            </Text>
+            </RNText>
           )}
           <TouchableOpacity
             disabled={disabled}
             activeOpacity={1}
-            onPress={onPressWrap}
-            style={wrapStyles}
+            onPress={focusInput}
+            style={[styles.wrap, { backgroundColor: colors.onSurface }]}
           >
-            {!!iconName && (
-              <View style={s.left}>
-                <View style={s.iconWrap}>
+            {(!!iconName || !!left) && (
+              <View style={[styles.left, multiline && styles.leftTop]}>
+                {!!iconName && (
                   <Icon
-                    style={s.iconSize}
-                    height={24}
-                    width={24}
-                    fill={iconColor}
+                    color={iconColor ?? colors.textTertiary}
                     name={iconName}
                   />
-                </View>
+                )}
+                {left}
               </View>
             )}
-            <View style={s.center}>
+            <View style={styles.center}>
               {!!label && (
-                <Animated.Text style={[s.label, labelStyles]}>
-                  {label}
-                </Animated.Text>
+                <TextFieldLabel
+                  label={label}
+                  active={active}
+                  error={showError}
+                  duration={duration}
+                />
               )}
-              <Animated.View style={[s.inputRow, inputRowStyles]}>
-                {isShowHintLeft && (
-                  <Animated.Text style={[s.hintLeft, hintStyles]}>
+              <Animated.View style={[styles.inputRow, inputRowStyle]}>
+                {showHintLeft && (
+                  <Animated.Text
+                    style={[
+                      styles.hintLeft,
+                      BODY,
+                      { color: colors.textTertiary },
+                      hintStyle,
+                    ]}
+                  >
                     {hint}
                   </Animated.Text>
                 )}
                 <TextInput
                   ref={mergeRefs([inputRef, ref])}
-                  onFocus={onFocus}
-                  onBlur={onBlur}
+                  onFocus={handleFocus}
+                  onBlur={handleBlur}
                   value={finalValue}
                   placeholder={placeholder}
-                  placeholderTextColor={ss.tertiaryTextColor}
+                  placeholderTextColor={colors.textTertiary}
                   maxLength={maxLength}
-                  onChangeText={onChangeText}
-                  selectionColor={selectionColor}
-                  style={[s.input, inputStyles]}
+                  onChangeText={handleChangeText}
+                  selectionColor={showError ? colors.danger : colors.primary}
+                  style={[styles.input, BODY, { color: colors.textPrimary }]}
                   multiline={multiline}
                   numberOfLines={numberOfLines}
-                  onLayout={onLayoutTextInput}
+                  onLayout={handleInputLayout}
                   editable={editable}
-                  secureTextEntry={secureTextEntry}
+                  secureTextEntry={secure}
                   {...otherProps}
                 />
-                {isShowHintRight && (
+                {showHintRight && (
                   <Animated.Text
-                    style={[s.hintRight, hintStyles, transformHint]}
+                    style={[
+                      styles.hintRight,
+                      BODY,
+                      { color: colors.textTertiary },
+                      hintStyle,
+                      {
+                        transform: [
+                          { translateX: -(inputWidth.current - valueWidth) },
+                        ],
+                      },
+                    ]}
                   >
                     {hint}
                   </Animated.Text>
                 )}
               </Animated.View>
             </View>
-            {isShowRight && (
-              <View style={s.right}>
-                {isShowSecureButton && (
-                  <TouchableOpacity
-                    disabled={disabled}
-                    activeOpacity={1}
-                    style={s.iconWrap}
-                    onPress={toggleSecureTextEntry}
-                  >
-                    <Icon
-                      style={s.iconSize}
-                      fill={ss.tertiaryTextColor}
-                      name={secureIcon}
-                    />
-                  </TouchableOpacity>
-                )}
-                {isShowClear && (
-                  <TouchableOpacity
-                    disabled={disabled}
-                    activeOpacity={1}
-                    style={s.iconWrap}
-                    onPress={handleClear}
-                  >
-                    <Icon
-                      style={s.iconSize}
-                      fill={ss.tertiaryTextColor}
-                      name={"close"}
-                    />
-                  </TouchableOpacity>
-                )}
-                {isShowError && (
-                  <View style={s.iconWrap}>
-                    <Icon
-                      style={s.iconSize}
-                      fill={ss.redColor}
-                      name={"closeCircle"}
-                    />
-                  </View>
-                )}
-              </View>
-            )}
+            <TextFieldAccessories
+              alignTop={!!multiline}
+              showSecureToggle={!!secureTextEntry}
+              secure={secure}
+              onToggleSecure={toggleSecure}
+              showClear={showClear}
+              onClear={handleClear}
+              showError={showError}
+              disabled={disabled}
+              right={right}
+            />
           </TouchableOpacity>
-          <Animated.View style={[s.bottom, bottomStyles]}>
-            {isShowError && <Text style={errorStyles}>{error}</Text>}
-            {isShowCounter && (
-              <Text style={[s.counter, counterStyles]}>{counterText}</Text>
-            )}
-          </Animated.View>
+          <TextFieldFooter
+            error={error}
+            showCounter={showCounter}
+            length={valueLength}
+            maxLength={maxLength}
+            duration={duration}
+          />
         </View>
       );
     },
   ),
 );
 
-const s = StyleSheet.create({
-  fakeText: {
+const styles = StyleSheet.create({
+  disabled: {
+    opacity: 0.6,
+  },
+  valueMeasurer: {
     position: "absolute",
     top: 0,
     minWidth: 0,
@@ -386,9 +286,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     minHeight: 60,
-  },
-  label: {
-    position: "absolute",
   },
   inputRow: {
     alignSelf: "stretch",
@@ -409,41 +306,21 @@ const s = StyleSheet.create({
   hintRight: {
     paddingLeft: 4,
   },
-  iconWrap: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  iconSize: {
-    height: 24,
-    width: 24,
-  },
   left: {
     gap: 8,
-    paddingVertical: 8,
     flexDirection: "row",
-    marginBottom: "auto",
+    alignItems: "center",
+    alignSelf: "center",
     marginRight: 8,
+  },
+  leftTop: {
+    alignSelf: "flex-start",
+    paddingVertical: 8,
   },
   center: {
     flexDirection: "row",
     flex: 1,
     alignItems: "center",
     alignSelf: "stretch",
-  },
-  right: {
-    gap: 8,
-    paddingVertical: 8,
-    flexDirection: "row",
-    marginBottom: "auto",
-    marginLeft: 8,
-  },
-  bottom: {
-    height: 0,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  counter: {
-    marginLeft: "auto",
   },
 });

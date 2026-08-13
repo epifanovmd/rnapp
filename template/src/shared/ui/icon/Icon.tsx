@@ -1,71 +1,32 @@
 import { useTheme } from "@shared/lib/theme";
-import { memo, PropsWithChildren } from "react";
-import { SvgProps } from "react-native-svg";
+import { FC, memo } from "react";
+import { ColorValue } from "react-native";
 
 import { FlexProps, useFlexProps } from "../flex-view";
-import {
-  BackIcon,
-  CameraIcon,
-  CheckBoldIcon,
-  CheckIcon,
-  CloseCircleIcon,
-  CloseIcon,
-  DocumentIcon,
-  EyeIcon,
-  EyeOffIcon,
-  ImageIcon,
-  SaveIcon,
-  SearchIcon,
-  SettingsIcon,
-} from "./icons";
+import { ICONS_MAP, TIconName } from "./icon-registry";
 
 type TOmitFlexPropsKeys =
-  "height" | "opacity" | "scale" | "translateY" | "translateX";
+  "width" | "height" | "opacity" | "scale" | "translateY" | "translateX";
+
 type TIconFlexProps = Omit<FlexProps, TOmitFlexPropsKeys>;
 
-const ICONS_MAP = {
-  back: BackIcon,
-  camera: CameraIcon,
-  check: CheckIcon,
-  checkBold: CheckBoldIcon,
-  closeCircle: CloseCircleIcon,
-  close: CloseIcon,
-  document: DocumentIcon,
-  eye: EyeIcon,
-  eyeOff: EyeOffIcon,
-  image: ImageIcon,
-  save: SaveIcon,
-  search: SearchIcon,
-  settings: SettingsIcon,
-};
-
-export type TIconName = keyof typeof ICONS_MAP;
-
-/** Все имена иконок набора (галереи, демо, итерация). */
-export const ICON_NAMES = Object.keys(ICONS_MAP) as TIconName[];
-
-export interface IIconProps extends TIconFlexProps, SvgProps {
-  width?: string | number;
-  height?: string | number;
+export interface IIconProps extends TIconFlexProps {
   name: TIconName;
+  /** Квадратный размер, px. */
+  size?: number;
+  /** Цвет; по умолчанию textPrimary темы. */
+  color?: ColorValue;
+  /** Толщина обводки lucide-иконок. */
+  strokeWidth?: number;
+  /** @deprecated Используй `size`. */
+  width?: number;
+  /** @deprecated Используй `size`. */
+  height?: number;
 }
 
-export const Icon = memo<PropsWithChildren<IIconProps>>(
-  ({
-    name,
-    height = 24,
-    width = 24,
-    scale,
-    opacity,
-    translateY,
-    translateX,
-    fontSize,
-    fontFamily,
-    fontStyle,
-    fontWeight,
-    letterSpacing,
-    ...rest
-  }) => {
+/** Иконка из реестра (lucide + кастомные): `<Icon name="search" size={20} />`. */
+export const Icon: FC<IIconProps> = memo(
+  ({ name, size, width, height, color, strokeWidth, ...rest }) => {
     const { style, ownProps } = useFlexProps(rest);
     const { colors } = useTheme();
 
@@ -77,19 +38,10 @@ export const Icon = memo<PropsWithChildren<IIconProps>>(
 
     return (
       <Component
-        height={height}
-        width={width}
-        scale={scale}
-        opacity={opacity}
-        translateY={translateY}
-        translateX={translateX}
-        fontSize={fontSize}
-        fontFamily={fontFamily}
-        fontStyle={fontStyle}
-        fontWeight={fontWeight}
-        letterSpacing={letterSpacing}
+        size={size ?? width ?? height ?? 24}
+        color={color ?? colors.textPrimary}
+        strokeWidth={strokeWidth}
         style={style}
-        color={colors.textPrimary}
         {...ownProps}
       />
     );

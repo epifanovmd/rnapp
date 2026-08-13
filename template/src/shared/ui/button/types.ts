@@ -1,30 +1,24 @@
 import { TColorTheme } from "@shared/lib/theme";
 import React from "react";
-import {
-  ActivityIndicatorProps,
-  ColorValue,
-  StyleProp,
-  ViewStyle,
-} from "react-native";
+import { ActivityIndicatorProps, StyleProp, ViewStyle } from "react-native";
 
 import { TIconName } from "../icon";
 import { ITouchableProps } from "../touchable";
 
-export type TButtonType =
-  | "primaryFilled"
-  | "primaryOutline"
-  | "secondaryFilled"
-  | "secondaryOutline"
-  | "dangerFilled"
-  | "dangerOutline"
-  | "text";
+/** Смысловой цвет кнопки; новый вариант добавляется одной строкой палитры. */
+export type TButtonVariant = "primary" | "secondary" | "danger";
+
+/** Визуальное исполнение, ортогонально варианту. */
+export type TButtonAppearance = "filled" | "outline" | "ghost";
 
 export type TButtonSize = "medium" | "small";
 
 export interface IButtonProps<T = unknown> extends ITouchableProps<T> {
   title?: React.JSX.Element | string;
-  type?: TButtonType;
+  variant?: TButtonVariant;
+  appearance?: TButtonAppearance;
   size?: TButtonSize;
+  /** Переопределение цвета контента (и рамки у outline). */
   color?: keyof TColorTheme;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;

@@ -1,153 +1,93 @@
-import { useScroll } from "@shared/lib/scroll";
-import { useTransition } from "@shared/lib/transition";
-import { Button, Col, Row, ScrollView, SwitchTheme } from "@shared/ui";
-import { memo, useCallback } from "react";
-import Animated from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  Button,
+  Row,
+  SwitchTheme,
+  TButtonAppearance,
+  TButtonVariant,
+} from "@shared/ui";
+import React, { FC, memo, useCallback, useState } from "react";
 
-export const ButtonsTab = memo(() => {
-  const { bottom } = useSafeAreaInsets();
-  const { navbar } = useTransition();
-  const scroll = useScroll();
+import { DemoScreen, DemoSection } from "./DemoScreen";
 
-  const onPress = useCallback(() => {
-    console.log("Press button");
+const VARIANTS: TButtonVariant[] = ["primary", "secondary", "danger"];
+const APPEARANCES: TButtonAppearance[] = ["filled", "outline", "ghost"];
+
+export const ButtonsTab: FC = memo(() => {
+  const [loading, setLoading] = useState(false);
+
+  const simulateLoading = useCallback(() => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 1500);
   }, []);
 
   return (
-    <Col gap={8}>
-      <Animated.ScrollView
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          gap: 8,
-          paddingBottom: bottom,
-          paddingTop: navbar.height,
-        }}
-        onScroll={scroll?.scrollHandler}
-        scrollEventThrottle={16}
-      >
+    <DemoScreen>
+      <DemoSection title={"Тема"}>
         <SwitchTheme />
-        <Button size={"small"} title={"Size sm"} onPress={onPress} />
+      </DemoSection>
+
+      {APPEARANCES.map(appearance => (
+        <DemoSection
+          key={appearance}
+          title={`appearance="${appearance}"`}
+          description={"Варианты ортогональны исполнению"}
+        >
+          {VARIANTS.map(variant => (
+            <Row key={variant} gap={8}>
+              <Button
+                flex={1}
+                flexBasis={0}
+                variant={variant}
+                appearance={appearance}
+                title={variant}
+              />
+              <Button
+                flex={1}
+                flexBasis={0}
+                variant={variant}
+                appearance={appearance}
+                disabled
+                title={"disabled"}
+              />
+            </Row>
+          ))}
+        </DemoSection>
+      ))}
+
+      <DemoSection
+        title={"Состояния и контент"}
+        description={"loading, иконки, size, переопределение цвета"}
+      >
+        <Button
+          title={loading ? "Загрузка…" : "Запустить loading"}
+          loading={loading}
+          onPress={simulateLoading}
+        />
         <Row gap={8}>
+          <Button flex={1} flexBasis={0} size={"small"} title={"small"} />
           <Button
             flex={1}
             flexBasis={0}
-            type={"primaryFilled"}
-            title={"Primary Filled"}
-            onPress={onPress}
+            size={"small"}
+            appearance={"outline"}
+            leftIcon={"search"}
+            title={"с иконкой"}
           />
           <Button
             flex={1}
             flexBasis={0}
-            disabled={true}
-            type={"primaryFilled"}
-            title={"Disabled"}
-            onPress={onPress}
+            size={"small"}
+            appearance={"outline"}
+            rightIcon={"check"}
+            title={"справа"}
           />
         </Row>
-        <Row gap={8}>
-          <Button
-            flex={1}
-            flexBasis={0}
-            type={"primaryOutline"}
-            title={"Primary Outline"}
-            onPress={onPress}
-          />
-          <Button
-            flex={1}
-            flexBasis={0}
-            disabled={true}
-            type={"primaryOutline"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-        <Row gap={8}>
-          <Button
-            flex={1}
-            flexBasis={0}
-            type={"text"}
-            title={"Text button"}
-            onPress={onPress}
-          />
-          <Button
-            flex={1}
-            flexBasis={0}
-            disabled={true}
-            type={"text"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-        <Row gap={8}>
-          <Button
-            flex={1}
-            flexBasis={0}
-            type={"secondaryFilled"}
-            title={"Secondary Filled"}
-            onPress={onPress}
-          />
-          <Button
-            flex={1}
-            flexBasis={0}
-            disabled={true}
-            type={"secondaryFilled"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-        <Row gap={8}>
-          <Button
-            flex={1}
-            flexBasis={0}
-            type={"secondaryOutline"}
-            title={"Secondary Outline"}
-            onPress={onPress}
-          />
-          <Button
-            flex={1}
-            flexBasis={0}
-            disabled={true}
-            type={"secondaryOutline"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-        <Row gap={8}>
-          <Button
-            flexGrow={1}
-            flexBasis={0}
-            type={"dangerFilled"}
-            title={"Danger Filled"}
-            onPress={onPress}
-          />
-          <Button
-            flexGrow={1}
-            flexBasis={0}
-            disabled={true}
-            type={"dangerFilled"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-        <Row gap={8}>
-          <Button
-            flexGrow={1}
-            flexBasis={0}
-            type={"dangerOutline"}
-            title={"Danger Outline"}
-            onPress={onPress}
-          />
-          <Button
-            flexGrow={1}
-            flexBasis={0}
-            disabled={true}
-            type={"dangerOutline"}
-            title={"Disabled"}
-            onPress={onPress}
-          />
-        </Row>
-      </Animated.ScrollView>
-    </Col>
+        <Button
+          appearance={"ghost"}
+          color={"warning"}
+          title={"ghost с color=warning"}
+        />
+      </DemoSection>
+    </DemoScreen>
   );
 });

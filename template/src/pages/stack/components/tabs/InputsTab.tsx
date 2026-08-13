@@ -1,5 +1,6 @@
-import { Field, Icon, TextField } from "@shared/ui";
+import { Field, Icon, Row, Text, TextField } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
+import { StyleSheet } from "react-native";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
 
@@ -53,15 +54,34 @@ export const InputsTab: FC = memo(() => {
       </DemoSection>
 
       <DemoSection
+        title={"TextField: контент по краям"}
+        description={"iconName и произвольные left/right-слоты"}
+      >
+        <TextField label={"Поиск"} iconName={"search"} clearable />
+        <TextField
+          label={"Сумма"}
+          keyboardType={"numeric"}
+          right={
+            <Text color={"textTertiary"} textStyle={"Body_M2"}>
+              ₽
+            </Text>
+          }
+        />
+      </DemoSection>
+
+      <DemoSection
         title={"Field"}
         description={
-          "Compound-обёртка: label/description/error-слоты вокруг произвольного контента"
+          "Обёртка label/description/error вокруг произвольного контента; " +
+          "раскладку контента задаёт вызывающий"
         }
       >
         <Field label={"Со слотами"} description={"Описание под контентом"}>
-          <Icon name={"document"} mr={8} />
           <Field.Label color={"textLink"} />
-          <TextField placeholder={"Контент поля"} />
+          <Row alignItems={"center"} gap={8}>
+            <Icon name={"document"} />
+            <TextField style={styles.grow} placeholder={"Контент поля"} />
+          </Row>
         </Field>
         <Field label={"C ошибкой"} error={"Что-то пошло не так"}>
           <TextField placeholder={"Введите значение"} />
@@ -69,4 +89,10 @@ export const InputsTab: FC = memo(() => {
       </DemoSection>
     </DemoScreen>
   );
+});
+
+const styles = StyleSheet.create({
+  grow: {
+    flex: 1,
+  },
 });

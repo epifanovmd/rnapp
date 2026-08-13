@@ -112,7 +112,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
       {...rest}
     >
       <Animated.View style={[SS.content, animatedIconStyle]}>
-        <Icon height={16} width={16} name={"checkBold"} fill={colors.white} />
+        <Icon size={16} name={"checkBold"} color={colors.white} />
       </Animated.View>
     </AnimatedPressable>
   );
