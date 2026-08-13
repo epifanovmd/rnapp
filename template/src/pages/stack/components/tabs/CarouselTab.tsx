@@ -1,0 +1,191 @@
+import { useTheme } from "@shared/lib/theme";
+import {
+  Button,
+  Carousel,
+  Col,
+  Icon,
+  Image,
+  Row,
+  Text,
+  TIconName,
+  useCarousel,
+} from "@shared/ui";
+import React, { FC, memo } from "react";
+import { StyleSheet } from "react-native";
+import { Easing } from "react-native-reanimated";
+
+import { DemoScreen, DemoSection } from "./DemoScreen";
+
+const GALLERY = [1, 12, 25, 33, 41].map(
+  seed => `https://picsum.photos/id/${seed}/600/400`,
+);
+
+interface ITickerCard {
+  icon: TIconName;
+  title: string;
+  value: string;
+}
+
+const TICKER_CARDS: ITickerCard[] = [
+  { icon: "image", title: "Медиа", value: "1 284 файла" },
+  { icon: "document", title: "Документы", value: "312 шт." },
+  { icon: "camera", title: "Камера", value: "4K • 60fps" },
+  { icon: "save", title: "Хранилище", value: "128 ГБ" },
+  { icon: "search", title: "Индекс", value: "обновлён" },
+  { icon: "settings", title: "Синхронизация", value: "вкл." },
+];
+
+const TICKER_CARD_WIDTH = 150;
+const TICKER_CARD_GAP = 8;
+
+/** Маленькая инфо-карточка бегущей строки. */
+const TickerCard: FC<ITickerCard> = ({ icon, title, value }) => {
+  const { colors } = useTheme();
+
+  return (
+    <Row
+      alignItems={"center"}
+      gap={8}
+      mr={TICKER_CARD_GAP}
+      ph={10}
+      pv={8}
+      radius={12}
+      bg={"onSurface"}
+      flex={1}
+    >
+      <Icon name={icon} size={18} color={colors.primary} />
+      <Col flexShrink={1}>
+        <Text color={"textSecondary"} textStyle={"Caption_M3"}>
+          {title}
+        </Text>
+        <Text textStyle={"Caption_M2"}>{value}</Text>
+      </Col>
+    </Row>
+  );
+};
+
+/** Пример собственного контрола на useCarousel(). */
+const RandomSlideButton: FC = () => {
+  const { count, scrollTo } = useCarousel();
+
+  return (
+    <Button
+      mt={8}
+      size={"small"}
+      appearance={"outline"}
+      title={"К случайному слайду"}
+      onPress={() => scrollTo(Math.floor(Math.random() * count))}
+    />
+  );
+};
+
+const renderPhoto = ({ item }: { item: string }) => (
+  <Image url={item} width={"100%"} height={"100%"} radius={16} ph={4} />
+);
+
+export const CarouselTab: FC = memo(() => {
+  return (
+    <DemoScreen>
+      <DemoSection
+        title={"Бегущая строка"}
+        description={
+          "autoPlay с нулевым интервалом и линейным таймингом — " +
+          "непрерывный тикер; свайп работает"
+        }
+      >
+        <Carousel
+          width={TICKER_CARD_WIDTH + TICKER_CARD_GAP}
+          height={52}
+          data={TICKER_CARDS}
+          autoPlay
+          autoPlayInterval={0}
+          stopAutoPlayOnInteraction={false}
+          withAnimation={{
+            type: "timing",
+            config: { duration: 5000, easing: Easing.linear },
+          }}
+          renderItem={({ item }) => <TickerCard {...item} />}
+        />
+      </DemoSection>
+
+      <DemoSection
+        title={"Без настроек"}
+        description={
+          "<Carousel data renderItem /> — ширина от контейнера, loop; " +
+          "Dots — слот-компонент"
+        }
+      >
+        <Carousel data={GALLERY} renderItem={renderPhoto}>
+          <Carousel.Dots />
+        </Carousel>
+      </DemoSection>
+
+      <DemoSection
+        title={"Stories"}
+        description={
+          "StoryBars в timer-режиме: активная полоска заполняется по " +
+          "таймеру автопрокрутки (2.5с) + Counter"
+        }
+      >
+        <Carousel
+          data={GALLERY}
+          renderItem={renderPhoto}
+          autoPlay
+          autoPlayInterval={2500}
+          loop={false}
+          height={220}
+        >
+          <Carousel.StoryBars mode={"timer"} />
+          <Carousel.Counter />
+        </Carousel>
+      </DemoSection>
+
+      <DemoSection
+        title={"Stories без автоплея"}
+        description={
+          "StoryBars в timer-режиме как пагинация: idleVariant=fill — " +
+          "пройденные заполнены; move — активная переезжает по свайпу"
+        }
+      >
+        <Carousel
+          data={GALLERY}
+          renderItem={renderPhoto}
+          loop={false}
+          height={220}
+        >
+          <Carousel.StoryBars mode={"timer"} />
+          <Carousel.StoryBars
+            mode={"timer"}
+            idleVariant={"move"}
+            style={styles.secondBars}
+          />
+        </Carousel>
+      </DemoSection>
+
+      <DemoSection
+        title={"Parallax + стрелки"}
+        description={"mode=parallax, Arrows и свой контрол через useCarousel"}
+      >
+        <Carousel
+          data={GALLERY}
+          renderItem={renderPhoto}
+          mode={"parallax"}
+          modeConfig={{
+            parallaxScrollingScale: 0.9,
+            parallaxScrollingOffset: 40,
+          }}
+        >
+          <Carousel.Arrows />
+          <Carousel.Dots />
+          <RandomSlideButton />
+        </Carousel>
+      </DemoSection>
+    </DemoScreen>
+  );
+});
+
+const styles = StyleSheet.create({
+  secondBars: {
+    top: 18,
+  },
+});

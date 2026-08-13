@@ -1,4 +1,5 @@
 export * from "./ButtonsTab";
+export * from "./CarouselTab";
 export * from "./ControlsTab";
 export * from "./DemoScreen";
 export * from "./dialogs";

@@ -47,7 +47,7 @@ export const Playground: FC = observer(() => {
             title={"Components"}
             onPress={() =>
               navigation.navigate("Components", {
-                initialRouteName: "Modals",
+                initialRouteName: "Carousel",
               })
             }
           />

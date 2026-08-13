@@ -6,6 +6,22 @@ type: project
 
 Весь UI — в `src/shared/ui/` (кроме `TabBar` в `widgets/app-shell/`):
 layout, navbar (compound: BackButton/Title/Subtitle/Right...),
+carousel (обёртка над react-native-reanimated-carousel: без настроек — loop-карусель на всю
+ширину контейнера; контекст `useCarousel` (progress/count/loop/autoPlayActive (shared,
+синхронно к остановке)/scrollTo/next/prev/touching) + слот-компоненты
+`Carousel.Dots`/`Carousel.StoryBars` (полоски как в stories, mode scroll|timer; без
+активного автоплея — пагинация, idleVariant fill|move; в timer активная = таймер
+(duration=interval) + дробь прогресса — свайп сам доводит заполнение)/
+`Carousel.Counter`/`Carousel.Arrows`; автоплей — СВОЙ движок `hooks/useCarouselAutoPlay`
+(библиотечный отключён): пауза с ОСТАТКОМ интервала при касании/жесте, resume без смены
+слайда продолжает отсчёт, свайп на другой слайд — остановка насовсем
+(stopAutoPlayOnInteraction, default false) или полный интервал, интервал default 2000,
+переход через next({onFinished}); ВАЖНО: либа шлёт onScrollStart/onScrollEnd и для
+программных переходов — движок помечает их флагом programmaticNext (markProgrammatic для
+scrollTo/next/prev контекста), без loop автоплей останавливается на последнем слайде
+насовсем (resumeAutoPlayAfterEnd, default false — возобновлять после отмотки назад);
+все пропы либы прокидываются, внешние onProgressChange (функция/shared)/onScrollStart/
+onScrollEnd/carouselRef работают, onReachEnd — приезд на последний слайд без дублей),
 button (`variant` primary/secondary/danger × `appearance` filled/outline/ghost — ортогональны,
 палитра — один record в `hooks/useButtonStyles.ts`, новый вариант = одна строка; цвета
 контента резолвятся в реальные для Icon/ActivityIndicator),
@@ -53,9 +69,9 @@ skeleton (компаунд: `Skeleton` — блок любой формы (width
 цвета + Title), Icons (галерея ICON_NAMES), Inputs (TextField/Field-слоты),
 Controls (Switch/Checkbox/RadioGroup/Chip/NavLink/SwitchTheme), Layout (Row/Col/BalancedRow/
 Divider/Collapsable), Feedback (ProgressBar/Skeleton/Badge/Avatar/Spinner),
-Media (Image/ImageViewing/reanimated-carousel), Notifications, Modals, Dialogs, Pickers, Ticket.
-Своих carousel и title в ките нет: карусель — библиотека `react-native-reanimated-carousel`,
-заголовки — обычный `Text` с textStyle.
+Media (Image/ImageViewing), Carousel (обёртка без настроек/stories/parallax/тикер/useCarousel),
+Notifications, Modals, Dialogs, Pickers, Ticket.
+Заголовков-компонента (title) в ките нет — обычный `Text` с textStyle.
 Обёртка демо-таба — `tabs/DemoScreen.tsx` (`DemoScreen` — скролл с телеметрией HiddenBar,
 `DemoSection` — секция с заголовком/описанием).
 

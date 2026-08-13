@@ -16,6 +16,7 @@ import React, { FC, memo } from "react";
 import { ComponentsTabName, ComponentsTabsParamList } from "./components.types";
 import {
   ButtonsTab,
+  CarouselTab,
   ControlsTab,
   DialogsTab,
   FeedbackTab,
@@ -94,6 +95,7 @@ const ComponentsNavigator: FC<IInnerProps> = ({ initialRouteName }) => {
         <TopTab.Screen name={"Layout"} component={LayoutTab} />
         <TopTab.Screen name={"Feedback"} component={FeedbackTab} />
         <TopTab.Screen name={"Media"} component={MediaTab} />
+        <TopTab.Screen name={"Carousel"} component={CarouselTab} />
         <TopTab.Screen name={"Notifications"} component={NotificationsTab} />
         <TopTab.Screen name={"Modals"} component={ModalsTab} />
         <TopTab.Screen name={"Dialogs"} component={DialogsTab} />

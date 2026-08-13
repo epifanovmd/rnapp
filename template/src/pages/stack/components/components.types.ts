@@ -10,6 +10,7 @@ export type ComponentsTabsParamList = {
   Layout: undefined;
   Feedback: undefined;
   Media: undefined;
+  Carousel: undefined;
   Notifications: undefined;
   Modals: undefined;
   Dialogs: undefined;

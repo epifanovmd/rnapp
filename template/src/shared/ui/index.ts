@@ -5,6 +5,7 @@ export * from "./balanced-row";
 export * from "./bottom-sheet";
 export * from "./button";
 export * from "./camera";
+export * from "./carousel";
 export * from "./chart";
 export * from "./chat-view";
 export * from "./check-box";
