@@ -1,4 +1,4 @@
 export * from "./CarouselArrows";
 export * from "./CarouselCounter";
 export * from "./CarouselDots";
-export * from "./CarouselStoryBars";
+export * from "./CarouselProgressBars";

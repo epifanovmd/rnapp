@@ -1,51 +1,16 @@
-import { RefObject, useCallback, useEffect, useRef, useState } from "react";
-import { SharedValue, useSharedValue } from "react-native-reanimated";
-import { ICarouselInstance } from "react-native-reanimated-carousel";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSharedValue } from "react-native-reanimated";
 
-export interface ICarouselAutoPlayOptions {
-  /** Автопрокрутка запрошена пропом. */
-  enabled: boolean;
-  /** Интервал ожидания между переходами, мс. */
-  interval: number;
-  /** Останавливать автопрокрутку насовсем после ручного свайпа. */
-  stopOnInteraction: boolean;
-  /** Без loop: возобновлять автопрокрутку после отмотки назад с конца. */
-  resumeAfterEnd: boolean;
-  /** Карусель зациклена; без loop автоплей завершается на последнем слайде. */
-  loop: boolean;
-  /** Количество слайдов. */
-  count: number;
-  /** Абсолютный прогресс карусели. */
-  progress: SharedValue<number>;
-  /** Пишется хуком: палец на карусели / жест активен (пауза контролов). */
-  touching: SharedValue<boolean>;
-  instanceRef: RefObject<ICarouselInstance | null>;
-  /** Пользовательские колбэки — вызываются как обычно. */
-  onScrollStart?: () => void;
-  onScrollEnd?: (index: number) => void;
-  /** Карусель дошла до последнего слайда (любым способом, без дублей). */
-  onReachEnd?: () => void;
-}
+import { normalizeCarouselIndex } from "../carousel-math";
+import {
+  ICarouselAutoPlay,
+  ICarouselAutoPlayOptions,
+} from "./carousel-autoplay.types";
 
-export interface ICarouselAutoPlay {
-  /** Автопрокрутка фактически активна (не остановлена вмешательством). */
-  effectiveAutoPlay: boolean;
-  /** То же для ворклетов: меняется синхронно с остановкой/запуском. */
-  autoPlayActive: SharedValue<boolean>;
-  /** Активный слайд для контролов; меняется по приземлению. */
-  activeIndex: SharedValue<number>;
-  /** Длительность цикла слайда, мс. */
-  cycleDuration: SharedValue<number>;
-  handleTouchStart: () => void;
-  handleTouchEnd: () => void;
-  handleScrollStart: () => void;
-  handleScrollEnd: (index: number) => void;
-  /**
-   * Пометить следующий переход программным: либа шлёт onScrollStart и для
-   * scrollTo/next/prev — без пометки они считались бы ручным свайпом.
-   */
-  markProgrammatic: () => void;
-}
+export type {
+  ICarouselAutoPlay,
+  ICarouselAutoPlayOptions,
+} from "./carousel-autoplay.types";
 
 /**
  * Автоплей-движок карусели. Касание/жест ставят отсчёт на паузу с ОСТАТКОМ
@@ -80,28 +45,48 @@ export const useCarouselAutoPlay = ({
   const remainingMs = useRef(interval);
   const waitStartedAt = useRef(0);
   /** Анимация перехода в полёте (между fire и onFinished). */
-  const animating = useRef(false);
+  const transitionRunning = useRef(false);
   /** Жест перетаскивания активен (между onScrollStart и onScrollEnd). */
   const gestureActive = useRef(false);
   const indexAtGesture = useRef(0);
   /** Следующий onScrollStart — от программного перехода, не от жеста. */
-  const programmaticNext = useRef(false);
-  /** Индекс последнего onScrollEnd — для onReachEnd без дублей. */
-  const lastEndIndex = useRef(-1);
-
-  const markProgrammatic = useCallback(() => {
-    programmaticNext.current = true;
-  }, []);
+  const programmaticScrollPending = useRef(false);
+  /** onReachEnd уже отправлен для текущего пребывания на последнем слайде. */
+  const reachEndReported = useRef(false);
 
   const effectiveAutoPlay =
     enabled && !(stopOnInteraction && interacted) && !ended;
 
   const clearWait = useCallback(() => {
-    if (waitTimer.current) {
+    if (waitTimer.current !== null) {
       clearTimeout(waitTimer.current);
       waitTimer.current = null;
     }
   }, []);
+
+  const syncActiveIndex = useCallback(
+    (index: number) => {
+      if (count > 0 && index !== activeIndex.value) {
+        cycleDuration.value = interval;
+        activeIndex.value = index;
+      }
+    },
+    [count, activeIndex, cycleDuration, interval],
+  );
+
+  const resetCycle = useCallback(() => {
+    transitionRunning.current = false;
+    remainingMs.current = interval;
+  }, [interval]);
+
+  const reportReachEnd = useCallback(() => {
+    if (reachEndReported.current) {
+      return;
+    }
+
+    reachEndReported.current = true;
+    onReachEnd?.();
+  }, [onReachEnd]);
 
   const startWait = useCallback(() => {
     clearWait();
@@ -111,8 +96,21 @@ export const useCarouselAutoPlay = ({
     waitTimer.current = setTimeout(() => {
       waitTimer.current = null;
 
+      const currentIndex = normalizeCarouselIndex(
+        Math.round(progress.value),
+        count,
+        loop,
+      );
+      const reachedLastSlide = currentIndex === count - 1;
+
+      // При активном автоплее конец считается достигнутым после полного
+      // интервала последнего слайда, до остановки или loop-перехода.
+      if (reachedLastSlide) {
+        reportReachEnd();
+      }
+
       // Без loop next() на последнем слайде — no-op: завершаем автоплей сами.
-      if (!loop && Math.round(progress.value) >= count - 1) {
+      if (!loop && reachedLastSlide) {
         autoPlayActive.value = false;
 
         if (!resumeAfterEnd) {
@@ -122,14 +120,14 @@ export const useCarouselAutoPlay = ({
         return;
       }
 
-      animating.current = true;
-      programmaticNext.current = true;
+      transitionRunning.current = true;
+      programmaticScrollPending.current = true;
       // Сброс в начале цикла: при потерянном onFinished остаток не «залипнет».
       remainingMs.current = interval;
 
       instanceRef.current?.next({
         onFinished: () => {
-          animating.current = false;
+          transitionRunning.current = false;
           startWait();
         },
       });
@@ -143,10 +141,11 @@ export const useCarouselAutoPlay = ({
     resumeAfterEnd,
     progress,
     autoPlayActive,
+    reportReachEnd,
   ]);
 
   const pauseWait = useCallback(() => {
-    if (waitTimer.current) {
+    if (waitTimer.current !== null) {
       clearWait();
       remainingMs.current = Math.max(
         0,
@@ -154,6 +153,22 @@ export const useCarouselAutoPlay = ({
       );
     }
   }, [clearWait]);
+
+  /**
+   * Переход из внешнего контрола ведёт себя как ручной свайп. При этом
+   * следующий onScrollStart остаётся помеченным программным, чтобы не
+   * инициализировать одно взаимодействие дважды.
+   */
+  const beginControlInteraction = useCallback(() => {
+    const rounded = Math.round(progress.value);
+
+    programmaticScrollPending.current = true;
+    gestureActive.current = true;
+    indexAtGesture.current = rounded;
+    touching.value = true;
+    syncActiveIndex(normalizeCarouselIndex(rounded, count, loop));
+    pauseWait();
+  }, [progress, touching, syncActiveIndex, count, loop, pauseWait]);
 
   useEffect(() => {
     autoPlayActive.value = effectiveAutoPlay;
@@ -184,20 +199,19 @@ export const useCarouselAutoPlay = ({
       return;
     }
 
-    if (animating.current) {
-      animating.current = false;
-      remainingMs.current = interval;
+    if (transitionRunning.current) {
+      resetCycle();
     }
 
     startWait();
-  }, [touching, effectiveAutoPlay, interval, startWait]);
+  }, [touching, effectiveAutoPlay, resetCycle, startWait]);
 
   // Жест: пауза на время перетаскивания; по завершении — без смены слайда
   // продолжение с остатка, со сменой — остановка или полный цикл.
   const handleScrollStart = useCallback(() => {
     // Программный переход (автоплей, scrollTo/next/prev) — не жест.
-    if (programmaticNext.current) {
-      programmaticNext.current = false;
+    if (programmaticScrollPending.current) {
+      programmaticScrollPending.current = false;
       onScrollStart?.();
 
       return;
@@ -205,20 +219,12 @@ export const useCarouselAutoPlay = ({
 
     gestureActive.current = true;
     const rounded = Math.round(progress.value);
-    const index =
-      count === 0
-        ? 0
-        : loop
-          ? ((rounded % count) + count) % count
-          : Math.min(Math.max(rounded, 0), count - 1);
+    const index = normalizeCarouselIndex(rounded, count, loop);
 
     // Если новый свайп начался до onScrollEnd предыдущего, восстанавливаем
     // уже фактически достигнутый индекс один раз на старте жеста. Не следим за
     // Math.round(progress) непрерывно, иначе полоса прыгает на половине слайда.
-    if (count > 0 && index !== activeIndex.value) {
-      cycleDuration.value = interval;
-      activeIndex.value = index;
-    }
+    syncActiveIndex(index);
 
     indexAtGesture.current = rounded;
     touching.value = true;
@@ -228,9 +234,7 @@ export const useCarouselAutoPlay = ({
     progress,
     loop,
     count,
-    activeIndex,
-    cycleDuration,
-    interval,
+    syncActiveIndex,
     touching,
     pauseWait,
     onScrollStart,
@@ -240,27 +244,30 @@ export const useCarouselAutoPlay = ({
     (index: number) => {
       onScrollEnd?.(index);
 
-      if (index === count - 1 && lastEndIndex.current !== index) {
-        onReachEnd?.();
+      if (index !== count - 1) {
+        reachEndReported.current = false;
       }
 
-      lastEndIndex.current = index;
+      const isGesture = gestureActive.current;
+      const switched = isGesture && index !== indexAtGesture.current;
+      const autoPlayWillStop = switched && stopOnInteraction;
+
+      // Без автоплея последний слайд считается достигнутым сразу. То же
+      // относится к ручному переходу, который сейчас остановит автоплей.
+      if (index === count - 1 && (!autoPlayActive.value || autoPlayWillStop)) {
+        reportReachEnd();
+      }
 
       // Жест/программный переход: слот по приземлению (заодно коррекция,
       // если жест прервал автоплей-анимацию).
-      if (index !== activeIndex.value) {
-        cycleDuration.value = interval;
-        activeIndex.value = index;
-      }
+      syncActiveIndex(index);
 
-      if (!gestureActive.current) {
+      if (!isGesture) {
         return;
       }
 
       gestureActive.current = false;
       touching.value = false;
-
-      const switched = index !== indexAtGesture.current;
 
       if (switched && stopOnInteraction) {
         clearWait();
@@ -275,24 +282,22 @@ export const useCarouselAutoPlay = ({
         return;
       }
 
-      if (switched || animating.current) {
-        animating.current = false;
-        remainingMs.current = interval;
+      if (switched || transitionRunning.current) {
+        resetCycle();
       }
 
       startWait();
     },
     [
       onScrollEnd,
-      onReachEnd,
       count,
-      activeIndex,
-      cycleDuration,
+      reportReachEnd,
+      syncActiveIndex,
       touching,
       stopOnInteraction,
       effectiveAutoPlay,
-      interval,
       clearWait,
+      resetCycle,
       startWait,
       autoPlayActive,
     ],
@@ -307,6 +312,6 @@ export const useCarouselAutoPlay = ({
     handleTouchEnd,
     handleScrollStart,
     handleScrollEnd,
-    markProgrammatic,
+    beginControlInteraction,
   };
 };

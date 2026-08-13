@@ -30,7 +30,7 @@ import { CarouselContext, ICarouselApi } from "./carousel-context";
 import { CarouselArrows } from "./components/CarouselArrows";
 import { CarouselCounter } from "./components/CarouselCounter";
 import { CarouselDots } from "./components/CarouselDots";
-import { CarouselStoryBars } from "./components/CarouselStoryBars";
+import { CarouselProgressBars } from "./components/CarouselProgressBars";
 import { useCarouselAutoPlay } from "./hooks";
 
 const DEFAULT_HEIGHT = 180;
@@ -58,7 +58,10 @@ export type TCarouselWrapProps<T> = TDistributiveOmit<
    * Default true.
    */
   resumeAutoPlayAfterEnd?: boolean;
-  /** Достигнут последний слайд (любым способом); один вызов на приезд. */
+  /**
+   * Последний слайд достигнут: без автоплея — при приземлении, с активным
+   * автоплеем — после завершения его интервала. Один вызов за пребывание.
+   */
   onReachEnd?: () => void;
   /** Прямой ref к инстансу библиотеки (базовое API есть в useCarousel). */
   carouselRef?: Ref<ICarouselInstance>;
@@ -69,7 +72,7 @@ export type TCarouselWrapProps<T> = TDistributiveOmit<
 /**
  * Обёртка над react-native-reanimated-carousel: без настроек — зацикленная
  * карусель на всю ширину контейнера. Контролы — слот-компоненты
- * `Carousel.Dots`/`Carousel.StoryBars`/`Carousel.Counter`/`Carousel.Arrows`
+ * `Carousel.Dots`/`Carousel.ProgressBars`/`Carousel.Counter`/`Carousel.Arrows`
  * в children, свои — через `useCarousel()`. Автопрокрутка — собственный
  * движок useCarouselAutoPlay; все пропы либы прокидываются.
  */
@@ -110,7 +113,7 @@ const CarouselRoot = <T,>({
     handleTouchEnd,
     handleScrollStart,
     handleScrollEnd,
-    markProgrammatic,
+    beginControlInteraction,
   } = useCarouselAutoPlay({
     enabled: !!autoPlay,
     interval: autoPlayInterval,
@@ -162,16 +165,56 @@ const CarouselRoot = <T,>({
       scrollAnimationDuration,
       touching,
       scrollTo: (index, animated = true) => {
-        markProgrammatic();
-        innerRef.current?.scrollTo({ index, animated });
+        const instance = innerRef.current;
+
+        if (!instance || data.length <= 1) {
+          return;
+        }
+
+        const currentIndex = instance.getCurrentIndex();
+
+        if (index < 0 || index >= data.length || index === currentIndex) {
+          return;
+        }
+
+        beginControlInteraction();
+        instance.scrollTo({
+          index,
+          animated,
+          onFinished: animated ? undefined : () => handleScrollEnd(index),
+        });
       },
       next: () => {
-        markProgrammatic();
-        innerRef.current?.next();
+        const instance = innerRef.current;
+
+        if (!instance || data.length <= 1) {
+          return;
+        }
+
+        const currentIndex = instance.getCurrentIndex();
+
+        if (!loop && currentIndex === data.length - 1) {
+          return;
+        }
+
+        beginControlInteraction();
+        instance.next();
       },
       prev: () => {
-        markProgrammatic();
-        innerRef.current?.prev();
+        const instance = innerRef.current;
+
+        if (!instance || data.length <= 1) {
+          return;
+        }
+
+        const currentIndex = instance.getCurrentIndex();
+
+        if (!loop && currentIndex === 0) {
+          return;
+        }
+
+        beginControlInteraction();
+        instance.prev();
       },
     }),
     [
@@ -186,7 +229,8 @@ const CarouselRoot = <T,>({
       autoPlayInterval,
       scrollAnimationDuration,
       touching,
-      markProgrammatic,
+      beginControlInteraction,
+      handleScrollEnd,
     ],
   );
 
@@ -229,7 +273,7 @@ export const Carousel = Object.assign(
   memo(CarouselRoot) as typeof CarouselRoot,
   {
     Dots: CarouselDots,
-    StoryBars: CarouselStoryBars,
+    ProgressBars: CarouselProgressBars,
     Counter: CarouselCounter,
     Arrows: CarouselArrows,
   },
