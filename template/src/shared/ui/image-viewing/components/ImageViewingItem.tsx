@@ -3,7 +3,7 @@ import { StyleSheet } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated, { SharedValue } from "react-native-reanimated";
 
-import { useZoomGesture } from "../hooks/use-zoom-gesture";
+import { useViewerGestures } from "../hooks/use-viewer-gestures";
 import {
   IImageViewingConfig,
   IImageViewingSource,
@@ -98,7 +98,7 @@ export const ImageViewingItem: FC<IImageViewingItemProps> = memo(
       [onLongPress, image, index],
     );
 
-    const { gesture, animatedStyle, reset } = useZoomGesture({
+    const { gesture, animatedStyle, reset } = useViewerGestures({
       containerWidth: width,
       containerHeight: height,
       contentWidth: content.width,

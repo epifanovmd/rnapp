@@ -13,11 +13,14 @@ Dialog.Header/Content/Footer; управляемый `isVisible`/`onClose` ил�
 animated-styles, gestures, back-button, styles; заменяемый `backdropComponent`; Portal +
 Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scale-анимации), text, icon (lucide), picker (нативный
 WheelPicker), chart (Skia), flex-view, context-menu-view (JS-порт на Reanimated,
-синглтон Host в App.tsx), image-viewing (свой fullscreen-вьюер: Reanimated+GH-жесты на
-UI-потоке — pinch с фокальной привязкой, pan c инерцией/границами, double-tap в точку,
-swipe-to-dismiss с затемнением, скрываемые бары; ядро — `hooks/use-zoom-gesture.ts`;
-кастомизация render-пропсами renderHeader/renderFooter/renderImage; FastImage + previewUri +
-префетч соседних), keyboard-scroll-view, actions, animated-refreshing,
+синглтон Host в App.tsx), image-viewing (свой fullscreen-вьюер: Reanimated + **hook-API RNGH v3**
+(`usePinchGesture`/`usePanGesture`/... — builder `Gesture.*` в v3 деприкейтнут) — pinch с
+фокальной привязкой/rubber за maxScale/ре-анкеровкой при смене пальцев, pan c инерцией,
+double-tap в точку, swipe-to-dismiss; SRP-разделение: `use-zoom-gesture` (только зум),
+`use-dismiss-gesture` (только смахивание, собственный translateY), `use-viewer-gestures`
+(композиция + animatedStyle + reset); кастомизация render-пропсами
+renderHeader/renderFooter/renderImage; FastImage + previewUri + префетч соседних),
+keyboard-scroll-view, actions, animated-refreshing,
 check-box, chip, collapsable (Reanimated: высота/opacity на UI-потоке, обрезанное превью
 `collapsedHeight` или кросс-фейд `collapsedContent`, semi-controlled `collapsed` +
 императивный `ref.toggle`, авто-измерение динамического контента), field, image, scroll-view,
