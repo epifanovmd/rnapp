@@ -49,11 +49,20 @@ interface IBarProps {
   mode: TCarouselStoryBarsMode;
   idleVariant: TCarouselStoryBarsIdleVariant;
   timer: SharedValue<number>;
+  timerIndex: SharedValue<number>;
   color: ColorValue;
 }
 
-const Bar: FC<IBarProps> = ({ index, mode, idleVariant, timer, color }) => {
-  const { progress, count, loop, autoPlayActive, activeIndex } = useCarousel();
+const Bar: FC<IBarProps> = ({
+  index,
+  mode,
+  idleVariant,
+  timer,
+  timerIndex,
+  color,
+}) => {
+  const { progress, count, loop, autoPlayActive, activeIndex, touching } =
+    useCarousel();
 
   const fillStyle = useAnimatedStyle(() => {
     if (mode === "timer") {
@@ -85,17 +94,52 @@ const Bar: FC<IBarProps> = ({ index, mode, idleVariant, timer, color }) => {
       // назад (при f≈-1 ширина 0 при любом таймере — без мигания в кадре
       // смены слота).
       const current = activeIndex.value;
+      const offset = progress.value - current;
+      const wrapped = loop
+        ? offset - count * Math.round(offset / count)
+        : offset;
+      const f = Math.min(Math.max(wrapped, -1), 1);
 
       if (index === current) {
-        const offset = progress.value - current;
-        const wrapped = loop
-          ? offset - count * Math.round(offset / count)
-          : offset;
-        const f = Math.min(Math.max(wrapped, -1), 1);
-        const t = timer.value;
-        const fill = f >= 0 ? t + (1 - t) * f : t * (1 + f);
+        // activeIndex и реакция сброса timer могут попасть в соседние UI-кадры.
+        // Не применяем значение, оставшееся от предыдущего активного слайда.
+        const t = timerIndex.value === current ? timer.value : 0;
+        // Ручной свайп напрямую прибавляет/вычитает пройденную долю от
+        // зафиксированного прогресса таймера. Для автоперехода сохраняем
+        // сглаживание между слотами на протяжении transition.
+        const fill = touching.value
+          ? Math.min(Math.max(t + f, 0), 1)
+          : f >= 0
+            ? t + (1 - t) * f
+            : t * (1 + f);
 
         return { width: `${fill * 100}%`, alignSelf: "flex-start" as const };
+      }
+
+      // На переходе через конец loop следующий (нулевой) индекс численно
+      // меньше текущего, но ещё не является пройденным.
+      const next = loop ? (current + 1) % count : current + 1;
+
+      if (f > 0 && index === next) {
+        return { width: "0%", alignSelf: "flex-start" as const };
+      }
+
+      // При быстром свайпе activeIndex может отставать сразу на несколько
+      // элементов. Уменьшаем каждую пересекаемую предыдущую полосу по её
+      // позиции относительно непрерывного progress, а не только соседа.
+      let relativeIndex = index - current;
+
+      if (loop && relativeIndex > 0) {
+        relativeIndex -= count;
+      }
+
+      if (wrapped < 0 && relativeIndex < 0) {
+        const fill = Math.min(Math.max(wrapped - relativeIndex, 0), 1);
+
+        return {
+          width: `${fill * 100}%`,
+          alignSelf: "flex-start" as const,
+        };
       }
 
       const fill = index < current ? 1 : 0;
@@ -134,6 +178,8 @@ export const CarouselStoryBars: FC<ICarouselStoryBarsProps> = memo(
       useCarousel();
     /** Прогресс таймера активного слайда, 0..1. */
     const timer = useSharedValue(0);
+    /** Индекс слайда, которому принадлежит текущее значение timer. */
+    const timerIndex = useSharedValue(activeIndex.value);
 
     // Смена слота перезапускает таймер на длительность цикла.
     useAnimatedReaction(
@@ -145,8 +191,9 @@ export const CarouselStoryBars: FC<ICarouselStoryBarsProps> = memo(
 
         cancelAnimation(timer);
         timer.value = 0;
+        timerIndex.value = current;
 
-        if (autoPlayActive.value && !touching.value) {
+        if (autoPlayActive.value && !touching.value && timer.value < 1) {
           timer.value = withTiming(1, {
             duration: cycleDuration.value,
             easing: Easing.linear,
@@ -207,6 +254,7 @@ export const CarouselStoryBars: FC<ICarouselStoryBarsProps> = memo(
               mode={mode}
               idleVariant={idleVariant}
               timer={timer}
+              timerIndex={timerIndex}
               color={color}
             />
           </View>

@@ -118,7 +118,6 @@ const CarouselRoot = <T,>({
     resumeAfterEnd: resumeAutoPlayAfterEnd,
     loop,
     count: data.length,
-    transitionMs: scrollAnimationDuration,
     progress,
     touching,
     instanceRef: innerRef,
