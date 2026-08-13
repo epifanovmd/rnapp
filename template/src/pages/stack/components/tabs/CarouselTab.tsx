@@ -89,20 +89,21 @@ export const CarouselTab: FC = memo(() => {
       <DemoSection
         title={"Бегущая строка"}
         description={
-          "autoPlay с нулевым интервалом и линейным таймингом — " +
+          "autoplay с нулевым интервалом и линейным таймингом — " +
           "непрерывный тикер; свайп работает"
         }
       >
         <Carousel
-          width={TICKER_CARD_WIDTH + TICKER_CARD_GAP}
-          height={52}
+          itemSize={TICKER_CARD_WIDTH + TICKER_CARD_GAP}
+          style={styles.ticker}
           data={TICKER_CARDS}
-          autoPlay
-          autoPlayInterval={0}
-          stopAutoPlayOnInteraction={false}
-          withAnimation={{
+          autoplay
+          autoplayInterval={0}
+          stopAutoplayOnInteraction={false}
+          animation={{
             type: "timing",
-            config: { duration: 5000, easing: Easing.linear },
+            duration: 5000,
+            easing: Easing.linear,
           }}
           renderItem={({ item }) => <TickerCard {...item} />}
         />
@@ -130,10 +131,10 @@ export const CarouselTab: FC = memo(() => {
         <Carousel
           data={GALLERY}
           renderItem={renderPhoto}
-          autoPlay
-          autoPlayInterval={2500}
+          autoplay
+          autoplayInterval={2500}
           loop={false}
-          height={220}
+          style={styles.gallery}
         >
           <Carousel.ProgressBars mode={"timer"} />
           <Carousel.Arrows />
@@ -152,7 +153,7 @@ export const CarouselTab: FC = memo(() => {
           data={GALLERY}
           renderItem={renderPhoto}
           loop={false}
-          height={220}
+          style={styles.gallery}
         >
           <Carousel.ProgressBars mode={"timer"} />
         </Carousel>
@@ -165,10 +166,10 @@ export const CarouselTab: FC = memo(() => {
         <Carousel
           data={GALLERY}
           renderItem={renderPhoto}
-          mode={"parallax"}
-          modeConfig={{
-            parallaxScrollingScale: 0.9,
-            parallaxScrollingOffset: 40,
+          layout={{
+            type: "parallax",
+            scale: 0.9,
+            offset: 40,
           }}
         >
           <Carousel.Arrows />
@@ -181,6 +182,12 @@ export const CarouselTab: FC = memo(() => {
 });
 
 const styles = StyleSheet.create({
+  ticker: {
+    height: 52,
+  },
+  gallery: {
+    height: 220,
+  },
   secondBars: {
     top: 18,
   },

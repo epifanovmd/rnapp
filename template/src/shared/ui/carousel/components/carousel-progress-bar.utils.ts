@@ -18,7 +18,7 @@ interface IProgressBarFillOptions {
   progress: number;
   count: number;
   loop: boolean;
-  autoPlayActive: boolean;
+  autoplayActive: boolean;
   activeIndex: number;
   timerProgress: number;
   timerIndex: number;
@@ -76,7 +76,7 @@ const getCurrentTimerFill = ({
     : timerProgress * (1 + swipeProgress);
 };
 
-const getAutoPlayTimerFill = (
+const getAutoplayTimerFill = (
   options: IProgressBarFillOptions,
 ): IProgressBarFill => {
   "worklet";
@@ -143,9 +143,9 @@ export const getProgressBarFill = (
     };
   }
 
-  if (!options.autoPlayActive) {
+  if (!options.autoplayActive) {
     return getIdleTimerFill(options);
   }
 
-  return getAutoPlayTimerFill(options);
+  return getAutoplayTimerFill(options);
 };

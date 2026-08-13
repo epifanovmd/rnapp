@@ -8,7 +8,7 @@ import { getProgressBarFill } from "./carousel-progress-bar.utils";
 
 export const CarouselProgressBar: FC<ICarouselProgressBarProps> = memo(
   ({ index, mode, idleVariant, timer, timerIndex, color }) => {
-    const { progress, count, loop, autoPlayActive, activeIndex, touching } =
+    const { progress, count, loop, autoplayActive, activeIndex, touching } =
       useCarousel();
 
     const animatedStyle = useAnimatedStyle(() => {
@@ -19,7 +19,7 @@ export const CarouselProgressBar: FC<ICarouselProgressBarProps> = memo(
         progress: progress.value,
         count,
         loop,
-        autoPlayActive: autoPlayActive.value,
+        autoplayActive: autoplayActive.value,
         activeIndex: activeIndex.value,
         timerProgress: timer.value,
         timerIndex: timerIndex.value,

@@ -13,13 +13,13 @@ export interface ICarouselArrowsProps {
 /** Кнопки ‹ › по бокам карусели (prev/next через контекст). */
 export const CarouselArrows: FC<ICarouselArrowsProps> = memo(
   ({ inset = 8, size = 32 }) => {
-    const { height, prev, next } = useCarousel();
-    const top = height / 2 - size / 2;
+    const { prev, next } = useCarousel();
 
     const buttonStyle = {
       width: size,
       height: size,
       borderRadius: size / 2,
+      transform: [{ translateY: -size / 2 }],
     };
 
     return (
@@ -27,7 +27,7 @@ export const CarouselArrows: FC<ICarouselArrowsProps> = memo(
         <TouchableOpacity
           accessibilityRole={"button"}
           accessibilityLabel={"Предыдущий слайд"}
-          style={[styles.button, buttonStyle, { top, left: inset }]}
+          style={[styles.button, buttonStyle, { left: inset }]}
           onPress={prev}
         >
           <Icon name={"chevronLeft"} size={size * 0.6} color={"#FFFFFF"} />
@@ -35,7 +35,7 @@ export const CarouselArrows: FC<ICarouselArrowsProps> = memo(
         <TouchableOpacity
           accessibilityRole={"button"}
           accessibilityLabel={"Следующий слайд"}
-          style={[styles.button, buttonStyle, { top, right: inset }]}
+          style={[styles.button, buttonStyle, { right: inset }]}
           onPress={next}
         >
           <Icon name={"chevronRight"} size={size * 0.6} color={"#FFFFFF"} />
@@ -48,6 +48,7 @@ export const CarouselArrows: FC<ICarouselArrowsProps> = memo(
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
+    top: "50%",
     zIndex: 1,
     alignItems: "center",
     justifyContent: "center",

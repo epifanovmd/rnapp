@@ -1,30 +1,31 @@
 import { RefObject } from "react";
 import { SharedValue } from "react-native-reanimated";
-import { ICarouselInstance } from "react-native-reanimated-carousel";
+import { CarouselRef } from "react-native-reanimated-carousel";
 
-export interface ICarouselAutoPlayOptions {
+export interface ICarouselAutoplayOptions {
   enabled: boolean;
   interval: number;
   stopOnInteraction: boolean;
   resumeAfterEnd: boolean;
   loop: boolean;
   count: number;
+  initialIndex: number;
   progress: SharedValue<number>;
   touching: SharedValue<boolean>;
-  instanceRef: RefObject<ICarouselInstance | null>;
+  instanceRef: RefObject<CarouselRef | null>;
   onScrollStart?: () => void;
-  onScrollEnd?: (index: number) => void;
+  onSnapToItem?: (index: number) => void;
   onReachEnd?: () => void;
 }
 
-export interface ICarouselAutoPlay {
-  effectiveAutoPlay: boolean;
-  autoPlayActive: SharedValue<boolean>;
+export interface ICarouselAutoplay {
+  effectiveAutoplay: boolean;
+  autoplayActive: SharedValue<boolean>;
   activeIndex: SharedValue<number>;
   cycleDuration: SharedValue<number>;
   handleTouchStart: () => void;
   handleTouchEnd: () => void;
   handleScrollStart: () => void;
-  handleScrollEnd: (index: number) => void;
+  handleSnapToItem: (index: number) => void;
   beginControlInteraction: () => void;
 }

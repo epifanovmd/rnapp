@@ -8,22 +8,18 @@ export interface ICarouselApi {
   count: number;
   /** Карусель зациклена — контролы учитывают переход через край. */
   loop: boolean;
-  /** Высота карусели — для позиционирования overlay-контролов. */
-  height: number;
-  autoPlay: boolean;
+  autoplay: boolean;
   /**
    * Автопрокрутка активна — shared value для ворклетов: меняется синхронно
-   * в момент остановки, раньше ре-рендера с новым autoPlay.
+   * в момент остановки, раньше ре-рендера с новым autoplay.
    */
-  autoPlayActive: SharedValue<boolean>;
+  autoplayActive: SharedValue<boolean>;
   /** Активный слайд для контролов; меняется по приземлению. */
   activeIndex: SharedValue<number>;
   /** Длительность текущего цикла автопрокрутки активного слайда, мс. */
   cycleDuration: SharedValue<number>;
   /** Интервал автопрокрутки, мс. */
-  autoPlayInterval: number;
-  /** Длительность анимации перехода между слайдами, мс. */
-  scrollAnimationDuration: number;
+  autoplayInterval: number;
   /** Палец на карусели (жест) — контролы могут ставить себя на паузу. */
   touching: SharedValue<boolean>;
   scrollTo: (index: number, animated?: boolean) => void;

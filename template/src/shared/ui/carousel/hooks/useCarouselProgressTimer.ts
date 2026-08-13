@@ -18,7 +18,7 @@ interface ICarouselProgressTimer {
 export const useCarouselProgressTimer = (
   mode: TCarouselProgressBarsMode,
 ): ICarouselProgressTimer => {
-  const { autoPlayActive, activeIndex, cycleDuration, touching } =
+  const { autoplayActive, activeIndex, cycleDuration, touching } =
     useCarousel();
   const timer = useSharedValue(0);
   const timerIndex = useSharedValue(activeIndex.value);
@@ -34,7 +34,7 @@ export const useCarouselProgressTimer = (
       timer.value = 0;
       timerIndex.value = current;
 
-      if (autoPlayActive.value && !touching.value) {
+      if (autoplayActive.value && !touching.value) {
         timer.value = withTiming(1, {
           duration: cycleDuration.value,
           easing: Easing.linear,
@@ -61,7 +61,7 @@ export const useCarouselProgressTimer = (
         return;
       }
 
-      if (autoPlayActive.value && timer.value < 1) {
+      if (autoplayActive.value && timer.value < 1) {
         timer.value = withTiming(1, {
           duration: (1 - timer.value) * cycleDuration.value,
           easing: Easing.linear,
