@@ -1,25 +1,17 @@
 import { ColorValue, StyleProp, ViewStyle } from "react-native";
 import { SharedValue } from "react-native-reanimated";
 
+import { ICarouselPositionedControlProps } from "./carousel-control.types";
+
 export type TCarouselProgressBarsMode = "scroll" | "timer";
 
 export type TCarouselProgressBarsIdleVariant = "fill" | "move";
 
-export type TCarouselProgressBarsPosition = "top" | "bottom";
-
-export type TCarouselProgressBarsPlacement = "inside" | "outside";
-
-export interface ICarouselProgressBarsProps {
+export interface ICarouselProgressBarsProps extends ICarouselPositionedControlProps {
   /** Источник заполнения: прокрутка либо таймер автоплея. */
   mode?: TCarouselProgressBarsMode;
   /** Отображение timer-режима при неактивном автоплее. */
   idleVariant?: TCarouselProgressBarsIdleVariant;
-  /** Вертикальная сторона карусели. */
-  position?: TCarouselProgressBarsPosition;
-  /** Разместить полосы поверх карусели либо за её границей. */
-  placement?: TCarouselProgressBarsPlacement;
-  /** Отступ от выбранной границы карусели. */
-  inset?: number;
   height?: number;
   gap?: number;
   color?: ColorValue;

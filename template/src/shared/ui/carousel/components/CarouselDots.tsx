@@ -8,9 +8,10 @@ import {
 } from "react-native";
 
 import { useCarousel } from "../carousel-context";
+import { ICarouselPositionedControlProps } from "../carousel-control.types";
 import { CarouselDot } from "./CarouselDot";
 
-export interface ICarouselDotsProps {
+export interface ICarouselDotsProps extends ICarouselPositionedControlProps {
   size?: number;
   gap?: number;
   /** Цвет точек; по умолчанию primary темы. */
@@ -18,7 +19,7 @@ export interface ICarouselDotsProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Точки-пагинация под каруселью; активная — worklet по прогрессу. */
+/** Точки-пагинация; активная точка вычисляется на UI-потоке. */
 export const CarouselDots: FC<ICarouselDotsProps> = memo(
   ({ size = 6, gap = 6, color, style }) => {
     const { count } = useCarousel();
@@ -38,6 +39,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignSelf: "center",
     alignItems: "center",
-    marginTop: 8,
+    padding: 8,
   },
 });

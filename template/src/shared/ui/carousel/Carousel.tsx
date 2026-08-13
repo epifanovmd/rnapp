@@ -1,6 +1,6 @@
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
 import React, {
-  memo,
+  ReactElement,
   ReactNode,
   Ref,
   useCallback,
@@ -26,6 +26,13 @@ import RNCarousel, {
 } from "react-native-reanimated-carousel";
 import { scheduleOnRN } from "react-native-worklets";
 
+import {
+  CompoundProps,
+  CompoundRootProps,
+  CompoundStatics,
+  createCompound,
+  slot,
+} from "../../lib/slots";
 import { CarouselContext, ICarouselApi } from "./carousel-context";
 import { CarouselArrows } from "./components/CarouselArrows";
 import { CarouselCounter } from "./components/CarouselCounter";
@@ -65,37 +72,48 @@ export type TCarouselWrapProps<T> = TDistributiveOmit<
   onReachEnd?: () => void;
   /** Прямой ref к инстансу библиотеки (базовое API есть в useCarousel). */
   carouselRef?: Ref<ICarouselInstance>;
-  /** Слот-компоненты (Carousel.Dots и т.п.) и свои контролы (useCarousel). */
+  /** Compound-слоты и свои компоненты на useCarousel(). */
   children?: ReactNode;
+};
+
+const carouselSlots = {
+  progressBars: slot.of(CarouselProgressBars),
+  dots: slot.of(CarouselDots),
+  counter: slot.of(CarouselCounter),
+  arrows: slot.of(CarouselArrows),
 };
 
 /**
  * Обёртка над react-native-reanimated-carousel: без настроек — зацикленная
- * карусель на всю ширину контейнера. Контролы — слот-компоненты
- * `Carousel.Dots`/`Carousel.ProgressBars`/`Carousel.Counter`/`Carousel.Arrows`
- * в children, свои — через `useCarousel()`. Автопрокрутка — собственный
- * движок useCarouselAutoPlay; все пропы либы прокидываются.
+ * карусель на всю ширину контейнера. Контролы объявлены compound-слотами;
+ * свои контролы получают API через
+ * `useCarousel()`. Автопрокрутка — собственный движок useCarouselAutoPlay;
+ * все пропы библиотеки прокидываются.
  */
-const CarouselRoot = <T,>({
-  width,
-  height = DEFAULT_HEIGHT,
-  autoPlay,
-  autoPlayInterval = 2000,
-  scrollAnimationDuration = 500,
-  stopAutoPlayOnInteraction = false,
-  resumeAutoPlayAfterEnd = true,
-  loop = true,
-  data,
-  containerStyle,
-  carouselRef,
-  onProgressChange,
-  onScrollStart,
-  onScrollEnd,
-  onReachEnd,
-  style,
-  children,
-  ...rest
-}: TCarouselWrapProps<T>) => {
+const CarouselRoot = ({
+  props,
+  slots,
+  content,
+}: CompoundRootProps<TCarouselWrapProps<unknown>, typeof carouselSlots>) => {
+  const {
+    width,
+    height = DEFAULT_HEIGHT,
+    autoPlay,
+    autoPlayInterval = 2000,
+    scrollAnimationDuration = 500,
+    stopAutoPlayOnInteraction = false,
+    resumeAutoPlayAfterEnd = true,
+    loop = true,
+    data,
+    containerStyle,
+    carouselRef,
+    onProgressChange,
+    onScrollStart,
+    onScrollEnd,
+    onReachEnd,
+    style,
+    ...rest
+  } = props;
   const innerRef = useRef<ICarouselInstance>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   /** Абсолютный прогресс — быстрый UI-путь для слот-компонентов. */
@@ -233,53 +251,124 @@ const CarouselRoot = <T,>({
       handleScrollEnd,
     ],
   );
+  const progressBarsPosition = slots.progressBars.props?.position ?? "top";
+  const progressBarsPlacement = slots.progressBars.props?.placement ?? "inside";
+  const dotsPosition = slots.dots.props?.position ?? "bottom";
+  const dotsPlacement = slots.dots.props?.placement ?? "outside";
+
+  const progressBarsInside = progressBarsPlacement === "inside";
+  const dotsInside = dotsPlacement === "inside";
+
+  const renderProgressBars = () =>
+    slots.progressBars.render({
+      defaults: progressBarsInside
+        ? {
+            style: [
+              styles.insideControl,
+              progressBarsPosition === "top"
+                ? styles.insideTop
+                : styles.insideBottom,
+            ],
+          }
+        : undefined,
+    });
+
+  const renderDots = () =>
+    slots.dots.render({
+      defaults: dotsInside
+        ? {
+            style: [
+              styles.insideControl,
+              styles.centeredControl,
+              dotsPosition === "top" ? styles.insideTop : styles.insideBottom,
+            ],
+          }
+        : undefined,
+    });
 
   return (
-    <View style={containerStyle} onLayout={handleLayout}>
-      {slideWidth > 0 && (
-        <View
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-        >
-          <RNCarousel
-            {...(rest as TCarouselProps<T>)}
-            ref={mergeRefs([innerRef, carouselRef ?? null])}
-            width={slideWidth}
-            height={height}
-            loop={loop}
-            autoPlay={false}
-            onScrollStart={handleScrollStart}
-            onScrollEnd={handleScrollEnd}
-            scrollAnimationDuration={scrollAnimationDuration}
-            data={data}
-            style={StyleSheet.flatten([
-              styles.carousel,
-              { width: containerWidth || slideWidth },
-              style,
-            ])}
-            onProgressChange={progress}
-          />
-        </View>
-      )}
-      <CarouselContext.Provider value={api}>
-        {children}
-      </CarouselContext.Provider>
-    </View>
+    <CarouselContext.Provider value={api}>
+      <View style={containerStyle} onLayout={handleLayout}>
+        {!progressBarsInside &&
+          progressBarsPosition === "top" &&
+          renderProgressBars()}
+        {!dotsInside && dotsPosition === "top" && renderDots()}
+        {slideWidth > 0 && (
+          <View style={[styles.frame, { height }]}>
+            <View
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+            >
+              <RNCarousel
+                {...(rest as TCarouselProps<unknown>)}
+                ref={mergeRefs([innerRef, carouselRef ?? null])}
+                width={slideWidth}
+                height={height}
+                loop={loop}
+                autoPlay={false}
+                onScrollStart={handleScrollStart}
+                onScrollEnd={handleScrollEnd}
+                scrollAnimationDuration={scrollAnimationDuration}
+                data={data}
+                style={StyleSheet.flatten([
+                  styles.carousel,
+                  { width: containerWidth || slideWidth },
+                  style,
+                ])}
+                onProgressChange={progress}
+              />
+            </View>
+            <View pointerEvents={"box-none"} style={StyleSheet.absoluteFill}>
+              {progressBarsInside && renderProgressBars()}
+              {dotsInside && renderDots()}
+              {slots.arrows.render()}
+              {slots.counter.render()}
+            </View>
+          </View>
+        )}
+        {!progressBarsInside &&
+          progressBarsPosition === "bottom" &&
+          renderProgressBars()}
+        {!dotsInside && dotsPosition === "bottom" && renderDots()}
+        {content}
+      </View>
+    </CarouselContext.Provider>
   );
 };
 
-export const Carousel = Object.assign(
-  memo(CarouselRoot) as typeof CarouselRoot,
-  {
-    Dots: CarouselDots,
-    ProgressBars: CarouselProgressBars,
-    Counter: CarouselCounter,
-    Arrows: CarouselArrows,
-  },
-);
+const CarouselCompound = createCompound<TCarouselWrapProps<unknown>>()({
+  name: "Carousel",
+  render: CarouselRoot,
+  slots: carouselSlots,
+});
+
+type TCarouselComponent = (<T>(
+  props: CompoundProps<TCarouselWrapProps<T>, typeof carouselSlots>,
+) => ReactElement | null) &
+  CompoundStatics<typeof carouselSlots>;
+
+export const Carousel = CarouselCompound as unknown as TCarouselComponent;
 
 const styles = StyleSheet.create({
+  frame: {
+    position: "relative",
+  },
+  insideControl: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  insideTop: {
+    top: 0,
+  },
+  insideBottom: {
+    bottom: 0,
+  },
+  centeredControl: {
+    justifyContent: "center",
+  },
   carousel: {
     alignSelf: "center",
   },

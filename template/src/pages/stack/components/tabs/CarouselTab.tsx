@@ -116,14 +116,14 @@ export const CarouselTab: FC = memo(() => {
         }
       >
         <Carousel data={GALLERY} renderItem={renderPhoto}>
-          <Carousel.Dots />
+          <Carousel.Dots position={"bottom"} placement={"outside"} />
         </Carousel>
       </DemoSection>
 
       <DemoSection
-        title={"Stories"}
+        title={"Progress bars"}
         description={
-          "StoryBars в timer-режиме: активная полоска заполняется по " +
+          "ProgressBars в timer-режиме: активная полоска заполняется по " +
           "таймеру автопрокрутки (2.5с) + Counter"
         }
       >
@@ -135,15 +135,16 @@ export const CarouselTab: FC = memo(() => {
           loop={false}
           height={220}
         >
-          <Carousel.StoryBars mode={"timer"} />
+          <Carousel.ProgressBars mode={"timer"} />
+          <Carousel.Arrows />
           <Carousel.Counter />
         </Carousel>
       </DemoSection>
 
       <DemoSection
-        title={"Stories без автоплея"}
+        title={"Progress bars без автоплея"}
         description={
-          "StoryBars в timer-режиме как пагинация: idleVariant=fill — " +
+          "ProgressBars в timer-режиме как пагинация: idleVariant=fill — " +
           "пройденные заполнены; move — активная переезжает по свайпу"
         }
       >
@@ -153,12 +154,7 @@ export const CarouselTab: FC = memo(() => {
           loop={false}
           height={220}
         >
-          <Carousel.StoryBars mode={"timer"} />
-          <Carousel.StoryBars
-            mode={"timer"}
-            idleVariant={"move"}
-            style={styles.secondBars}
-          />
+          <Carousel.ProgressBars mode={"timer"} />
         </Carousel>
       </DemoSection>
 
@@ -176,7 +172,7 @@ export const CarouselTab: FC = memo(() => {
           }}
         >
           <Carousel.Arrows />
-          <Carousel.Dots />
+          <Carousel.Dots position={"bottom"} placement={"outside"} />
           <RandomSlideButton />
         </Carousel>
       </DemoSection>
