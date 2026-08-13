@@ -28,7 +28,10 @@ switch, tabs, ticket, touchable,
 avatar (url/инициалы + детерминированный цвет, online-статус), badge (счётчик/max/dot,
 standalone или поверх children), divider (горизонтальный/вертикальный/с label),
 progress-bar (determinate/indeterminate, Reanimated), radio (Radio + generic RadioGroup),
-skeleton (пульсирующая заглушка, circle-режим). `icon` экспортирует `ICON_NAMES` для галерей.
+skeleton (компаунд: `Skeleton` — блок любой формы (width/height/borderRadius/flex + style),
+`Skeleton.Circle`, `Skeleton.Text` (lines/lastLineWidth), `Skeleton.Group` — один общий пульс
+на группу, вложенные блоки мигают синхронно; children рендерятся поверх блока — статичная
+подложка с пульсирующими вложениями). `icon` экспортирует `ICON_NAMES` для галерей.
 
 **Плейграунд** (`pages/stack/components/`, top-tabs): Buttons, Typography (все textStyle +
 цвета + Title), Icons (галерея ICON_NAMES), Inputs (TextField/Field-слоты),

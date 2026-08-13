@@ -11,6 +11,7 @@ import {
   Text,
 } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
+import { StyleSheet } from "react-native";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
@@ -47,7 +48,7 @@ export const FeedbackTab: FC = memo(() => {
 
       <DemoSection
         title={"Skeleton"}
-        description={"Пульсирующие заглушки; собранный шаблон карточки"}
+        description={"Заглушка → контент; Group синхронизирует пульс блоков"}
       >
         <Button
           size={"small"}
@@ -55,13 +56,16 @@ export const FeedbackTab: FC = memo(() => {
           onPress={() => setLoading(current => !current)}
         />
         {loading ? (
-          <Row gap={12} alignItems={"center"}>
-            <Skeleton circle width={48} />
-            <Col flex={1} gap={8}>
-              <Skeleton width={"60%"} />
-              <Skeleton width={"90%"} height={12} />
-            </Col>
-          </Row>
+          <Skeleton.Group>
+            <Row gap={12} alignItems={"center"}>
+              <Skeleton.Circle size={48} />
+              <Col flex={1} gap={8}>
+                <Skeleton width={"60%"} />
+                <Skeleton width={"90%"} height={12} />
+              </Col>
+              <Skeleton width={64} height={32} borderRadius={16} />
+            </Row>
+          </Skeleton.Group>
         ) : (
           <Row gap={12} alignItems={"center"}>
             <Avatar name={"Иван Петров"} size={48} />
@@ -73,6 +77,75 @@ export const FeedbackTab: FC = memo(() => {
             </Col>
           </Row>
         )}
+      </DemoSection>
+
+      <DemoSection
+        title={"Skeleton: шаблон поста"}
+        description={"Шапка, Skeleton.Text, изображение, действия-пилюли"}
+      >
+        <Skeleton.Group>
+          <Col gap={12}>
+            <Row gap={10} alignItems={"center"}>
+              <Skeleton.Circle size={36} />
+              <Col flex={1} gap={6}>
+                <Skeleton width={"45%"} height={12} />
+                <Skeleton width={"25%"} height={10} />
+              </Col>
+            </Row>
+            <Skeleton.Text lines={3} lastLineWidth={"40%"} />
+            <Skeleton height={160} borderRadius={12} />
+            <Row gap={8}>
+              <Skeleton width={72} height={28} borderRadius={14} />
+              <Skeleton width={72} height={28} borderRadius={14} />
+              <Skeleton width={28} height={28} borderRadius={14} />
+            </Row>
+          </Col>
+        </Skeleton.Group>
+      </DemoSection>
+
+      <DemoSection
+        title={"Skeleton: грид и список"}
+        description={"Медиа-грид из квадратов; ряды списка с иконками"}
+      >
+        <Skeleton.Group>
+          <Col gap={16}>
+            <Row gap={8}>
+              <Skeleton flex={1} height={96} borderRadius={10} />
+              <Skeleton flex={1} height={96} borderRadius={10} />
+              <Skeleton flex={1} height={96} borderRadius={10} />
+            </Row>
+            {[0, 1, 2].map(index => (
+              <Row key={index} gap={12} alignItems={"center"}>
+                <Skeleton width={28} height={28} borderRadius={8} />
+                <Skeleton flex={1} height={14} />
+                <Skeleton width={40} height={14} />
+              </Row>
+            ))}
+          </Col>
+        </Skeleton.Group>
+      </DemoSection>
+
+      <DemoSection
+        title={"Skeleton: произвольные формы"}
+        description={
+          "Любая форма через style; статичная подложка с вложенными блоками"
+        }
+      >
+        <Skeleton.Group>
+          <Row gap={12} alignItems={"flex-end"}>
+            <Skeleton width={90} height={32} borderRadius={16} />
+            <Skeleton width={64} height={64} style={styles.blob} />
+            <Skeleton width={48} height={64} style={styles.tag} />
+          </Row>
+        </Skeleton.Group>
+        <Skeleton animated={false} height={72} borderRadius={16}>
+          <Skeleton.Group>
+            <Row gap={12} alignItems={"center"} flex={1} ph={12}>
+              <Skeleton.Circle size={40} />
+              <Skeleton.Text flex={1} lines={2} lineHeight={10} gap={6} />
+            </Row>
+          </Skeleton.Group>
+        </Skeleton>
       </DemoSection>
 
       <DemoSection
@@ -126,4 +199,17 @@ export const FeedbackTab: FC = memo(() => {
       </DemoSection>
     </DemoScreen>
   );
+});
+
+const styles = StyleSheet.create({
+  blob: {
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 32,
+  },
+  tag: {
+    borderRadius: 8,
+    borderBottomLeftRadius: 24,
+  },
 });
