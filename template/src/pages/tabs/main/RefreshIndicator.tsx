@@ -40,11 +40,20 @@ export const RefreshIndicator: FC<IProps> = memo(
     const [spinning, setSpinning] = useState(false);
 
     useAnimatedReaction(
-      () => state.value === "refreshing" || state.value === "settling",
-      (isSpinning, previous) => {
-        if (isSpinning !== previous) {
-          scheduleOnRN(setSpinning, isSpinning);
+      () => state.value,
+      (current, previous) => {
+        if (current === previous) {
+          return;
         }
+
+        // Червяк — только во время refreshing и на выезде после него;
+        // settling отменённой протяжки (release до порога) остаётся
+        // determinate-кольцом и уменьшается вслед за pullDistance.
+        const isSpinning =
+          current === "refreshing" ||
+          (current === "settling" && previous === "refreshing");
+
+        scheduleOnRN(setSpinning, isSpinning);
       },
     );
 

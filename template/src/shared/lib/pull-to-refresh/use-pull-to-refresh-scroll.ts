@@ -1,7 +1,12 @@
 import { IScrollTelemetry } from "@shared/lib/scroll";
 import { useMemo } from "react";
 import { Platform } from "react-native";
-import { Gesture } from "react-native-gesture-handler";
+import {
+  GestureStateManager,
+  useNativeGesture,
+  usePanGesture,
+  useSimultaneousGestures,
+} from "react-native-gesture-handler";
 import {
   useAnimatedReaction,
   useDerivedValue,
@@ -34,6 +39,10 @@ const ACTIVATION_SLOP = 6;
  *
  * Подключение: onScroll={telemetry.scrollHandler} + scrollEventThrottle={16},
  * компонент обёрнут в <GestureDetector gesture={gesture}>.
+ *
+ * В worklet'ах (useAnimatedStyle и т.п.) не захватывать возвращаемый объект
+ * целиком — клонирование на UI-поток заморозит вложенный gesture; брать
+ * нужные shared values деструктуризацией.
  */
 export const usePullToRefreshScroll = (config: IPullToRefreshScrollConfig) => {
   const { telemetry, enabled = true } = config;
@@ -70,58 +79,55 @@ export const usePullToRefreshScroll = (config: IPullToRefreshScrollConfig) => {
     [controller, pullFromGesture, telemetry],
   );
 
-  const gesture = useMemo(() => {
-    const pan = Gesture.Pan()
-      .enabled(pullFromGesture && enabled)
-      .manualActivation(true)
-      .onTouchesDown(event => {
-        touchStartY.value = event.allTouches[0]?.y ?? 0;
+  const pan = usePanGesture({
+    enabled: pullFromGesture && enabled,
+    manualActivation: true,
+    onTouchesDown: event => {
+      "worklet";
+      touchStartY.value = event.allTouches[0]?.y ?? 0;
+      pullStartTranslationY.value = null;
+    },
+    onTouchesMove: event => {
+      "worklet";
+      const dy = (event.allTouches[0]?.y ?? 0) - touchStartY.value;
+
+      if (dy < -ACTIVATION_SLOP || controller.state.value === "refreshing") {
+        GestureStateManager.fail(event.handlerTag);
+      } else if (dy > ACTIVATION_SLOP && telemetry.offsetY.value <= 0) {
+        GestureStateManager.activate(event.handlerTag);
+      }
+    },
+    onActivate: () => {
+      "worklet";
+      controller.beginPull();
+    },
+    onUpdate: event => {
+      "worklet";
+      if (telemetry.offsetY.value > 0) {
         pullStartTranslationY.value = null;
-      })
-      .onTouchesMove((event, manager) => {
-        const dy = (event.allTouches[0]?.y ?? 0) - touchStartY.value;
+        controller.updatePull(0);
 
-        if (dy < -ACTIVATION_SLOP || controller.state.value === "refreshing") {
-          manager.fail();
-        } else if (dy > ACTIVATION_SLOP && telemetry.offsetY.value <= 0) {
-          manager.activate();
-        }
-      })
-      .onStart(() => {
-        controller.beginPull();
-      })
-      .onUpdate(event => {
-        if (telemetry.offsetY.value > 0) {
-          pullStartTranslationY.value = null;
-          controller.updatePull(0);
+        return;
+      }
 
-          return;
-        }
+      if (pullStartTranslationY.value === null) {
+        pullStartTranslationY.value = event.translationY;
+      }
 
-        if (pullStartTranslationY.value === null) {
-          pullStartTranslationY.value = event.translationY;
-        }
+      const raw = event.translationY - pullStartTranslationY.value;
 
-        const raw = event.translationY - pullStartTranslationY.value;
+      controller.updatePull(rubberBandDistance(raw, maxDistance));
+    },
+    onFinalize: () => {
+      "worklet";
+      controller.endPull();
+    },
+  });
 
-        controller.updatePull(rubberBandDistance(raw, maxDistance));
-      })
-      .onFinalize(() => {
-        controller.endPull();
-      });
-
-    // native-жест скролла регистрируется в системе GH — pan корректно
-    // сосуществует со скроллом, пока не активирован вручную
-    return Gesture.Simultaneous(Gesture.Native(), pan);
-  }, [
-    controller,
-    enabled,
-    maxDistance,
-    pullFromGesture,
-    pullStartTranslationY,
-    telemetry,
-    touchStartY,
-  ]);
+  // native-жест скролла регистрируется в системе GH — pan корректно
+  // сосуществует со скроллом, пока не активирован вручную
+  const native = useNativeGesture();
+  const gesture = useSimultaneousGestures(native, pan);
 
   /**
    * Смещение для контента, если визуал двигает контент за протяжкой:

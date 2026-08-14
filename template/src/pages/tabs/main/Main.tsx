@@ -43,8 +43,12 @@ export const Main: FC = observer(() => {
     },
   });
 
+  // Захватывать в worklet только shared value: захват всего ptr заморозит
+  // его содержимое (включая gesture) при клонировании на UI-поток.
+  const { contentTranslateY } = ptr;
+
   const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: ptr.contentTranslateY.value }],
+    transform: [{ translateY: contentTranslateY.value }],
   }));
 
   return (
