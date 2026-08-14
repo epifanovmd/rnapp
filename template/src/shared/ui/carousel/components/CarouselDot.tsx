@@ -21,7 +21,8 @@ export const CarouselDot: FC<ICarouselDotProps> = memo(
     const { progress, count, loop } = useCarousel();
 
     const animatedStyle = useAnimatedStyle(() => {
-      const rawDistance = Math.abs(progress.value - index);
+      const rawDistance = Math.abs((progress.value % count) - index);
+
       const distance = loop
         ? Math.min(rawDistance, count - rawDistance)
         : rawDistance;

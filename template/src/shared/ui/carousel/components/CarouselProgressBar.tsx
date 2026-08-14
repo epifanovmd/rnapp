@@ -16,7 +16,7 @@ export const CarouselProgressBar: FC<ICarouselProgressBarProps> = memo(
         index,
         mode,
         idleVariant,
-        progress: progress.value,
+        progress: progress.value % count,
         count,
         loop,
         autoplayActive: autoplayActive.value,
@@ -27,7 +27,7 @@ export const CarouselProgressBar: FC<ICarouselProgressBarProps> = memo(
       });
 
       return {
-        width: `${fill.progress * 100}%`,
+        width: `${(fill.progress % count) * 100}%`,
         alignSelf: fill.alignment,
       };
     }, [index, mode, idleVariant, count, loop]);
