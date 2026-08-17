@@ -155,7 +155,11 @@ export class InfiniteHolder<
 
   async loadMore(): Promise<IInfiniteHolderResult<TItem, TError>> {
     if (!this.hasMore || this.isLoadingMore || this.isBusy) {
-      return { data: this.items, hasMore: this.hasMore, error: null };
+      return {
+        data: this.items,
+        hasMore: this.hasMore,
+        error: null,
+      };
     }
 
     return this._runFetch(this.lastArgs as TArgs, "loadMore");
@@ -177,11 +181,13 @@ export class InfiniteHolder<
         this.loadMoreStatus = MutationStatus.Loading;
         this.loadMoreError = null;
       });
-    } else if (options?.refresh) {
-      this.setRefreshing();
     } else {
-      this.setLoading();
-      this._currentOffset = 0;
+      if (options?.refresh) {
+        this.setRefreshing();
+      } else {
+        this.setLoading();
+        this._currentOffset = 0;
+      }
     }
 
     const promise = fn();
@@ -239,6 +245,7 @@ export class InfiniteHolder<
       return { data: [], hasMore: false, error: null };
     } catch (e) {
       this._pendingFetch = null;
+
       if (isCancelError(e))
         return { data: null, hasMore: this.hasMore, error: null };
 
@@ -263,7 +270,7 @@ export class InfiniteHolder<
   ): Promise<IInfiniteHolderResult<TItem, TError>> {
     if (!this._onFetch) {
       console.warn(
-        "[InfiniteHolder] load/refresh/loadMore called but no onFetch was provided.",
+        "[InfiniteHolder] load/refresh/loadMore called but no onFetch was provided in options.",
       );
 
       return { data: null, hasMore: false, error: null };

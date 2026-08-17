@@ -134,7 +134,7 @@ export class CachedCursorHolder<
 
     const slice = cached.items.slice(idx + 1, idx + 1 + size);
 
-    return slice.length > 0 ? slice : null;
+    return slice;
   }
 
   protected _readNewerWindow(cursorId: string, size: number): TItem[] | null {
@@ -149,7 +149,7 @@ export class CachedCursorHolder<
     const start = Math.max(0, idx - size);
     const slice = cached.items.slice(start, idx);
 
-    return slice.length > 0 ? slice : null;
+    return slice;
   }
 
   override setItems(

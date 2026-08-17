@@ -1,4 +1,12 @@
-export * from "./mutation-holder";
-export * from "./MutationProvider";
-export * from "./use-mutation-context";
-export * from "./use-mutation-holder";
+export type {
+  IMutationHolderOptions,
+  IMutationHolderResult,
+} from "./mutation-holder";
+export { MutationHolder } from "./mutation-holder";
+export { MutationProvider } from "./MutationProvider";
+export { useMutationContext } from "./use-mutation-context";
+export type {
+  UseMutationOptions,
+  UseMutationResult,
+} from "./use-mutation-holder";
+export { useMutation, useMutationHolder } from "./use-mutation-holder";

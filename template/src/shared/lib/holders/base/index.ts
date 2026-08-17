@@ -1,3 +1,4 @@
-export * from "./base-holder";
-export * from "./base-list-holder";
-export * from "./combined-holder";
+export { BaseHolder } from "./base-holder";
+export { BaseListHolder } from "./base-list-holder";
+export type { IHolderLike } from "./combined-holder";
+export { CombinedHolder } from "./combined-holder";

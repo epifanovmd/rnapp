@@ -13,7 +13,7 @@ export class ValueHolder<T> {
     makeObservable(
       this,
       {
-        // @ts-ignore
+        // @ts-expect-error _value
         _value: observable,
         setValue: action,
         value: computed,
