@@ -293,6 +293,7 @@ export const JsChatView = forwardRef<IChatViewRef, ChatViewProps>(
               stickyIndices={stickyIndices}
               scrollRef={compensation.scrollRef}
               bottomSpacerStyle={compensation.spacerStyle}
+              indicatorBottomInset={keyboard.contentInset}
               scrollOffset={scrollOffset}
               isNearEnd={isNearEnd}
               activeStickyIndex={activeStickyIndex}

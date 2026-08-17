@@ -10,6 +10,7 @@ import Animated, {
   AnimatedRef,
   AnimatedStyle,
   SharedValue,
+  useAnimatedProps,
 } from "react-native-reanimated";
 
 import { ChatRow } from "../data";
@@ -24,6 +25,8 @@ export interface IChatListProps {
 
   scrollRef: AnimatedRef<Animated.ScrollView>;
   bottomSpacerStyle: AnimatedStyle<{ height: number }>;
+  /** Нижняя зона (панель + клавиатура): индикатор скролла заканчивается вместе с контентом. */
+  indicatorBottomInset: SharedValue<number>;
 
   scrollOffset: SharedValue<number>;
   isNearEnd: SharedValue<boolean>;
@@ -81,6 +84,7 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
       stickyIndices,
       scrollRef,
       bottomSpacerStyle,
+      indicatorBottomInset,
       scrollOffset,
       isNearEnd,
       activeStickyIndex,
@@ -155,6 +159,10 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
       [bottomSpacerStyle],
     );
 
+    const indicatorInsetProps = useAnimatedProps(() => ({
+      scrollIndicatorInsets: { bottom: indicatorBottomInset.value },
+    }));
+
     return (
       <AnimatedLegendList
         ref={ref}
@@ -187,6 +195,10 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
         ListFooterComponent={listFooter}
         contentContainerStyle={contentContainerStyle}
         style={ss.list}
+        animatedProps={indicatorInsetProps}
+        // iOS сам добавляет safe area к инсетам индикатора, а она уже входит
+        // в indicatorBottomInset — авто-подстройка давала бы двойной отступ.
+        automaticallyAdjustsScrollIndicatorInsets={false}
         showsVerticalScrollIndicator
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
