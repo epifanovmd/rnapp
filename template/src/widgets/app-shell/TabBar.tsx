@@ -2,6 +2,7 @@ import { BlurView } from "@react-native-community/blur";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
+import { Text, Touchable } from "@shared/ui";
 import React, { memo, useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet } from "react-native";
 import Animated, {
@@ -11,9 +12,6 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
-
-import { Text } from "../../shared/ui/text";
-import { Touchable } from "../../shared/ui/touchable";
 
 export const TabBar = memo<BottomTabBarProps>(
   ({

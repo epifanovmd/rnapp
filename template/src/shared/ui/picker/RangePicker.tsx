@@ -7,12 +7,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { StyleProp, ViewProps, ViewStyle } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { ViewProps, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -23,6 +18,7 @@ import {
 } from "../bottom-sheet";
 import { Row } from "../flex-view";
 import { ITouchableProps, Touchable } from "../touchable";
+import { LockableColumn } from "./LockableColumn";
 import {
   Picker,
   PickerChangeItem,
@@ -62,32 +58,6 @@ interface RangePicker {
 }
 
 const empty = -1;
-
-/** Непрозрачность колонки, заблокированной на время прокрутки соседней. */
-const LOCKED_OPACITY = 0.35;
-
-interface LockableColumnProps extends PropsWithChildren {
-  locked: boolean;
-  style?: StyleProp<ViewStyle>;
-}
-
-/** Колонка гаснет, пока крутят соседнюю, и возвращается по её остановке. */
-const LockableColumn = ({ children, locked, style }: LockableColumnProps) => {
-  const opacity = useDerivedValue(
-    () => withTiming(locked ? LOCKED_OPACITY : 1, { duration: 150 }),
-    [locked],
-  );
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  return (
-    <Animated.View style={[columnStyle, animatedStyle, style]}>
-      {children}
-    </Animated.View>
-  );
-};
-
-const columnStyle: ViewStyle = { flexGrow: 1, flexBasis: 0 };
 
 const isEmpty = (value?: PickerItemValue) =>
   value === undefined || value === empty;

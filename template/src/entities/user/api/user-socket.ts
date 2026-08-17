@@ -1,8 +1,16 @@
 import { createDisposer } from "@shared/lib/di";
+import { ISocketTransport } from "@shared/lib/socket";
 import { injectable } from "inversify";
 
-import { ISocketTransport } from "../transport";
-import { IUserSocketService, UserSocketHandlers } from "./user.socket.types";
+import {
+  IUserSocketService,
+  SessionTerminatedPayload,
+  UserEmailVerifiedPayload,
+  UserPasswordChangedPayload,
+  UserPrivilegesChangedPayload,
+  UserSocketHandlers,
+  UserUsernameChangedPayload,
+} from "./user-socket.types";
 
 @injectable()
 export class UserSocketService implements IUserSocketService {
@@ -12,9 +20,6 @@ export class UserSocketService implements IUserSocketService {
     const disposers = createDisposer();
 
     if (handlers.onProfileUpdated) {
-      // Если сокет уже подключён — отправляем подписку сразу.
-      // onConnect сработает ТОЛЬКО при будущих переподключениях (не ретроактивно),
-      // поэтому дубля не будет.
       if (this._transport.state.status === "connected") {
         this._transport.emit("profile:subscribe");
       }
@@ -28,17 +33,23 @@ export class UserSocketService implements IUserSocketService {
     }
     if (handlers.onUsernameChanged) {
       disposers.add(
-        this._transport.on("user:username-changed", handlers.onUsernameChanged),
+        this._transport.on<[UserUsernameChangedPayload]>(
+          "user:username-changed",
+          handlers.onUsernameChanged,
+        ),
       );
     }
     if (handlers.onEmailVerified) {
       disposers.add(
-        this._transport.on("user:email-verified", handlers.onEmailVerified),
+        this._transport.on<[UserEmailVerifiedPayload]>(
+          "user:email-verified",
+          handlers.onEmailVerified,
+        ),
       );
     }
     if (handlers.onPrivilegesChanged) {
       disposers.add(
-        this._transport.on(
+        this._transport.on<[UserPrivilegesChangedPayload]>(
           "user:privileges-changed",
           handlers.onPrivilegesChanged,
         ),
@@ -57,12 +68,18 @@ export class UserSocketService implements IUserSocketService {
     }
     if (handlers.onSessionTerminated) {
       disposers.add(
-        this._transport.on("session:terminated", handlers.onSessionTerminated),
+        this._transport.on<[SessionTerminatedPayload]>(
+          "session:terminated",
+          handlers.onSessionTerminated,
+        ),
       );
     }
     if (handlers.onPasswordChanged) {
       disposers.add(
-        this._transport.on("user:password-changed", handlers.onPasswordChanged),
+        this._transport.on<[UserPasswordChangedPayload]>(
+          "user:password-changed",
+          handlers.onPasswordChanged,
+        ),
       );
     }
 

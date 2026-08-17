@@ -1,6 +1,6 @@
-import { IUserSocketService } from "@shared/lib/socket";
 import { injectable } from "inversify";
 
+import { IUserSocketService } from "../api/user-socket.types";
 import { ISessionStore } from "./session-types";
 import { IUserRealtime, IUserStore } from "./types";
 

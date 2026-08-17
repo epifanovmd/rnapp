@@ -1,4 +1,3 @@
-import { useTheme } from "@shared/lib/theme";
 import {
   BalancedRow,
   Button,
@@ -10,19 +9,9 @@ import {
   Text,
 } from "@shared/ui";
 import React, { FC, memo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
-
-const Box: FC<{ label: string; flex?: number }> = ({ label, flex }) => {
-  const { colors } = useTheme();
-
-  return (
-    <View style={[styles.box, { backgroundColor: colors.onSurface, flex }]}>
-      <Text textStyle={"Caption_M3"}>{label}</Text>
-    </View>
-  );
-};
+import { LayoutBox } from "./LayoutBox";
 
 export const LayoutTab: FC = memo(() => {
   const [collapsed, setCollapsed] = useState(true);
@@ -35,13 +24,13 @@ export const LayoutTab: FC = memo(() => {
         description={"FlexProps-шорткаты: gap, flex, alignItems, отступы"}
       >
         <Row gap={8}>
-          <Box label={"flex 1"} flex={1} />
-          <Box label={"flex 2"} flex={2} />
-          <Box label={"flex 1"} flex={1} />
+          <LayoutBox label={"flex 1"} flex={1} />
+          <LayoutBox label={"flex 2"} flex={2} />
+          <LayoutBox label={"flex 1"} flex={1} />
         </Row>
         <Col gap={8} alignItems={"center"}>
-          <Box label={"center"} />
-          <Box label={"center"} />
+          <LayoutBox label={"center"} />
+          <LayoutBox label={"center"} />
         </Col>
       </DemoSection>
 
@@ -50,9 +39,9 @@ export const LayoutTab: FC = memo(() => {
         description={"Равномерно распределяет ширину между детьми"}
       >
         <BalancedRow gap={8}>
-          <Box label={"короткий"} />
-          <Box label={"значительно более длинный текст"} />
-          <Box label={"средний блок"} />
+          <LayoutBox label={"короткий"} />
+          <LayoutBox label={"значительно более длинный текст"} />
+          <LayoutBox label={"средний блок"} />
         </BalancedRow>
       </DemoSection>
 
@@ -115,13 +104,4 @@ export const LayoutTab: FC = memo(() => {
       </DemoSection>
     </DemoScreen>
   );
-});
-
-const styles = StyleSheet.create({
-  box: {
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: "center",
-  },
 });

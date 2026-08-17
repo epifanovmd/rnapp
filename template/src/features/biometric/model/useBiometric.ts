@@ -23,8 +23,8 @@ export const useBiometric = () => {
   useEffect(() => {
     AsyncStorage.getItem("biometricUserId").then(setRegisteredUserId);
 
-    biometrics.isSensorAvailable().then(async ({ available }) => {
-      setSupport(available);
+    biometrics.isSensorAvailable().then(async ({ available: isAvailable }) => {
+      setSupport(isAvailable);
     });
   }, []);
 
@@ -108,16 +108,16 @@ export const useBiometric = () => {
       if (error) {
         notifications.error(error);
       } else if (success && signature) {
-        const response = await api.verifySignature({
+        const verificationResponse = await api.verifySignature({
           deviceId,
           signature,
         });
 
-        if (response.error) {
+        if (verificationResponse.error) {
           await onRemoveBiometric();
-          notifications.error(response.error.message);
-        } else if (response.data?.verified) {
-          await authStore.restore(response.data.tokens);
+          notifications.error(verificationResponse.error.message);
+        } else if (verificationResponse.data?.verified) {
+          await authStore.restore(verificationResponse.data.tokens);
         }
       }
     }

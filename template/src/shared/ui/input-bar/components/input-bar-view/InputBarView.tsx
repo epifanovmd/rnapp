@@ -1,6 +1,5 @@
 import React, {
   forwardRef,
-  memo,
   useCallback,
   useImperativeHandle,
   useRef,
@@ -42,240 +41,238 @@ interface IInputBarViewProps {
   onHeightChange: (height: number) => void;
 }
 
-export const InputBarView = memo(
-  forwardRef<IInputBarViewRef, IInputBarViewProps>(
-    ({ mode, delegate, onHeightChange }, ref) => {
-      const { features, layout, styles } = useInputBarContext();
+export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
+  ({ mode, delegate, onHeightChange }, ref) => {
+    const { features, layout, styles } = useInputBarContext();
 
-      const inputRef = useRef<TextInput>(null);
-      const [text, setText] = useState("");
+    const inputRef = useRef<TextInput>(null);
+    const [text, setText] = useState("");
 
-      // Свежие значения для стабильных колбэков — пересоздавать их нельзя:
-      // от этого зависят и жест записи, и подписки поля ввода.
-      const textRef = useRef(text);
-      const modeRef = useRef(mode);
-      const delegateRef = useRef(delegate);
+    // Свежие значения для стабильных колбэков — пересоздавать их нельзя:
+    // от этого зависят и жест записи, и подписки поля ввода.
+    const textRef = useRef(text);
+    const modeRef = useRef(mode);
+    const delegateRef = useRef(delegate);
 
-      textRef.current = text;
-      modeRef.current = mode;
-      delegateRef.current = delegate;
+    textRef.current = text;
+    modeRef.current = mode;
+    delegateRef.current = delegate;
 
-      const notifyChangeText = useCallback((value: string) => {
-        delegateRef.current.onChangeText(value);
-      }, []);
+    const notifyChangeText = useCallback((value: string) => {
+      delegateRef.current.onChangeText(value);
+    }, []);
 
-      const handleChangeText = useCallback(
-        (value: string) => {
-          setText(value);
-          notifyChangeText(value);
-        },
-        [notifyChangeText],
-      );
+    const handleChangeText = useCallback(
+      (value: string) => {
+        setText(value);
+        notifyChangeText(value);
+      },
+      [notifyChangeText],
+    );
 
-      const hasText = text.trim().length > 0;
+    const hasText = text.trim().length > 0;
 
-      useInputModeController(mode, setText, notifyChangeText, inputRef);
+    useInputModeController(mode, setText, notifyChangeText, inputRef);
 
-      const {
-        recordingState,
-        recordDuration,
-        rowVisible,
-        rowOpacity,
-        isRecording,
-        isLocked,
-        showCancelTrash,
-        startRecording,
-        finishRecording,
-        cancelRecording,
-        lockRecording,
-        leftButtonScale,
-        leftButtonOpacity,
-        leftButtonWidth,
-      } = useRecordingController(delegateRef);
+    const {
+      recordingState,
+      recordDuration,
+      rowVisible,
+      rowOpacity,
+      isRecording,
+      isLocked,
+      showCancelTrash,
+      startRecording,
+      finishRecording,
+      cancelRecording,
+      lockRecording,
+      leftButtonScale,
+      leftButtonOpacity,
+      leftButtonWidth,
+    } = useRecordingController(delegateRef);
 
-      const {
-        recordGesture,
-        micTranslateX,
-        micTranslateY,
-        micGestureScale,
-        slideAlpha,
-        lockScale,
-        pulseScale,
-      } = useRecordingGesture(
-        hasText,
-        recordingState,
-        isLocked,
-        startRecording,
-        finishRecording,
-        cancelRecording,
-        lockRecording,
-      );
+    const {
+      recordGesture,
+      micTranslateX,
+      micTranslateY,
+      micGestureScale,
+      slideAlpha,
+      lockScale,
+      pulseScale,
+    } = useRecordingGesture(
+      hasText,
+      recordingState,
+      isLocked,
+      startRecording,
+      finishRecording,
+      cancelRecording,
+      lockRecording,
+    );
 
-      const voiceEnabled = features.showVoiceRecording;
-      const showSendButton = !voiceEnabled || hasText;
+    const voiceEnabled = features.showVoiceRecording;
+    const showSendButton = !voiceEnabled || hasText;
 
-      const { micScale, micAlpha, sendScale, sendAlpha } = useMicSendAnimation(
-        voiceEnabled && !hasText,
-        showSendButton,
-      );
+    const { micScale, micAlpha, sendScale, sendAlpha } = useMicSendAnimation(
+      voiceEnabled && !hasText,
+      showSendButton,
+    );
 
-      const { micAnimatedStyle: micContainerStyle } = useRightButtonAnimation(
-        !hasText || isRecording,
-      );
+    const { micAnimatedStyle: micContainerStyle } = useRightButtonAnimation(
+      !hasText || isRecording,
+    );
 
-      const recordingStateRef = useRef(recordingState);
+    const recordingStateRef = useRef(recordingState);
 
-      recordingStateRef.current = recordingState;
+    recordingStateRef.current = recordingState;
 
-      const handleSend = useCallback(() => {
-        const value = textRef.current.trim();
+    const handleSend = useCallback(() => {
+      const value = textRef.current.trim();
 
-        if (!value) return;
+      if (!value) return;
 
-        const currentMode = modeRef.current;
+      const currentMode = modeRef.current;
 
-        switch (currentMode.type) {
-          case "normal":
-            delegateRef.current.onSend(value, undefined);
-            break;
-          case "reply":
-            delegateRef.current.onSend(value, currentMode.messageId);
-            break;
-          case "edit":
-            delegateRef.current.onEdit(value, currentMode.messageId);
-            break;
-        }
+      switch (currentMode.type) {
+        case "normal":
+          delegateRef.current.onSend(value, undefined);
+          break;
+        case "reply":
+          delegateRef.current.onSend(value, currentMode.messageId);
+          break;
+        case "edit":
+          delegateRef.current.onEdit(value, currentMode.messageId);
+          break;
+      }
+      setText("");
+      delegateRef.current.onChangeText("");
+      if (currentMode.type !== "normal") {
+        delegateRef.current.onCancelMode("none");
+      }
+    }, []);
+
+    const handleLockedSend = useCallback(() => {
+      if (recordingStateRef.current !== "locked") return;
+      finishRecording();
+    }, [finishRecording]);
+
+    const handleAttachTap = useCallback(() => {
+      if (recordingStateRef.current === "locked") {
+        cancelRecording();
+
+        return;
+      }
+      if (recordingStateRef.current === "idle") {
+        delegateRef.current.onTapAttachment();
+      }
+    }, [cancelRecording]);
+
+    const handleCloseMode = useCallback(() => {
+      const type = modeRef.current.type === "edit" ? "edit" : "reply";
+
+      if (modeRef.current.type === "edit") {
         setText("");
         delegateRef.current.onChangeText("");
-        if (currentMode.type !== "normal") {
-          delegateRef.current.onCancelMode("none");
-        }
-      }, []);
+      }
+      inputRef.current?.blur();
+      delegateRef.current.onCancelMode(type);
+    }, []);
 
-      const handleLockedSend = useCallback(() => {
-        if (recordingStateRef.current !== "locked") return;
-        finishRecording();
-      }, [finishRecording]);
+    const handleLayout = useCallback(
+      (e: LayoutChangeEvent) => onHeightChange(e.nativeEvent.layout.height),
+      [onHeightChange],
+    );
 
-      const handleAttachTap = useCallback(() => {
-        if (recordingStateRef.current === "locked") {
-          cancelRecording();
-
-          return;
-        }
-        if (recordingStateRef.current === "idle") {
-          delegateRef.current.onTapAttachment();
-        }
-      }, [cancelRecording]);
-
-      const handleCloseMode = useCallback(() => {
-        const type = modeRef.current.type === "edit" ? "edit" : "reply";
-
-        if (modeRef.current.type === "edit") {
+    useImperativeHandle(
+      ref,
+      () => ({
+        clearInput() {
           setText("");
           delegateRef.current.onChangeText("");
-        }
-        inputRef.current?.blur();
-        delegateRef.current.onCancelMode(type);
-      }, []);
+        },
+        focus() {
+          inputRef.current?.focus();
+        },
+        blur() {
+          inputRef.current?.blur();
+        },
+      }),
+      [],
+    );
 
-      const handleLayout = useCallback(
-        (e: LayoutChangeEvent) => onHeightChange(e.nativeEvent.layout.height),
-        [onHeightChange],
-      );
+    // Строка гаснет отдельно от смены состояния.
+    const recordingRowStyle = useAnimatedStyle(() => ({
+      opacity: rowOpacity.value,
+    }));
 
-      useImperativeHandle(
-        ref,
-        () => ({
-          clearInput() {
-            setText("");
-            delegateRef.current.onChangeText("");
-          },
-          focus() {
-            inputRef.current?.focus();
-          },
-          blur() {
-            inputRef.current?.blur();
-          },
-        }),
-        [],
-      );
+    return (
+      <View style={ss.bar} onLayout={handleLayout}>
+        <View style={styles.stack}>
+          {features.showAttachButton && (
+            <InputBarAttachButton
+              showTrash={isLocked || showCancelTrash}
+              scale={leftButtonScale}
+              opacity={leftButtonOpacity}
+              width={leftButtonWidth}
+              onPress={handleAttachTap}
+            />
+          )}
 
-      // Строка гаснет отдельно от смены состояния.
-      const recordingRowStyle = useAnimatedStyle(() => ({
-        opacity: rowOpacity.value,
-      }));
+          <View style={styles.field}>
+            <InputReplyPanel mode={mode} onClose={handleCloseMode} />
 
-      return (
-        <View style={ss.bar} onLayout={handleLayout}>
-          <View style={styles.stack}>
-            {features.showAttachButton && (
-              <InputBarAttachButton
-                showTrash={isLocked || showCancelTrash}
-                scale={leftButtonScale}
-                opacity={leftButtonOpacity}
-                width={leftButtonWidth}
-                onPress={handleAttachTap}
-              />
+            <InputBarTextField
+              inputRef={inputRef}
+              value={text}
+              // Поле возвращается не в момент остановки записи, а когда
+              // строка записи полностью ушла.
+              hidden={rowVisible}
+              onChangeText={handleChangeText}
+            />
+
+            {rowVisible && (
+              <Animated.View
+                pointerEvents={isRecording ? "box-none" : "none"}
+                style={[ss.recordingRow, recordingRowStyle]}
+              >
+                <InputRecordingRow
+                  duration={recordDuration}
+                  slideAlpha={slideAlpha}
+                  slideHidden={isLocked}
+                  onCancelTap={cancelRecording}
+                />
+              </Animated.View>
             )}
 
-            <View style={styles.field}>
-              <InputReplyPanel mode={mode} onClose={handleCloseMode} />
-
-              <InputBarTextField
-                inputRef={inputRef}
-                value={text}
-                // Поле возвращается не в момент остановки записи, а когда
-                // строка записи полностью ушла.
-                hidden={rowVisible}
-                onChangeText={handleChangeText}
-              />
-
-              {rowVisible && (
-                <Animated.View
-                  pointerEvents={isRecording ? "box-none" : "none"}
-                  style={[ss.recordingRow, recordingRowStyle]}
-                >
-                  <InputRecordingRow
-                    duration={recordDuration}
-                    slideAlpha={slideAlpha}
-                    slideHidden={isLocked}
-                    onCancelTap={cancelRecording}
-                  />
-                </Animated.View>
-              )}
-
-              {!isRecording && (
-                <InputBarSendButton
-                  enabled={showSendButton}
-                  scale={sendScale}
-                  alpha={sendAlpha}
-                  onPress={handleSend}
-                />
-              )}
-            </View>
-
-            {voiceEnabled && (
-              <InputBarMicButton
-                gesture={recordGesture}
-                isRecording={isRecording}
-                isLocked={isLocked}
-                translateX={micTranslateX}
-                translateY={micTranslateY}
-                gestureScale={micGestureScale}
-                pulseScale={pulseScale}
-                micScale={micScale}
-                micAlpha={micAlpha}
-                lockScale={lockScale}
-                containerStyle={micContainerStyle}
-                onPress={handleLockedSend}
+            {!isRecording && (
+              <InputBarSendButton
+                enabled={showSendButton}
+                scale={sendScale}
+                alpha={sendAlpha}
+                onPress={handleSend}
               />
             )}
           </View>
+
+          {voiceEnabled && (
+            <InputBarMicButton
+              gesture={recordGesture}
+              isRecording={isRecording}
+              isLocked={isLocked}
+              translateX={micTranslateX}
+              translateY={micTranslateY}
+              gestureScale={micGestureScale}
+              pulseScale={pulseScale}
+              micScale={micScale}
+              micAlpha={micAlpha}
+              lockScale={lockScale}
+              containerStyle={micContainerStyle}
+              onPress={handleLockedSend}
+            />
+          )}
         </View>
-      );
-    },
-  ),
+      </View>
+    );
+  },
 );
 
 InputBarView.displayName = "InputBarView";

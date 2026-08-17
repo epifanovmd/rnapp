@@ -103,7 +103,7 @@ export const Checkbox: React.FC<PropsWithChildren<CheckboxProps>> = ({
     <AnimatedPressable
       style={[
         SS.container,
-        { borderRadius: circe ? 12 : 8 },
+        circe ? SS.circle : SS.rounded,
         animatedContainerStyle,
       ]}
       onPress={handlePress}
@@ -130,4 +130,6 @@ const SS = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  circle: { borderRadius: 12 },
+  rounded: { borderRadius: 8 },
 });

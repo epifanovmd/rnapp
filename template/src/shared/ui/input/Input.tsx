@@ -1,5 +1,5 @@
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
-import React, { ForwardedRef, forwardRef, memo, useRef } from "react";
+import React, { ForwardedRef, forwardRef, useRef } from "react";
 import {
   TextInput as RNTextInput,
   TextInputProps as RNTextInputProps,
@@ -34,33 +34,31 @@ export interface TextInputProps
   onChangeText?(text: string, rawText?: string): void;
 }
 
-export const TextInput = memo(
-  forwardRef(
-    (
-      { numberOfLines = 6, multiline, ...rest }: TextInputProps,
-      ref: ForwardedRef<RNTextInput>,
-    ) => {
-      const textInputRef = useRef<RNTextInput>(null);
+export const TextInput = forwardRef(
+  (
+    { numberOfLines = 6, multiline, ...rest }: TextInputProps,
+    ref: ForwardedRef<RNTextInput>,
+  ) => {
+    const textInputRef = useRef<RNTextInput>(null);
 
-      if (isMaskedInputProps(rest)) {
-        return (
-          <TextInputMask
-            refInput={mergeRefs([ref, textInputRef])}
-            numberOfLines={numberOfLines}
-            multiline={multiline}
-            {...rest}
-          />
-        );
-      }
-
+    if (isMaskedInputProps(rest)) {
       return (
-        <RNTextInput
-          ref={mergeRefs([ref, textInputRef])}
+        <TextInputMask
+          refInput={mergeRefs([ref, textInputRef])}
           numberOfLines={numberOfLines}
           multiline={multiline}
           {...rest}
         />
       );
-    },
-  ),
+    }
+
+    return (
+      <RNTextInput
+        ref={mergeRefs([ref, textInputRef])}
+        numberOfLines={numberOfLines}
+        multiline={multiline}
+        {...rest}
+      />
+    );
+  },
 );

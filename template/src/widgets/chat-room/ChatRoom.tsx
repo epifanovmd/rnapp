@@ -8,10 +8,7 @@ import {
   Text,
   useBottomSheetRef,
 } from "@shared/ui";
-// Тестовое исключение: демо-переключатель нативной и RN-реализаций —
-// обычный код должен импортировать ChatView из @shared/ui.
-import { JsChatView } from "@shared/ui/chat-view/JsChatView";
-import { NativeChatView } from "@shared/ui/chat-view/native";
+import { JsChatView, NativeChatView } from "@shared/ui/chat-view";
 import { ImageViewing } from "@shared/ui/image-viewing";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";

@@ -3,10 +3,10 @@ import { usePullToRefreshScroll } from "@shared/lib/pull-to-refresh";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import { useBarsScrollSync, useTransition } from "@shared/lib/transition";
-import { Col, Content, Navbar, Text, Touchable } from "@shared/ui";
-import { ImageBar } from "@shared/ui/navbar/ImageBar";
+import { Col, Content, ImageBar, Navbar, Text, Touchable } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback } from "react";
+import { StyleSheet } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import { trigger } from "react-native-haptic-feedback";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
@@ -69,10 +69,10 @@ export const Main: FC = observer(() => {
               data={new Array(50).fill(0)}
               onScroll={telemetry.scrollHandler}
               scrollEventThrottle={16}
-              contentContainerStyle={{
-                paddingTop: 316,
-                paddingBottom: tabBar.height,
-              }}
+              contentContainerStyle={[
+                styles.content,
+                { paddingBottom: tabBar.height },
+              ]}
               showsVerticalScrollIndicator={false}
               ItemSeparatorComponent={() => <Col height={8} />}
               renderItem={({ index }) => (
@@ -99,3 +99,5 @@ export const Main: FC = observer(() => {
     </ScrollProvider>
   );
 });
+
+const styles = StyleSheet.create({ content: { paddingTop: 316 } });

@@ -52,7 +52,7 @@ export const PdfView: FC<ScreenProps<TPdfViewParams>> = memo(({ route }) => {
         onLoadProgress={progress => {
           percentage.value = progress;
         }}
-        style={[styles.pdf, { paddingBottom: bottom, backgroundColor: "#fff" }]}
+        style={[styles.pdf, styles.background, { paddingBottom: bottom }]}
       />
     </Container>
   );
@@ -65,5 +65,8 @@ const styles = StyleSheet.create({
   },
   pdf: {
     flex: 1,
+  },
+  background: {
+    backgroundColor: "#fff",
   },
 });

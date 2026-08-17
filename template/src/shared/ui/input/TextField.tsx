@@ -1,7 +1,7 @@
 import { useMergedCallback } from "@shared/lib/hooks";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
 import { useTheme } from "@shared/lib/theme";
-import React, { forwardRef, memo, useCallback, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useRef, useState } from "react";
 import {
   LayoutChangeEvent,
   StyleProp,
@@ -55,216 +55,214 @@ const BODY = getTextStyle("Body_M2");
  * hint. Состояние — useTextFieldState, визуальные части — TextFieldLabel /
  * TextFieldAccessories / TextFieldFooter; здесь — только layout и wiring.
  */
-export const TextField = memo(
-  forwardRef<RNTextInput, ITextFieldProps>(
-    (
-      {
-        label,
-        value,
-        placeholder: rawPlaceholder,
-        error,
-        style,
-        iconName,
-        iconColor,
-        hint,
-        hintPosition = "right",
-        clearable,
-        maxLength,
-        showSymbolCount,
-        duration = ANIMATION_DURATION,
-        multiline,
-        numberOfLines = multiline ? 6 : 1,
-        onFocus,
-        onBlur,
-        onChangeText,
-        onLayout,
-        editable,
-        secureTextEntry,
-        left,
-        right,
-        ...otherProps
+export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
+  (
+    {
+      label,
+      value,
+      placeholder: rawPlaceholder,
+      error,
+      style,
+      iconName,
+      iconColor,
+      hint,
+      hintPosition = "right",
+      clearable,
+      maxLength,
+      showSymbolCount,
+      duration = ANIMATION_DURATION,
+      multiline,
+      numberOfLines = multiline ? 6 : 1,
+      onFocus,
+      onBlur,
+      onChangeText,
+      onLayout,
+      editable,
+      secureTextEntry,
+      left,
+      right,
+      ...otherProps
+    },
+    ref,
+  ) => {
+    const inputRef = useRef<RNTextInput>(null);
+    const inputWidth = useRef(0);
+    const [valueWidth, setValueWidth] = useState(0);
+    const { colors } = useTheme();
+
+    const showCounter = !!showSymbolCount && !!maxLength;
+    const showHintLeft = !!hint && hintPosition === "left" && !multiline;
+    const showHintRight = !!hint && hintPosition === "right" && !multiline;
+
+    const {
+      isFocused,
+      hasValue,
+      finalValue,
+      secure,
+      toggleSecure,
+      focusInput,
+      handleFocus,
+      handleBlur,
+      handleChangeText,
+      handleClear,
+    } = useTextFieldState({
+      value,
+      secureTextEntry,
+      trackLocalValue: showHintRight || showCounter || !!multiline,
+      inputRef,
+      onFocus,
+      onBlur,
+      onChangeText,
+    });
+
+    const disabled = editable === false;
+    const showError = !!error;
+    const active = isFocused || hasValue;
+    const labelActive = active && !!label;
+    const showClear = !!clearable && hasValue && !showError;
+    const placeholder =
+      rawPlaceholder && (isFocused || !label) ? rawPlaceholder : undefined;
+    const valueLength = finalValue?.length ?? 0;
+
+    const inputRowStyle = useAnimatedStyle(
+      () => ({
+        paddingTop: withTiming(labelActive ? 16 : 0, { duration }),
+      }),
+      [labelActive, duration],
+    );
+
+    const hintStyle = useAnimatedStyle(
+      () => ({
+        opacity: withTiming(active ? 1 : 0, { duration }),
+      }),
+      [active, duration],
+    );
+
+    // Right-hint позиционируется сразу после текста: ширина значения
+    // измеряется невидимым Text-дублёром.
+    const handleValueWidth = useCallback(
+      (event: LayoutChangeEvent) => {
+        const width = !hasValue ? 0 : event.nativeEvent.layout.width;
+
+        setValueWidth(Math.min(width, inputWidth.current));
       },
-      ref,
-    ) => {
-      const inputRef = useRef<RNTextInput>(null);
-      const inputWidth = useRef(0);
-      const [valueWidth, setValueWidth] = useState(0);
-      const { colors } = useTheme();
+      [hasValue],
+    );
 
-      const showCounter = !!showSymbolCount && !!maxLength;
-      const showHintLeft = !!hint && hintPosition === "left" && !multiline;
-      const showHintRight = !!hint && hintPosition === "right" && !multiline;
+    const handleInputWidth = useCallback((event: LayoutChangeEvent) => {
+      inputWidth.current = event.nativeEvent.layout.width;
+    }, []);
 
-      const {
-        isFocused,
-        hasValue,
-        finalValue,
-        secure,
-        toggleSecure,
-        focusInput,
-        handleFocus,
-        handleBlur,
-        handleChangeText,
-        handleClear,
-      } = useTextFieldState({
-        value,
-        secureTextEntry,
-        trackLocalValue: showHintRight || showCounter || !!multiline,
-        inputRef,
-        onFocus,
-        onBlur,
-        onChangeText,
-      });
+    const handleInputLayout = useMergedCallback(onLayout, handleInputWidth);
 
-      const disabled = editable === false;
-      const showError = !!error;
-      const active = isFocused || hasValue;
-      const labelActive = active && !!label;
-      const showClear = !!clearable && hasValue && !showError;
-      const placeholder =
-        rawPlaceholder && (isFocused || !label) ? rawPlaceholder : undefined;
-      const valueLength = finalValue?.length ?? 0;
-
-      const inputRowStyle = useAnimatedStyle(
-        () => ({
-          paddingTop: withTiming(labelActive ? 16 : 0, { duration }),
-        }),
-        [labelActive, duration],
-      );
-
-      const hintStyle = useAnimatedStyle(
-        () => ({
-          opacity: withTiming(active ? 1 : 0, { duration }),
-        }),
-        [active, duration],
-      );
-
-      // Right-hint позиционируется сразу после текста: ширина значения
-      // измеряется невидимым Text-дублёром.
-      const handleValueWidth = useCallback(
-        (event: LayoutChangeEvent) => {
-          const width = !hasValue ? 0 : event.nativeEvent.layout.width;
-
-          setValueWidth(Math.min(width, inputWidth.current));
-        },
-        [hasValue],
-      );
-
-      const handleInputWidth = useCallback((event: LayoutChangeEvent) => {
-        inputWidth.current = event.nativeEvent.layout.width;
-      }, []);
-
-      const handleInputLayout = useMergedCallback(onLayout, handleInputWidth);
-
-      return (
-        <View style={[style, disabled && styles.disabled]}>
-          {showHintRight && (
-            <RNText
-              style={[styles.valueMeasurer, BODY]}
-              onLayout={handleValueWidth}
-            >
-              {finalValue}
-            </RNText>
-          )}
-          <TouchableOpacity
-            disabled={disabled}
-            activeOpacity={1}
-            onPress={focusInput}
-            style={[styles.wrap, { backgroundColor: colors.onSurface }]}
+    return (
+      <View style={[style, disabled && styles.disabled]}>
+        {showHintRight && (
+          <RNText
+            style={[styles.valueMeasurer, BODY]}
+            onLayout={handleValueWidth}
           >
-            {(!!iconName || !!left) && (
-              <View style={[styles.left, multiline && styles.leftTop]}>
-                {!!iconName && (
-                  <Icon
-                    color={iconColor ?? colors.textTertiary}
-                    name={iconName}
-                  />
-                )}
-                {left}
-              </View>
-            )}
-            <View style={styles.center}>
-              {!!label && (
-                <TextFieldLabel
-                  label={label}
-                  active={active}
-                  error={showError}
-                  duration={duration}
+            {finalValue}
+          </RNText>
+        )}
+        <TouchableOpacity
+          disabled={disabled}
+          activeOpacity={1}
+          onPress={focusInput}
+          style={[styles.wrap, { backgroundColor: colors.onSurface }]}
+        >
+          {(!!iconName || !!left) && (
+            <View style={[styles.left, multiline && styles.leftTop]}>
+              {!!iconName && (
+                <Icon
+                  color={iconColor ?? colors.textTertiary}
+                  name={iconName}
                 />
               )}
-              <Animated.View style={[styles.inputRow, inputRowStyle]}>
-                {showHintLeft && (
-                  <Animated.Text
-                    style={[
-                      styles.hintLeft,
-                      BODY,
-                      { color: colors.textTertiary },
-                      hintStyle,
-                    ]}
-                  >
-                    {hint}
-                  </Animated.Text>
-                )}
-                <TextInput
-                  ref={mergeRefs([inputRef, ref])}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                  value={finalValue}
-                  placeholder={placeholder}
-                  placeholderTextColor={colors.textTertiary}
-                  maxLength={maxLength}
-                  onChangeText={handleChangeText}
-                  selectionColor={showError ? colors.danger : colors.primary}
-                  style={[styles.input, BODY, { color: colors.textPrimary }]}
-                  multiline={multiline}
-                  numberOfLines={numberOfLines}
-                  onLayout={handleInputLayout}
-                  editable={editable}
-                  secureTextEntry={secure}
-                  {...otherProps}
-                />
-                {showHintRight && (
-                  <Animated.Text
-                    style={[
-                      styles.hintRight,
-                      BODY,
-                      { color: colors.textTertiary },
-                      hintStyle,
-                      {
-                        transform: [
-                          { translateX: -(inputWidth.current - valueWidth) },
-                        ],
-                      },
-                    ]}
-                  >
-                    {hint}
-                  </Animated.Text>
-                )}
-              </Animated.View>
+              {left}
             </View>
-            <TextFieldAccessories
-              alignTop={!!multiline}
-              showSecureToggle={!!secureTextEntry}
-              secure={secure}
-              onToggleSecure={toggleSecure}
-              showClear={showClear}
-              onClear={handleClear}
-              showError={showError}
-              disabled={disabled}
-              right={right}
-            />
-          </TouchableOpacity>
-          <TextFieldFooter
-            error={error}
-            showCounter={showCounter}
-            length={valueLength}
-            maxLength={maxLength}
-            duration={duration}
+          )}
+          <View style={styles.center}>
+            {!!label && (
+              <TextFieldLabel
+                label={label}
+                active={active}
+                error={showError}
+                duration={duration}
+              />
+            )}
+            <Animated.View style={[styles.inputRow, inputRowStyle]}>
+              {showHintLeft && (
+                <Animated.Text
+                  style={[
+                    styles.hintLeft,
+                    BODY,
+                    { color: colors.textTertiary },
+                    hintStyle,
+                  ]}
+                >
+                  {hint}
+                </Animated.Text>
+              )}
+              <TextInput
+                ref={mergeRefs([inputRef, ref])}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                value={finalValue}
+                placeholder={placeholder}
+                placeholderTextColor={colors.textTertiary}
+                maxLength={maxLength}
+                onChangeText={handleChangeText}
+                selectionColor={showError ? colors.danger : colors.primary}
+                style={[styles.input, BODY, { color: colors.textPrimary }]}
+                multiline={multiline}
+                numberOfLines={numberOfLines}
+                onLayout={handleInputLayout}
+                editable={editable}
+                secureTextEntry={secure}
+                {...otherProps}
+              />
+              {showHintRight && (
+                <Animated.Text
+                  style={[
+                    styles.hintRight,
+                    BODY,
+                    { color: colors.textTertiary },
+                    hintStyle,
+                    {
+                      transform: [
+                        { translateX: -(inputWidth.current - valueWidth) },
+                      ],
+                    },
+                  ]}
+                >
+                  {hint}
+                </Animated.Text>
+              )}
+            </Animated.View>
+          </View>
+          <TextFieldAccessories
+            alignTop={!!multiline}
+            showSecureToggle={!!secureTextEntry}
+            secure={secure}
+            onToggleSecure={toggleSecure}
+            showClear={showClear}
+            onClear={handleClear}
+            showError={showError}
+            disabled={disabled}
+            right={right}
           />
-        </View>
-      );
-    },
-  ),
+        </TouchableOpacity>
+        <TextFieldFooter
+          error={error}
+          showCounter={showCounter}
+          length={valueLength}
+          maxLength={maxLength}
+          duration={duration}
+        />
+      </View>
+    );
+  },
 );
 
 const styles = StyleSheet.create({

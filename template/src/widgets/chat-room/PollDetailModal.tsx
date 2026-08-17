@@ -1,6 +1,6 @@
 import { MessageDto, PollDto } from "@shared/api/gen/model";
 import { useTheme } from "@shared/lib/theme";
-import { Dialog } from "@shared/ui/dialog";
+import { Dialog } from "@shared/ui";
 import React, { FC, useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -66,7 +66,7 @@ export const PollDetailModal: FC<PollDetailModalProps> = ({
                     style={[
                       styles.optionText,
                       { color: colors.textPrimary },
-                      isSelected && { fontWeight: "700" },
+                      isSelected && styles.selectedOption,
                     ]}
                   >
                     {isSelected ? "✓ " : ""}
@@ -171,6 +171,9 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 15,
     flex: 1,
+  },
+  selectedOption: {
+    fontWeight: "700",
   },
   percentage: {
     fontSize: 14,

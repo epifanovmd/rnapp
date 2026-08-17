@@ -13,6 +13,7 @@ import {
 import { ScanFace } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
+import { StyleSheet } from "react-native";
 
 export const SignIn: FC = observer(() => {
   const { colors } = useTheme();
@@ -21,8 +22,6 @@ export const SignIn: FC = observer(() => {
     form,
     loginByGithub,
     handleLogin,
-    handleNavigateSignUp,
-    handleNavigateRecoveryPassword,
     isTwoFactorRequired,
     twoFactorHint,
     error,
@@ -40,7 +39,7 @@ export const SignIn: FC = observer(() => {
     return (
       <Container>
         <Content justifyContent={"center"}>
-          <Col style={{ gap: 8 }}>
+          <Col style={styles.form}>
             <Text color={"textPrimary"}>
               {twoFactorHint
                 ? `Введите пароль для подтверждения (${twoFactorHint})`
@@ -72,7 +71,7 @@ export const SignIn: FC = observer(() => {
   return (
     <Container>
       <Content justifyContent={"center"}>
-        <Col style={{ gap: 8 }}>
+        <Col style={styles.form}>
           <TextField
             label={"Логин"}
             value={login}
@@ -107,7 +106,7 @@ export const SignIn: FC = observer(() => {
           <Row gap={8} alignItems={"center"}>
             <Col
               bg={colors.textPrimary}
-              style={{ borderStyle: "dashed" }}
+              style={styles.divider}
               height={1}
               flex={1}
             />
@@ -116,7 +115,7 @@ export const SignIn: FC = observer(() => {
             </Text>
             <Col
               bg={colors.textPrimary}
-              style={{ borderStyle: "dashed" }}
+              style={styles.divider}
               height={1}
               flex={1}
             />
@@ -128,4 +127,9 @@ export const SignIn: FC = observer(() => {
       </Content>
     </Container>
   );
+});
+
+const styles = StyleSheet.create({
+  form: { gap: 8 },
+  divider: { borderStyle: "dashed" },
 });

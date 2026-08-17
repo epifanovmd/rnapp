@@ -11,10 +11,6 @@ import { AuthTokenProvider } from "./api/token-provider";
 import { AuthTokenSource } from "./api/token-source";
 import { AuthTokenStorage } from "./api/token-storage";
 import { IAuthSessionService, IAuthTokenStorage } from "./api/types";
-import { BiometricStore } from "./model/biometric-store";
-import { IBiometricStore } from "./model/biometric-types";
-import { PasskeyStore } from "./model/passkey-store";
-import { IPasskeyStore } from "./model/passkey-types";
 import { AuthStore } from "./model/store";
 import { IAuthStore } from "./model/types";
 
@@ -26,6 +22,4 @@ export const authModule = new ContainerModule(({ bind }) => {
   bind(ITokenProvider.Tid).to(AuthTokenProvider).inSingletonScope();
   bind(ITokenSource.Tid).to(AuthTokenSource).inSingletonScope();
   bind(IAuthStore.Tid).to(AuthStore).inSingletonScope();
-  bind(IBiometricStore.Tid).to(BiometricStore).inSingletonScope();
-  bind(IPasskeyStore.Tid).to(PasskeyStore).inSingletonScope();
 });

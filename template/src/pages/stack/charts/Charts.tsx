@@ -293,17 +293,17 @@ export const Charts: FC = observer(() => {
           </ChartCard>
 
           <ChartCard title={"Full-featured — Выручка и расходы"}>
-            <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+            <View style={styles.periods}>
               {PERIODS.map(({ key, label }) => (
                 <View
                   key={key}
-                  style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 6,
-                    borderRadius: 8,
-                    backgroundColor:
-                      period === key ? colors.blue500 : colors.slate200,
-                  }}
+                  style={[
+                    styles.period,
+                    {
+                      backgroundColor:
+                        period === key ? colors.blue500 : colors.slate200,
+                    },
+                  ]}
                 >
                   <Text
                     textStyle={"Body_S2"}
@@ -372,7 +372,7 @@ export const Charts: FC = observer(() => {
                 formatRow={formatTooltipRow}
               />
             </Chart>
-            <View style={{ gap: 4, marginTop: 8 }}>
+            <View style={styles.touchStatus}>
               <Text textStyle={"Body_S2"} color={"textSecondary"}>
                 {touchStatus}
               </Text>
@@ -392,5 +392,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 12,
     marginBottom: 16,
+  },
+  periods: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  period: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  touchStatus: {
+    gap: 4,
+    marginTop: 8,
   },
 });

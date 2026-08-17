@@ -1,6 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IApiService } from "@shared/api";
-import { useNavigation } from "@shared/lib/navigation";
 import { useNotifications } from "@shared/lib/notifications";
 import { useCallback } from "react";
 import { useForm } from "react-hook-form";
@@ -10,9 +9,8 @@ import {
   TRecoveryPasswordForm,
 } from "./validation";
 
-export const useRecoveryPassword = () => {
+export const useRecoveryPassword = (onSuccess: () => void) => {
   const api = IApiService.useInstance();
-  const navigation = useNavigation();
   const notifications = useNotifications();
 
   const form = useForm<TRecoveryPasswordForm>({
@@ -32,10 +30,10 @@ export const useRecoveryPassword = () => {
         if (res.data.message) {
           notifications.success(res.data.message);
         }
-        navigation.navigate("SignIn");
+        onSuccess();
       }
     })();
-  }, [form, api, notifications, navigation]);
+  }, [form, api, notifications, onSuccess]);
 
   return { form, handleSubmit };
 };

@@ -6,6 +6,8 @@ declare module "react-native-config" {
     APP_ID_ANDROID: string;
     DISPLAY_NAME: string;
     DEEPLINK_BASE_URL: string;
+    GITHUB_CLIENT_ID: string;
+    GITHUB_REDIRECT_URI: string;
   }
   export const Config: NativeConfig;
   export default Config;

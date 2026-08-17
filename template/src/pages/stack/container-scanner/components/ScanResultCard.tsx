@@ -1,7 +1,11 @@
 import { IContainerScanResult } from "@features/container-scan";
 import { decodeEquipmentCategory } from "@shared/lib/container-ocr";
-import { Col, FlexProps, Row, Text } from "@shared/ui";
+import { Col, FlexProps, Text } from "@shared/ui";
 import React, { FC, memo } from "react";
+
+import { ScanDecodeRow } from "./ScanDecodeRow";
+import { ScanResultRow } from "./ScanResultRow";
+import { ScanSectionTitle } from "./ScanSectionTitle";
 
 interface IProps extends FlexProps {
   result: IContainerScanResult;
@@ -19,23 +23,23 @@ export const ScanResultCard: FC<IProps> = memo(({ result, ...rest }) => {
         Контрольная цифра сходится (ISO 6346)
       </Text>
 
-      <SectionTitle title={"Разбор кода"} />
-      <DecodeRow
+      <ScanSectionTitle title={"Разбор кода"} />
+      <ScanDecodeRow
         fragment={parts.owner}
         meaning={"Код владельца (BIC)"}
         detail={result.ownerName ?? "владелец не найден в справочнике"}
       />
-      <DecodeRow
+      <ScanDecodeRow
         fragment={parts.category}
         meaning={"Категория оборудования"}
         detail={decodeEquipmentCategory(parts.category)}
       />
-      <DecodeRow
+      <ScanDecodeRow
         fragment={parts.serial}
         meaning={"Серийный номер"}
         detail={"присваивается владельцем"}
       />
-      <DecodeRow
+      <ScanDecodeRow
         fragment={`${parts.checkDigit}`}
         meaning={"Контрольная цифра"}
         detail={"вычисляется по первым 10 знакам"}
@@ -43,18 +47,18 @@ export const ScanResultCard: FC<IProps> = memo(({ result, ...rest }) => {
 
       {sizeType && (
         <>
-          <SectionTitle title={`Типоразмер ${sizeType.code}`} />
-          <DecodeRow
+          <ScanSectionTitle title={`Типоразмер ${sizeType.code}`} />
+          <ScanDecodeRow
             fragment={sizeType.lengthCode}
             meaning={"Длина"}
             detail={sizeType.length}
           />
-          <DecodeRow
+          <ScanDecodeRow
             fragment={sizeType.heightCode}
             meaning={"Высота"}
             detail={sizeType.height}
           />
-          <DecodeRow
+          <ScanDecodeRow
             fragment={sizeType.typeCode}
             meaning={sizeType.typeGroup}
             detail={sizeType.typeDetail}
@@ -62,67 +66,33 @@ export const ScanResultCard: FC<IProps> = memo(({ result, ...rest }) => {
         </>
       )}
 
-      <SectionTitle title={"Веса и объём"} />
+      <ScanSectionTitle title={"Веса и объём"} />
       {maxGrossKg !== null && (
-        <ResultRow label={"MAX GROSS (брутто)"} value={formatKg(maxGrossKg)} />
+        <ScanResultRow
+          label={"MAX GROSS (брутто)"}
+          value={formatKg(maxGrossKg)}
+        />
       )}
       {tareKg !== null && (
-        <ResultRow label={"TARE (собственный)"} value={formatKg(tareKg)} />
+        <ScanResultRow label={"TARE (собственный)"} value={formatKg(tareKg)} />
       )}
       {netKg !== null && (
-        <ResultRow label={"NET / PAYLOAD (груз)"} value={formatKg(netKg)} />
+        <ScanResultRow label={"NET / PAYLOAD (груз)"} value={formatKg(netKg)} />
       )}
       {cubicCapacityM3 !== null && (
-        <ResultRow label={"CU CAP (объём)"} value={`${cubicCapacityM3} м³`} />
+        <ScanResultRow
+          label={"CU CAP (объём)"}
+          value={`${cubicCapacityM3} м³`}
+        />
       )}
 
-      <ResultRow
+      <ScanResultRow
         label={"Уверенность OCR"}
         value={`${Math.round(candidate.confidence * 100)}%`}
       />
     </Col>
   );
 });
-
-const SectionTitle: FC<{ title: string }> = memo(({ title }) => (
-  <Text mt={16} textStyle={"Title_S1"}>
-    {title}
-  </Text>
-));
-
-/** Строка посимвольного разбора: фрагмент кода → что означает */
-const DecodeRow: FC<{ fragment: string; meaning: string; detail: string }> =
-  memo(({ fragment, meaning, detail }) => (
-    <Row mt={10} alignItems={"flex-start"}>
-      <Col
-        minWidth={64}
-        pv={2}
-        ph={8}
-        radius={6}
-        bg={"onSurface"}
-        alignItems={"center"}
-      >
-        <Text textStyle={"Body_S1"}>{fragment}</Text>
-      </Col>
-      <Col ml={12} flex={1}>
-        <Text>{meaning}</Text>
-        <Text mt={2} color={"textSecondary"} textStyle={"Caption_M2"}>
-          {detail}
-        </Text>
-      </Col>
-    </Row>
-  ));
-
-const ResultRow: FC<{ label: string; value: string }> = memo(
-  ({ label, value }) => (
-    <Row mt={12} justifyContent={"space-between"} alignItems={"center"}>
-      <Text color={"textSecondary"}>{label}</Text>
-      <Text ml={12} flexShrink={1} textAlign={"right"}>
-        {value}
-      </Text>
-    </Row>
-  ),
-);
 
 /** 30480 → "30 480 кг" */
 function formatKg(value: number): string {

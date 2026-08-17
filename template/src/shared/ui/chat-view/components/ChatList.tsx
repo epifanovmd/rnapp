@@ -4,7 +4,7 @@ import type {
   ViewabilityConfigCallbackPairs,
 } from "@legendapp/list/react-native";
 import { AnimatedLegendList } from "@legendapp/list/reanimated";
-import React, { forwardRef, memo, useMemo } from "react";
+import React, { forwardRef, useMemo } from "react";
 import { LayoutChangeEvent, Platform, StyleSheet } from "react-native";
 import Animated, {
   AnimatedRef,
@@ -74,140 +74,136 @@ const MAINTAIN_SCROLL_AT_END = { animated: true, on: { dataChange: true } };
 // 120 мс вместо дефолтных 250 — иначе серые плитки на месте картинок при быстром скролле.
 const ADAPTIVE_RENDER_EXIT_DELAY = 120;
 
-export const ChatList = memo(
-  forwardRef<LegendListRef, IChatListProps>(
-    (
-      {
-        rows,
-        stickyIndices,
-        scrollRef,
-        bottomSpacerStyle,
-        scrollOffset,
-        isNearEnd,
-        activeStickyIndex,
-        contentPaddingTop,
-        stickyOffset,
-        initialScrollIndex,
-        estimatedItemSize,
-        drawDistance,
-        dateSeparatorRowHeight,
-        startReachedThreshold,
-        endReachedThreshold,
-        maintainScrollAtEndThreshold,
-        autoScrollOnNewMessage,
-        viewabilityConfigCallbackPairs,
-        onLoad,
-        onScrollBeginDrag,
-        onScrollEndDrag,
-        onStartReached,
-        onEndReached,
-        onLayout,
-        onContentSizeChange,
-        onAdaptiveRenderChange,
-      },
-      ref,
-    ) => {
-      // Спиннер и плашки дат имеют известную высоту — их список не меряет.
-      // Кроме исчезающей плашки: схлопывание меняет высоту покадрово, а
-      // фиксированный размер заставил бы список игнорировать её замеры.
-      const getFixedItemSize = useMemo(
-        () => (row: ChatRow) => {
-          if (row.type === "loading") return LOADING_ROW_HEIGHT;
-          if (row.type === "dateSeparator" && !row.removing) {
-            return dateSeparatorRowHeight;
-          }
-
-          return undefined;
-        },
-        [dateSeparatorRowHeight],
-      );
-
-      const adaptiveRender = useMemo(
-        () => ({
-          exitDelay: ADAPTIVE_RENDER_EXIT_DELAY,
-          onChange: onAdaptiveRenderChange,
-        }),
-        [onAdaptiveRenderChange],
-      );
-
-      const contentContainerStyle = useMemo(
-        () => ({ paddingTop: contentPaddingTop }),
-        [contentPaddingTop],
-      );
-
-      const sharedValues = useMemo(
-        () => ({
-          scrollOffset,
-          activeStickyIndex,
-          // LegendList считает `isNearEnd` по порогу пагинации. Для чата
-          // состояние «у низа» должно жить на отдельном scroll-пороге.
-          isWithinMaintainScrollAtEndThreshold: isNearEnd,
-        }),
-        [scrollOffset, isNearEnd, activeStickyIndex],
-      );
-
-      const stickyHeaderConfig = useMemo(
-        () => ({ offset: stickyOffset }),
-        [stickyOffset],
-      );
-
-      const listFooter = useMemo(
-        () => <Animated.View style={bottomSpacerStyle} />,
-        [bottomSpacerStyle],
-      );
-
-      return (
-        <AnimatedLegendList
-          ref={ref}
-          refScrollView={
-            scrollRef as unknown as React.Ref<
-              React.ComponentRef<typeof Animated.ScrollView>
-            >
-          }
-          data={rows}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          getItemType={getItemType}
-          getFixedItemSize={getFixedItemSize}
-          itemsAreEqual={itemsAreEqual}
-          recycleItems={RECYCLE_ITEMS}
-          experimental_adaptiveRender={adaptiveRender}
-          estimatedItemSize={estimatedItemSize}
-          drawDistance={drawDistance}
-          alignItemsAtEnd
-          maintainVisibleContentPosition={MAINTAIN_VISIBLE_CONTENT_POSITION}
-          maintainScrollAtEnd={
-            autoScrollOnNewMessage ? MAINTAIN_SCROLL_AT_END : false
-          }
-          maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
-          initialScrollIndex={initialScrollIndex}
-          initialScrollAtEnd={initialScrollIndex == null}
-          stickyHeaderIndices={stickyIndices}
-          stickyHeaderConfig={stickyHeaderConfig}
-          sharedValues={sharedValues}
-          ListFooterComponent={listFooter}
-          contentContainerStyle={contentContainerStyle}
-          style={ss.list}
-          showsVerticalScrollIndicator
-          keyboardDismissMode={
-            Platform.OS === "ios" ? "interactive" : "on-drag"
-          }
-          keyboardShouldPersistTaps="handled"
-          scrollEventThrottle={16}
-          onStartReached={onStartReached}
-          onStartReachedThreshold={startReachedThreshold}
-          onEndReached={onEndReached}
-          onEndReachedThreshold={endReachedThreshold}
-          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
-          onLoad={onLoad}
-          onScrollBeginDrag={onScrollBeginDrag}
-          onScrollEndDrag={onScrollEndDrag}
-          onLayout={onLayout}
-          onContentSizeChange={onContentSizeChange}
-        />
-      );
+export const ChatList = forwardRef<LegendListRef, IChatListProps>(
+  (
+    {
+      rows,
+      stickyIndices,
+      scrollRef,
+      bottomSpacerStyle,
+      scrollOffset,
+      isNearEnd,
+      activeStickyIndex,
+      contentPaddingTop,
+      stickyOffset,
+      initialScrollIndex,
+      estimatedItemSize,
+      drawDistance,
+      dateSeparatorRowHeight,
+      startReachedThreshold,
+      endReachedThreshold,
+      maintainScrollAtEndThreshold,
+      autoScrollOnNewMessage,
+      viewabilityConfigCallbackPairs,
+      onLoad,
+      onScrollBeginDrag,
+      onScrollEndDrag,
+      onStartReached,
+      onEndReached,
+      onLayout,
+      onContentSizeChange,
+      onAdaptiveRenderChange,
     },
-  ),
+    ref,
+  ) => {
+    // Спиннер и плашки дат имеют известную высоту — их список не меряет.
+    // Кроме исчезающей плашки: схлопывание меняет высоту покадрово, а
+    // фиксированный размер заставил бы список игнорировать её замеры.
+    const getFixedItemSize = useMemo(
+      () => (row: ChatRow) => {
+        if (row.type === "loading") return LOADING_ROW_HEIGHT;
+        if (row.type === "dateSeparator" && !row.removing) {
+          return dateSeparatorRowHeight;
+        }
+
+        return undefined;
+      },
+      [dateSeparatorRowHeight],
+    );
+
+    const adaptiveRender = useMemo(
+      () => ({
+        exitDelay: ADAPTIVE_RENDER_EXIT_DELAY,
+        onChange: onAdaptiveRenderChange,
+      }),
+      [onAdaptiveRenderChange],
+    );
+
+    const contentContainerStyle = useMemo(
+      () => ({ paddingTop: contentPaddingTop }),
+      [contentPaddingTop],
+    );
+
+    const sharedValues = useMemo(
+      () => ({
+        scrollOffset,
+        activeStickyIndex,
+        // LegendList считает `isNearEnd` по порогу пагинации. Для чата
+        // состояние «у низа» должно жить на отдельном scroll-пороге.
+        isWithinMaintainScrollAtEndThreshold: isNearEnd,
+      }),
+      [scrollOffset, isNearEnd, activeStickyIndex],
+    );
+
+    const stickyHeaderConfig = useMemo(
+      () => ({ offset: stickyOffset }),
+      [stickyOffset],
+    );
+
+    const listFooter = useMemo(
+      () => <Animated.View style={bottomSpacerStyle} />,
+      [bottomSpacerStyle],
+    );
+
+    return (
+      <AnimatedLegendList
+        ref={ref}
+        refScrollView={
+          scrollRef as unknown as React.Ref<
+            React.ComponentRef<typeof Animated.ScrollView>
+          >
+        }
+        data={rows}
+        renderItem={renderItem}
+        keyExtractor={keyExtractor}
+        getItemType={getItemType}
+        getFixedItemSize={getFixedItemSize}
+        itemsAreEqual={itemsAreEqual}
+        recycleItems={RECYCLE_ITEMS}
+        experimental_adaptiveRender={adaptiveRender}
+        estimatedItemSize={estimatedItemSize}
+        drawDistance={drawDistance}
+        alignItemsAtEnd
+        maintainVisibleContentPosition={MAINTAIN_VISIBLE_CONTENT_POSITION}
+        maintainScrollAtEnd={
+          autoScrollOnNewMessage ? MAINTAIN_SCROLL_AT_END : false
+        }
+        maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
+        initialScrollIndex={initialScrollIndex}
+        initialScrollAtEnd={initialScrollIndex == null}
+        stickyHeaderIndices={stickyIndices}
+        stickyHeaderConfig={stickyHeaderConfig}
+        sharedValues={sharedValues}
+        ListFooterComponent={listFooter}
+        contentContainerStyle={contentContainerStyle}
+        style={ss.list}
+        showsVerticalScrollIndicator
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+        keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={16}
+        onStartReached={onStartReached}
+        onStartReachedThreshold={startReachedThreshold}
+        onEndReached={onEndReached}
+        onEndReachedThreshold={endReachedThreshold}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
+        onLoad={onLoad}
+        onScrollBeginDrag={onScrollBeginDrag}
+        onScrollEndDrag={onScrollEndDrag}
+        onLayout={onLayout}
+        onContentSizeChange={onContentSizeChange}
+      />
+    );
+  },
 );
 
 ChatList.displayName = "ChatList";

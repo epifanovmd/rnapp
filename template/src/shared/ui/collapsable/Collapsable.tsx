@@ -1,6 +1,5 @@
 import React, {
   forwardRef,
-  memo,
   PropsWithChildren,
   useCallback,
   useEffect,
@@ -52,141 +51,142 @@ const DEFAULT_EASING = Easing.inOut(Easing.ease);
  * контент (подгрузка, смена текста) подхватывается автоматически. До первого
  * измерения развёрнутый блок рендерится в потоке (без кадра-вспышки).
  */
-export const Collapsable = memo(
-  forwardRef<ICollapsableRef, PropsWithChildren<ICollapsableProps>>(
-    (
-      {
-        collapsed: collapsedProp = false,
-        collapsedHeight = 0,
-        duration = 200,
-        easing = DEFAULT_EASING,
-        opacityAnimation = true,
-        collapsedContent,
-        onAnimationEnd,
-        children,
-        style,
-        ...rest
-      },
-      ref,
-    ) => {
-      const [collapsed, setCollapsed] = useState(collapsedProp);
-      const [measured, setMeasured] = useState(false);
-      const initialCollapsed = useRef(collapsedProp).current;
-
-      /** 0 — свёрнуто, 1 — развёрнуто. */
-      const progress = useSharedValue(collapsedProp ? 0 : 1);
-      const contentHeight = useSharedValue(0);
-      const previewHeight = useSharedValue(collapsedHeight);
-
-      /**
-       * Контент absolute (измерение без констрейнта высоты контейнера) везде,
-       * кроме первого рендера развёрнутого блока — там он в потоке, чтобы
-       * контейнер сразу взял auto-высоту. После измерения пиксельно идентичен.
-       */
-      const contentAbsolute = measured || initialCollapsed;
-
-      /** Контент скрывается только когда его не видно в свёрнутом состоянии. */
-      const fadeContent =
-        opacityAnimation && (!!collapsedContent || collapsedHeight === 0);
-
-      useEffect(() => {
-        setCollapsed(collapsedProp);
-      }, [collapsedProp]);
-
-      useEffect(() => {
-        const emitEnd = (value: boolean) => onAnimationEnd?.(value);
-
-        progress.value = withTiming(
-          collapsed ? 0 : 1,
-          { duration, easing },
-          finished => {
-            if (finished) {
-              scheduleOnRN(emitEnd, collapsed);
-            }
-          },
-        );
-      }, [collapsed, duration, easing, onAnimationEnd, progress]);
-
-      useEffect(() => {
-        if (!collapsedContent) {
-          previewHeight.value = collapsedHeight;
-        }
-      }, [collapsedHeight, collapsedContent, previewHeight]);
-
-      useImperativeHandle(
-        ref,
-        () => ({
-          toggle: value => setCollapsed(current => value ?? !current),
-          get collapsed() {
-            return collapsed;
-          },
-        }),
-        [collapsed],
-      );
-
-      const handleContentLayout = useCallback(
-        (event: LayoutChangeEvent) => {
-          contentHeight.value = event.nativeEvent.layout.height;
-          setMeasured(true);
-        },
-        [contentHeight],
-      );
-
-      const handlePreviewLayout = useCallback(
-        (event: LayoutChangeEvent) => {
-          previewHeight.value = event.nativeEvent.layout.height;
-        },
-        [previewHeight],
-      );
-
-      const containerStyle = useAnimatedStyle(() => ({
-        height: interpolate(
-          progress.value,
-          [0, 1],
-          [previewHeight.value, contentHeight.value],
-        ),
-      }));
-
-      const contentStyle = useAnimatedStyle(() => ({
-        opacity: fadeContent
-          ? interpolate(progress.value, [0, 0.5, 1], [0, 0, 1])
-          : 1,
-      }));
-
-      const previewStyle = useAnimatedStyle(() => ({
-        opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0, 0]),
-      }));
-
-      return (
-        <Animated.View
-          accessibilityState={{ expanded: !collapsed }}
-          style={[
-            styles.container,
-            style,
-            contentAbsolute ? containerStyle : undefined,
-          ]}
-          {...rest}
-        >
-          <Animated.View
-            style={[contentAbsolute && styles.absolute, contentStyle]}
-            pointerEvents={collapsed ? "none" : "auto"}
-            onLayout={handleContentLayout}
-          >
-            {children}
-          </Animated.View>
-          {!!collapsedContent && (
-            <Animated.View
-              style={[styles.absolute, previewStyle]}
-              pointerEvents={collapsed ? "auto" : "none"}
-              onLayout={handlePreviewLayout}
-            >
-              {collapsedContent}
-            </Animated.View>
-          )}
-        </Animated.View>
-      );
+export const Collapsable = forwardRef<
+  ICollapsableRef,
+  PropsWithChildren<ICollapsableProps>
+>(
+  (
+    {
+      collapsed: collapsedProp = false,
+      collapsedHeight = 0,
+      duration = 200,
+      easing = DEFAULT_EASING,
+      opacityAnimation = true,
+      collapsedContent,
+      onAnimationEnd,
+      children,
+      style,
+      ...rest
     },
-  ),
+    ref,
+  ) => {
+    const [collapsed, setCollapsed] = useState(collapsedProp);
+    const [measured, setMeasured] = useState(false);
+    const initialCollapsed = useRef(collapsedProp).current;
+
+    /** 0 — свёрнуто, 1 — развёрнуто. */
+    const progress = useSharedValue(collapsedProp ? 0 : 1);
+    const contentHeight = useSharedValue(0);
+    const previewHeight = useSharedValue(collapsedHeight);
+
+    /**
+     * Контент absolute (измерение без констрейнта высоты контейнера) везде,
+     * кроме первого рендера развёрнутого блока — там он в потоке, чтобы
+     * контейнер сразу взял auto-высоту. После измерения пиксельно идентичен.
+     */
+    const contentAbsolute = measured || initialCollapsed;
+
+    /** Контент скрывается только когда его не видно в свёрнутом состоянии. */
+    const fadeContent =
+      opacityAnimation && (!!collapsedContent || collapsedHeight === 0);
+
+    useEffect(() => {
+      setCollapsed(collapsedProp);
+    }, [collapsedProp]);
+
+    useEffect(() => {
+      const emitEnd = (value: boolean) => onAnimationEnd?.(value);
+
+      progress.value = withTiming(
+        collapsed ? 0 : 1,
+        { duration, easing },
+        finished => {
+          if (finished) {
+            scheduleOnRN(emitEnd, collapsed);
+          }
+        },
+      );
+    }, [collapsed, duration, easing, onAnimationEnd, progress]);
+
+    useEffect(() => {
+      if (!collapsedContent) {
+        previewHeight.value = collapsedHeight;
+      }
+    }, [collapsedHeight, collapsedContent, previewHeight]);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        toggle: value => setCollapsed(current => value ?? !current),
+        get collapsed() {
+          return collapsed;
+        },
+      }),
+      [collapsed],
+    );
+
+    const handleContentLayout = useCallback(
+      (event: LayoutChangeEvent) => {
+        contentHeight.value = event.nativeEvent.layout.height;
+        setMeasured(true);
+      },
+      [contentHeight],
+    );
+
+    const handlePreviewLayout = useCallback(
+      (event: LayoutChangeEvent) => {
+        previewHeight.value = event.nativeEvent.layout.height;
+      },
+      [previewHeight],
+    );
+
+    const containerStyle = useAnimatedStyle(() => ({
+      height: interpolate(
+        progress.value,
+        [0, 1],
+        [previewHeight.value, contentHeight.value],
+      ),
+    }));
+
+    const contentStyle = useAnimatedStyle(() => ({
+      opacity: fadeContent
+        ? interpolate(progress.value, [0, 0.5, 1], [0, 0, 1])
+        : 1,
+    }));
+
+    const previewStyle = useAnimatedStyle(() => ({
+      opacity: interpolate(progress.value, [0, 0.5, 1], [1, 0, 0]),
+    }));
+
+    return (
+      <Animated.View
+        accessibilityState={{ expanded: !collapsed }}
+        style={[
+          styles.container,
+          style,
+          contentAbsolute ? containerStyle : undefined,
+        ]}
+        {...rest}
+      >
+        <Animated.View
+          style={[contentAbsolute && styles.absolute, contentStyle]}
+          pointerEvents={collapsed ? "none" : "auto"}
+          onLayout={handleContentLayout}
+        >
+          {children}
+        </Animated.View>
+        {!!collapsedContent && (
+          <Animated.View
+            style={[styles.absolute, previewStyle]}
+            pointerEvents={collapsed ? "auto" : "none"}
+            onLayout={handlePreviewLayout}
+          >
+            {collapsedContent}
+          </Animated.View>
+        )}
+      </Animated.View>
+    );
+  },
 );
 
 const styles = StyleSheet.create({

@@ -5,10 +5,6 @@ import { SOCKET_BASE_URL } from "../../../config/env";
 import { IAppStateService } from "../../app-state";
 import { INetworkStatusService } from "../../network";
 import { ITokenProvider } from "../contract";
-import {
-  SocketClientToServerEvents,
-  SocketServerToClientEvents,
-} from "../events";
 import { EmitQueue } from "./emit-queue";
 import { PersistentListeners } from "./persistent-listeners";
 import {
@@ -132,34 +128,22 @@ export class SocketTransport implements ISocketTransport {
 
   // ─── Pub/Sub ──────────────────────────────────────────────────────
 
-  on<K extends keyof SocketServerToClientEvents>(
-    event: K,
-    handler: SocketServerToClientEvents[K],
+  on<TArgs extends any[]>(
+    event: string,
+    handler: (...args: TArgs) => void,
   ): () => void {
-    const removeFromStore = this._persistentListeners.add(
-      event as string,
-      handler,
-    );
+    const removeFromStore = this._persistentListeners.add(event, handler);
 
-    this._socket?.on(event, handler as never);
+    this._socket?.on(event, handler);
 
     return () => {
       removeFromStore();
-      this._socket?.off(event, handler as never);
+      this._socket?.off(event, handler);
     };
   }
 
-  emit<K extends keyof SocketClientToServerEvents>(
-    event: K,
-    ...args: Parameters<SocketClientToServerEvents[K]>
-  ): void {
-    type EmitFn = (
-      e: K,
-      ...a: Parameters<SocketClientToServerEvents[K]>
-    ) => void;
-
-    const doEmit = (socket: AppSocket) =>
-      (socket.emit as EmitFn)(event, ...args);
+  emit<TArgs extends any[]>(event: string, ...args: TArgs): void {
+    const doEmit = (socket: AppSocket) => socket.emit(event, ...args);
 
     if (this._socket?.connected) {
       doEmit(this._socket);

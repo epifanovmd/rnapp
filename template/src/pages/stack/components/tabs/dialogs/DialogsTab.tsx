@@ -1,17 +1,12 @@
 import { useScroll } from "@shared/lib/scroll";
 import { useTransition } from "@shared/lib/transition";
-import {
-  Button,
-  Dialog,
-  IDialogProps,
-  Row,
-  Text,
-  useDialogRef,
-} from "@shared/ui";
+import { Button, Dialog, IDialogProps, Text, useDialogRef } from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { DialogDemoContent } from "./DialogDemoContent";
 
 interface IDialogVariant {
   key: string;
@@ -73,17 +68,6 @@ const DIALOG_VARIANTS: IDialogVariant[] = [
     longContent: true,
   },
 ];
-
-/** Единый контент всех демо-диалогов. */
-const DialogDemoContent: FC<{ long?: boolean }> = ({ long }) => (
-  <>
-    {Array.from({ length: long ? 60 : 3 }, (_, i) => (
-      <Row key={i}>
-        <Text>{`Строка ${i + 1}`}</Text>
-      </Row>
-    ))}
-  </>
-);
 
 export const DialogsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();

@@ -77,7 +77,7 @@ export const Tabs = <Value extends any = unknown>({
       ref={scrollViewRef}
       horizontal={true}
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ padding: 8 }}
+      contentContainerStyle={SS.content}
       onLayout={handleContainerLayout}
       style={[style, SS.scrollView]}
       {...rest}
@@ -101,4 +101,5 @@ const SS = StyleSheet.create({
     flexGrow: 0,
     flexShrink: 0,
   },
+  content: { padding: 8 },
 });

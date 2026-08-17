@@ -1,12 +1,11 @@
-import { IAuthStore } from "@entities/auth";
 import { IUserStore } from "@entities/user";
 import { useBiometric } from "@features/biometric";
+import { SignOutButton } from "@features/sign-out";
 import { useRoute } from "@shared/lib/navigation";
 import { useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import { useTransition } from "@shared/lib/transition";
 import {
-  Button,
   Col,
   Container,
   Content,
@@ -19,7 +18,7 @@ import {
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
-import { LayoutChangeEvent } from "react-native";
+import { LayoutChangeEvent, StyleSheet } from "react-native";
 import Animated, {
   Extrapolation,
   interpolate,
@@ -33,7 +32,6 @@ const height = 250;
 
 export const Settings: FC = observer(() => {
   const { name } = useRoute();
-  const { signOut } = IAuthStore.useInstance();
   const { user } = IUserStore.useInstance();
   const { tabBar } = useTransition();
   const telemetry = useScrollTelemetry();
@@ -116,11 +114,10 @@ export const Settings: FC = observer(() => {
         <Animated.ScrollView
           onScroll={telemetry.scrollHandler}
           scrollEventThrottle={16}
-          contentContainerStyle={{
-            paddingTop: 250 + 16,
-            paddingBottom: tabBar.height,
-            gap: 16,
-          }}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: tabBar.height },
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <Col bg={"surface"} radius={16}>
@@ -144,13 +141,18 @@ export const Settings: FC = observer(() => {
 
           <Col bg={"surface"} radius={16}>
             <Row centerContent={true} pa={16}>
-              <Button color={"danger"} appearance={"ghost"} onPress={signOut}>
-                {"Выйти"}
-              </Button>
+              <SignOutButton />
             </Row>
           </Col>
         </Animated.ScrollView>
       </Content>
     </Container>
   );
+});
+
+const styles = StyleSheet.create({
+  content: {
+    paddingTop: 266,
+    gap: 16,
+  },
 });

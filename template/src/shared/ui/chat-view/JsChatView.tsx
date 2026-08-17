@@ -1,7 +1,6 @@
 import type { LegendListRef } from "@legendapp/list/react-native";
 import React, {
   forwardRef,
-  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -62,8 +61,8 @@ const NO_STICKY_INDICES: number[] = [];
 const CONTENT_TYPES = createChatContentRegistry(CHAT_BUILTIN_CONTENT);
 
 /** JS-реализация ChatView: LegendList + одна зона клавиатуры на всех потребителей. */
-export const JsChatView = memo(
-  forwardRef<IChatViewRef, ChatViewProps>((props, ref) => {
+export const JsChatView = forwardRef<IChatViewRef, ChatViewProps>(
+  (props, ref) => {
     const {
       messages,
       getActionsForMessage,
@@ -361,7 +360,7 @@ export const JsChatView = memo(
         </DisintegrateProvider>
       </ChatViewContext.Provider>
     );
-  }),
+  },
 );
 
 JsChatView.displayName = "JsChatView";

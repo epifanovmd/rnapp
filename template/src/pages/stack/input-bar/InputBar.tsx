@@ -16,9 +16,9 @@ import {
   INPUT_BAR_DEFAULT_LAYOUT,
   InputBar,
   InputBarInputAction,
+  JsInputBar,
   KeyboardInputBar,
 } from "@shared/ui/input-bar";
-import { JsInputBar } from "@shared/ui/input-bar/JsInputBar";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useMemo, useState } from "react";
 import { Keyboard, Platform, Pressable, StyleSheet } from "react-native";

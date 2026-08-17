@@ -1,32 +1,17 @@
-import { useTheme } from "@shared/lib/theme";
-import {
-  Button,
-  Carousel,
-  Col,
-  Icon,
-  Image,
-  Row,
-  Text,
-  TIconName,
-  useCarousel,
-} from "@shared/ui";
+import { Carousel, Image } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet } from "react-native";
 import { Easing } from "react-native-reanimated";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
+import { RandomSlideButton } from "./RandomSlideButton";
+import { ITickerCardProps, TickerCard } from "./TickerCard";
 
 const GALLERY = [1, 12, 25, 33, 41].map(
   seed => `https://picsum.photos/id/${seed}/600/400`,
 );
 
-interface ITickerCard {
-  icon: TIconName;
-  title: string;
-  value: string;
-}
-
-const TICKER_CARDS: ITickerCard[] = [
+const TICKER_CARDS: ITickerCardProps[] = [
   { icon: "image", title: "Медиа", value: "1 284 файла" },
   { icon: "document", title: "Документы", value: "312 шт." },
   { icon: "camera", title: "Камера", value: "4K • 60fps" },
@@ -37,47 +22,6 @@ const TICKER_CARDS: ITickerCard[] = [
 
 const TICKER_CARD_WIDTH = 150;
 const TICKER_CARD_GAP = 8;
-
-/** Маленькая инфо-карточка бегущей строки. */
-const TickerCard: FC<ITickerCard> = ({ icon, title, value }) => {
-  const { colors } = useTheme();
-
-  return (
-    <Row
-      alignItems={"center"}
-      gap={8}
-      mr={TICKER_CARD_GAP}
-      ph={10}
-      pv={8}
-      radius={12}
-      bg={"onSurface"}
-      flex={1}
-    >
-      <Icon name={icon} size={18} color={colors.primary} />
-      <Col flexShrink={1}>
-        <Text color={"textSecondary"} textStyle={"Caption_M3"}>
-          {title}
-        </Text>
-        <Text textStyle={"Caption_M2"}>{value}</Text>
-      </Col>
-    </Row>
-  );
-};
-
-/** Пример собственного контрола на useCarousel(). */
-const RandomSlideButton: FC = () => {
-  const { count, scrollTo } = useCarousel();
-
-  return (
-    <Button
-      mt={8}
-      size={"small"}
-      appearance={"outline"}
-      title={"К случайному слайду"}
-      onPress={() => scrollTo(Math.floor(Math.random() * count))}
-    />
-  );
-};
 
 const renderPhoto = ({ item }: { item: string }) => (
   <Image url={item} width={"100%"} height={"100%"} radius={16} ph={4} />

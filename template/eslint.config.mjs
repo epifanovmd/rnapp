@@ -15,15 +15,58 @@ const SHARED_SEGMENTS = ["ui", "api", "config"];
 /** Слайсы entities/features/widgets/pages — self-import запрещён внутри своего же слайса. */
 const SLICE_LAYERS = {
   entities: ["auth", "user"],
-  features: ["sign-in", "sign-up", "recovery-password", "biometric"],
+  features: [
+    "biometric",
+    "container-scan",
+    "object-scan",
+    "plate-scan",
+    "recovery-password",
+    "sign-in",
+    "sign-out",
+    "sign-up",
+    "text-scan",
+  ],
   widgets: ["chat-room", "app-shell"],
-  pages: ["sign-in", "sign-up", "recovery-password", "chat", "settings", "ui-kit-demo"],
+  pages: [
+    "stack/charts",
+    "stack/chat",
+    "stack/components",
+    "stack/container-scanner",
+    "stack/context-menu",
+    "stack/input-bar",
+    "stack/list-perf",
+    "stack/object-scanner",
+    "stack/pdf-view",
+    "stack/plate-scanner",
+    "stack/recovery-password",
+    "stack/sign-in",
+    "stack/sign-up",
+    "stack/text-scanner",
+    "stack/web-view",
+    "tabs/main",
+    "tabs/playground",
+    "tabs/settings",
+  ],
+};
+
+const publicApiImportPattern = {
+  group: [
+    "@entities/*/*",
+    "@features/*/*",
+    "@widgets/*/*",
+    "@pages/*/*/*",
+    "@shared/ui/*/*",
+  ],
+  message: "Импортируй слайс через его публичный API (index.ts)",
 };
 
 const selfImportRestriction = (files, group, message) => ({
   files,
   rules: {
-    "no-restricted-imports": ["error", { patterns: [{ group, message }] }],
+    "no-restricted-imports": [
+      "error",
+      { patterns: [publicApiImportPattern, { group, message }] },
+    ],
   },
 });
 
@@ -60,6 +103,12 @@ export default [
       "simple-import-sort": simpleImportSort,
     },
     rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [publicApiImportPattern] },
+      ],
+
+      "react/no-multi-comp": ["error", { ignoreStateless: false }],
       // react-hooks: те же доп. правила, что в react-vite
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": [

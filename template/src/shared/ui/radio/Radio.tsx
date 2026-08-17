@@ -101,51 +101,6 @@ export const Radio = memo<IRadioProps>(
   },
 );
 
-export interface IRadioOption<Value> {
-  label: string;
-  value: Value;
-  description?: string;
-  disabled?: boolean;
-}
-
-export interface IRadioGroupProps<Value> {
-  options: IRadioOption<Value>[];
-  value?: Value;
-  onChange?: (value: Value) => void;
-  disabled?: boolean;
-  /** Горизонтальная раскладка. */
-  horizontal?: boolean;
-  gap?: number;
-}
-
-const RadioGroupBase = <Value,>({
-  options,
-  value,
-  onChange,
-  disabled,
-  horizontal,
-  gap = 12,
-}: IRadioGroupProps<Value>) => {
-  const Wrapper = horizontal ? Row : Col;
-
-  return (
-    <Wrapper gap={gap} accessibilityRole={"radiogroup"}>
-      {options.map((option, index) => (
-        <Radio
-          key={index}
-          isActive={option.value === value}
-          disabled={disabled || option.disabled}
-          label={option.label}
-          description={option.description}
-          onChange={() => onChange?.(option.value)}
-        />
-      ))}
-    </Wrapper>
-  );
-};
-
-export const RadioGroup = memo(RadioGroupBase) as typeof RadioGroupBase;
-
 const styles = StyleSheet.create({
   ring: {
     width: DOT_SIZE,

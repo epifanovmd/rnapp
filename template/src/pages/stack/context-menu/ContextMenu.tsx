@@ -10,8 +10,10 @@ import {
   Switch,
   Text,
 } from "@shared/ui";
-import { JsContextMenuView } from "@shared/ui/context-menu-view/JsContextMenuView";
-import { NativeContextMenuView } from "@shared/ui/context-menu-view/native";
+import {
+  JsContextMenuView,
+  NativeContextMenuView,
+} from "@shared/ui/context-menu-view";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";

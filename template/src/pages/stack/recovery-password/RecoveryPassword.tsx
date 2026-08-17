@@ -1,10 +1,14 @@
 import { useRecoveryPassword } from "@features/recovery-password";
+import { useNavigation } from "@shared/lib/navigation";
 import { Button, Container, Content, ScrollView, TextField } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
 export const RecoveryPassword: FC = observer(() => {
-  const { form, handleSubmit } = useRecoveryPassword();
+  const navigation = useNavigation();
+  const { form, handleSubmit } = useRecoveryPassword(() =>
+    navigation.navigate("SignIn"),
+  );
 
   const login = form.watch("login");
 

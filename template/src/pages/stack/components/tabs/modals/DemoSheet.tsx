@@ -1,23 +1,10 @@
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
-import {
-  BottomSheet,
-  Row,
-  TBottomSheetProps,
-  Text,
-  useBottomSheetRef,
-} from "@shared/ui";
-import React, { FC, forwardRef } from "react";
+import { BottomSheet, TBottomSheetProps, useBottomSheetRef } from "@shared/ui";
+import React, { forwardRef } from "react";
 
-/** Единый контент всех демо-шторок: одинаковый список строк. */
-export const SheetDemoContent: FC<{ count?: number }> = ({ count = 40 }) => (
-  <>
-    {Array.from({ length: count }, (_, i) => (
-      <Row key={i}>
-        <Text>{`Строка ${i + 1}`}</Text>
-      </Row>
-    ))}
-  </>
-);
+import { SheetDemoContent } from "./SheetDemoContent";
+
+export { SheetDemoContent } from "./SheetDemoContent";
 
 export interface IDemoSheetProps extends Partial<TBottomSheetProps> {
   label?: string;
