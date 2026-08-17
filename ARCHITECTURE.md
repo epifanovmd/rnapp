@@ -1,10 +1,8 @@
----
-name: Architecture
-description: Feature-Sliced Design — структура src/, правила зависимостей, naming, DI, state, HTTP/auth, socket, ESLint
-type: project
----
-
 # Architecture Guide
+
+Документ фиксирует текущее устройство проекта и обязательные архитектурные решения.
+Краткая памятка для размещения нового кода — [FSD-CHEATSHEET.md](FSD-CHEATSHEET.md).
+Правила написания и оформления кода — [CONVENTIONS.md](CONVENTIONS.md).
 
 ## Feature-Sliced Design
 
@@ -31,19 +29,21 @@ template/src/
                             сгруппированы по навигаторам
     tabs/                 ←   экраны таб-навигатора: main/, playground/, settings/
     stack/                ←   экраны стека: sign-in/, sign-up/, recovery-password/, chat/,
-                              charts/, components/, context-menu/, input-bar/,
-                              pdf-view/, web-view/
+                              charts/, components/, container-scanner/, context-menu/,
+                              input-bar/, object-scanner/, pdf-view/, plate-scanner/,
+                              text-scanner/, web-view/
 
   widgets/                ← крупные самостоятельные блоки UI
     chat-room/            ←   ChatRoom + useChatRoomMock (мок-данные)
     app-shell/            ←   TabBar
 
   features/               ← интерактивные сценарии поверх entities
-    sign-in/, sign-up/, recovery-password/
+    sign-in/, sign-up/, sign-out/, recovery-password/
     biometric/            ←   useBiometric (sign-in + settings)
+    container-scan/, object-scan/, plate-scan/, text-scan/
 
   entities/               ← бизнес-сущности — состояние и доменные модели
-    auth/                 ←   model/ (AuthStore, validation, biometric, passkey), api/ (jwt, session, token)
+    auth/                 ←   model/ (AuthStore, validation), api/ (jwt, session, token)
     user/                 ←   model/ (store, session, realtime), lib/permissions
 
   shared/                 ← переиспользуемый код, не знает о бизнес-логике
@@ -53,9 +53,37 @@ template/src/
     lib/                  ←   di, holders, navigation, theme, socket, keyboard, storage, ...
 ```
 
-Слайс (`entities/auth`, `features/sign-in`, ...) — самодостаточная папка с сегментами
-`model/`, `api/`, `ui/`, `lib/`. У `shared` слайсов нет — сегменты (`ui/`, `api/`, `config/`,
-`lib/`) сами по себе плоская коллекция независимых модулей.
+Слайс (`entities/auth`, `features/sign-in`, ...) самодостаточен. У `shared` и `app`
+слайсов нет.
+
+## Слайсы и внутренняя структура
+
+Слайсы существуют в `pages`, `widgets`, `features` и `entities`. `app` и `shared`
+слайсов не содержат.
+
+Внутри слайса используются сегменты по назначению:
+
+| Сегмент  | Ответственность                                      |
+| -------- | ---------------------------------------------------- |
+| `ui`     | отображение, компоненты и связанные стили/форматтеры |
+| `model`  | состояние, схемы, бизнес- и сценарная логика         |
+| `api`    | запросы, DTO, мапперы, API-адаптеры                  |
+| `lib`    | вспомогательный код только этого слайса              |
+| `config` | конфигурация и feature flags                         |
+
+Набор сегментов не фиксирован: маленький слайс может быть плоским, пустые директории
+создавать не нужно. При росте код раскладывается по назначению. `pages` подчиняется тем же
+правилам; `stack`, `tabs` и route groups — группы слайсов, а не сегменты.
+
+Новые директории `components`, `hooks`, `types`, `utils` как сегменты не создаются:
+они описывают вид файлов, а не ответственность. Дополнительный сегмент допустим, если его
+название выражает назначение. Существующие legacy-директории с техническими именами не
+являются образцом для нового кода.
+
+FSD не задаёт направление зависимостей между `ui`, `model` и `api` внутри одного слайса:
+это сегменты, а не вложенные слои.
+
+Практическое руководство и decision tree: [FSD-CHEATSHEET.md](FSD-CHEATSHEET.md).
 
 ## Правила зависимостей
 
@@ -72,22 +100,22 @@ template/src/
 
 ### Разрешено
 
-| Откуда | Куда | Пример |
-|---|---|---|
-| `shared` | `shared` | `shared/ui/chat-view` → `shared/lib/keyboard` |
-| `entities` | `shared` | `entities/auth` → `@shared/lib/di` |
-| `features` | `shared`, `entities` | `features/sign-in` → `@entities/auth` |
-| `widgets` | `shared`, `entities`, `features` | `widgets/chat-room` → `@features/...` |
-| `pages` | `shared`, `entities`, `features`, `widgets` | `pages/chat` → `@widgets/chat-room` |
-| `app` | всё | `app/app.module.ts` → `@entities/auth/auth.module` |
+| Откуда     | Куда                                        | Пример                                        |
+| ---------- | ------------------------------------------- | --------------------------------------------- |
+| `shared`   | `shared`                                    | `shared/ui/chat-view` → `shared/lib/keyboard` |
+| `entities` | `shared`                                    | `entities/auth` → `@shared/lib/di`            |
+| `features` | `shared`, `entities`                        | `features/sign-in` → `@entities/auth`         |
+| `widgets`  | `shared`, `entities`, `features`            | `widgets/chat-room` → `@features/...`         |
+| `pages`    | `shared`, `entities`, `features`, `widgets` | `pages/chat` → `@widgets/chat-room`           |
+| `app`      | всё                                         | `app/app.module.ts` → `@entities/auth`        |
 
 ### Запрещено
 
-| Нарушение | Причина |
-|---|---|
-| Слайс → слайс того же слоя | Dependency Inversion — контракт в `shared` |
-| Слой → слой выше | `entities/*` → `@features/*` |
-| Self-import через свой же alias | внутри слайса — только относительные пути |
+| Нарушение                       | Причина                                    |
+| ------------------------------- | ------------------------------------------ |
+| Слайс → слайс того же слоя      | Dependency Inversion — контракт в `shared` |
+| Слой → слой выше                | `entities/*` → `@features/*`               |
+| Self-import через свой же alias | внутри слайса — только относительные пути  |
 
 ### Self-imports
 
@@ -115,6 +143,34 @@ shared/api/contract/token-source.contract.ts   ← ITokenSource
 entities/auth/api/token-source.ts              ← SessionService
 ```
 
+## Public API (index.ts)
+
+Правило зависит от того, есть ли у слоя слайсы.
+
+**entities / features / widgets / pages** — один public API на весь слайс: корневой
+`index.ts`. Сегменты `model`, `api`, `ui`, `lib` остаются внутренними:
+
+```text
+entities/auth/index.ts               ← public API слайса
+entities/auth/model/store.ts         ← внутренняя реализация
+entities/auth/api/token-provider.ts  ← внутренняя реализация
+```
+
+Внешний потребитель импортирует `@entities/auth`, а не
+`@entities/auth/model/store`. Корневой `index.ts` экспортирует только поддерживаемый
+внешний контракт.
+
+**shared** — слайсов нет, поэтому public API определяется для каждого самостоятельного
+модуля:
+
+```text
+shared/ui/button/index.ts
+shared/lib/notifications/index.ts
+shared/lib/socket/index.ts
+```
+
+Внутри своего слайса или shared-модуля используются относительные импорты.
+
 ## Navigation (React Navigation 7, static API)
 
 - `app/App.screens.ts` — `RootStack = createStackNavigator({ groups })`: группы `Private`
@@ -123,7 +179,7 @@ entities/auth/api/token-source.ts              ← SessionService
   `useSyncExternalStore`); при смене auth-состояния RN сам переключает стек, ручной
   `navigate` после login/logout не нужен.
 - `app/app-tab-screens.tsx` — `MainTabs` (static-конфиг bottom tabs: Main/Playground/Settings)
-  + `MainTabsLayout` (TransitionProvider для баров).
+  - `MainTabsLayout` (TransitionProvider для баров).
 - `app/App.navigator.tsx` — `createStaticNavigation(RootStack)`; регистрирует корневой
   навигатор в `RootNavigator` (`@react-navigation/core`) — глобальный
   `ReactNavigation.RootParamList` выводится из static-конфига автоматически.
@@ -159,14 +215,14 @@ entities/auth/
 `shared/lib/holders/`: entity, collection, paged, infinite, mutation, polling, base, cursor,
 filter, hooks.
 
-| Хук | Holder | Аналог |
-|---|---|---|
-| `useEntity` | `EntityHolder` | `useQuery` |
-| `useCollection` | `CollectionHolder` | `useQuery` (list) |
-| `usePaged` | `PagedHolder` | `useQuery` (paginated) |
-| `useInfinite` | `InfiniteHolder` | `useInfiniteQuery` |
-| `useMutation` | `MutationHolder` | `useMutation` |
-| `usePolling` | `PollingHolder` | `useQuery` + refetchInterval |
+| Хук             | Holder             | Аналог                       |
+| --------------- | ------------------ | ---------------------------- |
+| `useEntity`     | `EntityHolder`     | `useQuery`                   |
+| `useCollection` | `CollectionHolder` | `useQuery` (list)            |
+| `usePaged`      | `PagedHolder`      | `useQuery` (paginated)       |
+| `useInfinite`   | `InfiniteHolder`   | `useInfiniteQuery`           |
+| `useMutation`   | `MutationHolder`   | `useMutation`                |
+| `usePolling`    | `PollingHolder`    | `useQuery` + refetchInterval |
 
 Фичи: `{data} | {error}` (не кидают), cancellation, quiet refresh.
 
@@ -186,10 +242,10 @@ export const authModule = new ContainerModule(({ bind }) => {
 });
 ```
 
-| Где | Как |
-|---|---|
-| React-компонент/хук | `IXxx.useInstance()` |
-| Вне React | `IXxx.getInstance()` |
+| Где                    | Как                          |
+| ---------------------- | ---------------------------- |
+| React-компонент/хук    | `IXxx.useInstance()`         |
+| Вне React              | `IXxx.getInstance()`         |
 | Инъекция в конструктор | `@IXxx() private _svc: IXxx` |
 
 ## HTTP и авторизация
@@ -223,6 +279,10 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 
 ## In-app уведомления (`shared/lib/notifications/`)
 
+`components/` и `hooks/` внутри этого существующего модуля — legacy-структура. Для нового
+кода технические имена сегментов не используются; размещение выбирается по назначению согласно
+[FSD-CHEATSHEET.md](FSD-CHEATSHEET.md).
+
 - Источник истины — MobX-стор `NotificationStore` (singleton в DI): видимый стек,
   очередь при переполнении (`maxVisible`), таймеры автоскрытия с pause/resume.
 - Два контракта на один инстанс (ISP): `INotificationService` — публичный API
@@ -241,11 +301,11 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 
 Три группы настроек, дублей нет:
 
-| Куда | Что |
-|---|---|
-| **пропы** | данные, состояние сессии, контекст показа, коллбэки |
-| **`features`** | флаги и пороги поведения |
-| **`layout`** | числовые метрики чата и панели ввода |
+| Куда           | Что                                                 |
+| -------------- | --------------------------------------------------- |
+| **пропы**      | данные, состояние сессии, контекст показа, коллбэки |
+| **`features`** | флаги и пороги поведения                            |
+| **`layout`**   | числовые метрики чата и панели ввода                |
 
 `features` и `layout` — стабильные ссылки (константа или `useMemo`).
 
@@ -254,40 +314,31 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 `maintainScrollAtEnd`, `onStartReached`/`onEndReached`. Ручные JS-аналоги не допускаются.
 Детали: `project_native.md`.
 
-## Naming Conventions
+## Project conventions
 
-Слайсы/сегменты — kebab-case. Имя файла — purpose, не essence.
+Общие правила именования, компонентов, импортов, типов, хуков, комментариев и тестов
+описаны в [CONVENTIONS.md](CONVENTIONS.md).
 
-| Сущность | Паттерн | Пример |
-|---|---|---|
-| Папка | `kebab-case/` | `sign-in/`, `model/` |
-| Компонент (`.tsx`) | `PascalCase.tsx` | `MessageBubble.tsx` |
-| Стор/сервис (`.ts`) | `kebab-case.ts` | `store.ts`, `token-provider.ts` |
-| Типы (один на сегмент) | `types.ts` | `entities/auth/model/types.ts` |
-| Хук (единственный экспорт) | имя файла = имя хука | `useSignInVM.ts` |
-| Хук (утилитарный) | `use-kebab-case.ts` | `use-keyboard-inset.ts` |
-| Валидация (zod) | `validation.ts` | `features/sign-in/model/validation.ts` |
-| Контракт в `shared` | `<name>.contract.ts` | `token-source.contract.ts` |
-| DI-модуль | `<slice>.module.ts` | `auth.module.ts` |
-| Barrel | `index.ts` | `index.ts` |
+Проектные исключения:
 
-Проверяется `eslint-plugin-check-file` ([eslint.naming.mjs](template/eslint.naming.mjs)).
-
-Особые случаи (вне общей конвенции):
 - `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec` — RN codegen-спеки.
 - `app/App.*` — композиционный неймспейс.
 - `ImageItem.ios.tsx/.android.tsx/.d.ts` — платформенный компонент.
 - `shared/{api,config,lib}` — kebab-case, без camelCase-исключения.
 
+Автоматические naming-проверки определены в
+[eslint.naming.mjs](template/eslint.naming.mjs).
+
 ## ESLint
 
-| Правило | Назначение |
-|---|---|
-| `boundaries/dependencies` | Границы слоёв/слайсов FSD |
-| `no-restricted-imports` | Self-imports через alias |
-| `check-file/filename-naming-convention` | Именование файлов |
-| `check-file/folder-naming-convention` | kebab-case папок |
-| `simple-import-sort/imports` + `/exports` | Порядок импортов |
-| `react-hooks/rules-of-hooks` | Правила хуков |
-| `react-hooks/exhaustive-deps` | Зависимости хуков |
-| `padding-line-between-statements` | Пустые строки между блоками |
+| Правило                                   | Назначение                               |
+| ----------------------------------------- | ---------------------------------------- |
+| `boundaries/dependencies`                 | Границы слоёв/слайсов FSD                |
+| `no-restricted-imports`                   | Public API и self-imports через alias    |
+| `react/no-multi-comp`                     | Не более одного React-компонента в файле |
+| `check-file/filename-naming-convention`   | Именование файлов                        |
+| `check-file/folder-naming-convention`     | kebab-case папок                         |
+| `simple-import-sort/imports` + `/exports` | Порядок импортов                         |
+| `react-hooks/rules-of-hooks`              | Правила хуков                            |
+| `react-hooks/exhaustive-deps`             | Зависимости хуков                        |
+| `padding-line-between-statements`         | Пустые строки между блоками              |
