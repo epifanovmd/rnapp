@@ -12,6 +12,7 @@
     "test:coverage": "jest --no-watchman --coverage --runInBand",
     "typecheck": "tsc --noEmit",
     "check": "yarn lint && yarn typecheck && yarn test --runInBand",
+    "precommit": "lint-staged && tsc --noEmit && jest --no-watchman --runInBand",
     "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
     "android:Dev-Release": "react-native run-android --mode=developmentRelease",
     "android:Stg-Debug": "react-native run-android --mode=stagingDebug",
@@ -26,9 +27,9 @@
     "ios:Prod-Debug": "react-native run-ios --scheme 'rnapp.productionDebug'",
     "ios:Prod-Release": "react-native run-ios --scheme 'rnapp.productionRelease'",
     "clean:android": "cd android && ./gradlew clean",
-    "prepare": "husky",
-    "lint": "eslint \"src/**/*{.ts,.tsx}\"",
-    "lint:fix": "eslint --fix \"src/**/*{.ts,.tsx}\"",
+    "prepare": "cd .. && husky template/.husky",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
     "prettier:fix": "prettier --parser typescript --write src/**/*.{ts,tsx}",
     "check-packages-updates": "yarn outdated"
   },
@@ -122,7 +123,7 @@
     "eslint-plugin-simple-import-sort": "^14.0.0",
     "husky": "^9.1.7",
     "jest": "^30",
-    "lint-staged": "^17.2.0",
+    "lint-staged": "^17.3.0",
     "prettier": "^3.5.3",
     "react-test-renderer": "19.2.8",
     "sharp": "^0.35.3",
@@ -134,8 +135,9 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
-      "prettier --parser typescript --write"
-    ]
+      "prettier --write"
+    ],
+    "*.{js,jsx,mjs,cjs,json,css,md,html,yml,yaml}": "prettier --write"
   },
   "codegenConfig": {
     "name": "RNChatViewSpec",
