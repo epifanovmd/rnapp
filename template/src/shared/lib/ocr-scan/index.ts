@@ -1,4 +1,6 @@
 export * from "./create-domain";
+export * from "./defaults";
+export * from "./observations";
 export * from "./ocr-worklets";
 export * from "./orientation";
 export * from "./types";

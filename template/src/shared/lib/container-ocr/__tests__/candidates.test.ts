@@ -6,7 +6,13 @@ function observation(
   text: string,
   rect = { x: 0.1, y: 0.1, width: 0.3, height: 0.05 },
 ): OcrObservation {
-  return { text, confidence: 0.9, rect, fromDetector: false };
+  return {
+    text,
+    confidence: 0.9,
+    rect,
+    fromDetector: false,
+    regionClassIndex: -1,
+  };
 }
 
 describe("extractContainerCandidates", () => {

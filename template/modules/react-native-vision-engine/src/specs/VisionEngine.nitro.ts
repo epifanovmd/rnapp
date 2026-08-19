@@ -38,6 +38,12 @@ export interface OcrObservation {
   rect: OcrRect;
   /** Область предложена обученным детектором, а не полнокадровым OCR */
   fromDetector: boolean;
+  /**
+   * Индекс класса региона детектора, из кропа которого прочитан текст;
+   * -1 — область прочитана полнокадровым OCR. Позволяет потребителю
+   * разбирать многоклассовые модели (номер / тип / веса и т.п.).
+   */
+  regionClassIndex: number;
 }
 
 export interface OcrScanResult {
@@ -82,6 +88,17 @@ export interface OcrScanOptions {
   regionMinScore?: number;
   /** Максимум регионов детектора, прогоняемых через OCR (`DETECTOR_DEFAULTS.maxRegions`) */
   maxRegions?: number;
+  /**
+   * Максимум регионов одного класса (`DETECTOR_DEFAULTS.maxRegionsPerClass`):
+   * у многоклассовой модели общий лимит иначе целиком забирает самый
+   * уверенный класс.
+   */
+  maxRegionsPerClass?: number;
+  /**
+   * Индексы классов детектора, чьи регионы прогоняются через OCR;
+   * пустой список или отсутствие поля — все классы.
+   */
+  regionClasses?: number[];
   /** Расширение региона перед OCR, доля его размеров (`DETECTOR_DEFAULTS.regionPadding`) */
   regionPadding?: number;
   /** IoU-порог NMS детектора регионов (`DETECTOR_DEFAULTS.iouThreshold`) */

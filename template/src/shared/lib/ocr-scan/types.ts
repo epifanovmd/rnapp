@@ -1,4 +1,5 @@
 import type { IScanRect } from "@shared/lib/scan-overlay";
+import type { OcrRecognitionMode } from "react-native-vision-engine";
 
 /** Нормализованный [0..1] прямоугольник выпрямленного кадра, top-left origin */
 export type IOcrScanRect = IScanRect;
@@ -9,6 +10,54 @@ export interface IOcrScanObservation {
   confidence: number;
   rect: IOcrScanRect;
   fromDetector: boolean;
+  /**
+   * Класс региона детектора, из кропа которого прочитан текст;
+   * `FULL_FRAME_REGION_CLASS` (-1) — область прочитана полнокадрово.
+   * Разбор многоклассовых моделей — через `selectByRegionClass`.
+   */
+  regionClassIndex: number;
+}
+
+/** Настройки нативного распознавания текста; не заданное берётся из `OCR_SCAN_DEFAULTS` */
+export interface IOcrScanRecognitionConfig {
+  /** fast — быстрее, accurate — точнее (iOS) */
+  mode?: OcrRecognitionMode;
+  /** Порог уверенности области, ниже которого она отбрасывается нативно */
+  minConfidence?: number;
+  /** Максимум областей в результате кадра */
+  maxObservations?: number;
+  /**
+   * Читать полный кадр, когда кропы детектора не дали текста. Без
+   * детектора OCR всегда полнокадровый.
+   */
+  fullFrameFallback?: boolean;
+}
+
+/**
+ * Детектор регионов интереса домена. Модель кладётся вручную:
+ * iOS — `ios/MLModels/<modelName>.mlpackage`, Android — assets
+ * `<modelName>.tflite`. Не заданные пороги берутся из `DETECTOR_DEFAULTS`.
+ */
+export interface IOcrScanDetectorConfig {
+  /** Имя модели без расширения */
+  modelName: string;
+  /** Метки классов по индексу — подписи регионов в оверлее */
+  classLabels?: string[];
+  /**
+   * Индексы классов, чьи регионы прогоняются через OCR; не задано или
+   * пусто — все классы модели.
+   */
+  classes?: number[];
+  /** Порог уверенности детекции */
+  minScore?: number;
+  /** Максимум регионов кадра, прогоняемых через OCR */
+  maxRegions?: number;
+  /** Максимум регионов одного класса за кадр */
+  maxRegionsPerClass?: number;
+  /** Расширение региона перед OCR, доля его размеров */
+  padding?: number;
+  /** IoU-порог NMS (подавление — внутри класса) */
+  iouThreshold?: number;
 }
 
 /** Кандидат значения, извлечённый доменом из OCR-областей */
@@ -33,8 +82,10 @@ export interface IOcrScanDomain<TAttributes> {
   ) => IOcrScanCandidate[];
   /** Сколько сканов подряд должны дать одно и то же валидное значение */
   confirmStreak: number;
-  /** Имя обученной модели детектора регионов (без расширения); null — без детектора */
-  detectorModelName: string | null;
+  /** Детектор регионов интереса; null — полнокадровый OCR */
+  detector: IOcrScanDetectorConfig | null;
+  /** Настройки нативного распознавания домена (камера может их перекрыть) */
+  recognition: IOcrScanRecognitionConfig;
   /** Начальное значение накапливаемых атрибутов */
   emptyAttributes: TAttributes;
   /** Дополнительные атрибуты кадра (веса, регион, …); null — домен без атрибутов */
@@ -83,4 +134,6 @@ export interface IScanDiagnostics {
   detectorUsed: boolean;
   /** Число областей/объектов в результате */
   resultCount: number;
+  /** Число регионов, которые детектор отдал под OCR */
+  regionCount: number;
 }

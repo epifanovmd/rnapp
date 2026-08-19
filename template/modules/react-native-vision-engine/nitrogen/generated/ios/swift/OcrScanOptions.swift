@@ -18,7 +18,7 @@ public extension OcrScanOptions {
   /**
    * Create a new instance of `OcrScanOptions`.
    */
-  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Bool?, regionMinScore: Double?, maxRegions: Double?, regionPadding: Double?, regionIouThreshold: Double?) {
+  init(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Bool?, regionMinScore: Double?, maxRegions: Double?, maxRegionsPerClass: Double?, regionClasses: [Double]?, regionPadding: Double?, regionIouThreshold: Double?) {
     self.init(mode, minConfidence, maxObservations, { () -> bridge.std__optional_bool_ in
       if let __unwrappedValue = fullFrameFallback {
         return bridge.create_std__optional_bool_(__unwrappedValue)
@@ -34,6 +34,24 @@ public extension OcrScanOptions {
     }(), { () -> bridge.std__optional_double_ in
       if let __unwrappedValue = maxRegions {
         return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_double_ in
+      if let __unwrappedValue = maxRegionsPerClass {
+        return bridge.create_std__optional_double_(__unwrappedValue)
+      } else {
+        return .init()
+      }
+    }(), { () -> bridge.std__optional_std__vector_double__ in
+      if let __unwrappedValue = regionClasses {
+        return bridge.create_std__optional_std__vector_double__({ () -> bridge.std__vector_double_ in
+          var __vector = bridge.create_std__vector_double_(__unwrappedValue.count)
+          for __item in __unwrappedValue {
+            __vector.push_back(__item)
+          }
+          return __vector
+        }())
       } else {
         return .init()
       }
@@ -97,6 +115,30 @@ public extension OcrScanOptions {
       if bridge.has_value_std__optional_double_(self.__maxRegions) {
         let __unwrapped = bridge.get_std__optional_double_(self.__maxRegions)
         return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var maxRegionsPerClass: Double? {
+    return { () -> Double? in
+      if bridge.has_value_std__optional_double_(self.__maxRegionsPerClass) {
+        let __unwrapped = bridge.get_std__optional_double_(self.__maxRegionsPerClass)
+        return __unwrapped
+      } else {
+        return nil
+      }
+    }()
+  }
+  
+  @inline(__always)
+  var regionClasses: [Double]? {
+    return { () -> [Double]? in
+      if bridge.has_value_std__optional_std__vector_double__(self.__regionClasses) {
+        let __unwrapped = bridge.get_std__optional_std__vector_double__(self.__regionClasses)
+        return __unwrapped.map({ __item in __item })
       } else {
         return nil
       }

@@ -45,10 +45,11 @@ namespace margelo::nitro::visionengine {
     double confidence     SWIFT_PRIVATE;
     OcrRect rect     SWIFT_PRIVATE;
     bool fromDetector     SWIFT_PRIVATE;
+    double regionClassIndex     SWIFT_PRIVATE;
 
   public:
     OcrObservation() = default;
-    explicit OcrObservation(std::string text, double confidence, OcrRect rect, bool fromDetector): text(text), confidence(confidence), rect(rect), fromDetector(fromDetector) {}
+    explicit OcrObservation(std::string text, double confidence, OcrRect rect, bool fromDetector, double regionClassIndex): text(text), confidence(confidence), rect(rect), fromDetector(fromDetector), regionClassIndex(regionClassIndex) {}
 
   public:
     friend bool operator==(const OcrObservation& lhs, const OcrObservation& rhs) = default;
@@ -67,7 +68,8 @@ namespace margelo::nitro {
         JSIConverter<std::string>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "text"))),
         JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "confidence"))),
         JSIConverter<margelo::nitro::visionengine::OcrRect>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rect"))),
-        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fromDetector")))
+        JSIConverter<bool>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fromDetector"))),
+        JSIConverter<double>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionClassIndex")))
       );
     }
     static inline jsi::Value toJSI(jsi::Runtime& runtime, const margelo::nitro::visionengine::OcrObservation& arg) {
@@ -76,6 +78,7 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "confidence"), JSIConverter<double>::toJSI(runtime, arg.confidence));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "rect"), JSIConverter<margelo::nitro::visionengine::OcrRect>::toJSI(runtime, arg.rect));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "fromDetector"), JSIConverter<bool>::toJSI(runtime, arg.fromDetector));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "regionClassIndex"), JSIConverter<double>::toJSI(runtime, arg.regionClassIndex));
       return obj;
     }
     static inline bool canConvert(jsi::Runtime& runtime, const jsi::Value& value) {
@@ -90,6 +93,7 @@ namespace margelo::nitro {
       if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "confidence")))) return false;
       if (!JSIConverter<margelo::nitro::visionengine::OcrRect>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "rect")))) return false;
       if (!JSIConverter<bool>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fromDetector")))) return false;
+      if (!JSIConverter<double>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionClassIndex")))) return false;
       return true;
     }
   };

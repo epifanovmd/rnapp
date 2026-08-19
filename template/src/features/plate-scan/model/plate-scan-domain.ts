@@ -31,5 +31,5 @@ export const PLATE_SCAN_DOMAIN = createOcrDomain({
   extractCandidates,
   /** У номера нет контрольной цифры — серия подтверждения длиннее */
   confirmStreak: 4,
-  detectorModelName: "plate_detector",
+  detector: { modelName: "plate_detector", classLabels: ["номер"] },
 });

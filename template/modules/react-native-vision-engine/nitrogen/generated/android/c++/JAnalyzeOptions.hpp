@@ -17,6 +17,7 @@
 #include "OcrRecognitionMode.hpp"
 #include "OcrScanOptions.hpp"
 #include <optional>
+#include <vector>
 
 namespace margelo::nitro::visionengine {
 

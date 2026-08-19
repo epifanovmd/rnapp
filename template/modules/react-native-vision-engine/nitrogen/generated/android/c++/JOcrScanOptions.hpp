@@ -13,6 +13,7 @@
 #include "JOcrRecognitionMode.hpp"
 #include "OcrRecognitionMode.hpp"
 #include <optional>
+#include <vector>
 
 namespace margelo::nitro::visionengine {
 
@@ -45,6 +46,10 @@ namespace margelo::nitro::visionengine {
       jni::local_ref<jni::JDouble> regionMinScore = this->getFieldValue(fieldRegionMinScore);
       static const auto fieldMaxRegions = clazz->getField<jni::JDouble>("maxRegions");
       jni::local_ref<jni::JDouble> maxRegions = this->getFieldValue(fieldMaxRegions);
+      static const auto fieldMaxRegionsPerClass = clazz->getField<jni::JDouble>("maxRegionsPerClass");
+      jni::local_ref<jni::JDouble> maxRegionsPerClass = this->getFieldValue(fieldMaxRegionsPerClass);
+      static const auto fieldRegionClasses = clazz->getField<jni::JArrayDouble>("regionClasses");
+      jni::local_ref<jni::JArrayDouble> regionClasses = this->getFieldValue(fieldRegionClasses);
       static const auto fieldRegionPadding = clazz->getField<jni::JDouble>("regionPadding");
       jni::local_ref<jni::JDouble> regionPadding = this->getFieldValue(fieldRegionPadding);
       static const auto fieldRegionIouThreshold = clazz->getField<jni::JDouble>("regionIouThreshold");
@@ -56,6 +61,13 @@ namespace margelo::nitro::visionengine {
         fullFrameFallback != nullptr ? std::make_optional(static_cast<bool>(fullFrameFallback->value())) : std::nullopt,
         regionMinScore != nullptr ? std::make_optional(regionMinScore->value()) : std::nullopt,
         maxRegions != nullptr ? std::make_optional(maxRegions->value()) : std::nullopt,
+        maxRegionsPerClass != nullptr ? std::make_optional(maxRegionsPerClass->value()) : std::nullopt,
+        regionClasses != nullptr ? std::make_optional([&]() {
+          size_t __size = regionClasses->size();
+          std::vector<double> __vector(__size);
+          regionClasses->getRegion(0, __size, __vector.data());
+          return __vector;
+        }()) : std::nullopt,
         regionPadding != nullptr ? std::make_optional(regionPadding->value()) : std::nullopt,
         regionIouThreshold != nullptr ? std::make_optional(regionIouThreshold->value()) : std::nullopt
       );
@@ -67,7 +79,7 @@ namespace margelo::nitro::visionengine {
      */
     [[maybe_unused]]
     static jni::local_ref<JOcrScanOptions::javaobject> fromCpp(const OcrScanOptions& value) {
-      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>);
+      using JSignature = JOcrScanOptions(jni::alias_ref<JOcrRecognitionMode>, double, double, jni::alias_ref<jni::JBoolean>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JArrayDouble>, jni::alias_ref<jni::JDouble>, jni::alias_ref<jni::JDouble>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
@@ -78,6 +90,13 @@ namespace margelo::nitro::visionengine {
         value.fullFrameFallback.has_value() ? jni::JBoolean::valueOf(value.fullFrameFallback.value()) : nullptr,
         value.regionMinScore.has_value() ? jni::JDouble::valueOf(value.regionMinScore.value()) : nullptr,
         value.maxRegions.has_value() ? jni::JDouble::valueOf(value.maxRegions.value()) : nullptr,
+        value.maxRegionsPerClass.has_value() ? jni::JDouble::valueOf(value.maxRegionsPerClass.value()) : nullptr,
+        value.regionClasses.has_value() ? [&]() {
+          size_t __size = value.regionClasses.value().size();
+          jni::local_ref<jni::JArrayDouble> __array = jni::JArrayDouble::newArray(__size);
+          __array->setRegion(0, __size, value.regionClasses.value().data());
+          return __array;
+        }() : nullptr,
         value.regionPadding.has_value() ? jni::JDouble::valueOf(value.regionPadding.value()) : nullptr,
         value.regionIouThreshold.has_value() ? jni::JDouble::valueOf(value.regionIouThreshold.value()) : nullptr
       );

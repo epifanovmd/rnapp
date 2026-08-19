@@ -29,7 +29,10 @@ data class OcrObservation(
   val rect: OcrRect,
   @DoNotStrip
   @Keep
-  val fromDetector: Boolean
+  val fromDetector: Boolean,
+  @DoNotStrip
+  @Keep
+  val regionClassIndex: Double
 ) {
   /* primary constructor */
 
@@ -40,6 +43,7 @@ data class OcrObservation(
       && Objects.deepEquals(this.confidence, other.confidence)
       && Objects.deepEquals(this.rect, other.rect)
       && Objects.deepEquals(this.fromDetector, other.fromDetector)
+      && Objects.deepEquals(this.regionClassIndex, other.regionClassIndex)
   }
 
   override fun hashCode(): Int {
@@ -47,7 +51,8 @@ data class OcrObservation(
       text,
       confidence,
       rect,
-      fromDetector
+      fromDetector,
+      regionClassIndex
     ).contentDeepHashCode()
   }
 
@@ -59,8 +64,8 @@ data class OcrObservation(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(text: String, confidence: Double, rect: OcrRect, fromDetector: Boolean): OcrObservation {
-      return OcrObservation(text, confidence, rect, fromDetector)
+    private fun fromCpp(text: String, confidence: Double, rect: OcrRect, fromDetector: Boolean, regionClassIndex: Double): OcrObservation {
+      return OcrObservation(text, confidence, rect, fromDetector, regionClassIndex)
     }
   }
 }

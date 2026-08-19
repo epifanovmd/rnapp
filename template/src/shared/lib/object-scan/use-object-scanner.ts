@@ -153,6 +153,8 @@ export const useObjectScanner = ({
             durationMs: result.durationMs,
             detectorUsed: true,
             resultCount: result.objects.length,
+            // детекция объектов регионы под OCR не наводит
+            regionCount: 0,
           });
         }
 

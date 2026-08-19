@@ -1,7 +1,8 @@
 import { IScanOverlayBox } from "@shared/lib/scan-overlay";
-import type { OcrScanResult } from "react-native-vision-engine";
+import type { DetectedObject, OcrScanResult } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 
+import { FULL_FRAME_REGION_CLASS } from "./defaults";
 import { toUprightRect } from "./orientation";
 import {
   IOcrScanCandidate,
@@ -29,8 +30,25 @@ export function toUprightObservations(
     text: observation.text,
     confidence: observation.confidence,
     fromDetector: observation.fromDetector,
+    // нативный слой старше JS (не пересобран) поля не пришлёт — считаем
+    // такую область полнокадровой, а не областью класса «undefined»
+    regionClassIndex: observation.regionClassIndex ?? FULL_FRAME_REGION_CLASS,
     rect: toUprightRect(observation.rect, result.bufferOrientation),
   }));
+}
+
+/** Подпись региона: метка модели (CoreML), иначе метка класса из домена */
+function regionLabel(
+  region: DetectedObject,
+  classLabels: string[],
+): string | undefined {
+  "worklet";
+
+  if (region.label !== "") {
+    return region.label;
+  }
+
+  return classLabels[region.classIndex];
 }
 
 /**
@@ -41,6 +59,7 @@ export function collectOverlayBoxes(
   result: OcrScanResult,
   observations: IOcrScanObservation[],
   candidates: IOcrScanCandidate[],
+  classLabels: string[],
 ): IScanOverlayBox[] {
   "worklet";
 
@@ -52,7 +71,7 @@ export function collectOverlayBoxes(
     boxes.push({
       rect: toUprightRect(region.rect, result.bufferOrientation),
       kind: "region",
-      label: region.label !== "" ? region.label : undefined,
+      label: regionLabel(region, classLabels),
     });
   }
   for (let i = 0; i < candidates.length; i++) {

@@ -1,7 +1,9 @@
 import {
   IOcrScanCandidate,
+  IOcrScanDetectorConfig,
   IOcrScanDomain,
   IOcrScanObservation,
+  IOcrScanRecognitionConfig,
 } from "./types";
 
 /** Конфиг домена: обязателен только `extractCandidates`, остальное — опции */
@@ -15,8 +17,10 @@ export interface IOcrDomainConfig<TAttributes = null> {
    * по умолчанию подтверждения нет — домен только стримит области
    */
   confirmStreak?: number;
-  /** Имя обученной модели детектора регионов (без расширения) */
-  detectorModelName?: string;
+  /** Детектор регионов интереса; не задан — полнокадровый OCR */
+  detector?: IOcrScanDetectorConfig;
+  /** Настройки нативного распознавания (камера может их перекрыть) */
+  recognition?: IOcrScanRecognitionConfig;
   emptyAttributes?: TAttributes;
   extractAttributes?: (observations: IOcrScanObservation[]) => TAttributes;
   mergeAttributes?: (
@@ -45,7 +49,8 @@ export function createOcrDomain<TAttributes = null>(
   return {
     extractCandidates: config.extractCandidates,
     confirmStreak: config.confirmStreak ?? Number.MAX_SAFE_INTEGER,
-    detectorModelName: config.detectorModelName ?? null,
+    detector: config.detector ?? null,
+    recognition: config.recognition ?? {},
     emptyAttributes: (config.emptyAttributes ?? null) as TAttributes,
     extractAttributes: config.extractAttributes ?? null,
     mergeAttributes: config.mergeAttributes ?? null,

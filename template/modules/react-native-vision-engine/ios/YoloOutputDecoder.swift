@@ -136,7 +136,10 @@ enum YoloOutputDecoder {
     }
   }
 
-  /// Жадный NMS: кандидат с IoU выше порога к уже принятым отбрасывается
+  /// Жадный NMS внутри класса: кандидат с IoU выше порога к уже принятой
+  /// детекции ТОГО ЖЕ класса отбрасывается. Боксы разных классов друг друга
+  /// не подавляют — у многоклассовых моделей соседние области (номер, тип,
+  /// веса) частично перекрываются.
   private static func nonMaxSuppression(
     _ detections: [RawDetection],
     iouThreshold: CGFloat
@@ -144,7 +147,9 @@ enum YoloOutputDecoder {
     let sorted = detections.sorted { $0.score > $1.score }
     var kept: [RawDetection] = []
     for candidate in sorted {
-      let overlaps = kept.contains { iou($0.rect, candidate.rect) > iouThreshold }
+      let overlaps = kept.contains {
+        $0.classIndex == candidate.classIndex && iou($0.rect, candidate.rect) > iouThreshold
+      }
       if !overlaps {
         kept.append(candidate)
       }

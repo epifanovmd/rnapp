@@ -7,9 +7,11 @@ export const DETECTOR_DEFAULTS = {
   /** Порог уверенности детектора регионов OCR */
   regionMinScore: 0.35,
   /** Максимум регионов детектора, прогоняемых через OCR за кадр */
-  maxRegions: 3,
+  maxRegions: 6,
+  /** Максимум регионов одного класса детектора за кадр */
+  maxRegionsPerClass: 2,
   /** Расширение региона детектора перед OCR, доля его размеров */
   regionPadding: 0.18,
-  /** IoU-порог NMS детекций */
+  /** IoU-порог NMS детекций (подавление — внутри класса) */
   iouThreshold: 0.45,
 } as const;

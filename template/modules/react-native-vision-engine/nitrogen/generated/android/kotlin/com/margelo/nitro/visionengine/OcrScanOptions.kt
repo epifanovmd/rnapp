@@ -38,6 +38,12 @@ data class OcrScanOptions(
   val maxRegions: Double?,
   @DoNotStrip
   @Keep
+  val maxRegionsPerClass: Double?,
+  @DoNotStrip
+  @Keep
+  val regionClasses: DoubleArray?,
+  @DoNotStrip
+  @Keep
   val regionPadding: Double?,
   @DoNotStrip
   @Keep
@@ -54,6 +60,8 @@ data class OcrScanOptions(
       && Objects.deepEquals(this.fullFrameFallback, other.fullFrameFallback)
       && Objects.deepEquals(this.regionMinScore, other.regionMinScore)
       && Objects.deepEquals(this.maxRegions, other.maxRegions)
+      && Objects.deepEquals(this.maxRegionsPerClass, other.maxRegionsPerClass)
+      && Objects.deepEquals(this.regionClasses, other.regionClasses)
       && Objects.deepEquals(this.regionPadding, other.regionPadding)
       && Objects.deepEquals(this.regionIouThreshold, other.regionIouThreshold)
   }
@@ -66,6 +74,8 @@ data class OcrScanOptions(
       fullFrameFallback,
       regionMinScore,
       maxRegions,
+      maxRegionsPerClass,
+      regionClasses,
       regionPadding,
       regionIouThreshold
     ).contentDeepHashCode()
@@ -79,8 +89,8 @@ data class OcrScanOptions(
     @Keep
     @Suppress("unused")
     @JvmStatic
-    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Boolean?, regionMinScore: Double?, maxRegions: Double?, regionPadding: Double?, regionIouThreshold: Double?): OcrScanOptions {
-      return OcrScanOptions(mode, minConfidence, maxObservations, fullFrameFallback, regionMinScore, maxRegions, regionPadding, regionIouThreshold)
+    private fun fromCpp(mode: OcrRecognitionMode, minConfidence: Double, maxObservations: Double, fullFrameFallback: Boolean?, regionMinScore: Double?, maxRegions: Double?, maxRegionsPerClass: Double?, regionClasses: DoubleArray?, regionPadding: Double?, regionIouThreshold: Double?): OcrScanOptions {
+      return OcrScanOptions(mode, minConfidence, maxObservations, fullFrameFallback, regionMinScore, maxRegions, maxRegionsPerClass, regionClasses, regionPadding, regionIouThreshold)
     }
   }
 }

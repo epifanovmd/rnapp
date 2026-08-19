@@ -24,6 +24,23 @@ export interface IContainerAttributes {
   codeVotes: Record<string, number>;
   /** Лучшая уверенность OCR по каждому коду */
   codeConfidence: Record<string, number>;
+  /**
+   * Кадров подряд с уже подтверждённым кодом — окно, в течение которого
+   * домен ждёт типоразмер и веса, прежде чем отдать результат без них.
+   */
+  framesSinceCode: number;
+}
+
+/**
+ * OCR-области кадра, разложенные по назначению. Домен наполняет их из
+ * регионов детектора (`selectByRegionClass`); без модели в оба поля
+ * попадают все области кадра.
+ */
+export interface IContainerAttributeSources {
+  /** Области региона типоразмера */
+  sizeType: OcrObservation[];
+  /** Области региона таблички весов */
+  weights: OcrObservation[];
 }
 
 export const EMPTY_CONTAINER_ATTRIBUTES: IContainerAttributes = {
@@ -36,6 +53,7 @@ export const EMPTY_CONTAINER_ATTRIBUTES: IContainerAttributes = {
   },
   codeVotes: {},
   codeConfidence: {},
+  framesSinceCode: 0,
 };
 
 /** Сколько голосов (не обязательно подряд) подтверждают код */
@@ -52,6 +70,29 @@ const TYPE_CHAR_SUBST: Record<string, string> = {
   "5": "S",
   "0": "U",
 };
+/**
+ * OCR-путаницы буква → цифра для последнего знака size-type: по ISO 6346
+ * он всегда цифра, поэтому подстановка однозначна ("45GI" → "45G1").
+ */
+const DETAIL_CHAR_SUBST: Record<string, string> = {
+  I: "1",
+  L: "1",
+  T: "1",
+  O: "0",
+  D: "0",
+  Z: "2",
+  S: "5",
+  G: "6",
+  B: "8",
+};
+
+/** Границы правдоподобного веса контейнера, кг */
+const MIN_WEIGHT_KG = 500;
+const MAX_WEIGHT_KG = 80000;
+/** Допуск тождества MAX GROSS = TARE + NET, доля */
+const WEIGHT_SUM_TOLERANCE = 0.02;
+/** Максимум чисел таблички, перебираемых на согласованную тройку */
+const MAX_WEIGHT_NUMBERS = 10;
 
 interface ILine {
   text: string;
@@ -174,65 +215,217 @@ function extractSizeType(text: string): string | null {
       continue;
     }
     const typeChar = TYPE_CHAR_SUBST[token[2]] ?? token[2];
+    const detailChar = DETAIL_CHAR_SUBST[token[3]] ?? token[3];
 
     if (
       SIZE_LENGTH_CHARS.indexOf(token[0]) !== -1 &&
       /[0-9A-Z]/.test(token[1]) &&
       SIZE_TYPE_CHARS.indexOf(typeChar) !== -1 &&
-      isDigitChar(token[3]) &&
+      isDigitChar(detailChar) &&
       // хотя бы один из знаков размера — цифра, иначе это слово
       (isDigitChar(token[0]) || isDigitChar(token[1]))
     ) {
-      return token.slice(0, 2) + typeChar + token[3];
+      return token.slice(0, 2) + typeChar + detailChar;
     }
   }
 
   return null;
 }
 
-/**
- * Извлечение атрибутов контейнера (size-type, веса) из OCR-областей кадра.
- * Метки и значения часто распознаются отдельными областями — сначала
- * области склеиваются в строки по вертикальному положению.
- */
-export function extractContainerAttributes(
-  observations: OcrObservation[],
-): IContainerAttributes {
+/** Веса по меткам таблички (MAX GROSS / TARE / NET / CU CAP) */
+function extractLabelledWeights(lines: ILine[]): IContainerWeights {
   "worklet";
 
-  const result: IContainerAttributes = {
-    sizeTypeCode: null,
-    weights: {
-      maxGrossKg: null,
-      tareKg: null,
-      netKg: null,
-      cubicCapacityM3: null,
-    },
-    codeVotes: {},
-    codeConfidence: {},
+  const weights: IContainerWeights = {
+    maxGrossKg: null,
+    tareKg: null,
+    netKg: null,
+    cubicCapacityM3: null,
   };
-  const lines = joinLines(observations);
 
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i].text;
 
-    if (result.sizeTypeCode === null) {
-      result.sizeTypeCode = extractSizeType(text);
-    }
-
     if (/MAX[\s.]*(GROSS|WT|WEIGHT)|GROSS/.test(text)) {
-      result.weights.maxGrossKg = matchKg(text) ?? result.weights.maxGrossKg;
+      weights.maxGrossKg = matchKg(text) ?? weights.maxGrossKg;
     } else if (/\bTARE\b/.test(text)) {
-      result.weights.tareKg = matchKg(text) ?? result.weights.tareKg;
+      weights.tareKg = matchKg(text) ?? weights.tareKg;
     } else if (/\bNET\b|PAYLOAD/.test(text)) {
-      result.weights.netKg = matchKg(text) ?? result.weights.netKg;
+      weights.netKg = matchKg(text) ?? weights.netKg;
     } else if (/CU[\s.]*CAP|CAPACITY|\bCUBE\b/.test(text)) {
-      result.weights.cubicCapacityM3 =
-        matchM3(text) ?? result.weights.cubicCapacityM3;
+      weights.cubicCapacityM3 = matchM3(text) ?? weights.cubicCapacityM3;
     }
   }
 
-  return result;
+  return weights;
+}
+
+/** Правдоподобные веса (кг) из всех чисел строк таблички */
+function collectWeightNumbers(lines: ILine[]): number[] {
+  "worklet";
+
+  const numbers: number[] = [];
+
+  for (
+    let i = 0;
+    i < lines.length && numbers.length < MAX_WEIGHT_NUMBERS;
+    i++
+  ) {
+    const matches = lines[i].text.match(/[0-9][0-9.,]*/g);
+
+    if (matches === null) {
+      continue;
+    }
+    for (
+      let j = 0;
+      j < matches.length && numbers.length < MAX_WEIGHT_NUMBERS;
+      j++
+    ) {
+      const value = parseWeightNumber(matches[j]);
+
+      if (
+        value !== null &&
+        value >= MIN_WEIGHT_KG &&
+        value <= MAX_WEIGHT_KG &&
+        numbers.indexOf(value) === -1
+      ) {
+        numbers.push(value);
+      }
+    }
+  }
+
+  return numbers;
+}
+
+/**
+ * Тройка весов, удовлетворяющая тождеству MAX GROSS = TARE + NET. Метки на
+ * табличке читаются не всегда, а тождество однозначно распределяет числа по
+ * ролям. Из нескольких согласованных троек берётся с наименьшим брутто —
+ * фунтовая колонка таблички согласована так же, но её значения больше.
+ */
+function resolveWeightTriple(numbers: number[]): IContainerWeights | null {
+  "worklet";
+
+  let best: IContainerWeights | null = null;
+
+  for (let i = 0; i < numbers.length; i++) {
+    for (let j = 0; j < numbers.length; j++) {
+      for (let k = j + 1; k < numbers.length; k++) {
+        if (i === j || i === k) {
+          continue;
+        }
+        const gross = numbers[i];
+        const tare = Math.min(numbers[j], numbers[k]);
+        const net = Math.max(numbers[j], numbers[k]);
+
+        if (
+          Math.abs(gross - tare - net) > gross * WEIGHT_SUM_TOLERANCE ||
+          (best !== null &&
+            best.maxGrossKg !== null &&
+            gross >= best.maxGrossKg)
+        ) {
+          continue;
+        }
+        best = {
+          maxGrossKg: gross,
+          tareKg: tare,
+          netKg: net,
+          cubicCapacityM3: null,
+        };
+      }
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Веса таблички: сначала по меткам, затем — для непрочитанных полей —
+ * по тождеству MAX GROSS = TARE + NET, и в последнюю очередь нетто
+ * добирается вычитанием.
+ */
+function extractWeights(observations: OcrObservation[]): IContainerWeights {
+  "worklet";
+
+  const lines = joinLines(observations);
+  const weights = extractLabelledWeights(lines);
+
+  if (weights.maxGrossKg === null || weights.tareKg === null) {
+    const triple = resolveWeightTriple(collectWeightNumbers(lines));
+
+    if (triple !== null) {
+      weights.maxGrossKg = weights.maxGrossKg ?? triple.maxGrossKg;
+      weights.tareKg = weights.tareKg ?? triple.tareKg;
+      weights.netKg = weights.netKg ?? triple.netKg;
+    }
+  }
+  if (
+    weights.netKg === null &&
+    weights.maxGrossKg !== null &&
+    weights.tareKg !== null
+  ) {
+    weights.netKg = weights.maxGrossKg - weights.tareKg;
+  }
+
+  return weights;
+}
+
+/**
+ * Атрибуты контейнера кадра: типоразмер и веса из своих регионов детектора.
+ * Метки и значения часто распознаются отдельными областями — внутри региона
+ * области сначала склеиваются в строки по вертикальному положению.
+ */
+export function extractContainerAttributes(
+  sources: IContainerAttributeSources,
+): IContainerAttributes {
+  "worklet";
+
+  let sizeTypeCode: string | null = null;
+  const sizeTypeLines = joinLines(sources.sizeType);
+
+  for (let i = 0; i < sizeTypeLines.length && sizeTypeCode === null; i++) {
+    sizeTypeCode = extractSizeType(sizeTypeLines[i].text);
+  }
+
+  return {
+    sizeTypeCode,
+    weights: extractWeights(sources.weights),
+    codeVotes: {},
+    codeConfidence: {},
+    framesSinceCode: 0,
+  };
+}
+
+/**
+ * Код, набравший `CODE_CONFIRM_VOTES` голосов; null — голосов мало.
+ * Объявлена до потребителей: worklet захватывает в замыкание только
+ * функции, объявленные выше по модулю.
+ */
+function bestConfirmedCode(
+  attributes: IContainerAttributes,
+): IOcrScanResolved | null {
+  "worklet";
+
+  let bestCode: string | null = null;
+  let bestVotes = 0;
+  const codes = Object.keys(attributes.codeVotes);
+
+  for (let i = 0; i < codes.length; i++) {
+    const votes = attributes.codeVotes[codes[i]];
+
+    if (votes > bestVotes) {
+      bestVotes = votes;
+      bestCode = codes[i];
+    }
+  }
+  if (bestCode === null || bestVotes < CODE_CONFIRM_VOTES) {
+    return null;
+  }
+
+  return {
+    value: bestCode,
+    confidence: attributes.codeConfidence[bestCode] ?? 0,
+  };
 }
 
 /** Слияние атрибутов между кадрами: новое непустое значение перекрывает */
@@ -253,6 +446,10 @@ export function mergeContainerAttributes(
     },
     codeVotes: accumulated.codeVotes,
     codeConfidence: accumulated.codeConfidence,
+    framesSinceCode:
+      bestConfirmedCode(accumulated) === null
+        ? 0
+        : accumulated.framesSinceCode + 1,
   };
 }
 
@@ -297,24 +494,5 @@ export function resolveContainerCode(
 ): IOcrScanResolved | null {
   "worklet";
 
-  let bestCode: string | null = null;
-  let bestVotes = 0;
-  const codes = Object.keys(attributes.codeVotes);
-
-  for (let i = 0; i < codes.length; i++) {
-    const votes = attributes.codeVotes[codes[i]];
-
-    if (votes > bestVotes) {
-      bestVotes = votes;
-      bestCode = codes[i];
-    }
-  }
-  if (bestCode === null || bestVotes < CODE_CONFIRM_VOTES) {
-    return null;
-  }
-
-  return {
-    value: bestCode,
-    confidence: attributes.codeConfidence[bestCode] ?? 0,
-  };
+  return bestConfirmedCode(attributes);
 }

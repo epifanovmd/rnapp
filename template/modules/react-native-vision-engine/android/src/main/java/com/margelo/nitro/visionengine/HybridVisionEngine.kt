@@ -95,13 +95,14 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
       val upright = context.upright()
       val regionPadding = (options.regionPadding ?: DEFAULT_REGION_PADDING).toFloat()
 
-      regions = detector
-        .detect(
+      regions = selectRegions(
+        detector.detect(
           upright,
           minScore = (options.regionMinScore ?: DEFAULT_REGION_MIN_SCORE).toFloat(),
           iouThreshold = (options.regionIouThreshold ?: DEFAULT_NMS_IOU).toFloat(),
-        )
-        .take(max(0, (options.maxRegions ?: DEFAULT_MAX_REGIONS).roundToInt()))
+        ),
+        options,
+      )
       observations = regions.flatMap { region ->
         val crop = FrameGeometry.cropRegion(
           upright,
@@ -112,18 +113,20 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
         try {
           val text = MlKitTextRecognizer.recognize(crop.bitmap)
           MlKitTextRecognizer
-            .toObservations(text, crop.bitmap.width, crop.bitmap.height, fromDetector = true)
+            .toObservations(
+              text,
+              crop.bitmap.width,
+              crop.bitmap.height,
+              regionClassIndex = region.classIndex,
+            )
             .map { observation ->
-              OcrObservation(
-                text = observation.text,
-                confidence = observation.confidence,
+              observation.copy(
                 rect = FrameGeometry.shiftRect(
                   observation.rect,
                   crop,
                   context.imageWidth,
                   context.imageHeight,
                 ),
-                fromDetector = true,
               )
             }
         } finally {
@@ -138,14 +141,20 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
       val mediaImage = context.proxy.image
         ?: throw Error("VisionEngine: Frame has no media Image — is it already disposed?")
       val text = MlKitTextRecognizer.recognize(mediaImage, context.rotation)
-      observations = MlKitTextRecognizer
-        .toObservations(text, context.imageWidth, context.imageHeight, fromDetector = false)
+      observations = MlKitTextRecognizer.toObservations(
+        text,
+        context.imageWidth,
+        context.imageHeight,
+        regionClassIndex = MlKitTextRecognizer.FULL_FRAME_CLASS_INDEX,
+      )
     }
 
-    val filtered = observations
-      .filter { it.confidence >= options.minConfidence }
-      .sortedByDescending { it.confidence }
-      .take(max(0, options.maxObservations.roundToInt()))
+    val filtered = limitObservations(
+      observations
+        .filter { it.confidence >= options.minConfidence }
+        .sortedByDescending { it.confidence },
+      max(0, options.maxObservations.roundToInt()),
+    )
 
     return OcrScanResult(
       observations = filtered.toTypedArray(),
@@ -183,6 +192,84 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
       imageHeight = context.imageHeight.toDouble(),
       durationMs = (SystemClock.elapsedRealtime() - start).toDouble(),
     )
+  }
+
+  /**
+   * Обрезка до лимита по кругу между регионами: строк таблички кратно больше,
+   * чем у номера, и глобальный top-N по уверенности вытеснил бы малые регионы
+   * целиком. Внутри региона порядок по уверенности сохраняется.
+   */
+  private fun limitObservations(
+    observations: List<OcrObservation>,
+    limit: Int,
+  ): List<OcrObservation> {
+    if (observations.size <= limit) {
+      return observations
+    }
+
+    val groups = LinkedHashMap<Double, MutableList<OcrObservation>>()
+    for (observation in observations) {
+      groups.getOrPut(observation.regionClassIndex) { ArrayList() }.add(observation)
+    }
+
+    val result = ArrayList<OcrObservation>(limit)
+    var index = 0
+    while (result.size < limit) {
+      var appended = false
+      for (group in groups.values) {
+        if (index >= group.size) {
+          continue
+        }
+        result.add(group[index])
+        appended = true
+        if (result.size >= limit) {
+          break
+        }
+      }
+      if (!appended) {
+        break
+      }
+      index++
+    }
+
+    return result
+  }
+
+  /**
+   * Регионы детектора → те, что уходят в OCR: фильтр по разрешённым классам,
+   * затем квота на класс и общий лимит. Детекции приходят отсортированными
+   * по score, порядок сохраняется.
+   */
+  private fun selectRegions(
+    detections: List<DetectedRegion>,
+    options: OcrScanOptions,
+  ): List<DetectedRegion> {
+    val maxRegions = max(0, (options.maxRegions ?: DEFAULT_MAX_REGIONS).roundToInt())
+    val perClassLimit = (options.maxRegionsPerClass ?: DEFAULT_MAX_REGIONS_PER_CLASS).roundToInt()
+    val maxPerClass = if (perClassLimit > 0) perClassLimit else Int.MAX_VALUE
+    val allowed = options.regionClasses
+      ?.takeIf { it.isNotEmpty() }
+      ?.map { it.roundToInt() }
+      ?.toSet()
+
+    val counts = HashMap<Int, Int>()
+    val selected = ArrayList<DetectedRegion>(maxRegions)
+    for (detection in detections) {
+      if (selected.size >= maxRegions) {
+        break
+      }
+      if (allowed != null && detection.classIndex !in allowed) {
+        continue
+      }
+      val used = counts[detection.classIndex] ?: 0
+      if (used >= maxPerClass) {
+        continue
+      }
+      counts[detection.classIndex] = used + 1
+      selected.add(detection)
+    }
+
+    return selected
   }
 
   // ─── Кадр ──────────────────────────────────────────────────────────────────
@@ -243,7 +330,8 @@ class HybridVisionEngine : HybridVisionEngineSpec() {
     // опций; обязаны совпадать с `DETECTOR_DEFAULTS` JS-модуля
     // (рантайм-источник — значения, переданные в опциях)
     const val DEFAULT_REGION_MIN_SCORE = 0.35
-    const val DEFAULT_MAX_REGIONS = 3.0
+    const val DEFAULT_MAX_REGIONS = 6.0
+    const val DEFAULT_MAX_REGIONS_PER_CLASS = 2.0
     const val DEFAULT_REGION_PADDING = 0.18
     const val DEFAULT_NMS_IOU = 0.45
 

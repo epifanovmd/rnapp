@@ -13,12 +13,18 @@ top-left координатах выпрямленного изображени�
   интереса, без детектора — полнокадрово. Опция `fullFrameFallback`
   (по умолчанию `false`) разрешает дочитать полный кадр, когда кропы
   детектора не дали текста.
+- Многоклассовые детекторы: каждая область результата несёт
+  `regionClassIndex` — класс региона, из кропа которого прочитан текст
+  (`-1` — полнокадровый OCR). Опция `regionClasses` ограничивает набор
+  классов, прогоняемых через OCR, `maxRegionsPerClass` — квота на класс
+  (общий лимит `maxRegions` иначе целиком забирает самый уверенный класс).
+  NMS подавляет боксы только внутри своего класса.
 - `loadDetector(name)` — детектор регионов для OCR-пути (опционален).
 - `loadObjectModel(name)` / `detectObjects(frame, options)` — отдельный
   слот модели детекции объектов: боксы + score + класс (`classIndex`;
   CoreML-пайплайн дополнительно отдаёт `label` из модели).
-- Пороги детектора (`regionMinScore`, `maxRegions`, `regionPadding`,
-  `regionIouThreshold` / `iouThreshold`) — опциональные поля опций;
+- Пороги детектора (`regionMinScore`, `maxRegions`, `maxRegionsPerClass`,
+  `regionPadding`, `regionIouThreshold` / `iouThreshold`) — опциональные поля опций;
   рантайм-источник дефолтов — экспорт `DETECTOR_DEFAULTS`, нативные
   фолбэки обязаны совпадать с ним.
 - `scan(...).regions` — регионы детектора, использованные для наведения
@@ -46,15 +52,15 @@ end-to-end `[1, N, 6]` (v10/26). На Android кадр подаётся letterbo
 Один файл — одна ответственность, платформа зеркалит платформу;
 `HybridVisionEngine` — тонкий фасад nitro-спеки, только оркестрация.
 
-| Ответственность | iOS (`ios/`) | Android (`.../visionengine/`) |
-|---|---|---|
-| Фасад спеки | `HybridVisionEngine.swift` | `HybridVisionEngine.kt` |
-| Загрузка моделей | `CoreMLModelLoader.swift` | `TfliteModelLoader.kt` |
-| Декодер YOLO-выходов (чистый) | `YoloOutputDecoder.swift` | `YoloOutputDecoder.kt` |
-| Прогон детекции | `CoreMLObjectDetector.swift` | `TfliteDetector.kt` |
-| OCR-движок | `VisionTextRecognizer.swift` | `MlKitTextRecognizer.kt` |
-| Геометрия кадра | `FrameGeometry.swift` | `FrameGeometry.kt` |
-| Регистрация в RN | автолинкинг пода | `VisionEnginePackage.kt` |
+| Ответственность               | iOS (`ios/`)                 | Android (`.../visionengine/`) |
+| ----------------------------- | ---------------------------- | ----------------------------- |
+| Фасад спеки                   | `HybridVisionEngine.swift`   | `HybridVisionEngine.kt`       |
+| Загрузка моделей              | `CoreMLModelLoader.swift`    | `TfliteModelLoader.kt`        |
+| Декодер YOLO-выходов (чистый) | `YoloOutputDecoder.swift`    | `YoloOutputDecoder.kt`        |
+| Прогон детекции               | `CoreMLObjectDetector.swift` | `TfliteDetector.kt`           |
+| OCR-движок                    | `VisionTextRecognizer.swift` | `MlKitTextRecognizer.kt`      |
+| Геометрия кадра               | `FrameGeometry.swift`        | `FrameGeometry.kt`            |
+| Регистрация в RN              | автолинкинг пода             | `VisionEnginePackage.kt`      |
 
 Кодогенерация спек (после правок `src/specs/*.nitro.ts`):
 

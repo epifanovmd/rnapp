@@ -2,27 +2,38 @@ import CoreVideo
 import Foundation
 import Vision
 
+/// Область интереса для OCR: прямоугольник в системе координат Vision
+/// (bottom-left origin) и класс региона детектора, из которого он получен
+struct OcrRegionOfInterest {
+  let rect: CGRect
+  /// Индекс класса детектора; попадает в `OcrObservation.regionClassIndex`
+  let classIndex: Int32
+}
+
 /// OCR через Apple Vision (`VNRecognizeTextRequest`).
 /// Возвращает области в нормализованных top-left координатах
 /// ориентированного изображения (контракт модуля).
 enum VisionTextRecognizer {
-  /// Один проход Vision по кадру: `regionsOfInterest == nil` — полнокадровый
-  /// запрос, иначе батч из запроса на каждый ROI — все выполняются одним
+  /// Класс области, прочитанной полнокадровым OCR (детектор не участвовал)
+  static let fullFrameClassIndex: Int32 = -1
+
+  /// Один проход Vision по кадру: `regions == nil` — полнокадровый запрос,
+  /// иначе батч из запроса на каждую область — все выполняются одним
   /// `VNImageRequestHandler` (один проход подготовки изображения).
   static func recognize(
     in pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
-    regionsOfInterest: [CGRect]?,
+    regions: [OcrRegionOfInterest]?,
     options: OcrScanOptions
   ) throws -> [OcrObservation] {
-    let rois: [CGRect?] = regionsOfInterest ?? [nil]
-    let requests = rois.map { roi -> VNRecognizeTextRequest in
+    let targets: [OcrRegionOfInterest?] = regions ?? [nil]
+    let requests = targets.map { target -> VNRecognizeTextRequest in
       let request = VNRecognizeTextRequest()
       request.recognitionLevel = options.mode == .fast ? .fast : .accurate
       request.usesLanguageCorrection = false
       request.recognitionLanguages = ["en-US"]
-      if let roi {
-        request.regionOfInterest = roi
+      if let target {
+        request.regionOfInterest = target.rect
       }
       return request
     }
@@ -36,26 +47,27 @@ enum VisionTextRecognizer {
 
     var observations: [OcrObservation] = []
     for (index, request) in requests.enumerated() {
-      let roi = rois[index]
+      let target = targets[index]
       for observation in request.results ?? [] {
         guard let candidate = observation.topCandidates(1).first else {
           continue
         }
         var box = observation.boundingBox
-        if let roi {
+        if let target {
           // с regionOfInterest боксы нормализованы относительно ROI
           box = CGRect(
-            x: roi.origin.x + box.origin.x * roi.width,
-            y: roi.origin.y + box.origin.y * roi.height,
-            width: box.width * roi.width,
-            height: box.height * roi.height
+            x: target.rect.origin.x + box.origin.x * target.rect.width,
+            y: target.rect.origin.y + box.origin.y * target.rect.height,
+            width: box.width * target.rect.width,
+            height: box.height * target.rect.height
           )
         }
         observations.append(OcrObservation(
           text: candidate.string,
           confidence: Double(candidate.confidence),
           rect: FrameGeometry.toTopLeftRect(box),
-          fromDetector: roi != nil
+          fromDetector: target != nil,
+          regionClassIndex: Double(target?.classIndex ?? fullFrameClassIndex)
         ))
       }
     }

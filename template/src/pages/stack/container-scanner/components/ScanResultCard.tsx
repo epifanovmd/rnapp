@@ -15,6 +15,11 @@ interface IProps extends FlexProps {
 export const ScanResultCard: FC<IProps> = memo(({ result, ...rest }) => {
   const { parts, candidate, sizeType, attributes } = result;
   const { maxGrossKg, tareKg, netKg, cubicCapacityM3 } = attributes.weights;
+  const hasWeights =
+    maxGrossKg !== null ||
+    tareKg !== null ||
+    netKg !== null ||
+    cubicCapacityM3 !== null;
 
   return (
     <Col bg={"surface"} radius={16} pa={16} {...rest}>
@@ -66,7 +71,7 @@ export const ScanResultCard: FC<IProps> = memo(({ result, ...rest }) => {
         </>
       )}
 
-      <ScanSectionTitle title={"Веса и объём"} />
+      {hasWeights && <ScanSectionTitle title={"Веса и объём"} />}
       {maxGrossKg !== null && (
         <ScanResultRow
           label={"MAX GROSS (брутто)"}

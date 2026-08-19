@@ -102,12 +102,17 @@ internal object YoloOutputDecoder {
     return regions
   }
 
-  /** Жадный NMS: кандидат с IoU выше порога к уже принятым отбрасывается */
+  /**
+   * Жадный NMS внутри класса: кандидат с IoU выше порога к уже принятой
+   * детекции ТОГО ЖЕ класса отбрасывается. Боксы разных классов друг друга
+   * не подавляют — у многоклассовых моделей соседние области (номер, тип,
+   * веса) частично перекрываются.
+   */
   fun nms(regions: List<DetectedRegion>, iouThreshold: Float): List<DetectedRegion> {
     val sorted = regions.sortedByDescending { it.score }
     val kept = ArrayList<DetectedRegion>()
     for (candidate in sorted) {
-      if (kept.none { iou(it, candidate) > iouThreshold }) {
+      if (kept.none { it.classIndex == candidate.classIndex && iou(it, candidate) > iouThreshold }) {
         kept.add(candidate)
       }
     }

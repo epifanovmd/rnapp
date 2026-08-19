@@ -33,6 +33,7 @@ namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
 
 #include "OcrRecognitionMode.hpp"
 #include <optional>
+#include <vector>
 
 namespace margelo::nitro::visionengine {
 
@@ -47,12 +48,14 @@ namespace margelo::nitro::visionengine {
     std::optional<bool> fullFrameFallback     SWIFT_PRIVATE;
     std::optional<double> regionMinScore     SWIFT_PRIVATE;
     std::optional<double> maxRegions     SWIFT_PRIVATE;
+    std::optional<double> maxRegionsPerClass     SWIFT_PRIVATE;
+    std::optional<std::vector<double>> regionClasses     SWIFT_PRIVATE;
     std::optional<double> regionPadding     SWIFT_PRIVATE;
     std::optional<double> regionIouThreshold     SWIFT_PRIVATE;
 
   public:
     OcrScanOptions() = default;
-    explicit OcrScanOptions(OcrRecognitionMode mode, double minConfidence, double maxObservations, std::optional<bool> fullFrameFallback, std::optional<double> regionMinScore, std::optional<double> maxRegions, std::optional<double> regionPadding, std::optional<double> regionIouThreshold): mode(mode), minConfidence(minConfidence), maxObservations(maxObservations), fullFrameFallback(fullFrameFallback), regionMinScore(regionMinScore), maxRegions(maxRegions), regionPadding(regionPadding), regionIouThreshold(regionIouThreshold) {}
+    explicit OcrScanOptions(OcrRecognitionMode mode, double minConfidence, double maxObservations, std::optional<bool> fullFrameFallback, std::optional<double> regionMinScore, std::optional<double> maxRegions, std::optional<double> maxRegionsPerClass, std::optional<std::vector<double>> regionClasses, std::optional<double> regionPadding, std::optional<double> regionIouThreshold): mode(mode), minConfidence(minConfidence), maxObservations(maxObservations), fullFrameFallback(fullFrameFallback), regionMinScore(regionMinScore), maxRegions(maxRegions), maxRegionsPerClass(maxRegionsPerClass), regionClasses(regionClasses), regionPadding(regionPadding), regionIouThreshold(regionIouThreshold) {}
 
   public:
     friend bool operator==(const OcrScanOptions& lhs, const OcrScanOptions& rhs) = default;
@@ -74,6 +77,8 @@ namespace margelo::nitro {
         JSIConverter<std::optional<bool>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionMinScore"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxRegions"))),
+        JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxRegionsPerClass"))),
+        JSIConverter<std::optional<std::vector<double>>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionClasses"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionPadding"))),
         JSIConverter<std::optional<double>>::fromJSI(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionIouThreshold")))
       );
@@ -86,6 +91,8 @@ namespace margelo::nitro {
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback"), JSIConverter<std::optional<bool>>::toJSI(runtime, arg.fullFrameFallback));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "regionMinScore"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.regionMinScore));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxRegions"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.maxRegions));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "maxRegionsPerClass"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.maxRegionsPerClass));
+      obj.setProperty(runtime, PropNameIDCache::get(runtime, "regionClasses"), JSIConverter<std::optional<std::vector<double>>>::toJSI(runtime, arg.regionClasses));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "regionPadding"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.regionPadding));
       obj.setProperty(runtime, PropNameIDCache::get(runtime, "regionIouThreshold"), JSIConverter<std::optional<double>>::toJSI(runtime, arg.regionIouThreshold));
       return obj;
@@ -104,6 +111,8 @@ namespace margelo::nitro {
       if (!JSIConverter<std::optional<bool>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "fullFrameFallback")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionMinScore")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxRegions")))) return false;
+      if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "maxRegionsPerClass")))) return false;
+      if (!JSIConverter<std::optional<std::vector<double>>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionClasses")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionPadding")))) return false;
       if (!JSIConverter<std::optional<double>>::canConvert(runtime, obj.getProperty(runtime, PropNameIDCache::get(runtime, "regionIouThreshold")))) return false;
       return true;

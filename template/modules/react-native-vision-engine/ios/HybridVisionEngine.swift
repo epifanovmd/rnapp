@@ -16,7 +16,8 @@ class HybridVisionEngine: HybridVisionEngineSpec {
   /// значения, переданные в опциях).
   private enum DetectorDefaults {
     static let regionMinScore = 0.35
-    static let maxRegions = 3.0
+    static let maxRegions = 6.0
+    static let maxRegionsPerClass = 2.0
     static let regionPadding = 0.18
     static let iouThreshold = 0.45
   }
@@ -121,24 +122,26 @@ class HybridVisionEngine: HybridVisionEngineSpec {
     var observations: [OcrObservation] = []
     if let detector {
       // детектор наводит OCR на регионы интереса — читаем только их
-      regions = try CoreMLObjectDetector.detect(
+      let detections = try CoreMLObjectDetector.detect(
         detector,
         pixelBuffer: context.pixelBuffer,
         orientation: context.orientation,
         minScore: Float(options.regionMinScore ?? DetectorDefaults.regionMinScore),
         iouThreshold: CGFloat(options.regionIouThreshold ?? DetectorDefaults.iouThreshold)
       )
-      let maxRegions = Int(options.maxRegions ?? DetectorDefaults.maxRegions)
-      regions = Array(regions.prefix(max(0, maxRegions)))
+      regions = Self.selectRegions(detections, options: options)
       if !regions.isEmpty {
         let padding = CGFloat(options.regionPadding ?? DetectorDefaults.regionPadding)
         let rois = regions.map { detection in
-          FrameGeometry.pad(FrameGeometry.toVisionROI(detection.rect), by: padding)
+          OcrRegionOfInterest(
+            rect: FrameGeometry.pad(FrameGeometry.toVisionROI(detection.rect), by: padding),
+            classIndex: detection.classIndex
+          )
         }
         observations = try VisionTextRecognizer.recognize(
           in: context.pixelBuffer,
           orientation: context.orientation,
-          regionsOfInterest: rois,
+          regions: rois,
           options: options
         )
       }
@@ -150,18 +153,17 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       observations = try VisionTextRecognizer.recognize(
         in: context.pixelBuffer,
         orientation: context.orientation,
-        regionsOfInterest: nil,
+        regions: nil,
         options: options
       )
     }
 
-    observations = observations
-      .filter { $0.confidence >= options.minConfidence }
-      .sorted { $0.confidence > $1.confidence }
-    let limit = max(0, Int(options.maxObservations))
-    if observations.count > limit {
-      observations = Array(observations.prefix(limit))
-    }
+    observations = Self.limitObservations(
+      observations
+        .filter { $0.confidence >= options.minConfidence }
+        .sorted { $0.confidence > $1.confidence },
+      limit: max(0, Int(options.maxObservations))
+    )
 
     return OcrScanResult(
       observations: observations,
@@ -205,6 +207,85 @@ class HybridVisionEngine: HybridVisionEngineSpec {
       imageHeight: context.uprightHeight,
       durationMs: (CACurrentMediaTime() - start) * 1000
     )
+  }
+
+  /// Обрезка до лимита по кругу между регионами: строк таблички кратно
+  /// больше, чем у номера, и глобальный top-N по уверенности вытеснил бы
+  /// малые регионы целиком. Внутри региона порядок по уверенности сохраняется.
+  private static func limitObservations(
+    _ observations: [OcrObservation],
+    limit: Int
+  ) -> [OcrObservation] {
+    if observations.count <= limit {
+      return observations
+    }
+
+    var order: [Double] = []
+    var groups: [Double: [OcrObservation]] = [:]
+    for observation in observations {
+      let key = observation.regionClassIndex
+      if groups[key] == nil {
+        order.append(key)
+        groups[key] = []
+      }
+      groups[key]?.append(observation)
+    }
+
+    var result: [OcrObservation] = []
+    var index = 0
+    while result.count < limit {
+      var appended = false
+      for key in order {
+        guard let group = groups[key], index < group.count else {
+          continue
+        }
+        result.append(group[index])
+        appended = true
+        if result.count >= limit {
+          break
+        }
+      }
+      if !appended {
+        break
+      }
+      index += 1
+    }
+
+    return result
+  }
+
+  /// Регионы детектора → те, что уходят в OCR: фильтр по разрешённым
+  /// классам, затем квота на класс и общий лимит. Детекции приходят
+  /// отсортированными по score, порядок сохраняется.
+  private static func selectRegions(
+    _ detections: [RawDetection],
+    options: OcrScanOptions
+  ) -> [RawDetection] {
+    let maxRegions = max(0, Int(options.maxRegions ?? DetectorDefaults.maxRegions))
+    let perClassLimit = Int(options.maxRegionsPerClass ?? DetectorDefaults.maxRegionsPerClass)
+    let maxPerClass = perClassLimit > 0 ? perClassLimit : Int.max
+    let allowed = options.regionClasses.flatMap { classes -> Set<Int32>? in
+      classes.isEmpty ? nil : Set(classes.map { Int32($0) })
+    }
+
+    var counts: [Int32: Int] = [:]
+    var selected: [RawDetection] = []
+    for detection in detections {
+      if selected.count >= maxRegions {
+        break
+      }
+      if let allowed, !allowed.contains(detection.classIndex) {
+        continue
+      }
+      let used = counts[detection.classIndex] ?? 0
+      if used >= maxPerClass {
+        continue
+      }
+      counts[detection.classIndex] = used + 1
+      selected.append(detection)
+    }
+
+    return selected
   }
 
   // MARK: - Frame plumbing

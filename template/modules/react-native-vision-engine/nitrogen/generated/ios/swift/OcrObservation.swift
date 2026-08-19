@@ -18,8 +18,8 @@ public extension OcrObservation {
   /**
    * Create a new instance of `OcrObservation`.
    */
-  init(text: String, confidence: Double, rect: OcrRect, fromDetector: Bool) {
-    self.init(std.string(text), confidence, rect, fromDetector)
+  init(text: String, confidence: Double, rect: OcrRect, fromDetector: Bool, regionClassIndex: Double) {
+    self.init(std.string(text), confidence, rect, fromDetector, regionClassIndex)
   }
 
   @inline(__always)
@@ -40,5 +40,10 @@ public extension OcrObservation {
   @inline(__always)
   var fromDetector: Bool {
     return self.__fromDetector
+  }
+  
+  @inline(__always)
+  var regionClassIndex: Double {
+    return self.__regionClassIndex
   }
 }

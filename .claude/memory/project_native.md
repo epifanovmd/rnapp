@@ -40,9 +40,11 @@ type: project
   Android: Kotlin — ML Kit text-recognition + опц. TFLite YOLO-детектор
   (`android/app/src/main/assets/container_code_detector.tflite`), `YoloRegionDetector` — декодер+NMS;
   cast `frame as NativeFrame` → `ImageProxy`. `scan` синхронный, вызывается из frame-worklet'а
-  через `NitroModules.box`/`unbox`. Модели детекторов (YOLO → CoreML c NMS /
-  TFLite) кладутся в приложение вручную (`ios/MLModels/`, `android/.../assets/`);
-  без модели OCR работает полнокадрово.
+  через `NitroModules.box`/`unbox`. Модели детекторов (YOLO → CoreML со
+  встроенным NMS либо сырым тензором / TFLite) кладутся в приложение вручную
+  (`ios/MLModels/`, `android/.../assets/`); без модели OCR работает
+  полнокадрово. Классы модели привязываются по `classIndex` — порядок
+  классов при обучении обязан совпадать с доменом.
   Нативный слой разбит по SRP, платформы зеркальны (таблица — README модуля):
   фасад `HybridVisionEngine` + `{CoreML,Tflite}ModelLoader` + чистый
   `YoloOutputDecoder` + `{CoreMLObjectDetector,TfliteDetector}` +
@@ -90,14 +92,33 @@ type: project
   переиспользуются, `detect` synchronized. iOS OCR по регионам — батч
   запросов одним `VNImageRequestHandler`. Покадровые шаги OCR-конвейера —
   worklet-хелперы `shared/lib/ocr-scan/ocr-worklets`; домены создаются
-  фабрикой `createOcrDomain(partial)`. Сканеры отдают `onError`
+  фабрикой `createOcrDomain(partial)` и целиком описывают свой конвейер:
+  `detector` (`modelName`, `classLabels`, `classes`, `minScore`,
+  `maxRegions`, `maxRegionsPerClass`, `padding`, `iouThreshold`) и
+  `recognition` (`mode`, `minConfidence`, `maxObservations`,
+  `fullFrameFallback`); пропы `OcrScanCamera` перекрывают режим точечно,
+  незаданное берётся из `OCR_SCAN_DEFAULTS`/`DETECTOR_DEFAULTS`.
+  Многоклассовые детекторы: `OcrObservation.regionClassIndex` — класс
+  региона, из кропа которого прочитан текст (-1 = полный кадр,
+  `FULL_FRAME_REGION_CLASS`); домен раскладывает области хелпером
+  `selectByRegionClass` (без размеченных классов возвращает все — работа
+  без модели не ломается). NMS подавляет только внутри класса, отбор
+  регионов — квота на класс плюс общий лимит. Контейнерный детектор —
+  3 класса (`CONTAINER_REGION_CLASSES`: 0 код, 1 типоразмер, 2 веса);
+  веса разбираются по меткам таблички, а при их отсутствии — по
+  тождеству брутто = тара + нетто (килограммовая тройка предпочитается
+  фунтовой); после подтверждения кода домен ждёт типоразмер и веса
+  ограниченное число кадров и отдаёт результат с тем, что прочиталось. Сканеры отдают `onError`
   (троттлится) и dev-диагностику (`durationMs`/`detectorUsed`,
   `ScanDiagnosticsBadge`, только `__DEV__`); `useObjectScanner` имеет
   `pause`/`resume`. Юнит-тесты чистой логики — jest
   (`npm test`, `jest.config.js` + `babel-jest.config.js` без
   Reanimated-плагина): iso6346, container-candidates, `toUprightRect`,
   cover-маппинг, сглаживание.
-  Важно worklet'ам: module-scope RegExp не сериализуется в worklet-рантайм
+  Важно worklet'ам: worklet захватывает в замыкание только функции,
+  объявленные ВЫШЕ по модулю — вызов объявленной ниже падает в рантайме
+  камеры как «undefined is not a function»; общий хелпер выносится наверх.
+  module-scope RegExp не сериализуется в worklet-рантайм
   (объект без методов) — литералы только внутри тел функций.
 - **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/
   `NativeWheelPickerSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"` —

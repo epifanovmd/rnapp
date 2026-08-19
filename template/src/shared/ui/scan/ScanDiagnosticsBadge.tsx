@@ -16,7 +16,9 @@ export const ScanDiagnosticsBadge: FC<IScanDiagnosticsBadgeProps> = memo(
     <View style={styles.container} pointerEvents={"none"}>
       <Text style={styles.text}>
         {`${Math.round(diagnostics.durationMs)} мс · ${
-          diagnostics.detectorUsed ? "детектор" : "полный кадр"
+          diagnostics.detectorUsed
+            ? `детектор ${diagnostics.regionCount}`
+            : "полный кадр"
         } · ${diagnostics.resultCount}`}
       </Text>
     </View>
