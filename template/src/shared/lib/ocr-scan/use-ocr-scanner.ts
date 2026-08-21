@@ -30,6 +30,7 @@ import {
   publishOverlay,
   shouldEmit,
   useOverlayChannel,
+  usePreviewOrientation,
   useScannerInstanceKey,
   useStableCallback,
   useVisionFrameOutput,
@@ -102,6 +103,7 @@ export const useOcrScanner = <TAttributes>({
   // движок per-scanner: слоты моделей не делятся с другими сканерами
   const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
+  const previewOrientation = usePreviewOrientation();
   const streak = useMemo(
     () => createSynchronizable<IOcrStreak>({ code: "", count: 0 }),
     [],
@@ -198,6 +200,7 @@ export const useOcrScanner = <TAttributes>({
         const engine = getWorkletEngine(boxedEngine, instanceKey);
         const result = engine.scan(frame, options.getDirty());
         const observations = toUprightObservations(result);
+        const overlayOrientation = previewOrientation.getDirty();
 
         if (
           isDev &&
@@ -231,6 +234,7 @@ export const useOcrScanner = <TAttributes>({
           ),
           result.imageWidth,
           result.imageHeight,
+          overlayOrientation,
         );
         accumulateCandidateVotes(domain, attributes, candidates);
 
@@ -247,7 +251,13 @@ export const useOcrScanner = <TAttributes>({
 
           if (domain.suspendOnConfirm) {
             suspended.setBlocking(true);
-            publishOverlay(overlay, [], result.imageWidth, result.imageHeight);
+            publishOverlay(
+              overlay,
+              [],
+              result.imageWidth,
+              result.imageHeight,
+              overlayOrientation,
+            );
           }
 
           scheduleOnRN(
@@ -272,6 +282,7 @@ export const useOcrScanner = <TAttributes>({
     instanceKey,
     boxedEngine,
     overlay,
+    previewOrientation,
     streak,
     suspended,
     confirmationDelivered,

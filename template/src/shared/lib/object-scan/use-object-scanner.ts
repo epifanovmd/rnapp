@@ -5,6 +5,7 @@ import {
   shouldEmit,
   toUprightRect,
   useOverlayChannel,
+  usePreviewOrientation,
   useScannerInstanceKey,
   useStableCallback,
   useVisionFrameOutput,
@@ -91,6 +92,7 @@ export const useObjectScanner = ({
   // движок per-scanner: слоты моделей не делятся с другими сканерами
   const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
+  const previewOrientation = usePreviewOrientation();
   const modelReady = useMemo(() => createSynchronizable<boolean>(false), []);
   const suspended = useMemo(() => createSynchronizable<boolean>(false), []);
   const [isModelLoaded, setModelLoaded] = useState<boolean | null>(null);
@@ -169,7 +171,13 @@ export const useObjectScanner = ({
             label: resolveObjectLabel(object, classLabels),
           });
         }
-        publishOverlay(overlay, boxes, result.imageWidth, result.imageHeight);
+        publishOverlay(
+          overlay,
+          boxes,
+          result.imageWidth,
+          result.imageHeight,
+          previewOrientation.getDirty(),
+        );
 
         if (shouldEmit(`${instanceKey}:detections`, DETECTIONS_INTERVAL_MS)) {
           const infos: IDetectedObjectInfo[] = result.objects.map(object => ({
@@ -195,6 +203,7 @@ export const useObjectScanner = ({
     instanceKey,
     boxedEngine,
     overlay,
+    previewOrientation,
     modelReady,
     suspended,
     minScore,

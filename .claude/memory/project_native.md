@@ -78,6 +78,14 @@ type: project
   SkPicture: метка класса / значение кандидата из `label`), `OverlayDim`
   (затемнение вне боксов, even-odd), хук `useOverlayPath` для своей
   геометрии; `ScanOverlay` — стандартный пресет (регион — синие уголки).
+  Системы координат: кадры frame-output выпрямляются по ориентации
+  устройства (`orientationSource="device"` у `CameraView` — распознавание
+  получает изображение, выпрямленное по гравитации), превью на обеих
+  платформах ориентацию выхода игнорирует и всегда идёт по ориентации
+  интерфейса. Разницу держит `usePreviewOrientation`
+  (`previewOrientationDelta`), `publishOverlay` доворачивает боксы и
+  меняет стороны кадра — оверлей публикуется уже в координатах превью,
+  доменные rect'ы остаются в выпрямленных.
   Экраны с BottomSheet-камерой —
   `pages/stack/{container,plate,text,object}-scanner`.
   Движки — per-scanner (`createVisionEngine`/`createBoxedVisionEngine`,

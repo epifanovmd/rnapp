@@ -3,13 +3,23 @@ import {
   IScanOverlayBox,
   IScanOverlaySnapshot,
 } from "@shared/lib/scan-overlay";
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { BoxedHybridObject } from "react-native-nitro-modules";
-import type { CameraFrameOutput, Frame } from "react-native-vision-camera";
-import { useFrameOutput } from "react-native-vision-camera";
+import type {
+  CameraFrameOutput,
+  CameraOrientation,
+  Frame,
+} from "react-native-vision-camera";
+import { useFrameOutput, useOrientation } from "react-native-vision-camera";
 import type { VisionEngine } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable } from "react-native-worklets";
+
+import {
+  previewOrientationDelta,
+  swapsFrameSides,
+  toPreviewRect,
+} from "./orientation";
 
 /** Кэш worklet-рантайма камеры: unbox-нутые движки и таймстемпы троттлинга */
 interface IFrameRuntimeCache {
@@ -70,21 +80,77 @@ export function shouldEmit(key: string, intervalMs: number): boolean {
   return true;
 }
 
-/** Публикация снимка рамок для оверлея (worklet) */
+/** Боксы выпрямленного кадра → координаты превью (worklet) */
+function toPreviewBoxes(
+  boxes: IScanOverlayBox[],
+  previewOrientation: CameraOrientation,
+): IScanOverlayBox[] {
+  "worklet";
+
+  if (previewOrientation === "up") {
+    return boxes;
+  }
+  const previewBoxes: IScanOverlayBox[] = [];
+
+  for (let i = 0; i < boxes.length; i++) {
+    previewBoxes.push({
+      rect: toPreviewRect(boxes[i].rect, previewOrientation),
+      kind: boxes[i].kind,
+      label: boxes[i].label,
+    });
+  }
+
+  return previewBoxes;
+}
+
+/**
+ * Публикация снимка рамок для оверлея (worklet): боксы и стороны кадра
+ * переводятся из системы координат распознавания в систему координат
+ * превью (`usePreviewOrientation`).
+ */
 export function publishOverlay(
   overlay: Synchronizable<IScanOverlaySnapshot>,
   boxes: IScanOverlayBox[],
   imageWidth: number,
   imageHeight: number,
+  previewOrientation: CameraOrientation,
 ): void {
   "worklet";
 
+  const swaps = swapsFrameSides(previewOrientation);
+  const previewBoxes = toPreviewBoxes(boxes, previewOrientation);
+
   overlay.setBlocking(prev => ({
-    boxes,
-    imageWidth,
-    imageHeight,
+    boxes: previewBoxes,
+    imageWidth: swaps ? imageHeight : imageWidth,
+    imageHeight: swaps ? imageWidth : imageHeight,
     revision: prev.revision + 1,
   }));
+}
+
+/**
+ * Канал доворота кадр → превью: кадры выпрямляются по ориентации
+ * устройства, превью идёт по ориентации интерфейса, поэтому при повороте
+ * телефона рамки нужно доворачивать. Значение читает worklet кадра.
+ */
+export function usePreviewOrientation(): Synchronizable<CameraOrientation> {
+  const deviceOrientation = useOrientation("device");
+  const interfaceOrientation = useOrientation("interface");
+  const previewOrientation = useMemo(
+    () => createSynchronizable<CameraOrientation>("up"),
+    [],
+  );
+
+  useEffect(() => {
+    previewOrientation.setBlocking(
+      previewOrientationDelta(
+        deviceOrientation ?? "up",
+        interfaceOrientation ?? "up",
+      ),
+    );
+  }, [deviceOrientation, interfaceOrientation, previewOrientation]);
+
+  return previewOrientation;
 }
 
 /** Канал снимков оверлея: worklet кадра пишет, UI-поток читает */

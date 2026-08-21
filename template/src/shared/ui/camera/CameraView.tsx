@@ -20,6 +20,11 @@ export interface ICameraViewProps {
  * нативная камера. Зум/экспозиция привязаны SharedValue на UI-потоке,
  * состояние берётся из `CameraProvider`. Без устройства/разрешения не
  * рендерит ничего — заглушки отдаёт `CameraPermissionGate`.
+ *
+ * Кадры ориентируются по устройству — распознавание получает выпрямленное
+ * по гравитации изображение; превью же всегда идёт по ориентации
+ * интерфейса, поэтому оверлеи сканеров доворачивают координаты сами
+ * (`usePreviewOrientation`).
  */
 export const CameraView: FC<ICameraViewProps> = memo(
   ({ outputs, constraints, resizeMode = "cover", style }) => {
@@ -38,6 +43,7 @@ export const CameraView: FC<ICameraViewProps> = memo(
         isActive={internals.isActive}
         outputs={outputs}
         constraints={constraints}
+        orientationSource={"device"}
         resizeMode={resizeMode}
         zoom={zoom.zoom}
         exposure={exposure.exposure}
