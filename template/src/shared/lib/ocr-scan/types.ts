@@ -86,6 +86,10 @@ export interface IOcrScanDomain<TAttributes> {
   detector: IOcrScanDetectorConfig | null;
   /** Настройки нативного распознавания домена (камера может их перекрыть) */
   recognition: IOcrScanRecognitionConfig;
+  /** Максимум одновременно отображаемых рамок overlay */
+  maxOverlayBoxes: number;
+  /** Останавливать frame-пайплайн после первого подтверждения */
+  suspendOnConfirm: boolean;
   /** Начальное значение накапливаемых атрибутов */
   emptyAttributes: TAttributes;
   /** Дополнительные атрибуты кадра (веса, регион, …); null — домен без атрибутов */

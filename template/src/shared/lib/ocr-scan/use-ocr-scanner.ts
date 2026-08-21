@@ -107,6 +107,10 @@ export const useOcrScanner = <TAttributes>({
     [],
   );
   const suspended = useMemo(() => createSynchronizable<boolean>(false), []);
+  const confirmationDelivered = useMemo(
+    () => createSynchronizable<boolean>(false),
+    [],
+  );
   const attributes = useMemo(
     () => createSynchronizable<TAttributes>(domain.emptyAttributes),
     // домен фиксируется на маунт
@@ -218,7 +222,13 @@ export const useOcrScanner = <TAttributes>({
 
         publishOverlay(
           overlay,
-          collectOverlayBoxes(result, observations, candidates, classLabels),
+          collectOverlayBoxes(
+            result,
+            observations,
+            candidates,
+            classLabels,
+            domain.maxOverlayBoxes,
+          ),
           result.imageWidth,
           result.imageHeight,
         );
@@ -231,10 +241,15 @@ export const useOcrScanner = <TAttributes>({
           attributes,
         );
 
-        if (confirmed !== null) {
-          suspended.setBlocking(true);
+        if (confirmed !== null && !confirmationDelivered.getDirty()) {
+          confirmationDelivered.setBlocking(true);
           streak.setBlocking({ code: "", count: 0 });
-          publishOverlay(overlay, [], result.imageWidth, result.imageHeight);
+
+          if (domain.suspendOnConfirm) {
+            suspended.setBlocking(true);
+            publishOverlay(overlay, [], result.imageWidth, result.imageHeight);
+          }
+
           scheduleOnRN(
             handleConfirmed,
             confirmed.value,
@@ -259,6 +274,7 @@ export const useOcrScanner = <TAttributes>({
     overlay,
     streak,
     suspended,
+    confirmationDelivered,
     attributes,
     domain,
     options,
@@ -277,8 +293,16 @@ export const useOcrScanner = <TAttributes>({
       ...EMPTY_SCAN_OVERLAY,
       revision: prev.revision + 1,
     }));
+    confirmationDelivered.setBlocking(false);
     suspended.setBlocking(false);
-  }, [attributes, domain.emptyAttributes, overlay, streak, suspended]);
+  }, [
+    attributes,
+    confirmationDelivered,
+    domain.emptyAttributes,
+    overlay,
+    streak,
+    suspended,
+  ]);
 
   return { frameOutput, overlay, resume, diagnostics };
 };

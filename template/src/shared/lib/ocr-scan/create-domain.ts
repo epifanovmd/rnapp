@@ -21,6 +21,10 @@ export interface IOcrDomainConfig<TAttributes = null> {
   detector?: IOcrScanDetectorConfig;
   /** Настройки нативного распознавания (камера может их перекрыть) */
   recognition?: IOcrScanRecognitionConfig;
+  /** Максимум рамок overlay для этого сканера; по умолчанию 10 */
+  maxOverlayBoxes?: number;
+  /** Останавливать обработку кадров после подтверждения; по умолчанию true */
+  suspendOnConfirm?: boolean;
   emptyAttributes?: TAttributes;
   extractAttributes?: (observations: IOcrScanObservation[]) => TAttributes;
   mergeAttributes?: (
@@ -51,6 +55,8 @@ export function createOcrDomain<TAttributes = null>(
     confirmStreak: config.confirmStreak ?? Number.MAX_SAFE_INTEGER,
     detector: config.detector ?? null,
     recognition: config.recognition ?? {},
+    maxOverlayBoxes: config.maxOverlayBoxes ?? 10,
+    suspendOnConfirm: config.suspendOnConfirm ?? true,
     emptyAttributes: (config.emptyAttributes ?? null) as TAttributes,
     extractAttributes: config.extractAttributes ?? null,
     mergeAttributes: config.mergeAttributes ?? null,

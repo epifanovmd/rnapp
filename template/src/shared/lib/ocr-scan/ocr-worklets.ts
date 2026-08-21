@@ -11,9 +11,6 @@ import {
   IOcrScanResolved,
 } from "./types";
 
-/** Максимум боксов в снимке оверлея; регионы и кандидаты идут раньше текста */
-const MAX_OVERLAY_BOXES = 10;
-
 /** Серия одинаковых валидных кандидатов подряд */
 export interface IOcrStreak {
   code: string;
@@ -60,12 +57,13 @@ export function collectOverlayBoxes(
   observations: IOcrScanObservation[],
   candidates: IOcrScanCandidate[],
   classLabels: string[],
+  maxBoxes: number,
 ): IScanOverlayBox[] {
   "worklet";
 
   const boxes: IScanOverlayBox[] = [];
 
-  for (let i = 0; i < result.regions.length; i++) {
+  for (let i = 0; i < result.regions.length && boxes.length < maxBoxes; i++) {
     const region = result.regions[i];
 
     boxes.push({
@@ -74,18 +72,14 @@ export function collectOverlayBoxes(
       label: regionLabel(region, classLabels),
     });
   }
-  for (let i = 0; i < candidates.length; i++) {
+  for (let i = 0; i < candidates.length && boxes.length < maxBoxes; i++) {
     boxes.push({
       rect: candidates[i].rect,
       kind: candidates[i].isValid ? "valid" : "candidate",
       label: candidates[i].value,
     });
   }
-  for (
-    let i = 0;
-    i < observations.length && boxes.length < MAX_OVERLAY_BOXES;
-    i++
-  ) {
+  for (let i = 0; i < observations.length && boxes.length < maxBoxes; i++) {
     boxes.push({
       rect: observations[i].rect,
       kind: "text",

@@ -99,6 +99,12 @@ export const CONTAINER_SCAN_DOMAIN = createOcrDomain<IContainerAttributes>({
   extractCandidates,
   /** Контрольная цифра надёжно отсекает ложные коды — хватает трёх сканов */
   confirmStreak: 3,
+  // После подтверждения продолжаем обновлять detector/OCR overlay;
+  // callback подтверждения при этом остаётся одноразовым до resume().
+  suspendOnConfirm: false,
+  /** 3 региона + кандидаты + до 24 сырых OCR-наблюдений */
+  maxOverlayBoxes: 30,
+  recognition: { maxObservations: 24 },
   detector: {
     modelName: "container_code_detector",
     classLabels: CONTAINER_CLASS_LABELS,

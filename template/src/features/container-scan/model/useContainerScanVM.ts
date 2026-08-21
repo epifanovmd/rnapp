@@ -67,7 +67,7 @@ export const useContainerScanVM = ({
         return;
       }
       haptic.trigger("notificationSuccess");
-      setResult(scanResult);
+      // setResult(scanResult);
       onRecognized?.(scanResult);
     },
     [onRecognized],
