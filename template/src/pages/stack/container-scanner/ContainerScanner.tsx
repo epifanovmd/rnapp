@@ -33,13 +33,10 @@ export const ContainerScanner: FC = observer(() => {
     null,
   );
 
-  const handleRecognized = useCallback(
-    (result: IContainerScanResult) => {
-      setLastResult(result);
-      sheetRef.current?.dismiss();
-    },
-    [sheetRef],
-  );
+  const handleRecognized = useCallback((result: IContainerScanResult) => {
+    setLastResult(result);
+    // sheetRef.current?.dismiss();
+  }, []);
 
   const vm = useContainerScanVM({ onRecognized: handleRecognized });
 
