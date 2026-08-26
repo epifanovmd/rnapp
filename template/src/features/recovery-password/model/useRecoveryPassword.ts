@@ -1,27 +1,25 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { IApiService } from "@shared/api";
 import { useNotifications } from "@shared/lib/notifications";
+import { useZodForm } from "@shared/ui";
 import { useCallback } from "react";
-import { useForm } from "react-hook-form";
 
 import {
   recoveryPasswordValidationSchema,
-  TRecoveryPasswordForm,
+  TRecoveryPasswordSubmit,
 } from "./validation";
 
 export const useRecoveryPassword = (onSuccess: () => void) => {
   const api = IApiService.useInstance();
   const notifications = useNotifications();
 
-  const form = useForm<TRecoveryPasswordForm>({
+  const form = useZodForm(recoveryPasswordValidationSchema, {
     defaultValues: {
       login: "",
     },
-    resolver: zodResolver(recoveryPasswordValidationSchema),
   });
 
-  const handleSubmit = useCallback(() => {
-    return form.handleSubmit(async data => {
+  const handleSubmit = useCallback(
+    async (data: TRecoveryPasswordSubmit) => {
       const res = await api.requestResetPassword(data);
 
       if (res.error) {
@@ -32,8 +30,9 @@ export const useRecoveryPassword = (onSuccess: () => void) => {
         }
         onSuccess();
       }
-    })();
-  }, [form, api, notifications, onSuccess]);
+    },
+    [api, notifications, onSuccess],
+  );
 
   return { form, handleSubmit };
 };

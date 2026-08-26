@@ -17,6 +17,7 @@ export * from "./disintegrate";
 export * from "./divider";
 export * from "./field";
 export * from "./flex-view";
+export * from "./form";
 export * from "./icon";
 export * from "./image";
 export * from "./image-viewing";

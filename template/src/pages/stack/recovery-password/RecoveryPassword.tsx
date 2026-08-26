@@ -1,6 +1,16 @@
-import { useRecoveryPassword } from "@features/recovery-password";
+import {
+  TRecoveryPasswordForm,
+  useRecoveryPassword,
+} from "@features/recovery-password";
 import { useNavigation } from "@shared/lib/navigation";
-import { Button, Container, Content, ScrollView, TextField } from "@shared/ui";
+import {
+  Container,
+  Content,
+  Form,
+  FormSubmit,
+  ScrollView,
+  TextFieldFormField,
+} from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
@@ -10,21 +20,18 @@ export const RecoveryPassword: FC = observer(() => {
     navigation.navigate("SignIn"),
   );
 
-  const login = form.watch("login");
-
   return (
     <Container>
       <Content>
         <ScrollView>
-          <TextField
-            label={"Логин"}
-            value={login}
-            onChangeText={text => form.setValue("login", text)}
-          />
+          <Form form={form} onSubmit={handleSubmit}>
+            <TextFieldFormField<TRecoveryPasswordForm>
+              name={"login"}
+              label={"Логин"}
+            />
 
-          <Button onPress={handleSubmit} loading={form.formState.isSubmitting}>
-            {"Восстановить пароль"}
-          </Button>
+            <FormSubmit>{"Восстановить пароль"}</FormSubmit>
+          </Form>
         </ScrollView>
       </Content>
     </Container>

@@ -1,40 +1,42 @@
-import { useSignUpVM } from "@features/sign-up";
-import { Button, Container, Content, ScrollView, TextField } from "@shared/ui";
+import { TSignUpForm, useSignUpVM } from "@features/sign-up";
+import {
+  Container,
+  Content,
+  Form,
+  FormSubmit,
+  ScrollView,
+  TextFieldFormField,
+} from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
 export const SignUp: FC = observer(() => {
   const { form, handleSignUp } = useSignUpVM();
 
-  const login = form.watch("login");
-  const password = form.watch("password");
-  const confirmPassword = form.watch("confirmPassword");
-
   return (
     <Container>
       <Content>
         <ScrollView>
-          <TextField
-            label={"Username"}
-            value={login}
-            onChangeText={text => form.setValue("login", text)}
-          />
+          <Form form={form} onSubmit={handleSignUp}>
+            <TextFieldFormField<TSignUpForm>
+              name={"login"}
+              label={"Username"}
+            />
 
-          <TextField
-            label={"Password"}
-            value={password}
-            onChangeText={text => form.setValue("password", text)}
-          />
+            <TextFieldFormField<TSignUpForm>
+              name={"password"}
+              label={"Password"}
+              secureTextEntry={true}
+            />
 
-          <TextField
-            label={"confirmPassword"}
-            value={confirmPassword}
-            onChangeText={text => form.setValue("confirmPassword", text)}
-          />
+            <TextFieldFormField<TSignUpForm>
+              name={"confirmPassword"}
+              label={"confirmPassword"}
+              secureTextEntry={true}
+            />
 
-          <Button onPress={handleSignUp} loading={form.formState.isSubmitting}>
-            {"Зарегистрироваться"}
-          </Button>
+            <FormSubmit>{"Зарегистрироваться"}</FormSubmit>
+          </Form>
         </ScrollView>
       </Content>
     </Container>

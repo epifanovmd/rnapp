@@ -12,4 +12,5 @@ export const signUpFormValidationSchema = z
     message: "Пароли не совпадают.",
   });
 
-export type TSignUpForm = z.infer<typeof signUpFormValidationSchema>;
+export type TSignUpForm = z.input<typeof signUpFormValidationSchema>;
+export type TSignUpSubmit = z.output<typeof signUpFormValidationSchema>;

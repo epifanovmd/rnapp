@@ -1,14 +1,17 @@
 import { useBiometric } from "@features/biometric";
-import { useSignInVM } from "@features/sign-in";
+import { TSignInForm, useSignInVM } from "@features/sign-in";
 import { useTheme } from "@shared/lib/theme";
 import {
   Button,
   Col,
   Container,
   Content,
+  Form,
+  FormSubmit,
   Row,
   Text,
   TextField,
+  TextFieldFormField,
 } from "@shared/ui";
 import { ScanFace } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
@@ -31,9 +34,6 @@ export const SignIn: FC = observer(() => {
   const { available, authorization } = useBiometric();
 
   const [twoFactorPassword, setTwoFactorPassword] = useState("");
-
-  const login = form.watch("login");
-  const password = form.watch("password");
 
   if (isTwoFactorRequired) {
     return (
@@ -71,31 +71,21 @@ export const SignIn: FC = observer(() => {
   return (
     <Container>
       <Content justifyContent={"center"}>
-        <Col style={styles.form}>
-          <TextField
-            label={"Логин"}
-            value={login}
-            onChangeText={text => form.setValue("login", text)}
-          />
+        <Form form={form} onSubmit={handleLogin} style={styles.form}>
+          <TextFieldFormField<TSignInForm> name={"login"} label={"Логин"} />
 
-          <TextField
+          <TextFieldFormField<TSignInForm>
+            name={"password"}
             label={"Пароль"}
-            value={password}
-            onChangeText={text => form.setValue("password", text)}
             secureTextEntry={true}
           />
 
           {!!error && <Text color={"danger"}>{error}</Text>}
 
           <Row gap={8} mt={8} alignItems={"center"}>
-            <Button
-              flex={1}
-              size={"small"}
-              onPress={handleLogin}
-              loading={form.formState.isSubmitting}
-            >
+            <FormSubmit flex={1} size={"small"}>
               {"Войти"}
-            </Button>
+            </FormSubmit>
 
             {available && (
               <Button flex={1} size={"small"} onPress={authorization}>
@@ -123,7 +113,7 @@ export const SignIn: FC = observer(() => {
           <Button flex={1} size={"small"} onPress={loginByGithub}>
             {"Войти через Github"}
           </Button>
-        </Col>
+        </Form>
       </Content>
     </Container>
   );

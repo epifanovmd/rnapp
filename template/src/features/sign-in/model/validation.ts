@@ -6,4 +6,5 @@ export const signInFormValidationSchema = z.object({
   password: passwordValidation,
 });
 
-export type TSignInForm = z.infer<typeof signInFormValidationSchema>;
+export type TSignInForm = z.input<typeof signInFormValidationSchema>;
+export type TSignInSubmit = z.output<typeof signInFormValidationSchema>;

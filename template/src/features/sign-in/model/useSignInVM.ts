@@ -1,28 +1,25 @@
 import { IAuthStore } from "@entities/auth";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { GITHUB_CLIENT_ID, GITHUB_REDIRECT_URI } from "@shared/config/env";
+import { useZodForm } from "@shared/ui";
 import { useCallback } from "react";
-import { useForm } from "react-hook-form";
 import { Linking } from "react-native";
 
-import { signInFormValidationSchema, TSignInForm } from "./validation";
+import { signInFormValidationSchema, TSignInSubmit } from "./validation";
 
 export const useSignInVM = () => {
   const authStore = IAuthStore.useInstance();
 
-  const form = useForm<TSignInForm>({
+  const form = useZodForm(signInFormValidationSchema, {
     defaultValues: {
       login: "epifanovmd@gmail.com",
       password: "Epifan123",
     },
-    resolver: zodResolver(signInFormValidationSchema),
   });
 
-  const handleLogin = useCallback(async () => {
-    return form.handleSubmit(async data => {
-      await authStore.signIn(data);
-    })();
-  }, [form, authStore]);
+  const handleLogin = useCallback(
+    async (data: TSignInSubmit) => authStore.signIn(data),
+    [authStore],
+  );
 
   const handleVerify2FA = useCallback(
     async (password: string) => {
