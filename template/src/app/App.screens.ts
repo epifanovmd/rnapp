@@ -4,6 +4,7 @@ import { Components } from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
 import { ContextMenu } from "@pages/stack/context-menu";
 import { InputBar } from "@pages/stack/input-bar";
+import { ListLab } from "@pages/stack/list-lab";
 import { ObjectScanner } from "@pages/stack/object-scanner";
 import { PdfView } from "@pages/stack/pdf-view";
 import { PlateScanner } from "@pages/stack/plate-scanner";
@@ -71,6 +72,7 @@ export const RootStack = createStackNavigator({
         Charts: { screen: Charts, linking: "charts" },
         ContextMenu: { screen: ContextMenu, linking: "contextmenu" },
         InputBar: { screen: InputBar, linking: "inputbar" },
+        ListLab: { screen: ListLab, options: NO_HEADER, linking: "listlab" },
         ContainerScanner: {
           screen: ContainerScanner,
           options: NO_HEADER,

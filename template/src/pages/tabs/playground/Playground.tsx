@@ -78,6 +78,12 @@ export const Playground: FC = observer(() => {
 
           <Button
             mt={8}
+            title={"Стенды списка"}
+            onPress={() => navigation.navigate("ListLab")}
+          />
+
+          <Button
+            mt={8}
             title={"Container scanner"}
             onPress={() => navigation.navigate("ContainerScanner")}
           />

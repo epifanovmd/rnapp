@@ -1,0 +1,160 @@
+import type { ListStickyEdge } from "../types";
+
+/** Запрос на отрисовку элемента в контейнере. */
+export interface IContainerRequest {
+  index: number;
+  key: string;
+  type: string;
+  /** Кромка, к которой элемент прилипает; null — обычный элемент. */
+  stickyEdge: ListStickyEdge | null;
+}
+
+/** Привязка контейнера к элементу. */
+export interface IContainerBinding {
+  id: number;
+  key: string;
+  index: number;
+  type: string;
+  stickyEdge: ListStickyEdge | null;
+}
+
+/** Изменение привязок после `allocate`. */
+export interface IAllocationResult {
+  /** Контейнеры, сменившие элемент: их поддерево нужно перерисовать. */
+  changed: IContainerBinding[];
+  /** Контейнеры, оставшиеся без элемента. */
+  released: number[];
+  /** Сколько контейнеров существует после аллокации. */
+  count: number;
+}
+
+/**
+ * Пул контейнеров.
+ *
+ * Контейнер — единица монтирования: он переживает смену элемента, меняя пропы
+ * вместо перемонтирования поддерева. Свободный контейнер того же типа
+ * предпочтительнее любого другого — попадание по типу означает совпадающую
+ * структуру поддерева.
+ *
+ * Прилипающие контейнеры живут отдельно: их держат смонтированными и за
+ * пределами видимого диапазона, поэтому под обычные элементы они не уходят.
+ */
+export class ContainerPool {
+  private bindings = new Map<number, IContainerBinding>();
+  private containerByKey = new Map<string, number>();
+  private free: number[] = [];
+  /** Тип последнего элемента контейнера — по нему ищется совпадение при переиспользовании. */
+  private lastTypeById = new Map<number, string>();
+  private nextId = 0;
+
+  getBinding(id: number): IContainerBinding | undefined {
+    return this.bindings.get(id);
+  }
+
+  getContainerByKey(key: string): number | undefined {
+    return this.containerByKey.get(key);
+  }
+
+  getCount(): number {
+    return this.nextId;
+  }
+
+  /** Привязать контейнеры к запрошенному набору элементов. */
+  allocate(requests: IContainerRequest[]): IAllocationResult {
+    const requestedKeys = new Set(requests.map(request => request.key));
+    const released = this.releaseUnrequested(requestedKeys);
+    const changed: IContainerBinding[] = [];
+
+    for (const request of requests) {
+      const existingId = this.containerByKey.get(request.key);
+
+      if (existingId !== undefined) {
+        const binding = this.bindings.get(existingId)!;
+
+        if (
+          binding.index === request.index &&
+          binding.stickyEdge === request.stickyEdge
+        ) {
+          continue;
+        }
+
+        binding.index = request.index;
+        binding.stickyEdge = request.stickyEdge;
+        changed.push({ ...binding });
+        continue;
+      }
+
+      changed.push(this.bind(request));
+    }
+
+    return { changed, released, count: this.nextId };
+  }
+
+  private releaseUnrequested(requestedKeys: Set<string>): number[] {
+    const released: number[] = [];
+
+    for (const [key, id] of this.containerByKey) {
+      if (requestedKeys.has(key)) continue;
+
+      this.containerByKey.delete(key);
+      this.bindings.delete(id);
+      this.free.push(id);
+      released.push(id);
+    }
+
+    return released;
+  }
+
+  private bind(request: IContainerRequest): IContainerBinding {
+    const id = this.take(request.type);
+    const binding: IContainerBinding = {
+      id,
+      key: request.key,
+      index: request.index,
+      type: request.type,
+      stickyEdge: request.stickyEdge,
+    };
+
+    this.bindings.set(id, binding);
+    this.containerByKey.set(request.key, id);
+
+    return { ...binding };
+  }
+
+  /** Свободный контейнер того же типа, иначе любой свободный, иначе новый. */
+  private take(type: string): number {
+    for (let i = this.free.length - 1; i >= 0; i--) {
+      const id = this.free[i]!;
+
+      if (this.lastTypeById.get(id) === type) {
+        this.free.splice(i, 1);
+
+        return id;
+      }
+    }
+
+    const anyFree = this.free.pop();
+
+    if (anyFree !== undefined) {
+      this.lastTypeById.set(anyFree, type);
+
+      return anyFree;
+    }
+
+    const id = this.nextId++;
+
+    this.lastTypeById.set(id, type);
+
+    return id;
+  }
+
+  /** Полный сброс — при структурной смене данных, когда ключи не пересекаются. */
+  reset(): void {
+    this.bindings.clear();
+    this.containerByKey.clear();
+    this.free = [];
+    for (let id = 0; id < this.nextId; id++) {
+      this.free.push(id);
+    }
+  }
+}
