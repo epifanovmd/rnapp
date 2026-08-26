@@ -49,6 +49,78 @@ describe("ListMetrics", () => {
     expect(metrics.getTotalSize()).toBe(320);
   });
 
+  it("не отводит места элементу до первого измерения", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(3), types(3));
+    for (const key of keys(3)) metrics.setMeasuredSize(key, 50);
+
+    // Появился новый элемент в начале: пока он не измерен, места он не занимает
+    // и раскладку остальных не двигает.
+    metrics.setItems(["new", ...keys(3)], types(4));
+    metrics.markPending("new");
+
+    expect(metrics.getSize(0)).toBe(0);
+    expect(metrics.getPosition(1)).toBe(0);
+    expect(metrics.getTotalSize()).toBe(150);
+
+    // Измерение возвращает элементу его место одним шагом.
+    metrics.setMeasuredSize("new", 70);
+
+    expect(metrics.getPosition(1)).toBe(70);
+    expect(metrics.getTotalSize()).toBe(220);
+  });
+
+  it("называет ожидающих поимённо — их обязан отрисовать список", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(3), types(3));
+    for (const key of keys(3)) metrics.setMeasuredSize(key, 50);
+
+    metrics.setItems(["a", "b", ...keys(3)], types(5));
+    metrics.markPending("a");
+    metrics.markPending("b");
+
+    // Нулевой слот схлопывает их в одну точку: сами в диапазон отрисовки они
+    // не попадут, и измерить их будет нечем.
+    expect(metrics.getPendingIndices().sort()).toEqual([0, 1]);
+
+    metrics.setMeasuredSize("a", 30);
+
+    expect(metrics.getPendingIndices()).toEqual([1]);
+  });
+
+  it("возвращает обычный размер тем, до кого измерение так и не дошло", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(3), types(3));
+    for (const key of keys(3)) metrics.setMeasuredSize(key, 50);
+
+    metrics.setItems(["new", ...keys(3)], types(4));
+    metrics.markPending("new");
+    metrics.clearPending();
+
+    // Элемент вне буфера отрисовки измерить некому — он идёт по среднему.
+    expect(metrics.getSize(0)).toBe(50);
+  });
+
+  it("перестаёт двигать оценку, набрав достаточно замеров", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(64), types(64));
+    for (let index = 0; index < 32; index++) {
+      metrics.setMeasuredSize(`k${index}`, 40);
+    }
+
+    const estimate = metrics.getSize(63);
+
+    // Замер, резко выбивающийся из набранного, оценку соседей уже не сдвинет:
+    // иначе каждое измерение переставляло бы разом все неотрисованные строки.
+    metrics.setMeasuredSize("k32", 400);
+
+    expect(metrics.getSize(63)).toBe(estimate);
+  });
+
   it("отличает измерение, меняющее раскладку, от повторного", () => {
     const metrics = createMetrics(100);
 

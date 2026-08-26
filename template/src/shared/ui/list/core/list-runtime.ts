@@ -83,6 +83,25 @@ const HOLD_CONTENT_SIZE_MS = 16;
 const READY_FALLBACK_MS = 150;
 
 /**
+ * Сколько появившихся элементов держать без места до измерения.
+ *
+ * Каждый такой элемент приходится смонтировать, чтобы измерить. Пачка размером
+ * с подгруженную страницу истории смонтировалась бы разом — дороже, чем полоса
+ * на кадр, ради которой всё и затевалось. Большая пачка идёт по среднему.
+ */
+const PENDING_LIMIT = 32;
+
+/**
+ * Куда уводится строка, ожидающая первого измерения.
+ *
+ * Места в раскладке она не занимает, но отрисоваться обязана — и обязательно в
+ * натуральную величину: подрезанный контейнер отдаёт высоту подрезки, а не
+ * содержимого. Поэтому не подрезаем, а уводим выше начала контента: туда скролл
+ * не доходит, а раскладка идёт своим чередом.
+ */
+const MEASURE_OFFSCREEN = -100000;
+
+/**
  * Округление раскладки перед записью в сигналы.
  *
  * Префиксные суммы пересчитываются с разного «грязного» индекса и дают
@@ -381,6 +400,9 @@ export class ListRuntime<TItem> {
   private applyData(data: readonly TItem[]): void {
     const { keyExtractor, getItemType, getFixedItemSize } = this.props;
     const seen = __DEV__ ? new Set<string>() : undefined;
+    // Первое наполнение не в счёт: там новые все, и до измерений список всё
+    // равно не показан.
+    const appeared = this.keys.length === 0 ? undefined : new Set<string>();
 
     this.keys = new Array<string>(data.length);
     this.types = new Array<string>(data.length);
@@ -389,6 +411,10 @@ export class ListRuntime<TItem> {
       const item = data[index]!;
       const key = keyExtractor(item, index);
       const type = getItemType?.(item, index) ?? DEFAULT_ITEM_TYPE;
+
+      if (appeared && this.metrics.getIndexByKey(key) === undefined) {
+        appeared.add(key);
+      }
 
       if (seen) {
         if (seen.has(key)) this.warnDuplicateKey(key, index);
@@ -404,6 +430,12 @@ export class ListRuntime<TItem> {
     }
 
     this.metrics.setItems(this.keys, this.types);
+
+    // Появившийся элемент не занимает места, пока его не измерили: иначе на
+    // кадр разошлись бы отведённое место и нарисованная высота.
+    if (appeared && appeared.size <= PENDING_LIMIT) {
+      for (const key of appeared) this.metrics.markPending(key);
+    }
   }
 
   /**
@@ -640,6 +672,7 @@ export class ListRuntime<TItem> {
   /** Применение накопленных изменений раскладки одним проходом. */
   private flushLayout(): void {
     this.pendingFlush = false;
+    this.metrics.clearPending();
 
     if (this.props.maintainVisibleContentPositionSize) {
       this.restoreVisiblePosition("размер");
@@ -843,6 +876,10 @@ export class ListRuntime<TItem> {
     // Прилипшие якоря держатся смонтированными и за пределами буфера.
     for (const index of pinned) addRequest(index);
 
+    // Ожидающие измерения — тоже: без отрисовки их нечем измерить, а нулевой
+    // слот сам в диапазон их не заводит.
+    for (const index of this.metrics.getPendingIndices()) addRequest(index);
+
     const { released, count } = this.pool.allocate(requests);
 
     // Освобождённый контейнер мог тут же уйти под другой элемент — уводить за
@@ -863,7 +900,10 @@ export class ListRuntime<TItem> {
 
       if (id === undefined) continue;
 
-      const position = roundLayout(this.metrics.getPosition(request.index));
+      const pending = this.metrics.isPending(request.key);
+      const position = pending
+        ? MEASURE_OFFSCREEN
+        : roundLayout(this.metrics.getPosition(request.index));
       const size = roundLayout(this.metrics.getSize(request.index));
       // Настоящая высота строки известна только после отрисовки. До неё в
       // метриках лежит оценка, а у строки со сменившимся содержимым — прежний
@@ -883,6 +923,7 @@ export class ListRuntime<TItem> {
       // Прилипающие исключены целиком — они за своими границами и живут: аватар
       // группы держится у кромки, когда сама группа уже ушла вверх.
       const clipped =
+        !pending &&
         request.stickyEdge === null &&
         (position + size <= viewportTop || position >= viewportEnd);
       const previousPosition = this.store.peek(`containerPosition${id}`);

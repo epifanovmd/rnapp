@@ -1,6 +1,18 @@
 /** Изменение измеренной высоты меньше этого — шум округления экрана. */
 const MEASURE_EPSILON = 1;
 
+/**
+ * Сколько замеров набирает средний размер по типу, прежде чем замереть.
+ *
+ * Среднее нужно, только чтобы прикинуть высоту ещё не отрисованных строк, и
+ * после нескольких десятков замеров точнее оно уже не станет. А вот меняться не
+ * перестаёт — и каждое изменение переставляет разом все неизмеренные строки:
+ * суммарная высота контента гуляет на сотни пикселей, отведённое строке место
+ * расходится с тем, чем она нарисована, и между строками то появляется, то
+ * пропадает пустая полоса. Поэтому среднее фиксируется.
+ */
+const AVERAGE_SAMPLE_LIMIT = 32;
+
 /** Средний измеренный размер по типу элемента. */
 interface IAverage {
   sum: number;
@@ -28,6 +40,16 @@ export class ListMetrics {
   private measured = new Map<string, number>();
   /** Размеры, объявленные через `getFixedItemSize` — измерять их не нужно. */
   private fixed = new Map<string, number>();
+  /**
+   * Элементы, появившиеся в данных и ещё не измеренные.
+   *
+   * Места они не занимают вовсе. Отвести им место по среднему — значит на кадр
+   * развести отведённое и нарисованное: строка рисуется своей высотой, а слот
+   * под ней другой, и на стыке видна пустая полоса, которая схлопывается
+   * следующим кадром вместе со скроллом. Нулевой слот убирает и полосу, и
+   * лишний сдвиг: раскладка не меняется, пока размеры не известны.
+   */
+  private pending = new Set<string>();
   private averageByType = new Map<string, IAverage>();
 
   private positions: number[] = [];
@@ -114,6 +136,7 @@ export class ListMetrics {
     if (previous === size) return false;
 
     this.measured.set(key, size);
+    this.pending.delete(key);
     this.updateAverage(key, previous, size);
     this.markDirty(this.indexByKey.get(key) ?? 0);
 
@@ -129,6 +152,10 @@ export class ListMetrics {
     const type = index === undefined ? "" : (this.types[index] ?? "");
     const average = this.averageByType.get(type) ?? { sum: 0, count: 0 };
 
+    // Набранное среднее больше не трогаем: уточнять его нечем, а переставлять
+    // из-за него все неизмеренные строки — значит двигать раскладку впустую.
+    if (average.count >= AVERAGE_SAMPLE_LIMIT) return;
+
     if (previous === undefined) {
       average.sum += size;
       average.count += 1;
@@ -143,6 +170,60 @@ export class ListMetrics {
     return this.measured.has(key) || this.fixed.has(key);
   }
 
+  /** Элемент ждёт первого измерения и места пока не занимает. */
+  isPending(key: string): boolean {
+    return this.pending.has(key);
+  }
+
+  /**
+   * Индексы ожидающих элементов.
+   *
+   * Их обязан отрисовать список: измерить неотрисованное нечем, а нулевой слот
+   * схлопывает их в одну точку — сами в диапазон отрисовки они не попадут и
+   * останутся нулевыми навсегда.
+   */
+  getPendingIndices(): number[] {
+    const indices: number[] = [];
+
+    for (const key of this.pending) {
+      const index = this.indexByKey.get(key);
+
+      if (index !== undefined) indices.push(index);
+    }
+
+    return indices;
+  }
+
+  /** Пометить появившийся элемент: до измерения он не занимает места. */
+  markPending(key: string): void {
+    if (this.hasMeasured(key) || this.pending.has(key)) return;
+
+    this.pending.add(key);
+    this.markDirty(this.indexByKey.get(key) ?? 0);
+  }
+
+  /**
+   * Вернуть ожидающим элементам обычный размер.
+   *
+   * Ждать измерения бесконечно нельзя: до элемента могли не дойти — он вне
+   * буфера отрисовки, — и тогда список считал бы его нулевым, а суммарную
+   * высоту контента заниженной.
+   */
+  clearPending(): void {
+    if (this.pending.size === 0) return;
+
+    let first = this.keys.length;
+
+    for (const key of this.pending) {
+      const index = this.indexByKey.get(key);
+
+      if (index !== undefined && index < first) first = index;
+    }
+
+    this.pending.clear();
+    this.markDirty(first);
+  }
+
   /**
    * Размер элемента: измеренный, объявленный, средний по типу или оценка.
    * Средний по типу точнее общей оценки — разнородные ячейки (текст, фото)
@@ -152,6 +233,7 @@ export class ListMetrics {
     const key = this.keys[index];
 
     if (key === undefined) return this.estimatedItemSize;
+    if (this.pending.has(key)) return 0;
 
     const known = this.measured.get(key) ?? this.fixed.get(key);
 
