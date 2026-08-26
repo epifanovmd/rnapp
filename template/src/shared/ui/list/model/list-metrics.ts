@@ -1,3 +1,6 @@
+/** Изменение измеренной высоты меньше этого — шум округления экрана. */
+const MEASURE_EPSILON = 1;
+
 /** Средний измеренный размер по типу элемента. */
 interface IAverage {
   sum: number;
@@ -74,6 +77,25 @@ export class ListMetrics {
 
     this.fixed.set(key, size);
     this.markDirty(this.indexByKey.get(key) ?? 0);
+  }
+
+  /**
+   * Поедет ли раскладка от такого измерения.
+   *
+   * Разница меньше пикселя игнорируется. iOS округляет кадр к сетке экрана, и
+   * одна и та же ячейка на дробной позиции даёт высоту, гуляющую на доли
+   * пикселя. Принимать такое измерение — значит пересчитать раскладку, сдвинуть
+   * позицию, получить новое округление и следующее измерение: замкнутый цикл,
+   * видимый как постоянная мелкая дрожь.
+   */
+  willResize(key: string, size: number): boolean {
+    if (this.fixed.has(key)) return false;
+
+    const previous = this.measured.get(key);
+
+    return (
+      previous === undefined || Math.abs(previous - size) >= MEASURE_EPSILON
+    );
   }
 
   /**
@@ -156,10 +178,13 @@ export class ListMetrics {
   flush(): void {
     const count = this.keys.length;
 
+    // Позиции целы, но хвост мог укоротиться — суммарный размер считается по
+    // последнему оставшемуся элементу, иначе он держит высоту удалённых.
     if (this.dirtyFrom >= count) {
       this.dirtyFrom = count;
       this.positions.length = count;
-      this.total = count === 0 ? 0 : this.total;
+      this.total =
+        count === 0 ? 0 : this.positions[count - 1]! + this.getSize(count - 1);
 
       return;
     }

@@ -1,6 +1,6 @@
 import { Container, Navbar, Row } from "@shared/ui";
 import type { IListRef } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
+import { List, setListDebug } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -12,7 +12,16 @@ import {
   LabToggle,
 } from "../components";
 import type { LabRow } from "../model";
-import { createMessage, createMessages, labRowKey, labRowType } from "../model";
+import {
+  createMessage,
+  createMessages,
+  labRowHeight,
+  labRowKey,
+  labRowType,
+} from "../model";
+
+// Логи компенсации на время отладки стенда включены постоянно.
+setListDebug(["mvcp", "scroll", "position", "size"]);
 
 const INITIAL_COUNT = 200;
 const ESTIMATED_ITEM_SIZE = 92;
@@ -29,12 +38,22 @@ const GROWN_HEIGHT = 260;
  */
 export const MvcpScreen: FC = () => {
   const listRef = useRef<IListRef>(null);
+  /**
+   * Счётчик новых сообщений.
+   *
+   * Номер обязан расти монотонно: он идёт в ключ, а повтор ключа после серии
+   * вставок и удалений — это два элемента с одним ключом, чего список не
+   * допускает.
+   */
+  const nextSeq = useRef(10000);
 
   const [rows, setRows] = useState<LabRow[]>(() =>
     createMessages(0, INITIAL_COUNT),
   );
   const [compensateData, setCompensateData] = useState(true);
   const [compensateSize, setCompensateSize] = useState(true);
+  // По умолчанию высоты измеряются: это основной путь, и стенд проверяет его.
+  const [knownHeights, setKnownHeights] = useState(false);
   const [status, setStatus] = useState("прокрутите вниз и вносите изменения");
 
   /** Индекс первой видимой строки: изменения вносятся строго над ней. */
@@ -63,17 +82,15 @@ export const MvcpScreen: FC = () => {
     const anchor = getAnchorIndex();
     const before = listRef.current?.getScrollOffset() ?? 0;
 
-    setRows(current => {
-      const inserted = Array.from({ length: 5 }, (_, index) =>
-        createMessage(10000 + current.length + index),
-      );
+    const inserted = Array.from({ length: 5 }, () =>
+      createMessage(nextSeq.current++),
+    );
 
-      return [
-        ...current.slice(0, anchor),
-        ...inserted,
-        ...current.slice(anchor),
-      ];
-    });
+    setRows(current => [
+      ...current.slice(0, anchor),
+      ...inserted,
+      ...current.slice(anchor),
+    ]);
 
     report("вставлено 5 выше", before);
   }, [getAnchorIndex, report]);
@@ -120,17 +137,15 @@ export const MvcpScreen: FC = () => {
     const before = listRef.current?.getScrollOffset() ?? 0;
     const anchor = listRef.current?.getVisibleRange().end ?? 0;
 
-    setRows(current => {
-      const inserted = Array.from({ length: 5 }, (_, index) =>
-        createMessage(20000 + current.length + index),
-      );
+    const inserted = Array.from({ length: 5 }, () =>
+      createMessage(nextSeq.current++),
+    );
 
-      return [
-        ...current.slice(0, anchor + 1),
-        ...inserted,
-        ...current.slice(anchor + 1),
-      ];
-    });
+    setRows(current => [
+      ...current.slice(0, anchor + 1),
+      ...inserted,
+      ...current.slice(anchor + 1),
+    ]);
 
     report("вставлено 5 ниже", before);
   }, [report]);
@@ -162,6 +177,11 @@ export const MvcpScreen: FC = () => {
           value={compensateSize}
           onChange={setCompensateSize}
         />
+        <LabToggle
+          title={"Высоты известны заранее"}
+          value={knownHeights}
+          onChange={setKnownHeights}
+        />
         <LabStatus text={status} />
         <Row gap={8} flexWrap={"wrap"} mt={4}>
           <LabAction title={"+5 выше"} onPress={insertAbove} />
@@ -172,11 +192,15 @@ export const MvcpScreen: FC = () => {
       </LabPanel>
 
       <List
+        // Смена способа задания высот пересоздаёт список: уже объявленные
+        // размеры живут в метриках и обратно в оценочные не превращаются.
+        key={knownHeights ? "fixed" : "measured"}
         ref={listRef}
         data={rows}
         renderItem={renderItem}
         keyExtractor={labRowKey}
         getItemType={labRowType}
+        getFixedItemSize={knownHeights ? labRowHeight : undefined}
         estimatedItemSize={ESTIMATED_ITEM_SIZE}
         maintainVisibleContentPosition={maintainVisibleContentPosition}
         recycleItems

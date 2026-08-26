@@ -70,6 +70,9 @@ type ContainerSignals = {
 } & {
   /** Предел смещения прилипшего элемента; undefined — не ограничен. */
   [K in `containerStickyLimit${number}`]: number | undefined;
+} & {
+  /** Содержимое подрезается по записанной высоте: элемент выше вьюпорта. */
+  [K in `containerClipped${number}`]: boolean;
 };
 
 export type ListSignalMap = IListSignals & ContainerSignals;

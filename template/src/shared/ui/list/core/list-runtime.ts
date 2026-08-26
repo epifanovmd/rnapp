@@ -18,10 +18,10 @@ import { InitialScroll } from "./initial-scroll";
 import { listDebug } from "./list-debug";
 import type { IScrollAdapter } from "./maintain-scroll-at-end";
 import { MaintainScrollAtEnd } from "./maintain-scroll-at-end";
+import { MaintainVisibleContentPosition } from "./mvcp";
 import { ScrollVelocityTracker } from "./scroll-velocity";
 import { StickyAnchors } from "./sticky-anchors";
 import { ViewabilityTracker } from "./viewability";
-import { VisibleAnchor } from "./visible-anchor";
 
 /** Пропы, влияющие на расчёт раскладки и поведение скролла. */
 export interface IListRuntimeProps<TItem> {
@@ -79,6 +79,18 @@ const DEFAULT_ITEM_TYPE = "";
 const PROGRAMMATIC_SCROLL_SETTLE_MS = 500;
 /** Сколько удерживать прежнюю высоту контента при её уменьшении, мс. */
 const HOLD_CONTENT_SIZE_MS = 16;
+/** Сколько ждать измерений перед первым показом списка, мс. */
+const READY_FALLBACK_MS = 150;
+
+/**
+ * Округление раскладки перед записью в сигналы.
+ *
+ * Префиксные суммы пересчитываются с разного «грязного» индекса и дают
+ * результат, различающийся в последних битах float. Стор сравнивает значения,
+ * и такая разница заставляла перерисовываться каждый контейнер на каждом
+ * измерении — при том, что на экране не двигалось ничего.
+ */
+const roundLayout = (value: number): number => Math.round(value * 100) / 100;
 
 /**
  * Расчётное ядро списка.
@@ -111,14 +123,12 @@ export class ListRuntime<TItem> {
   private readonly velocity = new ScrollVelocityTracker();
   private readonly edges: EdgeThresholds;
   private readonly maintainAtEnd: MaintainScrollAtEnd;
-  private readonly anchor: VisibleAnchor;
+  private readonly mvcp: MaintainVisibleContentPosition;
   private readonly sticky: StickyAnchors;
   private readonly viewability: ViewabilityTracker<TItem>;
 
   /** Измерения копятся до конца кадра и применяются одним проходом. */
   private pendingFlush = false;
-  /** Якорь уже снят для текущей пачки изменений. */
-  private anchorCaptured = false;
 
   private readonly initialScroll: InitialScroll;
   /** Цель прошлой попытки начального скролла — по ней видно, что позиция устаканилась. */
@@ -131,8 +141,12 @@ export class ListRuntime<TItem> {
   private didLayout = false;
   /** Идёт программный скролл: пороги кромок в это время не проверяются. */
   private scrollingTo = false;
-  /** Накопленная компенсация позиции. */
-  private scrollAdjust = 0;
+  /** Ключи, о повторе которых уже сообщено. */
+  private readonly reportedDuplicates = new Set<string>();
+  /** Насколько контент выше суммы элементов: шапка, подвал, распорки. */
+  private contentPadding = 0;
+  /** Страховка первого показа, если измерения так и не пришли. */
+  private readyTimeout: ReturnType<typeof setTimeout> | undefined;
 
   constructor(store: ListStore, props: IListRuntimeProps<TItem>) {
     this.store = store;
@@ -143,6 +157,16 @@ export class ListRuntime<TItem> {
 
     this.edges = new EdgeThresholds(this.edgeOptions());
     this.maintainAtEnd = new MaintainScrollAtEnd(this.maintainOptions());
+    this.mvcp = new MaintainVisibleContentPosition({
+      store,
+      metrics: this.metrics,
+      adapter: () => this.adapter,
+      getScroll: () => this.scroll,
+      getScrollLength: () => this.scrollLength,
+      getContentSize: () => this.getContentSize(),
+      shouldRestorePosition: index =>
+        this.props.shouldRestorePosition?.(index) ?? true,
+    });
     this.sticky = new StickyAnchors({ metrics: this.metrics });
     this.sticky.setConfigs(props.sticky);
     this.viewability = new ViewabilityTracker<TItem>({
@@ -150,11 +174,6 @@ export class ListRuntime<TItem> {
       getItem: index => this.props.data[index],
     });
     this.viewability.setPairs(props.viewabilityPairs);
-    this.anchor = new VisibleAnchor({
-      metrics: this.metrics,
-      shouldRestorePosition: index =>
-        props.shouldRestorePosition?.(index) ?? true,
-    });
 
     this.initialScroll = new InitialScroll({
       target: props.initialScroll,
@@ -246,6 +265,29 @@ export class ListRuntime<TItem> {
     return this.scrollLength;
   }
 
+  /**
+   * Фактическая высота контента ScrollView.
+   *
+   * Из неё вычисляется граница скролла, а к ней ScrollView сам подтягивает
+   * смещение при укорачивании контента. Сумма элементов эту высоту не
+   * покрывает: сверху и снизу лежат шапка, подвал и распорки, о размерах
+   * которых список не знает. Их суммарный вклад берётся из замера и держится
+   * между обновлениями данных — меняется он куда реже, чем сами элементы.
+   */
+  setContentSize(height: number): void {
+    if (this.pendingFlush) return;
+
+    const padding = height - this.metrics.getTotalSize();
+
+    if (padding < 0) return;
+
+    this.contentPadding = padding;
+  }
+
+  private getContentSize(): number {
+    return this.metrics.getTotalSize() + this.contentPadding;
+  }
+
   /** Обновление пропов между рендерами; данные пересобирают ключи и типы. */
   setProps(props: IListRuntimeProps<TItem>): void {
     const dataChanged = props.data !== this.props.data;
@@ -259,14 +301,14 @@ export class ListRuntime<TItem> {
     if (!dataChanged) return;
 
     // Якорь снимается до смены данных — по позициям старой раскладки.
-    if (props.maintainVisibleContentPositionData) this.captureAnchorOnce();
+    if (props.maintainVisibleContentPositionData) this.mvcp.capture("данные");
 
     this.applyData(props.data);
-    this.calculateItemsInView();
 
     if (props.maintainVisibleContentPositionData) {
-      this.anchorCaptured = false;
-      this.applyAnchorShift();
+      this.restoreVisiblePosition("данные");
+    } else {
+      this.calculateItemsInView();
     }
 
     this.updateAlignItemsAtEndPadding();
@@ -338,6 +380,7 @@ export class ListRuntime<TItem> {
 
   private applyData(data: readonly TItem[]): void {
     const { keyExtractor, getItemType, getFixedItemSize } = this.props;
+    const seen = __DEV__ ? new Set<string>() : undefined;
 
     this.keys = new Array<string>(data.length);
     this.types = new Array<string>(data.length);
@@ -346,6 +389,11 @@ export class ListRuntime<TItem> {
       const item = data[index]!;
       const key = keyExtractor(item, index);
       const type = getItemType?.(item, index) ?? DEFAULT_ITEM_TYPE;
+
+      if (seen) {
+        if (seen.has(key)) this.warnDuplicateKey(key, index);
+        seen.add(key);
+      }
 
       this.keys[index] = key;
       this.types[index] = type;
@@ -356,6 +404,24 @@ export class ListRuntime<TItem> {
     }
 
     this.metrics.setItems(this.keys, this.types);
+  }
+
+  /**
+   * Повтор ключа в данных.
+   *
+   * Размеры, позиции и контейнеры адресуются ключом, поэтому два элемента с
+   * одним ключом делят одну ячейку: она отрисовывается на месте первого из них,
+   * на месте второго остаётся дыра. Сообщается один раз на ключ — иначе вывод
+   * забьётся повтором на каждом обновлении данных.
+   */
+  private warnDuplicateKey(key: string, index: number): void {
+    if (this.reportedDuplicates.has(key)) return;
+
+    this.reportedDuplicates.add(key);
+    console.warn(
+      `[List] keyExtractor вернул повторяющийся ключ "${key}" на индексе ${index}. ` +
+        "Элементы с одинаковым ключом делят контейнер: второй не отрисуется.",
+    );
   }
 
   /** Новый размер вьюпорта. */
@@ -370,10 +436,56 @@ export class ListRuntime<TItem> {
     this.checkThresholds();
     this.didLayout = true;
     this.initialScroll.apply();
+    this.revealWhenMeasured();
+    this.scheduleReadyFallback();
+  }
+
+  /**
+   * Первый показ списка.
+   *
+   * До измерений позиции оценочные, и строки с непохожей высотой налезают друг
+   * на друга. Показывать такой кадр нельзя: он и есть та самая каша при
+   * открытии. Список раскрывается, когда видимые строки измерены — или когда их
+   * размеры объявлены пропом и измерять нечего.
+   */
+  private revealWhenMeasured(): void {
+    if (!this.initialScroll.isActive() || this.props.initialScroll) return;
+    if (this.keys.length !== 0 && !this.isVisibleRangeMeasured()) return;
+
+    this.initialScroll.finish();
+  }
+
+  private isVisibleRangeMeasured(): boolean {
+    if (this.range.end < this.range.start) return false;
+
+    for (let index = this.range.start; index <= this.range.end; index++) {
+      const key = this.keys[index];
+
+      if (key === undefined || !this.metrics.hasMeasured(key)) return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Страховка на случай, когда измерений не будет вовсе: пустые данные,
+   * нулевая высота ячейки. Ждать их бесконечно — значит не показать список.
+   */
+  private scheduleReadyFallback(): void {
+    if (this.readyTimeout || !this.initialScroll.isActive()) return;
+
+    this.readyTimeout = setTimeout(() => {
+      this.readyTimeout = undefined;
+      this.initialScroll.finish();
+    }, READY_FALLBACK_MS);
   }
 
   /** Новое смещение скролла. */
   setScroll(offset: number): void {
+    // Событие отправлено до применения компенсации: его смещение уже устарело,
+    // и принять его — значит откатить только что сделанный сдвиг.
+    if (this.mvcp.isStaleScroll(offset)) return;
+
     if (this.scroll === offset) return;
 
     const previous = this.scroll;
@@ -417,6 +529,7 @@ export class ListRuntime<TItem> {
         skipCallbacks:
           this.scrollingTo ||
           this.maintainAtEnd.isActive() ||
+          this.mvcp.isSettling() ||
           this.initialScroll.isActive(),
       },
       this.allowedEdge,
@@ -486,14 +599,26 @@ export class ListRuntime<TItem> {
    *
    * Измерения копятся до конца кадра: при первом наполнении списка их приходят
    * десятки подряд, и пересчёт на каждое стоил бы столько же проходов. Якорь
-   * снимается до применения первого размера — по старой раскладке.
+   * снимается до применения первого размера — по старой раскладке, — поэтому
+   * измерение, которое ничего не двигает, отсеивается заранее: иначе якорь
+   * остался бы снятым без пересчёта, который его вернёт.
+   *
+   * Ключ приходит вместе с высотой и от привязки контейнера не зависит: она
+   * измерена на содержимом, отрисованном именно для этого ключа. Событие
+   * доставляется в JS асинхронно и вполне может застать контейнер уже под
+   * другим элементом — отбрасывать такое измерение нельзя, иначе элемент
+   * навсегда останется с оценочным размером, а соседи наползут друг на друга.
    */
   setItemSize(key: string, size: number): void {
-    this.captureAnchorOnce();
+    if (!this.metrics.willResize(key, size)) return;
+
+    if (this.props.maintainVisibleContentPositionSize) {
+      this.mvcp.capture("размер");
+    }
 
     const previous = this.metrics.getSizeByKey(key);
 
-    if (!this.metrics.setMeasuredSize(key, size)) return;
+    this.metrics.setMeasuredSize(key, size);
 
     listDebug("size", "измерено", {
       key,
@@ -503,13 +628,6 @@ export class ListRuntime<TItem> {
     });
 
     this.scheduleFlush();
-  }
-
-  private captureAnchorOnce(): void {
-    if (this.anchorCaptured) return;
-
-    this.anchor.capture(this.range.start, this.range.end);
-    this.anchorCaptured = true;
   }
 
   private scheduleFlush(): void {
@@ -522,55 +640,53 @@ export class ListRuntime<TItem> {
   /** Применение накопленных изменений раскладки одним проходом. */
   private flushLayout(): void {
     this.pendingFlush = false;
-    this.anchorCaptured = false;
 
-    this.calculateItemsInView();
-
-    if (this.props.maintainVisibleContentPositionSize) this.applyAnchorShift();
+    if (this.props.maintainVisibleContentPositionSize) {
+      this.restoreVisiblePosition("размер");
+    } else {
+      this.calculateItemsInView();
+    }
 
     this.updateAlignItemsAtEndPadding();
     this.updateAnchoredEndSpace();
     this.checkThresholds();
     this.initialScroll.apply();
+    this.revealWhenMeasured();
 
     if (this.didLayout) this.maintainAtEnd.run();
   }
 
   /**
-   * Компенсация смещения якоря.
+   * Удержание видимой позиции после изменения раскладки.
    *
-   * Сам сдвиг выполняет нативный ScrollView — ему передан
-   * `maintainVisibleContentPosition`. Здесь только приводится внутреннее
-   * представление о позиции, чтобы диапазон отрисовки не отставал до прихода
-   * события скролла: трогать нативный скролл во время жеста нельзя, это его
-   * прерывает.
+   * Сдвиг выполняет нативный ScrollView — он делает это в той же
+   * mount-транзакции, что и перестановку контейнеров, поэтому промежуточного
+   * кадра не возникает. Здесь только приводится внутреннее представление о
+   * смещении, чтобы диапазон отрисовки не отставал до прихода события скролла.
+   *
+   * Вызов обязан идти в том же синхронном проходе, что и запись позиций: React
+   * сведёт все сигналы в один рендер, а нативный слой — в одну транзакцию.
+   * Разнести их по кадрам — значит увидеть прыжок.
+   *
+   * Раскладка считается дважды, и оба прохода обязательны. Первый нужен ради
+   * привязки контейнеров: она уточняет размеры новых элементов по высоте тех,
+   * чьё место они заняли, — а от размеров зависит, на сколько уехал якорь.
+   * Посчитать сдвиг раньше значит посчитать его по устаревшим позициям.
+   *
+   * Идёт первый проход по предсказанному смещению: иначе он промахнулся бы
+   * диапазоном ровно на величину будущего сдвига и перепривязал бы контейнеры
+   * впустую. Предсказание расходится с итогом лишь на то, что уточнит сам этот
+   * проход, — на единицы пикселей.
    */
-  /**
-   * Компенсация того, насколько уехал якорь.
-   *
-   * Программного скролла здесь нет: он обрывает жест и инерцию, а подгрузка
-   * сверху догоняет пользователя как раз на них. Вместо этого сдвигается
-   * невидимая распорка в начале контента — нативное удержание позиции следит
-   * именно за ней и повторяет сдвиг на `contentOffset` изнутри.
-   *
-   * Собственное представление о позиции сдвигается сразу: событие о нативном
-   * сдвиге придёт позже, а диапазон отрисовки нужен уже в этом кадре.
-   */
-  private applyAnchorShift(): void {
-    const shift = this.anchor.measureShift();
+  private restoreVisiblePosition(reason: string): void {
+    const scroll = this.scroll;
 
-    if (shift === 0) return;
+    this.scroll = scroll + this.mvcp.peekShift();
+    this.calculateItemsInView();
 
-    this.scroll = Math.max(0, this.scroll + shift);
-    this.scrollAdjust += shift;
-    this.store.set("scrollAdjust", this.scrollAdjust);
-
-    listDebug("anchor", "компенсация", {
-      shift,
-      scroll: this.scroll,
-      adjust: this.scrollAdjust,
-    });
-
+    // Сдвиг считается от настоящего смещения, а не от предсказанного.
+    this.scroll = scroll;
+    this.scroll = this.mvcp.restore(reason);
     this.calculateItemsInView();
   }
 
@@ -695,16 +811,24 @@ export class ListRuntime<TItem> {
 
   /** Привязка контейнеров к элементам диапазона и раскладка их позиций. */
   private bindContainers(startBuffered: number, endBuffered: number): void {
+    const viewportTop = this.scroll;
+    const viewportEnd = viewportTop + this.scrollLength;
     const pinned = this.resolveSticky();
     const requests: IContainerRequest[] = [];
     const requested = new Set<number>();
+    const requestedKeys = new Set<string>();
 
     const addRequest = (index: number) => {
       const key = this.keys[index];
 
       if (key === undefined || requested.has(index)) return;
+      // Ключ уже запрошен на другом индексе: контейнер у него один, и попытка
+      // разложить его дважды кончилась бы перестановкой позиции на каждом
+      // проходе. Место достаётся первому — повтор в данных уже отмечен в логе.
+      if (requestedKeys.has(key)) return;
 
       requested.add(index);
+      requestedKeys.add(key);
       requests.push({
         index,
         key,
@@ -719,28 +843,48 @@ export class ListRuntime<TItem> {
     // Прилипшие якоря держатся смонтированными и за пределами буфера.
     for (const index of pinned) addRequest(index);
 
-    const { changed, released, count } = this.pool.allocate(requests);
+    const { released, count } = this.pool.allocate(requests);
 
+    // Освобождённый контейнер мог тут же уйти под другой элемент — уводить за
+    // пределы вьюпорта нужно только те, что остались без привязки.
     for (const id of released) {
+      if (this.pool.getBinding(id) !== undefined) continue;
+
       this.store.set(`containerPosition${id}`, POSITION_OUT_OF_VIEW);
       this.store.set(`containerSticky${id}`, null);
     }
 
-    for (const binding of changed) {
-      this.store.set(`containerItemKey${binding.id}`, binding.key);
-      this.store.set(`containerItemIndex${binding.id}`, binding.index);
-      this.store.set(
-        `containerItemData${binding.id}`,
-        this.props.data[binding.index],
-      );
-    }
-
+    // Сигналы пишутся для всех запрошенных элементов, а не только для сменивших
+    // привязку: элемент может остаться на своём месте с новым объектом данных —
+    // так приходит правка сообщения, — и ячейка обязана его увидеть. Стор
+    // сравнивает значения по ссылке, поэтому лишних перерисовок это не даёт.
     for (const request of requests) {
       const id = this.pool.getContainerByKey(request.key);
 
       if (id === undefined) continue;
 
-      const position = this.metrics.getPosition(request.index);
+      const position = roundLayout(this.metrics.getPosition(request.index));
+      const size = roundLayout(this.metrics.getSize(request.index));
+      // Настоящая высота строки известна только после отрисовки. До неё в
+      // метриках лежит оценка, а у строки со сменившимся содержимым — прежний
+      // размер: и то и другое расходится с тем, чем строка нарисуется. Ровно на
+      // этот кадр она занимает не своё место и налезает на соседей — вставленная
+      // сверху пятёрка или строка, выросшая за пределами вида, своим низом
+      // въезжает в кадр поверх видимых.
+      //
+      // Пока строка вне вида, содержимое подрезается по отведённому месту:
+      // показывать там нечего, а въехать в кадр она больше не может. Подтверждён
+      // размер или нет — неважно: устареть может и подтверждённый.
+      //
+      // Строку в кадре не подрезаем никогда: обрезанное содержимое заметнее
+      // любого наползания, и тень или выступающий элемент рисуются за её
+      // границами законно.
+      //
+      // Прилипающие исключены целиком — они за своими границами и живут: аватар
+      // группы держится у кромки, когда сама группа уже ушла вверх.
+      const clipped =
+        request.stickyEdge === null &&
+        (position + size <= viewportTop || position >= viewportEnd);
       const previousPosition = this.store.peek(`containerPosition${id}`);
 
       if (previousPosition !== undefined && previousPosition !== position) {
@@ -754,11 +898,12 @@ export class ListRuntime<TItem> {
         });
       }
 
+      this.store.set(`containerClipped${id}`, clipped);
+      this.store.set(`containerItemKey${id}`, request.key);
+      this.store.set(`containerItemIndex${id}`, request.index);
+      this.store.set(`containerItemData${id}`, this.props.data[request.index]);
       this.store.set(`containerPosition${id}`, position);
-      this.store.set(
-        `containerItemSize${id}`,
-        this.metrics.getSize(request.index),
-      );
+      this.store.set(`containerItemSize${id}`, size);
       this.store.set(`containerSticky${id}`, request.stickyEdge);
       this.store.set(
         `containerStickyLimit${id}`,
@@ -773,6 +918,11 @@ export class ListRuntime<TItem> {
   /** Снятие таймеров и подписок при размонтировании списка. */
   dispose(): void {
     this.viewability.dispose();
+    this.mvcp.reset();
+
+    if (this.readyTimeout) clearTimeout(this.readyTimeout);
+
+    this.readyTimeout = undefined;
   }
 
   private releaseAll(): void {

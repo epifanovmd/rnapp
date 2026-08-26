@@ -3,6 +3,7 @@ export * from "./initial-scroll";
 export * from "./list-debug";
 export * from "./list-runtime";
 export * from "./maintain-scroll-at-end";
+export * from "./mvcp";
 export * from "./scroll-velocity";
 export * from "./sticky-anchors";
 export * from "./sticky-offset";

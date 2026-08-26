@@ -43,7 +43,7 @@ export const StickyScreen: FC = () => {
   // Список пересоздаётся: часть логов захватывается worklet-ами при монтировании.
   const handleLogsChange = useCallback((value: boolean) => {
     setListDebug(
-      value ? ["scroll", "range", "position", "size", "sticky", "anchor"] : [],
+      value ? ["scroll", "range", "position", "size", "sticky"] : [],
     );
     setLogsEnabled(value);
   }, []);

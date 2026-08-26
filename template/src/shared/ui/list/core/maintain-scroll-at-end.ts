@@ -4,6 +4,8 @@ import type { ListStore } from "../model";
 export interface IScrollAdapter {
   scrollToEnd: (animated: boolean) => void;
   scrollToOffset: (offset: number, animated: boolean) => void;
+  /** Фактическое смещение нативного скролла — нужно сверке компенсации. */
+  getOffset?: () => number;
 }
 
 export interface IMaintainScrollAtEndOptions {

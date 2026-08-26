@@ -43,12 +43,9 @@ export class InitialScroll {
   apply(): void {
     if (this.finished || this.scheduled) return;
 
-    // Стартовая позиция не задана — список открывается сверху.
-    if (!this.options.target) {
-      this.finish();
-
-      return;
-    }
+    // Стартовая позиция не задана: показать список решает вызывающий — по
+    // готовности измерений, а не по факту первой раскладки.
+    if (!this.options.target) return;
 
     const offset = this.options.resolveOffset();
 

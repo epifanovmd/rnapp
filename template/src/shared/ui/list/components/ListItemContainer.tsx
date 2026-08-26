@@ -32,6 +32,17 @@ interface IListItemContainerProps {
  * остаётся. Позиция приходит адресным сигналом, поэтому скролл перерисовывает
  * только те контейнеры, что реально сместились.
  *
+ * Измеряется внутренний узел, а не сам контейнер: подрезанному контейнеру
+ * высота задаётся по метрикам, и его собственный размер тогда говорит не о
+ * содержимом, а о том, что списку и так известно.
+ *
+ * Ключ элемента стоит на этом узле намеренно. Событие раскладки доставляется в
+ * JS асинхронно, и без ключа узел переживает смену элемента — тогда высота
+ * прежнего содержимого записывается под новый ключ, а это ложный размер и
+ * лишний сдвиг компенсации. С ключом узел перемонтируется, событие от старого
+ * содержимого не доходит, а новое приходит гарантированно — даже если высота
+ * совпала.
+ *
  * Прилипание считается на UI-потоке и применяется двумя способами: к самому
  * контейнеру (заголовки) либо отдаётся в ячейку смещением, чтобы та подвинула
  * только нужный узел (аватар группы).
@@ -52,6 +63,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
           `containerItemSize${id}`,
           `containerSticky${id}`,
           `containerStickyLimit${id}`,
+          `containerClipped${id}`,
           "scrollLength",
         ] as const,
       [id],
@@ -65,6 +77,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       itemSize,
       stickyEdge,
       stickyLimit,
+      clipped,
       scrollLength,
     ] = useListSignals(signalNames);
 
@@ -167,15 +180,18 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       () => [
         styles.container,
         { top: resolvedPosition },
+        // Высота фиксируется по метрикам: пока строка выше вьюпорта, её
+        // содержимое не должно въезжать в кадр, даже если оно выросло.
+        clipped ? { height: resolvedSize, overflow: "hidden" as const } : null,
         stickyEdge && mode === "container" ? styles.sticky : null,
       ],
-      [resolvedPosition, stickyEdge, mode],
+      [resolvedPosition, resolvedSize, clipped, stickyEdge, mode],
     );
 
     if (itemKey === undefined || itemIndex === undefined) return null;
 
     const content = (
-      <>
+      <View key={itemKey} onLayout={handleLayout}>
         {renderItem({
           item: itemData,
           index: itemIndex,
@@ -184,24 +200,18 @@ export const ListItemContainer = memo<IListItemContainerProps>(
           stickyOffset: mode === "offset" ? offset : undefined,
         })}
         {ItemSeparatorComponent ? <ItemSeparatorComponent /> : null}
-      </>
+      </View>
     );
 
     // Прилипающий контейнер двигается на UI-потоке; обычный — статичен, и
     // лишний анимированный узел ему не нужен.
     if (stickyEdge && mode === "container") {
       return (
-        <Animated.View style={[style, stickyStyle]} onLayout={handleLayout}>
-          {content}
-        </Animated.View>
+        <Animated.View style={[style, stickyStyle]}>{content}</Animated.View>
       );
     }
 
-    return (
-      <View style={style} onLayout={handleLayout}>
-        {content}
-      </View>
-    );
+    return <View style={style}>{content}</View>;
   },
 );
 

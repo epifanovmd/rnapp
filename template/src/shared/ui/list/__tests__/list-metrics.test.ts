@@ -21,6 +21,48 @@ describe("ListMetrics", () => {
     expect(metrics.getTotalSize()).toBe(300);
   });
 
+  it("пересчитывает суммарный размер при укорачивании хвоста", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(5), types(5));
+    expect(metrics.getTotalSize()).toBe(500);
+
+    metrics.setItems(keys(3), types(3));
+
+    expect(metrics.getTotalSize()).toBe(300);
+  });
+
+  it("не считает средним по типу элемент, чей размер уже задан", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(4), types(4));
+    metrics.setMeasuredSize("k0", 40);
+    metrics.setMeasuredSize("k1", 40);
+
+    // Переиспользованный контейнер отдаёт новому элементу свою высоту: без неё
+    // тот остался бы на среднем и ездил бы при каждом новом измерении.
+    metrics.setMeasuredSize("k2", 40);
+    metrics.setMeasuredSize("k3", 200);
+
+    expect(metrics.getPosition(2)).toBe(80);
+    expect(metrics.getPosition(3)).toBe(120);
+    expect(metrics.getTotalSize()).toBe(320);
+  });
+
+  it("отличает измерение, меняющее раскладку, от повторного", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(keys(3), types(3));
+
+    expect(metrics.willResize("k0", 50)).toBe(true);
+    metrics.setMeasuredSize("k0", 50);
+    expect(metrics.willResize("k0", 50)).toBe(false);
+
+    // Объявленный размер измерением не перебивается.
+    metrics.setFixedSize("k1", 70);
+    expect(metrics.willResize("k1", 90)).toBe(false);
+  });
+
   it("сдвигает позиции ниже измеренного элемента", () => {
     const metrics = createMetrics(100);
 

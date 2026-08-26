@@ -154,13 +154,14 @@ const ListInner = <TItem,>(
       scrollToEnd: animated => scrollRef.current?.scrollToEnd({ animated }),
       scrollToOffset: (offset, animated) =>
         scrollRef.current?.scrollTo({ y: offset, animated }),
+      getOffset: () => scrollOffset.value,
     });
 
     return () => {
       runtime.setAdapter(undefined);
       runtime.dispose();
     };
-  }, [runtime, scrollRef]);
+  }, [runtime, scrollRef, scrollOffset]);
 
   useImperativeHandle(
     ref,
@@ -197,6 +198,14 @@ const ListInner = <TItem,>(
   const snapToOffsets = useMemo(
     () => snapToIndices?.map(index => runtime.getPositionAtIndex(index) ?? 0),
     [runtime, snapToIndices],
+  );
+
+  const handleContentSizeChange = useCallback(
+    (width: number, height: number) => {
+      runtime.setContentSize(height);
+      onContentSizeChange?.(width, height);
+    },
+    [runtime, onContentSizeChange],
   );
 
   const handleLayout = useCallback(
@@ -276,10 +285,11 @@ const ListInner = <TItem,>(
         contentContainerStyle={contentContainerStyle}
         onLayout={handleLayout}
         onScroll={scrollHandler}
-        onContentSizeChange={onContentSizeChange}
+        onContentSizeChange={handleContentSizeChange}
         maintainVisibleContentPosition={nativeMaintainVisibleContentPosition}
         snapToOffsets={snapToOffsets}
         scrollEventThrottle={SCROLL_EVENT_THROTTLE}
+        bounces={false}
       >
         {/* Первым ребёнком: за ним следит нативное удержание позиции. */}
         <ListScrollAdjust />
