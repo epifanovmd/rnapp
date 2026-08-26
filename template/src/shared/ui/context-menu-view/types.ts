@@ -1,44 +1,33 @@
 import { ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
-import type {
-  NativeContextMenuAction,
-  NativeContextMenuActionSelectData,
-  NativeContextMenuDismissData,
-  NativeContextMenuEmojiSelectData,
-  NativeContextMenuWillShowData,
-} from "./native/NativeContextMenuViewSpec";
-
-export type ContextMenuTheme = "light" | "dark";
-
-export type ContextMenuAction = NativeContextMenuAction;
-
-export type ContextMenuWillShowEvent = NativeContextMenuWillShowData;
-export type ContextMenuEmojiSelectEvent = NativeContextMenuEmojiSelectData;
-export type ContextMenuActionSelectEvent = NativeContextMenuActionSelectData;
-export type ContextMenuDismissEvent = NativeContextMenuDismissData;
+/** Пункт меню действий. */
+export type ContextMenuAction = {
+  /** Идентификатор действия — возвращается в onActionSelect как actionId. */
+  id: string;
+  /** Заголовок пункта меню. */
+  title: string;
+  /** Имя SF Symbol для иконки. */
+  systemImage?: string;
+  /** Красный (деструктивный) стиль пункта. */
+  isDestructive?: boolean;
+};
 
 export interface IContextMenuViewProps {
-  /** Идентификатор — возвращается во всех колбэках как menuId. */
-  menuId?: string;
   /** Эмодзи-реакции: ["❤️", "👍", "😂"]. */
   emojis?: string[];
   /** Пункты меню действий. */
   actions?: ContextMenuAction[];
-  /** Тема меню: "light" | "dark". */
-  theme?: ContextMenuTheme;
-  /** Минимальное время нажатия, в секундах (по умолчанию 0.35). */
-  minimumPressDuration?: number;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
   /** Перед показом меню. */
-  onWillShow?: (event: ContextMenuWillShowEvent) => void;
+  onWillShow?: () => void;
   /** Выбрана эмодзи (onDismiss не вызывается). */
-  onEmojiSelect?: (event: ContextMenuEmojiSelectEvent) => void;
+  onEmojiSelect?: (emoji: string) => void;
   /** Выбрано действие (onDismiss не вызывается). */
-  onActionSelect?: (event: ContextMenuActionSelectEvent) => void;
+  onActionSelect?: (actionId: string) => void;
   /** Меню закрыто без выбора. */
-  onDismiss?: (event: ContextMenuDismissEvent) => void;
+  onDismiss?: () => void;
 }
 
 export interface IContextMenuSize {
@@ -61,7 +50,6 @@ export interface IContextMenuInsets {
 }
 
 export interface IContextMenuSession {
-  menuId: string;
   sourceFrame: IContextMenuRect;
   emojis: string[];
   actions: ContextMenuAction[];

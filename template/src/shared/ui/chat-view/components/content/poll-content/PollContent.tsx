@@ -12,7 +12,7 @@ import { PollOptionRow } from "./PollOptionRow";
  * (последнее скрыто у анонимных).
  */
 
-/** Пропущенное поле `isAnonymous` трактуется как `true` — синхронизировано с native-разбором. */
+/** Пропущенное поле `isAnonymous` трактуется как `true`. */
 const isPollAnonymous = (poll: ChatPoll): boolean => poll.isAnonymous ?? true;
 
 /** Закрытый опрос перекрывает остальные признаки подзаголовка. */
@@ -29,7 +29,7 @@ const pollSubtitle = (poll: ChatPoll): string => {
 
 export const PollContent: FC<IChatContentProps<IChatPollContent>> = memo(
   ({ content, ownership, emit }) => {
-    const { layout, styles } = useChatViewContext();
+    const { styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const poll = content.poll;
@@ -53,14 +53,9 @@ export const PollContent: FC<IChatContentProps<IChatPollContent>> = memo(
           {pollSubtitle(poll)}
         </ChatText>
 
-        <View style={{ marginTop: layout.pollHeaderSpacing }}>
+        <View style={ss.options}>
           {poll.options.map((option, i) => (
-            <View
-              key={option.id}
-              style={
-                i > 0 ? { marginTop: layout.pollOptionSpacing } : undefined
-              }
-            >
+            <View key={option.id} style={i > 0 ? ss.optionGap : undefined}>
               <PollOptionRow
                 option={option}
                 isSelected={selectedIds?.includes(option.id) ?? false}
@@ -94,6 +89,8 @@ export const PollContent: FC<IChatContentProps<IChatPollContent>> = memo(
 PollContent.displayName = "PollContent";
 
 const ss = StyleSheet.create({
+  options: { marginTop: 10 },
+  optionGap: { marginTop: 4 },
   footer: {
     marginTop: 6,
     flexDirection: "row",

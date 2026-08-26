@@ -1,4 +1,5 @@
-import { IChatLayout } from "../config";
+/** Минимальная ширина пузыря. */
+export const CHAT_BUBBLE_MIN_WIDTH = 60;
 
 /**
  * Как контент ведёт себя по ширине пузыря.
@@ -8,7 +9,6 @@ import { IChatLayout } from "../config";
  */
 
 export interface IChatContentSizingContext {
-  layout: IChatLayout;
   /** Максимальная ширина пузыря — уже с учётом места под аватар. */
   maxWidth: number;
 }
@@ -26,7 +26,7 @@ export const resolveContentMinWidth = (
   sizing: ChatContentSizing | undefined,
   ctx: IChatContentSizingContext,
 ): number => {
-  if (sizing === "hug") return ctx.layout.bubbleMinWidth;
+  if (sizing === "hug") return CHAT_BUBBLE_MIN_WIDTH;
   if (sizing === undefined || sizing === "fill") return ctx.maxWidth;
 
   return Math.min(sizing.minWidth(ctx), ctx.maxWidth);

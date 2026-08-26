@@ -2,7 +2,7 @@ import React, { FC, Fragment, memo } from "react";
 import { View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { IContextMenuStyles, IContextMenuTheme } from "../../config";
+import { IContextMenuColors, IContextMenuStyles } from "../../config";
 import { ContextMenuAction } from "../../types";
 import { ActionRow } from "./ActionRow";
 
@@ -10,19 +10,19 @@ import { ActionRow } from "./ActionRow";
 
 export interface IContextMenuActionsViewProps {
   actions: ContextMenuAction[];
-  theme: IContextMenuTheme;
+  colors: IContextMenuColors;
   styles: IContextMenuStyles;
   onActionTap: (action: ContextMenuAction) => void;
 }
 
 export const ContextMenuActionsView: FC<IContextMenuActionsViewProps> = memo(
-  ({ actions, theme, styles, onActionTap }) => (
+  ({ actions, colors, styles, onActionTap }) => (
     <Animated.View style={styles.actionsPanel}>
       {actions.map((action, index) => (
         <Fragment key={action.id}>
           <ActionRow
             action={action}
-            theme={theme}
+            colors={colors}
             styles={styles}
             onTap={onActionTap}
           />

@@ -1,3 +1,4 @@
+export * from "./useInputBarSkin";
 export * from "./useInputModeController";
 export * from "./useLockBadgeAnimation";
 export * from "./useMicSendAnimation";

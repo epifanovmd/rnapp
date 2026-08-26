@@ -13,6 +13,10 @@ import Animated, {
   useAnimatedProps,
 } from "react-native-reanimated";
 
+import {
+  CHAT_CONTENT_PADDING,
+  CHAT_DATE_SEPARATOR_ROW_HEIGHT,
+} from "../config";
 import { ChatRow } from "../data";
 import { ChatAdaptiveRenderMode } from "../model";
 import { ChatRowView } from "./ChatRowView";
@@ -32,21 +36,14 @@ export interface IChatListProps {
   isNearEnd: SharedValue<boolean>;
   activeStickyIndex: SharedValue<number>;
 
-  contentPaddingTop: number;
-  stickyOffset: number;
   initialScrollIndex?: {
     index: number;
     viewPosition: number;
     viewOffset: number;
   };
-  estimatedItemSize: number;
-  drawDistance: number;
-  dateSeparatorRowHeight: number;
-
   startReachedThreshold: number;
   endReachedThreshold: number;
   maintainScrollAtEndThreshold: number;
-  autoScrollOnNewMessage: boolean;
 
   viewabilityConfigCallbackPairs: ViewabilityConfigCallbackPairs<ChatRow>;
 
@@ -77,6 +74,15 @@ const MAINTAIN_SCROLL_AT_END = { animated: true, on: { dataChange: true } };
 // 120 мс вместо дефолтных 250 — иначе серые плитки на месте картинок при быстром скролле.
 const ADAPTIVE_RENDER_EXIT_DELAY = 120;
 
+/** Подсказка списку для первого кадра; дальше идут реальные измерения. */
+const ESTIMATED_ROW_HEIGHT = 110;
+
+/** Насколько за пределы экрана предрендерить строки (px). */
+const DRAW_DISTANCE = 300;
+
+/** Плашка даты прилипает к самой кромке списка. */
+const STICKY_HEADER_CONFIG = { offset: 0 };
+
 export const ChatList = forwardRef<LegendListRef, IChatListProps>(
   (
     {
@@ -88,16 +94,10 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
       scrollOffset,
       isNearEnd,
       activeStickyIndex,
-      contentPaddingTop,
-      stickyOffset,
       initialScrollIndex,
-      estimatedItemSize,
-      drawDistance,
-      dateSeparatorRowHeight,
       startReachedThreshold,
       endReachedThreshold,
       maintainScrollAtEndThreshold,
-      autoScrollOnNewMessage,
       viewabilityConfigCallbackPairs,
       onLoad,
       onScrollBeginDrag,
@@ -117,12 +117,12 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
       () => (row: ChatRow) => {
         if (row.type === "loading") return LOADING_ROW_HEIGHT;
         if (row.type === "dateSeparator" && !row.removing) {
-          return dateSeparatorRowHeight;
+          return CHAT_DATE_SEPARATOR_ROW_HEIGHT;
         }
 
         return undefined;
       },
-      [dateSeparatorRowHeight],
+      [],
     );
 
     const adaptiveRender = useMemo(
@@ -131,11 +131,6 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
         onChange: onAdaptiveRenderChange,
       }),
       [onAdaptiveRenderChange],
-    );
-
-    const contentContainerStyle = useMemo(
-      () => ({ paddingTop: contentPaddingTop }),
-      [contentPaddingTop],
     );
 
     const sharedValues = useMemo(
@@ -147,11 +142,6 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
         isWithinMaintainScrollAtEndThreshold: isNearEnd,
       }),
       [scrollOffset, isNearEnd, activeStickyIndex],
-    );
-
-    const stickyHeaderConfig = useMemo(
-      () => ({ offset: stickyOffset }),
-      [stickyOffset],
     );
 
     const listFooter = useMemo(
@@ -179,21 +169,19 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
         itemsAreEqual={itemsAreEqual}
         recycleItems={RECYCLE_ITEMS}
         experimental_adaptiveRender={adaptiveRender}
-        estimatedItemSize={estimatedItemSize}
-        drawDistance={drawDistance}
+        estimatedItemSize={ESTIMATED_ROW_HEIGHT}
+        drawDistance={DRAW_DISTANCE}
         alignItemsAtEnd
         maintainVisibleContentPosition={MAINTAIN_VISIBLE_CONTENT_POSITION}
-        maintainScrollAtEnd={
-          autoScrollOnNewMessage ? MAINTAIN_SCROLL_AT_END : false
-        }
+        maintainScrollAtEnd={MAINTAIN_SCROLL_AT_END}
         maintainScrollAtEndThreshold={maintainScrollAtEndThreshold}
         initialScrollIndex={initialScrollIndex}
         initialScrollAtEnd={initialScrollIndex == null}
         stickyHeaderIndices={stickyIndices}
-        stickyHeaderConfig={stickyHeaderConfig}
+        stickyHeaderConfig={STICKY_HEADER_CONFIG}
         sharedValues={sharedValues}
         ListFooterComponent={listFooter}
-        contentContainerStyle={contentContainerStyle}
+        contentContainerStyle={ss.content}
         style={ss.list}
         animatedProps={indicatorInsetProps}
         // iOS сам добавляет safe area к инсетам индикатора, а она уже входит
@@ -220,4 +208,7 @@ export const ChatList = forwardRef<LegendListRef, IChatListProps>(
 
 ChatList.displayName = "ChatList";
 
-const ss = StyleSheet.create({ list: { flex: 1 } });
+const ss = StyleSheet.create({
+  list: { flex: 1 },
+  content: { paddingTop: CHAT_CONTENT_PADDING },
+});

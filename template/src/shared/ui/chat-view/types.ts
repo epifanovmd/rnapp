@@ -1,137 +1,210 @@
-import React from "react";
-import { HostComponent, ViewProps, ViewStyle } from "react-native";
+import { ViewStyle } from "react-native";
 
 // Прямо из модуля, а не из бочки `./content`: там же лежит реестр, и слою
 // типов незачем тянуть его за собой.
 import type { ChatContentInteraction } from "./content/content-interaction";
-import type {
-  NativeChatAction,
-  NativeChatActionPressEventData,
-  NativeChatAttachmentPressEventData,
-  NativeChatCancelInputActionEventData,
-  NativeChatEditMessageEventData,
-  NativeChatEmojiReactionSelectData,
-  NativeChatFabPressEventData,
-  NativeChatFeatures,
-  NativeChatFileItem,
-  NativeChatImageItem,
-  NativeChatInputAction,
-  NativeChatInputTypingEventData,
-  NativeChatLayoutConfig,
-  NativeChatLinkTapEventData,
-  NativeChatMessage,
-  NativeChatMessagePressEventData,
-  NativeChatPhoneNumberTapEventData,
-  NativeChatPoll,
-  NativeChatPollDetailPressEventData,
-  NativeChatPollOption,
-  NativeChatPollOptionPressEventData,
-  NativeChatReachBottomEventData,
-  NativeChatReachTopEventData,
-  NativeChatReactionTapEventData,
-  NativeChatReplyMessagePressEventData,
-  NativeChatReplyRef,
-  NativeChatScrollAnchorChangedEventData,
-  NativeChatScrollEventData,
-  NativeChatSendMessageEventData,
-  NativeChatThreadInfo,
-  NativeChatThreadTapEventData,
-  NativeChatUnreadMessagesAppearEventData,
-  NativeChatVideoItem,
-  NativeChatViewCommands,
-  NativeChatViewProps,
-  NativeChatVisibleMessagesChangeEventData,
-  NativeChatVoiceItem,
-  NativeChatVoiceRecordingCompleteEventData,
-} from "./native/NativeChatViewSpec";
 
-// ─── Доменные типы ───────────────────────────────────────────────────────────
+/**
+ * Публичный контракт чата: доменная модель сообщений и пропсы компонента.
+ * Оформление и поведение снаружи не настраиваются — они зашиты в вёрстку.
+ */
 
+// ─── Доменная модель ─────────────────────────────────────────────────────────
+
+/** Статус доставки сообщения. */
 export type ChatMessageStatus = "sending" | "sent" | "delivered" | "read";
+/** Кому принадлежит сообщение — от этого зависит вся раскладка ячейки. */
 export type ChatMessageOwnership = "mine" | "theirs" | "system" | "pinned";
-export type ChatSenderNameMode = "never" | "incomingOnly" | "always";
+
+/** Элемент изображения в сообщении */
+export type ChatImageItem = {
+  /** URL изображения */
+  url: string;
+  /** Ширина изображения в пикселях */
+  width?: number;
+  /** Высота изображения в пикселях */
+  height?: number;
+  /** URL миниатюры для предпросмотра */
+  thumbnailUrl?: string;
+};
+
+/** Элемент видео в сообщении */
+export type ChatVideoItem = {
+  /** URL видеофайла */
+  url: string;
+  /** URL миниатюры видео */
+  thumbnailUrl?: string;
+  /** Ширина видео в пикселях */
+  width?: number;
+  /** Высота видео в пикселях */
+  height?: number;
+  /** Длительность видео в секундах */
+  duration?: number;
+};
+
+/** Вариант ответа в опросе */
+export type ChatPollOption = {
+  /** Уникальный идентификатор варианта */
+  id: string;
+  /** Текст варианта ответа */
+  text: string;
+  /** Количество голосов за этот вариант */
+  votes: number;
+  /** Процент голосов (0..1) */
+  percentage: number;
+};
+
+/** Опрос, прикреплённый к сообщению */
+export type ChatPoll = {
+  /** Уникальный идентификатор опроса */
+  id: string;
+  /** Текст вопроса */
+  question: string;
+  /** Список вариантов ответа */
+  options: ChatPollOption[];
+  /** Общее количество голосов */
+  totalVotes: number;
+  /** Идентификаторы вариантов, выбранных текущим пользователем */
+  selectedOptionIds?: string[];
+  /** Разрешён ли множественный выбор */
+  isMultipleChoice?: boolean;
+  /** Завершён ли опрос */
+  isClosed?: boolean;
+  /** Анонимный ли опрос */
+  isAnonymous?: boolean;
+};
+
+/** Голосовое сообщение */
+export type ChatVoiceItem = {
+  /** URL аудиофайла */
+  url: string;
+  /** Длительность в секундах */
+  duration: number;
+  /** Массив значений амплитуды волны (0..1) для визуализации */
+  waveform?: number[];
+};
+
+/** Файловое вложение */
+export type ChatFileItem = {
+  /** URL файла */
+  url: string;
+  /** Имя файла с расширением */
+  name: string;
+  /** Размер файла в байтах */
+  size: number;
+  /** MIME-тип файла (например "application/pdf") */
+  mimeType?: string;
+};
+
+/** Реакция на сообщение (эмодзи с счётчиком) */
+export type ChatReaction = {
+  /** Символ эмодзи (например "👍") */
+  emoji: string;
+  /** Количество пользователей, поставивших эту реакцию */
+  count: number;
+  /** Поставлена ли реакция текущим пользователем */
+  isSelected?: boolean;
+};
+
+/** Ссылка на цитируемое (ответное) сообщение */
+export type ChatReplyRef = {
+  /** Идентификатор исходного сообщения */
+  id: string;
+  /** Текст исходного сообщения (для превью) */
+  text?: string;
+  /** Имя отправителя исходного сообщения */
+  senderName?: string;
+  /** Содержит ли исходное сообщение изображения */
+  hasImages?: boolean;
+};
+
+/** Действие контекстного меню сообщения */
+export type ChatAction = {
+  /** Уникальный идентификатор действия */
+  id: string;
+  /** Текст пункта меню */
+  title: string;
+  /** Имя SF Symbol иконки (iOS) */
+  systemImage?: string;
+  /** Деструктивное ли действие (красный цвет) */
+  isDestructive?: boolean;
+};
+
+/** Информация о треде (обсуждении) сообщения */
+export type ChatThreadInfo = {
+  /** Уникальный идентификатор треда */
+  threadId: string;
+  /** Количество ответов в треде */
+  replyCount: number;
+  /** Имя последнего ответившего пользователя */
+  lastReplierName?: string;
+};
+
+/** Сообщение чата */
+export type ChatMessage = {
+  /** Уникальный идентификатор сообщения */
+  id: string;
+  /** Локальный ID для маппинга pending→real. Оба сообщения (pending и подтверждённое)
+   *  должны иметь одинаковый localId, чтобы замена считалась обновлением, а не вставкой. */
+  localId?: string;
+  /** Текст сообщения */
+  text?: string;
+  /** Массив изображений */
+  images?: ChatImageItem[];
+  /** Видео вложение */
+  video?: ChatVideoItem;
+  /** Голосовое сообщение */
+  voice?: ChatVoiceItem;
+  /** Прикреплённый опрос */
+  poll?: ChatPoll;
+  /** Файловое вложение */
+  file?: ChatFileItem;
+  /** Несколько файловых вложений (имеет приоритет над `file`) */
+  files?: ChatFileItem[];
+  /** Реакции на сообщение */
+  reactions?: ChatReaction[];
+  /** Временная метка сообщения (Unix timestamp в миллисекундах) */
+  timestamp: number;
+  /** Имя отправителя (для входящих сообщений) */
+  senderName?: string;
+  /** URL аватарки отправителя */
+  senderAvatarUrl?: string;
+  /** Тип владения: "mine" | "theirs" | "system" | "pinned" */
+  ownership?: ChatMessageOwnership;
+  /** Статус доставки: "sending" | "sent" | "delivered" | "read" */
+  status?: ChatMessageStatus;
+  /** Ссылка на цитируемое сообщение */
+  replyTo?: ChatReplyRef;
+  /** Имя отправителя пересланного сообщения */
+  forwardedFrom?: string;
+  /** Было ли сообщение отредактировано */
+  isEdited?: boolean;
+  /** Информация о треде (обсуждении) */
+  thread?: ChatThreadInfo;
+  /** Действия контекстного меню для этого сообщения */
+  actions?: ChatAction[];
+};
+
+// ─── Типы представления ──────────────────────────────────────────────────────
+
 export type ChatScrollPosition = "top" | "center" | "bottom";
-export type ChatTheme = "light" | "dark";
 export type ChatInputActionType = "reply" | "edit" | "none";
 
-export type ChatAction = NativeChatAction;
-export type ChatImageItem = NativeChatImageItem;
-export type ChatVideoItem = NativeChatVideoItem;
-export type ChatVoiceItem = NativeChatVoiceItem;
-export type ChatFileItem = NativeChatFileItem;
-export type ChatPoll = NativeChatPoll;
-export type ChatPollOption = NativeChatPollOption;
-export type ChatReplyRef = NativeChatReplyRef;
-export type ChatThreadInfo = NativeChatThreadInfo;
-export type ChatLayoutConfig = NativeChatLayoutConfig;
-
-export interface ChatFeatures extends Omit<
-  NativeChatFeatures,
-  "senderNameMode"
-> {
-  senderNameMode?: ChatSenderNameMode;
-  /**
-   * Анимировать исчезновение удалённого сообщения. Только JS-реализация:
-   * нативная анимирует удаление средствами коллекции.
-   */
-  animateMessageRemoval?: boolean;
-}
-
-export interface ChatMessage extends NativeChatMessage {
-  status?: ChatMessageStatus;
-  ownership?: ChatMessageOwnership;
-}
-
+/** Текущее действие панели ввода. */
 export type ChatInputAction = {
   type: ChatInputActionType;
   messageId?: string;
 };
 
-export type { NativeChatInputAction, NativeChatViewProps };
-
-// ─── События ─────────────────────────────────────────────────────────────────
-
-export type ChatScrollEventData = NativeChatScrollEventData;
-export type ChatReachTopEventData = NativeChatReachTopEventData;
-export type ChatReachBottomEventData = NativeChatReachBottomEventData;
-export type ChatVisibleMessagesChangeEventData =
-  NativeChatVisibleMessagesChangeEventData;
-export type ChatUnreadMessagesAppearEventData =
-  NativeChatUnreadMessagesAppearEventData;
-export type ChatMessagePressEventData = NativeChatMessagePressEventData;
-export type ChatActionPressEventData = NativeChatActionPressEventData;
-export type ChatEmojiReactionSelectData = NativeChatEmojiReactionSelectData;
-export type ChatSendMessageEventData = NativeChatSendMessageEventData;
-export type ChatEditMessageEventData = NativeChatEditMessageEventData;
-export type ChatCancelInputActionEventData =
-  NativeChatCancelInputActionEventData;
-export type ChatAttachmentPressEventData = NativeChatAttachmentPressEventData;
-export type ChatReplyMessagePressEventData =
-  NativeChatReplyMessagePressEventData;
-export type ChatPollOptionPressEventData = NativeChatPollOptionPressEventData;
-export type ChatPollDetailPressEventData = NativeChatPollDetailPressEventData;
-export type ChatVoiceRecordingCompleteEventData =
-  NativeChatVoiceRecordingCompleteEventData;
-export type ChatInputTypingEventData = NativeChatInputTypingEventData;
-export type ChatReactionTapEventData = NativeChatReactionTapEventData;
-export type ChatThreadTapEventData = NativeChatThreadTapEventData;
-export type ChatLinkTapEventData = NativeChatLinkTapEventData;
-export type ChatPhoneNumberTapEventData = NativeChatPhoneNumberTapEventData;
-export type ChatFabPressEventData = NativeChatFabPressEventData;
-export type ChatScrollAnchorChangedEventData =
-  NativeChatScrollAnchorChangedEventData;
-
-// ─── Команды ─────────────────────────────────────────────────────────────────
-
-export interface ChatViewCommands extends NativeChatViewCommands {
-  scrollToMessage(
-    viewRef: React.ComponentRef<HostComponent<NativeChatViewProps>>,
-    messageId: string,
-    position: ChatScrollPosition,
-    animated: boolean,
-    highlight: boolean,
-  ): void;
-}
+/** Результат записи голосового сообщения. */
+export type ChatVoiceRecording = {
+  /** file:// путь к записанному аудиофайлу. */
+  fileUrl: string;
+  /** Длительность записи в секундах. */
+  duration: number;
+  /** Значения амплитуды для волновой формы. */
+  waveform?: number[];
+};
 
 // ─── Императивный интерфейс ──────────────────────────────────────────────────
 
@@ -164,7 +237,7 @@ export interface IChatScrollAnchor {
 
 // ─── Пропсы ──────────────────────────────────────────────────────────────────
 
-export interface ChatViewProps extends ViewProps {
+export interface ChatViewProps {
   /** Массив сообщений чата. */
   messages: ChatMessage[];
 
@@ -190,75 +263,50 @@ export interface ChatViewProps extends ViewProps {
   isLoadingBottom?: boolean;
   /** Спиннер-кольцо на FAB (принудительно показывает FAB). */
   isLoadingFab?: boolean;
-  /** Тема оформления: "light" | "dark". */
-  theme?: ChatTheme;
-  style?: ViewStyle;
-  /** Дополнительный верхний отступ списка. */
-  collectionInsetTop?: number;
-  /** Дополнительный нижний отступ списка. */
-  collectionInsetBottom?: number;
-  /** Троттлинг событий набора текста (мс). */
-  inputTypingThrottle?: number;
   /** Количество непрочитанных (-1 = внутреннее управление). */
   unreadCount?: number;
+  style?: ViewStyle;
 
-  /**
-   * Флаги и пороги поведения: что из UI существует, когда срабатывает
-   * пагинация, набор эмодзи контекстного меню.
-   *
-   * Объект обязан быть стабильным по ссылке (константа или `useMemo`).
-   */
-  features?: ChatFeatures;
-  /**
-   * Числовые метрики чата и панели ввода. Так же требует стабильной ссылки.
-   */
-  layout?: ChatLayoutConfig;
-
-  /** Троттлинг снимка видимых сообщений (сек, default 0.3). */
-  visibleMessagesThrottleInterval?: number;
-  /** Дебаунс непрочитанных сообщений (сек, default 0.3). */
-  unreadMessagesDebounceInterval?: number;
-  /** Мин. доля видимости ячейки для снимка видимых (0..1, default 0.8). */
-  visibilityThreshold?: number;
-  /** Мин. доля видимости ячейки для mark-as-read (0..1, default 0.5). */
-  unreadVisibilityThreshold?: number;
-
-  onScroll?: (event: ChatScrollEventData) => void;
-  onReachTop?: (event: ChatReachTopEventData) => void;
-  onReachBottom?: (event: ChatReachBottomEventData) => void;
+  /** Скролл: смещение по вертикали и близость к низу списка. */
+  onScroll?: (offsetY: number, isAtBottom: boolean) => void;
+  /** Список докрутили до верха — пора грузить старые сообщения. */
+  onReachTop?: () => void;
+  /** Список докрутили до низа — пора грузить новые сообщения. */
+  onReachBottom?: () => void;
   /** Снимок видимых на экране сообщений (throttle). */
-  onVisibleMessagesChange?: (event: ChatVisibleMessagesChangeEventData) => void;
+  onVisibleMessagesChange?: (messageIds: string[], isAtBottom: boolean) => void;
   /** Непрочитанные сообщения появились на экране (debounce). */
-  onUnreadMessagesAppear?: (event: ChatUnreadMessagesAppearEventData) => void;
-  onMessagePress?: (event: ChatMessagePressEventData) => void;
-  onActionPress?: (event: ChatActionPressEventData) => void;
-  onEmojiReactionSelect?: (event: ChatEmojiReactionSelectData) => void;
-  onSendMessage?: (event: ChatSendMessageEventData) => void;
-  onEditMessage?: (event: ChatEditMessageEventData) => void;
-  onCancelInputAction?: (event: ChatCancelInputActionEventData) => void;
-  onAttachmentPress?: (event: ChatAttachmentPressEventData) => void;
-  onReplyMessagePress?: (event: ChatReplyMessagePressEventData) => void;
-  onPollOptionPress?: (event: ChatPollOptionPressEventData) => void;
-  onPollDetailPress?: (event: ChatPollDetailPressEventData) => void;
+  onUnreadMessagesAppear?: (messageIds: string[]) => void;
+  onMessagePress?: (messageId: string, attachmentIndex?: number) => void;
+  onActionPress?: (actionId: string, messageId: string) => void;
+  onEmojiReactionSelect?: (emoji: string, messageId: string) => void;
+  onSendMessage?: (text: string, replyToId?: string) => void;
+  onEditMessage?: (text: string, messageId: string) => void;
+  onCancelInputAction?: (type: ChatInputActionType) => void;
+  onAttachmentPress?: () => void;
+  onReplyMessagePress?: (messageId: string) => void;
+  onPollOptionPress?: (
+    messageId: string,
+    pollId: string,
+    optionId: string,
+  ) => void;
+  onPollDetailPress?: (messageId: string, pollId: string) => void;
   /**
-   * Взаимодействие с блоком контента (JS-реализация).
+   * Взаимодействие с блоком контента.
    *
    * Сюда приходят события всех типов, включая добавленные приложением.
-   * Встроенные типы дополнительно продолжают вызывать свои коллбэки выше —
-   * их же шлёт нативная реализация.
+   * Встроенные типы дополнительно продолжают вызывать свои коллбэки выше.
    */
   onContentInteraction?: (event: ChatContentInteraction) => void;
-  onVoiceRecordingComplete?: (
-    event: ChatVoiceRecordingCompleteEventData,
-  ) => void;
-  onInputTyping?: (event: ChatInputTypingEventData) => void;
-  onReactionTap?: (event: ChatReactionTapEventData) => void;
-  onThreadTap?: (event: ChatThreadTapEventData) => void;
+  onVoiceRecordingComplete?: (recording: ChatVoiceRecording) => void;
+  onInputTyping?: (text: string) => void;
+  onReactionTap?: (emoji: string, messageId: string) => void;
+  onThreadTap?: (messageId: string, threadId: string) => void;
   /** Нажатие на ссылку в тексте сообщения. */
-  onLinkTap?: (event: ChatLinkTapEventData) => void;
+  onLinkTap?: (url: string, messageId: string) => void;
   /** Нажатие на номер телефона в тексте сообщения. */
-  onPhoneNumberTap?: (event: ChatPhoneNumberTapEventData) => void;
-  onFabPress?: (event: ChatFabPressEventData) => void;
+  onPhoneNumberTap?: (phoneNumber: string, messageId: string) => void;
+  onFabPress?: () => void;
   /** Throttled (~300ms) якорь скролла для сохранения позиции. */
-  onScrollAnchorChanged?: (event: ChatScrollAnchorChangedEventData) => void;
+  onScrollAnchorChanged?: (anchor: IChatScrollAnchor) => void;
 }

@@ -1,2 +1,2 @@
+export * from "./context-menu-colors";
 export * from "./context-menu-styles";
-export * from "./context-menu-theme";

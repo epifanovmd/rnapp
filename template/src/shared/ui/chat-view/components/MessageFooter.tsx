@@ -25,27 +25,23 @@ interface IMessageFooterProps {
 }
 
 export const MessageFooter: FC<IMessageFooterProps> = memo(({ message }) => {
-  const { theme, layout, features, styles } = useChatViewContext();
+  const { colors, styles } = useChatViewContext();
 
   const s = styles.byOwnership[message.ownership];
   const isOutgoing = message.ownership === "mine";
 
   return (
     <View style={styles.shared.footerRow}>
-      {message.isEdited && features.showEditedMark && (
-        <ChatText style={s.edited}>{"изм."}</ChatText>
-      )}
-      {features.showTimestamp && (
-        <ChatText style={s.time}>{getTimeString(message.timestamp)}</ChatText>
-      )}
-      {isOutgoing && features.showMessageStatus && (
+      {message.isEdited && <ChatText style={s.edited}>{"изм."}</ChatText>}
+      <ChatText style={s.time}>{getTimeString(message.timestamp)}</ChatText>
+      {isOutgoing && (
         <ChatIcon
           name={STATUS_ICONS[message.status]}
-          size={layout.statusIconSize}
+          size={11}
           color={
             message.status === "read"
-              ? theme.outgoingStatusRead
-              : theme.outgoingStatus
+              ? colors.outgoingStatusRead
+              : colors.outgoingStatus
           }
           strokeWidth={2.6}
         />

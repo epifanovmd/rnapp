@@ -6,8 +6,8 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../../config";
 import type { useRecordingGesture } from "../../hooks";
+import { useInputBarSkin } from "../../hooks";
 import { InputIcon } from "../InputIcon";
 import { InputLockBadge } from "../InputLockBadge";
 
@@ -49,7 +49,7 @@ export const InputBarMicButton: FC<IInputBarMicButtonProps> = memo(
     containerStyle,
     onPress,
   }) => {
-    const { theme, layout, styles } = useInputBarContext();
+    const { colors, styles } = useInputBarSkin();
 
     const buttonStyle = useAnimatedStyle(() => ({
       opacity: micAlpha.value,
@@ -78,8 +78,8 @@ export const InputBarMicButton: FC<IInputBarMicButtonProps> = memo(
             >
               <InputIcon
                 name={icon}
-                size={layout.inputIconSize}
-                color={isRecording ? "#FFFFFF" : theme.inputTint}
+                size={16}
+                color={isRecording ? "#FFFFFF" : colors.inputTint}
                 strokeWidth={icon === "arrow.up" ? 2.6 : 2}
               />
             </Pressable>

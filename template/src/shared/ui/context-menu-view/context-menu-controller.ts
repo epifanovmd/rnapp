@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
-import { IContextMenuTheme } from "./config";
 import { ContextMenuCloseResult, IContextMenuSession } from "./types";
 
 /**
@@ -13,7 +12,6 @@ import { ContextMenuCloseResult, IContextMenuSession } from "./types";
 export interface IContextMenuRequest {
   /** Конфигурация, зафиксированная на момент открытия. */
   session: IContextMenuSession;
-  theme: IContextMenuTheme;
   /** Стиль исходного контейнера — для точной копии-«снапшота». */
   sourceStyle?: StyleProp<ViewStyle>;
   /** Children элемента, зафиксированные на момент открытия. */

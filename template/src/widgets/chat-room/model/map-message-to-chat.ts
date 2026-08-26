@@ -39,7 +39,7 @@ const findFileAttachment = (
       !a.fileType.startsWith("audio/"),
   );
 
-const mapPollToNative = (poll: PollDto) => {
+const mapPollToChat = (poll: PollDto) => {
   const totalVotes = poll.totalVotes;
 
   return {
@@ -63,7 +63,7 @@ const mapPollToNative = (poll: PollDto) => {
 /** MessageDto extended with optional localId for pending→real mapping. */
 type MessageDtoWithLocalId = MessageDto & { localId?: string };
 
-export const mapMessageToNative = (
+export const mapMessageToChat = (
   msg: MessageDtoWithLocalId,
   currentUserId?: string,
 ): ChatMessage => {
@@ -139,7 +139,7 @@ export const mapMessageToNative = (
         }
       : undefined,
 
-    poll: msg.poll ? mapPollToNative(msg.poll) : undefined,
+    poll: msg.poll ? mapPollToChat(msg.poll) : undefined,
 
     file: fileAttachment
       ? {

@@ -1,8 +1,7 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import { RefObject, useCallback, useMemo, useRef } from "react";
 import { SharedValue, withTiming } from "react-native-reanimated";
 
 import { IInputBarViewDelegate, InputBarMode } from "../../input-bar";
-import { IChatFeatures } from "../config";
 import { ChatContentRegistry } from "../content";
 import { IParsedChatMessage } from "../data";
 import { chatVoicePlayer } from "../services";
@@ -12,13 +11,15 @@ import { IChatScrollControl } from "./useChatScrollControl";
 /** Плавность расхождения FAB, когда панель ввода растёт под текст. */
 const FAB_EXPAND_MS = 250;
 
+/** Как часто наружу уходит событие набора текста. */
+const TYPING_THROTTLE_MS = 500;
+
 export interface IChatInputBarOptions {
   inputAction: ChatInputAction | null | undefined;
   messageIndex: Map<string, IParsedChatMessage>;
   contentTypes: ChatContentRegistry;
   props: RefObject<ChatViewProps>;
   scrollControl: IChatScrollControl;
-  features: IChatFeatures;
   /** Высота панели: входит в нижнюю зону, применяется на UI-потоке. */
   barHeight: SharedValue<number>;
   /** 0..1 — расхождение FAB вверх, чтобы освободить место выросшей панели. */
@@ -76,7 +77,6 @@ export const useChatInputBar = ({
   contentTypes,
   props,
   scrollControl,
-  features,
   barHeight,
   fabExpanded,
   fabHiddenForRecording,
@@ -88,46 +88,33 @@ export const useChatInputBar = ({
     [inputAction, messageIndex, contentTypes],
   );
 
-  useEffect(() => {
-    if (!features.showVoiceRecording) {
-      fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
-    }
-  }, [features.showVoiceRecording, fabExpanded]);
-
   const delegate = useMemo<IInputBarViewDelegate>(
     () => ({
       onSend: (text, replyToId) => {
-        if (features.autoScrollOnNewMessage) {
-          requestAnimationFrame(() => scrollControl.scrollToBottom(true));
-        }
+        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
         fabExpanded.value = withTiming(0, { duration: FAB_EXPAND_MS });
-        props.current.onSendMessage?.({ text, replyToId });
+        props.current.onSendMessage?.(text, replyToId);
       },
       onEdit: (text, messageId) =>
-        props.current.onEditMessage?.({ text, messageId }),
+        props.current.onEditMessage?.(text, messageId),
       onCancelMode: type => {
-        if (type !== "none") props.current.onCancelInputAction?.({ type });
+        if (type !== "none") props.current.onCancelInputAction?.(type);
       },
-      onTapAttachment: () => props.current.onAttachmentPress?.({}),
-      onVoiceRecordingComplete: result => {
-        if (features.autoScrollOnNewMessage) {
-          requestAnimationFrame(() => scrollControl.scrollToBottom(true));
-        }
-        props.current.onVoiceRecordingComplete?.(result);
+      onTapAttachment: () => props.current.onAttachmentPress?.(),
+      onVoiceRecordingComplete: recording => {
+        requestAnimationFrame(() => scrollControl.scrollToBottom(true));
+        props.current.onVoiceRecordingComplete?.(recording);
       },
       onChangeText: text => {
-        if (features.showVoiceRecording) {
-          fabExpanded.value = withTiming(text.trim().length > 0 ? 1 : 0, {
-            duration: FAB_EXPAND_MS,
-          });
-        }
+        fabExpanded.value = withTiming(text.trim().length > 0 ? 1 : 0, {
+          duration: FAB_EXPAND_MS,
+        });
 
-        const throttleMs = props.current.inputTypingThrottle ?? 500;
         const now = Date.now();
 
-        if (now - lastTypingAtRef.current >= throttleMs) {
+        if (now - lastTypingAtRef.current >= TYPING_THROTTLE_MS) {
           lastTypingAtRef.current = now;
-          props.current.onInputTyping?.({ text });
+          props.current.onInputTyping?.(text);
         }
       },
       onRecordingStateChanged: isRecording => {
@@ -135,7 +122,7 @@ export const useChatInputBar = ({
         fabHiddenForRecording.value = isRecording ? 1 : 0;
       },
     }),
-    [scrollControl, props, features, fabExpanded, fabHiddenForRecording],
+    [scrollControl, props, fabExpanded, fabHiddenForRecording],
   );
 
   const onHeightChange = useCallback(

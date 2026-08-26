@@ -2,8 +2,7 @@ import React, { FC, memo } from "react";
 import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 
-import { useInputBarContext } from "../config";
-import { useReplyPanelAnimation } from "../hooks";
+import { useInputBarSkin, useReplyPanelAnimation } from "../hooks";
 import { InputBarMode } from "../model";
 import { InputIcon } from "./InputIcon";
 
@@ -19,7 +18,7 @@ interface IInputReplyPanelProps {
 
 export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
   ({ mode, onClose }) => {
-    const { theme, layout, styles } = useInputBarContext();
+    const { colors, styles } = useInputBarSkin();
 
     const { content, wrapStyle } = useReplyPanelAnimation(mode);
 
@@ -30,8 +29,8 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
           <View style={styles.replyIcon}>
             <InputIcon
               name={content.isEdit ? "pencil" : "arrowshape.turn.up.left.fill"}
-              size={layout.inputReplyIconSize + 2}
-              color={theme.inputReplyAccent}
+              size={12}
+              color={colors.inputReplyAccent}
             />
           </View>
           <View style={styles.replyTexts}>
@@ -45,8 +44,8 @@ export const InputReplyPanel: FC<IInputReplyPanelProps> = memo(
           <Pressable hitSlop={8} style={styles.replyClose} onPress={onClose}>
             <InputIcon
               name="xmark"
-              size={layout.inputReplyCancelIconSize + 2}
-              color={theme.inputReplyClose}
+              size={12}
+              color={colors.inputReplyClose}
               strokeWidth={3}
             />
           </Pressable>

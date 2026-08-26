@@ -2,14 +2,17 @@ import { RefObject, useCallback, useMemo, useState } from "react";
 import { Dimensions, LayoutChangeEvent } from "react-native";
 import { SharedValue } from "react-native-reanimated";
 
-import { IChatFeatures } from "../config";
 import { ChatViewProps } from "../types";
 
 export interface IChatPaginationOptions {
   props: RefObject<ChatViewProps>;
-  features: IChatFeatures;
   scrollOffset: SharedValue<number>;
 }
+
+/** Пороги подгрузки и «рядом с низом» в пикселях. */
+const TOP_LOAD_THRESHOLD = 400;
+const BOTTOM_LOAD_THRESHOLD = 400;
+const NEAR_BOTTOM_THRESHOLD = 150;
 
 export interface IChatPagination {
   onLayout: (event: LayoutChangeEvent) => void;
@@ -28,7 +31,6 @@ export interface IChatPagination {
  */
 export const useChatPagination = ({
   props,
-  features,
   scrollOffset,
 }: IChatPaginationOptions): IChatPagination => {
   const [viewportHeight, setViewportHeight] = useState(
@@ -46,15 +48,15 @@ export const useChatPagination = ({
 
     if (hasMore !== true || isLoadingTop === true) return;
 
-    props.current.onReachTop?.({ distanceFromTop: scrollOffset.value });
-  }, [props, scrollOffset]);
+    props.current.onReachTop?.();
+  }, [props]);
 
   const onEndReached = useCallback(() => {
     const { hasNewer, isLoadingBottom } = props.current;
 
     if (hasNewer !== true || isLoadingBottom === true) return;
 
-    props.current.onReachBottom?.({ distanceFromBottom: 0 });
+    props.current.onReachBottom?.();
   }, [props]);
 
   return useMemo(() => {
@@ -64,17 +66,9 @@ export const useChatPagination = ({
       onLayout,
       onStartReached,
       onEndReached,
-      startReachedThreshold: asFraction(features.topLoadThreshold),
-      endReachedThreshold: asFraction(features.bottomLoadThreshold),
-      scrollToBottomThreshold: asFraction(features.scrollToBottomThreshold),
+      startReachedThreshold: asFraction(TOP_LOAD_THRESHOLD),
+      endReachedThreshold: asFraction(BOTTOM_LOAD_THRESHOLD),
+      scrollToBottomThreshold: asFraction(NEAR_BOTTOM_THRESHOLD),
     };
-  }, [
-    viewportHeight,
-    onLayout,
-    onStartReached,
-    onEndReached,
-    features.topLoadThreshold,
-    features.bottomLoadThreshold,
-    features.scrollToBottomThreshold,
-  ]);
+  }, [viewportHeight, onLayout, onStartReached, onEndReached]);
 };

@@ -11,7 +11,6 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { useInputBarContext } from "../config";
 import { IInputBarViewDelegate } from "../model";
 import { RecordingState } from "../model";
 import { createVoiceRecorder, VoiceRecorder } from "../services";
@@ -44,8 +43,6 @@ const CLIP_SQUEEZE_SCALE = 0.6;
 export function useRecordingController(
   delegateRef: React.RefObject<IInputBarViewDelegate>,
 ) {
-  const { layout } = useInputBarContext();
-
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [recordDuration, setRecordDuration] = useState(0);
   const [showCancelTrash, setShowCancelTrash] = useState(false);

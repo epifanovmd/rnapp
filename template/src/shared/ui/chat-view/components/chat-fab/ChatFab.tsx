@@ -11,6 +11,16 @@ import { ChatIcon } from "../ChatIcon";
 import { LoadingRing } from "../LoadingRing";
 import { FabBadgeLabel } from "./FabBadgeLabel";
 
+/** Диаметр кнопки — тот же, что у кнопок панели ввода. */
+const FAB_SIZE = 40;
+const BADGE_SIZE = 20;
+
+/** Отступ над микрофоном свёрнутой панели и добавка на выросшую панель. */
+const ABOVE_MIC_OFFSET = 60;
+const EXPANDED_GAP = 4;
+
+const FADE_MS = 250;
+
 /**
  * Кнопка скролла вниз: стрелка, бейдж непрочитанных и кольцо загрузки.
  *
@@ -47,92 +57,58 @@ export const ChatFab: FC<IChatFabProps> = memo(
     unreadCount,
     onPress,
   }) => {
-    const { theme, layout, inputBarLayout, features } = useChatViewContext();
-
-    const size = inputBarLayout.inputButtonSize;
-    const aboveMicOffset = features.showInputBar
-      ? inputBarLayout.inputBarVPad + size + layout.fabMargin
-      : layout.fabMargin;
-    const singleLineHeight = features.showInputBar
-      ? 2 * inputBarLayout.inputBarVPad + inputBarLayout.textViewMinHeight
-      : 0;
-    const expandedGap = aboveMicOffset - singleLineHeight;
-    const fadeMs = layout.fabAnimationDuration * 1000;
+    const { colors } = useChatViewContext();
 
     const containerStyle = useAnimatedStyle(() => {
       const visible =
         (isLoading || (!isNearEnd.value && hasMessages)) &&
         hiddenForRecording.value === 0;
-      const expandedBottom = inputBarHeight.value + expandedGap;
+      const expandedBottom = inputBarHeight.value + EXPANDED_GAP;
 
       return {
-        opacity: withTiming(visible ? 1 : 0, { duration: fadeMs }),
+        opacity: withTiming(visible ? 1 : 0, { duration: FADE_MS }),
         bottom:
           bottomInset.value +
-          aboveMicOffset +
-          (expandedBottom - aboveMicOffset) * expanded.value,
+          ABOVE_MIC_OFFSET +
+          (expandedBottom - ABOVE_MIC_OFFSET) * expanded.value,
         // Видимость считается на UI-потоке, поэтому pointerEvents задаётся
         // стилем, а не пропом — React не должен перехватывать тапы скрытой кнопки.
         pointerEvents: visible && !isLoading ? "auto" : "none",
       };
     });
 
-    // Метрики кнопки и бейджа меняются только со сменой темы или лейаута.
+    // Цвета меняются только со сменой темы.
     const buttonStyle = useMemo(
       () => [
         ss.button,
         {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          borderWidth: inputBarLayout.inputBorderWidth,
-          borderColor: theme.fabBorder,
-          backgroundColor: theme.fabBackground,
-          shadowColor: theme.fabShadowColor,
-          shadowOpacity: layout.fabShadowOpacity,
-          shadowRadius: layout.fabShadowRadius,
-          shadowOffset: { width: 0, height: layout.fabShadowOffsetY },
+          borderColor: colors.fabBorder,
+          backgroundColor: colors.fabBackground,
+          shadowColor: colors.fabShadowColor,
         },
       ],
-      [size, inputBarLayout.inputBorderWidth, layout, theme],
+      [colors],
     );
 
     const badgeStyle = useMemo(
-      () => [
-        ss.badge,
-        {
-          height: layout.fabBadgeHeight,
-          minWidth: layout.fabBadgeMinWidth,
-          borderRadius: layout.fabBadgeCornerRadius,
-          paddingHorizontal: layout.fabBadgePadH,
-          backgroundColor: theme.fabBadgeBackground,
-          left: 4 - layout.fabBadgeMinWidth / 2,
-          top: 4 - layout.fabBadgeHeight / 2,
-        },
-      ],
-      [layout, theme.fabBadgeBackground],
+      () => [ss.badge, { backgroundColor: colors.fabBadgeBackground }],
+      [colors.fabBadgeBackground],
     );
 
-    if (!features.showFab && !isLoading) return null;
-
     return (
-      <Animated.View
-        style={[
-          ss.container,
-          { right: inputBarLayout.inputBarHPad, width: size },
-          containerStyle,
-        ]}
-      >
+      <Animated.View style={[ss.container, containerStyle]}>
         <Pressable style={buttonStyle} onPress={onPress}>
           <View style={isLoading ? ss.arrowDimmed : undefined}>
             <ChatIcon
               name="chevron.down"
-              size={layout.fabArrowSize}
-              color={theme.fabArrowColor}
+              size={18}
+              color={colors.fabArrowColor}
               strokeWidth={2.6}
             />
           </View>
-          {isLoading && <LoadingRing size={size} color={theme.fabArrowColor} />}
+          {isLoading && (
+            <LoadingRing size={FAB_SIZE} color={colors.fabArrowColor} />
+          )}
         </Pressable>
 
         {unreadCount > 0 && (
@@ -148,12 +124,29 @@ export const ChatFab: FC<IChatFabProps> = memo(
 ChatFab.displayName = "ChatFab";
 
 const ss = StyleSheet.create({
-  container: { position: "absolute" },
-  button: { alignItems: "center", justifyContent: "center", elevation: 4 },
+  container: { position: "absolute", right: 12, width: FAB_SIZE },
+  button: {
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    borderWidth: 0.5,
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
   badge: {
     position: "absolute",
     alignItems: "center",
     justifyContent: "center",
+    height: BADGE_SIZE,
+    minWidth: BADGE_SIZE,
+    borderRadius: BADGE_SIZE / 2,
+    paddingHorizontal: 6,
+    left: 4 - BADGE_SIZE / 2,
+    top: 4 - BADGE_SIZE / 2,
   },
   arrowDimmed: { opacity: 0.3 },
 });

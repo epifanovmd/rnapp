@@ -1,11 +1,11 @@
-import React, { FC, memo, useMemo } from "react";
+import React, { FC, memo } from "react";
 import { Pressable, StyleSheet } from "react-native";
 import Animated, {
   SharedValue,
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../../config";
+import { useInputBarSkin } from "../../hooks";
 import { InputIcon } from "../InputIcon";
 
 /** Кнопка отправки внутри поля ввода: проявляется, когда в поле есть текст. */
@@ -20,30 +20,22 @@ interface IInputBarSendButtonProps {
 
 export const InputBarSendButton: FC<IInputBarSendButtonProps> = memo(
   ({ enabled, scale, alpha, onPress }) => {
-    const { layout, styles } = useInputBarContext();
+    const { styles } = useInputBarSkin();
 
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: alpha.value,
       transform: [{ scale: scale.value }],
     }));
 
-    const positionStyle = useMemo(
-      () => ({
-        right: layout.inputSendButtonInset,
-        bottom: layout.inputSendButtonInset,
-      }),
-      [layout.inputSendButtonInset],
-    );
-
     return (
       <Animated.View
         pointerEvents={enabled ? "auto" : "none"}
-        style={[ss.wrap, positionStyle, animatedStyle]}
+        style={[ss.wrap, animatedStyle]}
       >
         <Pressable style={styles.sendButton} onPress={onPress}>
           <InputIcon
             name="arrow.up"
-            size={layout.inputSendButtonIconSize}
+            size={14}
             color="#FFFFFF"
             strokeWidth={2.6}
           />
@@ -56,5 +48,5 @@ export const InputBarSendButton: FC<IInputBarSendButtonProps> = memo(
 InputBarSendButton.displayName = "InputBarSendButton";
 
 const ss = StyleSheet.create({
-  wrap: { position: "absolute" },
+  wrap: { position: "absolute", right: 4, bottom: 4 },
 });

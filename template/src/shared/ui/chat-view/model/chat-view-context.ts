@@ -1,17 +1,7 @@
 import { createContext, RefObject, useContext } from "react";
 import { makeMutable, SharedValue } from "react-native-reanimated";
 
-import { IInputBarLayout, INPUT_BAR_DEFAULT_LAYOUT } from "../../input-bar";
-import {
-  CHAT_DEFAULT_FEATURES,
-  CHAT_DEFAULT_LAYOUT,
-  CHAT_LIGHT_THEME,
-  createChatStyles,
-  IChatFeatures,
-  IChatLayout,
-  IChatStyles,
-  IChatViewTheme,
-} from "../config";
+import { CHAT_SKIN, IChatColors, IChatStyles } from "../config";
 import {
   ChatContentInteraction,
   ChatContentRegistry,
@@ -54,12 +44,8 @@ export interface IChatStickyDate {
 }
 
 export interface IChatViewContextValue {
-  theme: IChatViewTheme;
-  layout: IChatLayout;
-  /** Метрики панели ввода: от них считается позиция FAB. */
-  inputBarLayout: IInputBarLayout;
-  features: IChatFeatures;
-  /** Готовые стили под текущую пару (тема, лейаут). */
+  colors: IChatColors;
+  /** Готовые стили под текущую палитру. */
   styles: IChatStyles;
   /** Реестр типов контента: по нему ячейка выбирает компонент блока. */
   contentTypes: ChatContentRegistry;
@@ -70,11 +56,8 @@ export interface IChatViewContextValue {
 }
 
 export const ChatViewContext = createContext<IChatViewContextValue>({
-  theme: CHAT_LIGHT_THEME,
-  layout: CHAT_DEFAULT_LAYOUT,
-  inputBarLayout: INPUT_BAR_DEFAULT_LAYOUT,
-  features: CHAT_DEFAULT_FEATURES,
-  styles: createChatStyles(CHAT_LIGHT_THEME, CHAT_DEFAULT_LAYOUT),
+  colors: CHAT_SKIN.light.colors,
+  styles: CHAT_SKIN.light.styles,
   contentTypes: EMPTY_CHAT_CONTENT_REGISTRY,
   actions: { current: null as unknown as IChatCellActions },
   highlight: new ChatHighlightStore(),

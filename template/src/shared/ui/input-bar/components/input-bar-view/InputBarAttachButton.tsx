@@ -5,7 +5,8 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../../config";
+import { INPUT_BAR_BUTTON_SIZE } from "../../config";
+import { useInputBarSkin } from "../../hooks";
 import { InputIcon } from "../InputIcon";
 
 /**
@@ -25,13 +26,11 @@ interface IInputBarAttachButtonProps {
 
 export const InputBarAttachButton: FC<IInputBarAttachButtonProps> = memo(
   ({ showTrash, scale, opacity, width, onPress }) => {
-    const { theme, layout, styles } = useInputBarContext();
-
-    const buttonSize = layout.inputButtonSize;
+    const { colors, styles } = useInputBarSkin();
 
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: opacity.value,
-      width: width.value * buttonSize,
+      width: width.value * INPUT_BAR_BUTTON_SIZE,
       transform: [{ scale: scale.value }],
     }));
 
@@ -40,8 +39,8 @@ export const InputBarAttachButton: FC<IInputBarAttachButtonProps> = memo(
         <Pressable style={styles.roundButton} onPress={onPress}>
           <InputIcon
             name={showTrash ? "trash.fill" : "paperclip"}
-            size={layout.inputIconSize}
-            color={showTrash ? theme.inputRecordingCancel : theme.inputTint}
+            size={16}
+            color={showTrash ? colors.inputRecordingCancel : colors.inputTint}
           />
         </Pressable>
       </Animated.View>

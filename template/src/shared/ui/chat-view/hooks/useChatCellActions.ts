@@ -9,10 +9,9 @@ import { IChatScrollControl } from "./useChatScrollControl";
 /**
  * Мост встроенных событий контента к типизированным пропсам чата.
  *
- * Существует только ради совместимости: те же события нативная реализация
- * шлёт своими коллбэками, и хост обрабатывает оба пути одинаково. Типам,
- * добавленным приложением, мост не нужен — их события хост получает целиком
- * в `onContentInteraction`.
+ * Встроенные типы контента продолжают вызывать свои типизированные пропсы.
+ * Типам, добавленным приложением, мост не нужен — их события хост получает
+ * целиком в `onContentInteraction`.
  */
 const bridgeBuiltinInteraction = (
   event: ChatContentInteraction,
@@ -23,27 +22,24 @@ const bridgeBuiltinInteraction = (
   switch (event.type) {
     case "builtin.media.tap":
       Keyboard.dismiss();
-      props.onMessagePress?.({
-        messageId,
-        attachmentIndex: event.payload.index,
-      });
+      props.onMessagePress?.(messageId, event.payload.index);
       break;
 
     case "builtin.file.tap":
       Keyboard.dismiss();
-      props.onMessagePress?.({ messageId });
+      props.onMessagePress?.(messageId);
       break;
 
     case "builtin.poll.option.tap":
-      props.onPollOptionPress?.({
+      props.onPollOptionPress?.(
         messageId,
-        pollId: event.payload.pollId,
-        optionId: event.payload.optionId,
-      });
+        event.payload.pollId,
+        event.payload.optionId,
+      );
       break;
 
     case "builtin.poll.detail.tap":
-      props.onPollDetailPress?.({ messageId, pollId: event.payload.pollId });
+      props.onPollDetailPress?.(messageId, event.payload.pollId);
       break;
   }
 };
@@ -74,7 +70,7 @@ export const useChatCellActions = ({
     () => ({
       onTapMessage: messageId => {
         Keyboard.dismiss();
-        props.current.onMessagePress?.({ messageId });
+        props.current.onMessagePress?.(messageId);
       },
 
       onContentInteraction: event => {
@@ -84,11 +80,11 @@ export const useChatCellActions = ({
 
       onEmojiSelect: (emoji, messageId) => {
         restoreKeyboard();
-        props.current.onEmojiReactionSelect?.({ emoji, messageId });
+        props.current.onEmojiReactionSelect?.(emoji, messageId);
       },
       onActionSelect: (actionId, messageId) => {
         restoreKeyboard();
-        props.current.onActionPress?.({ actionId, messageId });
+        props.current.onActionPress?.(actionId, messageId);
       },
 
       onReplyTap: replyToId => {
@@ -97,17 +93,16 @@ export const useChatCellActions = ({
           animated: true,
           highlight: true,
         });
-        props.current.onReplyMessagePress?.({ messageId: replyToId });
+        props.current.onReplyMessagePress?.(replyToId);
       },
 
       onReactionTap: (messageId, emoji) =>
-        props.current.onReactionTap?.({ emoji, messageId }),
+        props.current.onReactionTap?.(emoji, messageId),
       onThreadTap: (messageId, threadId) =>
-        props.current.onThreadTap?.({ messageId, threadId }),
-      onLinkTap: (url, messageId) =>
-        props.current.onLinkTap?.({ url, messageId }),
+        props.current.onThreadTap?.(messageId, threadId),
+      onLinkTap: (url, messageId) => props.current.onLinkTap?.(url, messageId),
       onPhoneNumberTap: (phoneNumber, messageId) =>
-        props.current.onPhoneNumberTap?.({ phoneNumber, messageId }),
+        props.current.onPhoneNumberTap?.(phoneNumber, messageId),
       onContextMenuWillShow: () => freezeKeyboard(),
       onContextMenuDismiss: () => restoreKeyboard(),
     }),

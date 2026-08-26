@@ -8,8 +8,8 @@ import React, {
 import { LayoutChangeEvent, StyleSheet, TextInput, View } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
-import { useInputBarContext } from "../../config";
 import {
+  useInputBarSkin,
   useInputModeController,
   useMicSendAnimation,
   useRecordingController,
@@ -43,7 +43,7 @@ interface IInputBarViewProps {
 
 export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
   ({ mode, delegate, onHeightChange }, ref) => {
-    const { features, layout, styles } = useInputBarContext();
+    const { styles } = useInputBarSkin();
 
     const inputRef = useRef<TextInput>(null);
     const [text, setText] = useState("");
@@ -109,12 +109,9 @@ export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
       lockRecording,
     );
 
-    const voiceEnabled = features.showVoiceRecording;
-    const showSendButton = !voiceEnabled || hasText;
-
     const { micScale, micAlpha, sendScale, sendAlpha } = useMicSendAnimation(
-      voiceEnabled && !hasText,
-      showSendButton,
+      !hasText,
+      hasText,
     );
 
     const { micAnimatedStyle: micContainerStyle } = useRightButtonAnimation(
@@ -207,15 +204,13 @@ export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
     return (
       <View style={ss.bar} onLayout={handleLayout}>
         <View style={styles.stack}>
-          {features.showAttachButton && (
-            <InputBarAttachButton
-              showTrash={isLocked || showCancelTrash}
-              scale={leftButtonScale}
-              opacity={leftButtonOpacity}
-              width={leftButtonWidth}
-              onPress={handleAttachTap}
-            />
-          )}
+          <InputBarAttachButton
+            showTrash={isLocked || showCancelTrash}
+            scale={leftButtonScale}
+            opacity={leftButtonOpacity}
+            width={leftButtonWidth}
+            onPress={handleAttachTap}
+          />
 
           <View style={styles.field}>
             <InputReplyPanel mode={mode} onClose={handleCloseMode} />
@@ -245,7 +240,7 @@ export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
 
             {!isRecording && (
               <InputBarSendButton
-                enabled={showSendButton}
+                enabled={hasText}
                 scale={sendScale}
                 alpha={sendAlpha}
                 onPress={handleSend}
@@ -253,22 +248,20 @@ export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
             )}
           </View>
 
-          {voiceEnabled && (
-            <InputBarMicButton
-              gesture={recordGesture}
-              isRecording={isRecording}
-              isLocked={isLocked}
-              translateX={micTranslateX}
-              translateY={micTranslateY}
-              gestureScale={micGestureScale}
-              pulseScale={pulseScale}
-              micScale={micScale}
-              micAlpha={micAlpha}
-              lockScale={lockScale}
-              containerStyle={micContainerStyle}
-              onPress={handleLockedSend}
-            />
-          )}
+          <InputBarMicButton
+            gesture={recordGesture}
+            isRecording={isRecording}
+            isLocked={isLocked}
+            translateX={micTranslateX}
+            translateY={micTranslateY}
+            gestureScale={micGestureScale}
+            pulseScale={pulseScale}
+            micScale={micScale}
+            micAlpha={micAlpha}
+            lockScale={lockScale}
+            containerStyle={micContainerStyle}
+            onPress={handleLockedSend}
+          />
         </View>
       </View>
     );

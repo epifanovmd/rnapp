@@ -5,7 +5,7 @@ import {
   SkImage,
 } from "@shopify/react-native-skia";
 
-/** Сторона спрайта в пикселях. Тот же белый квадрат, что и у нативного эмиттера. */
+/** Сторона спрайта в пикселях: белый квадрат, который тонируется цветом частицы. */
 export const SPRITE_SIZE = 4;
 
 let sprite: SkImage | null | undefined;

@@ -297,19 +297,16 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
   haptic + accessibility announce, кастомный рендер (`options.render` per-toast или
   `renderContent` хоста).
 
-## Конфигурация чата
+## Чат
 
-Три группы настроек, дублей нет:
+`ChatView`, `InputBar` и `ContextMenuView` — обычные React-компоненты
+(`shared/ui/chat-view`, `shared/ui/input-bar`, `shared/ui/context-menu-view`).
+Оформление и поведение снаружи не настраиваются: пропы — только данные,
+состояние сессии и коллбэки; палитра light/dark выбирается по `useTheme().isDark`,
+метрики — литералы в стилях. Коллбэки принимают обычные аргументы
+(`onSendMessage(text, replyToId)`), объектов-событий нет.
 
-| Куда           | Что                                                 |
-| -------------- | --------------------------------------------------- |
-| **пропы**      | данные, состояние сессии, контекст показа, коллбэки |
-| **`features`** | флаги и пороги поведения                            |
-| **`layout`**   | числовые метрики чата и панели ввода                |
-
-`features` и `layout` — стабильные ссылки (константа или `useMemo`).
-
-`JsChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
+`ChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
 `stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,
 `maintainScrollAtEnd`, `onStartReached`/`onEndReached`. Ручные JS-аналоги не допускаются.
 Детали: `project_native.md`.
@@ -321,7 +318,7 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 
 Проектные исключения:
 
-- `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec` — RN codegen-спеки.
+- `NativeWheelPickerSpec` — RN codegen-спека.
 - `app/App.*` — композиционный неймспейс.
 - `ImageItem.ios.tsx/.android.tsx/.d.ts` — платформенный компонент.
 - `shared/{api,config,lib}` — kebab-case, без camelCase-исключения.

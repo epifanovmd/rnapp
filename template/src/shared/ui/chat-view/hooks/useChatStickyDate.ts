@@ -8,8 +8,12 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { IChatLayout } from "../config";
 import { IChatStickyDate } from "../model";
+
+/** Проявление, пауза и угасание плашки (мс). */
+const SHOW_MS = 150;
+const HIDE_MS = 300;
+const HIDE_DELAY_MS = 500;
 
 /**
  * Автоскрытие прилипшей плашки даты — целиком на UI-потоке.
@@ -21,26 +25,20 @@ import { IChatStickyDate } from "../model";
 export const useChatStickyDate = (
   scrollOffset: SharedValue<number>,
   activeIndex: SharedValue<number>,
-  layout: IChatLayout,
-  enabled: boolean,
 ): IChatStickyDate => {
   const opacity = useSharedValue(0);
-
-  const showMs = layout.stickyDateShowDuration * 1000;
-  const hideMs = layout.stickyDateHideDuration * 1000;
-  const hideDelayMs = layout.stickyDateHideDelay * 1000;
 
   useAnimatedReaction(
     () => scrollOffset.value,
     (current, previous) => {
-      if (!enabled || previous === null || current === previous) return;
+      if (previous === null || current === previous) return;
 
       opacity.value = withSequence(
-        withTiming(1, { duration: showMs }),
-        withDelay(hideDelayMs, withTiming(0, { duration: hideMs })),
+        withTiming(1, { duration: SHOW_MS }),
+        withDelay(HIDE_DELAY_MS, withTiming(0, { duration: HIDE_MS })),
       );
     },
-    [enabled, showMs, hideMs, hideDelayMs],
+    [],
   );
 
   return useMemo(() => ({ activeIndex, opacity }), [activeIndex, opacity]);

@@ -1,22 +1,15 @@
 import { useTheme } from "@shared/lib/theme";
 import {
-  Col,
   Container,
   Content,
   ContextMenuAction,
-  ContextMenuTheme,
-  Row,
   ScrollView,
-  Switch,
   Text,
 } from "@shared/ui";
-import {
-  JsContextMenuView,
-  NativeContextMenuView,
-} from "@shared/ui/context-menu-view";
+import { ContextMenuView } from "@shared/ui/context-menu-view";
 import { observer } from "mobx-react-lite";
 import React, { FC, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 const EMOJIS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
 
@@ -48,21 +41,15 @@ const LONG_TEXT =
   "показывается прижатым к низу. ".repeat(4);
 
 export const ContextMenu: FC = observer(() => {
-  const { isDark, colors } = useTheme();
+  const { colors } = useTheme();
 
-  const [useNative, setUseNative] = useState(Platform.OS === "ios");
   const [lastEvent, setLastEvent] = useState("—");
 
-  const Menu = useNative ? NativeContextMenuView : JsContextMenuView;
-  const menuTheme: ContextMenuTheme = isDark ? "dark" : "light";
-
   const bubbleProps = (menuId: string) => ({
-    menuId,
-    theme: menuTheme,
     onWillShow: () => setLastEvent(`onWillShow · ${menuId}`),
-    onEmojiSelect: ({ emoji }: { emoji: string }) =>
+    onEmojiSelect: (emoji: string) =>
       setLastEvent(`onEmojiSelect · ${emoji} · ${menuId}`),
-    onActionSelect: ({ actionId }: { actionId: string }) =>
+    onActionSelect: (actionId: string) =>
       setLastEvent(`onActionSelect · ${actionId} · ${menuId}`),
     onDismiss: () => setLastEvent(`onDismiss · ${menuId}`),
   });
@@ -70,26 +57,6 @@ export const ContextMenu: FC = observer(() => {
   return (
     <Container edges={[]}>
       <Content flex={0}>
-        <Row mt={8} alignItems={"center"} justifyContent={"space-between"}>
-          <Col flexShrink={1} pr={12}>
-            <Text textStyle={"Body_M1"}>
-              {"Нативная реализация (RNContextMenuView)"}
-            </Text>
-            <Text textStyle={"Caption_M2"} color={"textSecondary"}>
-              {Platform.OS === "ios"
-                ? useNative
-                  ? "Сейчас: нативная (iOS)"
-                  : "Сейчас: JS (Reanimated + Gesture Handler)"
-                : "Недоступно на этой платформе — всегда JS"}
-            </Text>
-          </Col>
-          <Switch
-            isActive={useNative}
-            disabled={Platform.OS !== "ios"}
-            onChange={setUseNative}
-          />
-        </Row>
-
         <Text mt={8} textStyle={"Caption_M2"} color={"textSecondary"}>
           {`Последнее событие: ${lastEvent}`}
         </Text>
@@ -100,7 +67,7 @@ export const ContextMenu: FC = observer(() => {
           <Text mt={16} textStyle={"Title_M"}>
             {"Входящее сообщение"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("incoming")}
             emojis={EMOJIS}
             actions={MESSAGE_ACTIONS}
@@ -111,12 +78,12 @@ export const ContextMenu: FC = observer(() => {
                 {"Привет! Зажми меня — появится меню с реакциями и действиями."}
               </Text>
             </View>
-          </Menu>
+          </ContextMenuView>
 
           <Text mt={24} textStyle={"Title_M"}>
             {"Исходящее сообщение"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("outgoing")}
             emojis={EMOJIS}
             actions={MESSAGE_ACTIONS}
@@ -129,12 +96,12 @@ export const ContextMenu: FC = observer(() => {
                 }
               </Text>
             </View>
-          </Menu>
+          </ContextMenuView>
 
           <Text mt={24} textStyle={"Title_M"}>
             {"Только действия"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("actions-only")}
             actions={SHORT_ACTIONS}
             style={ss.leftBubbleWrap}
@@ -144,12 +111,12 @@ export const ContextMenu: FC = observer(() => {
                 {"Без эмодзи-панели — только меню действий."}
               </Text>
             </View>
-          </Menu>
+          </ContextMenuView>
 
           <Text mt={24} textStyle={"Title_M"}>
             {"Только эмодзи"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("emoji-only")}
             emojis={EMOJIS}
             style={ss.leftBubbleWrap}
@@ -159,12 +126,12 @@ export const ContextMenu: FC = observer(() => {
                 {"Без меню действий — только панель реакций."}
               </Text>
             </View>
-          </Menu>
+          </ContextMenuView>
 
           <Text mt={24} textStyle={"Title_M"}>
             {"Действия без иконок"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("no-icons")}
             emojis={EMOJIS}
             actions={NO_ICON_ACTIONS}
@@ -175,12 +142,12 @@ export const ContextMenu: FC = observer(() => {
                 {"Пункты меню без systemImage — заголовок от левого отступа."}
               </Text>
             </View>
-          </Menu>
+          </ContextMenuView>
 
           <Text mt={24} textStyle={"Title_M"}>
             {"Длинное сообщение (режим прокрутки)"}
           </Text>
-          <Menu
+          <ContextMenuView
             {...bubbleProps("long")}
             emojis={EMOJIS}
             actions={MESSAGE_ACTIONS}
@@ -189,7 +156,7 @@ export const ContextMenu: FC = observer(() => {
             <View style={[ss.bubble, { backgroundColor: colors.onSurface }]}>
               <Text textStyle={"Body_M1"}>{LONG_TEXT}</Text>
             </View>
-          </Menu>
+          </ContextMenuView>
         </Content>
       </ScrollView>
     </Container>

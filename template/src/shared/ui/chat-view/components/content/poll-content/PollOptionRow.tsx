@@ -26,7 +26,7 @@ interface IPollOptionRowProps {
 
 export const PollOptionRow: FC<IPollOptionRowProps> = memo(
   ({ option, isSelected, isClosed, ownership, onPress }) => {
-    const { theme, styles } = useChatViewContext();
+    const { colors, styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const percentage = Math.max(0.02, option.percentage);
@@ -72,7 +72,7 @@ export const PollOptionRow: FC<IPollOptionRowProps> = memo(
             {
               borderRadius: styles.shared.pollBar.borderRadius,
               backgroundColor: withOpacity(
-                theme.pollBarFilled,
+                colors.pollBarFilled,
                 isSelected ? 0.5 : 0.1,
               ),
             },

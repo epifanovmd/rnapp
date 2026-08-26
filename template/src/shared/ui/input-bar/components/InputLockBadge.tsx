@@ -2,8 +2,7 @@ import React, { FC, memo } from "react";
 import { View } from "react-native";
 import Animated, { SharedValue } from "react-native-reanimated";
 
-import { useInputBarContext } from "../config";
-import { useLockBadgeAnimation } from "../hooks";
+import { useInputBarSkin, useLockBadgeAnimation } from "../hooks";
 import { InputIcon } from "./InputIcon";
 
 /**
@@ -18,7 +17,7 @@ interface IInputLockBadgeProps {
 
 export const InputLockBadge: FC<IInputLockBadgeProps> = memo(
   ({ visible, scale }) => {
-    const { theme, layout, styles } = useInputBarContext();
+    const { colors, styles } = useInputBarSkin();
 
     const { badgeStyle } = useLockBadgeAnimation(visible, scale);
 
@@ -28,18 +27,10 @@ export const InputLockBadge: FC<IInputLockBadgeProps> = memo(
         style={[styles.lockBadge, badgeStyle]}
       >
         <View style={styles.lockChevron}>
-          <InputIcon
-            name="chevron.up"
-            size={layout.recordLockChevronSize}
-            color={theme.inputLockIcon}
-          />
+          <InputIcon name="chevron.up" size={10} color={colors.inputLockIcon} />
         </View>
         <View style={styles.lockIconShift}>
-          <InputIcon
-            name="lock.fill"
-            size={layout.recordLockButtonIconSize}
-            color={theme.inputLockIcon}
-          />
+          <InputIcon name="lock.fill" size={14} color={colors.inputLockIcon} />
         </View>
       </Animated.View>
     );

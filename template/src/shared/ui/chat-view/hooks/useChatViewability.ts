@@ -9,10 +9,13 @@ import { useLatestRef } from "../../../lib/hooks";
 import { ChatRow } from "../data";
 import { ChatViewProps } from "../types";
 
-const DEFAULT_VISIBLE_THRESHOLD = 0.8;
-const DEFAULT_UNREAD_THRESHOLD = 0.5;
-const DEFAULT_VISIBLE_INTERVAL = 0.3;
-const DEFAULT_UNREAD_INTERVAL = 0.3;
+/** Доля видимости ячейки: строгая для снимка видимых, мягкая для прочтения. */
+const VISIBLE_PERCENT = 80;
+const UNREAD_PERCENT = 50;
+/** Сколько ячейка должна пробыть видимой, прежде чем попасть в снимок (мс). */
+const VISIBLE_TIME_MS = 300;
+/** Дебаунс пачки непрочитанных перед выдачей наружу (мс). */
+const UNREAD_DEBOUNCE_MS = 300;
 
 /** Блокировка коллбэков на время начального позиционирования списка. */
 const INITIAL_PROTECTION_MS = 1000;
@@ -25,20 +28,12 @@ export interface IChatViewabilityOptions {
   props: RefObject<ChatViewProps>;
   isNearEnd: SharedValue<boolean>;
   onMarkRead: (ids: readonly string[]) => void;
-  visibilityThreshold?: number;
-  unreadVisibilityThreshold?: number;
-  visibleInterval?: number;
-  unreadInterval?: number;
 }
 
 export const useChatViewability = ({
   props,
   isNearEnd,
   onMarkRead,
-  visibilityThreshold = DEFAULT_VISIBLE_THRESHOLD,
-  unreadVisibilityThreshold = DEFAULT_UNREAD_THRESHOLD,
-  visibleInterval = DEFAULT_VISIBLE_INTERVAL,
-  unreadInterval = DEFAULT_UNREAD_INTERVAL,
 }: IChatViewabilityOptions): ViewabilityConfigCallbackPairs<ChatRow> => {
   const propsRef = useLatestRef(props.current);
   const onMarkReadRef = useLatestRef(onMarkRead);
@@ -71,7 +66,7 @@ export const useChatViewability = ({
     const ids = Array.from(batch);
 
     pendingUnreadRef.current = new Set();
-    propsRef.current.onUnreadMessagesAppear?.({ messageIds: ids });
+    propsRef.current.onUnreadMessagesAppear?.(ids);
   }, [propsRef]);
 
   const handleVisible = useCallback(
@@ -92,10 +87,7 @@ export const useChatViewability = ({
 
       lastVisibleIdsRef.current = key;
 
-      propsRef.current.onVisibleMessagesChange?.({
-        messageIds,
-        isAtBottom: isNearEnd.value,
-      });
+      propsRef.current.onVisibleMessagesChange?.(messageIds, isNearEnd.value);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -126,7 +118,7 @@ export const useChatViewability = ({
       }
 
       if (unreadTimerRef.current != null) clearTimeout(unreadTimerRef.current);
-      unreadTimerRef.current = setTimeout(flushUnread, unreadInterval * 1000);
+      unreadTimerRef.current = setTimeout(flushUnread, UNREAD_DEBOUNCE_MS);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -139,27 +131,20 @@ export const useChatViewability = ({
       {
         viewabilityConfig: {
           id: "visible",
-          itemVisiblePercentThreshold: visibilityThreshold * 100,
-          minimumViewTime: visibleInterval * 1000,
+          itemVisiblePercentThreshold: VISIBLE_PERCENT,
+          minimumViewTime: VISIBLE_TIME_MS,
         },
         onViewableItemsChanged: handleVisible,
       },
       {
         viewabilityConfig: {
           id: "read",
-          itemVisiblePercentThreshold: unreadVisibilityThreshold * 100,
-          minimumViewTime: unreadInterval * 1000,
+          itemVisiblePercentThreshold: UNREAD_PERCENT,
+          minimumViewTime: UNREAD_DEBOUNCE_MS,
         },
         onViewableItemsChanged: handleRead,
       },
     ],
-    [
-      visibilityThreshold,
-      visibleInterval,
-      unreadVisibilityThreshold,
-      unreadInterval,
-      handleVisible,
-      handleRead,
-    ],
+    [handleVisible, handleRead],
   );
 };

@@ -1,11 +1,6 @@
 import { RefObject, useMemo } from "react";
 
-import {
-  createInputBarStyles,
-  IInputBarContextValue,
-  IInputBarFeatures,
-  IInputBarLayout,
-} from "../../input-bar";
+import { IChatColors, IChatStyles } from "../config";
 import { ChatContentRegistry } from "../content";
 import {
   ChatAdaptiveRenderStore,
@@ -14,9 +9,10 @@ import {
   IChatStickyDate,
   IChatViewContextValue,
 } from "../model";
-import { IChatConfig } from "./useChatConfig";
 
-export interface IChatViewContextOptions extends IChatConfig {
+export interface IChatViewContextOptions {
+  colors: IChatColors;
+  styles: IChatStyles;
   contentTypes: ChatContentRegistry;
   actions: RefObject<IChatCellActions>;
   highlight: ChatHighlightStore;
@@ -24,12 +20,9 @@ export interface IChatViewContextOptions extends IChatConfig {
   stickyDate: IChatStickyDate;
 }
 
-/** Значение контекста чата: конфигурация плюс общие для ячеек объекты. */
+/** Значение контекста чата: палитра, стили и общие для ячеек объекты. */
 export const useChatViewContextValue = ({
-  theme,
-  layout,
-  inputBarLayout,
-  features,
+  colors,
   styles,
   contentTypes,
   actions,
@@ -39,10 +32,7 @@ export const useChatViewContextValue = ({
 }: IChatViewContextOptions): IChatViewContextValue =>
   useMemo(
     () => ({
-      theme,
-      layout,
-      inputBarLayout,
-      features,
+      colors,
       styles,
       contentTypes,
       actions,
@@ -51,10 +41,7 @@ export const useChatViewContextValue = ({
       stickyDate,
     }),
     [
-      theme,
-      layout,
-      inputBarLayout,
-      features,
+      colors,
       styles,
       contentTypes,
       actions,
@@ -62,28 +49,4 @@ export const useChatViewContextValue = ({
       adaptiveRender,
       stickyDate,
     ],
-  );
-
-/**
- * Значение контекста панели ввода.
- *
- * Тема и метрики совпадают с чатом ключ в ключ, поэтому передаются те же
- * объекты — панель читает из них свои.
- */
-export const useInputBarContextValue = (
-  theme: IChatViewContextValue["theme"],
-  layout: IInputBarLayout,
-  features: IInputBarFeatures,
-): IInputBarContextValue =>
-  useMemo(
-    () => ({
-      theme,
-      layout,
-      features: {
-        showAttachButton: features.showAttachButton,
-        showVoiceRecording: features.showVoiceRecording,
-      },
-      styles: createInputBarStyles(theme, layout),
-    }),
-    [theme, layout, features.showAttachButton, features.showVoiceRecording],
   );

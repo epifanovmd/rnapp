@@ -17,22 +17,16 @@ import { MediaGridCell } from "./MediaGridCell";
 
 export const MediaGridContent: FC<IChatContentProps<IChatImagesContent>> = memo(
   ({ content, innerWidth: width, emit }) => {
-    const { layout, styles } = useChatViewContext();
+    const { styles } = useChatViewContext();
 
     const media = content.items;
     const count = media.length;
     const visibleCount = Math.min(count, MEDIA_GRID_MAX_VISIBLE);
-    const totalHeight = mediaGridHeight(media, width, layout);
+    const totalHeight = mediaGridHeight(media, width);
 
     const frames = useMemo(
-      () =>
-        mediaGridFrames(
-          visibleCount,
-          width,
-          totalHeight,
-          layout.mediaGridSpacing,
-        ),
-      [visibleCount, width, totalHeight, layout.mediaGridSpacing],
+      () => mediaGridFrames(visibleCount, width, totalHeight),
+      [visibleCount, width, totalHeight],
     );
 
     const gridStyle = useMemo(

@@ -6,7 +6,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../config";
+import { INPUT_BAR_REPLY_PANEL_HEIGHT } from "../config";
 import { InputBarMode } from "../model";
 
 interface IReplyContent {
@@ -20,8 +20,6 @@ interface IReplyContent {
  * Содержимое замораживается на время анимации скрытия.
  */
 export function useReplyPanelAnimation(mode: InputBarMode) {
-  const { layout } = useInputBarContext();
-
   const isVisible = mode.type !== "normal";
   const height = useSharedValue(0);
   const lastContent = useRef<IReplyContent>({
@@ -44,7 +42,7 @@ export function useReplyPanelAnimation(mode: InputBarMode) {
     };
   }
 
-  const targetHeight = isVisible ? layout.inputReplyPanelHeight : 0;
+  const targetHeight = isVisible ? INPUT_BAR_REPLY_PANEL_HEIGHT : 0;
 
   useEffect(() => {
     height.value = withTiming(targetHeight, {
@@ -54,7 +52,7 @@ export function useReplyPanelAnimation(mode: InputBarMode) {
     });
   }, [targetHeight, height]);
 
-  const panelHeight = layout.inputReplyPanelHeight;
+  const panelHeight = INPUT_BAR_REPLY_PANEL_HEIGHT;
 
   const wrapStyle = useAnimatedStyle(() => ({
     height: height.value,

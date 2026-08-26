@@ -22,6 +22,9 @@ import { ChatViewProps, IChatScrollAnchor } from "../types";
 const EPSILON = 0.5;
 const ANCHOR_SETTLE_MS = 250;
 
+/** Троттлинг проброса `onScroll` наружу (мс). */
+const SCROLL_REPORT_MS = 1000 / 30;
+
 /** Блокировка коллбэков на время начального позиционирования списка. */
 const INITIAL_PROTECTION_MS = 1000;
 
@@ -31,7 +34,6 @@ export interface IChatScrollReportOptions {
   props: RefObject<ChatViewProps>;
   scrollOffset: SharedValue<number>;
   isNearEnd: SharedValue<boolean>;
-  throttleInterval: number;
   getBottomInset: () => number;
 }
 
@@ -51,7 +53,6 @@ export const useChatScrollReport = ({
   props,
   scrollOffset,
   isNearEnd,
-  throttleInterval,
   getBottomInset,
 }: IChatScrollReportOptions): IChatScrollReport => {
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -135,13 +136,11 @@ export const useChatScrollReport = ({
 
   const report = useCallback(
     (y: number, isAtBottom: boolean) => {
-      props.current.onScroll?.({ x: 0, y, isAtBottom });
+      props.current.onScroll?.(y, isAtBottom);
       scheduleAnchorSave();
     },
     [props, scheduleAnchorSave],
   );
-
-  const throttleMs = throttleInterval * 1000;
 
   useAnimatedReaction(
     () => scrollOffset.value,
@@ -150,12 +149,12 @@ export const useChatScrollReport = ({
 
       const now = Date.now();
 
-      if (now - lastReportAt.value < throttleMs) return;
+      if (now - lastReportAt.value < SCROLL_REPORT_MS) return;
 
       lastReportAt.value = now;
       scheduleOnRN(report, current, isNearEnd.value);
     },
-    [throttleMs, report],
+    [report],
   );
 
   return useMemo(

@@ -18,7 +18,8 @@ import {
 import Animated, { useAnimatedScrollHandler } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createContextMenuStyles, IContextMenuTheme } from "../config";
+import { useTheme } from "../../../lib/theme";
+import { contextMenuSkin } from "../config";
 import { useContextMenuAnimator } from "../hooks";
 import {
   actionsPanelPreferredSize,
@@ -43,7 +44,6 @@ import { ContextMenuEmojiPanel } from "./emoji-panel";
 
 export interface IContextMenuOverlayProps {
   session: IContextMenuSession;
-  theme: IContextMenuTheme;
   /** Стиль исходного контейнера — для точной копии-«снапшота». */
   sourceStyle?: StyleProp<ViewStyle>;
   /** Модалка показана — пора скрыть оригинал. */
@@ -64,11 +64,12 @@ const rectStyle = (rect: IContextMenuRect) =>
 
 export const ContextMenuOverlay: FC<
   PropsWithChildren<IContextMenuOverlayProps>
-> = memo(({ session, theme, sourceStyle, children, onShown, onClosed }) => {
+> = memo(({ session, sourceStyle, children, onShown, onClosed }) => {
   const screen = useWindowDimensions();
   const safeArea = useSafeAreaInsets();
 
-  const styles = useMemo(() => createContextMenuStyles(theme), [theme]);
+  const { isDark } = useTheme();
+  const { colors, styles } = contextMenuSkin(isDark);
 
   const layout = useMemo(
     () =>
@@ -78,16 +79,15 @@ export const ContextMenuOverlay: FC<
           width: session.sourceFrame.width,
           height: session.sourceFrame.height,
         },
-        emojiSize: emojiPanelPreferredSize(session.emojis.length, theme),
-        actionsSize: actionsPanelPreferredSize(session.actions.length, theme),
+        emojiSize: emojiPanelPreferredSize(session.emojis.length),
+        actionsSize: actionsPanelPreferredSize(session.actions.length),
         screen: { width: screen.width, height: screen.height },
         safeArea,
-        theme,
       }),
-    [session, theme, screen.width, screen.height, safeArea],
+    [session, screen.width, screen.height, safeArea],
   );
 
-  const animator = useContextMenuAnimator(layout, theme, session.sourceFrame);
+  const animator = useContextMenuAnimator(layout, session.sourceFrame);
 
   // Блокировка повторных нажатий на время анимации закрытия.
   const closingRef = useRef(false);
@@ -159,7 +159,7 @@ export const ContextMenuOverlay: FC<
     >
       <View style={ss.container}>
         <ContextMenuBackdrop
-          theme={theme}
+          colors={colors}
           styles={styles}
           animatedStyle={animator.backdropAnimatedStyle}
         />
@@ -214,7 +214,7 @@ export const ContextMenuOverlay: FC<
             >
               <ContextMenuActionsView
                 actions={session.actions}
-                theme={theme}
+                colors={colors}
                 styles={styles}
                 onActionTap={handleActionTap}
               />

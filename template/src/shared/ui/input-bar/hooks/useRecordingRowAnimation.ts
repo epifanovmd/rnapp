@@ -9,23 +9,22 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../config";
-
 /** Амплитуда покачивания подсказки «Отмена». */
 const SLIDE_HINT_SHIFT = 8;
+
+/** До какой прозрачности гаснет мигающая точка записи. */
+const DOT_MIN_ALPHA = 0.2;
 
 /**
  * Анимации строки записи: мигающая точка + покачивание подсказки «Отмена».
  */
 export function useRecordingRowAnimation() {
-  const { layout } = useInputBarContext();
-
   const dotAlpha = useSharedValue(1);
   const slideShift = useSharedValue(0);
 
   useEffect(() => {
     dotAlpha.value = withRepeat(
-      withTiming(layout.recordDotMinAlpha, { duration: 500 }),
+      withTiming(DOT_MIN_ALPHA, { duration: 500 }),
       -1,
       true,
     );
@@ -45,7 +44,7 @@ export function useRecordingRowAnimation() {
       cancelAnimation(dotAlpha);
       cancelAnimation(slideShift);
     };
-  }, [dotAlpha, slideShift, layout.recordDotMinAlpha]);
+  }, [dotAlpha, slideShift]);
 
   const dotStyle = useAnimatedStyle(() => ({ opacity: dotAlpha.value }));
 

@@ -2,15 +2,14 @@ import { TextStyle, ViewStyle } from "react-native";
 
 import { ChatMessageOwnership } from "../types";
 import { chatTextBase, withOpacity } from "../utils";
-import { IChatFont, IChatLayout } from "./chat-layout";
-import { IChatViewTheme } from "./chat-theme";
+import { CHAT_COLORS, IChatColors } from "./chat-colors";
 
 /**
- * Готовые стили ячейки сообщения, собранные один раз на пару (тема, лейаут).
+ * Готовые стили ячейки сообщения, собранные один раз на палитру.
  *
- * Цвета и метрики применяются к вью один раз при конфигурации, а не
- * пересчитываются на каждую перерисовку. В RN то же самое даёт главный выигрыш
- * в списке — ячейка больше не аллоцирует три десятка объектов стиля на рендер.
+ * Метрики — литералы прямо здесь: чат ими не конфигурируется. Стили строятся
+ * на модуле, а не на рендере: ячейка не аллоцирует три десятка объектов стиля
+ * на каждую перерисовку.
  */
 
 const OWNERSHIPS: ChatMessageOwnership[] = [
@@ -20,29 +19,30 @@ const OWNERSHIPS: ChatMessageOwnership[] = [
   "pinned",
 ];
 
-/**
- * Высота строки текста плашки даты. Явная — вместе с выключенным
- * `allowFontScaling` она делает высоту плашки детерминированной.
- */
-const dateSeparatorLineHeight = (l: IChatLayout): number =>
-  Math.round(l.dateSeparatorFont.fontSize * 1.25);
+/** Кегли сообщений из 1, 2 и 3 эмодзи. */
+const EMOJI_SIZES = [48, 40, 34];
+
+/** Ширина колонки под аватар — она же вычитается из ширины пузыря. */
+export const CHAT_AVATAR_SLOT_WIDTH = 44;
+
+/** Верхний и нижний отступ контента списка. */
+export const CHAT_CONTENT_PADDING = 8;
 
 /**
  * Полная высота строки-разделителя дат: отступы строки, паддинги плашки,
  * строка текста. Высота известна заранее, поэтому список получает её как
  * фиксированную (`getFixedItemSize`) и не меряет каждую плашку.
  */
-export const chatDateSeparatorRowHeight = (l: IChatLayout): number =>
-  2 * l.sectionSpacing + 2 * l.dateSeparatorVPad + dateSeparatorLineHeight(l);
+export const CHAT_DATE_SEPARATOR_ROW_HEIGHT = 2 * 6 + 2 * 4 + 16;
 
-const font = (f: IChatFont, color: string, extra?: TextStyle): TextStyle => ({
-  ...chatTextBase,
-  fontSize: f.fontSize,
-  fontWeight: f.fontWeight,
-  color,
-  ...(f.monospacedDigits ? { fontVariant: ["tabular-nums" as const] } : null),
-  ...extra,
-});
+const text = (
+  fontSize: number,
+  color: string,
+  extra?: TextStyle,
+): TextStyle => ({ ...chatTextBase, fontSize, color, ...extra });
+
+/** Табличные цифры — одинаковой ширины, для выровненных чисел. */
+const TABULAR: TextStyle = { fontVariant: ["tabular-nums"] };
 
 /** Стили, зависящие от принадлежности сообщения. */
 export interface IChatOwnershipStyles {
@@ -84,9 +84,7 @@ export interface IChatOwnershipStyles {
 export interface IChatSharedStyles {
   /** Резерв под аватар входящего сообщения — сдвигает пузырь вправо. */
   avatarColumn: ViewStyle;
-  /** Ширина колонки под аватар — она же вычитается из ширины пузыря. */
-  avatarSlotWidth: number;
-  /** Аватар поверх ячейки (absolute): left = avatarLeadingMargin, низ = низ пузыря. */
+  /** Аватар поверх ячейки (absolute): низ аватара совпадает с низом пузыря. */
   avatarOverlay: ViewStyle;
   senderName: TextStyle;
 
@@ -128,63 +126,57 @@ export interface IChatStyles {
 
 const bubbleColor = (
   ownership: ChatMessageOwnership,
-  t: IChatViewTheme,
+  c: IChatColors,
 ): string => {
   switch (ownership) {
     case "mine":
-      return t.outgoingBubble;
+      return c.outgoingBubble;
     case "theirs":
-      return t.incomingBubble;
+      return c.incomingBubble;
     case "system":
-      return t.systemBubble;
+      return c.systemBubble;
     case "pinned":
-      return t.pinnedBubble;
+      return c.pinnedBubble;
   }
 };
 
-const textColor = (
-  ownership: ChatMessageOwnership,
-  t: IChatViewTheme,
-): string => {
+const textColor = (ownership: ChatMessageOwnership, c: IChatColors): string => {
   switch (ownership) {
     case "mine":
-      return t.outgoingText;
+      return c.outgoingText;
     case "theirs":
-      return t.incomingText;
+      return c.incomingText;
     case "system":
-      return t.systemText;
+      return c.systemText;
     case "pinned":
-      return t.pinnedText;
+      return c.pinnedText;
   }
 };
 
-const timeColor = (
-  ownership: ChatMessageOwnership,
-  t: IChatViewTheme,
-): string => {
+const timeColor = (ownership: ChatMessageOwnership, c: IChatColors): string => {
   switch (ownership) {
     case "mine":
-      return t.outgoingTime;
+      return c.outgoingTime;
     case "theirs":
-      return t.incomingTime;
+      return c.incomingTime;
     case "system":
-      return t.systemTime;
+      return c.systemTime;
     case "pinned":
-      return t.pinnedTime;
+      return c.pinnedTime;
   }
 };
 
 const editedColor = (
   ownership: ChatMessageOwnership,
-  t: IChatViewTheme,
+  c: IChatColors,
 ): string => {
   switch (ownership) {
     case "mine":
-      return t.outgoingEdited;
+      return c.outgoingEdited;
     case "theirs":
-      return t.incomingEdited;
+      return c.incomingEdited;
     default:
-      return t.systemTime;
+      return c.systemTime;
   }
 };
 
@@ -202,15 +194,13 @@ const justifyOf = (
   }
 };
 
-const extraSpacingOf = (
-  ownership: ChatMessageOwnership,
-  l: IChatLayout,
-): number => {
+/** Системные и закреплённые сообщения стоят особняком — им нужен воздух. */
+const extraSpacingOf = (ownership: ChatMessageOwnership): number => {
   switch (ownership) {
     case "system":
-      return l.systemCellBottomSpacing;
+      return 20;
     case "pinned":
-      return l.pinnedCellBottomSpacing;
+      return 32;
     default:
       return 0;
   }
@@ -218,212 +208,220 @@ const extraSpacingOf = (
 
 const ownershipStyles = (
   ownership: ChatMessageOwnership,
-  t: IChatViewTheme,
-  l: IChatLayout,
+  c: IChatColors,
 ): IChatOwnershipStyles => {
   const isOutgoing = ownership === "mine";
-  const spacing = extraSpacingOf(ownership, l);
-  const voiceAccent = isOutgoing ? t.outgoingStatusRead : t.voiceWaveformActive;
-  const color = textColor(ownership, t);
+  const spacing = extraSpacingOf(ownership);
+  const voiceAccent = isOutgoing ? c.outgoingStatusRead : c.voiceWaveformActive;
+  const color = textColor(ownership, c);
 
   return {
     cell: {
       flexDirection: "row",
-      minHeight: l.cellMinHeight,
-      paddingTop: l.cellVSpacing / 2 + spacing,
-      paddingBottom: l.cellVSpacing / 2 + spacing,
-      paddingHorizontal: l.cellHMargin,
+      minHeight: 36,
+      paddingTop: 1 + spacing,
+      paddingBottom: 1 + spacing,
+      paddingHorizontal: 8,
       justifyContent: justifyOf(ownership),
     },
     bubble: {
-      borderRadius: l.bubbleCornerRadius,
-      backgroundColor: bubbleColor(ownership, t),
+      borderRadius: 18,
+      backgroundColor: bubbleColor(ownership, c),
       overflow: "hidden",
-      paddingTop: l.bubbleVPad,
-      paddingBottom: l.bubbleBottomPad,
-      paddingHorizontal: l.bubbleHPad,
-      gap: l.bubbleSpacing,
-      // Пузырь заполняет ячейку по высоте (cellMinHeight). System/pinned — нет,
-      // у них свой дополнительный нижний отступ.
+      paddingTop: 6,
+      paddingBottom: 5,
+      paddingHorizontal: 12,
+      gap: 4,
+      // Пузырь заполняет ячейку по высоте. System/pinned — нет, у них свой
+      // дополнительный нижний отступ.
       ...(ownership === "mine" || ownership === "theirs"
-        ? { minHeight: l.cellMinHeight - l.cellVSpacing }
+        ? { minHeight: 34 }
         : null),
     },
-    text: font(l.messageFont, color, {
+    text: text(15, color, {
       textAlign: ownership === "system" ? "center" : "auto",
     }),
-    link: font(l.messageFont, isOutgoing ? t.outgoingLink : t.incomingLink, {
+    link: text(15, isOutgoing ? c.outgoingLink : c.incomingLink, {
       textDecorationLine: "underline",
     }),
-    time: font(l.timeFont, timeColor(ownership, t)),
-    edited: font(l.editedFont, editedColor(ownership, t)),
+    time: text(11, timeColor(ownership, c)),
+    edited: text(11, editedColor(ownership, c)),
 
     replyCard: {
       flexDirection: "row",
       overflow: "hidden",
-      height: l.replyHeight,
-      borderRadius: l.replyCornerRadius,
+      height: 38,
+      borderRadius: 6,
       backgroundColor: isOutgoing
-        ? t.outgoingReplyBackground
-        : t.incomingReplyBackground,
+        ? c.outgoingReplyBackground
+        : c.incomingReplyBackground,
     },
     replyAccent: {
-      width: l.replyAccentWidth,
+      width: 2.5,
       backgroundColor: isOutgoing
-        ? t.outgoingReplyAccent
-        : t.incomingReplyAccent,
+        ? c.outgoingReplyAccent
+        : c.incomingReplyAccent,
     },
-    replySender: font(
-      l.replySenderFont,
-      isOutgoing ? t.outgoingReplySender : t.incomingReplySender,
+    replySender: text(
+      13,
+      isOutgoing ? c.outgoingReplySender : c.incomingReplySender,
+      { fontWeight: "600" },
     ),
-    replyText: font(
-      l.replyFont,
-      isOutgoing ? t.outgoingReplyText : t.incomingReplyText,
+    replyText: text(
+      13,
+      isOutgoing ? c.outgoingReplyText : c.incomingReplyText,
       { marginTop: 1 },
     ),
 
     forwardedAccent: {
-      width: l.forwardedAccentWidth,
-      borderRadius: l.forwardedAccentWidth / 2,
+      width: 2.5,
+      borderRadius: 1.25,
       backgroundColor: isOutgoing
-        ? t.outgoingForwardedAccent
-        : t.incomingForwardedAccent,
+        ? c.outgoingForwardedAccent
+        : c.incomingForwardedAccent,
     },
-    forwardedLabel: font(
-      l.forwardedFont,
-      isOutgoing ? t.outgoingForwardedLabel : t.incomingForwardedLabel,
+    forwardedLabel: text(
+      13,
+      isOutgoing ? c.outgoingForwardedLabel : c.incomingForwardedLabel,
+      { fontWeight: "500" },
     ),
 
     fileCard: {
       flexDirection: "row",
       alignItems: "center",
-      minHeight: l.fileIconSize + l.filePadding * 2,
-      borderRadius: l.fileCornerRadius,
+      minHeight: 44,
+      borderRadius: 8,
       backgroundColor: isOutgoing
-        ? t.outgoingFileBackground
-        : t.incomingFileBackground,
-      padding: l.filePadding,
+        ? c.outgoingFileBackground
+        : c.incomingFileBackground,
+      padding: 6,
     },
-    fileName: font(l.fileNameFont, color),
-    fileSize: font(l.fileSizeFont, timeColor(ownership, t), { marginTop: 1 }),
-    fileIconColor: isOutgoing ? t.outgoingText : t.fileIconColor,
+    fileName: text(13, color, { fontWeight: "500" }),
+    fileSize: text(11, timeColor(ownership, c), { marginTop: 1 }),
+    fileIconColor: isOutgoing ? c.outgoingText : c.fileIconColor,
 
-    pollQuestion: font(l.pollQuestionFont, color),
-    pollOption: font(l.pollOptionFont, withOpacity(color, 0.8), {
+    pollQuestion: text(15, color, { fontWeight: "600" }),
+    pollOption: text(14, withOpacity(color, 0.8), {
+      fontWeight: "500",
       flexShrink: 1,
-      marginLeft: l.pollBarHPad,
+      marginLeft: 12,
     }),
-    pollOptionSelected: font(l.pollOptionFont, color, {
+    pollOptionSelected: text(14, color, {
       fontWeight: "700",
       flexShrink: 1,
-      marginLeft: l.pollBarHPad,
+      marginLeft: 12,
     }),
-    pollPercent: font(l.pollPercentFont, timeColor(ownership, t), {
+    pollPercent: text(13, timeColor(ownership, c), {
+      ...TABULAR,
+      fontWeight: "600",
       marginLeft: 6,
-      marginRight: l.pollBarHPad,
+      marginRight: 12,
     }),
-    pollPercentSelected: font(l.pollPercentFont, t.pollBarFilled, {
+    pollPercentSelected: text(13, c.pollBarFilled, {
+      ...TABULAR,
+      fontWeight: "600",
       marginLeft: 6,
-      marginRight: l.pollBarHPad,
+      marginRight: 12,
     }),
-    pollVotes: font(l.pollVotesFont, timeColor(ownership, t)),
-    pollResults: font(l.pollVotesFont, voiceAccent),
+    pollVotes: text(12, timeColor(ownership, c)),
+    pollResults: text(12, voiceAccent),
 
     voicePlayButton: {
       alignItems: "center",
       justifyContent: "center",
       marginTop: 8,
-      width: l.voicePlaySize,
-      height: l.voicePlaySize,
-      borderRadius: l.voicePlaySize / 2,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       backgroundColor: voiceAccent,
     },
-    voiceDuration: font(l.voiceDurationFont, timeColor(ownership, t), {
+    voiceDuration: text(12, timeColor(ownership, c), {
+      ...TABULAR,
+      fontWeight: "500",
       marginTop: 2,
     }),
     voiceAccent,
   };
 };
 
-const sharedStyles = (
-  t: IChatViewTheme,
-  l: IChatLayout,
-): IChatSharedStyles => ({
-  // Резерв под аватар — пустой спейсер. Сдвигает пузырь входящего сообщения вправо.
-  avatarColumn: {
-    width: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
-  },
-  avatarSlotWidth: l.avatarSize + l.avatarLeadingMargin + l.avatarBubbleSpacing,
+const sharedStyles = (c: IChatColors): IChatSharedStyles => ({
+  // Резерв под аватар — пустой спейсер. Сдвигает пузырь входящего вправо.
+  avatarColumn: { width: CHAT_AVATAR_SLOT_WIDTH },
   // Аватар абсолютным позиционированием поверх ячейки.
   avatarOverlay: {
     position: "absolute",
-    left: l.avatarLeadingMargin,
-    bottom: l.cellVSpacing / 2,
-    width: l.avatarSize,
-    height: l.avatarSize,
+    left: 6,
+    bottom: 1,
+    width: 36,
+    height: 36,
   },
-  senderName: font(l.senderNameFont, t.incomingSenderName),
+  senderName: text(13, c.incomingSenderName, { fontWeight: "600" }),
 
   footerRow: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-end",
-    height: l.footerHeight,
-    gap: l.footerSpacing,
+    height: 16,
+    gap: 3,
   },
   reactionsWrap: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
-    gap: l.reactionChipSpacing,
+    gap: 4,
   },
   reactionChip: {
     alignItems: "center",
     justifyContent: "center",
-    height: l.reactionChipHeight,
-    borderRadius: l.reactionChipHeight / 2,
-    paddingHorizontal: l.reactionChipPadding,
-    backgroundColor: t.reactionBackground,
+    height: 28,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    backgroundColor: c.reactionBackground,
   },
   reactionChipSelected: {
     alignItems: "center",
     justifyContent: "center",
-    height: l.reactionChipHeight,
-    borderRadius: l.reactionChipHeight / 2,
-    paddingHorizontal: l.reactionChipPadding,
-    backgroundColor: t.reactionMineBackground,
-    borderWidth: l.reactionBorderWidth,
-    borderColor: t.reactionMineBorder,
+    height: 28,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    backgroundColor: c.reactionMineBackground,
+    borderWidth: 1,
+    borderColor: c.reactionMineBorder,
   },
-  reactionText: font(l.reactionFont, t.reactionText),
+  reactionText: text(13, c.reactionText),
 
   threadRow: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "flex-start",
-    height: l.threadBarHeight,
-    gap: l.threadBarSpacing,
+    height: 28,
+    gap: 4,
   },
-  threadText: font(l.threadBarFont, t.threadBarText),
-  threadSeparator: font(l.threadBarFont, withOpacity(t.threadBarText, 0.5)),
-  threadReplier: font(l.threadBarFont, withOpacity(t.threadBarText, 0.7), {
+  threadText: text(13, c.threadBarText, { fontWeight: "500" }),
+  threadSeparator: text(13, withOpacity(c.threadBarText, 0.5), {
+    fontWeight: "500",
+  }),
+  threadReplier: text(13, withOpacity(c.threadBarText, 0.7), {
+    fontWeight: "500",
     flexShrink: 1,
   }),
 
-  mixedContentGap: { marginTop: l.mixedContentSpacing },
-  fileList: { gap: l.fileRowSpacing },
-  mediaGrid: { overflow: "hidden", borderRadius: l.imageCornerRadius },
+  mixedContentGap: { marginTop: 4 },
+  fileList: { gap: 2 },
+  mediaGrid: { overflow: "hidden", borderRadius: 12 },
   mediaDurationBadge: {
     position: "absolute",
-    right: l.mediaDurationMargin,
-    bottom: l.mediaDurationMargin,
-    borderRadius: l.mediaDurationCornerRadius,
-    paddingHorizontal: l.mediaDurationPadH,
-    paddingVertical: l.mediaDurationPadV,
-    backgroundColor: t.mediaDurationBackground,
+    right: 4,
+    bottom: 4,
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    backgroundColor: c.mediaDurationBackground,
   },
-  mediaDurationText: font(l.mediaDurationFont, t.mediaDurationTextColor),
+  mediaDurationText: text(12, c.mediaDurationTextColor, {
+    ...TABULAR,
+    fontWeight: "500",
+  }),
   mediaOverlay: {
     position: "absolute",
     left: 0,
@@ -432,52 +430,66 @@ const sharedStyles = (
     bottom: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: t.mediaOverlayBackground,
+    backgroundColor: c.mediaOverlayBackground,
   },
-  mediaOverlayText: font(l.mediaOverlayFont, t.mediaOverlayTextColor),
+  mediaOverlayText: text(28, c.mediaOverlayTextColor, { fontWeight: "600" }),
 
-  pollSubtitle: font(l.pollSubtitleFont, t.pollSubtitleColor, { marginTop: 2 }),
+  pollSubtitle: text(12, c.pollSubtitleColor, { marginTop: 2 }),
   pollBar: {
     overflow: "hidden",
     justifyContent: "center",
-    height: l.pollBarHeight,
-    borderRadius: l.pollBarCornerRadius,
-    backgroundColor: t.pollBarEmpty,
+    height: 32,
+    borderRadius: 12,
+    backgroundColor: c.pollBarEmpty,
   },
 
-  emoji: l.emojiFonts.map(f => ({
+  emoji: EMOJI_SIZES.map(size => ({
     ...chatTextBase,
     textAlign: "center" as const,
-    fontSize: f.fontSize,
-    lineHeight: f.fontSize * 1.2,
+    fontSize: size,
+    lineHeight: size * 1.2,
   })) as unknown as [TextStyle, TextStyle, TextStyle],
 
   dateSeparatorPill: {
-    borderRadius: l.dateSeparatorCornerRadius,
-    backgroundColor: t.dateSeparatorBackground,
-    paddingVertical: l.dateSeparatorVPad,
-    paddingHorizontal: l.dateSeparatorHPad,
+    borderRadius: 12,
+    backgroundColor: c.dateSeparatorBackground,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
   },
-  dateSeparatorText: font(l.dateSeparatorFont, t.dateSeparatorText, {
-    lineHeight: dateSeparatorLineHeight(l),
+  dateSeparatorText: text(13, c.dateSeparatorText, {
+    fontWeight: "500",
+    lineHeight: 16,
   }),
-  emptyStateText: font(l.emptyStateFont, t.emptyStateText, {
+  emptyStateText: text(16, c.emptyStateText, {
     textAlign: "center",
-    paddingHorizontal: l.emptyStatePadding,
+    paddingHorizontal: 32,
   }),
-  fabBadgeText: font(l.fabBadgeFont, t.fabBadgeTextColor),
+  fabBadgeText: text(12, c.fabBadgeTextColor, {
+    ...TABULAR,
+    fontWeight: "600",
+  }),
 });
 
-/** Собрать полный набор стилей чата. Вызывать только при смене темы/лейаута. */
-export const createChatStyles = (
-  theme: IChatViewTheme,
-  layout: IChatLayout,
-): IChatStyles => {
+const createChatStyles = (c: IChatColors): IChatStyles => {
   const byOwnership = {} as Record<ChatMessageOwnership, IChatOwnershipStyles>;
 
   for (const ownership of OWNERSHIPS) {
-    byOwnership[ownership] = ownershipStyles(ownership, theme, layout);
+    byOwnership[ownership] = ownershipStyles(ownership, c);
   }
 
-  return { byOwnership, shared: sharedStyles(theme, layout) };
+  return { byOwnership, shared: sharedStyles(c) };
 };
+
+/** Цвета и стили под каждую схему — собраны один раз на модуле. */
+export const CHAT_SKIN = {
+  light: {
+    colors: CHAT_COLORS.light,
+    styles: createChatStyles(CHAT_COLORS.light),
+  },
+  dark: {
+    colors: CHAT_COLORS.dark,
+    styles: createChatStyles(CHAT_COLORS.dark),
+  },
+};
+
+export type IChatSkin = (typeof CHAT_SKIN)["light"];

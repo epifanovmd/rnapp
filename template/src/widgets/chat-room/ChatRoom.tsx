@@ -1,18 +1,9 @@
-import { useTheme } from "@shared/lib/theme";
-import {
-  Col,
-  Navbar,
-  NavbarIcon,
-  Row,
-  Switch,
-  Text,
-  useBottomSheetRef,
-} from "@shared/ui";
-import { JsChatView, NativeChatView } from "@shared/ui/chat-view";
+import { Col, Navbar, NavbarIcon, Text, useBottomSheetRef } from "@shared/ui";
+import { ChatView } from "@shared/ui/chat-view";
 import { ImageViewing } from "@shared/ui/image-viewing";
 import { observer } from "mobx-react-lite";
-import React, { FC, useState } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import React, { FC } from "react";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { AttachmentPickerSheet } from "./AttachmentPickerSheet";
 import { ChatSettingsModal } from "./ChatSettingsModal";
@@ -20,29 +11,21 @@ import { PollDetailModal } from "./PollDetailModal";
 import { useChatRoomMock } from "./useChatRoomMock";
 
 /**
- * Демо-экран нативного чата. Полностью на моках (см. useChatRoomMock) —
- * ни API, ни сокет не используются. Открывается как экран стека
- * (`Chat`) кнопкой со страницы Playground, без списка диалогов — задача
- * экрана только показать возможности нативного ChatView-компонента.
+ * Демо-экран чата. Полностью на моках (см. useChatRoomMock) — ни API, ни
+ * сокет не используются. Открывается как экран стека (`Chat`) кнопкой со
+ * страницы Playground, без списка диалогов — задача экрана только показать
+ * возможности компонента ChatView.
  */
 export const ChatRoom: FC = observer(() => {
-  const { isDark } = useTheme();
-
-  const [useNative, setUseNative] = useState(false);
-
-  const Chat = useNative ? NativeChatView : JsChatView;
-
   const {
     chatDisplayName,
     typingText,
     isRefreshing,
     subtitle,
     messages,
-    nativeMessages,
+    chatMessages,
     initialScrollAnchor,
     chatRef,
-    chatFeatures,
-    updateFeature,
     isScrollRestoreEnabled,
     onScrollRestoreToggle,
     inputAction,
@@ -120,35 +103,10 @@ export const ChatRoom: FC = observer(() => {
         </Navbar.Right>
       </Navbar>
 
-      <Row
-        ph={16}
-        pv={6}
-        alignItems={"center"}
-        justifyContent={"space-between"}
-      >
-        <Col flexShrink={1} pr={12}>
-          <Text textStyle={"Body_M1"}>
-            {"Нативная реализация (RNChatView)"}
-          </Text>
-          <Text textStyle={"Caption_M2"} color={"textSecondary"}>
-            {Platform.OS === "ios"
-              ? useNative
-                ? "Сейчас: нативная (iOS)"
-                : "Сейчас: React Native (@legendapp/list)"
-              : "На этой платформе доступна только React Native-реализация"}
-          </Text>
-        </Col>
-        <Switch
-          isActive={useNative}
-          disabled={Platform.OS !== "ios"}
-          onChange={setUseNative}
-        />
-      </Row>
-
-      <Chat
+      <ChatView
         ref={chatRef}
         style={styles.chat}
-        messages={nativeMessages}
+        messages={chatMessages}
         initialScrollAnchor={initialScrollAnchor}
         getActionsForMessage={getActionsForMessage}
         inputAction={inputAction}
@@ -158,10 +116,6 @@ export const ChatRoom: FC = observer(() => {
         isLoadingTop={false}
         isLoadingBottom={false}
         isLoadingFab={isReturningToLatest}
-        theme={isDark ? "dark" : "light"}
-        features={chatFeatures}
-        collectionInsetTop={0}
-        collectionInsetBottom={0}
         onSendMessage={handleSendMessage}
         onEditMessage={handleEditMessage}
         onCancelInputAction={handleCancelInputAction}
@@ -213,8 +167,6 @@ export const ChatRoom: FC = observer(() => {
 
       <ChatSettingsModal
         ref={settingsSheetRef}
-        features={chatFeatures}
-        onUpdate={updateFeature}
         isScrollRestoreEnabled={isScrollRestoreEnabled}
         onScrollRestoreToggle={onScrollRestoreToggle}
       />

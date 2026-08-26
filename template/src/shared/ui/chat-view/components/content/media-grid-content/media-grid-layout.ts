@@ -1,10 +1,14 @@
-import { IChatLayout } from "../../../config";
 import { IChatMediaItem } from "../../../content";
 
 /** Раскладка сетки вложений: высоты и фреймы ячеек. */
 
 /** Максимум ячеек в сетке; остальные прячутся под оверлей «+N». */
 export const MEDIA_GRID_MAX_VISIBLE = 4;
+
+/** Пределы высоты вложения и зазор между ячейками сетки. */
+const IMAGE_MIN_HEIGHT = 100;
+const IMAGE_MAX_HEIGHT = 280;
+const GRID_SPACING = 2;
 
 export interface IMediaGridFrame {
   x: number;
@@ -17,7 +21,6 @@ export interface IMediaGridFrame {
 export const mediaGridHeight = (
   media: IChatMediaItem[],
   width: number,
-  layout: IChatLayout,
 ): number => {
   if (media.length === 0) return 0;
 
@@ -26,15 +29,15 @@ export const mediaGridHeight = (
 
     if (item.width && item.height && item.width > 0) {
       return Math.min(
-        Math.max((width * item.height) / item.width, layout.imageMinHeight),
-        layout.imageMaxHeight,
+        Math.max((width * item.height) / item.width, IMAGE_MIN_HEIGHT),
+        IMAGE_MAX_HEIGHT,
       );
     }
 
-    return layout.imageMinHeight;
+    return IMAGE_MIN_HEIGHT;
   }
 
-  return Math.min(width * 0.75, layout.imageMaxHeight);
+  return Math.min(width * 0.75, IMAGE_MAX_HEIGHT);
 };
 
 /** Прямоугольники ячеек для 1/2/3/4+ вложений. */
@@ -42,9 +45,8 @@ export const mediaGridFrames = (
   count: number,
   width: number,
   height: number,
-  spacing: number,
 ): IMediaGridFrame[] => {
-  const s = spacing;
+  const s = GRID_SPACING;
 
   switch (count) {
     case 1:

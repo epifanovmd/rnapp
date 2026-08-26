@@ -1,7 +1,13 @@
 import {
+  CONTEXT_MENU_ACTION_ITEM_HEIGHT,
   CONTEXT_MENU_ACTION_SEPARATOR_HEIGHT,
+  CONTEXT_MENU_EMOJI_ITEM_SIZE,
   CONTEXT_MENU_EMOJI_PANEL_PADDING,
-  IContextMenuTheme,
+  CONTEXT_MENU_PANEL_GAP,
+  CONTEXT_MENU_SCREEN_PAD_H,
+  CONTEXT_MENU_SCREEN_PAD_V,
+  CONTEXT_MENU_SNAP_OPEN_SHIFT,
+  CONTEXT_MENU_WIDTH,
 } from "../config";
 import {
   IContextMenuInsets,
@@ -39,7 +45,6 @@ export interface IContextMenuLayoutInput {
   actionsSize: IContextMenuSize;
   screen: IContextMenuSize;
   safeArea: IContextMenuInsets;
-  theme: IContextMenuTheme;
 }
 
 const ZERO_RECT: IContextMenuRect = { x: 0, y: 0, width: 0, height: 0 };
@@ -49,26 +54,25 @@ const clamp = (v: number, lo: number, hi: number) =>
 
 export const emojiPanelPreferredSize = (
   emojiCount: number,
-  theme: IContextMenuTheme,
 ): IContextMenuSize =>
   emojiCount > 0
     ? {
         width:
-          emojiCount * theme.emojiItemSize +
+          emojiCount * CONTEXT_MENU_EMOJI_ITEM_SIZE +
           CONTEXT_MENU_EMOJI_PANEL_PADDING * 2,
-        height: theme.emojiItemSize + CONTEXT_MENU_EMOJI_PANEL_PADDING * 2,
+        height:
+          CONTEXT_MENU_EMOJI_ITEM_SIZE + CONTEXT_MENU_EMOJI_PANEL_PADDING * 2,
       }
     : { width: 0, height: 0 };
 
 export const actionsPanelPreferredSize = (
   actionCount: number,
-  theme: IContextMenuTheme,
 ): IContextMenuSize =>
   actionCount > 0
     ? {
-        width: theme.menuWidth,
+        width: CONTEXT_MENU_WIDTH,
         height:
-          actionCount * theme.actionItemHeight +
+          actionCount * CONTEXT_MENU_ACTION_ITEM_HEIGHT +
           Math.max(0, actionCount - 1) * CONTEXT_MENU_ACTION_SEPARATOR_HEIGHT,
       }
     : { width: 0, height: 0 };
@@ -80,15 +84,14 @@ export const calculateContextMenuLayout = ({
   actionsSize,
   screen,
   safeArea,
-  theme,
 }: IContextMenuLayoutInput): IContextMenuLayout => {
   const hasEmoji = emojiSize.height > 0;
   const hasActions = actionsSize.height > 0;
 
-  const hPad = theme.horizontalPadding;
-  const vPad = theme.verticalPadding;
-  const eGap = hasEmoji ? theme.emojiPanelSpacing : 0;
-  const mGap = hasActions ? theme.menuSpacing : 0;
+  const hPad = CONTEXT_MENU_SCREEN_PAD_H;
+  const vPad = CONTEXT_MENU_SCREEN_PAD_V;
+  const eGap = hasEmoji ? CONTEXT_MENU_PANEL_GAP : 0;
+  const mGap = hasActions ? CONTEXT_MENU_PANEL_GAP : 0;
 
   const snapW = snapSize.width;
   const snapH = snapSize.height;
@@ -110,7 +113,11 @@ export const calculateContextMenuLayout = ({
   const shift =
     Math.abs(marginDiff) < 1
       ? 0
-      : clamp(marginDiff * 0.15, -theme.snapOpenShift, theme.snapOpenShift);
+      : clamp(
+          marginDiff * 0.15,
+          -CONTEXT_MENU_SNAP_OPEN_SHIFT,
+          CONTEXT_MENU_SNAP_OPEN_SHIFT,
+        );
   const snapX = sourceFrame.x + shift;
   const emojiX = hasEmoji
     ? clamp(snapX + snapW - emojiW, hPad, screen.width - emojiW - hPad)

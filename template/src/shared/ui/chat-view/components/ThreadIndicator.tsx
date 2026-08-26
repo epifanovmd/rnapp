@@ -19,7 +19,7 @@ interface IThreadIndicatorProps {
 
 export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
   ({ messageId, thread }) => {
-    const { theme, layout, styles, actions } = useChatViewContext();
+    const { colors, styles, actions } = useChatViewContext();
 
     const handlePress = useCallback(
       () => actions.current?.onThreadTap(messageId, thread.threadId),
@@ -30,8 +30,8 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
       <Pressable style={styles.shared.threadRow} onPress={handlePress}>
         <ChatIcon
           name="bubble.left.and.bubble.right"
-          size={layout.threadBarIconSize}
-          color={theme.threadBarIcon}
+          size={14}
+          color={colors.threadBarIcon}
         />
         <ChatText style={styles.shared.threadText}>
           {threadReplyCountLabel(thread.replyCount)}
@@ -46,8 +46,8 @@ export const ThreadIndicator: FC<IThreadIndicatorProps> = memo(
         )}
         <ChatIcon
           name="chevron.right"
-          size={layout.threadBarChevronSize}
-          color={withOpacity(theme.threadBarText, 0.4)}
+          size={10}
+          color={withOpacity(colors.threadBarText, 0.4)}
           strokeWidth={3}
         />
       </Pressable>

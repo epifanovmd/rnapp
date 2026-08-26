@@ -1,16 +1,11 @@
 ---
 name: Native Modules (iOS & Android)
-description: Нативные модули и JS-порты чата; keyboard compensation
+description: Нативные модули; архитектура чата; keyboard compensation
 type: project
 ---
 
 ## Нативные модули
 
-- **ChatView / InputBar / ContextMenu** — iOS-бриджи (`ios/{ChatView,InputBar,ContextMenu}/Bridge/`,
-  3 файла каждый). UI — во внешнем поде **`IOSChatView`**
-  (`ios/Podfile`: `pod 'IOSChatView', :path => '../../../rn-chat-view'` — sibling repo).
-  Android-native нет — на Android/non-iOS работают JS-порты
-  `JsChatView`/`JsInputBar`/`JsContextMenuView`.
 - **WheelPicker** (`RNWheelPicker`) — колесо выбора на обеих платформах, один нативный вью =
   одна колонка. Единый API — спека `shared/ui/picker/native/NativeWheelPickerSpec.ts`.
   iOS: `ios/Picker/` — Swift/UIKit, `UICollectionView` + кастомный `UICollectionViewFlowLayout`
@@ -128,22 +123,35 @@ type: project
   камеры как «undefined is not a function»; общий хелпер выносится наверх.
   module-scope RegExp не сериализуется в worklet-рантайм
   (объект без методов) — литералы только внутри тел функций.
-- **Fabric-спеки**: `NativeChatViewSpec`/`NativeInputBarSpec`/`NativeContextMenuViewSpec`/
-  `NativeWheelPickerSpec`; `codegenConfig` name `"RNChatViewSpec"`, `jsSrcsDir: "src"` —
-  одна библиотека на все спеки. Имена файлов фиксированы RN (исключение в `eslint.naming.mjs`).
-  Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager` через interop-слой New Arch.
-- **InputBar**: высота приходит через `onHeightChange`, хост применяет к style.
+- **Fabric-спеки**: осталась одна — `NativeWheelPickerSpec`; `codegenConfig` name
+  `"RNAppSpec"`, `jsSrcsDir: "src"`. Имя файла фиксировано RN (исключение в
+  `eslint.naming.mjs`). Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager`
+  через interop-слой New Arch.
 
-## JS-архитектура чата (`shared/ui/chat-view/`)
+## Архитектура чата (`shared/ui/chat-view/`)
+
+ChatView, InputBar и ContextMenuView — обычные React-компоненты
+(`shared/ui/chat-view/ChatView.tsx`, `shared/ui/input-bar/InputBar.tsx`,
+`shared/ui/context-menu-view/ContextMenuView.tsx`), нативного кода у них нет.
+Публичный контракт чата — `shared/ui/chat-view/types.ts`.
 
 Слои: `types → utils → config → data → services → model → hooks → components`.
 
-- `model/` — контекст чата и стор подсветки.
-- `config/chat-styles.ts` — `createChatStyles(theme, layout)`, прекомпиляция стилей ячейки.
-- `config/` — `IChatLayout` (метрики чата). Метрики панели ввода — `IInputBarLayout` в `input-bar`.
+Оформление и поведение снаружи не настраиваются: пропов `theme`/`layout`/
+`features` нет, метрики — литералы в стилях и компонентах. Публичный контракт —
+`types.ts` (доменная модель + пропсы); коллбэки принимают обычные аргументы,
+объектов-событий нет.
+
+- `model/` — контекст чата (палитра, стили, действия ячейки, подсветка).
+- `config/chat-colors.ts` — `CHAT_COLORS` (light/dark), выбор по `useTheme().isDark`.
+- `config/chat-styles.ts` — `CHAT_SKIN`: стили ячейки, собранные на палитру один раз.
 - `data/` — разбор + кеш идентичности (`message-parser.ts`, `chat-rows.ts`).
 - `hooks/` — по хуку на ответственность.
 - `services/` — `voice-player.ts`.
+
+Панель ввода и контекстное меню устроены так же: `input-bar/config`
+(`INPUT_BAR_COLORS`, `inputBarSkin`, `useInputBarSkin`) и
+`context-menu-view/config` (`CONTEXT_MENU_COLORS`, `contextMenuSkin`).
 
 ### Что делегировано LegendList
 
@@ -158,10 +166,10 @@ type: project
 
 Ручные JS-аналоги не допускаются.
 
-- **Аватары**: статические в ячейке; `avatarColumn` — спейсер, `ChatAvatar` — absolute.
-  Отступ аватар→пузырь = cellHMargin + avatarBubbleSpacing.
-- **Пузырь**: `minHeight: cellMinHeight - cellVSpacing`, pinned top+bottom ячейки.
-- **`features.disintegrationEnabled`** — только iOS. `JsChatView` игнорирует.
+- **Аватары**: статические в ячейке; `avatarColumn` — спейсер (`CHAT_AVATAR_SLOT_WIDTH`),
+  `ChatAvatar` — absolute.
+- **Пузырь**: `minHeight` на 2px меньше высоты ячейки, pinned — свои отступы.
+- **Распад строки** при удалении — `ChatRowCollapse` поверх `disintegrate`.
 
 ## Keyboard compensation (`shared/lib/keyboard/`)
 

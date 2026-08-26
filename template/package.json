@@ -5,6 +5,8 @@
   "license": "MIT",
   "scripts": {
     "reinstall": "watchman watch-del-all && rm -rf node_modules/ && yarn && cd ios && pod install && cd ..",
+    "postinstall": "node scripts/restore-native-libs.mjs",
+    "restore:native": "node scripts/restore-native-libs.mjs --force",
     "generate:orval": "orval --config ./orval.config.ts",
     "splash": "node scripts/splash/generate.mjs",
     "start": "react-native start --reset-cache",
@@ -140,11 +142,11 @@
     "*.{js,jsx,mjs,cjs,json,css,md,html,yml,yaml}": "prettier --write"
   },
   "codegenConfig": {
-    "name": "RNChatViewSpec",
+    "name": "RNAppSpec",
     "type": "components",
     "jsSrcsDir": "src",
     "android": {
-      "javaPackageName": "com.rnapp.rnchatview"
+      "javaPackageName": "com.rnapp.spec"
     }
   }
 }

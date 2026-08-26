@@ -32,7 +32,6 @@ export const ContextMenuHost = memo(() => {
   return (
     <ContextMenuOverlay
       session={request.session}
-      theme={request.theme}
       sourceStyle={request.sourceStyle}
       onShown={request.onShown}
       onClosed={handleClosed}

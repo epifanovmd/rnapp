@@ -37,7 +37,7 @@ Dialog.Host в App.tsx; свайп/бэкдроп/hardware-back, slide|fade|scal
 и `ICON_NAMES` выводятся; кастомная SVG — компонент по контракту `IIconGlyphProps`
 (size/color, пример `icons/CheckBold.tsx`) + строка в реестре; пропы size/color/strokeWidth),
 picker (нативный
-WheelPicker), chart (Skia), flex-view, context-menu-view (JS-порт на Reanimated,
+WheelPicker), chart (Skia), flex-view, context-menu-view (Reanimated,
 синглтон Host в App.tsx), image-viewing (свой fullscreen-вьюер: Reanimated + **hook-API RNGH v3**
 (`usePinchGesture`/`usePanGesture`/... — builder `Gesture.*` в v3 деприкейтнут) — pinch с
 фокальной привязкой/rubber за maxScale/ре-анкеровкой при смене пальцев, pan c инерцией,
@@ -108,4 +108,8 @@ JSX-маркеры перекрывают. Примеры — `shared/ui/navbar/
 `shared/ui/bottom-sheet/`. Детали — `shared/lib/slots/README.md`.
 
 Chat: `widgets/chat-room/` — `ChatRoom.tsx` (мок-данные, `useChatRoomMock`).
-ChatView/InputBar — `shared/ui/chat-view`, `shared/ui/input-bar` (iOS → native, иначе JS-порты).
+ChatView/InputBar/ContextMenuView — `shared/ui/chat-view`, `shared/ui/input-bar`,
+`shared/ui/context-menu-view`: обычные React-компоненты, нативного кода нет.
+Снаружи не конфигурируются: ни `theme`, ни `layout`, ни `features` — палитра
+выбирается по `useTheme().isDark`, метрики зашиты в стили. Коллбэки принимают
+обычные аргументы (`onSendMessage(text, replyToId)`), не объекты-события.

@@ -2,20 +2,20 @@ import { useListScrollSize } from "@legendapp/list/react-native";
 import React, { FC, memo, useCallback, useMemo } from "react";
 import { View, ViewStyle } from "react-native";
 
-import { JsContextMenuView } from "../../../context-menu-view/JsContextMenuView";
+import { ContextMenuView } from "../../../context-menu-view/ContextMenuView";
+import { CHAT_AVATAR_SLOT_WIDTH } from "../../config";
 import { IParsedChatMessage, IResolvedReply } from "../../data";
 import { ChatViewContext, useChatViewContext } from "../../model";
 import { ChatAvatar } from "../ChatAvatar";
 import { MessageBubble } from "../MessageBubble";
 import { HighlightOverlay } from "./HighlightOverlay";
 
-/**
- * Ячейка сообщения: выравнивание пузыря по ownership, место под аватар,
- * контекстное меню по долгому нажатию и подсветка `scrollToMessage`.
- *
- * Ширину списка получает через `useListScrollSize`, чтобы не держать её
- * в React-состоянии корня чата.
- */
+/** Доля ширины списка, которую занимает самый широкий пузырь. */
+const BUBBLE_MAX_WIDTH_RATIO = 0.85;
+
+/** Быстрые реакции контекстного меню сообщения. */
+const CHAT_EMOJI_REACTIONS = ["❤️", "👍", "😂", "😮", "😢", "🙏"];
+
 interface IMessageCellProps {
   message: IParsedChatMessage;
   resolvedReply?: IResolvedReply;
@@ -24,30 +24,34 @@ interface IMessageCellProps {
   bubbleless: boolean;
 }
 
+/**
+ * Ячейка сообщения: выравнивание пузыря по ownership, место под аватар,
+ * контекстное меню по долгому нажатию и подсветка `scrollToMessage`.
+ *
+ * Ширину списка получает через `useListScrollSize`, чтобы не держать её
+ * в React-состоянии корня чата.
+ */
 export const MessageCell: FC<IMessageCellProps> = memo(
   ({ message, resolvedReply, showSenderName, showAvatar, bubbleless }) => {
     const chatContext = useChatViewContext();
-    const { theme, layout, features, styles, actions } = chatContext;
+    const { styles, actions } = chatContext;
 
     const { width: listWidth } = useListScrollSize();
 
     const messageId = message.id;
     const ownStyles = styles.byOwnership[message.ownership];
 
-    const reservesAvatar =
-      features.showAvatars && message.ownership === "theirs";
-    const avatarSpace = reservesAvatar ? styles.shared.avatarSlotWidth : 0;
+    const reservesAvatar = message.ownership === "theirs";
+    const avatarSpace = reservesAvatar ? CHAT_AVATAR_SLOT_WIDTH : 0;
     const maxBubbleWidth =
-      Math.max(listWidth, 1) * layout.bubbleMaxWidthRatio - avatarSpace;
+      Math.max(listWidth, 1) * BUBBLE_MAX_WIDTH_RATIO - avatarSpace;
 
     const bubbleWrapStyle = useMemo<ViewStyle>(
       () => ({ maxWidth: maxBubbleWidth }),
       [maxBubbleWidth],
     );
 
-    const menuEnabled =
-      features.contextMenuEnabled &&
-      (features.emojiReactions.length > 0 || message.actions.length > 0);
+    const menuEnabled = message.actions.length > 0;
 
     // Делегат живёт в ref и не меняется — обработчики стабильны, меню не
     // пересоздаётся на каждый рендер ячейки.
@@ -56,12 +60,11 @@ export const MessageCell: FC<IMessageCellProps> = memo(
       [actions, messageId],
     );
     const handleMenuEmojiSelect = useCallback(
-      ({ emoji }: { emoji: string }) =>
-        actions.current?.onEmojiSelect(emoji, messageId),
+      (emoji: string) => actions.current?.onEmojiSelect(emoji, messageId),
       [actions, messageId],
     );
     const handleMenuActionSelect = useCallback(
-      ({ actionId }: { actionId: string }) =>
+      (actionId: string) =>
         actions.current?.onActionSelect(actionId, messageId),
       [actions, messageId],
     );
@@ -82,16 +85,13 @@ export const MessageCell: FC<IMessageCellProps> = memo(
 
     return (
       <View style={ownStyles.cell}>
-        {/* Пустой спейсер под аватар — сдвигает пузырь так же, как native-реализация. */}
+        {/* Пустой спейсер под аватар — сдвигает пузырь вправо. */}
         {reservesAvatar && <View style={styles.shared.avatarColumn} />}
         <View style={bubbleWrapStyle}>
           {menuEnabled ? (
-            <JsContextMenuView
-              menuId={messageId}
-              emojis={features.emojiReactions}
+            <ContextMenuView
+              emojis={CHAT_EMOJI_REACTIONS}
               actions={message.actions}
-              theme={theme.isDark ? "dark" : "light"}
-              minimumPressDuration={layout.longPressDuration}
               onWillShow={handleMenuWillShow}
               onEmojiSelect={handleMenuEmojiSelect}
               onActionSelect={handleMenuActionSelect}
@@ -101,7 +101,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
               <ChatViewContext.Provider value={chatContext}>
                 {bubble}
               </ChatViewContext.Provider>
-            </JsContextMenuView>
+            </ContextMenuView>
           ) : (
             bubble
           )}
@@ -113,7 +113,7 @@ export const MessageCell: FC<IMessageCellProps> = memo(
             <ChatAvatar
               name={message.senderName!}
               url={message.senderAvatarUrl}
-              size={layout.avatarSize}
+              size={36}
             />
           </View>
         )}

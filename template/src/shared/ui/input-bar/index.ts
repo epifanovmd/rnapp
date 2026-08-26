@@ -1,7 +1,6 @@
 export * from "./components";
 export * from "./config";
 export * from "./InputBar";
-export * from "./JsInputBar";
 export * from "./KeyboardInputBar";
 export * from "./model";
 export * from "./services";

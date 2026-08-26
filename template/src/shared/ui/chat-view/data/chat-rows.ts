@@ -1,4 +1,3 @@
-import { IChatFeatures } from "../config";
 import type { ChatContentRegistry } from "../content";
 import {
   IParsedChatMessage,
@@ -84,16 +83,14 @@ const messageItemType = (
 const isBubbleless = (
   message: IParsedChatMessage,
   showSenderName: boolean,
-  features: IChatFeatures,
 ): boolean =>
   message.body.emojiCount != null &&
   !showSenderName &&
-  !(features.showReplyPreview && message.reply != null) &&
-  !(features.showForwardedMark && message.forwardedFrom != null);
+  message.reply == null &&
+  message.forwardedFrom == null;
 
 export interface IBuildChatRowsInput {
   messages: IParsedChatMessage[];
-  features: IChatFeatures;
   showBottomLoading: boolean;
   /** Скрыть первый разделитель, пока сверху крутится спиннер. */
   hideFirstSeparator: boolean;
@@ -140,19 +137,6 @@ const fullyRemovedGroups = (
  * сообщение, сообщение-оригинал цитаты или настройки. Иначе возвращается тот же
  * объект, и список не трогает соответствующий контейнер.
  */
-/**
- * Слепок настроек, влияющих на содержимое строк.
- * Инвалидация по всему `features` недопустима — хост может передать новый объект,
- * и кеш всех строк обнулится. Остальные флаги (FAB, input bar, ...) на строки не влияют.
- */
-const rowRelevantFeatures = (features: IChatFeatures): string =>
-  [
-    features.senderNameMode,
-    features.showAvatars,
-    features.showReplyPreview,
-    features.showForwardedMark,
-  ].join("|");
-
 export interface IBuildChatRowsResult {
   rows: ChatRow[];
   stickyIndices: number[];
@@ -163,7 +147,6 @@ export class ChatRowsBuilder {
   private readonly _contentTypes: ChatContentRegistry;
   private _messageRows = new Map<string, IMessageRowCacheEntry>();
   private _separatorRows = new Map<string, ChatRow>();
-  private _featuresKey: string | null = null;
   private _indexSource: IParsedChatMessage[] | null = null;
   private _messageIndex = new Map<string, IParsedChatMessage>();
   private readonly _loadingRow: ChatRow = {
@@ -178,7 +161,6 @@ export class ChatRowsBuilder {
 
   build({
     messages,
-    features,
     showBottomLoading,
     hideFirstSeparator,
     removingKeys,
@@ -187,14 +169,6 @@ export class ChatRowsBuilder {
     const removedGroups = removingKeys
       ? fullyRemovedGroups(messages, removingKeys)
       : null;
-
-    // Кеш недействителен, только если поменялись настройки, влияющие на строку.
-    const featuresKey = rowRelevantFeatures(features);
-
-    if (this._featuresKey !== featuresKey) {
-      this._featuresKey = featuresKey;
-      this._messageRows.clear();
-    }
 
     const rows: ChatRow[] = [];
     // Индексы разделителей уходят в `stickyHeaderIndices` списка: прилипание
@@ -207,7 +181,7 @@ export class ChatRowsBuilder {
     let isFirstSeparator = true;
 
     for (const message of messages) {
-      if (features.showDateSeparators && !seenGroups.has(message.groupDate)) {
+      if (!seenGroups.has(message.groupDate)) {
         seenGroups.add(message.groupDate);
         stickyIndices.push(rows.length);
         rows.push(
@@ -225,7 +199,6 @@ export class ChatRowsBuilder {
         this._messageRow(
           message,
           messageIndex,
-          features,
           removingKeys?.has(chatMessageRowKey(message)) ?? false,
           nextMessageRows,
         ),
@@ -260,7 +233,6 @@ export class ChatRowsBuilder {
   private _messageRow(
     message: IParsedChatMessage,
     messageIndex: Map<string, IParsedChatMessage>,
-    features: IChatFeatures,
     removing: boolean,
     into: Map<string, IMessageRowCacheEntry>,
   ): ChatRow {
@@ -281,15 +253,10 @@ export class ChatRowsBuilder {
       return cached.row;
     }
 
-    const showSenderName = shouldShowSenderName(
-      message,
-      features.senderNameMode,
-    );
+    const showSenderName = shouldShowSenderName(message);
     // Аватар рисуется у каждого входящего сообщения, у которого есть отправитель.
     const showAvatar =
-      features.showAvatars &&
-      message.ownership === "theirs" &&
-      message.senderName != null;
+      message.ownership === "theirs" && message.senderName != null;
 
     const row: ChatRow = {
       type: "message",
@@ -303,7 +270,7 @@ export class ChatRowsBuilder {
       },
       showSenderName,
       showAvatar,
-      bubbleless: isBubbleless(message, showSenderName, features),
+      bubbleless: isBubbleless(message, showSenderName),
       removing,
     };
 

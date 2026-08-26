@@ -10,15 +10,6 @@
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		1A8169DA2D8B10600020AC31 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8169D92D8B10590020AC31 /* AppDelegate.swift */; };
 		1A8368032F13070100FB3432 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1A8368022F13070100FB3432 /* GoogleService-Info.plist */; };
-		1A9476CA2F7DCAF3001D82F5 /* RNChatViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476992F7DCAF3001D82F5 /* RNChatViewManager.m */; };
-		1A9476D12F7DCAF3001D82F5 /* RNChatViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A94769A2F7DCAF3001D82F5 /* RNChatViewManager.swift */; };
-		1A9476E32F7DCAF3001D82F5 /* RNChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9476982F7DCAF3001D82F5 /* RNChatView.swift */; };
-		1A947D472F8031C1001D82F5 /* RNInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A947D432F8031C1001D82F5 /* RNInputBar.swift */; };
-		1A947D482F8031C1001D82F5 /* RNInputBarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A947D452F8031C1001D82F5 /* RNInputBarManager.swift */; };
-		1A947D492F8031C1001D82F5 /* RNInputBarManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A947D442F8031C1001D82F5 /* RNInputBarManager.m */; };
-		1A9C413A2F5AE26E00694F32 /* RNContextMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C41392F5AE26D00694F32 /* RNContextMenuView.swift */; };
-		1A9C413C2F5AE28900694F32 /* RNContextMenuViewManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C413B2F5AE28800694F32 /* RNContextMenuViewManager.swift */; };
-		1A9C413E2F5AE29700694F32 /* RNContextMenuViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 1A9C413D2F5AE29400694F32 /* RNContextMenuViewManager.m */; };
 		1AF66A762985C92A00C0291A /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 1AF66A752985C92A00C0291A /* Config.xcconfig */; };
 		5371459C5F8B543F878ADAE4 /* Pods_rnapp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6CC97F6DEBEB5E6B20C93707 /* Pods_rnapp.framework */; };
 		6B8EDE08DB6C47E9A3C312B9 /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6FC6B77CA1F5423B9554D5D7 /* Colors.xcassets */; };
@@ -32,15 +23,6 @@
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = rnapp/Info.plist; sourceTree = "<group>"; };
 		1A8169D92D8B10590020AC31 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = rnapp/AppDelegate.swift; sourceTree = "<group>"; };
 		1A8368022F13070100FB3432 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		1A9476982F7DCAF3001D82F5 /* RNChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNChatView.swift; sourceTree = "<group>"; };
-		1A9476992F7DCAF3001D82F5 /* RNChatViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNChatViewManager.m; sourceTree = "<group>"; };
-		1A94769A2F7DCAF3001D82F5 /* RNChatViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNChatViewManager.swift; sourceTree = "<group>"; };
-		1A947D432F8031C1001D82F5 /* RNInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNInputBar.swift; sourceTree = "<group>"; };
-		1A947D442F8031C1001D82F5 /* RNInputBarManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNInputBarManager.m; sourceTree = "<group>"; };
-		1A947D452F8031C1001D82F5 /* RNInputBarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNInputBarManager.swift; sourceTree = "<group>"; };
-		1A9C41392F5AE26D00694F32 /* RNContextMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNContextMenuView.swift; sourceTree = "<group>"; };
-		1A9C413B2F5AE28800694F32 /* RNContextMenuViewManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RNContextMenuViewManager.swift; sourceTree = "<group>"; };
-		1A9C413D2F5AE29400694F32 /* RNContextMenuViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RNContextMenuViewManager.m; sourceTree = "<group>"; };
 		1AC1B12A2D94A0FB001F55D3 /* rnapp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "rnapp-Bridging-Header.h"; path = "rnapp/rnapp-Bridging-Header.h"; sourceTree = "<group>"; };
 		1AF66A752985C92A00C0291A /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		6CC97F6DEBEB5E6B20C93707 /* Pods_rnapp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_rnapp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -55,16 +37,22 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		1A881F2A2E47D2E80057B776 /* Picker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = Picker;
 			sourceTree = "<group>";
 		};
 		1AAPPSPLASH2F00000000001 /* AppSplash */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = AppSplash;
 			sourceTree = "<group>";
 		};
 		1AMLMODELS2F000000000001 /* MLModels */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = MLModels;
 			sourceTree = "<group>";
 		};
@@ -85,8 +73,6 @@
 		13B07FAE1A68108700A75B9A /* rnapp */ = {
 			isa = PBXGroup;
 			children = (
-				1A9476C32F7DCAF3001D82F5 /* ChatView */,
-				1A9C41292F5AE0B600694F32 /* ContextMenu */,
 				1A8368022F13070100FB3432 /* GoogleService-Info.plist */,
 				1A881F2A2E47D2E80057B776 /* Picker */,
 				1AAPPSPLASH2F00000000001 /* AppSplash */,
@@ -99,63 +85,8 @@
 				BC02A0B7016748448EED9C9D /* Splash.storyboard */,
 				6FC6B77CA1F5423B9554D5D7 /* Colors.xcassets */,
 				1AC1B12A2D94A0FB001F55D3 /* rnapp-Bridging-Header.h */,
-				1A947D3A2F802EA1001D82F5 /* InputBar */,
 			);
 			name = rnapp;
-			sourceTree = "<group>";
-		};
-		1A94769B2F7DCAF3001D82F5 /* Bridge */ = {
-			isa = PBXGroup;
-			children = (
-				1A9476982F7DCAF3001D82F5 /* RNChatView.swift */,
-				1A9476992F7DCAF3001D82F5 /* RNChatViewManager.m */,
-				1A94769A2F7DCAF3001D82F5 /* RNChatViewManager.swift */,
-			);
-			path = Bridge;
-			sourceTree = "<group>";
-		};
-		1A9476C32F7DCAF3001D82F5 /* ChatView */ = {
-			isa = PBXGroup;
-			children = (
-				1A94769B2F7DCAF3001D82F5 /* Bridge */,
-			);
-			path = ChatView;
-			sourceTree = "<group>";
-		};
-		1A947D3A2F802EA1001D82F5 /* InputBar */ = {
-			isa = PBXGroup;
-			children = (
-				1A947D462F8031C1001D82F5 /* Bridge */,
-			);
-			path = InputBar;
-			sourceTree = "<group>";
-		};
-		1A947D462F8031C1001D82F5 /* Bridge */ = {
-			isa = PBXGroup;
-			children = (
-				1A947D432F8031C1001D82F5 /* RNInputBar.swift */,
-				1A947D442F8031C1001D82F5 /* RNInputBarManager.m */,
-				1A947D452F8031C1001D82F5 /* RNInputBarManager.swift */,
-			);
-			path = Bridge;
-			sourceTree = "<group>";
-		};
-		1A9C41292F5AE0B600694F32 /* ContextMenu */ = {
-			isa = PBXGroup;
-			children = (
-				1A9C412A2F5AE18800694F32 /* Bridge */,
-			);
-			path = ContextMenu;
-			sourceTree = "<group>";
-		};
-		1A9C412A2F5AE18800694F32 /* Bridge */ = {
-			isa = PBXGroup;
-			children = (
-				1A9C413D2F5AE29400694F32 /* RNContextMenuViewManager.m */,
-				1A9C413B2F5AE28800694F32 /* RNContextMenuViewManager.swift */,
-				1A9C41392F5AE26D00694F32 /* RNContextMenuView.swift */,
-			);
-			path = Bridge;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
@@ -307,13 +238,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -328,13 +255,9 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
-			inputPaths = (
-			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-rnapp/Pods-rnapp-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -389,15 +312,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A9C413C2F5AE28900694F32 /* RNContextMenuViewManager.swift in Sources */,
-				1A947D472F8031C1001D82F5 /* RNInputBar.swift in Sources */,
-				1A947D482F8031C1001D82F5 /* RNInputBarManager.swift in Sources */,
-				1A947D492F8031C1001D82F5 /* RNInputBarManager.m in Sources */,
-				1A9C413A2F5AE26E00694F32 /* RNContextMenuView.swift in Sources */,
-				1A9476CA2F7DCAF3001D82F5 /* RNChatViewManager.m in Sources */,
-				1A9476D12F7DCAF3001D82F5 /* RNChatViewManager.swift in Sources */,
-				1A9476E32F7DCAF3001D82F5 /* RNChatView.swift in Sources */,
-				1A9C413E2F5AE29700694F32 /* RNContextMenuViewManager.m in Sources */,
 				1A8169DA2D8B10600020AC31 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

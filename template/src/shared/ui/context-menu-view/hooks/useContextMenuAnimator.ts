@@ -11,7 +11,7 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { IContextMenuTheme } from "../config";
+import { CONTEXT_MENU_PANEL_GAP } from "../config";
 import { CONTEXT_MENU_PANEL_SCALE, IContextMenuLayout } from "../layout";
 import { IContextMenuRect } from "../types";
 
@@ -19,6 +19,12 @@ const EASE_OUT = Easing.bezier(0, 0, 0.58, 1);
 
 const CLOSE_DAMPING = 0.9;
 const CLOSE_VELOCITY = 0.2;
+
+/** Пружина открытия и длительность закрытия (мс). */
+const OPEN_DURATION_MS = 400;
+const OPEN_DAMPING = 0.82;
+const OPEN_VELOCITY = 0.5;
+const CLOSE_DURATION_MS = 260;
 
 interface ISpringSpec {
   durationMs: number;
@@ -64,7 +70,6 @@ export interface IContextMenuAnimator {
 
 export const useContextMenuAnimator = (
   layout: IContextMenuLayout,
-  theme: IContextMenuTheme,
   sourceFrame: IContextMenuRect,
 ): IContextMenuAnimator => {
   const {
@@ -94,20 +99,19 @@ export const useContextMenuAnimator = (
   const closeProgress = useSharedValue(0);
 
   const animateOpen = useCallback(() => {
-    const durationMs = theme.openDuration * 1000;
     const open: ISpringSpec = {
-      durationMs,
-      dampingRatio: theme.springDamping,
-      normalizedVelocity: theme.springVelocity,
+      durationMs: OPEN_DURATION_MS,
+      dampingRatio: OPEN_DAMPING,
+      normalizedVelocity: OPEN_VELOCITY,
     };
 
     const openEmoji: ISpringSpec = {
       ...open,
-      dampingRatio: theme.springDamping - 0.1,
+      dampingRatio: OPEN_DAMPING - 0.1,
     };
 
     backdropAlpha.value = withTiming(1, {
-      duration: durationMs * 0.55,
+      duration: OPEN_DURATION_MS * 0.55,
       easing: EASE_OUT,
     });
 
@@ -127,7 +131,6 @@ export const useContextMenuAnimator = (
     }
   }, [
     layout,
-    theme,
     backdropAlpha,
     snapDx,
     snapDy,
@@ -142,7 +145,7 @@ export const useContextMenuAnimator = (
   const animateClose = useCallback(
     (onFinished: () => void) => {
       const close: ISpringSpec = {
-        durationMs: theme.closeDuration * 1000,
+        durationMs: CLOSE_DURATION_MS,
         dampingRatio: CLOSE_DAMPING,
         normalizedVelocity: CLOSE_VELOCITY,
       };
@@ -163,7 +166,7 @@ export const useContextMenuAnimator = (
 
       if (layout.hasEmoji) {
         const emojiCloseY =
-          returnY - emojiTarget.height - theme.emojiPanelSpacing;
+          returnY - emojiTarget.height - CONTEXT_MENU_PANEL_GAP;
 
         springTo(emojiDy, emojiCloseY - emojiTarget.y, close);
         springTo(emojiScale, CONTEXT_MENU_PANEL_SCALE, close);
@@ -171,7 +174,8 @@ export const useContextMenuAnimator = (
       }
 
       if (layout.hasActions) {
-        const actionsCloseY = returnY + snapTarget.height + theme.menuSpacing;
+        const actionsCloseY =
+          returnY + snapTarget.height + CONTEXT_MENU_PANEL_GAP;
 
         springTo(actionsDy, actionsCloseY - actionsTarget.y, close);
         springTo(actionsScale, CONTEXT_MENU_PANEL_SCALE, close);
@@ -180,7 +184,6 @@ export const useContextMenuAnimator = (
     },
     [
       layout,
-      theme,
       sourceFrame,
       snapTarget,
       emojiTarget,

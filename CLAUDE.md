@@ -63,14 +63,26 @@ npm run android:build          # assembleProductionRelease
 npm run lint | lint:fix | prettier:fix
 npm run generate:orval         # перегенерировать shared/api/gen/
 npm run start | reinstall
+npm run restore:native         # бинарники Skia/AudioAPI после yarn install
 ```
 
 Нет scaffolder'а — файлы создаются вручную.
 
+## Чат
+
+ChatView, InputBar и ContextMenuView (`shared/ui/chat-view`, `shared/ui/input-bar`,
+`shared/ui/context-menu-view`) — обычные React-компоненты. Внешней настройки
+оформления и поведения нет: палитра light/dark выбирается по `useTheme().isDark`,
+метрики — литералы в стилях; коллбэки принимают обычные аргументы, а не
+объекты-события.
+
+`ChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
+`stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,
+`maintainScrollAtEnd`. Ручные JS-аналоги геометрии/якорей не допускаются.
+Детали: `.claude/memory/project_native.md`.
+
 ## Нативные модули
 
-ChatView/InputBar/ContextMenu — iOS-бриджи к поду `IOSChatView` (sibling repo
-`../../../rn-chat-view`). Android/non-iOS — JS-порты (`JsChatView`/`JsInputBar`/`JsContextMenuView`).
 WheelPicker (`RNWheelPicker`) — на обеих платформах, единый API из одной codegen-спеки:
 iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
 AppSplash — свой splash-экран на обеих платформах, ассеты генерируются `npm run splash`
@@ -82,11 +94,6 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
 `template/ios/MLModels/` и `template/android/app/src/main/assets/`
 (см. README в этих папках); без модели OCR работает полнокадрово.
 
-`JsChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
-`stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,
-`maintainScrollAtEnd`. Ручные JS-аналоги геометрии/якорей не допускаются.
-Детали: `.claude/memory/project_native.md`.
-
 ## Где читать
 
 - **Архитектура**: [`ARCHITECTURE.md`](ARCHITECTURE.md) — FSD, зависимости, naming, DI, state,
@@ -97,7 +104,7 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
   hooks, комментарии, тесты и проверки.
 - **Clean code**: [`CLEAN-CODE.md`](CLEAN-CODE.md) и
   [`DESIGN-PRINCIPLES.md`](DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
-- Нативные модули / chat-view / keyboard: `.claude/memory/project_native.md`
+- Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
 - UI-кит: `.claude/memory/project_components.md`
 - Экраны / навигация: `.claude/memory/project_screens.md`
 - Паттерны: `.claude/memory/project_patterns.md`

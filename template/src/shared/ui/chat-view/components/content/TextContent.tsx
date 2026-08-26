@@ -14,12 +14,12 @@ interface ITextContentProps {
 }
 
 export const TextContent: FC<ITextContentProps> = memo(({ message }) => {
-  const { features, styles, actions } = useChatViewContext();
+  const { styles, actions } = useChatViewContext();
 
   const s = styles.byOwnership[message.ownership];
   const { text, textSegments } = message.body;
 
-  if (!features.linkDetectionEnabled || !textSegments) {
+  if (!textSegments) {
     return <ChatText style={s.text}>{text}</ChatText>;
   }
 

@@ -1,4 +1,3 @@
-import { CHAT_DEFAULT_FEATURES, IChatFeatures } from "../config";
 import { EMPTY_CHAT_CONTENT_REGISTRY } from "../content";
 import { IParsedChatMessage } from "./chat-message";
 import { ChatRow, ChatRowsBuilder } from "./chat-rows";
@@ -31,7 +30,6 @@ export interface IChatData {
 }
 
 export interface IBuildChatDataOptions {
-  features: IChatFeatures;
   showBottomLoading: boolean;
   hideFirstSeparator: boolean;
   /**
@@ -49,7 +47,6 @@ export const buildChatData = (
   builder: ChatRowsBuilder,
   messages: IParsedChatMessage[],
   {
-    features,
     showBottomLoading,
     hideFirstSeparator,
     rowMessages,
@@ -58,7 +55,6 @@ export const buildChatData = (
 ): IChatData => {
   const { rows, stickyIndices, messageIndex } = builder.build({
     messages: rowMessages ?? messages,
-    features,
     showBottomLoading,
     hideFirstSeparator,
     removingKeys,
@@ -88,7 +84,6 @@ export const EMPTY_CHAT_DATA: IChatData = buildChatData(
   new ChatRowsBuilder(EMPTY_CHAT_CONTENT_REGISTRY),
   [],
   {
-    features: CHAT_DEFAULT_FEATURES,
     showBottomLoading: false,
     hideFirstSeparator: false,
   },

@@ -14,7 +14,24 @@ npm run prettier:fix           # Prettier src/**/*.ts,tsx
 npm run generate:orval         # orval → shared/api/gen/
 npm run check-packages-updates # yarn outdated
 npm run clean:android          # cd android && ./gradlew clean
+npm run restore:native         # перезалить бинарники Skia и AudioAPI (--force)
 ```
+
+### Предсобранные бинарники (`scripts/restore-native-libs.mjs`)
+
+Skia и AudioAPI держат бинарники вне своих npm-тарболов, поэтому `yarn install`
+их сносит. Скрипт висит на `postinstall` и возвращает всё на место:
+
+- Skia — копирует xcframework'и из `react-native-skia-apple-{ios,macos,tvos}` в
+  `@shopify/react-native-skia/libs/<platform>` и штампует `.version`; podspec
+  делает то же самое на `pod install` и при совпадении версии копию пропускает.
+  Android-бинарники gradle читает прямо из `react-native-skia-android`.
+- AudioAPI — запускает `scripts/download-prebuilt-binaries.sh` пакета для ios и
+  android (ffmpeg/opus/vorbis в `common/cpp/audioapi/external`, `.so` в
+  `android/src/main/jniLibs`); иначе это делают podspec и gradle-таск.
+
+Повторный запуск ничего не перекачивает: проверяются `.version` и наличие папок.
+На APFS копирование идёт клонированием (`cp -Rc`) — мгновенно и без расхода места.
 
 ### iOS
 
@@ -77,7 +94,7 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 ## iOS
 
 - `ios/Podfile`: `platform :ios, min_ios_version_supported`, `use_frameworks! :linkage => :static`
-- Подключаемые поды: `react-native-config`, `Firebase/Core`, `Firebase/Messaging`, `DifferenceKit`, `IOSChatView` (sibling repo `../../../rn-chat-view`)
+- Подключаемые поды: `react-native-config`, `Firebase/Core`, `Firebase/Messaging`
 - Пост-инсталл: `react_native_post_install` с `ccache_enabled: true`
 - Разрешённые permissions: только `Notifications`
 - `Info.plist`: `CADisableMinimumFrameDurationOnPhone=true` (ProMotion 120Hz)

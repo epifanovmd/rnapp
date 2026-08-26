@@ -43,26 +43,21 @@ interface IFileContentProps {
 
 export const FileContent: FC<IFileContentProps> = memo(
   ({ file, index, ownership, onPress }) => {
-    const { layout, styles } = useChatViewContext();
+    const { styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const handlePress = useCallback(() => onPress(index), [onPress, index]);
 
     return (
       <Pressable style={s.fileCard} onPress={handlePress}>
-        <View
-          style={[
-            ss.iconBox,
-            { width: layout.fileIconSize, height: layout.fileIconSize },
-          ]}
-        >
+        <View style={ss.iconBox}>
           <ChatIcon
             name={iconForFile(file.name)}
-            size={layout.fileIconPointSize + 6}
+            size={22}
             color={s.fileIconColor}
           />
         </View>
-        <View style={[ss.info, { marginLeft: layout.fileContentSpacing }]}>
+        <View style={ss.info}>
           <ChatText numberOfLines={1} ellipsizeMode="middle" style={s.fileName}>
             {file.name}
           </ChatText>
@@ -76,6 +71,11 @@ export const FileContent: FC<IFileContentProps> = memo(
 FileContent.displayName = "FileContent";
 
 const ss = StyleSheet.create({
-  iconBox: { alignItems: "center", justifyContent: "center" },
-  info: { flex: 1 },
+  iconBox: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+  },
+  info: { flex: 1, marginLeft: 6 },
 });

@@ -8,8 +8,8 @@ import Animated, {
 
 import {
   CONTEXT_MENU_EASING,
+  IContextMenuColors,
   IContextMenuStyles,
-  IContextMenuTheme,
 } from "../../config";
 import { ContextMenuAction } from "../../types";
 import { SfSymbolIcon } from "../SfSymbolIcon";
@@ -18,13 +18,13 @@ import { SfSymbolIcon } from "../SfSymbolIcon";
 
 interface IActionRowProps {
   action: ContextMenuAction;
-  theme: IContextMenuTheme;
+  colors: IContextMenuColors;
   styles: IContextMenuStyles;
   onTap: (action: ContextMenuAction) => void;
 }
 
 export const ActionRow: FC<IActionRowProps> = memo(
-  ({ action, theme, styles, onTap }) => {
+  ({ action, colors, styles, onTap }) => {
     const highlight = useSharedValue(0);
 
     const handlePressIn = useCallback(() => {
@@ -68,8 +68,8 @@ export const ActionRow: FC<IActionRowProps> = memo(
                 name={action.systemImage}
                 color={
                   action.isDestructive
-                    ? theme.actionDestructiveIconColor
-                    : theme.actionIconColor
+                    ? colors.destructiveColor
+                    : colors.iconColor
                 }
               />
             </View>

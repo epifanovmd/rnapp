@@ -15,16 +15,11 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useDisintegrate } from "../../disintegrate";
-import { useChatViewContext } from "../model";
 
 /**
  * Исчезновение строки: распад содержимого, следом схлопывание высоты.
  *
- * Фазы разнесены намеренно, и так же они разнесены в нативной реализации:
- * там удаление применяется к коллекции через `burstDuration` после запуска
- * эмиттера, а частицы летят дальше сами по себе поверх всего чата.
- *
- * Распад лейаут не трогает — он живёт в оверлее провайдера и целиком на
+ * Фазы разнесены намеренно: распад лейаут не трогает — он живёт в оверлее провайдера и целиком на
  * UI-потоке, список о нём не знает. Схлопывание лейаут меняет, и каждый его
  * кадр стоит списку одного `updateItemSize` с пересчётом позиций от этой
  * строки и ниже, поэтому занимает меньшую часть анимации.
@@ -45,13 +40,16 @@ interface IChatRowCollapseProps {
 /** Потолок высоты в покое: `maxHeight` не может быть «не задан». */
 const UNCONSTRAINED_HEIGHT = 100000;
 
+/** Рождение частиц; схлопывание строки идёт следом, а не одновременно (мс). */
+const BURST_MS = 150;
+const COLLAPSE_MS = 180;
+
 /** Мемоизация не нужна: строку уже мемоизирует `ChatRowView`. */
 export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
   rowKey,
   removing,
   children,
 }) => {
-  const { layout, features } = useChatViewContext();
   const { disintegrate, available } = useDisintegrate();
 
   const contentRef = useRef<View>(null);
@@ -78,10 +76,6 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
     [naturalHeight],
   );
 
-  const withParticles = features.disintegrationEnabled && available;
-  const burstMs = layout.messageBurstDelay * 1000;
-  const collapseMs = layout.messageCollapseDuration * 1000;
-
   useEffect(() => {
     if (!removing) {
       // Контейнер достался другой строке — состояние сбрасывается без анимации.
@@ -102,15 +96,15 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
 
     const startCollapse = () => {
       collapse.value = withDelay(
-        burstMs,
+        BURST_MS,
         withTiming(0, {
-          duration: collapseMs,
+          duration: COLLAPSE_MS,
           easing: Easing.inOut(Easing.quad),
         }),
       );
     };
 
-    if (withParticles) {
+    if (available) {
       // Всё после снимка — по его готовности. Прятать раньше нельзя: снимок
       // застанет уже скрытую строку. Схлопывать раньше — тоже: подготовка
       // занимает своё время, и строка начала бы съезжать до вылета частиц,
@@ -120,12 +114,12 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
 
         contentOpacity.value = burst
           ? 0
-          : withTiming(0, { duration: burstMs + collapseMs });
+          : withTiming(0, { duration: BURST_MS + COLLAPSE_MS });
         startCollapse();
       });
     } else {
       contentOpacity.value = withTiming(0, {
-        duration: burstMs + collapseMs,
+        duration: BURST_MS + COLLAPSE_MS,
       });
       startCollapse();
     }
@@ -133,16 +127,7 @@ export const ChatRowCollapse: FC<PropsWithChildren<IChatRowCollapseProps>> = ({
     return () => {
       cancelled = true;
     };
-  }, [
-    rowKey,
-    removing,
-    withParticles,
-    disintegrate,
-    collapse,
-    contentOpacity,
-    burstMs,
-    collapseMs,
-  ]);
+  }, [rowKey, removing, available, disintegrate, collapse, contentOpacity]);
 
   const rowStyle = useAnimatedStyle(() => {
     const value = collapse.value;

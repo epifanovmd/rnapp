@@ -5,7 +5,6 @@ import {
   ChatMessageOwnership,
   ChatMessageStatus,
   ChatReplyRef,
-  ChatSenderNameMode,
   ChatThreadInfo,
 } from "../types";
 import {
@@ -130,19 +129,6 @@ export const parseChatMessage = (
   };
 };
 
-/** Показывать ли имя отправителя. */
-export const shouldShowSenderName = (
-  msg: IParsedChatMessage,
-  mode: ChatSenderNameMode,
-): boolean => {
-  if (msg.senderName == null) return false;
-
-  switch (mode) {
-    case "never":
-      return false;
-    case "incomingOnly":
-      return msg.ownership === "theirs";
-    case "always":
-      return msg.ownership === "mine" || msg.ownership === "theirs";
-  }
-};
+/** Имя отправителя показывается только у входящих сообщений. */
+export const shouldShowSenderName = (msg: IParsedChatMessage): boolean =>
+  msg.senderName != null && msg.ownership === "theirs";

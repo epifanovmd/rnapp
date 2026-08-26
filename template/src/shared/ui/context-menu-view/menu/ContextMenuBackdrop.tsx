@@ -3,25 +3,25 @@ import React, { FC, memo } from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import Animated, { AnimatedStyle } from "react-native-reanimated";
 
-import { IContextMenuStyles, IContextMenuTheme } from "../config";
+import { IContextMenuColors, IContextMenuStyles } from "../config";
 
 /** Затемнение с размытием под меню. */
 
 export interface IContextMenuBackdropProps {
-  theme: IContextMenuTheme;
+  colors: IContextMenuColors;
   styles: IContextMenuStyles;
   animatedStyle: AnimatedStyle<ViewStyle>;
 }
 
 export const ContextMenuBackdrop: FC<IContextMenuBackdropProps> = memo(
-  ({ theme, styles, animatedStyle }) => (
+  ({ colors, styles, animatedStyle }) => (
     <Animated.View
       style={[StyleSheet.absoluteFill, animatedStyle]}
       pointerEvents="none"
     >
       <BlurView
         style={StyleSheet.absoluteFill}
-        blurType={theme.backdropBlurType}
+        blurType={colors.backdropBlurType}
         blurAmount={10}
       />
       <View style={[StyleSheet.absoluteFill, styles.backdropTint]} />

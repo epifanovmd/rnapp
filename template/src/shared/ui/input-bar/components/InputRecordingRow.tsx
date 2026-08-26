@@ -5,8 +5,7 @@ import Animated, {
   useAnimatedStyle,
 } from "react-native-reanimated";
 
-import { useInputBarContext } from "../config";
-import { useRecordingRowAnimation } from "../hooks";
+import { useInputBarSkin, useRecordingRowAnimation } from "../hooks";
 import { formatRecordTimer } from "../utils";
 import { InputIcon } from "./InputIcon";
 
@@ -14,6 +13,9 @@ import { InputIcon } from "./InputIcon";
  * Строка записи: мигающая красная точка, таймер
  * «m:ss,cc» и подсказка «‹ Отмена» с покачиванием.
  */
+
+/** Сдвиг подсказки «Отмена» к центру строки. */
+const SLIDE_HINT_OFFSET = 20;
 
 interface IInputRecordingRowProps {
   duration: number;
@@ -25,18 +27,15 @@ interface IInputRecordingRowProps {
 
 export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
   ({ duration, slideAlpha, slideHidden, onCancelTap }) => {
-    const { theme, layout, styles } = useInputBarContext();
+    const { colors, styles } = useInputBarSkin();
 
     const { dotStyle, slideShift } = useRecordingRowAnimation();
 
-    // Констрейнт slideContainer.centerX == row.centerX + offset:
-    // подсказка центрируется по всей строке, а не по остатку места справа от
+    // Подсказка центрируется по всей строке, а не по остатку места справа от
     // таймера — иначе она уезжает вправо примерно на половину его ширины.
-    const slideOffset = layout.recordSlideHintOffset;
-
     const slideStyle = useAnimatedStyle(() => ({
       opacity: slideHidden ? 0 : slideAlpha.value,
-      transform: [{ translateX: slideOffset + slideShift.value }],
+      transform: [{ translateX: SLIDE_HINT_OFFSET + slideShift.value }],
     }));
 
     return (
@@ -52,7 +51,7 @@ export const InputRecordingRow: FC<IInputRecordingRowProps> = memo(
             <InputIcon
               name="chevron.left"
               size={14}
-              color={theme.inputPlaceholder}
+              color={colors.inputPlaceholder}
               strokeWidth={3}
             />
             <Text style={styles.recordingHintText}>{"Отмена"}</Text>

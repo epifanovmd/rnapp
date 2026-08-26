@@ -1,4 +1,4 @@
-import React, { FC, memo, useMemo } from "react";
+import React, { FC, memo } from "react";
 import { StyleSheet } from "react-native";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
@@ -25,25 +25,18 @@ interface IDateSeparatorRowProps {
 
 export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
   ({ groupDate, hidden, index }) => {
-    const { layout, features, styles, stickyDate } = useChatViewContext();
+    const { styles, stickyDate } = useChatViewContext();
 
     const { activeIndex, opacity } = stickyDate;
-    const autoHide = features.showFloatingDate;
 
     const rowStyle = useAnimatedStyle(() => {
       if (hidden) return { opacity: 0 };
-      if (!autoHide) return { opacity: 1 };
 
       return { opacity: activeIndex.value === index ? opacity.value : 1 };
-    }, [hidden, autoHide, index]);
-
-    const staticStyle = useMemo(
-      () => [ss.row, { paddingVertical: layout.sectionSpacing }],
-      [layout.sectionSpacing],
-    );
+    }, [hidden, index]);
 
     return (
-      <Animated.View style={[staticStyle, rowStyle]}>
+      <Animated.View style={[ss.row, rowStyle]}>
         <Animated.View style={styles.shared.dateSeparatorPill}>
           <ChatText style={styles.shared.dateSeparatorText}>
             {getSectionTitle(groupDate)}
@@ -57,5 +50,5 @@ export const DateSeparatorRow: FC<IDateSeparatorRowProps> = memo(
 DateSeparatorRow.displayName = "DateSeparatorRow";
 
 const ss = StyleSheet.create({
-  row: { alignItems: "center" },
+  row: { alignItems: "center", paddingVertical: 6 },
 });

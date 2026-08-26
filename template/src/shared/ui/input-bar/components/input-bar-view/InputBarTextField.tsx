@@ -1,7 +1,14 @@
 import React, { FC, memo, useMemo } from "react";
-import { TextInput } from "react-native";
+import { StyleSheet, TextInput } from "react-native";
 
-import { useInputBarContext } from "../../config";
+import {
+  INPUT_BAR_FIELD_MAX_HEIGHT,
+  INPUT_BAR_FIELD_MIN_HEIGHT,
+} from "../../config";
+import { useInputBarSkin } from "../../hooks";
+
+/** Плейсхолдер пустого поля. */
+const PLACEHOLDER = "Сообщение";
 
 interface IInputBarTextFieldProps {
   inputRef: React.RefObject<TextInput | null>;
@@ -17,27 +24,15 @@ interface IInputBarTextFieldProps {
  * `onContentSizeChange` замыкает петлю на минимуме, поле перестаёт расти.
  *
  * Во время записи остаётся в DOM с неизменными пропсами, чтобы не потерять
- * фокус и не вызвать пересоздание нативного UITextView.
+ * фокус и не пересоздать нативное поле ввода.
  */
 export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
   ({ inputRef, value, hidden, onChangeText }) => {
-    const { theme, layout, styles } = useInputBarContext();
+    const { colors, styles } = useInputBarSkin();
 
     const style = useMemo(
-      () => [
-        styles.textInput,
-        {
-          minHeight: layout.textViewMinHeight,
-          maxHeight: layout.textViewMaxHeight,
-          opacity: hidden ? 0 : 1,
-        },
-      ],
-      [
-        styles.textInput,
-        layout.textViewMinHeight,
-        layout.textViewMaxHeight,
-        hidden,
-      ],
+      () => [styles.textInput, ss.bounds, hidden ? ss.hidden : null],
+      [styles.textInput, hidden],
     );
 
     return (
@@ -45,10 +40,10 @@ export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
         ref={inputRef}
         multiline
         value={value}
-        placeholder={layout.inputPlaceholderText}
-        placeholderTextColor={theme.inputPlaceholder}
+        placeholder={PLACEHOLDER}
+        placeholderTextColor={colors.inputPlaceholder}
         style={style}
-        selectionColor={theme.inputTint}
+        selectionColor={colors.inputTint}
         onChangeText={onChangeText}
       />
     );
@@ -56,3 +51,11 @@ export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
 );
 
 InputBarTextField.displayName = "InputBarTextField";
+
+const ss = StyleSheet.create({
+  bounds: {
+    minHeight: INPUT_BAR_FIELD_MIN_HEIGHT,
+    maxHeight: INPUT_BAR_FIELD_MAX_HEIGHT,
+  },
+  hidden: { opacity: 0 },
+});

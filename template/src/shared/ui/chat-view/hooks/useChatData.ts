@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 
-import { IChatFeatures } from "../config";
 import { ChatContentRegistry } from "../content";
 import {
   buildChatData,
@@ -17,7 +16,6 @@ export interface IChatDataOptions {
   /** Реестр типов контента. Фиксируется при первом разборе и дальше неизменен. */
   contentTypes: ChatContentRegistry;
   getActionsForMessage?: (message: ChatMessage) => ChatAction[];
-  features: IChatFeatures;
   showBottomLoading: boolean;
   hideFirstSeparator: boolean;
   /** Длительность исчезновения удалённой строки (сек); `0` — без анимации. */
@@ -40,7 +38,6 @@ export const useChatData = ({
   messages,
   contentTypes,
   getActionsForMessage,
-  features,
   showBottomLoading,
   hideFirstSeparator,
   removeDuration,
@@ -136,12 +133,11 @@ export const useChatData = ({
   return useMemo(
     () =>
       buildChatData(builder, parsed, {
-        features,
         showBottomLoading,
         hideFirstSeparator,
         rowMessages: removed.messages,
         removingKeys: removed.removingKeys,
       }),
-    [builder, parsed, removed, features, showBottomLoading, hideFirstSeparator],
+    [builder, parsed, removed, showBottomLoading, hideFirstSeparator],
   );
 };

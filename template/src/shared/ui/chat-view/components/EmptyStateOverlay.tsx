@@ -28,7 +28,7 @@ interface IEmptyStateOverlayProps {
 
 export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
   ({ visible, loading, text, bottomInset }) => {
-    const { features, styles } = useChatViewContext();
+    const { styles } = useChatViewContext();
 
     const handlePress = useCallback(() => Keyboard.dismiss(), []);
 
@@ -38,7 +38,7 @@ export const EmptyStateOverlay: FC<IEmptyStateOverlayProps> = memo(
       bottom: bottomInset.value,
     }));
 
-    if (!features.showEmptyState || !visible) return null;
+    if (!visible) return null;
 
     return (
       <Animated.View style={[ss.wrap, wrapStyle]} onTouchEnd={handlePress}>

@@ -26,7 +26,7 @@ interface IMediaGridCellProps {
 
 export const MediaGridCell: FC<IMediaGridCellProps> = memo(
   ({ item, frame, index, remaining, onPress }) => {
-    const { theme, layout, styles } = useChatViewContext();
+    const { colors, styles } = useChatViewContext();
     const loadedRef = useRef(false);
 
     const cellStyle = useMemo(
@@ -36,9 +36,9 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
         top: frame.y,
         width: frame.width,
         height: frame.height,
-        backgroundColor: theme.mediaPlaceholderBackground,
+        backgroundColor: colors.mediaPlaceholderBackground,
       }),
-      [frame, theme.mediaPlaceholderBackground],
+      [frame, colors.mediaPlaceholderBackground],
     );
 
     const handlePress = useCallback(() => onPress(index), [onPress, index]);
@@ -66,20 +66,11 @@ export const MediaGridCell: FC<IMediaGridCellProps> = memo(
 
         {showsVideoBadges && (
           <View style={ss.playIconWrap}>
-            <View
-              style={[
-                ss.playIconShadow,
-                {
-                  shadowColor: theme.mediaPlayShadowColor,
-                  shadowOpacity: layout.mediaPlayShadowOpacity,
-                  shadowRadius: layout.mediaPlayShadowRadius,
-                },
-              ]}
-            >
+            <View style={ss.playIconShadow}>
               <ChatIcon
                 name={"play.circle.fill"}
-                size={layout.mediaPlayIconSize}
-                color={theme.mediaPlayIconColor}
+                size={36}
+                color={colors.mediaPlayIconColor}
               />
             </View>
           </View>

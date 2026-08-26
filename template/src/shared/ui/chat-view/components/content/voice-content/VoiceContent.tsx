@@ -36,9 +36,17 @@ import { normalizeWaveform, resampleWaveform } from "./waveform-math";
  * таймер округлён до секунды. Это исключает лишние ре-рендеры при воспроизведении.
  */
 
+/** Кнопка play, полоска волны и её шаг. */
+const PLAY_SIZE = 36;
+const BAR_WIDTH = 2.5;
+const BAR_TOTAL = 4.5;
+
+/** Волна занимает высоту кнопки минус строка таймера. */
+const WAVE_HEIGHT = 19.6;
+
 export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
   ({ content, messageId, ownership }) => {
-    const { theme, layout, styles } = useChatViewContext();
+    const { colors, styles } = useChatViewContext();
     const s = styles.byOwnership[ownership];
 
     const { url, duration, waveform } = content;
@@ -79,11 +87,7 @@ export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
       [messageId, progress],
     );
 
-    const btnSize = layout.voicePlaySize;
-    const durationLineHeight = layout.voiceDurationFont.fontSize * 1.2;
-    const waveHeight = btnSize - durationLineHeight - 2;
-    const barTotal = layout.voiceBarWidth + layout.voiceBarSpacing;
-    const barCount = waveWidth > 0 ? Math.floor(waveWidth / barTotal) : 0;
+    const barCount = waveWidth > 0 ? Math.floor(waveWidth / BAR_TOTAL) : 0;
 
     const bars = useMemo(
       () =>
@@ -161,7 +165,7 @@ export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
     );
 
     return (
-      <View style={[ss.container, { height: btnSize + 12 }]}>
+      <View style={ss.container}>
         <Pressable style={buttonStyle} onPress={handlePlayTap}>
           <View style={isLoading ? ss.iconDimmed : undefined}>
             <ChatIcon
@@ -172,35 +176,24 @@ export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
                     ? "pause.fill"
                     : "play.fill"
               }
-              size={layout.voicePlayIconSize}
+              size={18}
               color="#FFFFFF"
             />
           </View>
-          {isLoading && <LoadingRing size={btnSize} color="#FFFFFF" />}
+          {isLoading && <LoadingRing size={PLAY_SIZE} color="#FFFFFF" />}
         </Pressable>
 
-        <View
-          style={[
-            ss.right,
-            {
-              marginLeft: layout.voiceContentSpacing,
-              marginRight: layout.voiceWaveformTrailingInset,
-            },
-          ]}
-        >
+        <View style={ss.right}>
           <GestureDetector gesture={seekGesture}>
-            <View
-              style={[ss.waveform, { height: waveHeight }]}
-              onLayout={handleWaveLayout}
-            >
+            <View style={ss.waveform} onLayout={handleWaveLayout}>
               <VoiceWaveform
                 bars={bars}
-                barWidth={layout.voiceBarWidth}
-                barTotal={barTotal}
-                minHeight={layout.voiceBarMinHeight}
-                height={waveHeight}
+                barWidth={BAR_WIDTH}
+                barTotal={BAR_TOTAL}
+                minHeight={2}
+                height={WAVE_HEIGHT}
                 activeColor={s.voiceAccent}
-                inactiveColor={theme.voiceWaveformInactive}
+                inactiveColor={colors.voiceWaveformInactive}
                 progress={progress}
                 isActive={isActive}
                 isDimmed={isFailed}
@@ -221,8 +214,8 @@ export const VoiceContent: FC<IChatContentProps<IChatVoiceContent>> = memo(
 VoiceContent.displayName = "VoiceContent";
 
 const ss = StyleSheet.create({
-  container: { flexDirection: "row" },
-  right: { flex: 1 },
-  waveform: { alignSelf: "stretch", marginTop: 8 },
+  container: { flexDirection: "row", height: PLAY_SIZE + 12 },
+  right: { flex: 1, marginLeft: 10, marginRight: 8 },
+  waveform: { alignSelf: "stretch", marginTop: 8, height: WAVE_HEIGHT },
   iconDimmed: { opacity: 0.3 },
 });

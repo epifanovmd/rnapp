@@ -1,23 +1,8 @@
-import { ViewProps, ViewStyle } from "react-native";
+import { ViewStyle } from "react-native";
 
-import type {
-  NativeInputBarAction,
-  NativeInputBarAttachmentPressEventData,
-  NativeInputBarCancelInputActionEventData,
-  NativeInputBarEditMessageEventData,
-  NativeInputBarHeightChangeEventData,
-  NativeInputBarInputTypingEventData,
-  NativeInputBarProps,
-  NativeInputBarRecordingStateChangeEventData,
-  NativeInputBarSendMessageEventData,
-  NativeInputBarVoiceRecordingCompleteEventData,
-} from "./native/NativeInputBarSpec";
-
-// ─── Доменные типы ───────────────────────────────────────────────────────────
-
-export type InputBarTheme = "light" | "dark";
 export type InputBarInputActionType = "reply" | "edit" | "none";
 
+/** Текущее действие панели: ответ на сообщение или его редактирование. */
 export type InputBarInputAction = {
   type: InputBarInputActionType;
   messageId?: string;
@@ -26,23 +11,17 @@ export type InputBarInputAction = {
   hasImage?: boolean;
 };
 
-export type { NativeInputBarAction, NativeInputBarProps };
+/** Результат записи голосового сообщения. */
+export type InputBarVoiceRecording = {
+  /** file:// путь к записанному аудиофайлу. */
+  fileUrl: string;
+  /** Длительность записи в секундах. */
+  duration: number;
+  /** Значения амплитуды для волновой формы. */
+  waveform?: number[];
+};
 
-export type InputBarSendMessageEventData = NativeInputBarSendMessageEventData;
-export type InputBarEditMessageEventData = NativeInputBarEditMessageEventData;
-export type InputBarCancelInputActionEventData =
-  NativeInputBarCancelInputActionEventData;
-export type InputBarAttachmentPressEventData =
-  NativeInputBarAttachmentPressEventData;
-export type InputBarVoiceRecordingCompleteEventData =
-  NativeInputBarVoiceRecordingCompleteEventData;
-export type InputBarInputTypingEventData = NativeInputBarInputTypingEventData;
-export type InputBarRecordingStateChangeEventData =
-  NativeInputBarRecordingStateChangeEventData;
-export type InputBarHeightChangeEventData = NativeInputBarHeightChangeEventData;
-
-// ─── Императивный интерфейс ──────────────────────────────────────────────────
-
+/** Императивный интерфейс панели. */
 export interface IInputBarRef {
   /** Очистить поле ввода. */
   clearInput(): void;
@@ -52,35 +31,25 @@ export interface IInputBarRef {
   blur(): void;
 }
 
-// ─── Пропсы ──────────────────────────────────────────────────────────────────
-
-export interface InputBarProps extends ViewProps {
-  /** Тема оформления: "light" | "dark". */
-  theme?: InputBarTheme;
-  /** Текст плейсхолдера поля ввода. */
-  placeholder?: string;
+export interface InputBarProps {
   /** Текущее действие: ответ/редактирование. */
   inputAction?: InputBarInputAction | null;
   style?: ViewStyle;
 
   /** Отправка сообщения. */
-  onSendMessage?: (event: InputBarSendMessageEventData) => void;
+  onSendMessage?: (text: string, replyToId?: string) => void;
   /** Подтверждение редактирования. */
-  onEditMessage?: (event: InputBarEditMessageEventData) => void;
+  onEditMessage?: (text: string, messageId: string) => void;
   /** Отмена действия ввода. */
-  onCancelInputAction?: (event: InputBarCancelInputActionEventData) => void;
+  onCancelInputAction?: (type: InputBarInputActionType) => void;
   /** Нажатие на кнопку вложений. */
-  onAttachmentPress?: (event: InputBarAttachmentPressEventData) => void;
+  onAttachmentPress?: () => void;
   /** Запись голосового завершена — файл, длительность, волна. */
-  onVoiceRecordingComplete?: (
-    event: InputBarVoiceRecordingCompleteEventData,
-  ) => void;
+  onVoiceRecordingComplete?: (recording: InputBarVoiceRecording) => void;
   /** Набор текста. */
-  onInputTyping?: (event: InputBarInputTypingEventData) => void;
+  onInputTyping?: (text: string) => void;
   /** Изменение состояния записи. */
-  onRecordingStateChange?: (
-    event: InputBarRecordingStateChangeEventData,
-  ) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
   /** Собственная высота панели изменилась (RN задаёт размер сам). */
-  onHeightChange?: (event: InputBarHeightChangeEventData) => void;
+  onHeightChange?: (height: number) => void;
 }

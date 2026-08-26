@@ -3,25 +3,16 @@ import {
   useKeyboardScrollCompensation,
 } from "@shared/lib/keyboard";
 import { useTheme } from "@shared/lib/theme";
+import { Container, Content, KeyboardScrollView, Row, Text } from "@shared/ui";
 import {
-  Col,
-  Container,
-  Content,
-  KeyboardScrollView,
-  Row,
-  Switch,
-  Text,
-} from "@shared/ui";
-import {
-  INPUT_BAR_DEFAULT_LAYOUT,
+  INPUT_BAR_MIN_HEIGHT,
   InputBar,
   InputBarInputAction,
-  JsInputBar,
   KeyboardInputBar,
 } from "@shared/ui/input-bar";
 import { observer } from "mobx-react-lite";
-import React, { FC, useCallback, useMemo, useState } from "react";
-import { Keyboard, Platform, Pressable, StyleSheet } from "react-native";
+import React, { FC, useCallback, useState } from "react";
+import { Keyboard, Pressable, StyleSheet } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
 type EventEntry = { time: string; text: string };
@@ -33,9 +24,6 @@ const now = () => {
 };
 
 export const InputBarPage: FC = observer(() => {
-  const { isDark } = useTheme();
-
-  const [useNative, setUseNative] = useState(Platform.OS === "ios");
   const [events, setEvents] = useState<EventEntry[]>([]);
   const [inputAction, setInputAction] = useState<InputBarInputAction | null>(
     null,
@@ -46,14 +34,11 @@ export const InputBarPage: FC = observer(() => {
     setEvents(prev => [{ time: now(), text }, ...prev].slice(0, 50));
   }, []);
 
-  const Bar = useNative ? InputBar : JsInputBar;
-  const theme = isDark ? "dark" : "light";
-
   // ─── Компенсация клавиатуры ────────────────────────────────────────────
   // Инсеты и панель — `useKeyboardInset`, скролл — отдельный
   // `useKeyboardScrollCompensation`. Подписка на клавиатуру одна.
 
-  const barHeight = useSharedValue(INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight);
+  const barHeight = useSharedValue(INPUT_BAR_MIN_HEIGHT);
 
   const kb = useKeyboardInset({ barHeight });
   const compensation = useKeyboardScrollCompensation(
@@ -61,28 +46,11 @@ export const InputBarPage: FC = observer(() => {
     kb.reservedInset,
   );
 
-  // Нативной панели нужна явная высота в стиле (см. ниже), поэтому замер
-  // дублируется в состояние. Хуку хватает shared value.
-  const [inputBarHeight, setInputBarHeight] = useState(
-    INPUT_BAR_DEFAULT_LAYOUT.inputBarMinHeight,
-  );
-
   const handleHeightChange = useCallback(
-    ({ height }: { height: number }) => {
+    (height: number) => {
       barHeight.value = height;
-      setInputBarHeight(height);
     },
     [barHeight],
-  );
-
-  // Нативная панель под Fabric не участвует в измерении Yoga (intrinsicContentSize
-  // не спрашивают), поэтому без явной высоты её фрейм нулевой — применяем ту
-  // высоту, которую она сама сообщила. JS-панель меряет себя сама.
-  // Отставание на кадр не видно: панель прибита к низу своего фрейма и
-  // раскрывается вверх сама, фрейм лишь догоняет (см. RNInputBar.swift).
-  const barStyle = useMemo(
-    () => (useNative ? { height: inputBarHeight } : undefined),
-    [useNative, inputBarHeight],
   );
 
   // ─── Режимы ────────────────────────────────────────────────────────────
@@ -122,39 +90,9 @@ export const InputBarPage: FC = observer(() => {
         scroll={compensation}
         keyboardShouldPersistTaps={"handled"}
       >
-        {/* Порт тапа по коллекции с view.endEditing(true): штатный
-            keyboardShouldPersistTaps умеет гасить только RN-инпуты, а фокус
-            нативной панели держит UITextView пода — RN про него не знает.
-            Keyboard.dismiss() уходит в endEditing по всему окну и снимает
-            фокус в обеих реализациях. */}
+        {/* Тап по контенту снимает фокус с поля ввода. */}
         <Pressable onPress={Keyboard.dismiss}>
           <Content>
-            <Row mt={8} alignItems={"center"} justifyContent={"space-between"}>
-              <Col flexShrink={1} pr={12}>
-                <Text textStyle={"Body_M1"}>
-                  {useNative
-                    ? "Нативная реализация (RNInputBar)"
-                    : "JS-реализация (InputBarView)"}
-                </Text>
-                <Text textStyle={"Caption_M2"} color={"textSecondary"}>
-                  {Platform.OS === "ios"
-                    ? useNative
-                      ? "Сейчас: нативная (iOS)"
-                      : "Сейчас: JS-порт"
-                    : "Сейчас: JS-порт"}
-                </Text>
-              </Col>
-              {Platform.OS === "ios" && (
-                <Switch
-                  isActive={useNative}
-                  onChange={v => {
-                    setUseNative(v);
-                    log(v ? "Переключено на нативную" : "Переключено на JS");
-                  }}
-                />
-              )}
-            </Row>
-
             {/* Режимы */}
             <Text textStyle={"Title_S1"} mt={16}>
               {"Режимы"}
@@ -233,22 +171,20 @@ export const InputBarPage: FC = observer(() => {
       </KeyboardScrollView>
 
       <KeyboardInputBar offset={kb.occludedBottom}>
-        <Bar
-          theme={theme}
-          style={barStyle}
+        <InputBar
           inputAction={inputAction}
-          onSendMessage={({ text, replyToId }) => {
+          onSendMessage={(text, replyToId) => {
             log(
               `onSendMessage · text="${text}"${replyToId ? ` · replyTo=${replyToId}` : ""}`,
             );
             setInputAction(null);
           }}
-          onEditMessage={({ text, messageId }) => {
+          onEditMessage={(text, messageId) => {
             log(`onEditMessage · text="${text}" · msg=${messageId}`);
             setEditingText(text);
             setInputAction(null);
           }}
-          onCancelInputAction={({ type }) => {
+          onCancelInputAction={type => {
             log(`onCancelInputAction · type=${type}`);
             setInputAction(null);
           }}
@@ -258,7 +194,7 @@ export const InputBarPage: FC = observer(() => {
               `onVoiceRecordingComplete · duration=${result.duration.toFixed(1)}s · samples=${result.waveform?.length ?? 0}`,
             )
           }
-          onInputTyping={({ text }) => {
+          onInputTyping={() => {
             // Слишком часто
           }}
           onHeightChange={handleHeightChange}
