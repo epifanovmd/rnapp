@@ -8,6 +8,7 @@ import {
   ListLabHub,
   MvcpScreen,
   PaginationScreen,
+  PerfLegendScreen,
   PerfScreen,
   StickyScreen,
 } from "./screens";
@@ -24,6 +25,7 @@ export const ListLabNavigator: FC = () => (
     <Stack.Screen name={"InputBarInset"} component={InputBarInsetScreen} />
     <Stack.Screen name={"Sticky"} component={StickyScreen} />
     <Stack.Screen name={"Perf"} component={PerfScreen} />
+    <Stack.Screen name={"PerfLegend"} component={PerfLegendScreen} />
   </Stack.Navigator>
 );
 

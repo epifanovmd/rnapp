@@ -2,7 +2,6 @@ export * from "./data";
 export * from "./edges";
 export * from "./layout";
 export * from "./mvcp";
-export * from "./perf";
 export * from "./runtime";
 export * from "./scroll";
 export * from "./sticky";

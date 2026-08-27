@@ -47,8 +47,12 @@ const ENTRIES: ILabEntry[] = [
   {
     screen: "Perf",
     title: "Производительность",
-    description:
-      "Прилипание, подгрузка и переработка вместе; счётчики рендеров, пула и пустой области",
+    description: "Тысяча сообщений и подгрузка в обе стороны, без настроек",
+  },
+  {
+    screen: "PerfLegend",
+    title: "Производительность · legend",
+    description: "Тот же список и та же подгрузка на @legendapp/list",
   },
 ];
 

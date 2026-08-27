@@ -9,6 +9,7 @@ export type ListLabParamList = {
   InputBarInset: undefined;
   Sticky: undefined;
   Perf: undefined;
+  PerfLegend: undefined;
 };
 
 export type ListLabScreenName = keyof ListLabParamList;

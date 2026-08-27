@@ -12,18 +12,10 @@ import {
   ContainerBinder,
   ContentSize,
   EMPTY_RANGE,
-  getBlankArea,
   LayoutScheduler,
   RenderReadiness,
 } from "../layout";
 import { MaintainVisibleContentPosition } from "../mvcp";
-import {
-  isListPerfEnabled,
-  listPerfBlank,
-  listPerfContainers,
-  listPerfCount,
-  listPerfScroll,
-} from "../perf";
 import type { IScrollAdapter } from "../scroll";
 import {
   getItemScrollOffset,
@@ -78,14 +70,6 @@ export class ListRuntime<TItem> {
   /** Размер вьюпорта вдоль оси скролла. */
   private scrollLength = 0;
   private range: IListRange = { ...EMPTY_RANGE };
-  /**
-   * Отрезок контента, закрытый разложенными контейнерами.
-   *
-   * Нужен замеру пустой области: дыра живёт между кадрами — скролл уже ушёл, а
-   * разложены ещё прежние строки. После пересчёта её не увидеть, диапазон
-   * считается по тому же смещению.
-   */
-  private bound: { top: number; bottom: number } | undefined;
 
   private readonly velocity = new ScrollVelocityTracker();
   private readonly edges: EdgeThresholds;
@@ -421,8 +405,6 @@ export class ListRuntime<TItem> {
 
     if (this.scroll === scroll) return;
 
-    listPerfScroll();
-    this.measureBlank(scroll);
     this.scroll = scroll;
     this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
@@ -556,7 +538,6 @@ export class ListRuntime<TItem> {
 
     this.metrics.setMeasuredSize(key, size);
     this.layoutRevision++;
-    listPerfCount("measure");
 
     this.scheduler.schedule();
   }
@@ -568,8 +549,6 @@ export class ListRuntime<TItem> {
    * после того, как список смонтирован.
    */
   calculateItemsInView(): void {
-    listPerfCount("layout");
-
     if (this.items.getCount() === 0) {
       this.range = { ...EMPTY_RANGE };
       this.binder.releaseAll();
@@ -706,8 +685,6 @@ export class ListRuntime<TItem> {
    * проход, — на единицы пикселей.
    */
   private restoreVisiblePosition(reason: string): void {
-    listPerfCount("shift");
-
     const scroll = this.scroll;
     const predicted = scroll + this.mvcp.peekShift();
 
@@ -785,53 +762,12 @@ export class ListRuntime<TItem> {
       };
     }
 
-    const allocation = this.binder.bind({
+    this.binder.bind({
       requests,
       revision: this.layoutRevision,
       clipTop: viewportTop - clipMargin,
       clipEnd: viewportEnd + clipMargin,
     });
-
-    listPerfCount("bind", allocation.changed.length);
-    listPerfCount("poolNew", allocation.created);
-    listPerfCount("poolMiss", allocation.mismatched);
-    listPerfContainers(allocation.count);
-
-    const { startBuffered, endBuffered } = this.range;
-
-    this.bound =
-      endBuffered < startBuffered
-        ? undefined
-        : {
-            top: this.metrics.getPosition(startBuffered),
-            bottom:
-              this.metrics.getPosition(endBuffered) +
-              this.metrics.getSize(endBuffered),
-          };
-  }
-
-  /**
-   * Незакрытая часть вьюпорта на новом смещении.
-   *
-   * Считается до пересчёта диапазона и по прежней раскладке: это и есть то,
-   * что пользователь видел, пока список догонял скролл. Замер идёт только под
-   * включёнными счётчиками.
-   */
-  private measureBlank(scroll: number): void {
-    if (!isListPerfEnabled() || this.bound === undefined) return;
-
-    listPerfBlank(
-      getBlankArea({
-        spans: [
-          {
-            position: this.bound.top,
-            size: this.bound.bottom - this.bound.top,
-          },
-        ],
-        viewportTop: scroll,
-        viewportEnd: scroll + this.scrollLength,
-      }),
-    );
   }
 
   private haveSameIndices(first: number[], second: number[]): boolean {

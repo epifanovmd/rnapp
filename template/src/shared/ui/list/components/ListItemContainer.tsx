@@ -1,7 +1,6 @@
 import React, { ComponentType, memo, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 
-import { listPerfCount } from "../core";
 import { useListSignals } from "../hooks";
 import { POSITION_OUT_OF_VIEW, useListRuntime } from "../model";
 import type { IListRenderItemProps } from "../types";
@@ -39,7 +38,6 @@ export const ListItemContainer = memo<IListItemContainerProps>(
     const resolvedSize = itemSize ?? 0;
     const resolvedScrollLength = scrollLength ?? 0;
 
-    listPerfCount("render");
     if (itemKey === undefined || itemIndex === undefined) return null;
 
     const resolvedItemType = itemType ?? "";

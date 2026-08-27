@@ -70,7 +70,8 @@ describe("ContainerPool", () => {
       { ...request(1, "sticky", "message"), stickyEdge: "end" },
     ]);
 
-    expect(result.created).toBe(1);
+    // Свободный контейнер под sticky не пошёл — пул завёл второй.
+    expect(result.count).toBe(2);
     expect(pool.getContainerByKey("sticky")).toBe(1);
   });
 
@@ -123,34 +124,5 @@ describe("ContainerPool", () => {
 
     // Контейнеры переиспользованы, новых не заведено.
     expect(result.count).toBe(2);
-  });
-});
-
-describe("ContainerPool — счётчики аллокации", () => {
-  it("считает созданные контейнеры", () => {
-    const pool = new ContainerPool();
-
-    const result = pool.allocate([request(0, "a"), request(1, "b")]);
-
-    expect(result).toMatchObject({ created: 2, mismatched: 0 });
-  });
-
-  it("не считает созданием попадание по типу", () => {
-    const pool = new ContainerPool();
-
-    pool.allocate([request(0, "a")]);
-    const result = pool.allocate([request(1, "b")]);
-
-    expect(result).toMatchObject({ created: 0, mismatched: 0 });
-  });
-
-  it("считает выдачу под чужой тип", () => {
-    // Поддерево такой ячейки перемонтируется — это и есть промах пула.
-    const pool = new ContainerPool();
-
-    pool.allocate([{ ...request(0, "a"), type: "message" }]);
-    const result = pool.allocate([{ ...request(1, "b"), type: "date" }]);
-
-    expect(result).toMatchObject({ created: 0, mismatched: 1 });
   });
 });

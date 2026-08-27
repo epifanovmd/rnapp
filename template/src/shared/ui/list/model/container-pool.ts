@@ -26,10 +26,6 @@ export interface IAllocationResult {
   released: number[];
   /** Сколько контейнеров существует после аллокации. */
   count: number;
-  /** Создано новых контейнеров: свободных не нашлось. */
-  created: number;
-  /** Отдано под чужой тип: поддерево ячейки перемонтируется. */
-  mismatched: number;
 }
 
 /**
@@ -52,9 +48,6 @@ export class ContainerPool {
   /** Sticky и обычные контейнеры имеют разную React/Reanimated-структуру. */
   private lastStickyEdgeById = new Map<number, ListStickyEdge | null>();
   private nextId = 0;
-  /** Счётчики последней аллокации; см. {@link IAllocationResult}. */
-  private created = 0;
-  private mismatched = 0;
 
   getBinding(id: number): IContainerBinding | undefined {
     return this.bindings.get(id);
@@ -73,9 +66,6 @@ export class ContainerPool {
     const requestedKeys = new Set(requests.map(request => request.key));
     const released = this.releaseUnrequested(requestedKeys);
     const changed: IContainerBinding[] = [];
-
-    this.created = 0;
-    this.mismatched = 0;
 
     for (const request of requests) {
       const existingId = this.containerByKey.get(request.key);
@@ -100,13 +90,7 @@ export class ContainerPool {
       changed.push(this.bind(request));
     }
 
-    return {
-      changed,
-      released,
-      count: this.nextId,
-      created: this.created,
-      mismatched: this.mismatched,
-    };
+    return { changed, released, count: this.nextId };
   }
 
   private releaseUnrequested(requestedKeys: Set<string>): number[] {
@@ -171,13 +155,10 @@ export class ContainerPool {
         : this.free.splice(compatibleIndex, 1)[0];
 
     if (anyFree !== undefined) {
-      this.mismatched++;
       this.lastTypeById.set(anyFree, type);
 
       return anyFree;
     }
-
-    this.created++;
 
     const id = this.nextId++;
 

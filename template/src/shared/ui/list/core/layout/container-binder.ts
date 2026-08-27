@@ -71,13 +71,7 @@ export class ContainerBinder {
     ) {
       this.updateClipping(requests, clipTop, clipEnd);
 
-      return {
-        changed: [],
-        released: [],
-        count: pool.getCount(),
-        created: 0,
-        mismatched: 0,
-      };
+      return { changed: [], released: [], count: pool.getCount() };
     }
 
     const allocation = pool.allocate(requests);

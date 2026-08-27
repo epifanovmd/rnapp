@@ -1,5 +1,4 @@
 import { ListStore, POSITION_OUT_OF_VIEW } from "../../../model";
-import { listPerfSnapshot, setListPerf } from "../../perf";
 import type { IScrollAdapter } from "../../scroll";
 import { ListRuntime } from "../list-runtime";
 import type { IListRuntimeProps } from "../runtime-props";
@@ -759,95 +758,6 @@ describe("ListRuntime — прочее", () => {
     runtime.dispose();
 
     expect(jest.getTimerCount()).toBe(0);
-  });
-});
-
-describe("ListRuntime — пустая область", () => {
-  afterEach(() => setListPerf(false));
-
-  it("не видит пустоты, пока список успевает за скроллом", () => {
-    const { runtime } = createRuntime(rows(40), { drawDistance: 250 });
-
-    setListPerf(true);
-    runtime.setScroll(120);
-    runtime.setScroll(240);
-
-    expect(listPerfSnapshot()?.blankMax).toBe(0);
-  });
-
-  it("считает пустоту по прыжку скролла, а не по итогу пересчёта", () => {
-    // Замер после привязки всегда даёт ноль: диапазон считается по тому же
-    // смещению. Дыра живёт между кадрами — когда скролл ушёл, а разложены ещё
-    // прежние строки.
-    const { runtime } = createRuntime(rows(40), { drawDistance: 0 });
-
-    setListPerf(true);
-    runtime.setScroll(3000);
-
-    // Вьюпорт 3000…3500, разложено было 0…600: пусто целиком.
-    expect(listPerfSnapshot()?.blankMax).toBe(SCROLL_LENGTH);
-  });
-
-  it("считает частичную дыру у кромки", () => {
-    const { runtime } = createRuntime(rows(40), { drawDistance: 0 });
-
-    setListPerf(true);
-    runtime.setScroll(300);
-
-    // Разложено 0…600 — диапазон захватывает строку на кромке; вьюпорт
-    // 300…800, не закрыто 200.
-    expect(listPerfSnapshot()?.blankMax).toBe(200);
-  });
-});
-
-describe("ListRuntime — проходы раскладки", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
-      setTimeout(() => callback(0), 16) as unknown as number;
-  });
-
-  afterEach(() => {
-    setListPerf(false);
-    jest.useRealTimers();
-  });
-
-  const countLayouts = (): number => listPerfSnapshot()?.counters.layout ?? 0;
-
-  it("не считает раскладку второй раз, когда сдвига нет", () => {
-    // Измерение ниже якоря его не двигает: второй проход повторил бы уже
-    // опубликованную раскладку слово в слово.
-    const { runtime } = createRuntime(rows(40), {
-      getFixedItemSize: undefined,
-      maintainVisibleContentPositionSize: true,
-    });
-
-    runtime.setScroll(200);
-    setListPerf(true);
-
-    runtime.setItemSize("k30", 60);
-    nextFrame();
-
-    expect(countLayouts()).toBe(1);
-  });
-
-  it("считает раскладку заново, когда сдвиг разошёлся с предсказанным", () => {
-    // Первый проход идёт по предсказанному смещению: он уточняет размеры, и
-    // итог может от предсказания отличаться — тогда нужен второй.
-    const { runtime } = createRuntime(rows(40), {
-      getFixedItemSize: undefined,
-      maintainVisibleContentPositionSize: true,
-    });
-
-    runtime.setScroll(200);
-    setListPerf(true);
-
-    // Точность самой компенсации проверяется отдельно, в сценариях mvcp.
-    runtime.setItemSize("k30", 60);
-    runtime.setItemSize("k31", 60);
-    nextFrame();
-
-    expect(countLayouts()).toBeLessThanOrEqual(2);
   });
 });
 
