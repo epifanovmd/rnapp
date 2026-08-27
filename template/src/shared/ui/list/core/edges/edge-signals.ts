@@ -27,6 +27,7 @@ export const publishEndSignals = (
   { distanceFromEnd, isContentShorter }: IEdgeGeometry,
   { endThreshold, maintainScrollAtEndThreshold }: IEdgeSignalThresholds,
 ): void => {
+  store.set("distanceFromEnd", distanceFromEnd);
   store.set("isAtEnd", isContentShorter || distanceFromEnd <= EDGE_EPSILON);
   store.set("isNearEnd", isContentShorter || distanceFromEnd <= endThreshold);
   store.set(
@@ -41,6 +42,7 @@ export const publishStartSignals = (
   { distanceFromStart }: IEdgeGeometry,
   { startThreshold }: IEdgeSignalThresholds,
 ): void => {
+  store.set("distanceFromStart", distanceFromStart);
   store.set("isAtStart", distanceFromStart <= EDGE_EPSILON);
   store.set("isNearStart", distanceFromStart <= startThreshold);
 };

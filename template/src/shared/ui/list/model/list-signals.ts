@@ -1,10 +1,4 @@
-import type { ListStickyEdge } from "../types";
-
-/** Размер вьюпорта списка. */
-export interface IListScrollSize {
-  width: number;
-  height: number;
-}
+import type { IListScrollSize, ListStickyEdge } from "../types";
 
 /**
  * Именованные сигналы состояния списка — общие для всего списка.
@@ -14,17 +8,25 @@ export interface IListScrollSize {
  * изменение одного значения перерисовывает только тех, кто именно его и читал.
  */
 export interface IListSignals {
+  /** Суммарная высота элементов, без шапки, подвала и распорок. */
   totalSize: number;
+  /** Полная высота контента: элементы плюс шапка, подвал и распорки. */
+  contentSize: number;
+  /** Граница скролла: `contentSize - scrollLength`, но не меньше нуля. */
+  maxScroll: number;
+  /** Высота шапки списка. */
   headerSize: number;
+  /** Высота подвала списка. */
   footerSize: number;
-  /** Верхний паддинг контента — им же компенсируется прижатие к концу. */
-  stylePaddingTop: number;
   /** Распорка, прижимающая короткий контент к концу списка. */
   alignItemsAtEndPadding: number;
   /** Распорка у конца, поднимающая якорный элемент к верхней кромке. */
   anchoredEndSpaceSize: number;
   numContainers: number;
+  /** Размер вьюпорта целиком; вдоль оси скролла — `scrollLength`. */
   scrollSize: IListScrollSize;
+  /** Размер вьюпорта вдоль оси скролла — нужен прилипанию к конечной кромке. */
+  scrollLength: number;
   /** Список отрисовал стартовый кадр и применил начальный скролл. */
   readyToRender: boolean;
 
@@ -38,6 +40,27 @@ export interface IListSignals {
   isNearEnd: boolean;
   /** Конец в пределах порога автоприлипания — отдельный порог от подгрузки. */
   isWithinMaintainScrollAtEndThreshold: boolean;
+  /**
+   * Расстояние до начала контента.
+   *
+   * Флаги кромок отвечают «да/нет», а плавным эффектам — тени под навбаром,
+   * подтягиванию кнопки — нужна величина.
+   */
+  distanceFromStart: number;
+  /** Расстояние до конца контента, без учёта отступа конца. */
+  distanceFromEnd: number;
+
+  /**
+   * Скорость скролла, px/мс: положительная — к концу списка.
+   *
+   * Считается по недавней истории смещений, а не по последнему кадру: одиночная
+   * дельта слишком шумная, чтобы по ней что-то решать.
+   */
+  velocity: number;
+  /** Первый элемент, пересёкший вьюпорт; -1 — видимых нет. */
+  firstVisibleIndex: number;
+  /** Последний элемент, пересёкший вьюпорт; -1 — видимых нет. */
+  lastVisibleIndex: number;
 
   /**
    * Накопленная компенсация позиции.
@@ -46,8 +69,6 @@ export interface IListSignals {
    * позиции видит смещение её кадра и само правит `contentOffset`.
    */
   scrollAdjust: number;
-  /** Размер вьюпорта вдоль оси скролла — нужен прилипанию к конечной кромке. */
-  scrollLength: number;
   /** Индекс прилипшего элемента у начальной кромки, -1 — нет. */
   activeStickyStartIndex: number;
   /** Индекс прилипшего элемента у конечной кромки, -1 — нет. */
@@ -96,20 +117,27 @@ export const POSITION_OUT_OF_VIEW = -10000000;
 /** Значения сигналов до первой раскладки. */
 export const INITIAL_SIGNALS: Partial<ListSignalMap> = {
   totalSize: 0,
+  contentSize: 0,
+  maxScroll: 0,
   headerSize: 0,
   footerSize: 0,
-  stylePaddingTop: 0,
   alignItemsAtEndPadding: 0,
   anchoredEndSpaceSize: 0,
   numContainers: 0,
+  scrollSize: { width: 0, height: 0 },
+  scrollLength: 0,
   readyToRender: false,
   isAtStart: true,
   isAtEnd: false,
   isNearStart: true,
   isNearEnd: false,
   isWithinMaintainScrollAtEndThreshold: false,
+  distanceFromStart: 0,
+  distanceFromEnd: 0,
+  velocity: 0,
+  firstVisibleIndex: -1,
+  lastVisibleIndex: -1,
   scrollAdjust: 0,
-  scrollLength: 0,
   activeStickyStartIndex: -1,
   activeStickyEndIndex: -1,
 };

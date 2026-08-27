@@ -25,6 +25,25 @@ describe("сигналы списка", () => {
     expect(INITIAL_SIGNALS.activeStickyEndIndex).toBe(-1);
   });
 
+  it("начинает без геометрии контента", () => {
+    expect(INITIAL_SIGNALS.contentSize).toBe(0);
+    expect(INITIAL_SIGNALS.maxScroll).toBe(0);
+    expect(INITIAL_SIGNALS.headerSize).toBe(0);
+    expect(INITIAL_SIGNALS.footerSize).toBe(0);
+    expect(INITIAL_SIGNALS.scrollSize).toEqual({ width: 0, height: 0 });
+  });
+
+  it("считает, что видимых элементов ещё нет", () => {
+    expect(INITIAL_SIGNALS.firstVisibleIndex).toBe(-1);
+    expect(INITIAL_SIGNALS.lastVisibleIndex).toBe(-1);
+  });
+
+  it("начинает без движения и на нулевых расстояниях", () => {
+    expect(INITIAL_SIGNALS.velocity).toBe(0);
+    expect(INITIAL_SIGNALS.distanceFromStart).toBe(0);
+    expect(INITIAL_SIGNALS.distanceFromEnd).toBe(0);
+  });
+
   it("уводит контейнер туда, куда скролл не доходит", () => {
     // Контейнер без привязки не размонтируется — он ждёт следующего элемента.
     expect(POSITION_OUT_OF_VIEW).toBeLessThan(-1000000);

@@ -95,6 +95,92 @@ describe("useListSharedValues", () => {
     expect(activeStickyEndIndex.value).toBe(7);
   });
 
+  it("публикует всё, что список о себе знает", () => {
+    const store = new ListStore();
+    const targets = {
+      velocity: sharedValue(0),
+      totalSize: sharedValue(0),
+      contentSize: sharedValue(0),
+      maxScroll: sharedValue(0),
+      scrollLength: sharedValue(0),
+      scrollSize: sharedValue({ width: 0, height: 0 }),
+      headerSize: sharedValue(0),
+      footerSize: sharedValue(0),
+      alignItemsAtEndPadding: sharedValue(0),
+      anchoredEndSpaceSize: sharedValue(0),
+      readyToRender: sharedValue(false),
+      isAtStart: sharedValue(true),
+      isAtEnd: sharedValue(false),
+      isNearStart: sharedValue(true),
+      isNearEnd: sharedValue(false),
+      isWithinMaintainScrollAtEndThreshold: sharedValue(false),
+      distanceFromStart: sharedValue(0),
+      distanceFromEnd: sharedValue(0),
+      firstVisibleIndex: sharedValue(-1),
+      lastVisibleIndex: sharedValue(-1),
+      activeStickyStartIndex: sharedValue(-1),
+      activeStickyEndIndex: sharedValue(-1),
+    };
+
+    render(store, sharedValue(0), targets);
+
+    act(() => {
+      store.set("velocity", 1.5);
+      store.set("totalSize", 4000);
+      store.set("contentSize", 4200);
+      store.set("maxScroll", 3700);
+      store.set("scrollLength", 500);
+      store.set("scrollSize", { width: 390, height: 500 });
+      store.set("headerSize", 60);
+      store.set("footerSize", 40);
+      store.set("alignItemsAtEndPadding", 12);
+      store.set("anchoredEndSpaceSize", 24);
+      store.set("readyToRender", true);
+      store.set("isAtStart", false);
+      store.set("isAtEnd", true);
+      store.set("isNearStart", false);
+      store.set("isNearEnd", true);
+      store.set("isWithinMaintainScrollAtEndThreshold", true);
+      store.set("distanceFromStart", 1200);
+      store.set("distanceFromEnd", 30);
+      store.set("firstVisibleIndex", 12);
+      store.set("lastVisibleIndex", 17);
+      store.set("activeStickyStartIndex", 4);
+      store.set("activeStickyEndIndex", 9);
+    });
+
+    // Ни одно объявленное поле не должно остаться неподписанным: забытая связка
+    // молча отдавала бы наружу стартовое значение.
+    const published = Object.fromEntries(
+      Object.entries(targets).map(([name, target]) => [name, target.value]),
+    );
+
+    expect(published).toEqual({
+      velocity: 1.5,
+      totalSize: 4000,
+      contentSize: 4200,
+      maxScroll: 3700,
+      scrollLength: 500,
+      scrollSize: { width: 390, height: 500 },
+      headerSize: 60,
+      footerSize: 40,
+      alignItemsAtEndPadding: 12,
+      anchoredEndSpaceSize: 24,
+      readyToRender: true,
+      isAtStart: false,
+      isAtEnd: true,
+      isNearStart: false,
+      isNearEnd: true,
+      isWithinMaintainScrollAtEndThreshold: true,
+      distanceFromStart: 1200,
+      distanceFromEnd: 30,
+      firstVisibleIndex: 12,
+      lastVisibleIndex: 17,
+      activeStickyStartIndex: 4,
+      activeStickyEndIndex: 9,
+    });
+  });
+
   it("публикует близость к концу списка", () => {
     const store = new ListStore();
     const isWithinMaintainScrollAtEndThreshold = sharedValue(false);

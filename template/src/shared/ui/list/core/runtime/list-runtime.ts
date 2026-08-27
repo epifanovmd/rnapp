@@ -203,9 +203,40 @@ export class ListRuntime<TItem> {
     return this.velocity.get();
   }
 
+  /** Полная высота контента: элементы плюс шапка, подвал и распорки. */
+  getContentSize(): number {
+    return this.contentSize.get();
+  }
+
   /** Замер высоты контента от ScrollView. */
   setContentSize(height: number): void {
     this.contentSize.setMeasured(height);
+    this.publishGeometry();
+  }
+
+  /** Замер шапки списка. */
+  setHeaderSize(size: number): void {
+    this.store.set("headerSize", size);
+  }
+
+  /** Замер подвала списка. */
+  setFooterSize(size: number): void {
+    this.store.set("footerSize", size);
+  }
+
+  /**
+   * Замер вьюпорта целиком.
+   *
+   * Вдоль оси скролла размер приходит отдельно ({@link setScrollLength}) — он
+   * участвует в расчётах; ширина нужна только тем, кто строит поверх списка
+   * собственную раскладку.
+   */
+  setScrollSize(width: number, height: number): void {
+    const previous = this.store.peek("scrollSize");
+
+    if (previous?.width === width && previous.height === height) return;
+
+    this.store.set("scrollSize", { width, height });
   }
 
   /**
@@ -250,6 +281,7 @@ export class ListRuntime<TItem> {
 
     this.scrollLength = length;
     this.store.set("scrollLength", length);
+    this.publishGeometry();
     this.calculateItemsInView();
     this.alignAtEnd.update();
     this.endSpace.update();
@@ -272,6 +304,7 @@ export class ListRuntime<TItem> {
 
     this.scroll = offset;
     this.velocity.add(offset);
+    this.store.set("velocity", this.velocity.get());
 
     listDebug("scroll", "setScroll", {
       from: previous,
@@ -301,12 +334,53 @@ export class ListRuntime<TItem> {
     return this.metrics.getPosition(index);
   }
 
+  /** Размер элемента; до измерения — оценка, а не факт. */
+  getSizeAtIndex(index: number): number | undefined {
+    if (index < 0 || index >= this.items.getCount()) return undefined;
+
+    return this.metrics.getSize(index);
+  }
+
+  /**
+   * Позиция элемента по его ключу.
+   *
+   * Ключ переживает вставки и удаления, а индекс — нет: после подгрузки сверху
+   * тот же элемент лежит на другом индексе.
+   */
+  getPositionByKey(key: string): number | undefined {
+    return this.metrics.getPositionByKey(key);
+  }
+
+  getIndexByKey(key: string): number | undefined {
+    return this.metrics.getIndexByKey(key);
+  }
+
   scrollToOffset(offset: number, animated = false): void {
     this.programmatic.toOffset(offset, animated);
   }
 
   scrollToEnd(animated = false): void {
     this.programmatic.toEnd(animated);
+  }
+
+  /**
+   * Скролл к элементу по ключу; см. {@link getPositionByKey}.
+   *
+   * @returns false, если элемента с таким ключом в данных нет.
+   */
+  scrollToKey(params: {
+    key: string;
+    animated?: boolean;
+    viewPosition?: number;
+    viewOffset?: number;
+  }): boolean {
+    const index = this.metrics.getIndexByKey(params.key);
+
+    if (index === undefined) return false;
+
+    this.scrollToIndex({ ...params, index });
+
+    return true;
   }
 
   /**
@@ -381,6 +455,8 @@ export class ListRuntime<TItem> {
       this.range = { ...EMPTY_RANGE };
       this.binder.releaseAll();
       this.store.set("totalSize", 0);
+      this.publishVisibleRange();
+      this.publishGeometry();
 
       return;
     }
@@ -403,6 +479,8 @@ export class ListRuntime<TItem> {
 
     this.bindContainers();
     this.store.set("totalSize", this.metrics.getTotalSize());
+    this.publishVisibleRange();
+    this.publishGeometry();
 
     if (this.viewability.hasPairs()) {
       this.viewability.update({
@@ -420,6 +498,28 @@ export class ListRuntime<TItem> {
     this.mvcp.reset();
     this.readiness.dispose();
     this.programmatic.dispose();
+  }
+
+  /**
+   * Геометрия контента наружу.
+   *
+   * `maxScroll` считается здесь, а не у читателя: граница зависит и от высоты
+   * контента, и от вьюпорта, и посчитать её самому значит повторить ту же
+   * формулу — и разойтись с той, по которой список сам себя ограничивает.
+   */
+  private publishGeometry(): void {
+    const contentSize = this.contentSize.get();
+
+    this.store.set("contentSize", contentSize);
+    this.store.set("maxScroll", Math.max(0, contentSize - this.scrollLength));
+  }
+
+  /** Границы видимого диапазона наружу; -1 — ни один элемент не в кадре. */
+  private publishVisibleRange(): void {
+    const isEmpty = this.range.end < this.range.start;
+
+    this.store.set("firstVisibleIndex", isEmpty ? -1 : this.range.start);
+    this.store.set("lastVisibleIndex", isEmpty ? -1 : this.range.end);
   }
 
   private edgeOptions() {

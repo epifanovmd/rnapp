@@ -11,6 +11,10 @@ const JS_SCROLL_STEP = 4;
 export interface IListScrollHandlerOptions {
   /** Смещение скролла на UI-потоке — из него считается прилипание. */
   scrollOffset: SharedValue<number>;
+  /** Палец на экране; пишется на UI-потоке, без захода в JS. */
+  isDragging?: SharedValue<boolean>;
+  /** Идёт инерция после броска; пишется там же. */
+  isMomentum?: SharedValue<boolean>;
   /** Пересчёт диапазона отрисовки; вызывается шагами, а не на каждый пиксель. */
   onScroll: (offset: number) => void;
   onBeginDrag: () => void;
@@ -29,9 +33,15 @@ export interface IListScrollHandlerOptions {
  * только пересчёт диапазона отрисовки, и то шагами по {@link JS_SCROLL_STEP}:
  * он определяет, какие ячейки смонтированы, и точность в один пиксель ему не
  * нужна — буфер отрисовки на порядок больше этого шага.
+ *
+ * Фаза жеста пишется прямо здесь, без захода в JS: она нужна тем, кто реагирует
+ * на прикосновение в тот же кадр — спрятать кнопку под пальцем, закрыть
+ * клавиатуру, притормозить тяжёлый эффект на время инерции.
  */
 export const useListScrollHandler = ({
   scrollOffset,
+  isDragging,
+  isMomentum,
   onScroll,
   onBeginDrag,
   onEndDrag,
@@ -54,10 +64,27 @@ export const useListScrollHandler = ({
         lastReportedScroll.value = event.contentOffset.y;
         runOnJS(onScroll)(event.contentOffset.y);
       },
-      onBeginDrag: () => runOnJS(onBeginDrag)(),
-      onEndDrag: () => runOnJS(onEndDrag)(),
-      onMomentumEnd: () => runOnJS(onMomentumEnd)(),
+      onBeginDrag: () => {
+        if (isDragging) isDragging.value = true;
+
+        runOnJS(onBeginDrag)();
+      },
+      onEndDrag: () => {
+        if (isDragging) isDragging.value = false;
+
+        runOnJS(onEndDrag)();
+      },
+      // Инерция начинается только после отпускания пальца, и только если бросок
+      // был: короткое перетаскивание завершается на `onEndDrag` без неё.
+      onMomentumBegin: () => {
+        if (isMomentum) isMomentum.value = true;
+      },
+      onMomentumEnd: () => {
+        if (isMomentum) isMomentum.value = false;
+
+        runOnJS(onMomentumEnd)();
+      },
     },
-    [onScroll, onBeginDrag, onEndDrag, onMomentumEnd],
+    [isDragging, isMomentum, onScroll, onBeginDrag, onEndDrag, onMomentumEnd],
   );
 };

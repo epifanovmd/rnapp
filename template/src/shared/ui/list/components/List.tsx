@@ -94,12 +94,19 @@ const ListInner = <TItem,>(
     ref,
     (): IListRef => ({
       scrollToIndex: params => runtime.scrollToIndex(params),
+      scrollToKey: params => runtime.scrollToKey(params),
       scrollToOffset: ({ offset, animated }) =>
         runtime.scrollToOffset(offset, animated),
       scrollToEnd: params => runtime.scrollToEnd(params?.animated),
       getPositionAtIndex: index => runtime.getPositionAtIndex(index),
+      getSizeAtIndex: index => runtime.getSizeAtIndex(index),
+      getPositionByKey: key => runtime.getPositionByKey(key),
+      getIndexByKey: key => runtime.getIndexByKey(key),
       getVisibleRange: () => runtime.getRange(),
       getScrollOffset: () => runtime.getScroll(),
+      getContentSize: () => runtime.getContentSize(),
+      getScrollLength: () => runtime.getScrollLength(),
+      getVelocity: () => runtime.getVelocity(),
     }),
     [runtime],
   );
@@ -137,10 +144,25 @@ const ListInner = <TItem,>(
 
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => {
-      runtime.setScrollLength(event.nativeEvent.layout.height);
+      const { width, height } = event.nativeEvent.layout;
+
+      runtime.setScrollLength(height);
+      runtime.setScrollSize(width, height);
       onLayout?.(event);
     },
     [runtime, onLayout],
+  );
+
+  const handleHeaderLayout = useCallback(
+    (event: LayoutChangeEvent) =>
+      runtime.setHeaderSize(event.nativeEvent.layout.height),
+    [runtime],
+  );
+
+  const handleFooterLayout = useCallback(
+    (event: LayoutChangeEvent) =>
+      runtime.setFooterSize(event.nativeEvent.layout.height),
+    [runtime],
   );
 
   const updateScroll = useCallback(
@@ -177,6 +199,8 @@ const ListInner = <TItem,>(
 
   const scrollHandler = useListScrollHandler({
     scrollOffset,
+    isDragging: sharedValues?.isDragging,
+    isMomentum: sharedValues?.isMomentum,
     onScroll: updateScroll,
     onBeginDrag: handleScrollBeginDrag,
     onEndDrag: handleScrollEndDrag,
@@ -208,7 +232,9 @@ const ListInner = <TItem,>(
         {/* Первым ребёнком: за ним следит нативное удержание позиции. */}
         <ListScrollAdjust />
 
-        {renderListSlot(ListHeaderComponent)}
+        <View onLayout={handleHeaderLayout}>
+          {renderListSlot(ListHeaderComponent)}
+        </View>
 
         {data.length === 0 ? (
           renderListSlot(ListEmptyComponent)
@@ -222,7 +248,9 @@ const ListInner = <TItem,>(
 
         <ListAnchoredEndSpace />
 
-        <View>{renderListSlot(ListFooterComponent)}</View>
+        <View onLayout={handleFooterLayout}>
+          {renderListSlot(ListFooterComponent)}
+        </View>
       </Animated.ScrollView>
     </ListContextProvider>
   );

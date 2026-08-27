@@ -35,6 +35,19 @@ describe("publishStartSignals", () => {
     expect(store.peek("isAtStart")).toBe(false);
   });
 
+  it("отдаёт расстояние до начала числом", () => {
+    const store = new ListStore();
+
+    // Флаг отвечает «да/нет», а плавным эффектам нужна величина.
+    publishStartSignals(
+      store,
+      geometry({ distanceFromStart: 740 }),
+      THRESHOLDS,
+    );
+
+    expect(store.peek("distanceFromStart")).toBe(740);
+  });
+
   it("отмечает попадание в пороговую зону начала", () => {
     const store = new ListStore();
 
@@ -63,6 +76,22 @@ describe("publishEndSignals", () => {
     expect(store.peek("isAtEnd")).toBe(true);
     expect(store.peek("isNearEnd")).toBe(true);
     expect(store.peek("isWithinMaintainScrollAtEndThreshold")).toBe(true);
+  });
+
+  it("отдаёт расстояние до конца числом", () => {
+    const store = new ListStore();
+
+    publishEndSignals(store, geometry({ distanceFromEnd: 320 }), THRESHOLDS);
+
+    expect(store.peek("distanceFromEnd")).toBe(320);
+  });
+
+  it("отдаёт отрицательное расстояние при перелёте за конец", () => {
+    const store = new ListStore();
+
+    publishEndSignals(store, geometry({ distanceFromEnd: -25 }), THRESHOLDS);
+
+    expect(store.peek("distanceFromEnd")).toBe(-25);
   });
 
   it("держит отдельные пороги для подгрузки и автоприлипания", () => {

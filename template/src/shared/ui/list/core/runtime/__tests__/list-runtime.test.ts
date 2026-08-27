@@ -385,6 +385,146 @@ describe("ListRuntime — кромки и скролл", () => {
   });
 });
 
+describe("ListRuntime — публикация состояния", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
+      setTimeout(() => callback(0), 16) as unknown as number;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("публикует геометрию контента и границу скролла", () => {
+    const { store, runtime } = createRuntime();
+
+    expect(store.peek("totalSize")).toBe(4000);
+    expect(store.peek("contentSize")).toBe(4000);
+    expect(store.peek("maxScroll")).toBe(3500);
+
+    // Замер контента добавил шапку и подвал — граница уехала вместе с ними.
+    runtime.setContentSize(4160);
+
+    expect(store.peek("contentSize")).toBe(4160);
+    expect(store.peek("maxScroll")).toBe(3660);
+  });
+
+  it("не отдаёт отрицательной границы на коротком контенте", () => {
+    const { store } = createRuntime(rows(2));
+
+    expect(store.peek("maxScroll")).toBe(0);
+  });
+
+  it("публикует границы видимого диапазона", () => {
+    const { store, runtime } = createRuntime();
+
+    runtime.setScroll(1000);
+
+    expect(store.peek("firstVisibleIndex")).toBe(10);
+    expect(store.peek("lastVisibleIndex")).toBe(14);
+  });
+
+  it("сообщает, что видимых элементов нет", () => {
+    const { store, runtime } = createRuntime();
+
+    runtime.setProps(createProps([]));
+
+    expect(store.peek("firstVisibleIndex")).toBe(-1);
+    expect(store.peek("lastVisibleIndex")).toBe(-1);
+  });
+
+  it("публикует скорость скролла", () => {
+    const { store, runtime } = createRuntime();
+
+    runtime.setScroll(100);
+    jest.advanceTimersByTime(20);
+    runtime.setScroll(300);
+
+    expect(store.peek("velocity")).toBeGreaterThan(0);
+    expect(store.peek("velocity")).toBe(runtime.getVelocity());
+  });
+
+  it("публикует замеры шапки, подвала и вьюпорта", () => {
+    const { store, runtime } = createRuntime();
+
+    runtime.setHeaderSize(60);
+    runtime.setFooterSize(40);
+    runtime.setScrollSize(390, SCROLL_LENGTH);
+
+    expect(store.peek("headerSize")).toBe(60);
+    expect(store.peek("footerSize")).toBe(40);
+    expect(store.peek("scrollSize")).toEqual({ width: 390, height: 500 });
+  });
+
+  it("не будит подписчиков размера вьюпорта без изменений", () => {
+    const { store, runtime } = createRuntime();
+    const listener = jest.fn();
+
+    runtime.setScrollSize(390, SCROLL_LENGTH);
+    store.listen("scrollSize", listener);
+    runtime.setScrollSize(390, SCROLL_LENGTH);
+
+    // Новый объект на каждый замер перерисовывал бы всех, кто его читает.
+    expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe("ListRuntime — чтение и адресация по ключу", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
+      setTimeout(() => callback(0), 16) as unknown as number;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("отдаёт размер элемента", () => {
+    const { runtime } = createRuntime();
+
+    expect(runtime.getSizeAtIndex(3)).toBe(ITEM_SIZE);
+    expect(runtime.getSizeAtIndex(-1)).toBeUndefined();
+    expect(runtime.getSizeAtIndex(100)).toBeUndefined();
+  });
+
+  it("отдаёт полную высоту контента", () => {
+    const { runtime } = createRuntime();
+
+    runtime.setContentSize(4160);
+
+    expect(runtime.getContentSize()).toBe(4160);
+  });
+
+  it("адресует элемент ключом, а не индексом", () => {
+    const { runtime } = createRuntime();
+
+    expect(runtime.getIndexByKey("k10")).toBe(10);
+    expect(runtime.getPositionByKey("k10")).toBe(1000);
+
+    // Подгрузка сверху сдвинула индексы, ключ остался прежним.
+    runtime.setProps(createProps([...rows(5, "h"), ...rows(40)]));
+
+    expect(runtime.getIndexByKey("k10")).toBe(15);
+    expect(runtime.getPositionByKey("k10")).toBe(1500);
+  });
+
+  it("скроллит к элементу по ключу", () => {
+    const { runtime, adapter } = createRuntime();
+
+    expect(runtime.scrollToKey({ key: "k10" })).toBe(true);
+    expect(adapter.scrollToOffset).toHaveBeenCalledWith(1000, false);
+  });
+
+  it("сообщает, что ключа в данных нет", () => {
+    const { runtime, adapter } = createRuntime();
+
+    expect(runtime.scrollToKey({ key: "missing" })).toBe(false);
+    expect(adapter.scrollToOffset).not.toHaveBeenCalled();
+  });
+});
+
 describe("ListRuntime — прочее", () => {
   beforeEach(() => {
     jest.useFakeTimers();

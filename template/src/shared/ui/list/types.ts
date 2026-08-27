@@ -17,6 +17,12 @@ export interface IListRenderItemProps<TItem> {
   stickyOffset?: SharedValue<number>;
 }
 
+/** Размер вьюпорта списка. */
+export interface IListScrollSize {
+  width: number;
+  height: number;
+}
+
 /** Кромка, к которой прилипает якорь. */
 export type ListStickyEdge = "start" | "end";
 
@@ -131,24 +137,80 @@ export interface IListViewabilityPair<TItem> {
   onViewableItemsChanged: (info: IListViewabilityCallbackInfo<TItem>) => void;
 }
 
-/** Shared values, которые список публикует наружу для worklet-логики. */
+/**
+ * Shared values, которые список публикует наружу для worklet-логики.
+ *
+ * Всё, что список знает о своём состоянии, доступно на UI-потоке: заполните
+ * только те поля, которые нужны, — остальные не стоят ничего. Не публикуются
+ * лишь внутренности собственной механики (компенсация позиции, число
+ * контейнеров, сигналы отдельных контейнеров): опираться на них снаружи нельзя.
+ */
 export interface IListSharedValues {
   /** Смещение скролла в координатах контента. */
   scrollOffset?: SharedValue<number>;
+
+  /** Палец на экране: позицией управляет жест. */
+  isDragging?: SharedValue<boolean>;
+  /**
+   * Идёт инерция после броска.
+   *
+   * «Список движется» — это `isDragging || isMomentum`. Отдельного признака
+   * нет намеренно: программный скролл не порождает ни того, ни другого, и
+   * склеенный флаг врал бы про него молча.
+   */
+  isMomentum?: SharedValue<boolean>;
+  /** Скорость скролла, px/мс: положительная — к концу списка. */
+  velocity?: SharedValue<number>;
+
+  /** Суммарная высота элементов, без шапки, подвала и распорок. */
+  totalSize?: SharedValue<number>;
+  /** Полная высота контента: элементы плюс шапка, подвал и распорки. */
+  contentSize?: SharedValue<number>;
+  /** Граница скролла; вместе со смещением даёт прогресс прокрутки. */
+  maxScroll?: SharedValue<number>;
+  /** Размер вьюпорта вдоль оси скролла. */
+  scrollLength?: SharedValue<number>;
+  /** Размер вьюпорта целиком. */
+  scrollSize?: SharedValue<IListScrollSize>;
+  headerSize?: SharedValue<number>;
+  footerSize?: SharedValue<number>;
+  /** Распорка, прижимающая короткий контент к концу списка. */
+  alignItemsAtEndPadding?: SharedValue<number>;
+  /** Распорка у конца, поднимающая якорный элемент к верхней кромке. */
+  anchoredEndSpaceSize?: SharedValue<number>;
+
+  /** Список отрисовал стартовый кадр и применил начальный скролл. */
+  readyToRender?: SharedValue<boolean>;
+
+  /** Скролл упёрся в начало контента. */
+  isAtStart?: SharedValue<boolean>;
+  /** Скролл упёрся в конец контента. */
+  isAtEnd?: SharedValue<boolean>;
+  /** Начало в пределах порога подгрузки. */
+  isNearStart?: SharedValue<boolean>;
+  /** Конец в пределах порога подгрузки. */
+  isNearEnd?: SharedValue<boolean>;
+  /**
+   * Конец в пределах порога автоприлипания.
+   *
+   * Порог здесь свой, отдельный от подгрузки: «у низа» для кнопки возврата и
+   * «пора подгружать» — разные расстояния.
+   */
+  isWithinMaintainScrollAtEndThreshold?: SharedValue<boolean>;
+  /** Расстояние до начала контента — для плавных эффектов, а не флагов. */
+  distanceFromStart?: SharedValue<number>;
+  /** Расстояние до конца контента, без учёта отступа конца. */
+  distanceFromEnd?: SharedValue<number>;
+
+  /** Первый элемент, пересёкший вьюпорт; -1 — видимых нет. */
+  firstVisibleIndex?: SharedValue<number>;
+  /** Последний элемент, пересёкший вьюпорт; -1 — видимых нет. */
+  lastVisibleIndex?: SharedValue<number>;
+
   /** Индекс активного якоря начальной кромки, -1 если якорей нет. */
   activeStickyStartIndex?: SharedValue<number>;
   /** Индекс активного якоря конечной кромки, -1 если якорей нет. */
   activeStickyEndIndex?: SharedValue<number>;
-  /** Пользователь у конца списка в пределах порога подгрузки. */
-  isNearEnd?: SharedValue<boolean>;
-  /**
-   * Список прижат к концу в пределах `maintainScrollAtEndThreshold`.
-   *
-   * Порог здесь свой, отдельный от подгрузки: «у низа» для кнопки возврата и
-   * «пора подгружать» — разные расстояния, и мерить их одним значением значит
-   * либо показывать кнопку за экран до конца, либо грузить слишком поздно.
-   */
-  isWithinMaintainScrollAtEndThreshold?: SharedValue<boolean>;
 }
 
 /** Императивный интерфейс списка. */
@@ -159,10 +221,30 @@ export interface IListRef {
     viewPosition?: number;
     viewOffset?: number;
   }) => void;
+  /**
+   * Скролл к элементу по ключу.
+   *
+   * Ключ переживает вставки и удаления, а индекс — нет: после подгрузки сверху
+   * тот же элемент лежит на другом индексе.
+   *
+   * @returns false, если элемента с таким ключом в данных нет.
+   */
+  scrollToKey: (params: {
+    key: string;
+    animated?: boolean;
+    viewPosition?: number;
+    viewOffset?: number;
+  }) => boolean;
   scrollToOffset: (params: { offset: number; animated?: boolean }) => void;
   scrollToEnd: (params?: { animated?: boolean }) => void;
-  /** Позиция элемента в координатах контента; undefined — размер ещё не известен. */
+  /** Позиция элемента в координатах контента; undefined — индекс вне данных. */
   getPositionAtIndex: (index: number) => number | undefined;
+  /** Размер элемента; до измерения — оценка, а не факт. */
+  getSizeAtIndex: (index: number) => number | undefined;
+  /** Позиция элемента по ключу; undefined — ключа нет в данных. */
+  getPositionByKey: (key: string) => number | undefined;
+  /** Индекс элемента по ключу; undefined — ключа нет в данных. */
+  getIndexByKey: (key: string) => number | undefined;
   /** Текущий видимый диапазон и его буферизованные границы. */
   getVisibleRange: () => {
     start: number;
@@ -172,6 +254,12 @@ export interface IListRef {
   };
   /** Смещение скролла в координатах контента. */
   getScrollOffset: () => number;
+  /** Полная высота контента: элементы плюс шапка, подвал и распорки. */
+  getContentSize: () => number;
+  /** Размер вьюпорта вдоль оси скролла. */
+  getScrollLength: () => number;
+  /** Скорость скролла, px/мс: положительная — к концу списка. */
+  getVelocity: () => number;
 }
 
 export interface IListProps<TItem> {
