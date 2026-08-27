@@ -24,7 +24,13 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-import { LabPanel, LabRowView, LabStatus, LabToggle } from "../components";
+import {
+  LabFab,
+  LabPanel,
+  LabRowView,
+  LabStatus,
+  LabToggle,
+} from "../components";
 import type { LabRow } from "../model";
 import {
   createMessage,
@@ -57,6 +63,8 @@ export const InputBarInsetScreen: FC = () => {
   const [stickToEnd, setStickToEnd] = useState(true);
 
   const barHeight = useSharedValue(INPUT_BAR_MIN_HEIGHT);
+  /** Список у нижнего края: по нему кнопка возврата решает, показываться ли. */
+  const isAtEnd = useSharedValue(true);
   const kb = useKeyboardInset({ barHeight });
 
   const handleHeightChange = useCallback(
@@ -108,10 +116,19 @@ export const InputBarInsetScreen: FC = () => {
     [stickToEnd],
   );
 
+  const listSharedValues = useMemo(
+    () => ({ isWithinMaintainScrollAtEndThreshold: isAtEnd }),
+    [isAtEnd],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: LabRow }) => <LabRowView row={item} />,
     [],
   );
+
+  const handleFabPress = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
 
   return (
     // Нижний инсет уже входит в `occludedBottom` панели ввода.
@@ -154,9 +171,18 @@ export const InputBarInsetScreen: FC = () => {
         // Тот же отступ, что у контента: индикатор обязан кончаться на одной
         // линии с последней строкой, а не уходить под панель ввода.
         scrollIndicatorInset={compensation.contentInset}
+        sharedValues={listSharedValues}
         ListFooterComponent={listFooter}
         recycleItems
         style={ss.list}
+      />
+
+      {/* Тот же отступ, что у контента: кнопка держится над панелью ввода и
+          поднимается вместе с клавиатурой. */}
+      <LabFab
+        bottomInset={kb.contentInset}
+        isAtEnd={isAtEnd}
+        onPress={handleFabPress}
       />
 
       <KeyboardInputBar offset={kb.occludedBottom}>

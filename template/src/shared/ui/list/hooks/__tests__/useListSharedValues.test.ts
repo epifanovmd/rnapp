@@ -95,6 +95,31 @@ describe("useListSharedValues", () => {
     expect(activeStickyEndIndex.value).toBe(7);
   });
 
+  it("публикует близость к концу списка", () => {
+    const store = new ListStore();
+    const isWithinMaintainScrollAtEndThreshold = sharedValue(false);
+
+    render(store, sharedValue(0), { isWithinMaintainScrollAtEndThreshold });
+
+    act(() => {
+      store.set("isWithinMaintainScrollAtEndThreshold", true);
+    });
+
+    // По нему решают, показывать ли кнопку «вниз»: порог свой, не тот, по
+    // которому идёт подгрузка.
+    expect(isWithinMaintainScrollAtEndThreshold.value).toBe(true);
+  });
+
+  it("отдаёт близость к концу сразу при монтировании", () => {
+    const store = new ListStore();
+    const isWithinMaintainScrollAtEndThreshold = sharedValue(false);
+
+    store.set("isWithinMaintainScrollAtEndThreshold", true);
+    render(store, sharedValue(0), { isWithinMaintainScrollAtEndThreshold });
+
+    expect(isWithinMaintainScrollAtEndThreshold.value).toBe(true);
+  });
+
   it("обновляет только объявленные значения", () => {
     const store = new ListStore();
     const isNearEnd = sharedValue(false);

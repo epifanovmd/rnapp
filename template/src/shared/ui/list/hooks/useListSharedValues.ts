@@ -28,12 +28,17 @@ export const useListSharedValues = (
   useEffect(() => {
     if (!sharedValues) return;
 
-    const { activeStickyStartIndex, activeStickyEndIndex, isNearEnd } =
-      sharedValues;
+    const {
+      activeStickyStartIndex,
+      activeStickyEndIndex,
+      isNearEnd,
+      isWithinMaintainScrollAtEndThreshold: isAtEnd,
+    } = sharedValues;
 
     write(activeStickyStartIndex, store.peek("activeStickyStartIndex"));
     write(activeStickyEndIndex, store.peek("activeStickyEndIndex"));
     write(isNearEnd, store.peek("isNearEnd"));
+    write(isAtEnd, store.peek("isWithinMaintainScrollAtEndThreshold"));
 
     if (sharedValues.scrollOffset) {
       sharedValues.scrollOffset.value = scrollOffset.value;
@@ -49,6 +54,10 @@ export const useListSharedValues = (
           write(activeStickyEndIndex, value),
         ),
       isNearEnd && store.listen("isNearEnd", value => write(isNearEnd, value)),
+      isAtEnd &&
+        store.listen("isWithinMaintainScrollAtEndThreshold", value =>
+          write(isAtEnd, value),
+        ),
     ].filter(Boolean) as (() => void)[];
 
     return () => {

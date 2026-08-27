@@ -139,8 +139,16 @@ export interface IListSharedValues {
   activeStickyStartIndex?: SharedValue<number>;
   /** Индекс активного якоря конечной кромки, -1 если якорей нет. */
   activeStickyEndIndex?: SharedValue<number>;
-  /** Пользователь у конца списка в пределах порога. */
+  /** Пользователь у конца списка в пределах порога подгрузки. */
   isNearEnd?: SharedValue<boolean>;
+  /**
+   * Список прижат к концу в пределах `maintainScrollAtEndThreshold`.
+   *
+   * Порог здесь свой, отдельный от подгрузки: «у низа» для кнопки возврата и
+   * «пора подгружать» — разные расстояния, и мерить их одним значением значит
+   * либо показывать кнопку за экран до конца, либо грузить слишком поздно.
+   */
+  isWithinMaintainScrollAtEndThreshold?: SharedValue<boolean>;
 }
 
 /** Императивный интерфейс списка. */
