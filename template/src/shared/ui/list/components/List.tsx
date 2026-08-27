@@ -7,64 +7,39 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import {
-  LayoutChangeEvent,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  View,
-} from "react-native";
+import { LayoutChangeEvent, View } from "react-native";
 import Animated, {
-  runOnJS,
   useAnimatedRef,
-  useAnimatedScrollHandler,
   useSharedValue,
 } from "react-native-reanimated";
 
-import type { IListRuntimeProps } from "../core";
-import { ListRuntime } from "../core";
-import { useListSharedValues } from "../hooks";
+import { createRuntimeProps, ListRuntime } from "../core";
+import { useListScrollHandler, useListSharedValues } from "../hooks";
 import { ListContextProvider, ListStore } from "../model";
 import type { IListProps, IListRef, IListRenderItemProps } from "../types";
+import { renderListSlot } from "./list-slots";
 import { ListAnchoredEndSpace } from "./ListAnchoredEndSpace";
 import { ListContainers } from "./ListContainers";
 import { ListScrollAdjust } from "./ListScrollAdjust";
 
-const DEFAULT_DRAW_DISTANCE = 250;
+/** Как часто нативный слой шлёт события скролла, мс. */
 const SCROLL_EVENT_THROTTLE = 16;
-/** Шаг, с которым пересчёт диапазона уходит в JS, px. */
-const JS_SCROLL_STEP = 4;
-/** Пороги задаются в долях длины вьюпорта. */
-const DEFAULT_EDGE_THRESHOLD = 0.5;
-const DEFAULT_MAINTAIN_AT_END_THRESHOLD = 0.1;
-
-/** Header/Footer/Empty принимаются и элементом, и типом компонента. */
-const renderSlot = (
-  slot: IListProps<unknown>["ListHeaderComponent"],
-): React.ReactNode => {
-  if (!slot) return null;
-  if (React.isValidElement(slot)) return slot;
-
-  const Component = slot as React.ComponentType<unknown>;
-
-  return <Component />;
-};
 
 /**
  * Виртуализированный список.
  *
  * Диапазон отрисовки, позиции и привязка контейнеров считаются в `ListRuntime`
  * вне React: рендер вызывается только там, где контейнер сменил элемент или
- * позицию.
+ * позицию. Сам компонент — тонкая оболочка: он монтирует `ScrollView`, отдаёт
+ * ядру размеры и события и раздаёт дереву контекст.
  */
 const ListInner = <TItem,>(
-  {
+  props: IListProps<TItem>,
+  ref: React.Ref<IListRef>,
+) => {
+  const {
     data,
     renderItem,
-    keyExtractor,
-    getItemType,
-    getFixedItemSize,
-    estimatedItemSize,
-    drawDistance = DEFAULT_DRAW_DISTANCE,
     extraData,
     ListHeaderComponent,
     ListFooterComponent,
@@ -72,70 +47,19 @@ const ListInner = <TItem,>(
     ItemSeparatorComponent,
     style,
     contentContainerStyle,
-    onLoad,
-    onStartReached,
-    onStartReachedThreshold = DEFAULT_EDGE_THRESHOLD,
-    onEndReached,
-    onEndReachedThreshold = DEFAULT_EDGE_THRESHOLD,
-    maintainScrollAtEnd,
-    maintainScrollAtEndThreshold = DEFAULT_MAINTAIN_AT_END_THRESHOLD,
     maintainVisibleContentPosition,
-    alignItemsAtEnd = false,
-    initialScroll,
-    anchoredEndSpace,
     sticky,
     snapToIndices,
     sharedValues,
-    viewabilityPairs,
     refScrollView,
     onLayout,
     onContentSizeChange,
     onScrollBeginDrag,
     onScrollEndDrag,
-  }: IListProps<TItem>,
-  ref: React.Ref<IListRef>,
-) => {
+  } = props;
+
   const [store] = useState(() => new ListStore());
-
-  const runtimeProps = {
-    data,
-    keyExtractor,
-    getItemType,
-    getFixedItemSize,
-    estimatedItemSize,
-    drawDistance,
-    startReachedThreshold: onStartReachedThreshold,
-    endReachedThreshold: onEndReachedThreshold,
-    maintainScrollAtEndThreshold,
-    maintainScrollAtEnd: !!maintainScrollAtEnd,
-    maintainScrollAtEndAnimated: maintainScrollAtEnd?.animated ?? false,
-    maintainVisibleContentPositionData:
-      maintainVisibleContentPosition?.data ?? false,
-    maintainVisibleContentPositionSize:
-      maintainVisibleContentPosition?.size ?? false,
-    shouldRestorePosition: maintainVisibleContentPosition?.shouldRestorePosition
-      ? (index: number) => {
-          const item = data[index];
-
-          return item === undefined
-            ? false
-            : (maintainVisibleContentPosition.shouldRestorePosition?.(
-                item,
-                index,
-              ) ?? true);
-        }
-      : undefined,
-    alignItemsAtEnd,
-    initialScroll,
-    anchoredEndSpace,
-    sticky,
-    viewabilityPairs:
-      viewabilityPairs as IListRuntimeProps<TItem>["viewabilityPairs"],
-    onLoad,
-    onStartReached,
-    onEndReached,
-  };
-
+  const runtimeProps = createRuntimeProps(props);
   const [runtime] = useState(() => new ListRuntime<TItem>(store, runtimeProps));
 
   // Пропы применяются после коммита, а не в теле рендера: пересчёт пишет
@@ -236,42 +160,13 @@ const ListInner = <TItem,>(
     [runtime],
   );
 
-  /** Смещение, при котором в JS уходил последний пересчёт диапазона. */
-  const lastReportedScroll = useSharedValue(0);
-
-  /**
-   * Скролл обрабатывается одним worklet-обработчиком.
-   *
-   * Смещение попадает в shared value синхронно с нативным скроллом — от него
-   * зависит прилипание, и отставание хотя бы на кадр видно как дрожание. В JS
-   * уходит только пересчёт диапазона отрисовки, и то шагами: он определяет,
-   * какие ячейки смонтированы, и точность в один пиксель ему не нужна.
-   */
-  const scrollHandler = useAnimatedScrollHandler(
-    {
-      onScroll: event => {
-        scrollOffset.value = event.contentOffset.y;
-
-        if (
-          Math.abs(event.contentOffset.y - lastReportedScroll.value) <
-          JS_SCROLL_STEP
-        )
-          return;
-
-        lastReportedScroll.value = event.contentOffset.y;
-        runOnJS(updateScroll)(event.contentOffset.y);
-      },
-      onBeginDrag: () => runOnJS(handleScrollBeginDrag)(),
-      onEndDrag: () => runOnJS(handleScrollEndDrag)(),
-      onMomentumEnd: () => runOnJS(handleMomentumScrollEnd)(),
-    },
-    [
-      updateScroll,
-      handleScrollBeginDrag,
-      handleScrollEndDrag,
-      handleMomentumScrollEnd,
-    ],
-  );
+  const scrollHandler = useListScrollHandler({
+    scrollOffset,
+    onScroll: updateScroll,
+    onBeginDrag: handleScrollBeginDrag,
+    onEndDrag: handleScrollEndDrag,
+    onMomentumEnd: handleMomentumScrollEnd,
+  });
 
   const renderItemUntyped = renderItem as (
     props: IListRenderItemProps<unknown>,
@@ -294,10 +189,10 @@ const ListInner = <TItem,>(
         {/* Первым ребёнком: за ним следит нативное удержание позиции. */}
         <ListScrollAdjust />
 
-        {renderSlot(ListHeaderComponent)}
+        {renderListSlot(ListHeaderComponent)}
 
         {data.length === 0 ? (
-          renderSlot(ListEmptyComponent)
+          renderListSlot(ListEmptyComponent)
         ) : (
           <ListContainers
             renderItem={renderItemUntyped}
@@ -308,7 +203,7 @@ const ListInner = <TItem,>(
 
         <ListAnchoredEndSpace />
 
-        <View>{renderSlot(ListFooterComponent)}</View>
+        <View>{renderListSlot(ListFooterComponent)}</View>
       </Animated.ScrollView>
     </ListContextProvider>
   );

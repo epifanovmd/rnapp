@@ -16,6 +16,8 @@ import {
   useListSticky,
 } from "../model";
 import type { IListRenderItemProps } from "../types";
+import { getContainerSignalNames } from "./container-signals";
+import { isContainerParked, resolveStickyPlacement } from "./sticky-placement";
 
 interface IListItemContainerProps {
   /** Индекс контейнера в пуле, а не индекс элемента данных. */
@@ -53,21 +55,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
     const scrollOffset = useListScrollOffset();
     const stickyConfigs = useListSticky();
 
-    const signalNames = useMemo(
-      () =>
-        [
-          `containerPosition${id}`,
-          `containerItemKey${id}`,
-          `containerItemIndex${id}`,
-          `containerItemData${id}`,
-          `containerItemSize${id}`,
-          `containerSticky${id}`,
-          `containerStickyLimit${id}`,
-          `containerClipped${id}`,
-          "scrollLength",
-        ] as const,
-      [id],
-    );
+    const signalNames = useMemo(() => getContainerSignalNames(id), [id]);
 
     const [
       position,
@@ -81,23 +69,20 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       scrollLength,
     ] = useListSignals(signalNames);
 
-    const config = stickyConfigs.find(item => item.edge === stickyEdge);
-    const edgeOffset = config?.offset;
-    const mode = config?.mode ?? "container";
-
     const resolvedPosition = position ?? POSITION_OUT_OF_VIEW;
     const resolvedSize = itemSize ?? 0;
     const resolvedScrollLength = scrollLength ?? 0;
-    const stickyObjectSize = config?.size ?? resolvedSize;
+
+    const { mode, edgeOffset, stickySize } = resolveStickyPlacement(
+      stickyConfigs,
+      stickyEdge,
+      resolvedSize,
+    );
 
     /** Смещение прилипания; у обычной строки — 0. */
     const offset = useDerivedValue(() => {
       if (!stickyEdge) return 0;
-
-      // Контейнер уведён за пределы контента и ждёт новой привязки. Формула
-      // прилипания вернула бы для него позицию ровно на кромке — на экране это
-      // вторая копия прилипшего элемента, срывающаяся при снятии флага.
-      if (resolvedPosition <= OUT_OF_VIEW_THRESHOLD) return 0;
+      if (isContainerParked(resolvedPosition)) return 0;
 
       return getStickyOffset({
         edge: stickyEdge,
@@ -107,7 +92,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
         scroll: scrollOffset.value,
         edgeOffset: edgeOffset?.value ?? 0,
         limit: stickyLimit,
-        stickySize: stickyObjectSize,
+        stickySize,
       });
     }, [
       stickyEdge,
@@ -115,7 +100,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       resolvedSize,
       resolvedScrollLength,
       stickyLimit,
-      stickyObjectSize,
+      stickySize,
     ]);
 
     // Флаг захватывается на момент создания реакции: без него каждый кадр
@@ -133,18 +118,11 @@ export const ListItemContainer = memo<IListItemContainerProps>(
           position: resolvedPosition,
           size: resolvedSize,
           limit: stickyLimit ?? -1,
-          objectSize: stickyObjectSize,
+          objectSize: stickySize,
           bottom: resolvedPosition + resolvedSize + value,
         });
       },
-      [
-        id,
-        itemIndex,
-        resolvedPosition,
-        resolvedSize,
-        stickyLimit,
-        stickyObjectSize,
-      ],
+      [id, itemIndex, resolvedPosition, resolvedSize, stickyLimit, stickySize],
     );
 
     useAnimatedReaction(
@@ -180,7 +158,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       () => [
         styles.container,
         { top: resolvedPosition },
-        // Высота фиксируется по метрикам: пока строка выше вьюпорта, её
+        // Высота фиксируется по метрикам: пока строка вне вьюпорта, её
         // содержимое не должно въезжать в кадр, даже если оно выросло.
         clipped ? { height: resolvedSize, overflow: "hidden" as const } : null,
         stickyEdge && mode === "container" ? styles.sticky : null,
@@ -216,9 +194,6 @@ export const ListItemContainer = memo<IListItemContainerProps>(
 );
 
 ListItemContainer.displayName = "ListItemContainer";
-
-/** Ниже этой позиции контейнер считается уведённым за пределы контента. */
-const OUT_OF_VIEW_THRESHOLD = POSITION_OUT_OF_VIEW / 2;
 
 const styles = StyleSheet.create({
   container: {

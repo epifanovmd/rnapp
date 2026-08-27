@@ -1,0 +1,95 @@
+import { getStickyOffset } from "../sticky-offset";
+
+const SCROLL_LENGTH = 500;
+
+const offsetAtStart = (
+  params: Partial<Parameters<typeof getStickyOffset>[0]>,
+) =>
+  getStickyOffset({
+    edge: "start",
+    position: 1000,
+    size: 100,
+    scrollLength: SCROLL_LENGTH,
+    scroll: 0,
+    edgeOffset: 0,
+    limit: undefined,
+    stickySize: 100,
+    ...params,
+  });
+
+const offsetAtEnd = (params: Partial<Parameters<typeof getStickyOffset>[0]>) =>
+  getStickyOffset({
+    edge: "end",
+    position: 1000,
+    size: 100,
+    scrollLength: SCROLL_LENGTH,
+    scroll: 0,
+    edgeOffset: 0,
+    limit: undefined,
+    stickySize: 100,
+    ...params,
+  });
+
+describe("getStickyOffset — начальная кромка", () => {
+  it("не двигает элемент, пока кромка его не догнала", () => {
+    expect(offsetAtStart({ scroll: 500 })).toBe(0);
+  });
+
+  it("сдвигает ровно настолько, насколько кромка его обогнала", () => {
+    expect(offsetAtStart({ scroll: 1300 })).toBe(300);
+  });
+
+  it("учитывает отступ кромки", () => {
+    // Навбар опустил кромку на 80: элемент прилипает раньше.
+    expect(offsetAtStart({ scroll: 1000, edgeOffset: 80 })).toBe(80);
+  });
+
+  it("упирается в следующий якорь", () => {
+    // Следующий якорь подъезжает снизу и выталкивает текущий за кромку.
+    expect(offsetAtStart({ scroll: 1400, limit: 1200 })).toBe(200);
+  });
+
+  it("не выталкивает элемент выше его обычного места", () => {
+    expect(offsetAtStart({ scroll: 0, limit: 900 })).toBe(-100);
+  });
+});
+
+describe("getStickyOffset — конечная кромка", () => {
+  it("не двигает элемент, пока его низ виден", () => {
+    expect(offsetAtEnd({ scroll: 700 })).toBe(0);
+  });
+
+  it("поднимает элемент, ушедший ниже кромки", () => {
+    // Вьюпорт 0..500, низ элемента на 1100: подтягиваем к кромке.
+    expect(offsetAtEnd({ scroll: 0 })).toBe(-600);
+  });
+
+  it("учитывает отступ кромки", () => {
+    // Панель ввода подняла кромку на 100.
+    expect(offsetAtEnd({ scroll: 0, edgeOffset: 100 })).toBe(-700);
+  });
+
+  it("не поднимает объект выше начала его группы", () => {
+    // Кромка внутри группы на 820, верх группы на 800: низ строки высотой 100
+    // не поднимется выше 900, иначе строка вылезет за свою группу.
+    expect(offsetAtEnd({ scroll: 320, limit: 800, stickySize: 100 })).toBe(
+      -200,
+    );
+  });
+
+  it("прижимает к кромке, пока предел не достигнут", () => {
+    expect(offsetAtEnd({ scroll: 500, limit: 800, stickySize: 100 })).toBe(
+      -100,
+    );
+  });
+
+  it("не всплывает раньше своей группы", () => {
+    // Группа целиком ниже кромки: она ещё не доехала, двигать нечего.
+    expect(offsetAtEnd({ scroll: 0, limit: 600 })).toBe(0);
+  });
+
+  it("считает предел от высоты прилипающего объекта, а не строки", () => {
+    // Аватар 36 в строке 100: он поднимается выше, чем поднялась бы строка.
+    expect(offsetAtEnd({ scroll: 320, limit: 800, stickySize: 36 })).toBe(-264);
+  });
+});
