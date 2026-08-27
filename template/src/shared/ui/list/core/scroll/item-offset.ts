@@ -1,5 +1,5 @@
 export interface IItemOffsetParams {
-  /** Позиция элемента в координатах контента. */
+  /** Позиция элемента в координатах раскладки элементов. */
   position: number;
   size: number;
   /** Размер вьюпорта вдоль оси скролла. */
@@ -8,6 +8,13 @@ export interface IItemOffsetParams {
   viewPosition?: number;
   /** Дополнительный сдвиг результата вверх, px. */
   viewOffset?: number;
+  /**
+   * Смещение начала элементов в координатах контента — высота шапки.
+   *
+   * Раскладка элементов начинается с нуля, а в контенте над ними лежит шапка:
+   * без поправки элемент встаёт ниже кромки вьюпорта ровно на её высоту.
+   */
+  origin?: number;
 }
 
 /**
@@ -27,5 +34,11 @@ export const getItemScrollOffset = ({
   scrollLength,
   viewPosition = 0,
   viewOffset = 0,
+  origin = 0,
 }: IItemOffsetParams): number =>
-  Math.max(0, position - viewPosition * (scrollLength - size) - viewOffset);
+  // Обрезка по нулю — последним действием: сделай её до поправки на шапку, и
+  // шапка потерялась бы на элементах у самого начала списка.
+  Math.max(
+    0,
+    origin + position - viewPosition * (scrollLength - size) - viewOffset,
+  );

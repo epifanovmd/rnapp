@@ -8,6 +8,8 @@ export interface IInitialOffsetOptions {
   getScrollLength: () => number;
   /** Полная высота контента, включая шапку, подвал и распорки. */
   getContentSize: () => number;
+  /** Смещение начала элементов в координатах контента — высота шапки. */
+  getContentOrigin: () => number;
 }
 
 /**
@@ -33,8 +35,13 @@ export class InitialOffsetResolver {
 
   /** Смещение стартовой позиции; `undefined` — вьюпорт ещё не измерен. */
   resolve(): number | undefined {
-    const { metrics, getTarget, getScrollLength, getContentSize } =
-      this.options;
+    const {
+      metrics,
+      getTarget,
+      getScrollLength,
+      getContentSize,
+      getContentOrigin,
+    } = this.options;
     const target = getTarget();
     const scrollLength = getScrollLength();
 
@@ -60,6 +67,7 @@ export class InitialOffsetResolver {
       scrollLength,
       viewPosition: target.viewPosition,
       viewOffset: target.viewOffset,
+      origin: getContentOrigin(),
     });
   }
 

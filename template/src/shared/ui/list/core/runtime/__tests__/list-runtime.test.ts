@@ -346,6 +346,34 @@ describe("ListRuntime — кромки и скролл", () => {
     expect(adapter.scrollToOffset).toHaveBeenCalledWith(600, false);
   });
 
+  it("ставит элемент под шапкой, а не под кромкой вьюпорта", () => {
+    const { runtime, adapter } = createRuntime();
+
+    runtime.setHeaderSize(60);
+    runtime.scrollToIndex({ index: 10 });
+
+    // Элементы лежат под шапкой: без её высоты элемент уезжает ниже кромки.
+    expect(adapter.scrollToOffset).toHaveBeenCalledWith(1060, false);
+  });
+
+  it("учитывает шапку и при скролле по ключу", () => {
+    const { runtime, adapter } = createRuntime();
+
+    runtime.setHeaderSize(60);
+    runtime.scrollToKey({ key: "k10" });
+
+    expect(adapter.scrollToOffset).toHaveBeenCalledWith(1060, false);
+  });
+
+  it("отдаёт позицию элемента в координатах контента", () => {
+    const { runtime } = createRuntime();
+
+    runtime.setHeaderSize(60);
+
+    expect(runtime.getPositionAtIndex(10)).toBe(1060);
+    expect(runtime.getPositionByKey("k10")).toBe(1060);
+  });
+
   it("молчит на скролле к несуществующему индексу", () => {
     const { runtime, adapter } = createRuntime();
 

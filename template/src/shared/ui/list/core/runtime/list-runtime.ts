@@ -155,6 +155,7 @@ export class ListRuntime<TItem> {
       getTarget: () => this.props.initialScroll,
       getScrollLength: () => this.scrollLength,
       getContentSize: () => this.contentSize.get(),
+      getContentOrigin: () => this.getContentOrigin(),
     });
     this.initialScroll = new InitialScroll({
       target: props.initialScroll,
@@ -327,11 +328,16 @@ export class ListRuntime<TItem> {
     this.allowedEdge = undefined;
   }
 
-  /** Позиция элемента в координатах контента. */
+  /**
+   * Позиция элемента в координатах контента.
+   *
+   * Раскладка элементов начинается с нуля, а в контенте над ними лежит шапка:
+   * наружу отдаётся позиция с поправкой на неё — та, что годится для скролла.
+   */
   getPositionAtIndex(index: number): number | undefined {
     if (index < 0 || index >= this.items.getCount()) return undefined;
 
-    return this.metrics.getPosition(index);
+    return this.getContentOrigin() + this.metrics.getPosition(index);
   }
 
   /** Размер элемента; до измерения — оценка, а не факт. */
@@ -348,7 +354,11 @@ export class ListRuntime<TItem> {
    * тот же элемент лежит на другом индексе.
    */
   getPositionByKey(key: string): number | undefined {
-    return this.metrics.getPositionByKey(key);
+    const position = this.metrics.getPositionByKey(key);
+
+    return position === undefined
+      ? undefined
+      : this.getContentOrigin() + position;
   }
 
   getIndexByKey(key: string): number | undefined {
@@ -394,17 +404,17 @@ export class ListRuntime<TItem> {
     viewOffset?: number;
   }): void {
     const { index, animated = false, viewPosition, viewOffset } = params;
-    const position = this.getPositionAtIndex(index);
 
-    if (position === undefined) return;
+    if (index < 0 || index >= this.items.getCount()) return;
 
     this.scrollToOffset(
       getItemScrollOffset({
-        position,
+        position: this.metrics.getPosition(index),
         size: this.metrics.getSize(index),
         scrollLength: this.scrollLength,
         viewPosition,
         viewOffset,
+        origin: this.getContentOrigin(),
       }),
       animated,
     );
@@ -498,6 +508,16 @@ export class ListRuntime<TItem> {
     this.mvcp.reset();
     this.readiness.dispose();
     this.programmatic.dispose();
+  }
+
+  /**
+   * Смещение начала элементов в координатах контента.
+   *
+   * Раскладка элементов начинается с нуля, а в контенте над ними лежит шапка.
+   * Величина нужна везде, где позиция элемента превращается в `contentOffset`.
+   */
+  private getContentOrigin(): number {
+    return this.store.peek("headerSize") ?? 0;
   }
 
   /**

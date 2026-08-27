@@ -13,6 +13,8 @@ const createResolver = (count = 20) => {
     scrollLength: SCROLL_LENGTH,
     /** Шапка, подвал и распорки — в сумму элементов они не входят. */
     padding: 0,
+    /** Смещение начала элементов в координатах контента: высота шапки. */
+    origin: 0,
   };
 
   metrics.setItems(
@@ -25,6 +27,7 @@ const createResolver = (count = 20) => {
     getTarget: () => state.target,
     getScrollLength: () => state.scrollLength,
     getContentSize: () => metrics.getTotalSize() + state.padding,
+    getContentOrigin: () => state.origin,
   });
 
   return { metrics, resolver, state };
@@ -110,6 +113,15 @@ describe("InitialOffsetResolver", () => {
 
     // Низ элемента у нижней кромки, минус отступ: 1000 + 100 - 500 - 20.
     expect(resolver.resolve()).toBe(580);
+  });
+
+  it("ставит элемент под шапкой", () => {
+    const { resolver, state } = createResolver();
+
+    state.target = { type: "index", index: 10 };
+    state.origin = 60;
+
+    expect(resolver.resolve()).toBe(1060);
   });
 
   it("не знает цели для несуществующего индекса", () => {
