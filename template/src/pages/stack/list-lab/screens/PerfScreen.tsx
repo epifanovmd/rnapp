@@ -1,8 +1,8 @@
 import { listPerf, useListPerf } from "@shared/lib/list-perf";
 import { Container, Navbar } from "@shared/ui";
-import type { IListRenderItemProps } from "@shared/ui/list";
+import type { IListRenderItemProps, IListStickyConfig } from "@shared/ui/list";
 import { List } from "@shared/ui/list";
-import React, { FC, useCallback } from "react";
+import React, { FC, useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 
 import { LabRowView } from "../components";
@@ -14,18 +14,23 @@ const ESTIMATED_ITEM_SIZE = 92;
 /**
  * Стенд производительности своего списка.
  *
- * Ни настроек, ни счётчиков: тысяча сообщений, подгрузка в обе стороны,
- * высоты меряются. Всё, что могло бы повлиять на замер, из кадра убрано.
+ * Ни настроек, ни экранных счётчиков: тысяча сообщений, подгрузка в обе стороны,
+ * высоты меряются, даты прилипают к верхней кромке. Всё, что могло бы повлиять
+ * на замер помимо самого списка, из кадра убрано.
  *
- * Тот же список на `@legendapp/list` лежит на соседнем стенде — данные и
- * поведение подгрузки у них общие, поэтому сравнивать можно напрямую.
- *
- * Замер пишется в консоль пачкой раз в секунду, пока экран открыт.
+ * Замер пишется в консоль пачкой раз в секунду, пока экран открыт; строка
+ * `стики` показывает, во что обходится прилипание на каждом проходе.
  */
 export const PerfScreen: FC = () => {
-  const { rows, onStartReached, onEndReached } = usePerfPagination();
+  const { rows, dateIndices, onStartReached, onEndReached } =
+    usePerfPagination();
 
   useListPerf("наш");
+
+  const sticky = useMemo<IListStickyConfig<LabRow>[]>(
+    () => [{ edge: "start", indices: dateIndices }],
+    [dateIndices],
+  );
 
   const renderItem = useCallback(({ item }: IListRenderItemProps<LabRow>) => {
     listPerf.count("renderItem");
@@ -45,6 +50,7 @@ export const PerfScreen: FC = () => {
         keyExtractor={labRowKey}
         getItemType={labRowType}
         estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        sticky={sticky}
         maintainVisibleContentPosition={{ data: true, size: true }}
         onStartReached={onStartReached}
         onStartReachedThreshold={0.4}

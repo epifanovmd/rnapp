@@ -749,6 +749,71 @@ describe("ListRuntime — прочее", () => {
     expect(adapter.scrollToOffset).toHaveBeenLastCalledWith(3580, false);
   });
 
+  it("держит верхнюю строку на месте при подгрузке с разделителями дат", () => {
+    // Стенд повторяет чат: разделители дат живут в тех же данных, а их ключ
+    // считается от дня — при подгрузке того же дня такой разделитель уезжает
+    // вверх, оставаясь тем же элементом.
+    const dateRow = (day: string): IRow => ({ id: `d-${day}`, size: 44 });
+    const message = (seq: number): IRow => ({ id: `m${seq}`, size: 100 });
+    const messagesFrom = (from: number, count: number): IRow[] =>
+      Array.from({ length: count }, (_, index) => message(from + index));
+
+    const before: IRow[] = [dateRow("x"), ...messagesFrom(100, 40)];
+    const after: IRow[] = [
+      dateRow("w"),
+      ...messagesFrom(60, 20),
+      dateRow("x"),
+      ...messagesFrom(80, 20),
+      ...messagesFrom(100, 40),
+    ];
+
+    const store = new ListStore();
+    const adapter: IScrollAdapter = {
+      scrollToEnd: jest.fn(),
+      scrollToOffset: jest.fn(),
+      getOffset: jest.fn(() => 0),
+    };
+    const options: Partial<IListRuntimeProps<IRow>> = {
+      getFixedItemSize: undefined,
+      maintainVisibleContentPositionData: true,
+      maintainVisibleContentPositionSize: true,
+    };
+    const runtime = new ListRuntime<IRow>(
+      store,
+      createProps(before, {
+        ...options,
+        sticky: [{ edge: "start", indices: [0] }],
+      }),
+    );
+
+    const measureAll = (data: IRow[]) => {
+      for (const row of data) runtime.setItemSize(row.id, row.size);
+      nextFrame();
+    };
+
+    runtime.setAdapter(adapter);
+    runtime.setScrollLength(SCROLL_LENGTH);
+    measureAll(before);
+
+    // Верх списка: ровно там срабатывает подгрузка предыдущей страницы.
+    runtime.setScroll(44);
+
+    const screenTop = () =>
+      (runtime.getPositionByKey("m100") ?? 0) - runtime.getScroll();
+    const expected = screenTop();
+
+    runtime.setProps(
+      createProps(after, {
+        ...options,
+        sticky: [{ edge: "start", indices: [0, 21] }],
+      }),
+    );
+    measureAll(after);
+
+    // Строка, на которую смотрел пользователь, обязана остаться на месте.
+    expect(screenTop()).toBeCloseTo(expected, 0);
+  });
+
   it("учитывает вклад шапки в высоту контента", () => {
     const { runtime } = createRuntime();
 

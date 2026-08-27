@@ -86,6 +86,15 @@ export const formatListPerfReport = ({
     );
   }
 
+  if (stats.stickyMs.count > 0) {
+    lines.push(
+      `  стики     ${counters.stickyPinned} закреплений · ${pair(
+        stats.stickyMs,
+        2,
+      )}мс`,
+    );
+  }
+
   if (counters.measure > 0 || counters.measureSkipped > 0) {
     lines.push(
       `  измерения ${counters.measure} · принято ${
@@ -108,10 +117,26 @@ export const formatListPerfReport = ({
 
   if (counters.mvcpCapture > 0 || counters.mvcpRestore > 0) {
     lines.push(
-      `  mvcp      ${counters.mvcpCapture} захватов · ${
-        counters.mvcpRestore
-      } восстановлений · сдвиг ${pair(stats.mvcpShiftPx, 0)}px`,
+      `  mvcp      ${counters.mvcpCapture} захватов · ${counters.mvcpRestore} восстановлений (данные ${counters.mvcpByData} / размер ${counters.mvcpBySize}) · сдвиг ${pair(
+        stats.mvcpShiftPx,
+        0,
+      )}px`,
     );
+
+    if (
+      counters.mvcpClamped > 0 ||
+      counters.mvcpNoAnchor > 0 ||
+      counters.mvcpFallbackAnchor > 0
+    ) {
+      lines.push(
+        `            упор ${counters.mvcpClamped} · потеряно ${pair(
+          stats.mvcpLostPx,
+          0,
+        )}px · без якоря ${counters.mvcpNoAnchor} · запасной якорь ${
+          counters.mvcpFallbackAnchor
+        }`,
+      );
+    }
   }
 
   if (counters.renderItem > 0 || counters.cellRender > 0) {

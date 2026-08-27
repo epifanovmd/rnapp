@@ -823,7 +823,13 @@ export class ListRuntime<TItem> {
     // Подрезка снимается заранее: на броске строка попадает в кадр раньше, чем
     // до неё дойдёт пересчёт, и обрезанное содержимое успевает мелькнуть.
     const clipMargin = this.props.drawDistance / 2;
+    const stickyStartedAt = listPerf.enabled ? perfNow() : 0;
     const pinned = this.stickyPublisher.resolve(this.scroll, this.scrollLength);
+
+    if (listPerf.enabled && this.props.sticky?.length) {
+      listPerf.sample("stickyMs", perfNow() - stickyStartedAt);
+      if (pinned.length > 0) listPerf.count("stickyPinned");
+    }
 
     const pending = this.metrics.getPendingIndices();
     const cached = this.requestCache;

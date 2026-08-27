@@ -132,17 +132,28 @@ export class MaintainVisibleContentPosition {
 
     this.anchors = [];
 
-    if (captured.length === 0) return scroll;
+    listPerf.count(_reason === "данные" ? "mvcpByData" : "mvcpBySize");
+
+    if (captured.length === 0) {
+      listPerf.count("mvcpNoAnchor");
+
+      return scroll;
+    }
 
     // Ни один из снятых якорей не пережил изменение: восстанавливать не по
     // чему, накопленный остаток сбрасывается.
     if (!resolved) {
+      listPerf.count("mvcpNoAnchor");
       this.residual = 0;
 
       return scroll;
     }
 
-    const { anchor, position } = resolved;
+    const { anchor, position, candidate } = resolved;
+
+    // Первая видимая строка не пережила изменение: опорой стала запасная. Так
+    // и задумано, но именно здесь компенсация опирается на другую строку.
+    if (candidate > 0) listPerf.count("mvcpFallbackAnchor");
 
     return this.applyShift(anchor, position, scroll);
   }
@@ -167,6 +178,12 @@ export class MaintainVisibleContentPosition {
     });
 
     this.residual = solution.residual;
+
+    if (listPerf.enabled && solution.lost !== 0) {
+      // Сдвиг обрезан границей контента: на экране это прыжок «не до конца».
+      listPerf.count("mvcpClamped");
+      listPerf.sample("mvcpLostPx", Math.abs(solution.lost));
+    }
 
     if (Math.abs(solution.applied) < MIN_SHIFT) {
       return solution.settled;

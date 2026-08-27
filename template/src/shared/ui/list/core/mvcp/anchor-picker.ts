@@ -108,11 +108,12 @@ export const pickAnchors = ({
 export const resolveAnchor = (
   anchors: IAnchor[],
   metrics: ListMetrics,
-): { anchor: IAnchor; position: number } | undefined => {
-  for (const anchor of anchors) {
+): { anchor: IAnchor; position: number; candidate: number } | undefined => {
+  for (let index = 0; index < anchors.length; index++) {
+    const anchor = anchors[index]!;
     const position = metrics.getPositionByKey(anchor.key);
 
-    if (position !== undefined) return { anchor, position };
+    if (position !== undefined) return { anchor, position, candidate: index };
   }
 
   return undefined;
