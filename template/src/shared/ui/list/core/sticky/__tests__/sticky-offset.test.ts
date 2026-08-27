@@ -1,4 +1,4 @@
-import { getStickyOffset } from "../sticky-offset";
+import { getStickyOffset, isPinnedAtEdge } from "../sticky-offset";
 
 const SCROLL_LENGTH = 500;
 
@@ -91,5 +91,80 @@ describe("getStickyOffset — конечная кромка", () => {
   it("считает предел от высоты прилипающего объекта, а не строки", () => {
     // Аватар 36 в строке 100: он поднимается выше, чем поднялась бы строка.
     expect(offsetAtEnd({ scroll: 320, limit: 800, stickySize: 36 })).toBe(-264);
+  });
+});
+
+const start = (overrides = {}) =>
+  isPinnedAtEdge({
+    edge: "start" as const,
+    position: 1000,
+    size: 44,
+    scrollLength: 800,
+    scroll: 1100,
+    edgeOffset: 0,
+    limit: 1500,
+    stickySize: 44,
+    ...overrides,
+  });
+
+const end = (overrides = {}) =>
+  isPinnedAtEdge({
+    edge: "end" as const,
+    position: 1150,
+    size: 120,
+    scrollLength: 800,
+    scroll: 400,
+    edgeOffset: 0,
+    limit: 900,
+    stickySize: 36,
+    ...overrides,
+  });
+
+describe("isPinnedAtEdge — начальная кромка", () => {
+  it("стоит у кромки, пока кромка внутри хода якоря", () => {
+    expect(start()).toBe(true);
+  });
+
+  it("не стоит, пока кромка не догнала якорь", () => {
+    // Якорь едет вместе с контентом на своём месте.
+    expect(start({ scroll: 900 })).toBe(false);
+  });
+
+  it("не стоит, когда его уже выталкивает следующий якорь", () => {
+    // Ход упёрся в предел: позиция в координатах контента снова постоянна.
+    expect(start({ scroll: 1600 })).toBe(false);
+  });
+
+  it("стоит без предела, пока кромка прошла якорь", () => {
+    expect(start({ limit: undefined, scroll: 9000 })).toBe(true);
+  });
+
+  it("учитывает отступ кромки", () => {
+    expect(start({ scroll: 990, edgeOffset: 20 })).toBe(true);
+    expect(start({ scroll: 970, edgeOffset: 20 })).toBe(false);
+  });
+});
+
+describe("isPinnedAtEdge — конечная кромка", () => {
+  it("стоит у кромки, пока группа пересекает её", () => {
+    expect(end()).toBe(true);
+  });
+
+  it("не стоит, пока низ якоря выше кромки", () => {
+    expect(end({ scroll: 500 })).toBe(false);
+  });
+
+  it("не стоит, когда упёрся в начало группы", () => {
+    // Объект прижат к верху группы и едет вместе с ней.
+    expect(end({ scroll: 100 })).toBe(false);
+  });
+
+  it("стоит без предела, пока низ ниже кромки", () => {
+    expect(end({ limit: undefined, scroll: 0 })).toBe(true);
+  });
+
+  it("учитывает отступ кромки", () => {
+    expect(end({ scroll: 340, edgeOffset: 0 })).toBe(true);
+    expect(end({ scroll: 340, edgeOffset: 250 })).toBe(false);
   });
 });

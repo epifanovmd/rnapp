@@ -8,8 +8,16 @@ import { useListSignal, useListSignals } from "../useListSignals";
 
 const createValue = (store: ListStore): IListContextValue => ({
   store,
-  runtime: { getItemAt: () => undefined, setItemSize: () => {} },
+  runtime: {
+    getItemAt: () => undefined,
+    setItemSize: () => {},
+    getStickyGeometry: () => undefined,
+  },
   scrollOffset: { value: 0 } as SharedValue<number>,
+  stickyPinned: {
+    start: { value: -1 } as SharedValue<number>,
+    end: { value: -1 } as SharedValue<number>,
+  },
   sticky: [],
 });
 

@@ -17,6 +17,11 @@ export interface IListRenderItemProps<TItem> {
    * Живёт на UI-потоке, применять через `useAnimatedStyle`.
    */
   stickyOffset?: SharedValue<number>;
+  /**
+   * Прилипшую копию рисует слой поверх списка: узел, к которому применяется
+   * {@link stickyOffset}, нужно спрятать, оставив на месте для касаний.
+   */
+  stickyPinned?: SharedValue<boolean>;
 }
 
 /** Размер вьюпорта списка. */
@@ -34,7 +39,7 @@ export type ListStickyEdge = "start" | "end";
  * `offset` — динамический отступ от кромки (навбар сверху, панель ввода и
  * клавиатура снизу), поэтому это shared value, а не число.
  */
-export interface IListStickyConfig {
+export interface IListStickyConfig<TItem = unknown> {
   edge: ListStickyEdge;
   /** Индексы якорей, по возрастанию. */
   indices: number[];
@@ -71,6 +76,18 @@ export interface IListStickyConfig {
    * в этот зазор.
    */
   limitInset?: number;
+  /**
+   * Прилипшая копия якоря для слоя поверх списка.
+   *
+   * Пока якорь стоит у кромки, его экранная позиция постоянна — и рисует его
+   * отдельный слой, которому не нужен покадровый трансформ. Внутри контента
+   * якорь в этот момент прячется, оставаясь на месте для касаний.
+   *
+   * В режиме `container` по умолчанию берётся `renderItem`: прилипшая копия —
+   * это сама строка. В режиме `offset` копию обязан задать вызывающий: у
+   * кромки стоит не строка, а объект внутри неё — аватар группы.
+   */
+  renderOverlay?: (item: TItem, index: number) => ReactNode;
 }
 
 /** Удержание позиции при изменениях выше вьюпорта. */
@@ -306,7 +323,7 @@ export interface IListProps<TItem> {
   initialScroll?: ListInitialScroll;
 
   /** Наборы прилипающих элементов; на каждой кромке не более одного. */
-  sticky?: IListStickyConfig[];
+  sticky?: IListStickyConfig<TItem>[];
   /** Точки притяжения скролла. */
   snapToIndices?: number[];
 

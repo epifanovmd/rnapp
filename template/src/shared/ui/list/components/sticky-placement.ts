@@ -1,7 +1,12 @@
+import type { ReactNode } from "react";
 import type { SharedValue } from "react-native-reanimated";
 
 import { POSITION_OUT_OF_VIEW } from "../model";
-import type { IListStickyConfig, ListStickyEdge } from "../types";
+import type {
+  IListRenderItemProps,
+  IListStickyConfig,
+  ListStickyEdge,
+} from "../types";
 
 /** Ниже этой позиции контейнер считается уведённым за пределы контента. */
 const PARKED_THRESHOLD = POSITION_OUT_OF_VIEW / 2;
@@ -17,6 +22,13 @@ export interface IStickyPlacement {
   edgeOffset: SharedValue<number> | undefined;
   /** Высота того, что реально прилипает; по умолчанию — высота строки. */
   stickySize: number;
+  /**
+   * Прилипшую копию рисует слой поверх списка.
+   *
+   * Пока копия видна, узел внутри контента прячется — иначе на кромке стояли бы
+   * два одинаковых элемента.
+   */
+  hasOverlay: boolean;
 }
 
 /**
@@ -36,11 +48,42 @@ export const resolveStickyPlacement = (
 ): IStickyPlacement => {
   const config = edge ? configs.find(item => item.edge === edge) : undefined;
 
+  const mode = config?.mode ?? "container";
+
   return {
-    mode: config?.mode ?? "container",
+    mode,
     edgeOffset: config?.offset,
     stickySize: config?.size ?? size,
+    hasOverlay:
+      config !== undefined &&
+      (config.renderOverlay !== undefined || mode === "container"),
   };
+};
+
+/** Как слой рисует прилипшую копию; undefined — эта кромка слой не использует. */
+export type ListOverlayRenderer = (
+  props: IListRenderItemProps<unknown>,
+) => ReactNode;
+
+/**
+ * Чем рисовать прилипшую копию якоря.
+ *
+ * В режиме `container` копия — это сама строка, поэтому по умолчанию берётся
+ * `renderItem`. В режиме `offset` у кромки стоит объект внутри строки, и
+ * нарисовать его может только вызывающий: без его рендера кромка остаётся на
+ * старом механизме.
+ */
+export const resolveOverlayRenderer = (
+  config: IListStickyConfig,
+  renderItem: ListOverlayRenderer,
+): ListOverlayRenderer | undefined => {
+  const { renderOverlay } = config;
+
+  if (renderOverlay) {
+    return ({ item, index }) => renderOverlay(item, index);
+  }
+
+  return (config.mode ?? "container") === "container" ? renderItem : undefined;
 };
 
 /**

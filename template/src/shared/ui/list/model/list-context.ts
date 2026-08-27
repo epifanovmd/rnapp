@@ -8,6 +8,16 @@ import type { ListStore } from "./list-store";
 export interface IListRuntimeHandle {
   getItemAt: (index: number) => unknown;
   setItemSize: (key: string, size: number) => void;
+  /** Геометрия якоря в координатах элементов; undefined — индекса нет. */
+  getStickyGeometry: (index: number) => IListStickyGeometry | undefined;
+}
+
+/** Что нужно знать о якоре слою прилипших копий. */
+export interface IListStickyGeometry {
+  position: number;
+  size: number;
+  /** Предел смещения; см. `getStickyLimitOf`. */
+  limit: number | undefined;
 }
 
 export interface IListContextValue {
@@ -16,6 +26,21 @@ export interface IListContextValue {
   /** Смещение скролла на UI-потоке — прилипание считается из него. */
   scrollOffset: SharedValue<number>;
   sticky: IListStickyConfig[];
+  /** Якоря, уже отрисованные слоем прилипших копий. */
+  stickyPinned: IListStickyPinnedIndices;
+}
+
+/**
+ * Индекс якоря, который слой действительно нарисовал, по кромкам.
+ *
+ * Зачем нужен: копия внутри контента обязана прятаться не тогда, когда якорь
+ * доехал до кромки, а тогда, когда его уже рисует слой. Слой узнаёт о новом
+ * якоре из рендера, то есть на коммит позже, и без этой сверки на стыке
+ * оставался бы кадр, где не нарисован ни один из двух.
+ */
+export interface IListStickyPinnedIndices {
+  start: SharedValue<number>;
+  end: SharedValue<number>;
 }
 
 const ListContext = createContext<IListContextValue | null>(null);
@@ -42,3 +67,7 @@ export const useListScrollOffset = (): SharedValue<number> =>
 
 /** Наборы прилипающих элементов, объявленные списком. */
 export const useListSticky = (): IListStickyConfig[] => useListContext().sticky;
+
+/** Якоря, уже отрисованные слоем прилипших копий; см. {@link IListStickyPinnedIndices}. */
+export const useListStickyPinned = (): IListStickyPinnedIndices =>
+  useListContext().stickyPinned;

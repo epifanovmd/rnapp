@@ -6,7 +6,7 @@
  * чтобы в выводе была одна тема, а не всё сразу.
  */
 export type ListDebugTopic =
-  "scroll" | "range" | "position" | "size" | "sticky" | "mvcp";
+  "scroll" | "range" | "position" | "size" | "sticky" | "mvcp" | "render";
 
 let enabledTopics: ListDebugTopic[] = [];
 

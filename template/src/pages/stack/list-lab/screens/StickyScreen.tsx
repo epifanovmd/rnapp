@@ -9,7 +9,13 @@ import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
 
-import { LabPanel, LabRowView, LabStatus, LabToggle } from "../components";
+import {
+  LabAvatarPin,
+  LabPanel,
+  LabRowView,
+  LabStatus,
+  LabToggle,
+} from "../components";
 import type { LabRow } from "../model";
 import {
   createMessages,
@@ -20,7 +26,7 @@ import {
   withDateSeparators,
 } from "../model";
 
-const MESSAGE_COUNT = 240;
+const MESSAGE_COUNT = 1000;
 const ESTIMATED_ITEM_SIZE = 92;
 /** Высота аватара: до неё список доводит подъём у верха группы. */
 const AVATAR_SIZE = 36;
@@ -58,8 +64,8 @@ export const StickyScreen: FC = () => {
     [],
   );
 
-  const sticky = useMemo<IListStickyConfig[]>(() => {
-    const configs: IListStickyConfig[] = [];
+  const sticky = useMemo<IListStickyConfig<LabRow>[]>(() => {
+    const configs: IListStickyConfig<LabRow>[] = [];
 
     if (stickyDates) {
       configs.push({ edge: "start", indices: dateIndices, offset: topOffset });
@@ -75,6 +81,9 @@ export const StickyScreen: FC = () => {
         size: AVATAR_SIZE,
         groupStarts,
         limitInset: MESSAGE_GAP,
+        // Пока аватар стоит у кромки, его рисует слой поверх списка: там у него
+        // нет покадрового трансформа и нечему дрожать.
+        renderOverlay: item => <LabAvatarPin row={item} />,
       });
     }
 
@@ -90,12 +99,18 @@ export const StickyScreen: FC = () => {
   ]);
 
   const renderItem = useCallback(
-    ({ item, stickyOffset, index }: IListRenderItemProps<LabRow>) => (
+    ({
+      item,
+      stickyOffset,
+      stickyPinned,
+      index,
+    }: IListRenderItemProps<LabRow>) => (
       <LabRowView
         row={item}
         index={index}
         withAvatar
         stickyOffset={stickyOffset}
+        stickyPinned={stickyPinned}
       />
     ),
     [],

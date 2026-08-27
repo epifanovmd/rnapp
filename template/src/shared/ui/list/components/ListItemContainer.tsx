@@ -7,13 +7,19 @@ import Animated, {
   useDerivedValue,
 } from "react-native-reanimated";
 
-import { getStickyOffset, isListDebugEnabled, listDebug } from "../core";
+import {
+  getStickyOffset,
+  isListDebugEnabled,
+  isPinnedAtEdge,
+  listDebug,
+} from "../core";
 import { useListSignals } from "../hooks";
 import {
   POSITION_OUT_OF_VIEW,
   useListRuntime,
   useListScrollOffset,
   useListSticky,
+  useListStickyPinned,
 } from "../model";
 import type { IListRenderItemProps } from "../types";
 import { getContainerSignalNames } from "./container-signals";
@@ -48,12 +54,19 @@ interface IListItemContainerProps {
  * Прилипание считается на UI-потоке и применяется двумя способами: к самому
  * контейнеру (заголовки) либо отдаётся в ячейку смещением, чтобы та подвинула
  * только нужный узел (аватар группы).
+ *
+ * Узел контейнера всегда анимированный, даже у обычной строки. Смена типа узла
+ * при получении кромки перемонтировала бы поддерево ячейки, а новый
+ * анимированный узел коммитится с базовым стилем — снятым при его первом
+ * рендере, то есть с нулевым смещением. На экране это срыв прилипшего элемента
+ * на кадр и возврат обратно.
  */
 export const ListItemContainer = memo<IListItemContainerProps>(
   ({ id, renderItem, extraData, ItemSeparatorComponent }) => {
     const runtime = useListRuntime();
     const scrollOffset = useListScrollOffset();
     const stickyConfigs = useListSticky();
+    const pinnedIndices = useListStickyPinned();
 
     const signalNames = useMemo(() => getContainerSignalNames(id), [id]);
 
@@ -73,11 +86,20 @@ export const ListItemContainer = memo<IListItemContainerProps>(
     const resolvedSize = itemSize ?? 0;
     const resolvedScrollLength = scrollLength ?? 0;
 
-    const { mode, edgeOffset, stickySize } = resolveStickyPlacement(
+    const { mode, edgeOffset, stickySize, hasOverlay } = resolveStickyPlacement(
       stickyConfigs,
       stickyEdge,
       resolvedSize,
     );
+
+    listDebug("render", "контейнер", {
+      id,
+      index: itemIndex ?? -1,
+      key: itemKey ?? "-",
+      sticky: stickyEdge ?? "-",
+      position: resolvedPosition,
+      clipped: clipped ?? false,
+    });
 
     /** Смещение прилипания; у обычной строки — 0. */
     const offset = useDerivedValue(() => {
@@ -103,6 +125,46 @@ export const ListItemContainer = memo<IListItemContainerProps>(
       stickySize,
     ]);
 
+    /**
+     * Прилипшую копию сейчас рисует слой поверх списка.
+     *
+     * Пока это так, узел внутри контента прячется: он остаётся на месте для
+     * касаний, но на кромке не должно стоять двух одинаковых элементов.
+     */
+    const pinnedByOverlay = useDerivedValue(() => {
+      if (!stickyEdge || !hasOverlay) return false;
+      if (isContainerParked(resolvedPosition)) return false;
+
+      const rendered =
+        stickyEdge === "start"
+          ? pinnedIndices.start.value
+          : pinnedIndices.end.value;
+
+      // Прятаться можно только под уже нарисованную копию — иначе на стыке
+      // якорей остаётся кадр, где не нарисован ни один из двух.
+      if (rendered !== itemIndex) return false;
+
+      return isPinnedAtEdge({
+        edge: stickyEdge,
+        position: resolvedPosition,
+        size: resolvedSize,
+        scrollLength: resolvedScrollLength,
+        scroll: scrollOffset.value,
+        edgeOffset: edgeOffset?.value ?? 0,
+        limit: stickyLimit,
+        stickySize,
+      });
+    }, [
+      stickyEdge,
+      hasOverlay,
+      itemIndex,
+      resolvedPosition,
+      resolvedSize,
+      resolvedScrollLength,
+      stickyLimit,
+      stickySize,
+    ]);
+
     // Флаг захватывается на момент создания реакции: без него каждый кадр
     // прилипания уходил бы переход в JS ради выключенного лога.
     const debugSticky = isListDebugEnabled("sticky");
@@ -120,6 +182,9 @@ export const ListItemContainer = memo<IListItemContainerProps>(
           limit: stickyLimit ?? -1,
           objectSize: stickySize,
           bottom: resolvedPosition + resolvedSize + value,
+          // Экранная позиция прилипшего узла: пока он у кромки, она обязана
+          // стоять на месте от кадра к кадру.
+          screen: resolvedPosition + value - scroll,
         });
       },
       [id, itemIndex, resolvedPosition, resolvedSize, stickyLimit, stickySize],
@@ -138,6 +203,7 @@ export const ListItemContainer = memo<IListItemContainerProps>(
 
     const stickyStyle = useAnimatedStyle(
       () => ({
+        opacity: mode === "container" && pinnedByOverlay.value ? 0 : 1,
         transform: [{ translateY: mode === "container" ? offset.value : 0 }],
       }),
       [mode],
@@ -176,20 +242,15 @@ export const ListItemContainer = memo<IListItemContainerProps>(
           type: "",
           extraData,
           stickyOffset: mode === "offset" ? offset : undefined,
+          stickyPinned: mode === "offset" ? pinnedByOverlay : undefined,
         })}
         {ItemSeparatorComponent ? <ItemSeparatorComponent /> : null}
       </View>
     );
 
-    // Прилипающий контейнер двигается на UI-потоке; обычный — статичен, и
-    // лишний анимированный узел ему не нужен.
-    if (stickyEdge && mode === "container") {
-      return (
-        <Animated.View style={[style, stickyStyle]}>{content}</Animated.View>
-      );
-    }
-
-    return <View style={style}>{content}</View>;
+    return (
+      <Animated.View style={[style, stickyStyle]}>{content}</Animated.View>
+    );
   },
 );
 

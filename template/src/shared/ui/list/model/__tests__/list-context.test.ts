@@ -19,8 +19,13 @@ const createValue = (): IListContextValue => ({
   runtime: {
     getItemAt: () => undefined,
     setItemSize: () => {},
+    getStickyGeometry: () => undefined,
   } satisfies IListRuntimeHandle,
   scrollOffset: { value: 0 } as SharedValue<number>,
+  stickyPinned: {
+    start: { value: -1 } as SharedValue<number>,
+    end: { value: -1 } as SharedValue<number>,
+  },
   sticky: [{ edge: "start", indices: [0] }],
 });
 

@@ -5,5 +5,7 @@ export * from "./ListAnchoredEndSpace";
 export * from "./ListContainers";
 export * from "./ListItemContainer";
 export * from "./ListScrollAdjust";
+export * from "./ListStickyOverlay";
+export * from "./ListStickyPin";
 export * from "./scroll-indicator";
 export * from "./sticky-placement";

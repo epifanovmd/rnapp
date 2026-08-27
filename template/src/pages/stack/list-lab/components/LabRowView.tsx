@@ -17,14 +17,17 @@ interface ILabRowViewProps {
   withAvatar?: boolean;
   /** Смещение прилипания от списка: применяется только к аватару. */
   stickyOffset?: SharedValue<number>;
+  /** Аватар сейчас нарисован слоем поверх списка — свой нужно спрятать. */
+  stickyPinned?: SharedValue<boolean>;
 }
 
 /** Строка тестового списка: сообщение, разделитель даты или спиннер. */
 export const LabRowView: FC<ILabRowViewProps> = memo(
-  ({ row, index, withAvatar = false, stickyOffset }) => {
+  ({ row, index, withAvatar = false, stickyOffset, stickyPinned }) => {
     const { isDark } = useTheme();
 
     const avatarStyle = useAnimatedStyle(() => ({
+      opacity: stickyPinned?.value ? 0 : 1,
       transform: [{ translateY: stickyOffset?.value ?? 0 }],
     }));
 
@@ -55,11 +58,12 @@ export const LabRowView: FC<ILabRowViewProps> = memo(
       <View style={[ss.message, { height: row.height }]}>
         {withAvatar && (
           <View style={ss.avatarSlot}>
-            {row.isGroupTail && (
-              <Animated.View style={avatarStyle}>
-                <Avatar size={36} name={row.author} />
-              </Animated.View>
-            )}
+            {/* Узел смонтирован всегда: при переиспользовании строки новый
+                анимированный узел коммитится с нулевым смещением, и прилипший
+                аватар на кадр срывается вниз. */}
+            <Animated.View style={avatarStyle}>
+              {row.isGroupTail && <Avatar size={36} name={row.author} />}
+            </Animated.View>
           </View>
         )}
         <View style={[ss.bubble, isDark ? ss.bubbleDark : ss.bubbleLight]}>

@@ -131,7 +131,9 @@ export const createRuntimeProps = <TItem>(
     alignItemsAtEnd,
     initialScroll,
     anchoredEndSpace,
-    sticky,
+    // Дженерик элемента ядру не нужен: наборы прилипания разбираются по
+    // индексам, а рендер копии уходит наружу как есть.
+    sticky: sticky as IListStickyConfig[] | undefined,
     viewabilityPairs,
     onLoad,
     onStartReached,

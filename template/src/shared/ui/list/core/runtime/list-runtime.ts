@@ -1,3 +1,4 @@
+import type { IListStickyGeometry } from "../../model";
 import { ContainerPool, ListMetrics, ListStore } from "../../model";
 import { ItemSource } from "../data";
 import type { IEdgeCheckContext, ListEdge } from "../edges";
@@ -198,6 +199,21 @@ export class ListRuntime<TItem> {
 
   getItemAt(index: number): TItem | undefined {
     return this.props.data[index];
+  }
+
+  /**
+   * Геометрия якоря для слоя прилипших копий.
+   *
+   * В координатах элементов — тех же, в которых считается смещение прилипания.
+   */
+  getStickyGeometry(index: number): IListStickyGeometry | undefined {
+    if (index < 0 || index >= this.items.getCount()) return undefined;
+
+    return {
+      position: this.metrics.getPosition(index),
+      size: this.metrics.getSize(index),
+      limit: this.sticky.getLimitOf(index),
+    };
   }
 
   /** Смещение скролла в координатах контента — то же, что у нативного. */

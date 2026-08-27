@@ -72,3 +72,46 @@ export const getStickyOffset = ({
 
   return resolvedBottom - bottom;
 };
+
+/**
+ * Стоит ли якорь у кромки, не выталкиваемый следующим.
+ *
+ * Worklet: считается на UI-потоке рядом со смещением.
+ *
+ * Зачем нужен: у прилипания три состояния, и покадровое движение есть только в
+ * одном из них. Пока якорь не доехал до кромки, он стоит на своём месте в
+ * контенте; когда его выталкивает следующий, он упирается в предел и снова
+ * стоит на месте в контенте — оба раза его везёт нативный скролл, и трансформ
+ * при этом постоянен. И только между ними якорь обязан компенсировать скролл
+ * покадрово.
+ *
+ * Какую проблему решает: именно это состояние отдаётся отдельному слою поверх
+ * списка, где элемент вообще не двигается. Покадровая компенсация исчезает, а
+ * вместе с ней — рывки от пропущенных кадров скролла и от чужих коммитов.
+ */
+export const isPinnedAtEdge = ({
+  edge,
+  position,
+  size,
+  scrollLength,
+  scroll,
+  edgeOffset,
+  limit,
+  stickySize,
+}: IStickyOffsetParams): boolean => {
+  "worklet";
+
+  if (edge === "start") {
+    const edgePosition = scroll + edgeOffset;
+
+    if (edgePosition <= position) return false;
+
+    return limit === undefined || edgePosition <= limit;
+  }
+
+  const viewportBottom = scroll + scrollLength - edgeOffset;
+
+  if (viewportBottom >= position + size) return false;
+
+  return limit === undefined || viewportBottom > limit + stickySize;
+};

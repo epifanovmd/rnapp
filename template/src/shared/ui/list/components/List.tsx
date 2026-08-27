@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { LayoutChangeEvent, View } from "react-native";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedProps,
   useAnimatedRef,
@@ -17,11 +17,17 @@ import Animated, {
 import { createRuntimeProps, ListRuntime } from "../core";
 import { useListScrollHandler, useListSharedValues } from "../hooks";
 import { ListContextProvider, ListStore } from "../model";
-import type { IListProps, IListRef, IListRenderItemProps } from "../types";
+import type {
+  IListProps,
+  IListRef,
+  IListRenderItemProps,
+  IListStickyConfig,
+} from "../types";
 import { renderListSlot } from "./list-slots";
 import { ListAnchoredEndSpace } from "./ListAnchoredEndSpace";
 import { ListContainers } from "./ListContainers";
 import { ListScrollAdjust } from "./ListScrollAdjust";
+import { ListStickyOverlay } from "./ListStickyOverlay";
 import { getScrollIndicatorInsets } from "./scroll-indicator";
 
 /** Как часто нативный слой шлёт события скролла, мс. */
@@ -76,6 +82,9 @@ const ListInner = <TItem,>(
   const innerScrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollRef = refScrollView ?? innerScrollRef;
   const scrollOffset = useSharedValue(0);
+  // Якоря, которые слой прилипших копий уже нарисовал: -1 — копии нет.
+  const pinnedStartIndex = useSharedValue(-1);
+  const pinnedEndIndex = useSharedValue(-1);
 
   useEffect(() => {
     runtime.setAdapter({
@@ -113,8 +122,16 @@ const ListInner = <TItem,>(
   );
 
   const contextValue = useMemo(
-    () => ({ store, runtime, scrollOffset, sticky: sticky ?? [] }),
-    [store, runtime, scrollOffset, sticky],
+    () => ({
+      store,
+      runtime,
+      scrollOffset,
+      // Дженерик элемента внутрь не идёт: контейнеры и слой одинаково работают
+      // с любым элементом, а тип восстанавливается у вызывающего.
+      sticky: (sticky ?? []) as IListStickyConfig[],
+      stickyPinned: { start: pinnedStartIndex, end: pinnedEndIndex },
+    }),
+    [store, runtime, scrollOffset, sticky, pinnedStartIndex, pinnedEndIndex],
   );
 
   useListSharedValues(store, scrollOffset, sharedValues);
@@ -217,48 +234,63 @@ const ListInner = <TItem,>(
 
   return (
     <ListContextProvider value={contextValue}>
-      <Animated.ScrollView
-        ref={scrollRef}
-        style={style}
-        contentContainerStyle={contentContainerStyle}
-        onLayout={handleLayout}
-        onScroll={scrollHandler}
-        onContentSizeChange={handleContentSizeChange}
-        maintainVisibleContentPosition={nativeMaintainVisibleContentPosition}
-        snapToOffsets={snapToOffsets}
-        animatedProps={scrollIndicatorInset ? scrollIndicatorProps : undefined}
-        // iOS сам добавляет safe area к инсетам индикатора, а она уже входит в
-        // отступ — авто-подстройка давала бы двойной.
-        automaticallyAdjustsScrollIndicatorInsets={!scrollIndicatorInset}
-        scrollEventThrottle={SCROLL_EVENT_THROTTLE}
-        bounces={false}
-      >
-        {/* Первым ребёнком: за ним следит нативное удержание позиции. */}
-        <ListScrollAdjust />
+      {/* Обёртка нужна слою прилипших копий: он живёт снаружи ScrollView, в
+          координатах вьюпорта, и потому не едет вместе с контентом. */}
+      <View style={style}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={contentContainerStyle}
+          onLayout={handleLayout}
+          onScroll={scrollHandler}
+          onContentSizeChange={handleContentSizeChange}
+          maintainVisibleContentPosition={nativeMaintainVisibleContentPosition}
+          snapToOffsets={snapToOffsets}
+          animatedProps={
+            scrollIndicatorInset ? scrollIndicatorProps : undefined
+          }
+          // iOS сам добавляет safe area к инсетам индикатора, а она уже входит
+          // в отступ — авто-подстройка давала бы двойной.
+          automaticallyAdjustsScrollIndicatorInsets={!scrollIndicatorInset}
+          scrollEventThrottle={SCROLL_EVENT_THROTTLE}
+          bounces={false}
+        >
+          {/* Первым ребёнком: за ним следит нативное удержание позиции. */}
+          <ListScrollAdjust />
 
-        <View onLayout={handleHeaderLayout}>
-          {renderListSlot(ListHeaderComponent)}
-        </View>
+          <View onLayout={handleHeaderLayout}>
+            {renderListSlot(ListHeaderComponent)}
+          </View>
 
-        {data.length === 0 ? (
-          renderListSlot(ListEmptyComponent)
-        ) : (
-          <ListContainers
-            renderItem={renderItemUntyped}
-            extraData={extraData}
-            ItemSeparatorComponent={ItemSeparatorComponent}
-          />
-        )}
+          {data.length === 0 ? (
+            renderListSlot(ListEmptyComponent)
+          ) : (
+            <ListContainers
+              renderItem={renderItemUntyped}
+              extraData={extraData}
+              ItemSeparatorComponent={ItemSeparatorComponent}
+            />
+          )}
 
-        <ListAnchoredEndSpace />
+          <ListAnchoredEndSpace />
 
-        <View onLayout={handleFooterLayout}>
-          {renderListSlot(ListFooterComponent)}
-        </View>
-      </Animated.ScrollView>
+          <View onLayout={handleFooterLayout}>
+            {renderListSlot(ListFooterComponent)}
+          </View>
+        </Animated.ScrollView>
+
+        <ListStickyOverlay
+          renderItem={renderItemUntyped}
+          extraData={extraData}
+        />
+      </View>
     </ListContextProvider>
   );
 };
+
+const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+});
 
 /**
  * Виртуализированный список.
