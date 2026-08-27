@@ -24,6 +24,14 @@ export interface IScrollCompensation {
   scrollRef: AnimatedRef<Animated.ScrollView>;
   /** Стиль распорки в конце контента. */
   spacerStyle: AnimatedStyle<{ height: number }>;
+  /**
+   * Высота той же распорки числом — нижний отступ контента.
+   *
+   * Нужна тем, кто обязан кончаться на одной линии с контентом, но живёт вне
+   * его координат: индикатор скролла отсчитывается от кромки `ScrollView` и о
+   * распорке в подвале не знает.
+   */
+  contentInset: SharedValue<number>;
   onLayout: (event: LayoutChangeEvent) => void;
   onContentSizeChange: (width: number, height: number) => void;
   /**
@@ -148,6 +156,7 @@ export const useKeyboardScrollCompensation = (
     () => ({
       scrollRef,
       spacerStyle,
+      contentInset: spacerHeight,
       onLayout,
       onContentSizeChange,
       onScrollBeginDrag,
@@ -156,6 +165,7 @@ export const useKeyboardScrollCompensation = (
     [
       scrollRef,
       spacerStyle,
+      spacerHeight,
       onLayout,
       onContentSizeChange,
       onScrollBeginDrag,

@@ -151,6 +151,9 @@ export const InputBarInsetScreen: FC = () => {
         initialScroll={{ type: "end" }}
         maintainScrollAtEnd={maintainScrollAtEnd}
         maintainVisibleContentPosition={{ data: true, size: true }}
+        // Тот же отступ, что у контента: индикатор обязан кончаться на одной
+        // линии с последней строкой, а не уходить под панель ввода.
+        scrollIndicatorInset={compensation.contentInset}
         ListFooterComponent={listFooter}
         recycleItems
         style={ss.list}

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { LayoutChangeEvent, View } from "react-native";
 import Animated, {
+  useAnimatedProps,
   useAnimatedRef,
   useSharedValue,
 } from "react-native-reanimated";
@@ -21,6 +22,7 @@ import { renderListSlot } from "./list-slots";
 import { ListAnchoredEndSpace } from "./ListAnchoredEndSpace";
 import { ListContainers } from "./ListContainers";
 import { ListScrollAdjust } from "./ListScrollAdjust";
+import { getScrollIndicatorInsets } from "./scroll-indicator";
 
 /** Как часто нативный слой шлёт события скролла, мс. */
 const SCROLL_EVENT_THROTTLE = 16;
@@ -50,6 +52,7 @@ const ListInner = <TItem,>(
     maintainVisibleContentPosition,
     sticky,
     snapToIndices,
+    scrollIndicatorInset,
     sharedValues,
     refScrollView,
     onLayout,
@@ -160,6 +163,18 @@ const ListInner = <TItem,>(
     [runtime],
   );
 
+  // Индикатор скролла живёт в координатах ScrollView и о распорке в подвале не
+  // знает: без этого отступа он доходит до кромки экрана, а контент — только до
+  // панели ввода.
+  const scrollIndicatorProps = useAnimatedProps(
+    () => ({
+      scrollIndicatorInsets: getScrollIndicatorInsets(
+        scrollIndicatorInset?.value ?? 0,
+      ),
+    }),
+    [scrollIndicatorInset],
+  );
+
   const scrollHandler = useListScrollHandler({
     scrollOffset,
     onScroll: updateScroll,
@@ -183,6 +198,10 @@ const ListInner = <TItem,>(
         onContentSizeChange={handleContentSizeChange}
         maintainVisibleContentPosition={nativeMaintainVisibleContentPosition}
         snapToOffsets={snapToOffsets}
+        animatedProps={scrollIndicatorInset ? scrollIndicatorProps : undefined}
+        // iOS сам добавляет safe area к инсетам индикатора, а она уже входит в
+        // отступ — авто-подстройка давала бы двойной.
+        automaticallyAdjustsScrollIndicatorInsets={!scrollIndicatorInset}
         scrollEventThrottle={SCROLL_EVENT_THROTTLE}
         bounces={false}
       >
