@@ -1,3 +1,5 @@
+import { listPerf } from "@shared/lib/list-perf";
+
 import type {
   IAllocationResult,
   IContainerRequest,
@@ -69,13 +71,21 @@ export class ContainerBinder {
       revision === this.previousRevision &&
       this.haveSameRequests(requests, this.previousRequests)
     ) {
+      listPerf.count("bindSkipped");
       this.updateClipping(requests, clipTop, clipEnd);
 
       return { changed: [], released: [], count: pool.getCount() };
     }
 
+    const containersBefore = pool.getCount();
     const allocation = pool.allocate(requests);
     const { released, count } = allocation;
+
+    if (listPerf.enabled) {
+      listPerf.count("rebind", allocation.changed.length);
+      listPerf.count("release", released.length);
+      listPerf.count("containerNew", count - containersBefore);
+    }
 
     for (const id of released) {
       if (pool.getBinding(id) !== undefined) continue;

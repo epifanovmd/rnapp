@@ -1,3 +1,5 @@
+import { listPerf, perfNow } from "@shared/lib/list-perf";
+
 /**
  * Пакетирование пересчёта раскладки.
  *
@@ -27,7 +29,13 @@ export class LayoutScheduler {
     if (this.pending) return;
 
     this.pending = true;
+
+    const scheduledAt = listPerf.enabled ? perfNow() : 0;
+
     requestAnimationFrame(() => {
+      // Задержка до кадра — прямая мера занятости JS-потока: пока он занят,
+      // измеренные высоты не применяются, и на экране остаются оценочные.
+      listPerf.sample("flushDelayMs", perfNow() - scheduledAt);
       this.pending = false;
       this.run();
     });

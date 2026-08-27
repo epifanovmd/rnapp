@@ -1,3 +1,5 @@
+import { listPerf, perfNow } from "@shared/lib/list-perf";
+
 import type { IContainerRequest, IListStickyGeometry } from "../../model";
 import { ContainerPool, ListMetrics, ListStore } from "../../model";
 import { ItemSource } from "../data";
@@ -355,6 +357,7 @@ export class ListRuntime<TItem> {
     }
 
     if (sourceChanged && props.maintainVisibleContentPositionData) {
+      listPerf.count("mvcpCapture");
       this.mvcp.capture("данные");
     }
 
@@ -405,12 +408,28 @@ export class ListRuntime<TItem> {
 
     if (this.scroll === scroll) return;
 
+    const startedAt = listPerf.enabled ? perfNow() : 0;
+    const travelled = Math.abs(scroll - this.scroll);
+
     this.scroll = scroll;
     this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
 
     this.calculateItemsInView();
     this.checkThresholds();
+
+    if (listPerf.enabled) {
+      listPerf.count("scrollEvents");
+      listPerf.sample("scrollPx", travelled);
+      listPerf.sample("velocity", Math.abs(this.velocity.get()));
+      listPerf.sample("scrollMs", perfNow() - startedAt);
+      // Насколько JS отстал от нативного скролла к концу прохода: пустота в
+      // кадре начинается там, где это отставание перерастает буфер отрисовки.
+      listPerf.sample(
+        "lagPx",
+        Math.abs((this.adapter?.getOffset?.() ?? offset) - offset),
+      );
+    }
   }
 
   /** Начало жеста: направление решает, какая кромка может сработать снова. */
@@ -532,7 +551,16 @@ export class ListRuntime<TItem> {
   setItemSize(key: string, size: number): void {
     if (!this.metrics.willResize(key, size)) return;
 
+    if (listPerf.enabled) {
+      listPerf.count("measureApplied");
+      listPerf.sample(
+        "resizePx",
+        Math.abs(size - (this.metrics.getSizeByKey(key) ?? size)),
+      );
+    }
+
     if (this.props.maintainVisibleContentPositionSize) {
+      listPerf.count("mvcpCapture");
       this.mvcp.capture("размер");
     }
 
@@ -549,6 +577,8 @@ export class ListRuntime<TItem> {
    * после того, как список смонтирован.
    */
   calculateItemsInView(): void {
+    const startedAt = listPerf.enabled ? perfNow() : 0;
+
     if (this.items.getCount() === 0) {
       this.range = { ...EMPTY_RANGE };
       this.binder.releaseAll();
@@ -581,6 +611,8 @@ export class ListRuntime<TItem> {
         endBuffered: this.range.endBuffered,
       });
     }
+
+    if (listPerf.enabled) this.reportLayoutPass(startedAt);
   }
 
   /** Снятие таймеров и подписок при размонтировании списка. */
@@ -645,6 +677,8 @@ export class ListRuntime<TItem> {
 
   /** Применение накопленных изменений раскладки одним проходом. */
   private flushLayout(): void {
+    const startedAt = listPerf.enabled ? perfNow() : 0;
+
     this.metrics.clearPending();
 
     if (this.props.maintainVisibleContentPositionSize) {
@@ -660,6 +694,11 @@ export class ListRuntime<TItem> {
     this.readiness.reveal();
 
     if (this.didLayout) this.maintainAtEnd.run();
+
+    if (listPerf.enabled) {
+      listPerf.count("flush");
+      listPerf.sample("flushMs", perfNow() - startedAt);
+    }
   }
 
   /**
@@ -694,6 +733,11 @@ export class ListRuntime<TItem> {
     // Сдвиг считается от настоящего смещения, а не от предсказанного.
     this.scroll = scroll;
     this.scroll = this.mvcp.restore(reason);
+
+    if (listPerf.enabled) {
+      listPerf.count("mvcpRestore");
+      listPerf.sample("mvcpShiftPx", Math.abs(this.scroll - scroll));
+    }
 
     // Второй проход нужен, только если сдвиг разошёлся с предсказанным. Чаще
     // всего он совпадает — измерение ниже якоря его не двигает вовсе, — и
@@ -762,12 +806,77 @@ export class ListRuntime<TItem> {
       };
     }
 
+    if (listPerf.enabled) {
+      listPerf.count("bind");
+      if (canReuseRequests) listPerf.count("bindCached");
+    }
+
     this.binder.bind({
       requests,
       revision: this.layoutRevision,
       clipTop: viewportTop - clipMargin,
       clipEnd: viewportEnd + clipMargin,
     });
+  }
+
+  /** Замер одного прохода раскладки. */
+  private reportLayoutPass(startedAt: number): void {
+    listPerf.count("rangeCalc");
+    listPerf.sample("rangeMs", perfNow() - startedAt);
+    listPerf.sample(
+      "windowItems",
+      Math.max(0, this.range.end - this.range.start + 1),
+    );
+    listPerf.sample("containers", this.pool.getCount());
+
+    const blank = this.measureBlankSpace();
+
+    if (blank > 0) {
+      listPerf.count("blankFrames");
+      listPerf.sample("blankPx", blank);
+    }
+  }
+
+  /**
+   * Часть вьюпорта, не закрытая привязанными и измеренными элементами, px.
+   *
+   * Считается от смещения UI-потока, а не от того, что сейчас обрабатывает JS:
+   * пустота видна там, куда скролл уже уехал, а не там, где его догоняет
+   * пересчёт. Элементы, ждущие измерения, не считаются закрывшими вьюпорт —
+   * на экране они пока оценочной высоты.
+   */
+  private measureBlankSpace(): number {
+    const scroll =
+      (this.adapter?.getOffset?.() ?? this.getScroll()) -
+      this.getContentOrigin();
+    const top = Math.max(0, scroll);
+    const bottom = Math.min(
+      scroll + this.scrollLength,
+      this.metrics.getTotalSize(),
+    );
+    const expected = bottom - top;
+
+    if (expected <= 0) return 0;
+
+    let covered = 0;
+
+    for (
+      let index = this.range.startBuffered;
+      index <= this.range.endBuffered;
+      index++
+    ) {
+      const key = this.items.getKey(index);
+
+      if (key === undefined || this.metrics.isPending(key)) continue;
+      if (this.pool.getContainerByKey(key) === undefined) continue;
+
+      const position = this.metrics.getPosition(index);
+      const end = position + this.metrics.getSize(index);
+
+      covered += Math.max(0, Math.min(end, bottom) - Math.max(position, top));
+    }
+
+    return Math.max(0, expected - covered);
   }
 
   private haveSameIndices(first: number[], second: number[]): boolean {

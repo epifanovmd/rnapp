@@ -1,3 +1,4 @@
+import { listPerf } from "@shared/lib/list-perf";
 import React, {
   ComponentType,
   memo,
@@ -50,6 +51,7 @@ export const ListItemContent = memo<IListItemContentProps>(
 
     const measureCurrentContent = useCallback(() => {
       if (fixedSize) return;
+      listPerf.count("measure");
       const request = ++measureRequest.current;
 
       // `measure` из layout effect читает уже закоммиченный нативный узел и не
@@ -75,6 +77,8 @@ export const ListItemContent = memo<IListItemContentProps>(
       (_event: LayoutChangeEvent) => measureCurrentContent(),
       [measureCurrentContent],
     );
+
+    listPerf.count("cellRender");
 
     return (
       <View

@@ -1,3 +1,4 @@
+import { listPerf, useListPerf } from "@shared/lib/list-perf";
 import { Container, Navbar } from "@shared/ui";
 import type { IListRenderItemProps } from "@shared/ui/list";
 import { List } from "@shared/ui/list";
@@ -18,14 +19,19 @@ const ESTIMATED_ITEM_SIZE = 92;
  *
  * Тот же список на `@legendapp/list` лежит на соседнем стенде — данные и
  * поведение подгрузки у них общие, поэтому сравнивать можно напрямую.
+ *
+ * Замер пишется в консоль пачкой раз в секунду, пока экран открыт.
  */
 export const PerfScreen: FC = () => {
   const { rows, onStartReached, onEndReached } = usePerfPagination();
 
-  const renderItem = useCallback(
-    ({ item }: IListRenderItemProps<LabRow>) => <LabRowView row={item} />,
-    [],
-  );
+  useListPerf("наш");
+
+  const renderItem = useCallback(({ item }: IListRenderItemProps<LabRow>) => {
+    listPerf.count("renderItem");
+
+    return <LabRowView row={item} />;
+  }, []);
 
   return (
     <Container>
