@@ -59,7 +59,13 @@ export class ListRuntime<TItem> {
   private props: IListRuntimeProps<TItem>;
   private readonly items: ItemSource<TItem>;
 
-  /** Смещение скролла в координатах контента. */
+  /**
+   * Смещение скролла в координатах раскладки элементов.
+   *
+   * Не то же, что `contentOffset`: над элементами лежит шапка, и нативное
+   * смещение больше на её высоту. Внутри всё считается в координатах элементов
+   * — с ними сравниваются позиции строк; наружу отдаётся `contentOffset`.
+   */
   private scroll = 0;
   /** Размер вьюпорта вдоль оси скролла. */
   private scrollLength = 0;
@@ -114,7 +120,9 @@ export class ListRuntime<TItem> {
       adapter,
       getScroll: () => this.scroll,
       getScrollLength: () => this.scrollLength,
-      getContentSize: () => this.contentSize.get(),
+      // В координатах элементов, как и смещение выше: иначе граница скролла,
+      // посчитанная из этой высоты, разъедется со смещением на высоту шапки.
+      getContentSize: () => this.contentSize.get() - this.getContentOrigin(),
       shouldRestorePosition: index =>
         this.props.shouldRestorePosition?.(index) ?? true,
     });
@@ -192,8 +200,9 @@ export class ListRuntime<TItem> {
     return this.props.data[index];
   }
 
+  /** Смещение скролла в координатах контента — то же, что у нативного. */
   getScroll(): number {
-    return this.scroll;
+    return this.scroll + this.getContentOrigin();
   }
 
   getScrollLength(): number {
@@ -215,9 +224,23 @@ export class ListRuntime<TItem> {
     this.publishGeometry();
   }
 
-  /** Замер шапки списка. */
+  /**
+   * Замер шапки списка.
+   *
+   * Шапка задаёт начало координат элементов. Пока она не измерена, список
+   * считает её нулевой; с приходом замера нативное смещение не меняется —
+   * сдвигается начало отсчёта, и раскладку нужно пересчитать.
+   */
   setHeaderSize(size: number): void {
+    const delta = size - this.getContentOrigin();
+
     this.store.set("headerSize", size);
+
+    if (delta === 0) return;
+
+    this.scroll -= delta;
+    this.calculateItemsInView();
+    this.checkThresholds();
   }
 
   /** Замер подвала списка. */
@@ -293,24 +316,26 @@ export class ListRuntime<TItem> {
     this.readiness.scheduleFallback();
   }
 
-  /** Новое смещение скролла. */
+  /** Новое смещение нативного скролла — `contentOffset`. */
   setScroll(offset: number): void {
+    const scroll = offset - this.getContentOrigin();
+
     // Событие отправлено до применения компенсации: его смещение уже устарело,
     // и принять его — значит откатить только что сделанный сдвиг.
-    if (this.mvcp.isStaleScroll(offset)) return;
+    if (this.mvcp.isStaleScroll(scroll)) return;
 
-    if (this.scroll === offset) return;
+    if (this.scroll === scroll) return;
 
     const previous = this.scroll;
 
-    this.scroll = offset;
-    this.velocity.add(offset);
+    this.scroll = scroll;
+    this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
 
     listDebug("scroll", "setScroll", {
       from: previous,
-      to: offset,
-      delta: offset - previous,
+      to: scroll,
+      delta: scroll - previous,
     });
 
     this.calculateItemsInView();
@@ -616,10 +641,13 @@ export class ListRuntime<TItem> {
   }
 
   private checkThresholds(): void {
+    // Кромки считаются в координатах контента и по его полной высоте: только
+    // так «до конца ноль» означает низ последнего кадра, а не низ последней
+    // строки — под ней ещё лежат подвал и распорки.
     const context: IEdgeCheckContext = {
-      scroll: this.scroll,
+      scroll: this.getScroll(),
       scrollLength: this.scrollLength,
-      contentSize: this.metrics.getTotalSize(),
+      contentSize: this.contentSize.get(),
       dataLength: this.props.data.length,
       contentInsetEnd: this.store.peek("anchoredEndSpaceSize") ?? 0,
       skipCallbacks:

@@ -16,7 +16,11 @@ export interface IMvcpOptions {
   /** Смещение скролла, каким его считает список. */
   getScroll: () => number;
   getScrollLength: () => number;
-  /** Полная высота контента ScrollView, включая шапку, подвал и распорки. */
+  /**
+   * Полная высота контента ScrollView — в тех же координатах, что и
+   * {@link IMvcpOptions.getScroll}: из неё считается граница скролла, и
+   * разъехавшись, они дали бы компенсацию, промахивающуюся у края контента.
+   */
   getContentSize: () => number;
   /** Разрешён ли элемент как якорь восстановления. */
   shouldRestorePosition?: (index: number) => boolean;

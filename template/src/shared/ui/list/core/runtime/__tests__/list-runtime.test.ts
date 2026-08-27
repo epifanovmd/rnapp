@@ -163,6 +163,81 @@ describe("ListRuntime — раскладка", () => {
   });
 });
 
+describe("ListRuntime — координаты шапки", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
+      setTimeout(() => callback(0), 16) as unknown as number;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("считает видимыми только строки, реально попавшие в кадр", () => {
+    const { runtime } = createRuntime();
+
+    runtime.setHeaderSize(200);
+
+    // Шапка съела 200 из 500: под ней помещаются три строки, а не пять.
+    expect(runtime.getRange()).toMatchObject({ start: 0, end: 2 });
+  });
+
+  it("отдаёт смещение скролла в координатах контента", () => {
+    const { runtime } = createRuntime();
+
+    runtime.setHeaderSize(60);
+    runtime.setScroll(1060);
+
+    // Наружу — то же число, что у нативного скролла; внутрь — координаты
+    // элементов, в которых считается раскладка.
+    expect(runtime.getScroll()).toBe(1060);
+    expect(runtime.getRange()).toMatchObject({ start: 10, end: 14 });
+  });
+
+  it("пересчитывает раскладку, когда шапка измерилась", () => {
+    const { runtime } = createRuntime();
+
+    runtime.setScroll(1060);
+    runtime.setHeaderSize(60);
+
+    // Нативное смещение не менялось — сместилось начало элементов.
+    expect(runtime.getScroll()).toBe(1060);
+    expect(runtime.getRange()).toMatchObject({ start: 10, end: 14 });
+  });
+
+  it("считает расстояние до конца по полной высоте контента", () => {
+    const { store, runtime } = createRuntime();
+
+    runtime.setHeaderSize(60);
+    runtime.setContentSize(4060);
+    runtime.setScroll(3560);
+
+    // Ровно конец контента: ни раньше на высоту шапки, ни позже.
+    expect(store.peek("distanceFromEnd")).toBe(0);
+    expect(store.peek("isAtEnd")).toBe(true);
+  });
+
+  it("удерживает позицию при вставке сверху под шапкой", () => {
+    const { store, runtime } = createRuntime(rows(40), {
+      maintainVisibleContentPositionData: true,
+    });
+
+    runtime.setHeaderSize(60);
+    runtime.setContentSize(4060);
+    runtime.setScroll(1060);
+
+    runtime.setProps(
+      createProps([...rows(5, "h"), ...rows(40)], {
+        maintainVisibleContentPositionData: true,
+      }),
+    );
+
+    expect(store.peek("scrollAdjust")).toBe(500);
+    expect(runtime.getScroll()).toBe(1560);
+  });
+});
+
 describe("ListRuntime — измерения", () => {
   beforeEach(() => {
     jest.useFakeTimers();
