@@ -14,7 +14,10 @@ interface IRow {
   id: string;
 }
 
-const createBinder = (count = 20) => {
+const createBinder = (
+  count = 20,
+  itemsAreEqual?: (prev: unknown, next: unknown, index: number) => boolean,
+) => {
   const store = new ListStore();
   const metrics = new ListMetrics({ estimatedItemSize: ITEM_SIZE });
   const pool = new ContainerPool();
@@ -34,6 +37,7 @@ const createBinder = (count = 20) => {
     metrics,
     pool,
     getItem: index => data[index],
+    itemsAreEqual,
     getStickyLimit: index => limits.get(index),
   });
 
@@ -58,8 +62,8 @@ const bind = (
 ) =>
   binder.bind({
     requests,
-    viewportTop,
-    viewportEnd: viewportTop + SCROLL_LENGTH,
+    clipTop: viewportTop,
+    clipEnd: viewportTop + SCROLL_LENGTH,
   });
 
 describe("ContainerBinder — публикация сигналов", () => {
@@ -81,6 +85,7 @@ describe("ContainerBinder — публикация сигналов", () => {
     bind(binder, [request(3)]);
 
     expect(store.peek("containerItemData0")).toBe(data[3]);
+    expect(store.peek("containerItemType0")).toBe("");
   });
 
   it("доносит новый объект данных без смены привязки", () => {
@@ -92,6 +97,38 @@ describe("ContainerBinder — публикация сигналов", () => {
     bind(binder, [request(0)]);
 
     expect(store.peek("containerItemData0")).toBe(data[0]);
+  });
+
+  it("сохраняет прежний объект, когда itemsAreEqual считает данные равными", () => {
+    const { store, binder, data } = createBinder(
+      20,
+      (prev, next) => (prev as IRow).id === (next as IRow).id,
+    );
+
+    bind(binder, [request(0)]);
+
+    const previous = store.peek("containerItemData0");
+
+    data[0] = { id: "k0" };
+    bind(binder, [request(0)]);
+
+    expect(store.peek("containerItemData0")).toBe(previous);
+  });
+
+  it("не аллоцирует пул повторно при той же ревизии и запросах", () => {
+    const { binder, pool } = createBinder();
+    const allocate = jest.spyOn(pool, "allocate");
+    const params = {
+      requests: [request(0), request(1)],
+      revision: 7,
+      clipTop: 0,
+      clipEnd: SCROLL_LENGTH,
+    };
+
+    binder.bind(params);
+    binder.bind({ ...params, clipTop: 10, clipEnd: SCROLL_LENGTH + 10 });
+
+    expect(allocate).toHaveBeenCalledTimes(1);
   });
 
   it("проставляет кромку и предел прилипания", () => {
@@ -143,8 +180,10 @@ describe("ContainerBinder — публикация сигналов", () => {
 
     store.listenPosition("k3", listener);
     bind(binder, [request(3)]);
+    bind(binder, [request(3)]);
 
     expect(listener).toHaveBeenCalledWith(300);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });
 

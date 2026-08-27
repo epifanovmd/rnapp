@@ -1,18 +1,16 @@
 import { useTheme } from "@shared/lib/theme";
-import { Avatar, Spinner, Text } from "@shared/ui";
+import { Spinner, Text } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet, View } from "react-native";
 import type { SharedValue } from "react-native-reanimated";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 import type { LabRow } from "../model";
 import { MESSAGE_GAP } from "../model";
 import { DATE_ROW_HEIGHT, LOADER_ROW_HEIGHT } from "../model";
+import { LabStickyAvatar } from "./LabStickyAvatar";
 
 interface ILabRowViewProps {
   row: LabRow;
-  /** Индекс строки в списке — для отладочной разметки. */
-  index?: number;
   /** Рисовать ли аватар у хвоста группы — стенд прилипания включает его. */
   withAvatar?: boolean;
   /** Смещение прилипания от списка: применяется только к аватару. */
@@ -23,13 +21,8 @@ interface ILabRowViewProps {
 
 /** Строка тестового списка: сообщение, разделитель даты или спиннер. */
 export const LabRowView: FC<ILabRowViewProps> = memo(
-  ({ row, index, withAvatar = false, stickyOffset, stickyPinned }) => {
+  ({ row, withAvatar = false, stickyOffset, stickyPinned }) => {
     const { isDark } = useTheme();
-
-    const avatarStyle = useAnimatedStyle(() => ({
-      opacity: stickyPinned?.value ? 0 : 1,
-      transform: [{ translateY: stickyOffset?.value ?? 0 }],
-    }));
 
     if (row.type === "loader") {
       return (
@@ -58,12 +51,13 @@ export const LabRowView: FC<ILabRowViewProps> = memo(
       <View style={[ss.message, { height: row.height }]}>
         {withAvatar && (
           <View style={ss.avatarSlot}>
-            {/* Узел смонтирован всегда: при переиспользовании строки новый
-                анимированный узел коммитится с нулевым смещением, и прилипший
-                аватар на кадр срывается вниз. */}
-            <Animated.View style={avatarStyle}>
-              {row.isGroupTail && <Avatar size={36} name={row.author} />}
-            </Animated.View>
+            {row.isGroupTail ? (
+              <LabStickyAvatar
+                name={row.author}
+                stickyOffset={stickyOffset}
+                stickyPinned={stickyPinned}
+              />
+            ) : null}
           </View>
         )}
         <View style={[ss.bubble, isDark ? ss.bubbleDark : ss.bubbleLight]}>

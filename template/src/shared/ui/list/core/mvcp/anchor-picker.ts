@@ -5,8 +5,6 @@ export interface IAnchor {
   key: string;
   index: number;
   position: number;
-  /** Смещение скролла на момент снятия — только для логов. */
-  scroll: number;
 }
 
 export interface IAnchorPickParams {
@@ -85,11 +83,11 @@ export const pickAnchors = ({
     if (shouldRestorePosition && !shouldRestorePosition(index)) continue;
 
     if (position < scroll) {
-      partial.push({ key, index, position, scroll });
+      partial.push({ key, index, position });
       continue;
     }
 
-    anchors.push({ key, index, position, scroll });
+    anchors.push({ key, index, position });
 
     if (anchors.length >= ANCHOR_CANDIDATES) break;
   }

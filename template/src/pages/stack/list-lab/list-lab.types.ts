@@ -8,6 +8,7 @@ export type ListLabParamList = {
   Mvcp: undefined;
   InputBarInset: undefined;
   Sticky: undefined;
+  Perf: undefined;
 };
 
 export type ListLabScreenName = keyof ListLabParamList;

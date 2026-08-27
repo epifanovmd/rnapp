@@ -1,5 +1,3 @@
-import { listDebug } from "../list-debug";
-
 /**
  * Сколько ждём подтверждения сдвига, если событий не приходит, мс.
  *
@@ -53,11 +51,6 @@ export class ShiftQueue {
 
       if (this.queue.length === 0) return;
 
-      listDebug("mvcp", "сдвиг не подтверждён", {
-        pending: this.queue.length,
-        base: this.base,
-      });
-
       this.queue = [];
     }, CONFIRM_TIMEOUT_MS);
   }
@@ -97,7 +90,6 @@ export class ShiftQueue {
     // отрисовки под пальцем.
     if (bestDistance > Math.abs(total)) {
       this.clear();
-      listDebug("mvcp", "смещение ушло вперёд", { offset, base: this.base });
       this.base = offset;
 
       return false;
@@ -112,20 +104,8 @@ export class ShiftQueue {
     if (this.queue.length === 0) {
       this.clear();
 
-      listDebug("mvcp", "сдвиг доехал", {
-        offset,
-        expected: this.base,
-        error: offset - this.base,
-      });
-
       return false;
     }
-
-    listDebug("mvcp", "событие устарело", {
-      offset,
-      reached: this.base,
-      pending: this.queue.length,
-    });
 
     return true;
   }

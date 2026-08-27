@@ -6,7 +6,7 @@ import {
 } from "react-native-reanimated";
 
 /** Шаг, с которым пересчёт диапазона уходит в JS, px. */
-const JS_SCROLL_STEP = 4;
+const JS_SCROLL_STEP = 24;
 
 export interface IListScrollHandlerOptions {
   /** Смещение скролла на UI-потоке — из него считается прилипание. */
@@ -69,8 +69,15 @@ export const useListScrollHandler = ({
 
         runOnJS(onBeginDrag)();
       },
-      onEndDrag: () => {
+      onEndDrag: event => {
         if (isDragging) isDragging.value = false;
+
+        const offset = event.contentOffset.y;
+
+        if (offset !== lastReportedScroll.value) {
+          lastReportedScroll.value = offset;
+          runOnJS(onScroll)(offset);
+        }
 
         runOnJS(onEndDrag)();
       },
@@ -79,8 +86,15 @@ export const useListScrollHandler = ({
       onMomentumBegin: () => {
         if (isMomentum) isMomentum.value = true;
       },
-      onMomentumEnd: () => {
+      onMomentumEnd: event => {
         if (isMomentum) isMomentum.value = false;
+
+        const offset = event.contentOffset.y;
+
+        if (offset !== lastReportedScroll.value) {
+          lastReportedScroll.value = offset;
+          runOnJS(onScroll)(offset);
+        }
 
         runOnJS(onMomentumEnd)();
       },

@@ -1,6 +1,6 @@
 import { Container, Navbar, Row } from "@shared/ui";
 import type { IListRef } from "@shared/ui/list";
-import { List, setListDebug } from "@shared/ui/list";
+import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -19,9 +19,6 @@ import {
   labRowKey,
   labRowType,
 } from "../model";
-
-// Логи компенсации на время отладки стенда включены постоянно.
-setListDebug(["mvcp", "scroll", "position", "size"]);
 
 const INITIAL_COUNT = 200;
 const ESTIMATED_ITEM_SIZE = 92;

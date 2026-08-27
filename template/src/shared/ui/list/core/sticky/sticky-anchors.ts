@@ -1,6 +1,5 @@
 import type { ListMetrics } from "../../model";
 import type { IListStickyConfig, ListStickyEdge } from "../../types";
-import { getStickyEdgeOf, getStickyLimitOf } from "./sticky-limits";
 import { getPinnedStickyIndices } from "./sticky-pinning";
 
 export interface IStickyAnchorsOptions {
@@ -19,6 +18,8 @@ export interface IStickyState {
   limit: number | undefined;
 }
 
+const EMPTY_CONFIGS: IListStickyConfig[] = [];
+
 /**
  * Выбор активных прилипающих элементов.
  *
@@ -34,13 +35,38 @@ export interface IStickyState {
 export class StickyAnchors {
   private readonly options: IStickyAnchorsOptions;
   private configs: IListStickyConfig[] = [];
+  private readonly edgeByIndex = new Map<number, ListStickyEdge>();
+  private readonly configByIndex = new Map<
+    number,
+    { config: IListStickyConfig; order: number }
+  >();
 
   constructor(options: IStickyAnchorsOptions) {
     this.options = options;
   }
 
   setConfigs(configs: IListStickyConfig[] | undefined): void {
-    this.configs = configs ?? [];
+    const next = configs ?? EMPTY_CONFIGS;
+
+    if (this.configs === next) return;
+
+    this.configs = next;
+    this.edgeByIndex.clear();
+    this.configByIndex.clear();
+
+    for (const config of next) {
+      for (let order = 0; order < config.indices.length; order++) {
+        const index = config.indices[order]!;
+
+        // При пересечении наборов сохраняется прежняя семантика: побеждает
+        // первый набор в конфигурации.
+        if (!this.edgeByIndex.has(index))
+          this.edgeByIndex.set(index, config.edge);
+        if (!this.configByIndex.has(index)) {
+          this.configByIndex.set(index, { config, order });
+        }
+      }
+    }
   }
 
   hasAnchors(): boolean {
@@ -49,12 +75,37 @@ export class StickyAnchors {
 
   /** Является ли элемент якорем, и на какой кромке. */
   getEdgeOf(index: number): ListStickyEdge | null {
-    return getStickyEdgeOf(this.configs, index);
+    return this.edgeByIndex.get(index) ?? null;
   }
 
   /** Предел смещения якоря; см. {@link getStickyLimitOf}. */
   getLimitOf(index: number): number | undefined {
-    return getStickyLimitOf(this.configs, this.options.metrics, index);
+    const entry = this.configByIndex.get(index);
+
+    if (!entry) return undefined;
+
+    const { metrics } = this.options;
+    const { config, order } = entry;
+
+    if (config.edge === "start") {
+      const nextIndex = config.indices[order + 1];
+
+      return nextIndex === undefined
+        ? undefined
+        : metrics.getPosition(nextIndex) - metrics.getSize(index);
+    }
+
+    const groupStart = config.groupStarts?.[order];
+
+    if (groupStart !== undefined) {
+      return metrics.getPosition(groupStart) + (config.limitInset ?? 0);
+    }
+
+    const previousIndex = config.indices[order - 1];
+
+    return metrics.getPosition(
+      previousIndex === undefined ? 0 : previousIndex + 1,
+    );
   }
 
   /**
@@ -81,10 +132,24 @@ export class StickyAnchors {
     const { indices } = config;
     const edgePosition = scroll + (config.offset?.value ?? 0);
 
-    for (let i = indices.length - 1; i >= 0; i--) {
-      const activeIndex = indices[i]!;
+    let low = 0;
+    let high = indices.length - 1;
+    let found = -1;
 
-      if (metrics.getPosition(activeIndex) > edgePosition) continue;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const candidate = indices[middle]!;
+
+      if (metrics.getPosition(candidate) <= edgePosition) {
+        found = middle;
+        low = middle + 1;
+      } else {
+        high = middle - 1;
+      }
+    }
+
+    if (found !== -1) {
+      const activeIndex = indices[found]!;
 
       return {
         edge: "start",
@@ -106,11 +171,26 @@ export class StickyAnchors {
     const { indices } = config;
     const edgePosition = scroll + scrollLength - (config.offset?.value ?? 0);
 
-    for (const activeIndex of indices) {
-      const bottom =
-        metrics.getPosition(activeIndex) + metrics.getSize(activeIndex);
+    let low = 0;
+    let high = indices.length - 1;
+    let found = -1;
 
-      if (bottom <= edgePosition) continue;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const candidate = indices[middle]!;
+      const bottom =
+        metrics.getPosition(candidate) + metrics.getSize(candidate);
+
+      if (bottom > edgePosition) {
+        found = middle;
+        high = middle - 1;
+      } else {
+        low = middle + 1;
+      }
+    }
+
+    if (found !== -1) {
+      const activeIndex = indices[found]!;
 
       return { edge: "end", activeIndex, limit: this.getLimitOf(activeIndex) };
     }

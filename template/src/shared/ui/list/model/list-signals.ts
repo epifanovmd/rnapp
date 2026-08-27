@@ -91,6 +91,8 @@ type ContainerSignals = {
 } & {
   [K in `containerItemData${number}`]: unknown;
 } & {
+  [K in `containerItemType${number}`]: string;
+} & {
   [K in `containerItemSize${number}`]: number;
 } & {
   /** Кромка прилипания контейнера; null — обычный элемент. */

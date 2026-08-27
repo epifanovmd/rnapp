@@ -108,3 +108,49 @@ describe("computeVisibleRange", () => {
     expect(range(metrics, 0)).toMatchObject({ start: 0, end: 3 });
   });
 });
+
+describe("computeVisibleRange — запас по скорости", () => {
+  const metrics = createMetrics(40);
+
+  const rangeAt = (velocity: number) =>
+    computeVisibleRange({
+      metrics,
+      scroll: 1000,
+      scrollLength: 500,
+      drawDistance: 100,
+      velocity,
+    });
+
+  it("без скорости буфер симметричен", () => {
+    const buffered = rangeAt(0);
+
+    // Вьюпорт 1000…1500, буфер по 100 в обе стороны; строка на самой границе
+    // буфера в него входит.
+    expect(buffered.startBuffered).toBe(9);
+    expect(buffered.endBuffered).toBe(16);
+  });
+
+  it("к концу списка расширяет буфер вперёд", () => {
+    // 2 px/мс за 220 мс — 440 px сверх буфера.
+    const buffered = rangeAt(2);
+
+    expect(buffered.endBuffered).toBe(20);
+    expect(buffered.startBuffered).toBe(9);
+  });
+
+  it("к началу списка расширяет буфер назад", () => {
+    const buffered = rangeAt(-2);
+
+    expect(buffered.startBuffered).toBe(4);
+    expect(buffered.endBuffered).toBe(16);
+  });
+
+  it("не растёт дальше трёх экранов", () => {
+    // Иначе резкий бросок смонтировал бы сотни строк разом.
+    const fast = rangeAt(50);
+    const capped = rangeAt(10);
+
+    expect(fast.endBuffered).toBe(capped.endBuffered);
+    expect(fast.endBuffered).toBe(31);
+  });
+});

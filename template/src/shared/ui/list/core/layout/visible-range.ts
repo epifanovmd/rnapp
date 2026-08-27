@@ -14,7 +14,18 @@ export interface IVisibleRangeParams {
   scrollLength: number;
   /** Запас отрисовки за пределами вьюпорта, px. */
   drawDistance: number;
+  /** Скорость скролла, px/мс: положительная — к концу списка. */
+  velocity?: number;
 }
+
+/**
+ * На сколько вперёд смотреть по скорости, мс.
+ *
+ * Это запас на задержку: событие скролла, пересчёт, рендер и монтирование
+ * занимают несколько кадров, и на броске контент за это время уходит дальше
+ * буфера. Величина покрывает эту задержку с запасом.
+ */
+const LOOKAHEAD_MS = 220;
 
 /** Диапазон пустого списка: видимого нет, буфер тоже. */
 export const EMPTY_RANGE: IListRange = {
@@ -36,6 +47,11 @@ export const EMPTY_RANGE: IListRange = {
  * буфером он смонтирован и измерен заранее, к моменту, когда до него доходит
  * скролл.
  *
+ * На броске одного буфера мало: пока событие скролла дойдёт до пересчёта, а
+ * новые строки отрисуются и смонтируются, контент уходит дальше него — в кадре
+ * остаётся пустая полоса. Поэтому по ходу движения буфер растёт со скоростью, и
+ * тем сильнее, чем быстрее скролл; назад он не растёт, там всё уже отрисовано.
+ *
  * Видимый диапазон и буферизованный считаются одним проходом: это одни и те же
  * элементы, отличается только условие попадания.
  */
@@ -44,16 +60,18 @@ export const computeVisibleRange = ({
   scroll,
   scrollLength,
   drawDistance,
+  velocity = 0,
 }: IVisibleRangeParams): IListRange => {
   const count = metrics.getCount();
 
   if (count === 0) return EMPTY_RANGE;
 
-  metrics.flush();
-
   const scrollBottom = scroll + scrollLength;
-  const bufferedTop = scroll - drawDistance;
-  const bufferedBottom = scrollBottom + drawDistance;
+  // Запас растёт только по ходу движения: позади он и так уже отрисован, а
+  // впереди именно его не хватает.
+  const lookahead = getLookahead(velocity, scrollLength);
+  const bufferedTop = scroll - drawDistance - Math.max(0, -lookahead);
+  const bufferedBottom = scrollBottom + drawDistance + Math.max(0, lookahead);
 
   const startBuffered = metrics.findIndexAtOffset(Math.max(0, bufferedTop));
   let endBuffered = startBuffered;
@@ -86,4 +104,23 @@ export const computeVisibleRange = ({
   }
 
   return { start, end, startBuffered, endBuffered };
+};
+
+/**
+ * Потолок запаса — в экранах.
+ *
+ * Без потолка резкий бросок уводит запас в тысячи пикселей, а это сотни
+ * смонтированных строк: список начнёт тормозить ровно там, где должен успевать.
+ * Два экрана — компромисс по замерам: на настоящем броске события скролла
+ * доходят до пересчёта раз в несколько кадров, и одного экрана на эту задержку
+ * не хватает.
+ */
+const LOOKAHEAD_SCREENS = 3;
+
+/** Запас по ходу движения, px. Знак повторяет знак скорости. */
+const getLookahead = (velocity: number, scrollLength: number): number => {
+  const distance = velocity * LOOKAHEAD_MS;
+  const limit = scrollLength * LOOKAHEAD_SCREENS;
+
+  return Math.max(-limit, Math.min(limit, distance));
 };

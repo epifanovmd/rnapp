@@ -26,6 +26,10 @@ export interface IAllocationResult {
   released: number[];
   /** Сколько контейнеров существует после аллокации. */
   count: number;
+  /** Создано новых контейнеров: свободных не нашлось. */
+  created: number;
+  /** Отдано под чужой тип: поддерево ячейки перемонтируется. */
+  mismatched: number;
 }
 
 /**
@@ -45,7 +49,12 @@ export class ContainerPool {
   private free: number[] = [];
   /** Тип последнего элемента контейнера — по нему ищется совпадение при переиспользовании. */
   private lastTypeById = new Map<number, string>();
+  /** Sticky и обычные контейнеры имеют разную React/Reanimated-структуру. */
+  private lastStickyEdgeById = new Map<number, ListStickyEdge | null>();
   private nextId = 0;
+  /** Счётчики последней аллокации; см. {@link IAllocationResult}. */
+  private created = 0;
+  private mismatched = 0;
 
   getBinding(id: number): IContainerBinding | undefined {
     return this.bindings.get(id);
@@ -65,6 +74,9 @@ export class ContainerPool {
     const released = this.releaseUnrequested(requestedKeys);
     const changed: IContainerBinding[] = [];
 
+    this.created = 0;
+    this.mismatched = 0;
+
     for (const request of requests) {
       const existingId = this.containerByKey.get(request.key);
 
@@ -80,6 +92,7 @@ export class ContainerPool {
 
         binding.index = request.index;
         binding.stickyEdge = request.stickyEdge;
+        this.lastStickyEdgeById.set(existingId, request.stickyEdge);
         changed.push({ ...binding });
         continue;
       }
@@ -87,7 +100,13 @@ export class ContainerPool {
       changed.push(this.bind(request));
     }
 
-    return { changed, released, count: this.nextId };
+    return {
+      changed,
+      released,
+      count: this.nextId,
+      created: this.created,
+      mismatched: this.mismatched,
+    };
   }
 
   private releaseUnrequested(requestedKeys: Set<string>): number[] {
@@ -106,7 +125,7 @@ export class ContainerPool {
   }
 
   private bind(request: IContainerRequest): IContainerBinding {
-    const id = this.take(request.type);
+    const id = this.take(request.type, request.stickyEdge);
     const binding: IContainerBinding = {
       id,
       key: request.key,
@@ -122,28 +141,48 @@ export class ContainerPool {
   }
 
   /** Свободный контейнер того же типа, иначе любой свободный, иначе новый. */
-  private take(type: string): number {
+  private take(type: string, stickyEdge: ListStickyEdge | null): number {
     for (let i = this.free.length - 1; i >= 0; i--) {
       const id = this.free[i]!;
 
-      if (this.lastTypeById.get(id) === type) {
+      if (
+        this.lastTypeById.get(id) === type &&
+        this.lastStickyEdgeById.get(id) === stickyEdge
+      ) {
         this.free.splice(i, 1);
 
         return id;
       }
     }
 
-    const anyFree = this.free.pop();
+    // Тип можно сменить внутри той же структуры, а sticky-роль — нет: переход
+    // между View и Animated.View перемонтировал бы перерабатываемое содержимое.
+    let compatibleIndex = -1;
+
+    for (let i = this.free.length - 1; i >= 0; i--) {
+      if (this.lastStickyEdgeById.get(this.free[i]!) === stickyEdge) {
+        compatibleIndex = i;
+        break;
+      }
+    }
+    const anyFree =
+      compatibleIndex === -1
+        ? undefined
+        : this.free.splice(compatibleIndex, 1)[0];
 
     if (anyFree !== undefined) {
+      this.mismatched++;
       this.lastTypeById.set(anyFree, type);
 
       return anyFree;
     }
 
+    this.created++;
+
     const id = this.nextId++;
 
     this.lastTypeById.set(id, type);
+    this.lastStickyEdgeById.set(id, stickyEdge);
 
     return id;
   }

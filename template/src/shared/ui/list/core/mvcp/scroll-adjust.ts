@@ -1,14 +1,4 @@
 import type { ListStore } from "../../model";
-import { listDebug } from "../list-debug";
-
-/**
- * Дальше этой суммарной компенсации смещение распорки теряет точность.
- *
- * Позиция распорки — `BIAS + adjust`, а Yoga хранит её во float32: целые
- * значения точны только до 2^24. Запас до предела логируется, чтобы упереться
- * в него не молча.
- */
-const ADJUST_SAFE_LIMIT = 4_000_000;
 
 /**
  * Накопленное положение распорки компенсации.
@@ -42,13 +32,6 @@ export class ScrollAdjust {
   add(applied: number): number {
     this.adjust += applied;
     this.store.set("scrollAdjust", this.adjust);
-
-    if (Math.abs(this.adjust) > ADJUST_SAFE_LIMIT) {
-      listDebug("mvcp", "распорка у предела точности", {
-        adjust: this.adjust,
-        limit: ADJUST_SAFE_LIMIT,
-      });
-    }
 
     return this.adjust;
   }

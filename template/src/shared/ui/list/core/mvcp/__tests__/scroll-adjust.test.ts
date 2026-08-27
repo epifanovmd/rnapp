@@ -1,12 +1,7 @@
 import { ListStore } from "../../../model";
-import { setListDebug } from "../../list-debug";
 import { ScrollAdjust } from "../scroll-adjust";
 
 describe("ScrollAdjust", () => {
-  afterEach(() => {
-    setListDebug([]);
-  });
-
   it("начинает с нуля", () => {
     const adjust = new ScrollAdjust(new ListStore());
 
@@ -40,20 +35,5 @@ describe("ScrollAdjust", () => {
     adjust.add(-200);
 
     expect(store.peek("scrollAdjust")).toBe(-200);
-  });
-
-  it("сообщает о приближении к пределу точности float32", () => {
-    const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    const adjust = new ScrollAdjust(new ListStore());
-
-    setListDebug(["mvcp"]);
-
-    adjust.add(4_000_000);
-    expect(log).not.toHaveBeenCalled();
-
-    adjust.add(1);
-    expect(log.mock.calls[0]![0]).toContain("распорка у предела точности");
-
-    log.mockRestore();
   });
 });

@@ -173,12 +173,27 @@ describe("ListMetrics", () => {
 
     metrics.setItems(["a", "b"], ["row", "row"]);
     metrics.setMeasuredSize("a", 200);
+    metrics.setMeasuredSize("a", 400);
+
+    // Уточнённое среднее достаётся тем, кто оценки ещё не получал.
+    metrics.setItems(["a", "b", "c"], ["row", "row", "row"]);
+
+    expect(metrics.getSize(2)).toBe(400);
+  });
+
+  it("не меняет выданную оценку задним числом", () => {
+    const metrics = createMetrics(100);
+
+    metrics.setItems(["a", "b"], ["row", "row"]);
+    metrics.setMeasuredSize("a", 200);
 
     expect(metrics.getSize(1)).toBe(200);
 
     metrics.setMeasuredSize("a", 400);
 
-    expect(metrics.getSize(1)).toBe(400);
+    // Иначе каждое измерение переставляло бы разом все неизмеренные строки:
+    // суммарная высота гуляет, а позиции ниже вьюпорта едут на десятки.
+    expect(metrics.getSize(1)).toBe(200);
   });
 
   it("сообщает об изменении раскладки только при новом размере", () => {

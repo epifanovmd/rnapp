@@ -97,7 +97,8 @@ export const withDateSeparators = (
 export const labRowKey = (row: LabRow): string => row.key;
 
 /** Тип контейнера: строки разной формы не должны переиспользовать друг друга. */
-export const labRowType = (row: LabRow): string => row.type;
+export const labRowType = (row: LabRow): string =>
+  row.type === "message" && row.isGroupTail ? "message-tail" : row.type;
 
 /** Высота известна заранее для всех строк, кроме сообщений с картинкой. */
 export const labRowHeight = (row: LabRow): number | undefined => {

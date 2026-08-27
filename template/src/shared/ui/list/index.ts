@@ -10,8 +10,13 @@
  * остаются внутри: они меняются вместе с реализацией, и опираться на них нельзя.
  */
 export { List } from "./components";
-export type { ListDebugTopic } from "./core";
-export { setListDebug } from "./core";
+export type { IListPerfSnapshot, ListPerfCounter } from "./core";
+export {
+  getPerfRates,
+  listPerfSnapshot,
+  resetListPerf,
+  setListPerf,
+} from "./core";
 export { useListState, useListValue } from "./hooks";
 export type { ListState } from "./model";
 export * from "./types";

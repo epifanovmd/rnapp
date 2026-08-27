@@ -8,6 +8,12 @@ import type { ListStore } from "./list-store";
 export interface IListRuntimeHandle {
   getItemAt: (index: number) => unknown;
   setItemSize: (key: string, size: number) => void;
+  /** Принять замер, только пока контейнер всё ещё рисует указанный ключ. */
+  setContainerItemSize: (id: number, key: string, size: number) => void;
+  /** Фиксированный размер не требует `onLayout` и повторных измерений. */
+  isItemSizeFixed: (key: string) => boolean;
+  /** Перерабатывать нативное поддерево ячейки между элементами одного типа. */
+  shouldRecycleItems: () => boolean;
   /** Геометрия якоря в координатах элементов; undefined — индекса нет. */
   getStickyGeometry: (index: number) => IListStickyGeometry | undefined;
 }

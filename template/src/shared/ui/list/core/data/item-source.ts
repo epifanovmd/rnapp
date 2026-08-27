@@ -1,5 +1,4 @@
 import type { ListMetrics } from "../../model";
-import { DuplicateKeyGuard } from "./duplicate-key-guard";
 
 /**
  * Сколько появившихся элементов держать без места до измерения.
@@ -39,13 +38,10 @@ export interface IItemSourceOptions {
  * - находит появившиеся элементы и помечает их не занимающими места, чтобы на
  *   кадр вставки не разошлись отведённый слот и нарисованная высота;
  * - ограничивает размер такой пачки: смонтировать разом страницу истории ради
- *   измерения дороже, чем полоса на один кадр;
- * - сообщает о повторяющихся ключах, из-за которых элемент молча не рисуется.
+ *   измерения дороже, чем полоса на один кадр.
  */
 export class ItemSource<TItem> {
   private readonly metrics: ListMetrics;
-  private readonly duplicates = new DuplicateKeyGuard();
-
   private keys: string[] = [];
   private types: string[] = [];
 
@@ -66,8 +62,6 @@ export class ItemSource<TItem> {
     // равно не показан.
     const appeared = this.keys.length === 0 ? undefined : new Set<string>();
 
-    if (__DEV__) this.duplicates.beginPass();
-
     this.keys = new Array<string>(data.length);
     this.types = new Array<string>(data.length);
 
@@ -79,8 +73,6 @@ export class ItemSource<TItem> {
       if (appeared && this.metrics.getIndexByKey(key) === undefined) {
         appeared.add(key);
       }
-
-      if (__DEV__) this.duplicates.check(key, index);
 
       this.keys[index] = key;
       this.types[index] = type;

@@ -1,6 +1,10 @@
-import type { IContainerRequest, ListMetrics, ListStore } from "../../model";
+import type {
+  IAllocationResult,
+  IContainerRequest,
+  ListMetrics,
+  ListStore,
+} from "../../model";
 import { ContainerPool, POSITION_OUT_OF_VIEW } from "../../model";
-import { listDebug } from "../list-debug";
 import { resolveContainerPlacement } from "./container-placement";
 
 export interface IContainerBinderOptions {
@@ -8,14 +12,18 @@ export interface IContainerBinderOptions {
   metrics: ListMetrics;
   pool: ContainerPool;
   getItem: (index: number) => unknown;
+  itemsAreEqual?: (prev: unknown, next: unknown, index: number) => boolean;
   /** Предел смещения прилипшего элемента. */
   getStickyLimit: (index: number) => number | undefined;
 }
 
 export interface IBindParams {
   requests: IContainerRequest[];
-  viewportTop: number;
-  viewportEnd: number;
+  /** Версия данных и геометрии; при совпадении можно обновить только clipping. */
+  revision?: number;
+  /** Границы, за которыми содержимое строки подрезается по её слоту. */
+  clipTop: number;
+  clipEnd: number;
 }
 
 /**
@@ -36,15 +44,44 @@ export interface IBindParams {
  */
 export class ContainerBinder {
   private readonly options: IContainerBinderOptions;
+  private previousRequests: IContainerRequest[] = [];
+  private previousRevision = -1;
 
   constructor(options: IContainerBinderOptions) {
     this.options = options;
   }
 
-  /** Разложить запрошенные элементы по контейнерам и опубликовать сигналы. */
-  bind({ requests, viewportTop, viewportEnd }: IBindParams): void {
+  /**
+   * Разложить запрошенные элементы по контейнерам и опубликовать сигналы.
+   *
+   * @returns что сделал пул — по этим числам видно, хватает ли ему контейнеров.
+   */
+  bind({
+    requests,
+    revision,
+    clipTop,
+    clipEnd,
+  }: IBindParams): IAllocationResult {
     const { store, pool } = this.options;
-    const { released, count } = pool.allocate(requests);
+
+    if (
+      revision !== undefined &&
+      revision === this.previousRevision &&
+      this.haveSameRequests(requests, this.previousRequests)
+    ) {
+      this.updateClipping(requests, clipTop, clipEnd);
+
+      return {
+        changed: [],
+        released: [],
+        count: pool.getCount(),
+        created: 0,
+        mismatched: 0,
+      };
+    }
+
+    const allocation = pool.allocate(requests);
+    const { released, count } = allocation;
 
     for (const id of released) {
       if (pool.getBinding(id) !== undefined) continue;
@@ -58,10 +95,14 @@ export class ContainerBinder {
 
       if (id === undefined) continue;
 
-      this.publish(id, request, viewportTop, viewportEnd);
+      this.publish(id, request, clipTop, clipEnd);
     }
 
     store.set("numContainers", count);
+    this.previousRequests = requests.map(request => ({ ...request }));
+    this.previousRevision = revision ?? -1;
+
+    return allocation;
   }
 
   /** Все контейнеры остаются без элементов — список опустел. */
@@ -74,14 +115,16 @@ export class ContainerBinder {
     }
 
     store.set("numContainers", count);
+    this.previousRequests = [];
+    this.previousRevision = -1;
   }
 
   /** Сигналы одного контейнера. */
   private publish(
     id: number,
     request: IContainerRequest,
-    viewportTop: number,
-    viewportEnd: number,
+    clipTop: number,
+    clipEnd: number,
   ): void {
     const { store, metrics, getItem, getStickyLimit } = this.options;
     const placement = resolveContainerPlacement({
@@ -89,37 +132,81 @@ export class ContainerBinder {
       stickyEdge: request.stickyEdge,
       position: metrics.getPosition(request.index),
       size: metrics.getSize(request.index),
-      viewportTop,
-      viewportEnd,
+      viewportTop: clipTop,
+      viewportEnd: clipEnd,
     });
 
     const previousPosition = store.peek(`containerPosition${id}`);
 
-    if (
-      previousPosition !== undefined &&
-      previousPosition !== placement.position
-    ) {
-      listDebug("position", "контейнер сместился", {
-        id,
-        index: request.index,
-        key: request.key,
-        from: previousPosition,
-        to: placement.position,
-        delta: placement.position - previousPosition,
-      });
-    }
-
     store.set(`containerClipped${id}`, placement.clipped);
     store.set(`containerItemKey${id}`, request.key);
     store.set(`containerItemIndex${id}`, request.index);
-    store.set(`containerItemData${id}`, getItem(request.index));
+    const nextItem = getItem(request.index);
+    const previousItem = store.peek(`containerItemData${id}`);
+
+    if (
+      previousItem !== nextItem &&
+      !(
+        previousItem !== undefined &&
+        nextItem !== undefined &&
+        this.options.itemsAreEqual?.(previousItem, nextItem, request.index)
+      )
+    ) {
+      store.set(`containerItemData${id}`, nextItem);
+    }
     store.set(`containerPosition${id}`, placement.position);
+    store.set(`containerItemType${id}`, request.type);
     store.set(`containerItemSize${id}`, placement.size);
     store.set(`containerSticky${id}`, request.stickyEdge);
     store.set(
       `containerStickyLimit${id}`,
       request.stickyEdge ? getStickyLimit(request.index) : undefined,
     );
-    store.notifyPosition(request.key, placement.position);
+    if (previousPosition !== placement.position) {
+      store.notifyPosition(request.key, placement.position);
+    }
+  }
+
+  private updateClipping(
+    requests: IContainerRequest[],
+    clipTop: number,
+    clipEnd: number,
+  ): void {
+    const { store, pool, metrics } = this.options;
+
+    for (const request of requests) {
+      const id = pool.getContainerByKey(request.key);
+
+      if (id === undefined) continue;
+
+      const placement = resolveContainerPlacement({
+        pending: metrics.isPending(request.key),
+        stickyEdge: request.stickyEdge,
+        position: metrics.getPosition(request.index),
+        size: metrics.getSize(request.index),
+        viewportTop: clipTop,
+        viewportEnd: clipEnd,
+      });
+
+      store.set(`containerClipped${id}`, placement.clipped);
+    }
+  }
+
+  private haveSameRequests(
+    current: IContainerRequest[],
+    previous: IContainerRequest[],
+  ): boolean {
+    if (current.length !== previous.length) return false;
+
+    return current.every((request, index) => {
+      const before = previous[index];
+
+      return (
+        before?.key === request.key &&
+        before.index === request.index &&
+        before.type === request.type &&
+        before.stickyEdge === request.stickyEdge
+      );
+    });
   }
 }

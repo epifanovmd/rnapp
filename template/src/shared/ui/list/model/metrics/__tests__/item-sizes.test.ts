@@ -130,3 +130,58 @@ describe("ItemSizes — ожидание первого измерения", () 
     expect(sizes.clearPending()).toEqual([]);
   });
 });
+
+describe("ItemSizes — замороженная оценка", () => {
+  it("не меняет выданную оценку при уточнении среднего", () => {
+    const sizes = new ItemSizes({ estimatedItemSize: 100 });
+
+    expect(sizes.resolve("b", "row")).toBe(100);
+
+    sizes.setMeasured("a", 300, "row");
+
+    // Иначе строка переезжает от чужого измерения, ни разу не отрисовавшись.
+    expect(sizes.resolve("b", "row")).toBe(100);
+  });
+
+  it("новому ключу отдаёт накопленное среднее", () => {
+    const sizes = new ItemSizes({ estimatedItemSize: 100 });
+
+    sizes.setMeasured("a", 300, "row");
+
+    expect(sizes.resolve("b", "row")).toBe(300);
+  });
+
+  it("измерение отменяет оценку", () => {
+    const sizes = new ItemSizes({ estimatedItemSize: 100 });
+
+    expect(sizes.resolve("a", "row")).toBe(100);
+
+    sizes.setMeasured("a", 240, "row");
+
+    expect(sizes.resolve("a", "row")).toBe(240);
+  });
+
+  it("объявленный размер отменяет оценку", () => {
+    const sizes = new ItemSizes({ estimatedItemSize: 100 });
+
+    expect(sizes.resolve("a", "row")).toBe(100);
+
+    sizes.setFixed("a", 55);
+
+    expect(sizes.resolve("a", "row")).toBe(55);
+  });
+
+  it("ожидающий не занимает места и не тратит оценку", () => {
+    const sizes = new ItemSizes({ estimatedItemSize: 100 });
+
+    sizes.markPending("a");
+
+    expect(sizes.resolve("a", "row")).toBe(0);
+
+    sizes.setMeasured("b", 300, "row");
+    sizes.clearPending();
+
+    // Оценка выдаётся по среднему на момент, когда место действительно нужно.
+    expect(sizes.resolve("a", "row")).toBe(300);
+  });
+});

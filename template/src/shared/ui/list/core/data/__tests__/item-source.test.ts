@@ -107,17 +107,6 @@ describe("ItemSource", () => {
     expect(metrics.getPendingIndices()).toEqual([2]);
   });
 
-  it("сообщает о повторяющемся ключе", () => {
-    const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
-    const { source } = createSource();
-
-    source.apply([{ id: "a" }, { id: "a" }], extractors);
-
-    expect(warn).toHaveBeenCalledTimes(1);
-
-    warn.mockRestore();
-  });
-
   it("справляется с полной сменой данных", () => {
     const { metrics, source } = createSource();
 

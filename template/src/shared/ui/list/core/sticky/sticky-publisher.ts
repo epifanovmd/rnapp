@@ -1,5 +1,4 @@
 import type { ListStore } from "../../model";
-import { listDebug } from "../list-debug";
 import type { StickyAnchors } from "./sticky-anchors";
 
 export interface IStickyPublisherOptions {
@@ -44,16 +43,6 @@ export class StickyPublisher {
         state.edge === "start"
           ? "activeStickyStartIndex"
           : "activeStickyEndIndex";
-      const previous = store.peek(signal);
-
-      if (previous !== state.activeIndex) {
-        listDebug("sticky", "смена якоря", {
-          edge: state.edge,
-          from: previous ?? -1,
-          to: state.activeIndex,
-          limit: state.limit ?? -1,
-        });
-      }
 
       store.set(signal, state.activeIndex);
     }

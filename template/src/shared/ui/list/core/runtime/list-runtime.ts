@@ -1,4 +1,4 @@
-import type { IListStickyGeometry } from "../../model";
+import type { IContainerRequest, IListStickyGeometry } from "../../model";
 import { ContainerPool, ListMetrics, ListStore } from "../../model";
 import { ItemSource } from "../data";
 import type { IEdgeCheckContext, ListEdge } from "../edges";
@@ -12,11 +12,18 @@ import {
   ContainerBinder,
   ContentSize,
   EMPTY_RANGE,
+  getBlankArea,
   LayoutScheduler,
   RenderReadiness,
 } from "../layout";
-import { listDebug } from "../list-debug";
 import { MaintainVisibleContentPosition } from "../mvcp";
+import {
+  isListPerfEnabled,
+  listPerfBlank,
+  listPerfContainers,
+  listPerfCount,
+  listPerfScroll,
+} from "../perf";
 import type { IScrollAdapter } from "../scroll";
 import {
   getItemScrollOffset,
@@ -71,6 +78,14 @@ export class ListRuntime<TItem> {
   /** Размер вьюпорта вдоль оси скролла. */
   private scrollLength = 0;
   private range: IListRange = { ...EMPTY_RANGE };
+  /**
+   * Отрезок контента, закрытый разложенными контейнерами.
+   *
+   * Нужен замеру пустой области: дыра живёт между кадрами — скролл уже ушёл, а
+   * разложены ещё прежние строки. После пересчёта её не увидеть, диапазон
+   * считается по тому же смещению.
+   */
+  private bound: { top: number; bottom: number } | undefined;
 
   private readonly velocity = new ScrollVelocityTracker();
   private readonly edges: EdgeThresholds;
@@ -94,6 +109,19 @@ export class ListRuntime<TItem> {
   private allowedEdge: ListEdge | undefined;
   /** Контейнеры уже прошли первую раскладку — до этого прилипать не к чему. */
   private didLayout = false;
+  /** Меняется только когда данные или геометрия требуют полной публикации. */
+  private layoutRevision = 0;
+  private requestRevision = 0;
+  private requestCache:
+    | {
+        start: number;
+        end: number;
+        pinned: number[];
+        pending: number[];
+        revision: number;
+        requests: IContainerRequest[];
+      }
+    | undefined;
 
   constructor(store: ListStore, props: IListRuntimeProps<TItem>) {
     this.store = store;
@@ -143,6 +171,11 @@ export class ListRuntime<TItem> {
       metrics: this.metrics,
       pool: this.pool,
       getItem: index => this.props.data[index],
+      itemsAreEqual: (prev, next, index) =>
+        prev !== undefined &&
+        next !== undefined &&
+        (this.props.itemsAreEqual?.(prev as TItem, next as TItem, index) ??
+          false),
       getStickyLimit: index => this.sticky.getLimitOf(index),
     });
 
@@ -199,6 +232,20 @@ export class ListRuntime<TItem> {
 
   getItemAt(index: number): TItem | undefined {
     return this.props.data[index];
+  }
+
+  isItemSizeFixed(key: string): boolean {
+    return this.metrics.hasFixedSize(key);
+  }
+
+  shouldRecycleItems(): boolean {
+    return !!this.props.recycleItems;
+  }
+
+  setContainerItemSize(id: number, key: string, size: number): void {
+    if (this.pool.getBinding(id)?.key !== key) return;
+
+    this.setItemSize(key, size);
   }
 
   /**
@@ -287,7 +334,26 @@ export class ListRuntime<TItem> {
    * после: разнести это по кадрам значит показать промежуточное состояние.
    */
   setProps(props: IListRuntimeProps<TItem>): void {
+    const keys = Object.keys(props) as (keyof IListRuntimeProps<TItem>)[];
+
+    if (
+      keys.length === Object.keys(this.props).length &&
+      keys.every(key => props[key] === this.props[key])
+    ) {
+      return;
+    }
+
     const dataChanged = props.data !== this.props.data;
+    const sourceChanged =
+      dataChanged ||
+      props.keyExtractor !== this.props.keyExtractor ||
+      props.getItemType !== this.props.getItemType ||
+      props.getFixedItemSize !== this.props.getFixedItemSize;
+    const stickyChanged = props.sticky !== this.props.sticky;
+    const rangeChanged = props.drawDistance !== this.props.drawDistance;
+    const alignmentChanged =
+      props.alignItemsAtEnd !== this.props.alignItemsAtEnd ||
+      props.anchoredEndSpace !== this.props.anchoredEndSpace;
 
     this.props = props;
     this.edges.setOptions(this.edgeOptions());
@@ -295,13 +361,26 @@ export class ListRuntime<TItem> {
     this.sticky.setConfigs(props.sticky);
     this.viewability.setPairs(props.viewabilityPairs);
 
-    if (!dataChanged) return;
+    if (
+      !sourceChanged &&
+      !stickyChanged &&
+      !rangeChanged &&
+      !alignmentChanged
+    ) {
+      return;
+    }
 
-    if (props.maintainVisibleContentPositionData) this.mvcp.capture("данные");
+    if (sourceChanged && props.maintainVisibleContentPositionData) {
+      this.mvcp.capture("данные");
+    }
 
-    this.items.apply(props.data, props);
+    if (sourceChanged) this.items.apply(props.data, props);
+    if (sourceChanged || stickyChanged) {
+      this.layoutRevision++;
+      this.requestRevision++;
+    }
 
-    if (props.maintainVisibleContentPositionData) {
+    if (sourceChanged && props.maintainVisibleContentPositionData) {
       this.restoreVisiblePosition("данные");
     } else {
       this.calculateItemsInView();
@@ -342,17 +421,11 @@ export class ListRuntime<TItem> {
 
     if (this.scroll === scroll) return;
 
-    const previous = this.scroll;
-
+    listPerfScroll();
+    this.measureBlank(scroll);
     this.scroll = scroll;
     this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
-
-    listDebug("scroll", "setScroll", {
-      from: previous,
-      to: scroll,
-      delta: scroll - previous,
-    });
 
     this.calculateItemsInView();
     this.checkThresholds();
@@ -481,16 +554,9 @@ export class ListRuntime<TItem> {
       this.mvcp.capture("размер");
     }
 
-    const previous = this.metrics.getSizeByKey(key);
-
     this.metrics.setMeasuredSize(key, size);
-
-    listDebug("size", "измерено", {
-      key,
-      from: previous ?? -1,
-      to: size,
-      delta: size - (previous ?? size),
-    });
+    this.layoutRevision++;
+    listPerfCount("measure");
 
     this.scheduler.schedule();
   }
@@ -502,6 +568,8 @@ export class ListRuntime<TItem> {
    * после того, как список смонтирован.
    */
   calculateItemsInView(): void {
+    listPerfCount("layout");
+
     if (this.items.getCount() === 0) {
       this.range = { ...EMPTY_RANGE };
       this.binder.releaseAll();
@@ -517,15 +585,8 @@ export class ListRuntime<TItem> {
       scroll: this.scroll,
       scrollLength: this.scrollLength,
       drawDistance: this.props.drawDistance,
-    });
-
-    listDebug("range", "диапазон", {
-      scroll: this.scroll,
-      start: this.range.start,
-      end: this.range.end,
-      startBuffered: this.range.startBuffered,
-      endBuffered: this.range.endBuffered,
-      total: this.metrics.getTotalSize(),
+      // Запас по ходу движения: на броске одного буфера не хватает.
+      velocity: this.velocity.get(),
     });
 
     this.bindContainers();
@@ -645,15 +706,22 @@ export class ListRuntime<TItem> {
    * проход, — на единицы пикселей.
    */
   private restoreVisiblePosition(reason: string): void {
-    const scroll = this.scroll;
+    listPerfCount("shift");
 
-    this.scroll = scroll + this.mvcp.peekShift();
+    const scroll = this.scroll;
+    const predicted = scroll + this.mvcp.peekShift();
+
+    this.scroll = predicted;
     this.calculateItemsInView();
 
     // Сдвиг считается от настоящего смещения, а не от предсказанного.
     this.scroll = scroll;
     this.scroll = this.mvcp.restore(reason);
-    this.calculateItemsInView();
+
+    // Второй проход нужен, только если сдвиг разошёлся с предсказанным. Чаще
+    // всего он совпадает — измерение ниже якоря его не двигает вовсе, — и
+    // повторный проход слово в слово повторил бы уже опубликованную раскладку.
+    if (this.scroll !== predicted) this.calculateItemsInView();
   }
 
   private checkThresholds(): void {
@@ -680,18 +748,96 @@ export class ListRuntime<TItem> {
   private bindContainers(): void {
     const viewportTop = this.scroll;
     const viewportEnd = viewportTop + this.scrollLength;
+    // Подрезка снимается заранее: на броске строка попадает в кадр раньше, чем
+    // до неё дойдёт пересчёт, и обрезанное содержимое успевает мелькнуть.
+    const clipMargin = this.props.drawDistance / 2;
     const pinned = this.stickyPublisher.resolve(this.scroll, this.scrollLength);
 
-    const requests = collectContainerRequests({
-      startBuffered: this.range.startBuffered,
-      endBuffered: this.range.endBuffered,
-      pinned,
-      pending: this.metrics.getPendingIndices(),
-      getKey: index => this.items.getKey(index),
-      getType: index => this.items.getType(index),
-      getStickyEdge: index => this.sticky.getEdgeOf(index),
+    const pending = this.metrics.getPendingIndices();
+    const cached = this.requestCache;
+    const canReuseRequests =
+      cached !== undefined &&
+      cached.start === this.range.startBuffered &&
+      cached.end === this.range.endBuffered &&
+      cached.revision === this.requestRevision &&
+      this.haveSameIndices(cached.pinned, pinned) &&
+      this.haveSameIndices(cached.pending, pending);
+    const requests = canReuseRequests
+      ? cached.requests
+      : collectContainerRequests({
+          startBuffered: this.range.startBuffered,
+          endBuffered: this.range.endBuffered,
+          pinned,
+          pending,
+          getKey: index => this.items.getKey(index),
+          getType: index => this.items.getType(index),
+          getStickyEdge: index => this.sticky.getEdgeOf(index),
+        });
+
+    if (!canReuseRequests) {
+      this.requestCache = {
+        start: this.range.startBuffered,
+        end: this.range.endBuffered,
+        pinned: [...pinned],
+        pending: [...pending],
+        revision: this.requestRevision,
+        requests,
+      };
+    }
+
+    const allocation = this.binder.bind({
+      requests,
+      revision: this.layoutRevision,
+      clipTop: viewportTop - clipMargin,
+      clipEnd: viewportEnd + clipMargin,
     });
 
-    this.binder.bind({ requests, viewportTop, viewportEnd });
+    listPerfCount("bind", allocation.changed.length);
+    listPerfCount("poolNew", allocation.created);
+    listPerfCount("poolMiss", allocation.mismatched);
+    listPerfContainers(allocation.count);
+
+    const { startBuffered, endBuffered } = this.range;
+
+    this.bound =
+      endBuffered < startBuffered
+        ? undefined
+        : {
+            top: this.metrics.getPosition(startBuffered),
+            bottom:
+              this.metrics.getPosition(endBuffered) +
+              this.metrics.getSize(endBuffered),
+          };
+  }
+
+  /**
+   * Незакрытая часть вьюпорта на новом смещении.
+   *
+   * Считается до пересчёта диапазона и по прежней раскладке: это и есть то,
+   * что пользователь видел, пока список догонял скролл. Замер идёт только под
+   * включёнными счётчиками.
+   */
+  private measureBlank(scroll: number): void {
+    if (!isListPerfEnabled() || this.bound === undefined) return;
+
+    listPerfBlank(
+      getBlankArea({
+        spans: [
+          {
+            position: this.bound.top,
+            size: this.bound.bottom - this.bound.top,
+          },
+        ],
+        viewportTop: scroll,
+        viewportEnd: scroll + this.scrollLength,
+      }),
+    );
+  }
+
+  private haveSameIndices(first: number[], second: number[]): boolean {
+    return (
+      first.length === second.length &&
+      first.every((value, index) => value === second[index])
+    );
   }
 }

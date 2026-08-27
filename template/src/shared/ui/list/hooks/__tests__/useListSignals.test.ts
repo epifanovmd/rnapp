@@ -11,6 +11,9 @@ const createValue = (store: ListStore): IListContextValue => ({
   runtime: {
     getItemAt: () => undefined,
     setItemSize: () => {},
+    setContainerItemSize: () => {},
+    isItemSizeFixed: () => false,
+    shouldRecycleItems: () => false,
     getStickyGeometry: () => undefined,
   },
   scrollOffset: { value: 0 } as SharedValue<number>,

@@ -1,4 +1,5 @@
 import { ListStore, POSITION_OUT_OF_VIEW } from "../../../model";
+import { listPerfSnapshot, setListPerf } from "../../perf";
 import type { IScrollAdapter } from "../../scroll";
 import { ListRuntime } from "../list-runtime";
 import type { IListRuntimeProps } from "../runtime-props";
@@ -56,6 +57,19 @@ const createRuntime = (
 };
 
 const nextFrame = () => jest.advanceTimersByTime(16);
+
+/** Подрезано ли содержимое контейнера под ключом; undefined — ключ не разложен. */
+const clippedByKey = (store: ListStore, key: string): boolean | undefined => {
+  const count = store.peek("numContainers") ?? 0;
+
+  for (let id = 0; id < count; id++) {
+    if (store.peek(`containerItemKey${id}`) === key) {
+      return store.peek(`containerClipped${id}`);
+    }
+  }
+
+  return undefined;
+};
 
 /** Ключи, разложенные по контейнерам в текущий момент. */
 const boundKeys = (store: ListStore): string[] => {
@@ -263,8 +277,9 @@ describe("ListRuntime — измерения", () => {
 
     nextFrame();
 
-    // Измеренные пять по 60, остальные — по набранному среднему того же типа.
-    expect(store.peek("totalSize")).toBe(2400);
+    // Пять измеренных по 60 вместо оценки в 100; остальные держат выданную им
+    // оценку — задним числом она не меняется.
+    expect(store.peek("totalSize")).toBe(3800);
   });
 
   it("не принимает измерение, ничего не меняющее в раскладке", () => {
@@ -290,6 +305,25 @@ describe("ListRuntime — измерения", () => {
     nextFrame();
 
     expect(store.peek("totalSize")).toBe(4000);
+  });
+
+  it("отбрасывает замер после перепривязки контейнера", () => {
+    const { runtime } = createRuntime(rows(40), {
+      getFixedItemSize: undefined,
+      recycleItems: true,
+    });
+    const id = runtime.pool.getContainerByKey("k0")!;
+
+    expect(runtime.isItemSizeFixed("k0")).toBe(false);
+    expect(runtime.shouldRecycleItems()).toBe(true);
+
+    const timersBefore = jest.getTimerCount();
+
+    runtime.setContainerItemSize(id, "старый-ключ", 60);
+    expect(jest.getTimerCount()).toBe(timersBefore);
+
+    runtime.setContainerItemSize(id, "k0", 60);
+    expect(jest.getTimerCount()).toBe(timersBefore + 1);
   });
 });
 
@@ -725,5 +759,112 @@ describe("ListRuntime — прочее", () => {
     runtime.dispose();
 
     expect(jest.getTimerCount()).toBe(0);
+  });
+});
+
+describe("ListRuntime — пустая область", () => {
+  afterEach(() => setListPerf(false));
+
+  it("не видит пустоты, пока список успевает за скроллом", () => {
+    const { runtime } = createRuntime(rows(40), { drawDistance: 250 });
+
+    setListPerf(true);
+    runtime.setScroll(120);
+    runtime.setScroll(240);
+
+    expect(listPerfSnapshot()?.blankMax).toBe(0);
+  });
+
+  it("считает пустоту по прыжку скролла, а не по итогу пересчёта", () => {
+    // Замер после привязки всегда даёт ноль: диапазон считается по тому же
+    // смещению. Дыра живёт между кадрами — когда скролл ушёл, а разложены ещё
+    // прежние строки.
+    const { runtime } = createRuntime(rows(40), { drawDistance: 0 });
+
+    setListPerf(true);
+    runtime.setScroll(3000);
+
+    // Вьюпорт 3000…3500, разложено было 0…600: пусто целиком.
+    expect(listPerfSnapshot()?.blankMax).toBe(SCROLL_LENGTH);
+  });
+
+  it("считает частичную дыру у кромки", () => {
+    const { runtime } = createRuntime(rows(40), { drawDistance: 0 });
+
+    setListPerf(true);
+    runtime.setScroll(300);
+
+    // Разложено 0…600 — диапазон захватывает строку на кромке; вьюпорт
+    // 300…800, не закрыто 200.
+    expect(listPerfSnapshot()?.blankMax).toBe(200);
+  });
+});
+
+describe("ListRuntime — проходы раскладки", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    globalThis.requestAnimationFrame = (callback: FrameRequestCallback) =>
+      setTimeout(() => callback(0), 16) as unknown as number;
+  });
+
+  afterEach(() => {
+    setListPerf(false);
+    jest.useRealTimers();
+  });
+
+  const countLayouts = (): number => listPerfSnapshot()?.counters.layout ?? 0;
+
+  it("не считает раскладку второй раз, когда сдвига нет", () => {
+    // Измерение ниже якоря его не двигает: второй проход повторил бы уже
+    // опубликованную раскладку слово в слово.
+    const { runtime } = createRuntime(rows(40), {
+      getFixedItemSize: undefined,
+      maintainVisibleContentPositionSize: true,
+    });
+
+    runtime.setScroll(200);
+    setListPerf(true);
+
+    runtime.setItemSize("k30", 60);
+    nextFrame();
+
+    expect(countLayouts()).toBe(1);
+  });
+
+  it("считает раскладку заново, когда сдвиг разошёлся с предсказанным", () => {
+    // Первый проход идёт по предсказанному смещению: он уточняет размеры, и
+    // итог может от предсказания отличаться — тогда нужен второй.
+    const { runtime } = createRuntime(rows(40), {
+      getFixedItemSize: undefined,
+      maintainVisibleContentPositionSize: true,
+    });
+
+    runtime.setScroll(200);
+    setListPerf(true);
+
+    // Точность самой компенсации проверяется отдельно, в сценариях mvcp.
+    runtime.setItemSize("k30", 60);
+    runtime.setItemSize("k31", 60);
+    nextFrame();
+
+    expect(countLayouts()).toBeLessThanOrEqual(2);
+  });
+});
+
+describe("ListRuntime — подрезка у кромки", () => {
+  it("не подрезает строку сразу за кадром", () => {
+    // На броске она попадает в кадр раньше, чем до неё дойдёт пересчёт:
+    // подрезанное содержимое успело бы мелькнуть обрезанным.
+    const { store } = createRuntime(rows(40), { drawDistance: 250 });
+
+    // Вьюпорт 0…500, запас подрезки — половина буфера: строка 5 идёт до 600.
+    expect(clippedByKey(store, "k5")).toBe(false);
+  });
+
+  it("подрезает строку дальше запаса", () => {
+    const { store } = createRuntime(rows(40), { drawDistance: 250 });
+
+    // Строка 7 начинается на 700, а подрезка снимается только до 625.
+    expect(clippedByKey(store, "k7")).toBe(true);
   });
 });

@@ -22,11 +22,12 @@ describe("createRuntimeProps — значения по умолчанию", () =
   it("подставляет запас отрисовки и пороги", () => {
     const props = createRuntimeProps(baseProps());
 
-    expect(props.drawDistance).toBe(250);
+    expect(props.drawDistance).toBe(400);
     expect(props.startReachedThreshold).toBe(0.5);
     expect(props.endReachedThreshold).toBe(0.5);
     expect(props.maintainScrollAtEndThreshold).toBe(0.1);
     expect(props.alignItemsAtEnd).toBe(false);
+    expect(props.recycleItems).toBe(false);
   });
 
   it("не перебивает заданные значения", () => {

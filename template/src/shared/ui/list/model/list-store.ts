@@ -70,6 +70,7 @@ export class ListStore {
 
     return () => {
       listeners.delete(listener as (value: never) => void);
+      if (listeners.size === 0) this.listeners.delete(name);
     };
   }
 
@@ -92,6 +93,7 @@ export class ListStore {
 
     return () => {
       listeners.delete(listener);
+      if (listeners.size === 0) this.positionListeners.delete(key);
     };
   }
 

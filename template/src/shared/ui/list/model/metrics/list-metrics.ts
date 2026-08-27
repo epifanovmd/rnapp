@@ -49,9 +49,12 @@ export class ListMetrics {
 
   /** Размер, объявленный пропом: элемент не участвует в измерении. */
   setFixedSize(key: string, size: number): void {
+    const index = this.index.getIndexByKey(key);
+    const before = index === undefined ? 0 : this.getSize(index);
+
     if (!this.sizes.setFixed(key, size)) return;
 
-    this.markDirtyByKey(key);
+    this.applyResize(index, before);
   }
 
   /** Поедет ли раскладка от такого измерения. */
@@ -67,10 +70,11 @@ export class ListMetrics {
   setMeasuredSize(key: string, size: number): boolean {
     const index = this.index.getIndexByKey(key);
     const type = index === undefined ? "" : this.index.getType(index);
+    const before = index === undefined ? 0 : this.getSize(index);
 
     if (!this.sizes.setMeasured(key, size, type)) return false;
 
-    this.markDirtyByKey(key);
+    this.applyResize(index, before);
 
     return true;
   }
@@ -78,6 +82,11 @@ export class ListMetrics {
   /** Размер известен точно: измерен или объявлен пропом. */
   hasMeasured(key: string): boolean {
     return this.sizes.isKnown(key);
+  }
+
+  /** Размер объявлен через `getFixedItemSize`; `onLayout` для него не нужен. */
+  hasFixedSize(key: string): boolean {
+    return this.sizes.isFixed(key);
   }
 
   /** Элемент ждёт первого измерения и места пока не занимает. */
@@ -141,11 +150,6 @@ export class ListMetrics {
     return this.sizes.getKnown(key);
   }
 
-  /** Пересчёт устаревших префиксных сумм. */
-  flush(): void {
-    this.positions.flush();
-  }
-
   getPosition(index: number): number {
     return this.positions.getPosition(index);
   }
@@ -188,5 +192,22 @@ export class ListMetrics {
    */
   private markDirtyByKey(key: string): void {
     this.positions.markDirty(this.index.getIndexByKey(key) ?? 0);
+  }
+
+  /**
+   * Изменение размера одной строки.
+   *
+   * Ключа может не быть в текущих данных: измерение доставляется асинхронно и
+   * вполне переживает смену списка. Тогда чинить нечего точечно — раскладка
+   * считается заново целиком.
+   */
+  private applyResize(index: number | undefined, before: number): void {
+    if (index === undefined) {
+      this.positions.markDirty(0);
+
+      return;
+    }
+
+    this.positions.resize(index, this.getSize(index) - before);
   }
 }

@@ -10,70 +10,72 @@ export interface IPrefixPositionsOptions {
  * заново на каждое обращение значит проходить весь список на каждый кадр
  * скролла.
  *
- * Какую проблему решает: пересчёт ленивый и частичный — от первого «грязного»
- * индекса и до конца. Измерение одной ячейки в середине не стоит прохода по
- * всему списку сверху, а обновление данных с совпадающим префиксом не стоит
- * вообще ничего.
+ * Какие проблемы решает:
+ * - **пересчёт ленивый**: суммы доводятся до запрошенного индекса, а не до
+ *   конца списка. Измерения прилетают около вьюпорта, и позиции спрашивают там
+ *   же — значит измерение стоит десятка итераций, а не длины списка. Хвост
+ *   досчитается, когда скролл до него дойдёт;
+ * - **суммарная высота правится на месте**: она нужна на каждом пересчёте
+ *   раскладки, и считать её проходом по хвосту значит сводить ленивость на
+ *   нет. Изменение размера строки прибавляется к ней напрямую, а полный проход
+ *   остаётся только для смены данных, где меняется и состав списка.
  */
 export class PrefixPositions {
   private readonly options: IPrefixPositionsOptions;
 
   private positions: number[] = [];
-  /** С какого индекса префиксные суммы устарели. */
-  private dirtyFrom = 0;
+  /** Сколько позиций посчитано и не устарело. */
+  private valid = 0;
   private total = 0;
+  /** Суммарную высоту нельзя починить на месте — нужен проход по всему списку. */
+  private totalDirty = true;
 
   constructor(options: IPrefixPositionsOptions) {
     this.options = options;
   }
 
-  /** Отметить, что с этого индекса позиции поехали. */
+  /**
+   * Позиции с этого индекса устарели.
+   *
+   * Для смены данных: состав списка меняется, и суммарную высоту приходится
+   * считать заново.
+   */
   markDirty(index: number): void {
-    if (index < this.dirtyFrom) this.dirtyFrom = index;
+    if (index < this.valid) this.valid = Math.max(0, index);
+
+    this.totalDirty = true;
   }
 
-  /** Пересчёт устаревших префиксных сумм. */
-  flush(): void {
-    const count = this.options.getCount();
+  /**
+   * Размер строки изменился на известную величину.
+   *
+   * Позиция самой строки от этого не двигается — двигаются те, что ниже.
+   * Суммарная высота правится разницей, без прохода по хвосту.
+   */
+  resize(index: number, delta: number): void {
+    if (index + 1 < this.valid) this.valid = index + 1;
 
-    // Позиции целы, но хвост мог укоротиться — суммарный размер считается по
-    // последнему оставшемуся элементу, иначе он держит высоту удалённых.
-    if (this.dirtyFrom >= count) {
-      this.dirtyFrom = count;
-      this.positions.length = count;
-      this.total =
-        count === 0
-          ? 0
-          : this.positions[count - 1]! + this.options.getSize(count - 1);
-
-      return;
-    }
-
-    let position =
-      this.dirtyFrom === 0
-        ? 0
-        : this.positions[this.dirtyFrom - 1]! +
-          this.options.getSize(this.dirtyFrom - 1);
-
-    for (let index = this.dirtyFrom; index < count; index++) {
-      this.positions[index] = position;
-      position += this.options.getSize(index);
-    }
-
-    this.positions.length = count;
-    this.total = position;
-    this.dirtyFrom = count;
+    if (!this.totalDirty) this.total += delta;
   }
 
   getPosition(index: number): number {
-    this.flush();
+    this.extend(index);
 
     return this.positions[index] ?? 0;
   }
 
   /** Полная высота всех элементов, без шапки, подвала и распорок. */
   getTotal(): number {
-    this.flush();
+    if (!this.totalDirty) return this.total;
+
+    const count = this.options.getCount();
+
+    this.extend(count - 1);
+    this.total =
+      count === 0
+        ? 0
+        : this.positions[count - 1]! + this.options.getSize(count - 1);
+    this.totalDirty = false;
 
     return this.total;
   }
@@ -81,18 +83,18 @@ export class PrefixPositions {
   /**
    * Последний элемент, начинающийся не ниже смещения. Бинарный поиск.
    *
-   * С него начинается обход диапазона отрисовки: линейный поиск с нуля стоил бы
-   * прохода по всему списку на каждом кадре скролла.
+   * Суммы доводятся ровно до строки, накрывающей смещение: искать по всему
+   * списку незачем, а считать его целиком — тем более.
    */
   findIndexAtOffset(offset: number): number {
-    this.flush();
-
-    const count = this.positions.length;
+    const count = this.options.getCount();
 
     if (count === 0) return 0;
 
+    this.extendPast(offset);
+
     let low = 0;
-    let high = count - 1;
+    let high = this.valid - 1;
 
     while (low < high) {
       const mid = Math.floor((low + high + 1) / 2);
@@ -105,5 +107,45 @@ export class PrefixPositions {
     }
 
     return low;
+  }
+
+  /** Досчитать суммы до индекса включительно. */
+  private extend(upTo: number): void {
+    const count = this.options.getCount();
+
+    if (this.positions.length > count) this.positions.length = count;
+    if (this.valid > count) this.valid = count;
+
+    const target = Math.min(upTo, count - 1);
+
+    if (target < this.valid) return;
+
+    let position =
+      this.valid === 0
+        ? 0
+        : this.positions[this.valid - 1]! +
+          this.options.getSize(this.valid - 1);
+
+    for (let index = this.valid; index <= target; index++) {
+      this.positions[index] = position;
+      position += this.options.getSize(index);
+    }
+
+    this.valid = target + 1;
+  }
+
+  /** Досчитать суммы до строки, накрывающей смещение. */
+  private extendPast(offset: number): void {
+    const count = this.options.getCount();
+
+    this.extend(0);
+
+    while (
+      this.valid < count &&
+      this.positions[this.valid - 1]! + this.options.getSize(this.valid - 1) <=
+        offset
+    ) {
+      this.extend(this.valid);
+    }
   }
 }

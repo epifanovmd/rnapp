@@ -19,6 +19,9 @@ const createValue = (): IListContextValue => ({
   runtime: {
     getItemAt: () => undefined,
     setItemSize: () => {},
+    setContainerItemSize: () => {},
+    isItemSizeFixed: () => false,
+    shouldRecycleItems: () => false,
     getStickyGeometry: () => undefined,
   } satisfies IListRuntimeHandle,
   scrollOffset: { value: 0 } as SharedValue<number>,

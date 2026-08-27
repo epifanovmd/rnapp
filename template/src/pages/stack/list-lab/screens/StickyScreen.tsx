@@ -4,7 +4,7 @@ import type {
   IListRenderItemProps,
   IListStickyConfig,
 } from "@shared/ui/list";
-import { List, setListDebug } from "@shared/ui/list";
+import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
@@ -19,7 +19,6 @@ import {
 import type { LabRow } from "../model";
 import {
   createMessages,
-  labRowHeight,
   labRowKey,
   labRowType,
   MESSAGE_GAP,
@@ -44,15 +43,6 @@ export const StickyScreen: FC = () => {
 
   const [stickyDates, setStickyDates] = useState(true);
   const [stickyAvatars, setStickyAvatars] = useState(true);
-  const [logsEnabled, setLogsEnabled] = useState(false);
-
-  // Список пересоздаётся: часть логов захватывается worklet-ами при монтировании.
-  const handleLogsChange = useCallback((value: boolean) => {
-    setListDebug(
-      value ? ["scroll", "range", "position", "size", "sticky"] : [],
-    );
-    setLogsEnabled(value);
-  }, []);
 
   // Отступы кромок — shared values: у настоящего чата они едут вместе с
   // навбаром и клавиатурой, здесь остаются нулевыми.
@@ -99,15 +89,9 @@ export const StickyScreen: FC = () => {
   ]);
 
   const renderItem = useCallback(
-    ({
-      item,
-      stickyOffset,
-      stickyPinned,
-      index,
-    }: IListRenderItemProps<LabRow>) => (
+    ({ item, stickyOffset, stickyPinned }: IListRenderItemProps<LabRow>) => (
       <LabRowView
         row={item}
-        index={index}
         withAvatar
         stickyOffset={stickyOffset}
         stickyPinned={stickyPinned}
@@ -133,25 +117,21 @@ export const StickyScreen: FC = () => {
           value={stickyAvatars}
           onChange={setStickyAvatars}
         />
-        <LabToggle
-          title={"Логи в консоль"}
-          value={logsEnabled}
-          onChange={handleLogsChange}
-        />
         <LabStatus
           text={`дат: ${dateIndices.length} · групп: ${avatarIndices.length}`}
         />
       </LabPanel>
 
+      {/* Высоты намеренно измеряются. Увеличенный буфер даёт строкам уточнить
+          оценку до входа в кадр на быстром броске. */}
       <List
-        key={logsEnabled ? "logs-on" : "logs-off"}
         ref={listRef}
         data={rows}
         renderItem={renderItem}
         keyExtractor={labRowKey}
         getItemType={labRowType}
-        getFixedItemSize={labRowHeight}
         estimatedItemSize={ESTIMATED_ITEM_SIZE}
+        drawDistance={600}
         sticky={sticky}
         recycleItems
         style={ss.list}

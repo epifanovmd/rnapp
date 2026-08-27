@@ -7,7 +7,7 @@ import type {
 } from "../../types";
 
 /** Запас отрисовки за пределами вьюпорта по умолчанию, px. */
-const DEFAULT_DRAW_DISTANCE = 250;
+const DEFAULT_DRAW_DISTANCE = 400;
 /** Пороги подгрузки задаются в долях длины вьюпорта. */
 const DEFAULT_EDGE_THRESHOLD = 0.5;
 /** Порог, в пределах которого список считается прижатым к концу. */
@@ -32,6 +32,8 @@ export interface IListRuntimeProps<TItem> {
   ) => number | undefined;
   estimatedItemSize: number;
   drawDistance: number;
+  recycleItems?: boolean;
+  itemsAreEqual?: (prev: TItem, next: TItem, index: number) => boolean;
 
   /** Доли длины вьюпорта. */
   startReachedThreshold: number;
@@ -85,6 +87,8 @@ export const createRuntimeProps = <TItem>(
     getFixedItemSize,
     estimatedItemSize,
     drawDistance = DEFAULT_DRAW_DISTANCE,
+    recycleItems = false,
+    itemsAreEqual,
     onStartReachedThreshold = DEFAULT_EDGE_THRESHOLD,
     onEndReachedThreshold = DEFAULT_EDGE_THRESHOLD,
     maintainScrollAtEndThreshold = DEFAULT_MAINTAIN_AT_END_THRESHOLD,
@@ -110,6 +114,8 @@ export const createRuntimeProps = <TItem>(
     getFixedItemSize,
     estimatedItemSize,
     drawDistance,
+    recycleItems,
+    itemsAreEqual,
     startReachedThreshold: onStartReachedThreshold,
     endReachedThreshold: onEndReachedThreshold,
     maintainScrollAtEndThreshold,

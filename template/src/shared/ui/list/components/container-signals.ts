@@ -14,6 +14,7 @@ export const getContainerSignalNames = (id: number) =>
     `containerItemKey${id}`,
     `containerItemIndex${id}`,
     `containerItemData${id}`,
+    `containerItemType${id}`,
     `containerItemSize${id}`,
     `containerSticky${id}`,
     `containerStickyLimit${id}`,

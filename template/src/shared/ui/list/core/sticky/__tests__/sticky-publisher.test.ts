@@ -1,5 +1,4 @@
 import { ListMetrics, ListStore } from "../../../model";
-import { setListDebug } from "../../list-debug";
 import { StickyAnchors } from "../sticky-anchors";
 import { StickyPublisher } from "../sticky-publisher";
 
@@ -22,10 +21,6 @@ const createPublisher = () => {
 };
 
 describe("StickyPublisher", () => {
-  afterEach(() => {
-    setListDebug([]);
-  });
-
   it("сбрасывает индексы, когда якорей нет", () => {
     const { store, publisher } = createPublisher();
 
@@ -68,27 +63,5 @@ describe("StickyPublisher", () => {
 
     expect(store.peek("activeStickyStartIndex")).toBe(0);
     expect(store.peek("activeStickyEndIndex")).toBe(-1);
-  });
-
-  it("сообщает о смене якоря под отладкой", () => {
-    const log = jest.spyOn(console, "log").mockImplementation(() => {});
-    const { anchors, publisher } = createPublisher();
-
-    setListDebug(["sticky"]);
-    anchors.setConfigs([{ edge: "start", indices: [0, 4] }]);
-
-    publisher.resolve(0, SCROLL_LENGTH);
-    expect(log.mock.calls[0]![0]).toContain("смена якоря");
-
-    log.mockClear();
-
-    // Тот же якорь — сообщать не о чем.
-    publisher.resolve(50, SCROLL_LENGTH);
-    expect(log).not.toHaveBeenCalled();
-
-    publisher.resolve(450, SCROLL_LENGTH);
-    expect(log.mock.calls[0]![0]).toContain("to=4");
-
-    log.mockRestore();
   });
 });

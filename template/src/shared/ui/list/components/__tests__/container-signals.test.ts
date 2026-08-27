@@ -8,6 +8,7 @@ describe("getContainerSignalNames", () => {
       "containerItemKey3",
       "containerItemIndex3",
       "containerItemData3",
+      "containerItemType3",
       "containerItemSize3",
       "containerSticky3",
       "containerStickyLimit3",

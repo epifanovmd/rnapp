@@ -42,6 +42,16 @@ export class ItemSizes {
    * лишний сдвиг: раскладка не меняется, пока размеры не известны.
    */
   private readonly pending = new Set<string>();
+  /**
+   * Оценка, однажды выданная ключу.
+   *
+   * Задним числом она не меняется: среднее по типу уточняется с каждым
+   * замером, и без этой заморозки каждое измерение переставляло бы разом все
+   * ещё не измеренные строки — суммарная высота гуляла бы на тысячи пикселей,
+   * а позиции ниже вьюпорта ехали бы на десятки. Плата — суммарная высота
+   * уточняется только по мере измерения строк, а не задним числом.
+   */
+  private readonly estimates = new Map<string, number>();
   private readonly averages = new TypeSizeAverages();
 
   private readonly estimatedItemSize: number;
@@ -59,6 +69,7 @@ export class ItemSizes {
     if (this.fixed.get(key) === size) return false;
 
     this.fixed.set(key, size);
+    this.estimates.delete(key);
 
     return true;
   }
@@ -98,6 +109,7 @@ export class ItemSizes {
 
     this.measured.set(key, size);
     this.pending.delete(key);
+    this.estimates.delete(key);
     this.averages.add(type, previous, size);
 
     return true;
@@ -106,6 +118,11 @@ export class ItemSizes {
   /** Размер известен точно: измерен или объявлен пропом. */
   isKnown(key: string): boolean {
     return this.measured.has(key) || this.fixed.has(key);
+  }
+
+  /** Размер объявлен извне и не требует нативного измерения. */
+  isFixed(key: string): boolean {
+    return this.fixed.has(key);
   }
 
   /** Точно известный размер; `undefined` — есть только оценка. */
@@ -154,10 +171,12 @@ export class ItemSizes {
 
   /**
    * Размер элемента: ноль у ожидающего, затем измеренный или объявленный,
-   * затем средний по типу и в последнюю очередь общая оценка.
+   * затем однажды выданная оценка, и только для нового ключа — среднее по типу
+   * или общая оценка.
    *
    * Средний по типу точнее общей оценки — разнородные ячейки (текст, фото)
-   * иначе тянут раскладку друг друга.
+   * иначе тянут раскладку друг друга. Выданная оценка запоминается: см.
+   * {@link estimates}.
    */
   resolve(key: string | undefined, type: string): number {
     if (key === undefined) return this.estimatedItemSize;
@@ -167,6 +186,14 @@ export class ItemSizes {
 
     if (known !== undefined) return known;
 
-    return this.averages.get(type) ?? this.estimatedItemSize;
+    const estimate = this.estimates.get(key);
+
+    if (estimate !== undefined) return estimate;
+
+    const fresh = this.averages.get(type) ?? this.estimatedItemSize;
+
+    this.estimates.set(key, fresh);
+
+    return fresh;
   }
 }

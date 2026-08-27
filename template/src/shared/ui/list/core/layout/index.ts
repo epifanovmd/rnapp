@@ -1,5 +1,6 @@
 export * from "./align-items-at-end";
 export * from "./anchored-end-space";
+export * from "./blank-area";
 export * from "./container-binder";
 export * from "./container-placement";
 export * from "./container-requests";
