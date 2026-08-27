@@ -8,6 +8,7 @@ import {
 /** Шаг, с которым пересчёт диапазона уходит в JS, px. */
 const JS_SCROLL_STEP = 24;
 
+/** Что обработчик скролла пишет на UI-потоке и что уводит в JS. */
 export interface IListScrollHandlerOptions {
   /** Смещение скролла на UI-потоке — из него считается прилипание. */
   scrollOffset: SharedValue<number>;

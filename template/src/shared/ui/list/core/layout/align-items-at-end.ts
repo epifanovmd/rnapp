@@ -3,6 +3,7 @@ import type { ListMetrics, ListStore } from "../../model";
 /** Сколько удерживать прежнюю высоту контента при её уменьшении, мс. */
 const HOLD_CONTENT_SIZE_MS = 16;
 
+/** Зависимости распорки, прижимающей короткий контент к концу. */
 export interface IAlignItemsAtEndOptions {
   store: ListStore;
   metrics: ListMetrics;

@@ -20,12 +20,14 @@ const MAX_SAMPLES = 10;
 export class ScrollVelocityTracker {
   private samples: IScrollSample[] = [];
 
+  /** Добавить точку истории; время — для тестов, обычно берётся текущее. */
   add(scroll: number, time: number = Date.now()): void {
     this.samples.push({ scroll, time });
 
     if (this.samples.length > MAX_SAMPLES) this.samples.shift();
   }
 
+  /** Забыть историю: следующая скорость посчитается с нуля. */
   reset(): void {
     this.samples = [];
   }

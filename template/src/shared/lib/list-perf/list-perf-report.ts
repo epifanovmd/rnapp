@@ -1,6 +1,7 @@
 import type { IFrameStats } from "./frame-monitor";
 import type { IListPerfStatValue, IListPerfWindow } from "./list-perf-metrics";
 
+/** Всё, из чего собирается одна строка лога. */
 export interface IListPerfReport {
   /** Какой список замеряется: свой или эталонный. */
   label: string;

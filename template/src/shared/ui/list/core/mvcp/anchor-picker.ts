@@ -7,6 +7,7 @@ export interface IAnchor {
   position: number;
 }
 
+/** Раскладка, по которой снимаются якоря. */
 export interface IAnchorPickParams {
   metrics: ListMetrics;
   scroll: number;

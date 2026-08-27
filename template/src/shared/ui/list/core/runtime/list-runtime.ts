@@ -57,7 +57,12 @@ const MIN_BLANK_PX = 1;
  *   — база компенсации должна относиться к состоянию до первого изменения пачки;
  * - {@link restoreVisiblePosition} считает раскладку дважды и в одном
  *   синхронном проходе с записью позиций;
- * - {@link setScroll} отбрасывает события, отправленные до применения сдвига.
+ * - {@link setScroll} отбрасывает события, отправленные до применения сдвига,
+ *   считает проход по живому смещению UI-потока и сливает события кадра в один
+ *   проход: нативный слой шлёт их чаще, чем JS успевает отрисовать кадр, и
+ *   лишний проход — это работа, которую никто не увидит;
+ * - {@link flushLayout} — тот же проход, поэтому отложенный проход того же
+ *   кадра после него не выполняется.
  */
 export class ListRuntime<TItem> {
   readonly store: ListStore;
@@ -226,14 +231,17 @@ export class ListRuntime<TItem> {
     this.adapter = adapter;
   }
 
+  /** Текущий диапазон отрисовки и его буферизованные границы. */
   getRange(): IListRange {
     return this.range;
   }
 
+  /** Элемент данных по индексу. */
   getItemAt(index: number): TItem | undefined {
     return this.props.data[index];
   }
 
+  /** Размер объявлен пропом: измерять такую строку не нужно. */
   isItemSizeFixed(key: string): boolean {
     return this.metrics.hasFixedSize(key);
   }
@@ -248,6 +256,7 @@ export class ListRuntime<TItem> {
     return this.metrics.getSizeByKey(key);
   }
 
+  /** Переиспользовать поддерево ячейки между элементами одного типа. */
   shouldRecycleItems(): boolean {
     return !!this.props.recycleItems;
   }
@@ -278,10 +287,12 @@ export class ListRuntime<TItem> {
     return this.scroll + this.getContentOrigin();
   }
 
+  /** Размер вьюпорта вдоль оси скролла. */
   getScrollLength(): number {
     return this.scrollLength;
   }
 
+  /** Скорость скролла, px/мс: положительная — к концу списка. */
   getVelocity(): number {
     return this.velocity.get();
   }
@@ -531,14 +542,17 @@ export class ListRuntime<TItem> {
       : this.getContentOrigin() + position;
   }
 
+  /** Индекс элемента по ключу; undefined — ключа нет в данных. */
   getIndexByKey(key: string): number | undefined {
     return this.metrics.getIndexByKey(key);
   }
 
+  /** Скролл к смещению в координатах контента. */
   scrollToOffset(offset: number, animated = false): void {
     this.programmatic.toOffset(offset, animated);
   }
 
+  /** Скролл к концу контента — вместе с подвалом и распорками. */
   scrollToEnd(animated = false): void {
     this.programmatic.toEnd(animated);
   }

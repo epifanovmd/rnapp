@@ -3,6 +3,7 @@ import type { IListViewabilityPair, IListViewToken } from "../../types";
 import type { IViewabilityContext } from "./viewability-window";
 import { collectViewableKeys } from "./viewability-window";
 
+/** Зависимости отслеживания видимости элементов. */
 export interface IViewabilityOptions<TItem> {
   metrics: ListMetrics;
   getItem: (index: number) => TItem | undefined;
@@ -55,6 +56,7 @@ export class ViewabilityTracker<TItem> {
     this.pairs = next;
   }
 
+  /** Есть ли подписчики: без них видимость не считается вовсе. */
   hasPairs(): boolean {
     return this.pairs.length > 0;
   }

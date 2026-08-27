@@ -4,6 +4,7 @@ import type { IListRange } from "./visible-range";
 /** Сколько ждать измерений перед первым показом списка, мс. */
 const READY_FALLBACK_MS = 150;
 
+/** Зависимости первого показа списка. */
 export interface IRenderReadinessOptions {
   metrics: ListMetrics;
   getRange: () => IListRange;

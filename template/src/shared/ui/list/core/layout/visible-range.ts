@@ -8,6 +8,7 @@ export interface IListRange {
   endBuffered: number;
 }
 
+/** Положение скролла и запасы, из которых считается диапазон отрисовки. */
 export interface IVisibleRangeParams {
   metrics: ListMetrics;
   scroll: number;

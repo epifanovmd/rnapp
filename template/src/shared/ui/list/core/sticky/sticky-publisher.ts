@@ -1,6 +1,7 @@
 import type { ListStore } from "../../model";
 import type { StickyAnchors } from "./sticky-anchors";
 
+/** Зависимости публикации активных якорей. */
 export interface IStickyPublisherOptions {
   store: ListStore;
   anchors: StickyAnchors;

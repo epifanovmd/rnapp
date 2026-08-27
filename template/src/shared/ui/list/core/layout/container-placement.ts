@@ -21,6 +21,7 @@ export const MEASURE_OFFSCREEN = -100000;
 export const roundLayout = (value: number): number =>
   Math.round(value * 100) / 100;
 
+/** Что известно о строке к моменту раскладки её контейнера. */
 export interface IContainerPlacementParams {
   /** Элемент ждёт первого измерения и места в раскладке не занимает. */
   pending: boolean;
@@ -34,6 +35,7 @@ export interface IContainerPlacementParams {
   viewportEnd: number;
 }
 
+/** Куда встаёт контейнер и нужно ли подрезать его содержимое. */
 export interface IContainerPlacement {
   position: number;
   size: number;

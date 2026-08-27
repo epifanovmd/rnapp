@@ -96,6 +96,7 @@ const STATS: ListPerfStat[] = [
   "mvcpErrorPx",
 ];
 
+/** Накопленная величина: сколько замеров, их сумма и максимум. */
 export interface IListPerfStatValue {
   count: number;
   sum: number;
@@ -108,6 +109,7 @@ export interface IListPerfWindow {
   stats: Record<ListPerfStat, IListPerfStatValue>;
 }
 
+/** Пустое окно: все счётчики и величины обнулены. */
 export const createListPerfWindow = (): IListPerfWindow => {
   const counters = {} as Record<ListPerfCounter, number>;
   const stats = {} as Record<ListPerfStat, IListPerfStatValue>;

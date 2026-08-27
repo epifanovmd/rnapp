@@ -22,6 +22,7 @@ export interface IItemSourceExtractors<TItem> {
   ) => number | undefined;
 }
 
+/** Зависимости разбора данных. */
 export interface IItemSourceOptions {
   metrics: ListMetrics;
 }
@@ -91,14 +92,17 @@ export class ItemSource<TItem> {
     }
   }
 
+  /** Ключ элемента; undefined — индекс вне данных. */
   getKey(index: number): string | undefined {
     return this.keys[index];
   }
 
+  /** Тип элемента; без `getItemType` у всех строк он общий. */
   getType(index: number): string {
     return this.types[index] ?? DEFAULT_ITEM_TYPE;
   }
 
+  /** Сколько элементов в данных. */
   getCount(): number {
     return this.keys.length;
   }

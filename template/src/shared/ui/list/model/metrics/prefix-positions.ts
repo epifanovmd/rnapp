@@ -1,3 +1,4 @@
+/** Зависимости расчёта позиций. */
 export interface IPrefixPositionsOptions {
   getCount: () => number;
   getSize: (index: number) => number;
@@ -58,6 +59,7 @@ export class PrefixPositions {
     if (!this.totalDirty) this.total += delta;
   }
 
+  /** Позиция элемента; при необходимости досчитывается от последней чистой. */
   getPosition(index: number): number {
     this.extend(index);
 

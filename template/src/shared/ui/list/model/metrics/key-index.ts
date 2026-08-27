@@ -52,6 +52,7 @@ export class KeyIndex {
     return min;
   }
 
+  /** Ключ элемента; undefined — индекс вне данных. */
   getKey(index: number): string | undefined {
     return this.keys[index];
   }
@@ -61,10 +62,12 @@ export class KeyIndex {
     return this.types[index] ?? "";
   }
 
+  /** Индекс элемента; undefined — ключа нет в данных. */
   getIndexByKey(key: string): number | undefined {
     return this.indexByKey.get(key);
   }
 
+  /** Сколько элементов в данных. */
   getCount(): number {
     return this.keys.length;
   }

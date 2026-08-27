@@ -3,6 +3,7 @@ import type { ScrollAdapterRef } from "./scroll-adapter";
 /** Сколько ждать завершения анимированного программного скролла, мс. */
 const PROGRAMMATIC_SCROLL_SETTLE_MS = 500;
 
+/** Зависимости программного скролла. */
 export interface IProgrammaticScrollOptions {
   adapter: ScrollAdapterRef;
 }
@@ -33,12 +34,14 @@ export class ProgrammaticScroll {
     return this.active;
   }
 
+  /** Скролл к смещению в координатах контента. */
   toOffset(offset: number, animated: boolean): void {
     this.active = true;
     this.options.adapter()?.scrollToOffset(offset, animated);
     this.settle(animated);
   }
 
+  /** Скролл к концу контента. */
   toEnd(animated: boolean): void {
     this.active = true;
     this.options.adapter()?.scrollToEnd(animated);

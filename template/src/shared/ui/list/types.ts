@@ -8,9 +8,11 @@ import type { ListState } from "./model";
 /** Элемент, отданный в `renderItem`. */
 export interface IListRenderItemProps<TItem> {
   item: TItem;
+  /** Индекс в текущих данных: после подгрузки сверху он у элемента другой. */
   index: number;
   /** Тип контейнера, вернувшийся из `getItemType`. */
   type: string;
+  /** Значение пропа `extraData` — им ячейку перерисовывают извне. */
   extraData: unknown;
   /**
    * Смещение прилипания для якорей в режиме `offset`; у остальных строк — 0.
@@ -24,7 +26,7 @@ export interface IListRenderItemProps<TItem> {
   stickyPinned?: SharedValue<boolean>;
 }
 
-/** Размер вьюпорта списка. */
+/** Размер вьюпорта списка, px. */
 export interface IListScrollSize {
   width: number;
   height: number;
@@ -40,9 +42,11 @@ export type ListStickyEdge = "start" | "end";
  * клавиатура снизу), поэтому это shared value, а не число.
  */
 export interface IListStickyConfig<TItem = unknown> {
+  /** Кромка, у которой останавливаются якоря этого набора. */
   edge: ListStickyEdge;
   /** Индексы якорей, по возрастанию. */
   indices: number[];
+  /** Отступ от кромки: навбар сверху, панель ввода и клавиатура снизу. */
   offset?: SharedValue<number>;
   /**
    * Что именно прилипает.
@@ -104,16 +108,26 @@ export interface IListMaintainVisibleContentPosition<TItem> {
 export interface IListMaintainScrollAtEnd {
   /** Прилипать только если пользователь уже у конца. */
   onlyWhenAtEnd?: boolean;
+  /** Доводить позицию анимацией, а не мгновенно. */
   animated?: boolean;
 }
 
-/** Распорка у конца списка, растущая до якоря. */
+/**
+ * Распорка у конца списка, растущая до якоря.
+ *
+ * Резервирует место под последним элементом ровно настолько, чтобы якорный
+ * элемент мог подняться к верхней кромке вьюпорта, — так работает переход к
+ * цитируемому сообщению у самого конца переписки. В отступ конца распорка
+ * входит, а в расстояние до кромки для порогов подгрузки — нет.
+ */
 export interface IListAnchoredEndSpace {
+  /** Элемент, который должен доставать до верхней кромки. */
   anchorIndex: number;
   /** Дополнительный отступ над якорем. */
   anchorOffset?: number;
   /** Верхняя граница размера распорки. */
   maxSize?: number;
+  /** Текущий размер распорки; меняется вместе с раскладкой. */
   onSizeChanged?: (size: number) => void;
 }
 
@@ -128,8 +142,15 @@ export type ListInitialScroll =
       viewOffset?: number;
     };
 
-/** Порог видимости элемента. */
+/**
+ * Порог видимости элемента.
+ *
+ * Задаётся одним из двух способов: долей самого элемента
+ * ({@link IListViewabilityConfig.itemVisiblePercentThreshold}) или долей
+ * вьюпорта ({@link IListViewabilityConfig.viewAreaCoveragePercentThreshold}).
+ */
 export interface IListViewabilityConfig {
+  /** Имя набора: с ним приходят события, если наборов несколько. */
   id?: string;
   /** Доля видимой части элемента, при которой он считается видимым. */
   itemVisiblePercentThreshold?: number;
@@ -139,18 +160,29 @@ export interface IListViewabilityConfig {
   minimumViewTime?: number;
 }
 
+/** Элемент в событии видимости. */
 export interface IListViewToken<TItem> {
   item: TItem;
   key: string;
   index: number;
+  /** Проходит ли элемент порог прямо сейчас. */
   isViewable: boolean;
 }
 
+/** Состав события видимости. */
 export interface IListViewabilityCallbackInfo<TItem> {
+  /** Все элементы, проходящие порог сейчас. */
   viewableItems: IListViewToken<TItem>[];
+  /** Только те, у кого видимость изменилась с прошлого события. */
   changed: IListViewToken<TItem>[];
 }
 
+/**
+ * Порог и его обработчик.
+ *
+ * Наборов может быть несколько: аналитике и автовоспроизведению нужны разные
+ * пороги на одном и том же списке.
+ */
 export interface IListViewabilityPair<TItem> {
   config: IListViewabilityConfig;
   onViewableItemsChanged: (info: IListViewabilityCallbackInfo<TItem>) => void;
@@ -232,8 +264,20 @@ export interface IListSharedValues {
   activeStickyEndIndex?: SharedValue<number>;
 }
 
-/** Императивный интерфейс списка. */
+/**
+ * Императивный интерфейс списка.
+ *
+ * Всё, что нельзя выразить пропами: разовый скролл и вопросы о текущей
+ * геометрии. Позиции и размеры отдаются в координатах контента — тех же, в
+ * которых работает `contentOffset` нативного скролла.
+ */
 export interface IListRef {
+  /**
+   * Скролл к элементу по индексу.
+   *
+   * `viewPosition` — куда прижать элемент во вьюпорте: 0 к началу, 1 к концу,
+   * 0.5 по центру. `viewOffset` — поправка в пикселях поверх этого.
+   */
   scrollToIndex: (params: {
     index: number;
     animated?: boolean;
@@ -255,6 +299,7 @@ export interface IListRef {
     viewOffset?: number;
   }) => boolean;
   scrollToOffset: (params: { offset: number; animated?: boolean }) => void;
+  /** Скролл к концу контента — вместе с подвалом и распорками. */
   scrollToEnd: (params?: { animated?: boolean }) => void;
   /** Позиция элемента в координатах контента; undefined — индекс вне данных. */
   getPositionAtIndex: (index: number) => number | undefined;
@@ -281,9 +326,21 @@ export interface IListRef {
   getVelocity: () => number;
 }
 
+/**
+ * Пропы списка.
+ *
+ * Обязательны только данные, отрисовка строки, ключ и стартовая оценка размера
+ * — всё остальное включает отдельные механики: удержание позиции, прилипание,
+ * пороги подгрузки, состояние наружу.
+ *
+ * Ключ обязан переживать смену данных: по нему список узнаёт элемент после
+ * подгрузки и вставки, на нём держатся измеренные размеры, переработка
+ * контейнеров и удержание видимой позиции.
+ */
 export interface IListProps<TItem> {
   data: readonly TItem[];
   renderItem: (props: IListRenderItemProps<TItem>) => ReactNode;
+  /** Постоянный ключ элемента; от индекса зависеть не должен. */
   keyExtractor: (item: TItem, index: number) => string;
 
   /**
@@ -301,25 +358,47 @@ export interface IListProps<TItem> {
   estimatedItemSize: number;
   /** Переиспользовать смонтированные контейнеры вместо перемонтирования. */
   recycleItems?: boolean;
-  /** Сравнение элементов для пропуска повторного рендера ячейки. */
+  /**
+   * Сравнение элементов для пропуска повторного рендера ячейки.
+   *
+   * По умолчанию элементы сравниваются по ссылке: новый объект с теми же
+   * полями перерисует строку.
+   */
   itemsAreEqual?: (prev: TItem, next: TItem, index: number) => boolean;
+  /** Значение, доходящее до каждой ячейки: им перерисовывают строки извне. */
   extraData?: unknown;
 
-  /** Запас отрисовки за пределами вьюпорта, px. */
+  /**
+   * Запас отрисовки за пределами вьюпорта, px.
+   *
+   * Строки этого запаса смонтированы и измерены заранее, к моменту, когда до
+   * них доходит скролл. По ходу движения запас дополнительно растёт со
+   * скоростью — этим список распоряжается сам.
+   */
   drawDistance?: number;
 
   ListHeaderComponent?: ComponentType<unknown> | ReactElement | null;
   ListFooterComponent?: ComponentType<unknown> | ReactElement | null;
+  /** Показывается вместо элементов, когда данные пусты. */
   ListEmptyComponent?: ComponentType<unknown> | ReactElement | null;
+  /** Рисуется внутри ячейки, под содержимым строки, и входит в её высоту. */
   ItemSeparatorComponent?: ComponentType<unknown> | null;
 
   /** Прижать контент к концу, когда он короче вьюпорта. */
   alignItemsAtEnd?: boolean;
   anchoredEndSpace?: IListAnchoredEndSpace;
+  /** Удержание видимой позиции при изменениях выше вьюпорта. */
   maintainVisibleContentPosition?: IListMaintainVisibleContentPosition<TItem>;
+  /** Автоприлипание к концу при добавлении элементов. */
   maintainScrollAtEnd?: IListMaintainScrollAtEnd;
   /** Порог «у конца» для `maintainScrollAtEnd` и `isNearEnd`, px. */
   maintainScrollAtEndThreshold?: number;
+  /**
+   * Позиция, с которой список открывается.
+   *
+   * До неё список не показан: иначе виден кадр, отрисованный по оценочным
+   * размерам, и доводка позиции на глазах у пользователя.
+   */
   initialScroll?: ListInitialScroll;
 
   /** Наборы прилипающих элементов; на каждой кромке не более одного. */
@@ -341,6 +420,7 @@ export interface IListProps<TItem> {
    */
   scrollIndicatorInset?: SharedValue<number>;
 
+  /** Пороги видимости и их обработчики. */
   viewabilityPairs?: IListViewabilityPair<TItem>[];
   /** Состояние списка на UI-потоке: анимации без единого рендера. */
   sharedValues?: IListSharedValues;
@@ -353,9 +433,18 @@ export interface IListProps<TItem> {
    */
   state?: ListState;
 
+  /**
+   * Скролл подошёл к началу контента — пора подгружать предыдущую страницу.
+   *
+   * Вызывается один раз на жест: пока пользователь не оторвал палец и не
+   * двинулся в другую сторону, повторно порог не срабатывает.
+   */
   onStartReached?: (info: { distanceFromStart: number }) => void;
+  /** Порог начала в долях вьюпорта. */
   onStartReachedThreshold?: number;
+  /** Скролл подошёл к концу контента; см. {@link IListProps.onStartReached}. */
   onEndReached?: (info: { distanceFromEnd: number }) => void;
+  /** Порог конца в долях вьюпорта. */
   onEndReachedThreshold?: number;
   /** Первая раскладка завершена, стартовый скролл применён. */
   onLoad?: () => void;
@@ -366,9 +455,12 @@ export interface IListProps<TItem> {
   onContentSizeChange?: (width: number, height: number) => void;
   /** Палец лёг на экран: внешняя логика позиции обязана уступить жесту. */
   onScrollBeginDrag?: () => void;
+  /** Палец отпущен; дальше возможна инерция. */
   onScrollEndDrag?: () => void;
 
+  /** Стиль обёртки списка: сюда идут размеры и фон. */
   style?: StyleProp<ViewStyle>;
+  /** Стиль контента внутри ScrollView: отступы вокруг элементов. */
   contentContainerStyle?: StyleProp<ViewStyle>;
   /**
    * Ref нижележащего ScrollView. Нужен тем, кто двигает позицию с UI-потока —

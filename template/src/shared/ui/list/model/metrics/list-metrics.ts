@@ -2,6 +2,7 @@ import { ItemSizes } from "./item-sizes";
 import { KeyIndex } from "./key-index";
 import { PrefixPositions } from "./prefix-positions";
 
+/** Настройки раскладки списка. */
 export interface IListMetricsOptions {
   estimatedItemSize: number;
 }
@@ -138,6 +139,7 @@ export class ListMetrics {
     this.positions.markDirty(first);
   }
 
+  /** Размер элемента: измеренный, объявленный или оценочный. */
   getSize(index: number): number {
     return this.sizes.resolve(
       this.index.getKey(index),
@@ -150,10 +152,12 @@ export class ListMetrics {
     return this.sizes.getKnown(key);
   }
 
+  /** Позиция элемента в координатах элементов: шапка в них не входит. */
   getPosition(index: number): number {
     return this.positions.getPosition(index);
   }
 
+  /** Позиция элемента по ключу; undefined — ключа нет в данных. */
   getPositionByKey(key: string): number | undefined {
     const index = this.index.getIndexByKey(key);
 
@@ -165,14 +169,17 @@ export class ListMetrics {
     return this.positions.getTotal();
   }
 
+  /** Индекс элемента по ключу; undefined — ключа нет в данных. */
   getIndexByKey(key: string): number | undefined {
     return this.index.getIndexByKey(key);
   }
 
+  /** Ключ элемента; undefined — индекс вне данных. */
   getKey(index: number): string | undefined {
     return this.index.getKey(index);
   }
 
+  /** Сколько элементов в раскладке. */
   getCount(): number {
     return this.index.getCount();
   }

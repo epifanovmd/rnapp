@@ -1,5 +1,6 @@
 import type { ListMetrics } from "../../model";
 
+/** Зависимости учёта высоты контента. */
 export interface IContentSizeOptions {
   metrics: ListMetrics;
   /** Идёт ожидание пересчёта раскладки — замер относится к прошлому кадру. */

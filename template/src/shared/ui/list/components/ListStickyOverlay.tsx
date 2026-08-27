@@ -6,6 +6,7 @@ import type { IListRenderItemProps } from "../types";
 import { ListStickyPin } from "./ListStickyPin";
 import { resolveOverlayRenderer } from "./sticky-placement";
 
+/** Пропы слоя прилипших копий: чем и с какими данными рисовать якорь. */
 export interface IListStickyOverlayProps {
   renderItem: (props: IListRenderItemProps<unknown>) => ReactNode;
   extraData: unknown;

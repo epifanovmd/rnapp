@@ -23,6 +23,7 @@ export const shouldMeasureOnLayout = (
   lastMeasured === undefined ||
   Math.abs(height - lastMeasured) > SAME_HEIGHT_EPS;
 
+/** Что изменилось у ячейки к моменту привязки контейнера. */
 export interface IMeasureOnBindParams {
   /** Контейнер встал под другой элемент. */
   keyChanged: boolean;

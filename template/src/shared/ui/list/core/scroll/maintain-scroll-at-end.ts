@@ -4,6 +4,7 @@ import type { ScrollAdapterRef } from "./scroll-adapter";
 /** Сколько ждать завершения анимированного прилипания, мс. */
 const ANIMATED_SETTLE_MS = 500;
 
+/** Настройки автоприлипания к концу списка. */
 export interface IMaintainScrollAtEndOptions {
   store: ListStore;
   adapter: ScrollAdapterRef;
@@ -37,6 +38,7 @@ export class MaintainScrollAtEnd {
     this.options = options;
   }
 
+  /** Новые настройки: список пересоздаёт их на каждом рендере. */
   setOptions(options: IMaintainScrollAtEndOptions): void {
     this.options = options;
   }

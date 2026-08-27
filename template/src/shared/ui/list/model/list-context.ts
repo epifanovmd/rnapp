@@ -6,7 +6,9 @@ import type { ListStore } from "./list-store";
 
 /** Расчётное ядро, доступное дереву списка. Тип элемента здесь не важен. */
 export interface IListRuntimeHandle {
+  /** Элемент данных по индексу; undefined — индекс вне данных. */
   getItemAt: (index: number) => unknown;
+  /** Принять замер строки по ключу. */
   setItemSize: (key: string, size: number) => void;
   /** Принять замер, только пока контейнер всё ещё рисует указанный ключ. */
   setContainerItemSize: (id: number, key: string, size: number) => void;
@@ -24,17 +26,22 @@ export interface IListRuntimeHandle {
 
 /** Что нужно знать о якоре слою прилипших копий. */
 export interface IListStickyGeometry {
+  /** Позиция в координатах элементов — тех же, в которых считается прилипание. */
   position: number;
   size: number;
   /** Предел смещения; см. `getStickyLimitOf`. */
   limit: number | undefined;
 }
 
+/** Всё, что список отдаёт своему дереву. */
 export interface IListContextValue {
+  /** Адресные сигналы: через них ядро говорит с контейнерами. */
   store: ListStore;
+  /** Расчётное ядро — то немногое из него, что нужно дереву. */
   runtime: IListRuntimeHandle;
   /** Смещение скролла на UI-потоке — прилипание считается из него. */
   scrollOffset: SharedValue<number>;
+  /** Наборы прилипающих элементов, объявленные списком. */
   sticky: IListStickyConfig[];
   /** Якоря, уже отрисованные слоем прилипших копий. */
   stickyPinned: IListStickyPinnedIndices;
@@ -55,6 +62,7 @@ export interface IListStickyPinnedIndices {
 
 const ListContext = createContext<IListContextValue | null>(null);
 
+/** Раздаёт дереву стор, ядро и общие shared values списка. */
 export const ListContextProvider = ListContext.Provider;
 
 const useListContext = (): IListContextValue => {
@@ -67,11 +75,14 @@ const useListContext = (): IListContextValue => {
   return value;
 };
 
+/** Стор сигналов текущего списка. */
 export const useListStore = (): ListStore => useListContext().store;
 
+/** Расчётное ядро текущего списка. */
 export const useListRuntime = (): IListRuntimeHandle =>
   useListContext().runtime;
 
+/** Смещение скролла на UI-потоке. */
 export const useListScrollOffset = (): SharedValue<number> =>
   useListContext().scrollOffset;
 

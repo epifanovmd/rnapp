@@ -4,6 +4,7 @@ import type { IEdgeGeometry } from "./edge-geometry";
 /** Расстояние, в пределах которого кромка считается достигнутой точно. */
 const EDGE_EPSILON = 1;
 
+/** Пороги кромок в пикселях — уже переведённые из долей вьюпорта. */
 export interface IEdgeSignalThresholds {
   /** Пороги в пикселях: доля вьюпорта уже применена. */
   startThreshold: number;

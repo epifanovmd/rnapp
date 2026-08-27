@@ -5,6 +5,7 @@ import { getEdgeGeometry, isOutsideThreshold } from "./edge-geometry";
 import { EdgeLatch } from "./edge-latch";
 import { publishEndSignals, publishStartSignals } from "./edge-signals";
 
+/** Настройки порогов кромок: доли вьюпорта и обработчики подгрузки. */
 export interface IEdgeThresholdsOptions {
   store: ListStore;
   /** Доли длины вьюпорта. */
@@ -41,6 +42,7 @@ export class EdgeThresholds {
     this.options = options;
   }
 
+  /** Новые пороги и обработчики: список пересоздаёт их на каждом рендере. */
   setOptions(options: IEdgeThresholdsOptions): void {
     this.options = options;
   }

@@ -22,6 +22,7 @@ export interface IListSignals {
   alignItemsAtEndPadding: number;
   /** Распорка у конца, поднимающая якорный элемент к верхней кромке. */
   anchoredEndSpaceSize: number;
+  /** Сколько контейнеров существует; ими и ограничен рендер списка. */
   numContainers: number;
   /** Размер вьюпорта целиком; вдоль оси скролла — `scrollLength`. */
   scrollSize: IListScrollSize;
@@ -105,7 +106,9 @@ type ContainerSignals = {
   [K in `containerClipped${number}`]: boolean;
 };
 
+/** Все сигналы списка: общие плюс адресные сигналы каждого контейнера. */
 export type ListSignalMap = IListSignals & ContainerSignals;
+/** Имя любого сигнала — им адресуются чтение, запись и подписка. */
 export type ListSignalName = keyof ListSignalMap & string;
 
 /**

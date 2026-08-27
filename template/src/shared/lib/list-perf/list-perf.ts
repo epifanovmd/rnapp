@@ -81,12 +81,14 @@ class ListPerf {
     );
   }
 
+  /** Отметить событие; вызов при выключенном замере ничего не стоит. */
   count(name: ListPerfCounter, amount = 1): void {
     if (!this.enabled) return;
 
     this.window.counters[name] += amount;
   }
 
+  /** Добавить замер величины: в отчёт пойдут среднее и максимум. */
   sample(name: ListPerfStat, value: number): void {
     if (!this.enabled) return;
 
@@ -131,4 +133,5 @@ class ListPerf {
   }
 }
 
+/** Единственный замер на приложение: списки пишут в него, стенды включают. */
 export const listPerf = new ListPerf();

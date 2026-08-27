@@ -49,14 +49,17 @@ export class ContainerPool {
   private lastStickyEdgeById = new Map<number, ListStickyEdge | null>();
   private nextId = 0;
 
+  /** К какому элементу привязан контейнер; undefined — свободен. */
   getBinding(id: number): IContainerBinding | undefined {
     return this.bindings.get(id);
   }
 
+  /** Контейнер под элементом; undefined — элемент не отрисован. */
   getContainerByKey(key: string): number | undefined {
     return this.containerByKey.get(key);
   }
 
+  /** Сколько контейнеров создано за всё время: столько их и смонтировано. */
   getCount(): number {
     return this.nextId;
   }

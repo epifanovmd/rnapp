@@ -9,6 +9,7 @@ import type {
 import { ContainerPool, POSITION_OUT_OF_VIEW } from "../../model";
 import { resolveContainerPlacement } from "./container-placement";
 
+/** Зависимости привязки контейнеров. */
 export interface IContainerBinderOptions {
   store: ListStore;
   metrics: ListMetrics;
@@ -19,6 +20,7 @@ export interface IContainerBinderOptions {
   getStickyLimit: (index: number) => number | undefined;
 }
 
+/** Запрошенные строки и границы подрезки на текущем проходе. */
 export interface IBindParams {
   requests: IContainerRequest[];
   /** Версия данных и геометрии; при совпадении можно обновить только clipping. */

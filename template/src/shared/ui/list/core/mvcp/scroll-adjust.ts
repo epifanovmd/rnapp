@@ -24,6 +24,7 @@ export class ScrollAdjust {
     this.store = store;
   }
 
+  /** Накопленная компенсация, px. */
   get(): number {
     return this.adjust;
   }

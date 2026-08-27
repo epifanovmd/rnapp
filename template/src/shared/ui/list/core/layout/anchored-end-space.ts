@@ -1,6 +1,7 @@
 import type { ListMetrics, ListStore } from "../../model";
 import type { IListAnchoredEndSpace } from "../../types";
 
+/** Зависимости распорки у конца списка. */
 export interface IAnchoredEndSpaceOptions {
   store: ListStore;
   metrics: ListMetrics;

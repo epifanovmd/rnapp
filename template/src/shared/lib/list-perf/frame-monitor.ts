@@ -29,6 +29,7 @@ export class FrameMonitor {
   private longFrames = 0;
   private worstMs = 0;
 
+  /** Начать счёт кадров; повторный вызов ничего не меняет. */
   start(): void {
     if (this.running) return;
 
@@ -37,6 +38,7 @@ export class FrameMonitor {
     requestAnimationFrame(this.tick);
   }
 
+  /** Прекратить счёт: обход кадров больше не планируется. */
   stop(): void {
     this.running = false;
   }

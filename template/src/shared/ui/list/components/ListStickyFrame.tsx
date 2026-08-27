@@ -15,21 +15,41 @@ import {
 import type { ListStickyEdge } from "../types";
 import { isContainerParked, resolveStickyPlacement } from "./sticky-placement";
 
+/** Геометрия якоря и его содержимое. */
 export interface IListStickyFrameProps {
   edge: ListStickyEdge;
+  /** Позиция строки в координатах элементов. */
   position: number;
   size: number;
   scrollLength: number;
+  /** Предел смещения: докуда якорь поднимается, не выходя за свою группу. */
   limit: number | undefined;
   itemIndex: number;
+  /** Содержимое подрезано по слоту строки. */
   clipped: boolean;
+  /**
+   * Содержимое ячейки. Смещение и признак «нарисован слоем» приходят сюда
+   * shared values: их применяет сама ячейка, без рендера на каждый кадр.
+   */
   children: (
     offset: SharedValue<number>,
     pinned: SharedValue<boolean>,
   ) => ReactNode;
 }
 
-/** Reanimated-инфраструктура монтируется только для sticky-якоря. */
+/**
+ * Обёртка ячейки-якоря.
+ *
+ * Зачем нужна: прилипание — покадровый пересчёт смещения от скролла, и живёт он
+ * на UI-потоке. Заводить такой пересчёт на каждую строку списка нельзя, поэтому
+ * Reanimated-инфраструктура монтируется только вокруг якорей.
+ *
+ * Что делает: держит строку на её месте в контенте, а у кромки — сдвигает
+ * трансформом. В режиме `container` сдвигается вся строка; в режиме `offset`
+ * строка стоит на месте, а смещение уходит в содержимое. Пока якорь у кромки
+ * рисует слой поверх списка, копия внутри контента прячется прозрачностью —
+ * место для касаний за ней остаётся.
+ */
 export const ListStickyFrame = memo<IListStickyFrameProps>(
   ({
     edge,

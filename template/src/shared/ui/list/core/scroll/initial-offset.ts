@@ -2,6 +2,7 @@ import type { ListMetrics } from "../../model";
 import type { ListInitialScroll } from "../../types";
 import { getItemScrollOffset } from "./item-offset";
 
+/** Зависимости расчёта стартовой позиции. */
 export interface IInitialOffsetOptions {
   metrics: ListMetrics;
   getTarget: () => ListInitialScroll | undefined;

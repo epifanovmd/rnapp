@@ -7,6 +7,7 @@
  */
 export const MIN_SHIFT = 1;
 
+/** Исходные данные для расчёта компенсирующего сдвига. */
 export interface IShiftInput {
   /** Смещение скролла, каким его считает список. */
   scroll: number;
@@ -19,6 +20,7 @@ export interface IShiftInput {
   scrollLength: number;
 }
 
+/** Разобранный по частям сдвиг: что уйдёт в нативный слой, что потеряно. */
 export interface IShiftSolution {
   /** Сколько нужно сдвинуть, с учётом накопленного остатка. */
   wanted: number;

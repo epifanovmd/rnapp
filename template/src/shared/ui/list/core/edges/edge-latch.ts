@@ -31,14 +31,17 @@ export class EdgeLatch {
   private reached = false;
   private snapshot: IEdgeSnapshot | undefined;
 
+  /** Кромка уже сработала и до сброса больше не сработает. */
   isReached(): boolean {
     return this.reached;
   }
 
+  /** Состояние на момент срабатывания; undefined — кромка не срабатывала. */
   getSnapshot(): IEdgeSnapshot | undefined {
     return this.snapshot;
   }
 
+  /** Разрешить кромке сработать снова. */
   reset(): void {
     this.reached = false;
     this.snapshot = undefined;

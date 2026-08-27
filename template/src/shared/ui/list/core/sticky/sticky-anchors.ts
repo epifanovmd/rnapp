@@ -2,6 +2,7 @@ import type { ListMetrics } from "../../model";
 import type { IListStickyConfig, ListStickyEdge } from "../../types";
 import { getPinnedStickyIndices } from "./sticky-pinning";
 
+/** Зависимости расчёта прилипающих якорей. */
 export interface IStickyAnchorsOptions {
   metrics: ListMetrics;
 }
@@ -45,6 +46,7 @@ export class StickyAnchors {
     this.options = options;
   }
 
+  /** Новые наборы якорей; индексы адресуют текущие данные. */
   setConfigs(configs: IListStickyConfig[] | undefined): void {
     const next = configs ?? EMPTY_CONFIGS;
 
@@ -69,6 +71,7 @@ export class StickyAnchors {
     }
   }
 
+  /** Есть ли вообще прилипающие элементы. */
   hasAnchors(): boolean {
     return this.configs.some(config => config.indices.length > 0);
   }

@@ -10,13 +10,28 @@ import { ListItemContent } from "./ListItemContent";
 import { ListStickyFrame } from "./ListStickyFrame";
 
 interface IListItemContainerProps {
+  /** Номер контейнера: им адресуются все его сигналы. */
   id: number;
   renderItem: (props: IListRenderItemProps<unknown>) => React.ReactNode;
   extraData: unknown;
   ItemSeparatorComponent?: ComponentType<unknown> | null;
 }
 
-/** Адресный контейнер; обычная строка не создаёт Reanimated mapper-ы. */
+/**
+ * Контейнер — единица монтирования списка.
+ *
+ * Зачем нужен: строк в данных тысячи, а смонтированных контейнеров — по числу
+ * тех, что помещаются в диапазон отрисовки. Контейнер переживает смену элемента:
+ * ядро меняет его сигналы, и перерисовывается только он один.
+ *
+ * Всё, что он знает о своём содержимом, приходит адресными сигналами
+ * ({@link getContainerSignalNames}), поэтому скролл, двигающий одну строку, не
+ * задевает остальные.
+ *
+ * Прилипающий элемент оборачивается в {@link ListStickyFrame}, обычный — в
+ * простую `View`: Reanimated-инфраструктура стоит мапперов на каждый кадр, и
+ * заводить её для всех строк нельзя.
+ */
 export const ListItemContainer = memo<IListItemContainerProps>(
   ({ id, renderItem, extraData, ItemSeparatorComponent }) => {
     const runtime = useListRuntime();

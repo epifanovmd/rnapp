@@ -97,6 +97,7 @@ export class ListStore {
     };
   }
 
+  /** Сообщить подписчикам ключа его новую позицию. */
   notifyPosition(key: string, value: number): void {
     const listeners = this.positionListeners.get(key);
 

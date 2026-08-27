@@ -3,6 +3,7 @@ import { TypeSizeAverages } from "./size-averages";
 /** Изменение измеренной высоты меньше этого — шум округления экрана. */
 const MEASURE_EPSILON = 1;
 
+/** Настройки хранилища размеров. */
 export interface IItemSizesOptions {
   /** Стартовая оценка до первого измерения любого элемента. */
   estimatedItemSize: number;
@@ -135,6 +136,7 @@ export class ItemSizes {
     return this.pending.has(key);
   }
 
+  /** Ключи, ждущие первого измерения. */
   getPendingKeys(): string[] {
     return [...this.pending];
   }

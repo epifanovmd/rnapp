@@ -8,6 +8,7 @@ import { ScrollAdjust } from "./scroll-adjust";
 import { ShiftQueue } from "./shift-queue";
 import { MIN_SHIFT, solveShift } from "./shift-solver";
 
+/** Зависимости удержания видимой позиции. */
 export interface IMvcpOptions {
   store: ListStore;
   metrics: ListMetrics;

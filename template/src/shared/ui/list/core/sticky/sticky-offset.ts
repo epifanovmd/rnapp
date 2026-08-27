@@ -1,5 +1,6 @@
 import type { ListStickyEdge } from "../../types";
 
+/** Геометрия якоря и вьюпорта для расчёта смещения прилипания. */
 export interface IStickyOffsetParams {
   edge: ListStickyEdge;
   /** Позиция элемента в координатах контента. */

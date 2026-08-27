@@ -1,5 +1,6 @@
 import type { ListInitialScroll } from "../../types";
 
+/** Зависимости начального скролла. */
 export interface IInitialScrollOptions {
   target: ListInitialScroll | undefined;
   /** Смещение, к которому нужно прийти; undefined — цель ещё не вычислима. */
@@ -35,6 +36,7 @@ export class InitialScroll {
     this.options = options;
   }
 
+  /** Начальная позиция ещё не доведена. */
   isActive(): boolean {
     return !this.finished;
   }
@@ -68,6 +70,7 @@ export class InitialScroll {
     });
   }
 
+  /** Прекратить доводку и показать список. */
   finish(): void {
     if (this.finished) return;
 

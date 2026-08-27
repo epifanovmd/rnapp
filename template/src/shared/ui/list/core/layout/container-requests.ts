@@ -1,6 +1,7 @@
 import type { IContainerRequest } from "../../model";
 import type { ListStickyEdge } from "../../types";
 
+/** Что должно попасть в набор запрошенных строк. */
 export interface IContainerRequestParams {
   startBuffered: number;
   endBuffered: number;
