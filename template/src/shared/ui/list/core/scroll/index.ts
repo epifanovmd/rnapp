@@ -4,4 +4,6 @@ export * from "./item-offset";
 export * from "./maintain-scroll-at-end";
 export * from "./programmatic-scroll";
 export * from "./scroll-adapter";
+export * from "./scroll-freshness";
+export * from "./scroll-pass";
 export * from "./scroll-velocity";

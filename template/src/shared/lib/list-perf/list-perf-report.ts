@@ -63,9 +63,9 @@ export const formatListPerfReport = ({
       `  диапазон  ${counters.rangeCalc} пересчётов · ${pair(
         stats.rangeMs,
         2,
-      )}мс · окно ${avg(stats.windowItems).toFixed(0)} · контейнеров ${
-        stats.containers.max
-      }`,
+      )}мс · слито ${counters.passDeferred} · окно ${avg(
+        stats.windowItems,
+      ).toFixed(0)} · контейнеров ${stats.containers.max}`,
     );
   }
 
@@ -86,11 +86,14 @@ export const formatListPerfReport = ({
     );
   }
 
-  if (counters.measure > 0) {
+  if (counters.measure > 0 || counters.measureSkipped > 0) {
     lines.push(
       `  измерения ${counters.measure} · принято ${
         counters.measureApplied
-      } · правка ${stats.resizePx.sum.toFixed(0)}px`,
+      } · пропущено ${counters.measureSkipped} · правка ${pair(
+        stats.resizePx,
+        0,
+      )}px`,
     );
   }
 
@@ -117,10 +120,13 @@ export const formatListPerfReport = ({
         ? (counters.renderItem / stats.scrollPx.sum) * 1000
         : 0;
 
+    const cells =
+      counters.cellRender > 0 ? ` · ячеек ${counters.cellRender}` : "";
+
     lines.push(
-      `  рендеры   renderItem ${counters.renderItem} · ячеек ${
-        counters.cellRender
-      } · на 1000px ${perThousand.toFixed(0)}`,
+      `  рендеры   renderItem ${
+        counters.renderItem
+      }${cells} · на 1000px ${perThousand.toFixed(0)}`,
     );
   }
 

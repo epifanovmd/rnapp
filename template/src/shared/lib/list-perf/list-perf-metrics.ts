@@ -2,6 +2,7 @@
 export type ListPerfCounter =
   | "scrollEvents"
   | "rangeCalc"
+  | "passDeferred"
   | "bind"
   | "bindCached"
   | "bindSkipped"
@@ -10,6 +11,7 @@ export type ListPerfCounter =
   | "containerNew"
   | "measure"
   | "measureApplied"
+  | "measureSkipped"
   | "flush"
   | "mvcpCapture"
   | "mvcpRestore"
@@ -35,6 +37,7 @@ export type ListPerfStat =
 const COUNTERS: ListPerfCounter[] = [
   "scrollEvents",
   "rangeCalc",
+  "passDeferred",
   "bind",
   "bindCached",
   "bindSkipped",
@@ -43,6 +46,7 @@ const COUNTERS: ListPerfCounter[] = [
   "containerNew",
   "measure",
   "measureApplied",
+  "measureSkipped",
   "flush",
   "mvcpCapture",
   "mvcpRestore",

@@ -13,6 +13,8 @@ const createValue = (store: ListStore): IListContextValue => ({
     setItemSize: () => {},
     setContainerItemSize: () => {},
     isItemSizeFixed: () => false,
+    isItemSizeKnown: () => false,
+    getKnownItemSize: () => undefined,
     shouldRecycleItems: () => false,
     getStickyGeometry: () => undefined,
   },

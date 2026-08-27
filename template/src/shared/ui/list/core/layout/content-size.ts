@@ -23,6 +23,7 @@ export class ContentSize {
 
   /** Насколько контент выше суммы элементов: шапка, подвал, распорки. */
   private padding = 0;
+  private measured = false;
 
   constructor(options: IContentSizeOptions) {
     this.options = options;
@@ -44,6 +45,17 @@ export class ContentSize {
     if (padding < 0) return;
 
     this.padding = padding;
+    this.measured = true;
+  }
+
+  /**
+   * Замер контента уже приходил.
+   *
+   * До него список знает только сумму элементов, а всё, что лежит под ними —
+   * подвал и распорки, — для него ещё не существует.
+   */
+  hasMeasured(): boolean {
+    return this.measured;
   }
 
   /** Полная высота контента: элементы плюс всё, что список не раскладывает. */

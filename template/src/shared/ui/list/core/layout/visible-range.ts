@@ -52,6 +52,12 @@ export const EMPTY_RANGE: IListRange = {
  * остаётся пустая полоса. Поэтому по ходу движения буфер растёт со скоростью, и
  * тем сильнее, чем быстрее скролл; назад он не растёт, там всё уже отрисовано.
  *
+ * Выше некоторой скорости буфер перестаёт окупаться и начинает вредить:
+ * смонтировать он успевает меньше, чем контент проходит за тот же проход, — см.
+ * {@link isOverrunning}. Тогда рисуется только сам вьюпорт: проход становится
+ * втрое дешевле, и на экране оказывается то, куда пользователь смотрит сейчас,
+ * а не то, мимо чего он пролетел.
+ *
  * Видимый диапазон и буферизованный считаются одним проходом: это одни и те же
  * элементы, отличается только условие попадания.
  */
@@ -67,11 +73,13 @@ export const computeVisibleRange = ({
   if (count === 0) return EMPTY_RANGE;
 
   const scrollBottom = scroll + scrollLength;
+  const overrunning = isOverrunning(velocity, scrollLength);
+  const buffer = overrunning ? 0 : drawDistance;
   // Запас растёт только по ходу движения: позади он и так уже отрисован, а
   // впереди именно его не хватает.
-  const lookahead = getLookahead(velocity, scrollLength);
-  const bufferedTop = scroll - drawDistance - Math.max(0, -lookahead);
-  const bufferedBottom = scrollBottom + drawDistance + Math.max(0, lookahead);
+  const lookahead = overrunning ? 0 : getLookahead(velocity, scrollLength);
+  const bufferedTop = scroll - buffer - Math.max(0, -lookahead);
+  const bufferedBottom = scrollBottom + buffer + Math.max(0, lookahead);
 
   const startBuffered = metrics.findIndexAtOffset(Math.max(0, bufferedTop));
   let endBuffered = startBuffered;
@@ -116,6 +124,25 @@ export const computeVisibleRange = ({
  * не хватает.
  */
 const LOOKAHEAD_SCREENS = 3;
+
+/**
+ * Скорость, за которой запас отрисовки не поспевает, — в экранах за миллисекунду.
+ *
+ * Замеры на устройстве: до трети экрана в мс список держит 56–60 кадров и рисует
+ * без пустот — запас окупается. На скрабе полосой скорость доходит до 0.6, и там
+ * проход уже не успевает смонтировать даже то, мимо чего пользователь пролетел:
+ * кадры растягиваются до сотен миллисекунд, а вьюпорт стоит пустой. Порог взят
+ * между этими двумя режимами.
+ */
+const OVERRUN_SCREENS_PER_MS = 0.45;
+
+/** Контент идёт быстрее, чем проход успевает его смонтировать. */
+export const isOverrunning = (
+  velocity: number,
+  scrollLength: number,
+): boolean =>
+  scrollLength > 0 &&
+  Math.abs(velocity) > scrollLength * OVERRUN_SCREENS_PER_MS;
 
 /** Запас по ходу движения, px. Знак повторяет знак скорости. */
 const getLookahead = (velocity: number, scrollLength: number): number => {

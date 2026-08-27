@@ -12,6 +12,10 @@ export interface IListRuntimeHandle {
   setContainerItemSize: (id: number, key: string, size: number) => void;
   /** Фиксированный размер не требует `onLayout` и повторных измерений. */
   isItemSizeFixed: (key: string) => boolean;
+  /** Размер известен точно — повторный замер той же строки ничего не уточнит. */
+  isItemSizeKnown: (key: string) => boolean;
+  /** Точно известный размер элемента; undefined — есть только оценка. */
+  getKnownItemSize: (key: string) => number | undefined;
   /** Перерабатывать нативное поддерево ячейки между элементами одного типа. */
   shouldRecycleItems: () => boolean;
   /** Геометрия якоря в координатах элементов; undefined — индекса нет. */

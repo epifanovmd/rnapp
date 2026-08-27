@@ -12,6 +12,7 @@ import type { SharedValue } from "react-native-reanimated";
 
 import { useListRuntime } from "../model";
 import type { IListRenderItemProps } from "../types";
+import { shouldMeasureOnBind, shouldMeasureOnLayout } from "./measure-gate";
 
 export interface IListItemContentProps {
   id: number;
@@ -47,6 +48,10 @@ export const ListItemContent = memo<IListItemContentProps>(
     const runtime = useListRuntime();
     const contentRef = useRef<View>(null);
     const measureRequest = useRef(0);
+    /** Высота, которую вернул последний замер этой ячейки. */
+    const measuredHeight = useRef<number | undefined>(undefined);
+    const previousKey = useRef<string | undefined>(undefined);
+    const previousData = useRef<unknown>(undefined);
     const fixedSize = runtime.isItemSizeFixed(itemKey);
 
     const measureCurrentContent = useCallback(() => {
@@ -59,12 +64,33 @@ export const ListItemContent = memo<IListItemContentProps>(
       contentRef.current?.measure((_x, _y, _width, height) => {
         if (request !== measureRequest.current) return;
 
+        measuredHeight.current = height;
         runtime.setContainerItemSize(id, itemKey, height);
       });
     }, [fixedSize, id, itemKey, runtime]);
 
     // При перепривязке с той же высотой `onLayout` может не прийти.
-    useLayoutEffect(measureCurrentContent, [measureCurrentContent, itemData]);
+    useLayoutEffect(() => {
+      const keyChanged = previousKey.current !== itemKey;
+      const dataChanged = previousData.current !== itemData;
+
+      previousKey.current = itemKey;
+      previousData.current = itemData;
+
+      if (
+        !shouldMeasureOnBind({
+          keyChanged,
+          dataChanged,
+          hasKnownSize: runtime.isItemSizeKnown(itemKey),
+        })
+      ) {
+        listPerf.count("measureSkipped");
+
+        return;
+      }
+
+      measureCurrentContent();
+    }, [itemKey, itemData, measureCurrentContent, runtime]);
 
     useEffect(
       () => () => {
@@ -74,8 +100,22 @@ export const ListItemContent = memo<IListItemContentProps>(
     );
 
     const handleLayout = useCallback(
-      (_event: LayoutChangeEvent) => measureCurrentContent(),
-      [measureCurrentContent],
+      (event: LayoutChangeEvent) => {
+        // Сверка идёт с размером, который список знает для этой строки: после
+        // перепривязки высота узла меняется на её собственную, и замерять её
+        // заново значит подтверждать уже известное.
+        const known =
+          runtime.getKnownItemSize(itemKey) ?? measuredHeight.current;
+
+        if (!shouldMeasureOnLayout(event.nativeEvent.layout.height, known)) {
+          listPerf.count("measureSkipped");
+
+          return;
+        }
+
+        measureCurrentContent();
+      },
+      [itemKey, measureCurrentContent, runtime],
     );
 
     listPerf.count("cellRender");

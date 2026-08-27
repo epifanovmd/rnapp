@@ -1,5 +1,9 @@
 import { ListMetrics } from "../../../model";
-import { computeVisibleRange, EMPTY_RANGE } from "../visible-range";
+import {
+  computeVisibleRange,
+  EMPTY_RANGE,
+  isOverrunning,
+} from "../visible-range";
 
 const ITEM_SIZE = 100;
 const SCROLL_LENGTH = 500;
@@ -152,5 +156,27 @@ describe("computeVisibleRange — запас по скорости", () => {
 
     expect(fast.endBuffered).toBe(capped.endBuffered);
     expect(fast.endBuffered).toBe(31);
+  });
+});
+
+describe("isOverrunning", () => {
+  it("на обычном броске запас остаётся", () => {
+    expect(isOverrunning(100, 700)).toBe(false);
+  });
+
+  it("на быстром броске, который список ещё вывозит, запас остаётся", () => {
+    expect(isOverrunning(240, 700)).toBe(false);
+  });
+
+  it("на скрабе запас снимается", () => {
+    expect(isOverrunning(400, 700)).toBe(true);
+  });
+
+  it("направление движения роли не играет", () => {
+    expect(isOverrunning(-400, 700)).toBe(true);
+  });
+
+  it("до замера вьюпорта решать не по чему", () => {
+    expect(isOverrunning(400, 0)).toBe(false);
   });
 });

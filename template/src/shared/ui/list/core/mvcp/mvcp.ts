@@ -1,3 +1,5 @@
+import { listPerf } from "@shared/lib/list-perf";
+
 import type { ListMetrics, ListStore } from "../../model";
 import type { ScrollAdapterRef } from "../scroll";
 import type { IAnchor } from "./anchor-picker";
@@ -78,6 +80,7 @@ export class MaintainVisibleContentPosition {
   capture(_reason: string): void {
     if (this.armed) return;
 
+    listPerf.count("mvcpCapture");
     this.armed = true;
     this.anchors = [];
 

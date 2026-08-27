@@ -21,6 +21,8 @@ const createValue = (): IListContextValue => ({
     setItemSize: () => {},
     setContainerItemSize: () => {},
     isItemSizeFixed: () => false,
+    isItemSizeKnown: () => false,
+    getKnownItemSize: () => undefined,
     shouldRecycleItems: () => false,
     getStickyGeometry: () => undefined,
   } satisfies IListRuntimeHandle,

@@ -10,6 +10,8 @@ export interface IInitialOffsetOptions {
   getContentSize: () => number;
   /** Смещение начала элементов в координатах контента — высота шапки. */
   getContentOrigin: () => number;
+  /** Замер высоты контента уже приходил. */
+  isContentMeasured: () => boolean;
 }
 
 /**
@@ -79,10 +81,26 @@ export class InitialOffsetResolver {
    */
   isSettled(): boolean {
     const offset = this.resolve();
-    const settled = offset !== undefined && offset === this.lastOffset;
+    const settled =
+      offset !== undefined && offset === this.lastOffset && this.isReady();
 
     this.lastOffset = offset;
 
     return settled;
+  }
+
+  /**
+   * Цель вообще вычислима по тому, что список уже знает.
+   *
+   * Конец контента до замера ScrollView — это конец элементов: подвала и
+   * распорок в нём ещё нет. Два одинаковых ответа подряд в этот момент означают
+   * не устаканившуюся цель, а то, что список дважды посчитал по неполным данным
+   * — и открылся бы последней строкой под панелью ввода.
+   */
+  private isReady(): boolean {
+    return (
+      this.options.getTarget()?.type !== "end" ||
+      this.options.isContentMeasured()
+    );
   }
 }

@@ -25,11 +25,16 @@ import {
   InitialScroll,
   MaintainScrollAtEnd,
   ProgrammaticScroll,
+  resolveFreshOffset,
   ScrollVelocityTracker,
+  shouldDeferScrollPass,
 } from "../scroll";
 import { StickyAnchors, StickyPublisher } from "../sticky";
 import { ViewabilityTracker } from "../viewability";
 import type { IListRuntimeProps } from "./runtime-props";
+
+/** Меньшая незакрытая полоса — округление раскладки, а не дыра в кадре. */
+const MIN_BLANK_PX = 1;
 
 /**
  * Расчётное ядро списка.
@@ -95,6 +100,12 @@ export class ListRuntime<TItem> {
   private allowedEdge: ListEdge | undefined;
   /** Контейнеры уже прошли первую раскладку — до этого прилипать не к чему. */
   private didLayout = false;
+  /** Идёт удержание позиции: замер пустот в это время не имеет смысла. */
+  private restoring = false;
+  /** Время последнего прохода по скроллу — по нему события сливаются в кадр. */
+  private lastPassAt = 0;
+  /** Отложенный на следующий кадр проход. */
+  private deferredPass: number | undefined;
   /** Меняется только когда данные или геометрия требуют полной публикации. */
   private layoutRevision = 0;
   private requestRevision = 0;
@@ -184,6 +195,7 @@ export class ListRuntime<TItem> {
       getScrollLength: () => this.scrollLength,
       getContentSize: () => this.contentSize.get(),
       getContentOrigin: () => this.getContentOrigin(),
+      isContentMeasured: () => this.contentSize.hasMeasured(),
     });
     this.initialScroll = new InitialScroll({
       target: props.initialScroll,
@@ -222,6 +234,16 @@ export class ListRuntime<TItem> {
 
   isItemSizeFixed(key: string): boolean {
     return this.metrics.hasFixedSize(key);
+  }
+
+  /** Размер элемента известен точно — измерен или объявлен пропом. */
+  isItemSizeKnown(key: string): boolean {
+    return this.metrics.hasMeasured(key);
+  }
+
+  /** Точно известный размер элемента; undefined — есть только оценка. */
+  getKnownItemSize(key: string): number | undefined {
+    return this.metrics.getSizeByKey(key);
   }
 
   shouldRecycleItems(): boolean {
@@ -271,6 +293,9 @@ export class ListRuntime<TItem> {
   setContentSize(height: number): void {
     this.contentSize.setMeasured(height);
     this.publishGeometry();
+    // Стартовая позиция «в конец» ждала именно этого замера: без него конец
+    // контента — это конец элементов, без подвала и распорок.
+    this.initialScroll.apply();
   }
 
   /**
@@ -357,7 +382,6 @@ export class ListRuntime<TItem> {
     }
 
     if (sourceChanged && props.maintainVisibleContentPositionData) {
-      listPerf.count("mvcpCapture");
       this.mvcp.capture("данные");
     }
 
@@ -400,11 +424,18 @@ export class ListRuntime<TItem> {
 
   /** Новое смещение нативного скролла — `contentOffset`. */
   setScroll(offset: number): void {
-    const scroll = offset - this.getContentOrigin();
-
     // Событие отправлено до применения компенсации: его смещение уже устарело,
-    // и принять его — значит откатить только что сделанный сдвиг.
-    if (this.mvcp.isStaleScroll(scroll)) return;
+    // и принять его — значит откатить только что сделанный сдвиг. Проверяется
+    // до подмены смещения: речь именно об этом событии.
+    if (this.mvcp.isStaleScroll(offset - this.getContentOrigin())) return;
+
+    const fresh = resolveFreshOffset({
+      offset,
+      live: this.adapter?.getOffset?.(),
+      previous: this.getScroll(),
+      scrollLength: this.scrollLength,
+    });
+    const scroll = fresh - this.getContentOrigin();
 
     if (this.scroll === scroll) return;
 
@@ -415,19 +446,31 @@ export class ListRuntime<TItem> {
     this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
 
-    this.calculateItemsInView();
+    const deferred = shouldDeferScrollPass(Date.now() - this.lastPassAt);
+
+    if (deferred) {
+      listPerf.count("passDeferred");
+      this.deferPass();
+    } else {
+      this.runScrollPass();
+    }
+
+    // Пороги подгрузки считаются на каждом событии: они дёшевы, а отложить их
+    // значит запоздать с запросом ровно там, где до кромки осталось меньше кадра.
     this.checkThresholds();
 
     if (listPerf.enabled) {
       listPerf.count("scrollEvents");
       listPerf.sample("scrollPx", travelled);
       listPerf.sample("velocity", Math.abs(this.velocity.get()));
-      listPerf.sample("scrollMs", perfNow() - startedAt);
+      // Событие, отложившее проход, стоит одних порогов: считать его наравне с
+      // выполненным проходом значит занижать цену прохода вчетверо.
+      if (!deferred) listPerf.sample("scrollMs", perfNow() - startedAt);
       // Насколько JS отстал от нативного скролла к концу прохода: пустота в
       // кадре начинается там, где это отставание перерастает буфер отрисовки.
       listPerf.sample(
         "lagPx",
-        Math.abs((this.adapter?.getOffset?.() ?? offset) - offset),
+        Math.abs((this.adapter?.getOffset?.() ?? fresh) - fresh),
       );
     }
   }
@@ -552,15 +595,16 @@ export class ListRuntime<TItem> {
     if (!this.metrics.willResize(key, size)) return;
 
     if (listPerf.enabled) {
+      const index = this.metrics.getIndexByKey(key);
+
       listPerf.count("measureApplied");
       listPerf.sample(
         "resizePx",
-        Math.abs(size - (this.metrics.getSizeByKey(key) ?? size)),
+        index === undefined ? 0 : Math.abs(size - this.metrics.getSize(index)),
       );
     }
 
     if (this.props.maintainVisibleContentPositionSize) {
-      listPerf.count("mvcpCapture");
       this.mvcp.capture("размер");
     }
 
@@ -617,6 +661,10 @@ export class ListRuntime<TItem> {
 
   /** Снятие таймеров и подписок при размонтировании списка. */
   dispose(): void {
+    if (this.deferredPass !== undefined) {
+      cancelAnimationFrame(this.deferredPass);
+      this.deferredPass = undefined;
+    }
     this.viewability.dispose();
     this.mvcp.reset();
     this.readiness.dispose();
@@ -727,6 +775,7 @@ export class ListRuntime<TItem> {
     const scroll = this.scroll;
     const predicted = scroll + this.mvcp.peekShift();
 
+    this.restoring = true;
     this.scroll = predicted;
     this.calculateItemsInView();
 
@@ -743,6 +792,8 @@ export class ListRuntime<TItem> {
     // всего он совпадает — измерение ниже якоря его не двигает вовсе, — и
     // повторный проход слово в слово повторил бы уже опубликованную раскладку.
     if (this.scroll !== predicted) this.calculateItemsInView();
+
+    this.restoring = false;
   }
 
   private checkThresholds(): void {
@@ -819,6 +870,35 @@ export class ListRuntime<TItem> {
     });
   }
 
+  /** Пересчёт раскладки по текущему смещению. */
+  private runScrollPass(): void {
+    this.lastPassAt = Date.now();
+    this.calculateItemsInView();
+  }
+
+  /**
+   * Слить события кадра в один проход.
+   *
+   * Смещение берётся не из отложившего события, а живое: к моменту кадра оно
+   * успевает уехать, и считать по старому — снова делать работу мимо экрана.
+   */
+  private deferPass(): void {
+    if (this.deferredPass !== undefined) return;
+
+    this.deferredPass = requestAnimationFrame(() => {
+      this.deferredPass = undefined;
+
+      const startedAt = listPerf.enabled ? perfNow() : 0;
+      const live = this.adapter?.getOffset?.();
+
+      if (live !== undefined) this.scroll = live - this.getContentOrigin();
+
+      this.runScrollPass();
+      this.checkThresholds();
+      listPerf.sample("scrollMs", perfNow() - startedAt);
+    });
+  }
+
   /** Замер одного прохода раскладки. */
   private reportLayoutPass(startedAt: number): void {
     listPerf.count("rangeCalc");
@@ -829,9 +909,11 @@ export class ListRuntime<TItem> {
     );
     listPerf.sample("containers", this.pool.getCount());
 
+    if (this.restoring || this.mvcp.isSettling()) return;
+
     const blank = this.measureBlankSpace();
 
-    if (blank > 0) {
+    if (blank > MIN_BLANK_PX) {
       listPerf.count("blankFrames");
       listPerf.sample("blankPx", blank);
     }

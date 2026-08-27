@@ -726,6 +726,29 @@ describe("ListRuntime — прочее", () => {
     expect(adapter.scrollToOffset).toHaveBeenLastCalledWith(3580, false);
   });
 
+  it("ждёт замер подвала, даже если он опоздал на кадр", () => {
+    const store = new ListStore();
+    const adapter: IScrollAdapter = {
+      scrollToEnd: jest.fn(),
+      scrollToOffset: jest.fn(),
+      getOffset: jest.fn(() => 0),
+    };
+    const runtime = new ListRuntime<IRow>(
+      store,
+      createProps(rows(40), { initialScroll: { type: "end" } }),
+    );
+
+    runtime.setAdapter(adapter);
+    runtime.setScrollLength(SCROLL_LENGTH);
+    // Замер контента приходит от ScrollView и вполне может опоздать: до него
+    // конец списка считается по одной сумме элементов, без распорки.
+    nextFrame();
+    runtime.setContentSize(4080);
+    nextFrame();
+
+    expect(adapter.scrollToOffset).toHaveBeenLastCalledWith(3580, false);
+  });
+
   it("учитывает вклад шапки в высоту контента", () => {
     const { runtime } = createRuntime();
 

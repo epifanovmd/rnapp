@@ -15,6 +15,8 @@ const createResolver = (count = 20) => {
     padding: 0,
     /** Смещение начала элементов в координатах контента: высота шапки. */
     origin: 0,
+    /** Замер контента от ScrollView уже приходил. */
+    contentMeasured: true,
   };
 
   metrics.setItems(
@@ -28,6 +30,7 @@ const createResolver = (count = 20) => {
     getScrollLength: () => state.scrollLength,
     getContentSize: () => metrics.getTotalSize() + state.padding,
     getContentOrigin: () => state.origin,
+    isContentMeasured: () => state.contentMeasured,
   });
 
   return { metrics, resolver, state };
@@ -154,5 +157,41 @@ describe("InitialOffsetResolver", () => {
 
     expect(resolver.isSettled()).toBe(false);
     expect(resolver.isSettled()).toBe(false);
+  });
+});
+
+describe("InitialOffsetResolver — готовность цели", () => {
+  it("не считает конец списка устаканившимся до замера контента", () => {
+    const { resolver, state } = createResolver();
+
+    state.target = { type: "end" };
+    state.contentMeasured = false;
+
+    resolver.isSettled();
+
+    // Оба ответа посчитаны без подвала: совпали они не потому, что цель
+    // перестала уезжать, а потому, что распорки для списка ещё не существует.
+    expect(resolver.isSettled()).toBe(false);
+  });
+
+  it("считает цель устаканившейся, когда замер пришёл", () => {
+    const { resolver, state } = createResolver();
+
+    state.target = { type: "end" };
+
+    resolver.isSettled();
+
+    expect(resolver.isSettled()).toBe(true);
+  });
+
+  it("прочим целям замер контента не нужен", () => {
+    const { resolver, state } = createResolver();
+
+    state.target = { type: "offset", offset: 300 };
+    state.contentMeasured = false;
+
+    resolver.isSettled();
+
+    expect(resolver.isSettled()).toBe(true);
   });
 });
