@@ -20,6 +20,7 @@ export type ListPerfCounter =
   | "mvcpClamped"
   | "mvcpNoAnchor"
   | "mvcpFallbackAnchor"
+  | "mvcpMissed"
   | "blankFrames"
   | "stickyPinned"
   | "cellRender"
@@ -40,7 +41,8 @@ export type ListPerfStat =
   | "flushDelayMs"
   | "resizePx"
   | "mvcpShiftPx"
-  | "mvcpLostPx";
+  | "mvcpLostPx"
+  | "mvcpErrorPx";
 
 const COUNTERS: ListPerfCounter[] = [
   "scrollEvents",
@@ -63,6 +65,7 @@ const COUNTERS: ListPerfCounter[] = [
   "mvcpClamped",
   "mvcpNoAnchor",
   "mvcpFallbackAnchor",
+  "mvcpMissed",
   "blankFrames",
   "stickyPinned",
   "cellRender",
@@ -84,6 +87,7 @@ const STATS: ListPerfStat[] = [
   "resizePx",
   "mvcpShiftPx",
   "mvcpLostPx",
+  "mvcpErrorPx",
 ];
 
 export interface IListPerfStatValue {

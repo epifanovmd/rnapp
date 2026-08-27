@@ -186,6 +186,8 @@ export class MaintainVisibleContentPosition {
     }
 
     if (Math.abs(solution.applied) < MIN_SHIFT) {
+      this.reportMiss(anchor, position, scroll, solution.settled);
+
       return solution.settled;
     }
 
@@ -195,7 +197,32 @@ export class MaintainVisibleContentPosition {
 
     const next = solution.settled + solution.applied;
 
+    this.reportMiss(anchor, position, scroll, next);
+
     return next;
+  }
+
+  /**
+   * Осталась ли опорная строка на своём месте экрана.
+   *
+   * Проверяется то самое, ради чего компенсация и существует: расстояние от
+   * якоря до верхней кромки до изменения и после. Расхождение здесь означает,
+   * что ошиблась сама компенсация; его отсутствие при видимом прыжке — что
+   * держали не ту строку или сдвиг не доехал до нативного слоя.
+   */
+  private reportMiss(
+    anchor: IAnchor,
+    position: number,
+    scroll: number,
+    next: number,
+  ): void {
+    if (!listPerf.enabled) return;
+
+    const error = Math.abs(position - next - (anchor.position - scroll));
+
+    listPerf.sample("mvcpErrorPx", error);
+
+    if (error >= 1) listPerf.count("mvcpMissed");
   }
 
   /** Событие скролла отправлено до применения сдвига — его нужно отбросить. */

@@ -126,7 +126,8 @@ export const formatListPerfReport = ({
     if (
       counters.mvcpClamped > 0 ||
       counters.mvcpNoAnchor > 0 ||
-      counters.mvcpFallbackAnchor > 0
+      counters.mvcpFallbackAnchor > 0 ||
+      counters.mvcpMissed > 0
     ) {
       lines.push(
         `            упор ${counters.mvcpClamped} · потеряно ${pair(
@@ -134,7 +135,7 @@ export const formatListPerfReport = ({
           0,
         )}px · без якоря ${counters.mvcpNoAnchor} · запасной якорь ${
           counters.mvcpFallbackAnchor
-        }`,
+        } · промах ${counters.mvcpMissed} на ${pair(stats.mvcpErrorPx, 0)}px`,
       );
     }
   }

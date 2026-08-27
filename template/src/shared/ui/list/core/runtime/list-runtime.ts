@@ -149,8 +149,7 @@ export class ListRuntime<TItem> {
       // В координатах элементов, как и смещение выше: иначе граница скролла,
       // посчитанная из этой высоты, разъедется со смещением на высоту шапки.
       getContentSize: () => this.contentSize.get() - this.getContentOrigin(),
-      shouldRestorePosition: index =>
-        this.props.shouldRestorePosition?.(index) ?? true,
+      shouldRestorePosition: index => this.canAnchorAt(index),
     });
 
     this.sticky = new StickyAnchors({ metrics: this.metrics });
@@ -369,7 +368,6 @@ export class ListRuntime<TItem> {
     this.props = props;
     this.edges.setOptions(this.edgeOptions());
     this.maintainAtEnd.setOptions(this.maintainOptions());
-    this.sticky.setConfigs(props.sticky);
     this.viewability.setPairs(props.viewabilityPairs);
 
     if (
@@ -386,6 +384,12 @@ export class ListRuntime<TItem> {
     }
 
     if (sourceChanged) this.items.apply(props.data, props);
+
+    // Строго после данных: индексы прилипания адресуют именно их. Применить
+    // новые индексы к прежним строкам — значит на мгновение назвать прилипающими
+    // совсем другие места списка, и снятый в этот момент якорь окажется ложным.
+    this.sticky.setConfigs(props.sticky);
+
     if (sourceChanged || stickyChanged) {
       this.layoutRevision++;
       this.requestRevision++;
@@ -903,6 +907,22 @@ export class ListRuntime<TItem> {
       this.checkThresholds();
       listPerf.sample("scrollMs", perfNow() - startedAt);
     });
+  }
+
+  /**
+   * Годится ли строка в опору удержания позиции.
+   *
+   * Прилипающие строки не годятся. Их ключ адресует группу — день переписки,
+   * заголовок раздела, — а не место в списке: подгрузка того же дня сверху
+   * оставляет разделитель тем же элементом, но уводит его выше подгруженной
+   * пачки. Удержание, опершись на него, честно оставит на месте разделитель — и
+   * увезёт сообщение, на которое смотрит пользователь, ровно на высоту той
+   * части пачки, что легла между ними.
+   */
+  private canAnchorAt(index: number): boolean {
+    if (this.sticky.getEdgeOf(index) !== null) return false;
+
+    return this.props.shouldRestorePosition?.(index) ?? true;
   }
 
   /** Замер одного прохода раскладки. */
