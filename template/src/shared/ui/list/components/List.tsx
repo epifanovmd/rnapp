@@ -54,6 +54,7 @@ const ListInner = <TItem,>(
     snapToIndices,
     scrollIndicatorInset,
     sharedValues,
+    state,
     refScrollView,
     onLayout,
     onContentSizeChange,
@@ -117,6 +118,9 @@ const ListInner = <TItem,>(
   );
 
   useListSharedValues(store, scrollOffset, sharedValues);
+
+  // Подписки снаружи могли завестись раньше списка — стор им отдаётся здесь.
+  useEffect(() => state?.attach(store), [state, store]);
 
   // Компенсацию делает сам ScrollView: программный скролл посреди жеста гасит
   // и жест, и инерцию.

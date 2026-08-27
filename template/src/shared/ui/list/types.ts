@@ -3,6 +3,8 @@ import type { LayoutChangeEvent, StyleProp, ViewStyle } from "react-native";
 import type Animated from "react-native-reanimated";
 import type { AnimatedRef, SharedValue } from "react-native-reanimated";
 
+import type { ListState } from "./model";
+
 /** Элемент, отданный в `renderItem`. */
 export interface IListRenderItemProps<TItem> {
   item: TItem;
@@ -323,7 +325,16 @@ export interface IListProps<TItem> {
   scrollIndicatorInset?: SharedValue<number>;
 
   viewabilityPairs?: IListViewabilityPair<TItem>[];
+  /** Состояние списка на UI-потоке: анимации без единого рендера. */
   sharedValues?: IListSharedValues;
+  /**
+   * Состояние списка для JS: подписка с перерисовкой.
+   *
+   * Создаётся через `useListState()` вне списка и читается через
+   * `useListValue(state, name)` — в том числе из соседних компонентов, которым
+   * список недоступен. Для анимаций используйте `sharedValues`.
+   */
+  state?: ListState;
 
   onStartReached?: (info: { distanceFromStart: number }) => void;
   onStartReachedThreshold?: number;
