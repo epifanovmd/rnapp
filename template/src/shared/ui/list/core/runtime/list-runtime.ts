@@ -14,6 +14,7 @@ import {
   ContainerBinder,
   ContentSize,
   EMPTY_RANGE,
+  isOverrunning,
   LayoutScheduler,
   RenderReadiness,
 } from "../layout";
@@ -106,6 +107,8 @@ export class ListRuntime<TItem> {
   private lastPassAt = 0;
   /** Отложенный на следующий кадр проход. */
   private deferredPass: number | undefined;
+  /** Направление последнего движения: +1 к концу списка, -1 к началу. */
+  private scrollDirection = 0;
   /** Меняется только когда данные или геометрия требуют полной публикации. */
   private layoutRevision = 0;
   private requestRevision = 0;
@@ -446,11 +449,16 @@ export class ListRuntime<TItem> {
     const startedAt = listPerf.enabled ? perfNow() : 0;
     const travelled = Math.abs(scroll - this.scroll);
 
+    this.scrollDirection = Math.sign(scroll - this.scroll);
     this.scroll = scroll;
     this.velocity.add(scroll);
     this.store.set("velocity", this.velocity.get());
 
-    const deferred = shouldDeferScrollPass(Date.now() - this.lastPassAt);
+    // На скрабе слияние вредит: проход стоит доли миллисекунды, а каждый
+    // пропущенный оставляет на экране картинку, отставшую на несколько экранов.
+    const deferred =
+      !isOverrunning(this.velocity.get(), this.scrollLength) &&
+      shouldDeferScrollPass(Date.now() - this.lastPassAt);
 
     if (deferred) {
       listPerf.count("passDeferred");
@@ -646,7 +654,11 @@ export class ListRuntime<TItem> {
       velocity: this.velocity.get(),
     });
 
+    if (listPerf.enabled) this.reportBlankSpace("before");
+
     this.bindContainers();
+
+    if (listPerf.enabled) this.reportBlankSpace("after");
     this.store.set("totalSize", this.metrics.getTotalSize());
     this.publishVisibleRange();
     this.publishGeometry();
@@ -731,6 +743,9 @@ export class ListRuntime<TItem> {
   private flushLayout(): void {
     const startedAt = listPerf.enabled ? perfNow() : 0;
 
+    // Пересчёт раскладки — полноценный проход по текущему смещению: отложенному
+    // проходу этого кадра после него делать нечего.
+    this.lastPassAt = Date.now();
     this.metrics.clearPending();
 
     if (this.props.maintainVisibleContentPositionSize) {
@@ -898,10 +913,24 @@ export class ListRuntime<TItem> {
     this.deferredPass = requestAnimationFrame(() => {
       this.deferredPass = undefined;
 
+      // Раскладка уже пересчиталась в этом кадре — повторять нечего.
+      if (shouldDeferScrollPass(Date.now() - this.lastPassAt)) {
+        listPerf.count("passMerged");
+
+        return;
+      }
+
       const startedAt = listPerf.enabled ? perfNow() : 0;
       const live = this.adapter?.getOffset?.();
 
-      if (live !== undefined) this.scroll = live - this.getContentOrigin();
+      // Только вперёд по ходу движения — как и в основном проходе: живое
+      // смещение позади текущего означает, что устарело как раз оно.
+      if (
+        live !== undefined &&
+        Math.sign(live - this.getScroll()) === this.scrollDirection
+      ) {
+        this.scroll = live - this.getContentOrigin();
+      }
 
       this.runScrollPass();
       this.checkThresholds();
@@ -934,15 +963,36 @@ export class ListRuntime<TItem> {
       Math.max(0, this.range.end - this.range.start + 1),
     );
     listPerf.sample("containers", this.pool.getCount());
+  }
 
-    if (this.restoring || this.mvcp.isSettling()) return;
+  /**
+   * Незакрытая часть вьюпорта на текущий момент.
+   *
+   * Снимается до привязки контейнеров, и в этом весь смысл: после неё строки
+   * уже привязаны к тому месту, где скролл находится сейчас, и пустоты не видно
+   * по построению. На экране же нарисовано то, что закоммичено прошлым
+   * проходом, — вот его и нужно сравнивать с тем, куда скролл уже уехал.
+   */
+  private reportBlankSpace(stage: "before" | "after"): void {
+    // Во время компенсации смещение UI-потока ещё не сдвинуто: пустота,
+    // посчитанная по нему, была бы выдумкой.
+    if (this.restoring) return;
 
     const blank = this.measureBlankSpace();
 
-    if (blank > MIN_BLANK_PX) {
+    if (blank <= MIN_BLANK_PX) return;
+
+    if (stage === "before") {
       listPerf.count("blankFrames");
       listPerf.sample("blankPx", blank);
+
+      return;
     }
+
+    // Осталось непокрытым даже после привязки: строк на это место у списка нет
+    // вовсе. Всё остальное — задержка коммита, а не расчёта.
+    listPerf.count("blankAfterBind");
+    listPerf.sample("blankAfterPx", blank);
   }
 
   /**

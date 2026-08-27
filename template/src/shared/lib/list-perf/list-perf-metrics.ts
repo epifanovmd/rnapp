@@ -3,6 +3,7 @@ export type ListPerfCounter =
   | "scrollEvents"
   | "rangeCalc"
   | "passDeferred"
+  | "passMerged"
   | "bind"
   | "bindCached"
   | "bindSkipped"
@@ -22,6 +23,7 @@ export type ListPerfCounter =
   | "mvcpFallbackAnchor"
   | "mvcpMissed"
   | "blankFrames"
+  | "blankAfterBind"
   | "stickyPinned"
   | "cellRender"
   | "renderItem";
@@ -36,6 +38,7 @@ export type ListPerfStat =
   | "windowItems"
   | "containers"
   | "blankPx"
+  | "blankAfterPx"
   | "stickyMs"
   | "flushMs"
   | "flushDelayMs"
@@ -48,6 +51,7 @@ const COUNTERS: ListPerfCounter[] = [
   "scrollEvents",
   "rangeCalc",
   "passDeferred",
+  "passMerged",
   "bind",
   "bindCached",
   "bindSkipped",
@@ -67,6 +71,7 @@ const COUNTERS: ListPerfCounter[] = [
   "mvcpFallbackAnchor",
   "mvcpMissed",
   "blankFrames",
+  "blankAfterBind",
   "stickyPinned",
   "cellRender",
   "renderItem",
@@ -81,6 +86,7 @@ const STATS: ListPerfStat[] = [
   "windowItems",
   "containers",
   "blankPx",
+  "blankAfterPx",
   "stickyMs",
   "flushMs",
   "flushDelayMs",

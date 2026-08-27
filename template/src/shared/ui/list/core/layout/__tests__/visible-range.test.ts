@@ -149,13 +149,13 @@ describe("computeVisibleRange — запас по скорости", () => {
     expect(buffered.endBuffered).toBe(16);
   });
 
-  it("не растёт дальше трёх экранов", () => {
+  it("не растёт дальше полутора экранов", () => {
     // Иначе резкий бросок смонтировал бы сотни строк разом.
     const fast = rangeAt(50);
     const capped = rangeAt(10);
 
     expect(fast.endBuffered).toBe(capped.endBuffered);
-    expect(fast.endBuffered).toBe(31);
+    expect(fast.endBuffered).toBe(23);
   });
 });
 

@@ -63,7 +63,7 @@ export const formatListPerfReport = ({
       `  диапазон  ${counters.rangeCalc} пересчётов · ${pair(
         stats.rangeMs,
         2,
-      )}мс · слито ${counters.passDeferred} · окно ${avg(
+      )}мс · слито ${counters.passDeferred}+${counters.passMerged} · окно ${avg(
         stats.windowItems,
       ).toFixed(0)} · контейнеров ${stats.containers.max}`,
     );
@@ -80,6 +80,9 @@ export const formatListPerfReport = ({
       counters.blankFrames > 0
         ? `  пустоты   ${counters.blankFrames} проходов · ${pair(
             stats.blankPx,
+            0,
+          )}px · не привязано ${counters.blankAfterBind} · ${pair(
+            stats.blankAfterPx,
             0,
           )}px`
         : `  пустоты   нет`,
