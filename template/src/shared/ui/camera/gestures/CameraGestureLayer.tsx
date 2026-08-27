@@ -2,7 +2,8 @@ import React, { FC, memo, useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
-import { runOnJS, useSharedValue } from "react-native-reanimated";
+import { useSharedValue } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useCameraApi } from "../core/camera-context";
 import type { ICameraPoint } from "../core/types";
@@ -60,14 +61,14 @@ export const CameraGestureLayer: FC<ICameraGestureLayerProps> = memo(
       const tap = Gesture.Tap()
         .enabled(tapToFocus)
         .onEnd(event => {
-          runOnJS(handleFocus)({ x: event.x, y: event.y });
+          scheduleOnRN(handleFocus, { x: event.x, y: event.y });
         });
 
       const doubleTap = Gesture.Tap()
         .enabled(doubleTapToResetZoom)
         .numberOfTaps(2)
         .onEnd(() => {
-          runOnJS(handleResetZoom)();
+          scheduleOnRN(handleResetZoom);
         });
 
       // Race: активация пинча отменяет тапы, иначе быстрые пинчи подряд

@@ -1,9 +1,9 @@
 import type { SharedValue } from "react-native-reanimated";
 import {
-  runOnJS,
   useAnimatedScrollHandler,
   useSharedValue,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 /** Шаг, с которым пересчёт диапазона уходит в JS, px. */
 const JS_SCROLL_STEP = 24;
@@ -63,12 +63,12 @@ export const useListScrollHandler = ({
           return;
 
         lastReportedScroll.value = event.contentOffset.y;
-        runOnJS(onScroll)(event.contentOffset.y);
+        scheduleOnRN(onScroll, event.contentOffset.y);
       },
       onBeginDrag: () => {
         if (isDragging) isDragging.value = true;
 
-        runOnJS(onBeginDrag)();
+        scheduleOnRN(onBeginDrag);
       },
       onEndDrag: event => {
         if (isDragging) isDragging.value = false;
@@ -77,10 +77,10 @@ export const useListScrollHandler = ({
 
         if (offset !== lastReportedScroll.value) {
           lastReportedScroll.value = offset;
-          runOnJS(onScroll)(offset);
+          scheduleOnRN(onScroll, offset);
         }
 
-        runOnJS(onEndDrag)();
+        scheduleOnRN(onEndDrag);
       },
       // Инерция начинается только после отпускания пальца, и только если бросок
       // был: короткое перетаскивание завершается на `onEndDrag` без неё.
@@ -94,10 +94,10 @@ export const useListScrollHandler = ({
 
         if (offset !== lastReportedScroll.value) {
           lastReportedScroll.value = offset;
-          runOnJS(onScroll)(offset);
+          scheduleOnRN(onScroll, offset);
         }
 
-        runOnJS(onMomentumEnd)();
+        scheduleOnRN(onMomentumEnd);
       },
     },
     [isDragging, isMomentum, onScroll, onBeginDrag, onEndDrag, onMomentumEnd],

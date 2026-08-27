@@ -4,9 +4,9 @@ import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
-  runOnJS,
   useAnimatedStyle,
 } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { useCameraApi } from "../core/camera-context";
 
@@ -40,7 +40,7 @@ export const CameraExposureSlider: FC<ICameraExposureSliderProps> = memo(
     const doubleTap = Gesture.Tap()
       .numberOfTaps(2)
       .onEnd(() => {
-        runOnJS(reset)();
+        scheduleOnRN(reset);
       });
 
     const thumbStyle = useAnimatedStyle(() => ({

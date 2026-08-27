@@ -1,7 +1,8 @@
 import React, { FC, memo, useCallback, useState } from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { HapticFeedbackTypes, trigger } from "react-native-haptic-feedback";
-import { runOnJS, useAnimatedReaction } from "react-native-reanimated";
+import { useAnimatedReaction } from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { Touchable } from "../../touchable";
 import { useCameraApi } from "../core/camera-context";
@@ -51,7 +52,7 @@ export const CameraZoomPresets: FC<ICameraZoomPresetsProps> = memo(
       },
       (nearest, previous) => {
         if (nearest !== previous) {
-          runOnJS(setActiveIndex)(nearest);
+          scheduleOnRN(setActiveIndex, nearest);
         }
       },
       [values],
