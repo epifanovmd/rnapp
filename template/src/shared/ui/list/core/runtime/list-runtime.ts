@@ -154,6 +154,7 @@ export class ListRuntime<TItem> {
       metrics: this.metrics,
       getTarget: () => this.props.initialScroll,
       getScrollLength: () => this.scrollLength,
+      getContentSize: () => this.contentSize.get(),
     });
     this.initialScroll = new InitialScroll({
       target: props.initialScroll,

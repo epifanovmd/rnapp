@@ -6,6 +6,8 @@ export interface IInitialOffsetOptions {
   metrics: ListMetrics;
   getTarget: () => ListInitialScroll | undefined;
   getScrollLength: () => number;
+  /** Полная высота контента, включая шапку, подвал и распорки. */
+  getContentSize: () => number;
 }
 
 /**
@@ -31,7 +33,8 @@ export class InitialOffsetResolver {
 
   /** Смещение стартовой позиции; `undefined` — вьюпорт ещё не измерен. */
   resolve(): number | undefined {
-    const { metrics, getTarget, getScrollLength } = this.options;
+    const { metrics, getTarget, getScrollLength, getContentSize } =
+      this.options;
     const target = getTarget();
     const scrollLength = getScrollLength();
 
@@ -39,8 +42,12 @@ export class InitialOffsetResolver {
 
     if (target.type === "offset") return Math.max(0, target.offset);
 
+    // Конец контента, а не конец элементов: под ними лежит распорка под панель
+    // ввода, и по сумме элементов список открывался бы с последней строкой под
+    // самой панелью. Отступ приходит замером и на первом кадре ещё не известен
+    // — цель уточнится на следующей попытке.
     if (target.type === "end") {
-      return Math.max(0, metrics.getTotalSize() - scrollLength);
+      return Math.max(0, getContentSize() - scrollLength);
     }
 
     if (target.index < 0 || target.index >= metrics.getCount()) {

@@ -428,6 +428,28 @@ describe("ListRuntime — прочее", () => {
     expect(boundKeys(store)).toContain("k10");
   });
 
+  it("открывает список над нижней распоркой", () => {
+    const store = new ListStore();
+    const adapter: IScrollAdapter = {
+      scrollToEnd: jest.fn(),
+      scrollToOffset: jest.fn(),
+      getOffset: jest.fn(() => 0),
+    };
+    const runtime = new ListRuntime<IRow>(
+      store,
+      createProps(rows(40), { initialScroll: { type: "end" } }),
+    );
+
+    runtime.setAdapter(adapter);
+    runtime.setScrollLength(SCROLL_LENGTH);
+    // Подвал-распорка под панель ввода приходит замером контента.
+    runtime.setContentSize(4080);
+    nextFrame();
+
+    // Последняя строка обязана встать над панелью, а не под ней.
+    expect(adapter.scrollToOffset).toHaveBeenLastCalledWith(3580, false);
+  });
+
   it("учитывает вклад шапки в высоту контента", () => {
     const { runtime } = createRuntime();
 

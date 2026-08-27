@@ -11,6 +11,8 @@ const createResolver = (count = 20) => {
   const state = {
     target: undefined as ListInitialScroll | undefined,
     scrollLength: SCROLL_LENGTH,
+    /** Шапка, подвал и распорки — в сумму элементов они не входят. */
+    padding: 0,
   };
 
   metrics.setItems(
@@ -22,6 +24,7 @@ const createResolver = (count = 20) => {
     metrics,
     getTarget: () => state.target,
     getScrollLength: () => state.scrollLength,
+    getContentSize: () => metrics.getTotalSize() + state.padding,
   });
 
   return { metrics, resolver, state };
@@ -66,6 +69,17 @@ describe("InitialOffsetResolver", () => {
 
     // 20 элементов по 100 при вьюпорте 500.
     expect(resolver.resolve()).toBe(1500);
+  });
+
+  it("ставит конец контента над нижней распоркой", () => {
+    const { resolver, state } = createResolver(20);
+
+    state.target = { type: "end" };
+    // Подвал-распорка под панель ввода: контент выше суммы элементов.
+    state.padding = 80;
+
+    // Иначе список открывается с последней строкой под самой панелью.
+    expect(resolver.resolve()).toBe(1580);
   });
 
   it("не скроллит к концу, когда контент короче вьюпорта", () => {
