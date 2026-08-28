@@ -1,6 +1,6 @@
+import type { IAnchorListRef } from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
 import { Container, Navbar } from "@shared/ui";
-import type { IListRef } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -22,7 +22,7 @@ const ESTIMATED_ITEM_SIZE = 92;
  * добавленного. Переключатель показывает разницу вживую.
  */
 export const PaginationScreen: FC = () => {
-  const listRef = useRef<IListRef>(null);
+  const listRef = useRef<IAnchorListRef>(null);
 
   const [range, setRange] = useState({ from: INITIAL_FROM, to: INITIAL_TO });
   const [loadingStart, setLoadingStart] = useState(false);
@@ -98,7 +98,7 @@ export const PaginationScreen: FC = () => {
         />
       </LabPanel>
 
-      <List
+      <AnchorList
         ref={listRef}
         data={data}
         renderItem={renderItem}

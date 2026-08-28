@@ -1,8 +1,8 @@
+import type { IAnchorListRef } from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
 import { useFocusEffect } from "@react-navigation/native";
 import { IStorageService } from "@shared/lib/storage";
 import { Container, Navbar } from "@shared/ui";
-import type { IListRef } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -40,7 +40,7 @@ export const InitialPositionScreen: FC = () => {
     [storage],
   );
 
-  const listRef = useRef<IListRef>(null);
+  const listRef = useRef<IAnchorListRef>(null);
   const data = useMemo(() => createMessages(0, MESSAGE_COUNT), []);
 
   const [restoreEnabled, setRestoreEnabled] = useState(() =>
@@ -146,7 +146,7 @@ export const InitialPositionScreen: FC = () => {
         />
       </LabPanel>
 
-      <List
+      <AnchorList
         ref={listRef}
         data={data}
         renderItem={renderItem}

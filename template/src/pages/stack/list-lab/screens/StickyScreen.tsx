@@ -1,10 +1,10 @@
-import { Container, Navbar } from "@shared/ui";
 import type {
-  IListRef,
-  IListRenderItemProps,
-  IListStickyConfig,
-} from "@shared/ui/list";
-import { List } from "@shared/ui/list";
+  IAnchorListRef,
+  IAnchorListRenderItemProps,
+  IAnchorListStickyConfig,
+} from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
+import { Container, Navbar } from "@shared/ui";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useSharedValue } from "react-native-reanimated";
@@ -39,7 +39,7 @@ const AVATAR_SIZE = 36;
  * видна хоть часть группы, и не поднимается выше её начала.
  */
 export const StickyScreen: FC = () => {
-  const listRef = useRef<IListRef>(null);
+  const listRef = useRef<IAnchorListRef>(null);
 
   const [stickyDates, setStickyDates] = useState(true);
   const [stickyAvatars, setStickyAvatars] = useState(true);
@@ -54,8 +54,8 @@ export const StickyScreen: FC = () => {
     [],
   );
 
-  const sticky = useMemo<IListStickyConfig<LabRow>[]>(() => {
-    const configs: IListStickyConfig<LabRow>[] = [];
+  const sticky = useMemo<IAnchorListStickyConfig<LabRow>[]>(() => {
+    const configs: IAnchorListStickyConfig<LabRow>[] = [];
 
     if (stickyDates) {
       configs.push({ edge: "start", indices: dateIndices, offset: topOffset });
@@ -89,7 +89,11 @@ export const StickyScreen: FC = () => {
   ]);
 
   const renderItem = useCallback(
-    ({ item, stickyOffset, stickyPinned }: IListRenderItemProps<LabRow>) => (
+    ({
+      item,
+      stickyOffset,
+      stickyPinned,
+    }: IAnchorListRenderItemProps<LabRow>) => (
       <LabRowView
         row={item}
         withAvatar
@@ -124,7 +128,7 @@ export const StickyScreen: FC = () => {
 
       {/* Высоты намеренно измеряются. Увеличенный буфер даёт строкам уточнить
           оценку до входа в кадр на быстром броске. */}
-      <List
+      <AnchorList
         ref={listRef}
         data={rows}
         renderItem={renderItem}

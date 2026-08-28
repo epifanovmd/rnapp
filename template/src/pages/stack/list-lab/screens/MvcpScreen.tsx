@@ -1,6 +1,6 @@
+import type { IAnchorListRef } from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
 import { Container, Navbar, Row } from "@shared/ui";
-import type { IListRef } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 
@@ -34,7 +34,7 @@ const GROWN_HEIGHT = 260;
  * остаётся на месте.
  */
 export const MvcpScreen: FC = () => {
-  const listRef = useRef<IListRef>(null);
+  const listRef = useRef<IAnchorListRef>(null);
   /**
    * Счётчик новых сообщений.
    *
@@ -188,7 +188,7 @@ export const MvcpScreen: FC = () => {
         </Row>
       </LabPanel>
 
-      <List
+      <AnchorList
         // Смена способа задания высот пересоздаёт список: уже объявленные
         // размеры живут в метриках и обратно в оценочные не превращаются.
         key={knownHeights ? "fixed" : "measured"}

@@ -1,7 +1,10 @@
-import { listPerf, useListPerf } from "@shared/lib/list-perf";
+import type {
+  IAnchorListRenderItemProps,
+  IAnchorListStickyConfig,
+} from "@epifanovmd/anchor-list";
+import { anchorListPerf, useAnchorListPerf } from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
 import { Container, Navbar } from "@shared/ui";
-import type { IListRenderItemProps, IListStickyConfig } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
 import React, { FC, useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 
@@ -25,18 +28,21 @@ export const PerfScreen: FC = () => {
   const { rows, dateIndices, onStartReached, onEndReached } =
     usePerfPagination();
 
-  useListPerf("наш");
+  useAnchorListPerf("наш");
 
-  const sticky = useMemo<IListStickyConfig<LabRow>[]>(
+  const sticky = useMemo<IAnchorListStickyConfig<LabRow>[]>(
     () => [{ edge: "start", indices: dateIndices }],
     [dateIndices],
   );
 
-  const renderItem = useCallback(({ item }: IListRenderItemProps<LabRow>) => {
-    listPerf.count("renderItem");
+  const renderItem = useCallback(
+    ({ item }: IAnchorListRenderItemProps<LabRow>) => {
+      anchorListPerf.count("renderItem");
 
-    return <LabRowView row={item} />;
-  }, []);
+      return <LabRowView row={item} />;
+    },
+    [],
+  );
 
   return (
     <Container>
@@ -44,7 +50,7 @@ export const PerfScreen: FC = () => {
         <Navbar.BackButton />
       </Navbar>
 
-      <List
+      <AnchorList
         data={rows}
         renderItem={renderItem}
         keyExtractor={labRowKey}

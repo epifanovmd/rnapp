@@ -1,3 +1,5 @@
+import type { IAnchorListRef } from "@epifanovmd/anchor-list";
+import { AnchorList } from "@epifanovmd/anchor-list";
 import {
   useKeyboardInset,
   useKeyboardScrollCompensation,
@@ -8,8 +10,6 @@ import {
   InputBar,
   KeyboardInputBar,
 } from "@shared/ui/input-bar";
-import type { IListRef } from "@shared/ui/list";
-import { List } from "@shared/ui/list";
 import React, {
   FC,
   useCallback,
@@ -54,7 +54,7 @@ const ESTIMATED_ITEM_SIZE = 92;
  * остаться видимой, а не уехать под панель.
  */
 export const InputBarInsetScreen: FC = () => {
-  const listRef = useRef<IListRef>(null);
+  const listRef = useRef<IAnchorListRef>(null);
 
   const [rows, setRows] = useState<LabRow[]>(() =>
     createMessages(0, INITIAL_COUNT),
@@ -151,7 +151,7 @@ export const InputBarInsetScreen: FC = () => {
         <LabStatus text={"Встаньте у нижней строки и откройте клавиатуру"} />
       </LabPanel>
 
-      <List
+      <AnchorList
         ref={listRef}
         refScrollView={compensation.scrollRef}
         onLayout={compensation.onLayout}
@@ -170,7 +170,7 @@ export const InputBarInsetScreen: FC = () => {
         maintainVisibleContentPosition={{ data: true, size: true }}
         // Тот же отступ, что у контента: индикатор обязан кончаться на одной
         // линии с последней строкой, а не уходить под панель ввода.
-        scrollIndicatorInset={compensation.contentInset}
+        insetEnd={compensation.contentInset}
         sharedValues={listSharedValues}
         ListFooterComponent={listFooter}
         recycleItems
