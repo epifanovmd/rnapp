@@ -146,10 +146,10 @@ export function TypedModel<TData>() {
  *
  * @example
  * ```ts
- * class ChatListStore {
- *   private _toModels = createModelMapper<ChatDto, ChatModel>(
- *     c => c.id,
- *     c => new ChatModel(c),
+ * class UserListStore {
+ *   private _toModels = createModelMapper<UserDto, UserModel>(
+ *     u => u.id,
+ *     u => new UserModel(u),
  *   );
  *
  *   get models() {

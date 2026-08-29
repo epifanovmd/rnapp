@@ -8,7 +8,7 @@ import boundaries from "eslint-plugin-boundaries";
  *   1. shared    — переиспользуемый код без знания о бизнес-логике (ui/api/config/lib).
  *   2. entities  — бизнес-сущности (auth, user): стор + доменные модели, без UI-форм.
  *   3. features  — юзкейсы (sign-in, biometric, ...): интерактивные сценарии поверх entities.
- *   4. widgets   — крупные самостоятельные блоки UI (chat-room, app-shell).
+ *   4. widgets   — крупные самостоятельные блоки UI (app-shell).
  *   5. pages     — экраны, тонкая композиция widgets/features/entities под конкретный роут.
  *   6. app       — композиционный корень (App.tsx, App.navigator.tsx, app.module.ts) — видит всё.
  *
@@ -37,7 +37,11 @@ export const boundariesConfig = {
       { type: "features", pattern: "src/features/*/**", capture: ["slice"] },
       { type: "widgets", pattern: "src/widgets/*/**", capture: ["slice"] },
       // pages сгруппированы по навигаторам: src/pages/{tabs,stack}/<slice>/
-      { type: "pages", pattern: "src/pages/*/*/**", capture: ["group", "slice"] },
+      {
+        type: "pages",
+        pattern: "src/pages/*/*/**",
+        capture: ["group", "slice"],
+      },
       { type: "app", pattern: "src/app/**" },
     ],
   },
@@ -81,8 +85,7 @@ export const boundariesConfig = {
                 },
               },
             ],
-            message:
-              "features не может импортировать другую feature напрямую",
+            message: "features не может импортировать другую feature напрямую",
           },
 
           // --- 4. widgets: shared + entities + features --------------------
@@ -103,7 +106,11 @@ export const boundariesConfig = {
           {
             from: { element: { type: "pages" } },
             allow: [
-              { element: { type: ["shared", "entities", "features", "widgets"] } },
+              {
+                element: {
+                  type: ["shared", "entities", "features", "widgets"],
+                },
+              },
               {
                 element: {
                   type: "pages",
@@ -122,7 +129,14 @@ export const boundariesConfig = {
             from: { element: { type: "app" } },
             allow: {
               element: {
-                type: ["shared", "entities", "features", "widgets", "pages", "app"],
+                type: [
+                  "shared",
+                  "entities",
+                  "features",
+                  "widgets",
+                  "pages",
+                  "app",
+                ],
               },
             },
           },

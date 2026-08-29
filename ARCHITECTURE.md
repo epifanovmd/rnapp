@@ -28,13 +28,12 @@ template/src/
   pages/                  ← экраны — композиция widgets/features/entities под роут;
                             сгруппированы по навигаторам
     tabs/                 ←   экраны таб-навигатора: main/, playground/, settings/
-    stack/                ←   экраны стека: sign-in/, sign-up/, recovery-password/, chat/,
+    stack/                ←   экраны стека: sign-in/, sign-up/, recovery-password/,
                               charts/, components/, container-scanner/, context-menu/,
                               input-bar/, object-scanner/, pdf-view/, plate-scanner/,
                               text-scanner/, web-view/
 
   widgets/                ← крупные самостоятельные блоки UI
-    chat-room/            ←   ChatRoom + useChatRoomMock (мок-данные)
     app-shell/            ←   TabBar
 
   features/               ← интерактивные сценарии поверх entities
@@ -47,7 +46,7 @@ template/src/
     user/                 ←   model/ (store, session, realtime), lib/permissions
 
   shared/                 ← переиспользуемый код, не знает о бизнес-логике
-    ui/                   ←   UI-кит (chat-view, input-bar, context-menu-view, ...)
+    ui/                   ←   UI-кит (input-bar, context-menu-view, bottom-sheet, ...)
     api/                  ←   HttpClient, ApiError, contract/, orval-gen (gen/)
     config/               ←   env.ts (react-native-config)
     lib/                  ←   di, holders, navigation, theme, socket, keyboard, storage, ...
@@ -102,11 +101,11 @@ FSD не задаёт направление зависимостей между
 
 | Откуда     | Куда                                        | Пример                                        |
 | ---------- | ------------------------------------------- | --------------------------------------------- |
-| `shared`   | `shared`                                    | `shared/ui/chat-view` → `shared/lib/keyboard` |
+| `shared`   | `shared`                                    | `shared/ui/input-bar` → `shared/lib/keyboard` |
 | `entities` | `shared`                                    | `entities/auth` → `@shared/lib/di`            |
 | `features` | `shared`, `entities`                        | `features/sign-in` → `@entities/auth`         |
-| `widgets`  | `shared`, `entities`, `features`            | `widgets/chat-room` → `@features/...`         |
-| `pages`    | `shared`, `entities`, `features`, `widgets` | `pages/chat` → `@widgets/chat-room`           |
+| `widgets`  | `shared`, `entities`, `features`            | `widgets/app-shell` → `@features/...`         |
+| `pages`    | `shared`, `entities`, `features`, `widgets` | `pages/main` → `@widgets/app-shell`           |
 | `app`      | всё                                         | `app/app.module.ts` → `@entities/auth`        |
 
 ### Запрещено
@@ -296,20 +295,6 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
   key-дедупликация, `promise()` (loading → success/error поверх одного тоста),
   haptic + accessibility announce, кастомный рендер (`options.render` per-toast или
   `renderContent` хоста).
-
-## Чат
-
-`ChatView`, `InputBar` и `ContextMenuView` — обычные React-компоненты
-(`shared/ui/chat-view`, `shared/ui/input-bar`, `shared/ui/context-menu-view`).
-Оформление и поведение снаружи не настраиваются: пропы — только данные,
-состояние сессии и коллбэки; палитра light/dark выбирается по `useTheme().isDark`,
-метрики — литералы в стилях. Коллбэки принимают обычные аргументы
-(`onSendMessage(text, replyToId)`), объектов-событий нет.
-
-`ChatView` использует штатные механизмы `@legendapp/list` v3.3: `sharedValues`,
-`stickyHeaderIndices`, `viewabilityConfigCallbackPairs`, `maintainVisibleContentPosition`,
-`maintainScrollAtEnd`, `onStartReached`/`onEndReached`. Ручные JS-аналоги не допускаются.
-Детали: `project_native.md`.
 
 ## Project conventions
 

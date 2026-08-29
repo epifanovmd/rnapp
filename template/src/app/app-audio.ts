@@ -1,8 +1,4 @@
 import {
-  AudioApiVoicePlayerBackend,
-  setChatVoicePlayerBackend,
-} from "@shared/ui/chat-view";
-import {
   AudioApiVoiceRecorderBackend,
   setVoiceRecorderBackend,
 } from "@shared/ui/input-bar";
@@ -26,6 +22,5 @@ export const registerAudioBackends = (): void => {
     iosAllowHaptics: true,
   });
 
-  setChatVoicePlayerBackend(new AudioApiVoicePlayerBackend());
   setVoiceRecorderBackend(new AudioApiVoiceRecorderBackend());
 };

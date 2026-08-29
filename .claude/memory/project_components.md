@@ -1,6 +1,6 @@
 ---
 name: Components Library
-description: UI-кит shared/ui, widgets/chat-room, compound components через slots
+description: UI-кит shared/ui, compound components через slots
 type: project
 ---
 
@@ -107,9 +107,3 @@ Notifications, Modals, Dialogs, Pickers, Ticket.
 JSX-маркеры перекрывают. Примеры — `shared/ui/navbar/Navbar.tsx`,
 `shared/ui/bottom-sheet/`. Детали — `shared/lib/slots/README.md`.
 
-Chat: `widgets/chat-room/` — `ChatRoom.tsx` (мок-данные, `useChatRoomMock`).
-ChatView/InputBar/ContextMenuView — `shared/ui/chat-view`, `shared/ui/input-bar`,
-`shared/ui/context-menu-view`: обычные React-компоненты, нативного кода нет.
-Снаружи не конфигурируются: ни `theme`, ни `layout`, ни `features` — палитра
-выбирается по `useTheme().isDark`, метрики зашиты в стили. Коллбэки принимают
-обычные аргументы (`onSendMessage(text, replyToId)`), не объекты-события.

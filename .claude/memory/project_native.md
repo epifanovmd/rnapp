@@ -1,6 +1,6 @@
 ---
 name: Native Modules (iOS & Android)
-description: Нативные модули; архитектура чата; keyboard compensation
+description: Нативные модули; keyboard compensation
 type: project
 ---
 
@@ -128,57 +128,12 @@ type: project
   `eslint.naming.mjs`). Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager`
   через interop-слой New Arch.
 
-## Архитектура чата (`shared/ui/chat-view/`)
-
-ChatView, InputBar и ContextMenuView — обычные React-компоненты
-(`shared/ui/chat-view/ChatView.tsx`, `shared/ui/input-bar/InputBar.tsx`,
-`shared/ui/context-menu-view/ContextMenuView.tsx`), нативного кода у них нет.
-Публичный контракт чата — `shared/ui/chat-view/types.ts`.
-
-Слои: `types → utils → config → data → services → model → hooks → components`.
-
-Оформление и поведение снаружи не настраиваются: пропов `theme`/`layout`/
-`features` нет, метрики — литералы в стилях и компонентах. Публичный контракт —
-`types.ts` (доменная модель + пропсы); коллбэки принимают обычные аргументы,
-объектов-событий нет.
-
-- `model/` — контекст чата (палитра, стили, действия ячейки, подсветка).
-- `config/chat-colors.ts` — `CHAT_COLORS` (light/dark), выбор по `useTheme().isDark`.
-- `config/chat-styles.ts` — `CHAT_SKIN`: стили ячейки, собранные на палитру один раз.
-- `data/` — разбор + кеш идентичности (`message-parser.ts`, `chat-rows.ts`).
-- `hooks/` — по хуку на ответственность.
-- `services/` — `voice-player.ts`.
-
-Панель ввода и контекстное меню устроены так же: `input-bar/config`
-(`INPUT_BAR_COLORS`, `inputBarSkin`, `useInputBarSkin`) и
-`context-menu-view/config` (`CONTEXT_MENU_COLORS`, `contextMenuSkin`).
-
-### Что делегировано LegendList
-
-| Задача | Механизм |
-|---|---|
-| Позиция скролла, FAB | `sharedValues={{ scrollOffset, isNearEnd, activeStickyIndex }}` |
-| Плавающая дата | `stickyHeaderIndices` + `stickyHeaderConfig.offset` |
-| Видимость / прочитано | `viewabilityConfigCallbackPairs` |
-| Пагинация | `onStartReached`/`onEndReached` |
-| Позиция при вставках | `maintainVisibleContentPosition={{ data, size }}` |
-| Автоскролл к новым | `maintainScrollAtEnd` |
-
-Ручные JS-аналоги не допускаются.
-
-- **Аватары**: статические в ячейке; `avatarColumn` — спейсер (`CHAT_AVATAR_SLOT_WIDTH`),
-  `ChatAvatar` — absolute.
-- **Пузырь**: `minHeight` на 2px меньше высоты ячейки, pinned — свои отступы.
-- **Распад строки** при удалении — `ChatRowCollapse` поверх `disintegrate`.
-
 ## Keyboard compensation (`shared/lib/keyboard/`)
 
-- Один подписчик на экран: `useKeyboardInset` + `useKeyboardScrollCompensation`.
-- Один источник сдвига: `bottomInset` (shared value) двигает и бар, и зону списка.
-- Зона — спейсер в конце контента, не `contentInset`.
-- `ChatList`: `maintainScrollAtEnd.on` — только `dataChange`. `footerLayout`/`itemLayout` не включать.
-- Контейнер списка не транслейтить/сжимать.
+- Один подписчик на экран: `useKeyboardInset`; компенсация скролла списка —
+  `useKeyboardScrollCompensation`.
+- Один источник сдвига: `contentInset` (shared value) двигает и бар, и зону списка.
+- Контейнер списка не транслейтить/сжимать — сдвиг идёт через content inset.
 - Freeze держит content inset; thaw — реакцией (`use-freezable-value.ts`).
 - Interactive dismiss: `onInteractive` per frame + блокировка скролла при касании
   (`onScrollBeginDrag`/`onScrollEndDrag`).
-- `scrollToMessage`: `viewOffset = -viewPosition * getBottomInset()`.

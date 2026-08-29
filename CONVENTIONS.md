@@ -28,7 +28,7 @@
 ```text
 sign-in/
 edit-profile/
-chat-room/
+input-bar/
 token-storage/
 ```
 
@@ -59,7 +59,7 @@ Route groups, navigator groups и служебные каталоги фрейм
 | Валидация                       | `validation.ts`                       | `features/sign-in/model/validation.ts` |
 | Константы одного модуля         | `constants.ts`                        | `model/constants.ts`                   |
 | Типы всего небольшого сегмента  | `types.ts`                            | `model/types.ts`                       |
-| Типы одного крупного компонента | `<name>.types.ts`                     | `chat-view.types.ts`                   |
+| Типы одного крупного компонента | `<name>.types.ts`                     | `image-viewing.types.ts`               |
 | DI-регистрация                  | `<slice>.module.ts`                   | `auth.module.ts`                       |
 | Public API                      | `index.ts`                            | `features/sign-in/index.ts`            |
 | Dependency Inversion contract   | `<name>.contract.ts`                  | `token-source.contract.ts`             |

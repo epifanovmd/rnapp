@@ -2,7 +2,7 @@ import { KnownPermission, KnownRole } from "@shared/api/gen/model";
 
 /**
  * Проверяет наличие права с поддержкой wildcard-иерархии.
- * Иерархия wildcards: "chat:manage" → "chat:*" → "*".
+ * Иерархия wildcards: "contact:manage" → "contact:*" → "*".
  */
 export function hasPermission(
   userPerms: KnownPermission[],

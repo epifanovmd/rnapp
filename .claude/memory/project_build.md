@@ -128,8 +128,8 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 ## Codegen (Fabric)
 
 `package.json` → `codegenConfig`:
-- `name: "RNChatViewSpec"`, `type: "components"`, `jsSrcsDir: "src"`
-- `android.javaPackageName: "com.rnapp.rnchatview"`
+- `name: "RNAppSpec"`, `type: "components"`, `jsSrcsDir: "src"`
+- `android.javaPackageName: "com.rnapp.spec"`
 
 ## Pre-commit
 

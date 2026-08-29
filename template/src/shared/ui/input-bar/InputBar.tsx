@@ -13,7 +13,6 @@ import { IInputBarRef, InputBarProps } from "./types";
 
 /**
  * Панель ввода: текст, вложения, ответ/редактирование и запись голосового.
- * Ядро — тот же `InputBarView`, что использует `ChatView`.
  */
 export const InputBar = forwardRef<IInputBarRef, InputBarProps>(
   (props, ref) => {

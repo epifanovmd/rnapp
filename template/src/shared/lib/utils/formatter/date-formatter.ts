@@ -76,30 +76,6 @@ export class DateFormatter {
     return format(date, "d MMMM yyyy");
   };
 
-  /** Формат для списка чатов: "HH:mm" (сегодня), "Пн" (<7 дней), "01.04" (старше) */
-  formatChatTime = (isoOrTimestamp: MaybeString | number): string => {
-    if (!isoOrTimestamp) return "";
-
-    const date =
-      typeof isoOrTimestamp === "number"
-        ? new Date(isoOrTimestamp)
-        : parseISO(isoOrTimestamp);
-
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0 && isToday(date)) {
-      return format(date, "HH:mm");
-    }
-
-    if (diffDays < 7) {
-      return format(date, "EEEEEE"); // short weekday (Пн, Вт, ...)
-    }
-
-    return format(date, "dd.MM");
-  };
-
   /** true если дата уже прошла */
   isExpired = (isoString: MaybeString): boolean => {
     if (!isoString) return false;

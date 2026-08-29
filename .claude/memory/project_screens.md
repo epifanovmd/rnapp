@@ -15,7 +15,7 @@ type: project
 - **Private — табы** (`Tabs`, `src/app/app-tab-screens.tsx` → `MainTabs`, `pages/tabs/`):
   Main, Playground, Settings.
 - **Private — стек** (`src/app/App.screens.ts`, `pages/stack/`): Tabs + Components/
-  Chat/Charts/ContainerScanner/ContextMenu/InputBar/ObjectScanner/PdfView/PlateScanner/
+  Charts/ContainerScanner/ContextMenu/InputBar/ObjectScanner/PdfView/PlateScanner/
   TextScanner/WebView.
 - Типизация: глобальный `ReactNavigation.RootParamList` выводится из static-конфига
   (регистрация `RootNavigator` в `App.navigator.tsx`); параметры экрана — рядом со
