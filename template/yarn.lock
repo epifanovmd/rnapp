@@ -1087,10 +1087,10 @@
   dependencies:
     tslib "^2.4.0"
 
-"@epifanovmd/anchor-list@^0.1.0":
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/@epifanovmd/anchor-list/-/anchor-list-0.1.0.tgz#8aea600ca2fda8c266c640621d991a2a4594235f"
-  integrity sha512-3uSlBVJCrc5qCiE50sygOJ/N44PDtIlSr4TyZGLQ/sQg3VTSRItgtLGiN1MVwt3pDm/UFL5McGjwyOmZViL9Tw==
+"@epifanovmd/anchor-list@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@epifanovmd/anchor-list/-/anchor-list-1.0.0.tgz#7a57a7b54be373e7da2d22915d948be72b96886d"
+  integrity sha512-iMTLiRFgRkxWQ7H47LBcSZ9zW8eBNygxVYzf1lQGgvLSM9lcWl3nj8Sa7hjoYmcnKxIGZZOkXxMHB+mJc0sIkw==
 
 "@esbuild/aix-ppc64@0.28.1":
   version "0.28.1"

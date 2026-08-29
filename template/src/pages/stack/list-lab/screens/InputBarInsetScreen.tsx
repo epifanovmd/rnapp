@@ -1,9 +1,6 @@
 import type { IAnchorListRef } from "@epifanovmd/anchor-list";
 import { AnchorList } from "@epifanovmd/anchor-list";
-import {
-  useKeyboardInset,
-  useKeyboardScrollCompensation,
-} from "@shared/lib/keyboard";
+import { useKeyboardInset } from "@shared/lib/keyboard";
 import { Container, Navbar } from "@shared/ui";
 import {
   INPUT_BAR_MIN_HEIGHT,
@@ -19,10 +16,8 @@ import React, {
   useState,
 } from "react";
 import { StyleSheet } from "react-native";
-import Animated, {
-  useDerivedValue,
-  useSharedValue,
-} from "react-native-reanimated";
+import { useDerivedValue, useSharedValue } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   LabFab,
@@ -46,12 +41,14 @@ const ESTIMATED_ITEM_SIZE = 92;
 /**
  * Стенд нижнего отступа.
  *
- * Панель ввода и клавиатура съедают низ вьюпорта. Отступ отдаётся списку
- * распоркой в футере: она анимируется на UI-потоке вместе с клавиатурой,
- * поэтому контент не дёргается и последняя строка остаётся над панелью.
+ * Панель ввода и клавиатура съедают низ вьюпорта. Экрану остаётся посчитать
+ * перекрытие и отдать его списку одним пропом `insetEnd`: место в конце
+ * контента, подъём контента вместе с клавиатурой, отступ индикатора скролла и
+ * якоря конечной кромки список делает сам и от этого же числа.
  *
  * Проверяется так: встать у нижней строки, открыть клавиатуру — строка должна
- * остаться видимой, а не уехать под панель.
+ * остаться видимой, а не уехать под панель. Отдельно — короткий список: там
+ * прокручивать нечего, и контент поднимает не скролл, а выравнивание.
  */
 export const InputBarInsetScreen: FC = () => {
   const listRef = useRef<IAnchorListRef>(null);
@@ -62,6 +59,7 @@ export const InputBarInsetScreen: FC = () => {
   const [compensate, setCompensate] = useState(true);
   const [stickToEnd, setStickToEnd] = useState(true);
 
+  const { bottom: safeAreaBottom } = useSafeAreaInsets();
   const barHeight = useSharedValue(INPUT_BAR_MIN_HEIGHT);
   /** Список у нижнего края: по нему кнопка возврата решает, показываться ли. */
   const isAtEnd = useSharedValue(true);
@@ -74,33 +72,19 @@ export const InputBarInsetScreen: FC = () => {
     [barHeight],
   );
 
-  // С выключенной компенсацией инсет застывает: список не узнаёт о клавиатуре,
-  // и видно, как контент уходит под неё.
+  // С выключенной компенсацией перекрытие застывает на закрытом положении —
+  // панель ввода и безопасная зона под ней. Список тогда не узнаёт о
+  // клавиатуре, и видно, как контент уходит под неё.
   const isCompensating = useSharedValue(compensate);
 
   useEffect(() => {
     isCompensating.value = compensate;
   }, [compensate, isCompensating]);
 
-  const contentInset = useDerivedValue(() =>
-    isCompensating.value ? kb.contentInset.value : INPUT_BAR_MIN_HEIGHT,
-  );
-  const reservedInset = useDerivedValue(() =>
-    isCompensating.value ? kb.reservedInset.value : INPUT_BAR_MIN_HEIGHT,
-  );
-
-  // Распорка в конце контента плюс подъём скролла на ту же дельту: контент
-  // поднимается вместе с клавиатурой, а не остаётся под ней.
-  const compensation = useKeyboardScrollCompensation(
-    contentInset,
-    reservedInset,
-  );
-
-  const listFooter = useMemo(
-    () => (
-      <Animated.View style={compensation.spacerStyle} pointerEvents={"none"} />
-    ),
-    [compensation.spacerStyle],
+  const insetEnd = useDerivedValue(() =>
+    isCompensating.value
+      ? kb.contentInset.value
+      : barHeight.value + safeAreaBottom,
   );
 
   const handleSend = useCallback((text: string) => {
@@ -153,11 +137,6 @@ export const InputBarInsetScreen: FC = () => {
 
       <AnchorList
         ref={listRef}
-        refScrollView={compensation.scrollRef}
-        onLayout={compensation.onLayout}
-        onContentSizeChange={compensation.onContentSizeChange}
-        onScrollBeginDrag={compensation.onScrollBeginDrag}
-        onScrollEndDrag={compensation.onScrollEndDrag}
         data={rows}
         renderItem={renderItem}
         keyExtractor={labRowKey}
@@ -168,11 +147,10 @@ export const InputBarInsetScreen: FC = () => {
         initialScroll={{ type: "end" }}
         maintainScrollAtEnd={maintainScrollAtEnd}
         maintainVisibleContentPosition={{ data: true, size: true }}
-        // Тот же отступ, что у контента: индикатор обязан кончаться на одной
-        // линии с последней строкой, а не уходить под панель ввода.
-        insetEnd={compensation.contentInset}
+        // Одно значение на весь низ: место в конце контента, подъём под
+        // клавиатуру, индикатор скролла и якорь конечной кромки.
+        insetEnd={insetEnd}
         sharedValues={listSharedValues}
-        ListFooterComponent={listFooter}
         recycleItems
         style={ss.list}
       />

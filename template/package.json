@@ -36,7 +36,7 @@
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {
-    "@epifanovmd/anchor-list": "^0.1.0",
+    "@epifanovmd/anchor-list": "^1.0.0",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@gorhom/portal": "^1.0.14",
     "@hookform/resolvers": "^5.5.5",
