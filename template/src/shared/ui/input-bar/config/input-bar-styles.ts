@@ -8,15 +8,25 @@ import { IInputBarColors, INPUT_BAR_COLORS } from "./input-bar-colors";
  * литералы: панель не конфигурируется снаружи.
  */
 
-/** Минимальная высота свёрнутой панели: поле плюс её вертикальные отступы. */
-export const INPUT_BAR_MIN_HEIGHT = 52;
-
 /** Круглые кнопки по краям панели. */
 export const INPUT_BAR_BUTTON_SIZE = 40;
 
 /** Поле ввода: одна строка и потолок до прокрутки. */
 export const INPUT_BAR_FIELD_MIN_HEIGHT = 40;
 export const INPUT_BAR_FIELD_MAX_HEIGHT = 120;
+
+/** Вертикальные отступы ряда панели. */
+const BAR_VERTICAL_PADDING = 8;
+
+/**
+ * Минимальная высота свёрнутой панели: поле плюс её вертикальные отступы.
+ *
+ * Считается из тех же метрик, что и раскладка: с неё начинается нижний отступ
+ * контента, и разойдись она с настоящей высотой — отступ приехал бы ступенькой
+ * сразу после первого замера.
+ */
+export const INPUT_BAR_MIN_HEIGHT =
+  INPUT_BAR_FIELD_MIN_HEIGHT + BAR_VERTICAL_PADDING * 2;
 
 /** Высота панели ответа/редактирования над полем. */
 export const INPUT_BAR_REPLY_PANEL_HEIGHT = 48;
@@ -76,7 +86,7 @@ const createInputBarStyles = (c: IInputBarColors): IInputBarStyles => ({
     flexDirection: "row",
     alignItems: "flex-end",
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: BAR_VERTICAL_PADDING,
     gap: 6,
   },
   roundButton: {

@@ -128,10 +128,14 @@ type: project
   `eslint.naming.mjs`). Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager`
   через interop-слой New Arch.
 
-## Keyboard compensation (`shared/lib/keyboard/`)
+## Keyboard compensation
 
-- Один подписчик на экран: `useKeyboardInset`; компенсация скролла списка —
-  `useKeyboardScrollCompensation`.
+- `shared/lib/keyboard/` знает только клавиатуру: `useKeyboardHeight` — покадровая
+  высота на UI-потоке. Перекрытие собирают по месту использования:
+  `shared/ui/input-bar` → `useInputBarInset` (safe area + клавиатура + высота панели,
+  один подписчик на экран), `shared/ui/keyboard-scroll-view` →
+  `useScrollBottomCompensation` (распорка и подъём для нативного ScrollView),
+  `widgets/chat` → `useChatListInset` (`insetEnd` для AnchorList).
 - Один источник сдвига: `contentInset` (shared value) двигает и бар, и зону списка.
 - Контейнер списка не транслейтить/сжимать — сдвиг идёт через content inset.
 - Freeze держит content inset; thaw — реакцией (`use-freezable-value.ts`).

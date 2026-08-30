@@ -13,6 +13,7 @@ export * from "./collapsable";
 export * from "./context-menu-view";
 export * from "./dialog";
 export * from "./divider";
+export * from "./fab";
 export * from "./field";
 export * from "./flex-view";
 export * from "./form";

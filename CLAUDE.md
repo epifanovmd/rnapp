@@ -7,7 +7,7 @@
 ## Проект
 
 RN template app: auth (sign-in/up/recovery, 2FA, biometrics, passkeys), сканеры
-(текст/объекты/номера/контейнеры), settings, ui-kit-плейграунд. Код — в `template/` (корневые
+(текст/объекты/номера/контейнеры), чат на AnchorList, settings, ui-kit-плейграунд. Код — в `template/` (корневые
 `package.json`/`template.config.js` принадлежат scaffold-утилите, не приложению).
 
 ## Стек
@@ -22,13 +22,13 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 - `app/` — композиционный корень: App.tsx, App.navigator.tsx, App.screens.ts, app-tab-screens.tsx,
   App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
 - `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
-  `stack/` (sign-in, sign-up, recovery-password, charts, components,
+  `stack/` (sign-in, sign-up, recovery-password, charts, chat, components,
   container-scanner, context-menu, input-bar, object-scanner, pdf-view, plate-scanner,
   text-scanner, web-view)
-- `widgets/` — app-shell
+- `widgets/` — app-shell, chat (ChatView: AnchorList + InputBar + контекстное меню)
 - `features/` — sign-in, sign-up, recovery-password, biometric, container-scan,
-  object-scan, plate-scan, text-scan
-- `entities/` — auth, user
+  message-actions, object-scan, plate-scan, text-scan
+- `entities/` — auth, message, user
 - `shared/` — ui | api | config | lib (di, holders, navigation, theme, socket, keyboard, ...)
 
 ## Правила (обязательные)

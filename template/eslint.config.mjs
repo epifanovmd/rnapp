@@ -14,10 +14,11 @@ const SHARED_SEGMENTS = ["ui", "api", "config"];
 
 /** Слайсы entities/features/widgets/pages — self-import запрещён внутри своего же слайса. */
 const SLICE_LAYERS = {
-  entities: ["auth", "user"],
+  entities: ["auth", "message", "user"],
   features: [
     "biometric",
     "container-scan",
+    "message-actions",
     "object-scan",
     "plate-scan",
     "recovery-password",
@@ -26,9 +27,10 @@ const SLICE_LAYERS = {
     "sign-up",
     "text-scan",
   ],
-  widgets: ["app-shell"],
+  widgets: ["app-shell", "chat"],
   pages: [
     "stack/charts",
+    "stack/chat",
     "stack/components",
     "stack/container-scanner",
     "stack/context-menu",

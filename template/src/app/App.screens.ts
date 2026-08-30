@@ -1,4 +1,5 @@
 import { Charts } from "@pages/stack/charts";
+import { Chat } from "@pages/stack/chat";
 import { Components } from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
 import { ContextMenu } from "@pages/stack/context-menu";
@@ -67,6 +68,7 @@ export const RootStack = createStackNavigator({
           linking: "components",
         },
         Charts: { screen: Charts, linking: "charts" },
+        Chat: { screen: Chat, linking: "chat" },
         ContextMenu: { screen: ContextMenu, linking: "contextmenu" },
         InputBar: { screen: InputBar, linking: "inputbar" },
         ContainerScanner: {

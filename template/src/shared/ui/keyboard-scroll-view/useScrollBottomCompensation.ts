@@ -1,3 +1,4 @@
+import { useConstant } from "@shared/lib/hooks";
 import { useCallback, useMemo } from "react";
 import { LayoutChangeEvent } from "react-native";
 import Animated, {
@@ -12,11 +13,16 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
-import { useConstant } from "../hooks";
-
 /**
- * Распорка в конце контента + подъём скролла от одного `bottomInset`.
- * Распорка входит в размер контента — `scrollToEnd`/автоскролл верны без поправок.
+ * Компенсация нижнего перекрытия для обычного `ScrollView`.
+ *
+ * Одно значение `insetEnd` даёт и распорку в конце контента, и подъём
+ * смещения: распорка входит в размер контента, поэтому `scrollToEnd` и
+ * автоскролл верны без поправок. О клавиатуре хук не знает — ему приходит уже
+ * посчитанное перекрытие.
+ *
+ * `AnchorList` то же самое делает сам по пропу `insetEnd`; этот хук нужен
+ * только там, где список нативный.
  */
 
 export interface IScrollCompensation {
@@ -42,19 +48,19 @@ export interface IScrollCompensation {
   onScrollEndDrag: () => void;
 }
 
-export const useKeyboardScrollCompensation = (
-  bottomInset: SharedValue<number>,
+export const useScrollBottomCompensation = (
+  insetEnd: SharedValue<number>,
   /**
-   * Зона, под которую распорка резервирует место сразу (целевая высота +
-   * панель): высота проходит через layout, `contentSize` отстаёт на кадр —
-   * без резерва у самого низа `scrollTo` упирается в ещё не выросший диапазон.
+   * Перекрытие, к которому едем: распорка резервирует место сразу. Высота
+   * проходит через layout, `contentSize` отстаёт на кадр — без резерва у
+   * самого низа `scrollTo` упирается в ещё не выросший диапазон.
    */
   reservedInset?: SharedValue<number>,
 ): IScrollCompensation => {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
   // Начальное значение инсета — иначе нулевая дельта сдвинет контент при старте.
-  const initialInset = useConstant(() => bottomInset.value);
+  const initialInset = useConstant(() => insetEnd.value);
 
   const appliedInset = useSharedValue(initialInset);
   const isUserDragging = useSharedValue(false);
@@ -66,7 +72,7 @@ export const useKeyboardScrollCompensation = (
   const spacerHeight = useSharedValue(initialInset);
 
   useAnimatedReaction(
-    () => bottomInset.value,
+    () => insetEnd.value,
     target => {
       const applied = appliedInset.value;
       const delta = target - applied;

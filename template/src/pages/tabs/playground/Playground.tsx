@@ -60,6 +60,12 @@ export const Playground: FC = observer(() => {
 
           <Button
             mt={8}
+            title={"Chat"}
+            onPress={() => navigation.navigate("Chat")}
+          />
+
+          <Button
+            mt={8}
             title={"Context menu"}
             onPress={() => navigation.navigate("ContextMenu")}
           />

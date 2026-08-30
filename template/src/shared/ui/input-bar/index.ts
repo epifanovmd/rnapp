@@ -1,5 +1,6 @@
 export * from "./components";
 export * from "./config";
+export * from "./hooks/useInputBarInset";
 export * from "./InputBar";
 export * from "./KeyboardInputBar";
 export * from "./model";

@@ -1,19 +1,13 @@
-import {
-  useKeyboardInset,
-  useKeyboardScrollCompensation,
-} from "@shared/lib/keyboard";
-import { useTheme } from "@shared/lib/theme";
 import { Container, Content, KeyboardScrollView, Row, Text } from "@shared/ui";
 import {
-  INPUT_BAR_MIN_HEIGHT,
   InputBar,
   InputBarInputAction,
   KeyboardInputBar,
+  useInputBarInset,
 } from "@shared/ui/input-bar";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
 import { Keyboard, Pressable, StyleSheet } from "react-native";
-import { useSharedValue } from "react-native-reanimated";
 
 type EventEntry = { time: string; text: string };
 
@@ -35,23 +29,10 @@ export const InputBarPage: FC = observer(() => {
   }, []);
 
   // ─── Компенсация клавиатуры ────────────────────────────────────────────
-  // Инсеты и панель — `useKeyboardInset`, скролл — отдельный
-  // `useKeyboardScrollCompensation`. Подписка на клавиатуру одна.
+  // Перекрытие снизу считает `useInputBarInset`, распорку и подъём скролла —
+  // сам `KeyboardScrollView`. Подписка на клавиатуру одна.
 
-  const barHeight = useSharedValue(INPUT_BAR_MIN_HEIGHT);
-
-  const kb = useKeyboardInset({ barHeight });
-  const compensation = useKeyboardScrollCompensation(
-    kb.contentInset,
-    kb.reservedInset,
-  );
-
-  const handleHeightChange = useCallback(
-    (height: number) => {
-      barHeight.value = height;
-    },
-    [barHeight],
-  );
+  const inset = useInputBarInset();
 
   // ─── Режимы ────────────────────────────────────────────────────────────
 
@@ -87,7 +68,8 @@ export const InputBarPage: FC = observer(() => {
     <Container edges={[]}>
       <KeyboardScrollView
         style={ss.scroll}
-        scroll={compensation}
+        insetEnd={inset.contentInset}
+        reservedInset={inset.reservedInset}
         keyboardShouldPersistTaps={"handled"}
       >
         {/* Тап по контенту снимает фокус с поля ввода. */}
@@ -170,7 +152,7 @@ export const InputBarPage: FC = observer(() => {
         </Pressable>
       </KeyboardScrollView>
 
-      <KeyboardInputBar offset={kb.occludedBottom}>
+      <KeyboardInputBar offset={inset.barOffset}>
         <InputBar
           inputAction={inputAction}
           onSendMessage={(text, replyToId) => {
@@ -197,7 +179,7 @@ export const InputBarPage: FC = observer(() => {
           onInputTyping={() => {
             // Слишком часто
           }}
-          onHeightChange={handleHeightChange}
+          onHeightChange={inset.setBarHeight}
         />
       </KeyboardInputBar>
     </Container>

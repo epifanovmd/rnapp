@@ -45,7 +45,8 @@ double-tap в точку, swipe-to-dismiss; SRP-разделение: `use-zoom-
 `use-dismiss-gesture` (только смахивание, собственный translateY), `use-viewer-gestures`
 (композиция + animatedStyle + reset); кастомизация render-пропсами
 renderHeader/renderFooter/renderImage; FastImage + previewUri + префетч соседних),
-keyboard-scroll-view, actions,
+keyboard-scroll-view (проп `insetEnd`, компенсация внутри), fab (круглая кнопка
+действия), actions,
 spinner (единый индикатор кита, бывший animated-refreshing; SRP-разделение: Spinner —
 разметка, `hooks/useSpinnerAnimation` — движок (фаза+вращение), поведение — worklet-стратегия
 `ISpinnerBehavior` (`spinner-behaviors.ts`: WORM_SPINNER_BEHAVIOR — дефолт-«червяк»,
