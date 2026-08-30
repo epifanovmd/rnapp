@@ -1,4 +1,4 @@
-import { pluralize } from "@shared/lib/utils/pluralize-helper";
+import { pluralize } from "./pluralize-helper";
 
 export const pluralizeDay = (
   count: number,

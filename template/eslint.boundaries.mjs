@@ -1,27 +1,65 @@
 import boundaries from "eslint-plugin-boundaries";
 
 /**
- * ESLint-конфигурация для eslint-plugin-boundaries — Feature-Sliced Design.
+ * Границы Feature-Sliced Design через eslint-plugin-boundaries.
  *
- * Слои снизу вверх (нижний не знает про вышестоящие):
+ * Слой видит только слои строго ниже своего, слайсы одного слоя не видят друг
+ * друга, наружу слайс открыт только своим index.ts, внутрь себя — только
+ * относительными путями. Исключения: `shared` (сегменты и темы lib ссылаются
+ * друг на друга и импортируются вглубь) и `app` (композиционный корень).
  *
- *   1. shared    — переиспользуемый код без знания о бизнес-логике (ui/api/config/lib).
- *   2. entities  — бизнес-сущности (auth, user): стор + доменные модели, без UI-форм.
- *   3. features  — юзкейсы (sign-in, biometric, ...): интерактивные сценарии поверх entities.
- *   4. widgets   — крупные самостоятельные блоки UI (app-shell).
- *   5. pages     — экраны, тонкая композиция widgets/features/entities под конкретный роут.
- *   6. app       — композиционный корень (App.tsx, App.navigator.tsx, app.module.ts) — видит всё.
- *
- * Правило FSD: "a module in a slice can only import other slices when they are
- * located on layers strictly below" — модуль слайса может импортировать только
- * слайсы строго нижних слоёв. Слайсы одного слоя друг друга не видят
- * (entities/auth не видит entities/user, features/sign-in не видит features/sign-up
- * и т.д.) — если нужно сослаться на другой слайс того же слоя, это повод
- * пересмотреть границы, а не пробить дыру в правилах.
- *
- * `policies` — список правил "from → allow to"; `default: "disallow"` означает,
- * что всё не перечисленное явно запрещено.
+ * Имён слайсов здесь нет: элемент — это `src/<layer>/*` (для pages —
+ * `src/pages/<группа>/*`), поэтому новый слайс попадает под правила сразу.
  */
+
+// Порядок — правило видимости: слой видит то, что левее.
+const LAYERS = ["shared", "entities", "features", "widgets", "pages", "app"];
+
+const SLICE_LAYERS = ["entities", "features", "widgets", "pages"];
+
+const PUBLIC_API = "index.@(ts|tsx)";
+
+// Всё, кроме корневого index: вложенные пути + прочие файлы в корне слайса.
+const NOT_PUBLIC_API = ["*/**", "!(index).*"];
+
+const layersBelow = layer => LAYERS.slice(0, LAYERS.indexOf(layer));
+
+const visibleFrom = layer => {
+  if (layer === "shared") {
+    return ["shared"];
+  }
+
+  if (layer === "app") {
+    return LAYERS;
+  }
+
+  return layersBelow(layer);
+};
+
+const element = (type, element = {}) => ({ element: { type, ...element } });
+
+const importTarget = type => ({
+  to: element(
+    type,
+    SLICE_LAYERS.includes(type) ? { fileInternalPath: PUBLIC_API } : {},
+  ),
+});
+
+const internalImport = { dependency: { relationship: { from: "internal" } } };
+
+const selfAliasImport = {
+  dependency: {
+    relationship: { from: "internal" },
+    source: ["@*", "@*/**"],
+  },
+};
+
+// `relationship.from: null` — зависимость между независимыми элементами,
+// то есть импорт чужого слайса, а не своего.
+const deepImport = {
+  to: element(SLICE_LAYERS, { fileInternalPath: NOT_PUBLIC_API }),
+  dependency: { relationship: { from: [null] } },
+};
 
 export const boundariesConfig = {
   files: ["**/*.{ts,tsx}"],
@@ -31,18 +69,17 @@ export const boundariesConfig = {
       typescript: { project: "./tsconfig.json" },
     },
 
+    // Темы shared/lib — отдельные элементы, иначе di/holders/utils не смогли бы
+    // ссылаться друг на друга через алиас. Побеждает первый совпавший дескриптор.
     "boundaries/elements": [
-      { type: "shared", pattern: "src/shared/**" },
-      { type: "entities", pattern: "src/entities/*/**", capture: ["slice"] },
-      { type: "features", pattern: "src/features/*/**", capture: ["slice"] },
-      { type: "widgets", pattern: "src/widgets/*/**", capture: ["slice"] },
+      { type: "shared", pattern: "src/shared/lib/*", capture: ["theme"] },
+      { type: "shared", pattern: "src/shared/*", capture: ["segment"] },
+      { type: "entities", pattern: "src/entities/*", capture: ["slice"] },
+      { type: "features", pattern: "src/features/*", capture: ["slice"] },
+      { type: "widgets", pattern: "src/widgets/*", capture: ["slice"] },
       // pages сгруппированы по навигаторам: src/pages/{tabs,stack}/<slice>/
-      {
-        type: "pages",
-        pattern: "src/pages/*/*/**",
-        capture: ["group", "slice"],
-      },
-      { type: "app", pattern: "src/app/**" },
+      { type: "pages", pattern: "src/pages/*/*", capture: ["group", "slice"] },
+      { type: "app", pattern: "src/app" },
     ],
   },
   rules: {
@@ -50,95 +87,31 @@ export const boundariesConfig = {
       "error",
       {
         default: "disallow",
+        // Без этого импорты внутри одного элемента не проверяются вовсе.
+        checkInternals: true,
+        message:
+          "Слой может импортировать только слои строго ниже своего, а слайсы одного слоя не видят друг друга",
+        // Побеждает последняя совпавшая политика, поэтому запреты — в конце.
         policies: [
-          // --- 1. shared: не знает ни про что бизнесовое -------------------
           {
-            from: { element: { type: "shared" } },
-            allow: { to: { element: { type: "shared" } } },
+            from: [element(LAYERS)],
+            allow: [internalImport],
           },
-
-          // --- 2. entities: только shared, никогда другую entity -----------
+          ...LAYERS.map(layer => ({
+            from: [element(layer)],
+            allow: visibleFrom(layer).map(importTarget),
+          })),
           {
-            from: { element: { type: "entities" } },
-            allow: [
-              { element: { type: "shared" } },
-              {
-                element: {
-                  type: "entities",
-                  captured: { slice: "{{from.element.captured.slice}}" },
-                },
-              },
-            ],
+            from: [element(LAYERS)],
+            disallow: [deepImport],
             message:
-              "entities не может импортировать другую entity напрямую — используй контракт (Dependency Inversion)",
+              "Импортируй слайс через его публичный API (корневой index.ts)",
           },
-
-          // --- 3. features: shared + entities, никогда другую feature ------
           {
-            from: { element: { type: "features" } },
-            allow: [
-              { element: { type: ["shared", "entities"] } },
-              {
-                element: {
-                  type: "features",
-                  captured: { slice: "{{from.element.captured.slice}}" },
-                },
-              },
-            ],
-            message: "features не может импортировать другую feature напрямую",
-          },
-
-          // --- 4. widgets: shared + entities + features --------------------
-          {
-            from: { element: { type: "widgets" } },
-            allow: [
-              { element: { type: ["shared", "entities", "features"] } },
-              {
-                element: {
-                  type: "widgets",
-                  captured: { slice: "{{from.element.captured.slice}}" },
-                },
-              },
-            ],
-          },
-
-          // --- 5. pages: всё нижестоящее, свой же слайс — можно -------------
-          {
-            from: { element: { type: "pages" } },
-            allow: [
-              {
-                element: {
-                  type: ["shared", "entities", "features", "widgets"],
-                },
-              },
-              {
-                element: {
-                  type: "pages",
-                  captured: {
-                    group: "{{from.element.captured.group}}",
-                    slice: "{{from.element.captured.slice}}",
-                  },
-                },
-              },
-            ],
-            message: "pages не может импортировать другую page напрямую",
-          },
-
-          // --- 6. app: композиционный корень, видит всё ---------------------
-          {
-            from: { element: { type: "app" } },
-            allow: {
-              element: {
-                type: [
-                  "shared",
-                  "entities",
-                  "features",
-                  "widgets",
-                  "pages",
-                  "app",
-                ],
-              },
-            },
+            from: [element(LAYERS)],
+            disallow: [selfAliasImport],
+            message:
+              "Внутри своего слайса/сегмента импортируй по относительному пути, а не через алиас",
           },
         ],
       },

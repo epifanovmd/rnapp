@@ -1,3 +1,4 @@
+/* eslint-disable check-file/filename-naming-convention -- имя файла диктует RN codegen */
 // NativeWheelPickerSpec.ts
 // Спецификация нативного колеса выбора для codegen. Один нативный вью — одно
 // колесо; многоколоночные пикеры собираются из нескольких вью на стороне JS.

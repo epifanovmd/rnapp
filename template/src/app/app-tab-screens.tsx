@@ -1,3 +1,4 @@
+/* eslint-disable check-file/filename-naming-convention -- модуль с JSX-иконками таб-бара, не компонент */
 import { Main } from "@pages/tabs/main";
 import { Playground } from "@pages/tabs/playground";
 import { Settings } from "@pages/tabs/settings";

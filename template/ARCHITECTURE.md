@@ -119,7 +119,8 @@ FSD не задаёт направление зависимостей между
 ### Self-imports
 
 Внутри слайса/сегмента — только относительные пути. Публичный alias самого себя запрещён
-(`no-restricted-imports` в [eslint.config.mjs](eslint.config.mjs)).
+(`boundaries/dependencies` в [eslint.boundaries.mjs](eslint.boundaries.mjs): политика с селектором
+`dependency.source: ["@*", "@*/**"]` ловит alias-импорт своего же элемента).
 
 ```ts
 // ✅ внутри entities/auth/api/session-guard.ts
@@ -315,8 +316,7 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 
 | Правило                                   | Назначение                               |
 | ----------------------------------------- | ---------------------------------------- |
-| `boundaries/dependencies`                 | Границы слоёв/слайсов FSD                |
-| `no-restricted-imports`                   | Public API и self-imports через alias    |
+| `boundaries/dependencies`                 | Границы FSD, public API, self-imports    |
 | `react/no-multi-comp`                     | Не более одного React-компонента в файле |
 | `check-file/filename-naming-convention`   | Именование файлов                        |
 | `check-file/folder-naming-convention`     | kebab-case папок                         |

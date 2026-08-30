@@ -38,7 +38,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 - `shared/api/gen/` — orval-генерация, **не редактировать** (`npm run generate:orval`).
 - Алиасы `@app/@pages/@widgets/@features/@entities/@shared` — в `tsconfig.json` **и**
   `babel.config.js`, синхронно.
-- Внутри слайса/сегмента — только относительные импорты; self-alias запрещён (`no-restricted-imports`).
+- Внутри слайса/сегмента — только относительные импорты; self-alias запрещён (`boundaries/dependencies`).
 - После каждой задачи — прогон `tsc --noEmit` и `eslint` в `template/`. Все ошибки править сразу, за один проход.
 - **Багфикс через тест.** Любой баг сначала покрывается тестом, потом чинится.
   Порядок обязательный: тест, воспроизводящий баг и падающий на текущем коде →

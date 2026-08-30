@@ -1,3 +1,4 @@
+/* eslint-disable check-file/filename-naming-convention -- часть неймспейса `App.*`, не обычный модуль */
 import { Charts } from "@pages/stack/charts";
 import { Chat } from "@pages/stack/chat";
 import { Components } from "@pages/stack/components";

@@ -1,3 +1,4 @@
+/* eslint-disable check-file/filename-naming-convention -- часть неймспейса `App.*`, не обычный модуль */
 import { DEEPLINK_BASE_URL } from "@shared/config/env";
 
 /**
