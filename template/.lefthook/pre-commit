@@ -1,0 +1,6 @@
+#!/bin/sh
+# Раннер lefthook: конфиг лежит в template/, а lefthook ищет его только в корне репозитория.
+root="$(git rev-parse --show-toplevel)"
+
+LEFTHOOK_CONFIG="$root/template/lefthook.yml" \
+  exec "$root/template/node_modules/.bin/lefthook" run pre-commit "$@"

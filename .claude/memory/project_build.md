@@ -56,13 +56,14 @@ npm run android:build          # assembleProductionRelease (gradlew)
 
 Переменные окружения — `config/env/*.{ios,android}.env`:
 
-| Файл | Назначение |
-|---|---|
-| `development.ios.env` / `development.android.env` | dev-стенд |
-| `staging.ios.env` / `staging.android.env` | staging |
-| `production.ios.env` / `production.android.env` | production |
+| Файл                                              | Назначение |
+| ------------------------------------------------- | ---------- |
+| `development.ios.env` / `development.android.env` | dev-стенд  |
+| `staging.ios.env` / `staging.android.env`         | staging    |
+| `production.ios.env` / `production.android.env`   | production |
 
 Переменные:
+
 - `BASE_URL` — HTTP API
 - `SOCKET_BASE_URL` — WebSocket
 - `APP_ID_IOS` / `APP_ID_ANDROID` — bundle id
@@ -70,6 +71,7 @@ npm run android:build          # assembleProductionRelease (gradlew)
 - `DEEPLINK_BASE_URL` — схема deep link
 
 Потребление: `react-native-config` → `src/shared/config/env.ts`:
+
 ```ts
 export const BASE_URL = Config.BASE_URL;
 export const SOCKET_BASE_URL = Config.SOCKET_BASE_URL;
@@ -102,22 +104,26 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 ## TS / Babel / Metro
 
 **TypeScript** (`tsconfig.json`):
+
 - `moduleSuffixes: [".ios", ".android", ".native", ""]` — платформенный резолв
 - `experimentalDecorators: true`, `emitDecoratorMetadata: true` — Inversify DI
 - Алиасы: `@app`, `@pages`, `@widgets`, `@features`, `@entities`, `@shared`
 
 **Babel** (`babel.config.js`):
+
 - Пресет `module:@react-native/babel-preset`
 - Плагины: `@babel/plugin-proposal-decorators` (legacy), `@babel/plugin-transform-export-namespace-from`, `babel-plugin-transform-typescript-metadata`, `babel-plugin-parameter-decorator`, `react-native-reanimated/plugin`
 - `module-resolver` — те же алиасы, что в `tsconfig.json`
 
 **Metro** (`metro.config.js`):
+
 - `mergeConfig(getDefaultConfig(__dirname), config)`
 - `resolveRequest` для `axios`: подставляет `unstable_conditionNames: ["browser"]` (axios использует browser-сборку)
 
 ## orval
 
 Конфиг: `orval.config.ts`. Генерит `shared/api/gen/`:
+
 - `mode: "single"` → `api.ts` (все эндпоинты в одном файле)
 - `client: "axios"`, mutator — `shared/api/http-client.ts` (`axiosInstance`)
 - `clean: ["./src/shared/api/gen"]` — полная очистка перед генерацией
@@ -128,9 +134,29 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 ## Codegen (Fabric)
 
 `package.json` → `codegenConfig`:
+
 - `name: "RNAppSpec"`, `type: "components"`, `jsSrcsDir: "src"`
 - `android.javaPackageName: "com.rnapp.spec"`
 
 ## Pre-commit
 
-Husky + lint-staged: `*.{ts,tsx}` → `eslint --fix` + `prettier --parser typescript --write`
+Lefthook, всё внутри `template/`: конфиг — `template/lefthook.yml`, бинарь — devDependency,
+хуки — `template/.lefthook/`. Установка: `prepare` → `git config --local core.hooksPath
+template/.lefthook`.
+
+`lefthook install` не используется: lefthook ищет конфиг только в корне репозитория, поэтому
+`template/.lefthook/pre-commit` — тонкий раннер, который задаёт `LEFTHOOK_CONFIG` и вызывает
+`lefthook run pre-commit`. Новый хук = новый файл-раннер в `template/.lefthook/` (по образцу
+`pre-commit`) плюс секция в `lefthook.yml`.
+
+Пути в `lefthook.yml` (`root:`, `{staged_files}`, `glob`) — всегда относительно корня
+репозитория, а не `template/`.
+
+Jobs `pre-commit` (`piped: true`, последовательно, стоп на первой ошибке):
+
+- `lint` (`root: template/`, `*.{ts,tsx}`) → `eslint --fix` + `prettier --write` по staged, `stage_fixed`
+- `format` (`*.{js,jsx,mjs,cjs,json,css,md,html,yml,yaml}`) → `prettier --write` по staged, `stage_fixed`
+- `typecheck` (`root: template/`) → `tsc --noEmit`
+- `test` (`root: template/`) → `jest --no-watchman --runInBand`
+
+Пропустить хук: `LEFTHOOK=0 git commit` или `git commit --no-verify`.

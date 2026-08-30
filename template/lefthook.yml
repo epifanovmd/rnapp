@@ -1,0 +1,21 @@
+pre-commit:
+  piped: true
+  jobs:
+    - name: lint
+      root: template/
+      glob: "*.{ts,tsx}"
+      run: node_modules/.bin/eslint --fix {staged_files} && node_modules/.bin/prettier --write {staged_files}
+      stage_fixed: true
+
+    - name: format
+      glob: "*.{js,jsx,mjs,cjs,json,css,md,html,yml,yaml}"
+      run: template/node_modules/.bin/prettier --write {staged_files}
+      stage_fixed: true
+
+    - name: typecheck
+      root: template/
+      run: node_modules/.bin/tsc --noEmit
+
+    - name: test
+      root: template/
+      run: node_modules/.bin/jest --no-watchman --runInBand

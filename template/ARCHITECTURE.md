@@ -13,7 +13,7 @@ app → pages → widgets → features → entities → shared
 ```
 
 ```
-template/src/
+src/
   app/                    ← композиционный корень
     App.tsx               ←   DI + провайдеры (Theme, SafeArea, BottomSheetModal, Keyboard, Dialog, ContextMenu)
     App.navigator.tsx     ←   createStaticNavigation + регистрация RootParamList
@@ -87,7 +87,7 @@ FSD не задаёт направление зависимостей между
 ## Правила зависимостей
 
 Модуль слайса импортирует только слайсы строго нижних слоёв. Проверяется
-`eslint-plugin-boundaries` ([eslint.boundaries.mjs](template/eslint.boundaries.mjs)),
+`eslint-plugin-boundaries` ([eslint.boundaries.mjs](eslint.boundaries.mjs)),
 `default: "disallow"`.
 
 ### Слайсы одного слоя не видят друг друга
@@ -119,7 +119,7 @@ FSD не задаёт направление зависимостей между
 ### Self-imports
 
 Внутри слайса/сегмента — только относительные пути. Публичный alias самого себя запрещён
-(`no-restricted-imports` в [eslint.config.mjs](template/eslint.config.mjs)).
+(`no-restricted-imports` в [eslint.config.mjs](eslint.config.mjs)).
 
 ```ts
 // ✅ внутри entities/auth/api/session-guard.ts
@@ -309,7 +309,7 @@ TokenStorage → SessionService (ensureFreshToken, refresh) → HttpClient (inte
 - `shared/{api,config,lib}` — kebab-case, без camelCase-исключения.
 
 Автоматические naming-проверки определены в
-[eslint.naming.mjs](template/eslint.naming.mjs).
+[eslint.naming.mjs](eslint.naming.mjs).
 
 ## ESLint
 

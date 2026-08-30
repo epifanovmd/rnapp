@@ -1,6 +1,6 @@
 # Memory Index
 
-- [ARCHITECTURE.md](../ARCHITECTURE.md) (корень) — **главное**: FSD, зависимости, naming, DI, state, HTTP/auth, socket, ESLint
+- [ARCHITECTURE.md](../../template/ARCHITECTURE.md) (`template/`) — **главное**: FSD, зависимости, naming, DI, state, HTTP/auth, socket, ESLint
 - [Native](project_native.md) — нативные модули, архитектура чата, keyboard compensation
 - [Components](project_components.md) — UI-кит, slots
 - [Screens](project_screens.md) — экраны, навигация

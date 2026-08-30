@@ -3,11 +3,11 @@
 React Native template с архитектурой Feature-Sliced Design:
 `app → pages → widgets → features → entities → shared`.
 
-- Текущее устройство и проектные решения: [ARCHITECTURE.md](ARCHITECTURE.md).
-- Краткая памятка «что куда класть»: [FSD-CHEATSHEET.md](FSD-CHEATSHEET.md).
-- Правила написания кода: [CONVENTIONS.md](CONVENTIONS.md).
-- Практика clean code и design principles: [CLEAN-CODE.md](CLEAN-CODE.md) и
-  [DESIGN-PRINCIPLES.md](DESIGN-PRINCIPLES.md).
+- Текущее устройство и проектные решения: [ARCHITECTURE.md](template/ARCHITECTURE.md).
+- Краткая памятка «что куда класть»: [FSD-CHEATSHEET.md](template/FSD-CHEATSHEET.md).
+- Правила написания кода: [CONVENTIONS.md](template/CONVENTIONS.md).
+- Практика clean code и design principles: [CLEAN-CODE.md](template/CLEAN-CODE.md) и
+  [DESIGN-PRINCIPLES.md](template/DESIGN-PRINCIPLES.md).
 
 ### Stack
 

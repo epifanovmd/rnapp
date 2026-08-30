@@ -88,14 +88,14 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
 
 ## Где читать
 
-- **Архитектура**: [`ARCHITECTURE.md`](ARCHITECTURE.md) — FSD, зависимости, naming, DI, state,
+- **Архитектура**: [`ARCHITECTURE.md`](template/ARCHITECTURE.md) — FSD, зависимости, naming, DI, state,
   HTTP/auth, socket, ESLint.
-- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](FSD-CHEATSHEET.md) — выбор слоя, сегменты,
+- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](template/FSD-CHEATSHEET.md) — выбор слоя, сегменты,
   public API и checklist.
-- **Конвенции**: [`CONVENTIONS.md`](CONVENTIONS.md) — naming, компоненты, imports, TypeScript,
+- **Конвенции**: [`CONVENTIONS.md`](template/CONVENTIONS.md) — naming, компоненты, imports, TypeScript,
   hooks, комментарии, тесты и проверки.
-- **Clean code**: [`CLEAN-CODE.md`](CLEAN-CODE.md) и
-  [`DESIGN-PRINCIPLES.md`](DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
+- **Clean code**: [`CLEAN-CODE.md`](template/CLEAN-CODE.md) и
+  [`DESIGN-PRINCIPLES.md`](template/DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
 - Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
 - UI-кит: `.claude/memory/project_components.md`
 - Экраны / навигация: `.claude/memory/project_screens.md`
