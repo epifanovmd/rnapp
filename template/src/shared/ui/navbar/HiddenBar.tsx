@@ -1,4 +1,5 @@
 import { useBarHeight } from "@shared/lib/bars";
+import { useLayout } from "@shared/lib/hooks";
 import { useTheme } from "@shared/lib/theme";
 import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
@@ -26,7 +27,7 @@ const HiddenBarRoot = ({
 }: CompoundRootProps<IHiddenNavbarProps, typeof hiddenBarSlots>) => {
   const { safeArea, style, ...rest } = props;
   const { colors } = useTheme();
-  const [contentHeight, setContentHeight] = useState(0);
+  const { height: contentHeight, onLayout } = useLayout();
   const navbar = useNavbar();
   const barHeight = useBarHeight(navbar);
   const { offset } = navbar;
@@ -53,9 +54,6 @@ const HiddenBarRoot = ({
   }, [top, hiddenHeight]);
 
   const backgroundColor = colors.background;
-  const onLayout = useCallback((e: LayoutChangeEvent) => {
-    setContentHeight(e.nativeEvent.layout.height);
-  }, []);
 
   return (
     <View

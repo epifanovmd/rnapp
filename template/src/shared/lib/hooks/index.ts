@@ -5,5 +5,7 @@ export * from "./use-crossfade";
 export * from "./use-dimensions";
 export * from "./use-freezable-value";
 export * from "./use-latest-ref";
+export * from "./use-layout";
 export * from "./use-merge-callback";
 export * from "./use-shallow-stable";
+export * from "./use-shared-layout";

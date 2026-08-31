@@ -2,7 +2,7 @@ import { IUserStore } from "@entities/user";
 import { useBiometric } from "@features/biometric";
 import { SignOutButton } from "@features/sign-out";
 import { useInterpolatedValue } from "@shared/lib/animation";
-import { useRoute } from "@shared/lib/navigation";
+import { useLayout } from "@shared/lib/hooks";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import {
@@ -15,7 +15,7 @@ import {
   SwitchTheme,
   Text,
 } from "@shared/ui";
-import { useTabBarHeight, useTabBarScrollSync } from "@widgets/app-shell";
+import { useTabBarHeight } from "@widgets/app-shell";
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
@@ -32,11 +32,7 @@ export const Settings: FC = observer(() => {
   const tabBarHeight = useTabBarHeight();
   const telemetry = useScrollTelemetry();
 
-  useTabBarScrollSync(telemetry);
-  const [navbarLayoutHeight, setNavbarLayoutHeight] = useState(0);
-  const onLayoutNavBar = useCallback((event: LayoutChangeEvent) => {
-    setNavbarLayoutHeight(event.nativeEvent.layout.height);
-  }, []);
+  const { height: navbarLayoutHeight, onLayout: onLayoutNavBar } = useLayout();
   const { support, registration, available, onRemoveBiometric } =
     useBiometric();
   const insets = useSafeAreaInsets();
