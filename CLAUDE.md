@@ -55,9 +55,18 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 
 ## Документация
 
-- Обновлять только если изменился архитектурный факт.
-- Писать новое состояние, не описывать «что и когда изменилось».
-- Только сухие факты: архитектура, структура, важные решения.
+Проектная документация (`README.md`, `template/ARCHITECTURE.md`,
+`template/FSD-CHEATSHEET.md`, `template/CONVENTIONS.md`, `template/CLEAN-CODE.md`,
+`template/DESIGN-PRINCIPLES.md`) описывает **общие принципы, архитектуру и структуру** —
+без описания конкретных экранов, слайсов, модулей и имён.
+
+**Не редактировать эти документы без явной просьбы пользователя.** Даже если задача
+изменила архитектурный факт или общее правило — сообщить об этом и оставить правку
+документации отдельной задачей. Не добавлять в них проектную конкретику (имена экранов,
+слайсов, компонентов, сторов, файлов) — она живёт в `.claude/memory/`.
+
+Если правка документации запрошена явно: писать новое состояние, а не историю
+изменений; только сухие факты — архитектура, структура, важные решения.
 
 ## Команды (из `template/`)
 
@@ -88,14 +97,19 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
 
 ## Где читать
 
-- **Архитектура**: [`ARCHITECTURE.md`](template/ARCHITECTURE.md) — FSD, зависимости, naming, DI, state,
-  HTTP/auth, socket, ESLint.
-- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](template/FSD-CHEATSHEET.md) — выбор слоя, сегменты,
-  public API и checklist.
-- **Конвенции**: [`CONVENTIONS.md`](template/CONVENTIONS.md) — naming, компоненты, imports, TypeScript,
-  hooks, комментарии, тесты и проверки.
+Общие принципы (без проектной конкретики):
+
+- **Архитектура**: [`ARCHITECTURE.md`](template/ARCHITECTURE.md) — FSD, зависимости,
+  public API, навигация, state, DI, HTTP/сессия, ошибки, нативный слой, автопроверки.
+- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](template/FSD-CHEATSHEET.md) — выбор слоя,
+  сегменты, public API и checklist.
+- **Конвенции**: [`CONVENTIONS.md`](template/CONVENTIONS.md) — naming, компоненты,
+  imports, TypeScript, hooks, стили, комментарии, тесты и проверки.
 - **Clean code**: [`CLEAN-CODE.md`](template/CLEAN-CODE.md) и
   [`DESIGN-PRINCIPLES.md`](template/DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
+
+Конкретика проекта (проверенные факты, gotcha, точные файловые карты):
+
 - Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
 - UI-кит: `.claude/memory/project_components.md`
 - Экраны / навигация: `.claude/memory/project_screens.md`

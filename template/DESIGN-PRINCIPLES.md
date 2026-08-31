@@ -48,7 +48,7 @@
 
 Потребитель зависит только от нужной части API.
 
-Вместо одного большого `NotificationSystem` могут существовать:
+Вместо одного большого интерфейса, обслуживающего разных потребителей, могут существовать:
 
 ```ts
 interface NotificationService {
@@ -103,14 +103,14 @@ interface NotificationStore {
 | Успех и ошибка ожидаемы         | Result               | Оба исхода являются нормальным потоком       |
 | UI собирается из частей         | Composition / Slots  | Части должны заменяться независимо           |
 
-## Практический пример: notifications
+## Практический пример: инфраструктурный модуль
 
 Чистое разделение:
 
 ```text
 NotificationService  — публичные операции
 NotificationStore    — состояние и подписки UI
-Library adapter      — react-hot-toast / native host
+Library adapter      — адаптер внешней библиотеки/платформы
 Provider or Host     — подключение в composition root
 Feature              — вызывает контракт, не знает библиотеку
 ```
