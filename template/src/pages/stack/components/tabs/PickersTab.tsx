@@ -1,10 +1,10 @@
-import { useTransition } from "@shared/lib/transition";
 import {
   Button,
   Col,
   DatePicker,
   RangePicker,
   TimePicker,
+  useNavbarHeight,
   YearRangePicker,
 } from "@shared/ui";
 import React, { FC, memo } from "react";
@@ -12,10 +12,10 @@ import React, { FC, memo } from "react";
 import { ComponentsTabProps } from "../components.types";
 
 export const PickersTab: FC<ComponentsTabProps> = memo(({ route }) => {
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
 
   return (
-    <Col ph={16} gap={8} pt={navbar.height}>
+    <Col ph={16} gap={8} pt={navbarHeight}>
       <RangePicker items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>
         <Button>{"Range picker"}</Button>
       </RangePicker>

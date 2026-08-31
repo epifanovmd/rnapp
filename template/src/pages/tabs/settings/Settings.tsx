@@ -1,10 +1,10 @@
 import { IUserStore } from "@entities/user";
 import { useBiometric } from "@features/biometric";
 import { SignOutButton } from "@features/sign-out";
+import { useInterpolatedValue } from "@shared/lib/animation";
 import { useRoute } from "@shared/lib/navigation";
-import { useScrollTelemetry } from "@shared/lib/scroll";
+import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
-import { useTransition } from "@shared/lib/transition";
 import {
   Col,
   Container,
@@ -15,15 +15,12 @@ import {
   SwitchTheme,
   Text,
 } from "@shared/ui";
+import { useTabBarHeight, useTabBarScrollSync } from "@widgets/app-shell";
 import { User } from "lucide-react-native";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet } from "react-native";
-import Animated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AnimatedCol = Animated.createAnimatedComponent(Col);
@@ -31,10 +28,11 @@ const AnimatedCol = Animated.createAnimatedComponent(Col);
 const height = 250;
 
 export const Settings: FC = observer(() => {
-  const { name } = useRoute();
   const { user } = IUserStore.useInstance();
-  const { tabBar } = useTransition();
+  const tabBarHeight = useTabBarHeight();
   const telemetry = useScrollTelemetry();
+
+  useTabBarScrollSync(telemetry);
   const [navbarLayoutHeight, setNavbarLayoutHeight] = useState(0);
   const onLayoutNavBar = useCallback((event: LayoutChangeEvent) => {
     setNavbarLayoutHeight(event.nativeEvent.layout.height);
@@ -46,107 +44,112 @@ export const Settings: FC = observer(() => {
 
   const navbarHeight = navbarLayoutHeight + insets.top;
 
-  const animatedStyles = useAnimatedStyle(() => {
-    return {
-      height: interpolate(
-        telemetry.offsetY.value,
-        [0, height - navbarHeight],
-        [height, navbarHeight],
-        Extrapolation.CLAMP,
-      ),
-    };
-  });
+  const headerHeight = useInterpolatedValue(
+    telemetry.offsetY,
+    [0, height - navbarHeight],
+    [height, navbarHeight],
+  );
+  const avatarSize = useInterpolatedValue(
+    telemetry.offsetY,
+    [0, height - navbarHeight],
+    [100, 0],
+  );
+  const avatarOpacity = useInterpolatedValue(
+    telemetry.offsetY,
+    [0, height / 3, height],
+    [1, 0, 0],
+  );
 
-  const animatedAvatarStyles = useAnimatedStyle(() => {
-    const size = interpolate(
-      telemetry.offsetY.value,
-      [0, height - navbarHeight],
-      [100, 0],
-      Extrapolation.CLAMP,
-    );
+  const animatedStyles = useAnimatedStyle(() => ({
+    height: headerHeight.value,
+  }));
 
-    return {
-      height: size,
-      width: size,
-      opacity: interpolate(
-        telemetry.offsetY.value,
-        [0, height / 3, height],
-        [1, 0, 0],
-        Extrapolation.CLAMP,
-      ),
-    };
-  });
+  const animatedAvatarStyles = useAnimatedStyle(() => ({
+    height: avatarSize.value,
+    width: avatarSize.value,
+    opacity: avatarOpacity.value,
+  }));
 
   return (
-    <Container>
-      <Content>
-        <AnimatedCol
-          style={animatedStyles}
-          zIndex={9999}
-          absolute
-          left={0}
-          right={0}
-          centerContent={true}
-          pt={insets.top}
-          bottomRadius={24}
-          bg={"surface"}
-          pointerEvents={"none"}
-        >
-          <Col alignItems={"center"}>
-            <AnimatedCol
-              style={animatedAvatarStyles}
-              circle={80}
-              overflow={"hidden"}
-              centerContent={true}
-              bg={"onSurface"}
-            >
-              <User color={colors.textPrimary} />
-            </AnimatedCol>
+    <ScrollProvider telemetry={telemetry}>
+      <Container>
+        <Content>
+          <AnimatedCol
+            style={animatedStyles}
+            zIndex={9999}
+            absolute
+            left={0}
+            right={0}
+            centerContent={true}
+            pt={insets.top}
+            bottomRadius={24}
+            bg={"surface"}
+            pointerEvents={"none"}
+          >
+            <Col alignItems={"center"}>
+              <AnimatedCol
+                style={animatedAvatarStyles}
+                circle={80}
+                overflow={"hidden"}
+                centerContent={true}
+                bg={"onSurface"}
+              >
+                <User color={colors.textPrimary} />
+              </AnimatedCol>
 
-            <Navbar
-              title={user?.email ?? undefined}
-              transparent={true}
-              onLayout={onLayoutNavBar}
-            />
-          </Col>
-        </AnimatedCol>
+              <Navbar
+                title={user?.email ?? undefined}
+                transparent={true}
+                onLayout={onLayoutNavBar}
+              />
+            </Col>
+          </AnimatedCol>
 
-        <Animated.ScrollView
-          onScroll={telemetry.scrollHandler}
-          scrollEventThrottle={16}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: tabBar.height },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <Col bg={"surface"} radius={16}>
-            <Row alignItems={"center"} justifyContent={"space-between"} pa={16}>
-              <Text textStyle={"Title_S1"}>{"Тема"}</Text>
-              <SwitchTheme />
-            </Row>
+          <Animated.ScrollView
+            onScroll={telemetry.scrollHandler}
+            scrollEventThrottle={16}
+            contentContainerStyle={[
+              styles.content,
+              { paddingBottom: tabBarHeight },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <Col bg={"surface"} radius={16}>
+              <Row
+                alignItems={"center"}
+                justifyContent={"space-between"}
+                pa={16}
+              >
+                <Text textStyle={"Title_S1"}>{"Тема"}</Text>
+                <SwitchTheme />
+              </Row>
 
-            <Row alignItems={"center"} justifyContent={"space-between"} pa={16}>
-              <Text textStyle={"Title_S1"}>{"Подключить Face ID"}</Text>
-              {support && (
-                <Switch
-                  isActive={available}
-                  onChange={active =>
-                    active ? registration() : onRemoveBiometric()
-                  }
-                />
-              )}
-            </Row>
-          </Col>
+              <Row
+                alignItems={"center"}
+                justifyContent={"space-between"}
+                pa={16}
+              >
+                <Text textStyle={"Title_S1"}>{"Подключить Face ID"}</Text>
+                {support && (
+                  <Switch
+                    isActive={available}
+                    onChange={active =>
+                      active ? registration() : onRemoveBiometric()
+                    }
+                  />
+                )}
+              </Row>
+            </Col>
 
-          <Col bg={"surface"} radius={16}>
-            <Row centerContent={true} pa={16}>
-              <SignOutButton />
-            </Row>
-          </Col>
-        </Animated.ScrollView>
-      </Content>
-    </Container>
+            <Col bg={"surface"} radius={16}>
+              <Row centerContent={true} pa={16}>
+                <SignOutButton />
+              </Row>
+            </Col>
+          </Animated.ScrollView>
+        </Content>
+      </Container>
+    </ScrollProvider>
   );
 });
 

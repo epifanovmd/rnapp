@@ -3,8 +3,7 @@ import {
   MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
-import { useBarScrollSync, useTransition } from "@shared/lib/transition";
-import { HiddenBar, Navbar } from "@shared/ui";
+import { HiddenBar, Navbar, useNavbar, useNavbarScrollSync } from "@shared/ui";
 import { Tabs } from "@shared/ui/tabs";
 import React, { FC } from "react";
 
@@ -56,10 +55,10 @@ interface IComponentsNavigatorProps {
 export const ComponentsNavigator: FC<IComponentsNavigatorProps> = ({
   initialRouteName,
 }) => {
-  const { navbar } = useTransition();
+  const navbar = useNavbar();
   const telemetry = useScrollTelemetry();
 
-  useBarScrollSync(telemetry, navbar, { mode: "follow" });
+  useNavbarScrollSync(telemetry);
 
   return (
     <ScrollProvider telemetry={telemetry}>

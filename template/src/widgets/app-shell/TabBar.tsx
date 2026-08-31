@@ -1,9 +1,8 @@
 import { BlurView } from "@react-native-community/blur";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@shared/lib/theme";
-import { useTransition } from "@shared/lib/transition";
 import { Text, Touchable } from "@shared/ui";
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { LayoutChangeEvent, StyleSheet } from "react-native";
 import Animated, {
   interpolate,
@@ -12,6 +11,8 @@ import Animated, {
   withDelay,
   withTiming,
 } from "react-native-reanimated";
+
+import { useTabBar } from "./tab-bar";
 
 export const TabBar = memo<BottomTabBarProps>(
   ({
@@ -23,10 +24,10 @@ export const TabBar = memo<BottomTabBarProps>(
     const [width, setWidth] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
     const animatedIndex = useSharedValue(index);
-    const { tabBar } = useTransition();
+    const tabBar = useTabBar();
     const { isLight } = useTheme();
 
-    React.useEffect(() => {
+    useEffect(() => {
       tabBar.show();
       animatedIndex.set(index);
 
@@ -81,18 +82,17 @@ export const TabBar = memo<BottomTabBarProps>(
       [bottom, tabBar],
     );
 
-    const as = useAnimatedStyle(() => {
-      return {
-        transform: [
-          {
-            translateY: tabBar.offset.value,
-          },
-        ],
-      };
-    });
+    const { offset } = tabBar;
+
+    const hideStyle = useAnimatedStyle(() => ({
+      transform: [{ translateY: offset.value }],
+    }));
 
     return (
-      <Animated.View style={[SS.container, { bottom }, as]} onLayout={onLayout}>
+      <Animated.View
+        style={[SS.container, { bottom }, hideStyle]}
+        onLayout={onLayout}
+      >
         <BlurView
           style={StyleSheet.absoluteFill}
           blurType={"dark"}

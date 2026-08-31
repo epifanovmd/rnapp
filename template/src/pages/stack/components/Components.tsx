@@ -1,5 +1,5 @@
 import { ScreenProps } from "@shared/lib/navigation";
-import { TransitionProvider } from "@shared/lib/transition";
+import { NavbarProvider } from "@shared/ui";
 import React, { FC, memo } from "react";
 
 import { ComponentsTabName } from "./components.types";
@@ -11,8 +11,8 @@ type ComponentsScreenProps = ScreenProps<
 
 export const Components: FC<ComponentsScreenProps> = memo(({ route }) => {
   return (
-    <TransitionProvider>
+    <NavbarProvider>
       <ComponentsNavigator initialRouteName={route.params?.initialRouteName} />
-    </TransitionProvider>
+    </NavbarProvider>
   );
 });

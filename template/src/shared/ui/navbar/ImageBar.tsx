@@ -1,18 +1,17 @@
-import { useScroll } from "@shared/lib/scroll";
+import { useInterpolatedValue } from "@shared/lib/animation";
+import { useBarHeight } from "@shared/lib/bars";
+import { useScrollOffsetY } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
-import { useTransition } from "@shared/lib/transition";
 import React from "react";
 import { StyleSheet, ViewProps } from "react-native";
 import Animated, {
   Extrapolation,
-  interpolate,
   useAnimatedStyle,
-  useSharedValue,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import absoluteFill = StyleSheet.absoluteFill;
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { useNavbar } from "./navbar-bar";
 
 export interface IImageBarProps extends ViewProps {
   uri?: string;
@@ -39,37 +38,38 @@ const ImageBarRoot = ({
     ...rest
   } = props;
   const { colors } = useTheme();
-  const { navbar } = useTransition();
-  const { height: navbarHeight, onLayout: onLayoutNavBar } = navbar;
-  const staticOffsetY = useSharedValue(0);
-  // вне ScrollProvider бар остаётся статичным
-  const scrollY = useScroll()?.offsetY ?? staticOffsetY;
+  const navbar = useNavbar();
+  const barHeight = useBarHeight(navbar);
+  // вне ScrollProvider офсет константный — бар остаётся статичным
+  const scrollY = useScrollOffsetY();
   const insets = useSafeAreaInsets();
   const { image } = slots;
 
   const top = safeArea ? insets.top : 0;
 
-  const animatedStyles = useAnimatedStyle(() => {
-    return {
-      height: interpolate(
-        scrollY.value,
-        [0, height - navbarHeight, height - navbarHeight],
-        [height, navbarHeight, navbarHeight],
-      ),
-      opacity: interpolate(
-        scrollY.value,
-        [0, (height - navbarHeight) / 2, height - navbarHeight],
-        [1, 1, activeScrollOpacity],
-        Extrapolation.CLAMP,
-      ),
-    };
-  }, [navbarHeight, activeScrollOpacity]);
+  // EXTEND сверху: на bounce картинка растягивается, как у нативного хедера
+  const imageHeight = useInterpolatedValue(
+    scrollY,
+    [0, height - barHeight, height - barHeight],
+    [height, barHeight, barHeight],
+    Extrapolation.EXTEND,
+  );
+  const imageOpacity = useInterpolatedValue(
+    scrollY,
+    [0, (height - barHeight) / 2, height - barHeight],
+    [1, 1, activeScrollOpacity],
+  );
+
+  const animatedStyles = useAnimatedStyle(() => ({
+    height: imageHeight.value,
+    opacity: imageOpacity.value,
+  }));
 
   const backgroundColor = colors.background;
 
   return (
     <Animated.View
-      onLayout={onLayoutNavBar}
+      onLayout={navbar.onLayout}
       style={[
         StyleSheet.absoluteFill,
         SS.containerStyle,

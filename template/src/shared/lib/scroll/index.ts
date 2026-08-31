@@ -1,5 +1,7 @@
 export * from "./scroll.types";
 export * from "./scroll-context";
+export * from "./scroll-metrics";
 export * from "./ScrollProvider";
 export * from "./use-scroll";
+export * from "./use-scroll-offset";
 export * from "./use-scroll-telemetry";

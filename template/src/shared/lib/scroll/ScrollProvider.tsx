@@ -7,7 +7,7 @@ interface IProps {
   telemetry: IScrollTelemetry;
 }
 
-/** Пробрасывает телеметрию скролла экрана глубоким потребителям (бары, табы). */
+/** Пробрасывает телеметрию скролла экрана вглубь: барам, хедерам, табам. */
 export const ScrollProvider: FC<PropsWithChildren<IProps>> = ({
   telemetry,
   children,

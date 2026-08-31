@@ -30,6 +30,8 @@ export interface IScrollTelemetry {
   overscrollTop: SharedValue<number>;
   /** Overscroll за нижней границей, ≥ 0 */
   overscrollBottom: SharedValue<number>;
+  /** Максимально возможный offsetY (высота контента минус высота окна) */
+  maxOffsetY: SharedValue<number>;
   /** Готовый обработчик для onScroll скроллящегося компонента */
   scrollHandler: ScrollHandlerProcessed;
   /** Те же worklet-обработчики — для ручной композиции */

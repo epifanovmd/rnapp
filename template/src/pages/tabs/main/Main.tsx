@@ -2,8 +2,17 @@ import { useRoute } from "@shared/lib/navigation";
 import { usePullToRefreshScroll } from "@shared/lib/pull-to-refresh";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
-import { useBarsScrollSync, useTransition } from "@shared/lib/transition";
-import { Col, Content, ImageBar, Navbar, Text, Touchable } from "@shared/ui";
+import {
+  Col,
+  Content,
+  ImageBar,
+  Navbar,
+  Text,
+  Touchable,
+  useNavbarHeight,
+  useNavbarScrollSync,
+} from "@shared/ui";
+import { useTabBarHeight, useTabBarScrollSync } from "@widgets/app-shell";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback } from "react";
 import { StyleSheet } from "react-native";
@@ -18,12 +27,14 @@ const armedHaptic = () => trigger("impactMedium");
 
 export const Main: FC = observer(() => {
   const { name } = useRoute();
-  const { navbar, tabBar } = useTransition();
+  const navbarHeight = useNavbarHeight();
+  const tabBarHeight = useTabBarHeight();
   const { colors } = useTheme();
 
   const telemetry = useScrollTelemetry();
 
-  useBarsScrollSync(telemetry);
+  useNavbarScrollSync(telemetry);
+  useTabBarScrollSync(telemetry);
 
   const onRefresh = useCallback(
     () => new Promise(resolve => setTimeout(resolve, 1500)),
@@ -61,7 +72,7 @@ export const Main: FC = observer(() => {
         </ImageBar>
 
         <Content>
-          <RefreshIndicator controller={ptr} topOffset={navbar.height} />
+          <RefreshIndicator controller={ptr} topOffset={navbarHeight} />
 
           <GestureDetector gesture={ptr.gesture}>
             <Animated.FlatList
@@ -71,7 +82,7 @@ export const Main: FC = observer(() => {
               scrollEventThrottle={16}
               contentContainerStyle={[
                 styles.content,
-                { paddingBottom: tabBar.height },
+                { paddingBottom: tabBarHeight },
               ]}
               showsVerticalScrollIndicator={false}
               ItemSeparatorComponent={() => <Col height={8} />}

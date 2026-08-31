@@ -10,6 +10,12 @@ import {
   IScrollWorkletHandlers,
   TScrollDirection,
 } from "./scroll.types";
+import {
+  resolveDirection,
+  resolveMaxOffset,
+  resolveOverscrollBottom,
+  resolveOverscrollTop,
+} from "./scroll-metrics";
 
 /**
  * Создаёт телеметрию скролла: один scroll-хендлер, который ведёт shared values
@@ -29,31 +35,31 @@ export const useScrollTelemetry = (
   const direction = useSharedValue<TScrollDirection>(null);
   const overscrollTop = useSharedValue(0);
   const overscrollBottom = useSharedValue(0);
+  const maxOffsetY = useSharedValue(0);
 
   const handlers = useMemo<IScrollWorkletHandlers>(
     () => ({
       onScroll: (event: NativeScrollEvent) => {
         "worklet";
         const { x, y } = event.contentOffset;
-        const prevX = offsetX.value;
-        const prevY = offsetY.value;
+        const maxY = resolveMaxOffset(
+          event.contentSize.height,
+          event.layoutMeasurement.height,
+        );
 
-        if (y !== prevY) {
-          direction.value = y > prevY ? "down" : "up";
-        } else if (x !== prevX) {
-          direction.value = x > prevX ? "right" : "left";
-        }
+        direction.value = resolveDirection(
+          x,
+          y,
+          offsetX.value,
+          offsetY.value,
+          direction.value,
+        );
 
         offsetX.value = x;
         offsetY.value = y;
-
-        const maxY = Math.max(
-          0,
-          event.contentSize.height - event.layoutMeasurement.height,
-        );
-
-        overscrollTop.value = Math.max(0, -y);
-        overscrollBottom.value = Math.max(0, y - maxY);
+        maxOffsetY.value = maxY;
+        overscrollTop.value = resolveOverscrollTop(y);
+        overscrollBottom.value = resolveOverscrollBottom(y, maxY);
 
         external?.onScroll?.(event);
       },
@@ -94,6 +100,7 @@ export const useScrollTelemetry = (
       direction,
       overscrollTop,
       overscrollBottom,
+      maxOffsetY,
       scrollHandler,
       handlers,
     }),

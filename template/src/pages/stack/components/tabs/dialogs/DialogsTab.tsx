@@ -1,6 +1,12 @@
 import { useScroll } from "@shared/lib/scroll";
-import { useTransition } from "@shared/lib/transition";
-import { Button, Dialog, IDialogProps, Text, useDialogRef } from "@shared/ui";
+import {
+  Button,
+  Dialog,
+  IDialogProps,
+  Text,
+  useDialogRef,
+  useNavbarHeight,
+} from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -71,7 +77,7 @@ const DIALOG_VARIANTS: IDialogVariant[] = [
 
 export const DialogsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
   const scroll = useScroll();
 
   const imperativeRef = useDialogRef();
@@ -90,7 +96,7 @@ export const DialogsTab = memo(() => {
       <Animated.ScrollView
         contentContainerStyle={[
           SS.container,
-          { paddingBottom: bottom + 16, paddingTop: navbar.height },
+          { paddingBottom: bottom + 16, paddingTop: navbarHeight },
         ]}
         onScroll={scroll?.scrollHandler}
         scrollEventThrottle={16}

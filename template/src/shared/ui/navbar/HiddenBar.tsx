@@ -1,5 +1,5 @@
+import { useBarHeight } from "@shared/lib/bars";
 import { useTheme } from "@shared/lib/theme";
-import { useTransition } from "@shared/lib/transition";
 import React, { useCallback, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {
@@ -9,6 +9,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { useNavbar } from "./navbar-bar";
 
 export interface IHiddenNavbarProps extends ViewProps {
   safeArea?: boolean;
@@ -26,24 +27,22 @@ const HiddenBarRoot = ({
   const { safeArea, style, ...rest } = props;
   const { colors } = useTheme();
   const [contentHeight, setContentHeight] = useState(0);
-  const { navbar } = useTransition();
-  const {
-    height: navbarHeight,
-    onLayout: onLayoutNavBar,
-    offset: navbarOffset,
-  } = navbar;
+  const navbar = useNavbar();
+  const barHeight = useBarHeight(navbar);
+  const { offset } = navbar;
   const insets = useSafeAreaInsets();
   const { stickyContent } = slots;
 
   const top = safeArea ? insets.top : 0;
 
-  const navHeight = navbarHeight - (stickyContent.present ? contentHeight : 0);
+  // sticky-часть остаётся на экране: прячется только то, что над ней
+  const hiddenHeight = barHeight - (stickyContent.present ? contentHeight : 0);
 
   const animatedStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
-      navbarOffset.value,
-      [navHeight, 0],
-      [-navHeight, 0],
+      offset.value,
+      [hiddenHeight, 0],
+      [-hiddenHeight, 0],
       "clamp",
     );
 
@@ -51,7 +50,7 @@ const HiddenBarRoot = ({
       top,
       transform: [{ translateY }],
     };
-  }, [top, navHeight]);
+  }, [top, hiddenHeight]);
 
   const backgroundColor = colors.background;
   const onLayout = useCallback((e: LayoutChangeEvent) => {
@@ -67,7 +66,7 @@ const HiddenBarRoot = ({
         <View style={[styles.overlay, { backgroundColor, paddingTop: top }]} />
       )}
       <Animated.View
-        onLayout={onLayoutNavBar}
+        onLayout={navbar.onLayout}
         style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
       >
         {content}

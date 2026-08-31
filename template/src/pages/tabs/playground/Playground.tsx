@@ -1,13 +1,13 @@
 import { useNavigation, useRoute } from "@shared/lib/navigation";
-import { useTransition } from "@shared/lib/transition";
 import { Button, Container, Content, Navbar, ScrollView } from "@shared/ui";
+import { useTabBarHeight } from "@widgets/app-shell";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
 export const Playground: FC = observer(() => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { tabBar } = useTransition();
+  const tabBarHeight = useTabBarHeight();
 
   return (
     <Container edges={["top"]}>
@@ -16,7 +16,7 @@ export const Playground: FC = observer(() => {
       </Navbar>
       <ScrollView
         contentContainerStyle={{
-          paddingBottom: tabBar.height,
+          paddingBottom: tabBarHeight,
         }}
       >
         <Content>

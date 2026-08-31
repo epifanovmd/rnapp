@@ -3,15 +3,17 @@ import { Main } from "@pages/tabs/main";
 import { Playground } from "@pages/tabs/playground";
 import { Settings } from "@pages/tabs/settings";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { TransitionProvider } from "@shared/lib/transition";
-import { TabBar } from "@widgets/app-shell";
+import { NavbarProvider } from "@shared/ui";
+import { TabBar, TabBarProvider } from "@widgets/app-shell";
 import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import React, { PropsWithChildren } from "react";
 import { Platform } from "react-native";
 
-/** Layout экрана Tabs корневого стека: общие navbar/tabBar-бары для всех табов. */
+/** Layout экрана Tabs корневого стека: общие панели для всех табов. */
 export const MainTabsLayout = ({ children }: PropsWithChildren) => (
-  <TransitionProvider>{children}</TransitionProvider>
+  <NavbarProvider>
+    <TabBarProvider>{children}</TabBarProvider>
+  </NavbarProvider>
 );
 
 /** Static-конфиг нижних табов (экран `Tabs` корневого стека). */

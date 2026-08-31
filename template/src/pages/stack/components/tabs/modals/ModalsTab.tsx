@@ -1,6 +1,11 @@
 import { useScroll } from "@shared/lib/scroll";
-import { useTransition } from "@shared/lib/transition";
-import { BottomSheet, Button, Text, useBottomSheetStack } from "@shared/ui";
+import {
+  BottomSheet,
+  Button,
+  Text,
+  useBottomSheetStack,
+  useNavbarHeight,
+} from "@shared/ui";
 import React, { memo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -53,7 +58,7 @@ const SHEET_VARIANTS: ISheetVariant[] = [
 
 export const ModalsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
   const scroll = useScroll();
 
   const sheetRefs = useRef<Record<string, BottomSheet | null>>({});
@@ -67,7 +72,7 @@ export const ModalsTab = memo(() => {
       <Animated.ScrollView
         contentContainerStyle={[
           SS.container,
-          { paddingBottom: bottom + 16, paddingTop: navbar.height },
+          { paddingBottom: bottom + 16, paddingTop: navbarHeight },
         ]}
         onScroll={scroll?.scrollHandler}
         scrollEventThrottle={16}

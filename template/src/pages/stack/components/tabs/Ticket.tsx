@@ -1,5 +1,4 @@
-import { useTransition } from "@shared/lib/transition";
-import { Col, ScrollView, Ticket } from "@shared/ui";
+import { Col, ScrollView, Ticket, useNavbarHeight } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -19,7 +18,7 @@ const data = {
 };
 
 export const TicketTab: FC<ComponentsTabProps> = memo(({ route }) => {
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
   const topContent = (
     <View>
       <Text style={styles.title}>ЭЛЕКТРОННЫЙ БИЛЕТ</Text>
@@ -77,7 +76,7 @@ export const TicketTab: FC<ComponentsTabProps> = memo(({ route }) => {
   );
 
   return (
-    <ScrollView ph={16} gap={8} pt={navbar.height}>
+    <ScrollView ph={16} gap={8} pt={navbarHeight}>
       <Ticket topContent={topContent} bottomContent={bottomContent} />
     </ScrollView>
   );

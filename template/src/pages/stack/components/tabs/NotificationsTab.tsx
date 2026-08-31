@@ -1,8 +1,7 @@
 import notifee from "@notifee/react-native";
 import { useNotifications } from "@shared/lib/notifications";
 import { useTheme } from "@shared/lib/theme";
-import { useTransition } from "@shared/lib/transition";
-import { Button, Col } from "@shared/ui";
+import { Button, Col, useNavbarHeight } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -10,7 +9,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const NotificationsTab: FC = memo(() => {
   const notifications = useNotifications();
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
   const { colors } = useTheme();
 
   const onDisplayNotification = async () => {
@@ -38,7 +37,7 @@ export const NotificationsTab: FC = memo(() => {
   };
 
   return (
-    <Col ph={16} gap={8} pt={navbar.height}>
+    <Col ph={16} gap={8} pt={navbarHeight}>
       <Button title={"info"} onPress={() => notifications.info("Информация")} />
 
       <Button

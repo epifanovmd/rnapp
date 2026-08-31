@@ -1,5 +1,5 @@
 import { useScroll } from "@shared/lib/scroll";
-import { useTransition } from "@shared/lib/transition";
+import { useNavbarHeight } from "@shared/ui";
 import React, { FC, PropsWithChildren } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -8,14 +8,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 /** Скролл-обёртка демо-таба: телеметрия для HiddenBar + отступы под бары. */
 export const DemoScreen: FC<PropsWithChildren> = ({ children }) => {
   const { bottom } = useSafeAreaInsets();
-  const { navbar } = useTransition();
+  const navbarHeight = useNavbarHeight();
   const scroll = useScroll();
 
   return (
     <Animated.ScrollView
       contentContainerStyle={[
         styles.content,
-        { paddingBottom: bottom + 16, paddingTop: navbar.height + 8 },
+        { paddingBottom: bottom + 16, paddingTop: navbarHeight + 8 },
       ]}
       onScroll={scroll?.scrollHandler}
       scrollEventThrottle={16}
