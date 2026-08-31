@@ -74,7 +74,7 @@ export const ModalsTab = memo(() => {
           SS.container,
           { paddingBottom: bottom + 16, paddingTop: navbarHeight },
         ]}
-        onScroll={scroll?.scrollHandler}
+        onScroll={scroll.scrollHandler}
         scrollEventThrottle={16}
       >
         <Text textStyle={"Title_S1"}>{"Настройки листа"}</Text>

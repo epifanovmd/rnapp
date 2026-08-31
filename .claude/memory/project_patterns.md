@@ -24,10 +24,14 @@ type: project
   модуля, кэш по имени темы). Тема: предпочтение `Light | Dark | System` (дефолт System,
   следует схеме ОС), в MMKV сохраняется только явный выбор.
 - Scroll-поведения строятся на телеметрии `shared/lib/scroll/`: `useScrollTelemetry()` —
-  единственный владелец onScroll (offset, direction, drag/momentum, overscroll, maxOffsetY
-  в shared values), чистые вычисления — в `scroll-metrics.ts`, потребители реагируют через
-  `useAnimatedReaction`. `ScrollProvider`/`useScroll` — доступ вглубь экрана (ImageBar,
-  табы), `useScrollOffsetY()` — безопасный офсет: вне скролла константный 0.
+  единственный владелец onScroll (offset, direction, drag/momentum, overscroll, maxOffsetY),
+  чистые вычисления — в `scroll-metrics.ts`, потребители реагируют через `useAnimatedReaction`.
+  Тип разрезан: `IScrollValues` (только shared values, контракт для чтения) и
+  `IScrollTelemetry` (+ scrollHandler/handlers, контракт владельца onScroll).
+  Владение явное: `useScrollTelemetry()` — создать (экран раздаёт вниз через `ScrollProvider`,
+  либо самодостаточный компонент держит телеметрию локально, когда хендлер и анимация
+  в одном месте); `useScroll()` — только потребление, без провайдера кидает ошибку,
+  как `useNavbar`/`useTabBar`.
 - Скрываемые панели: `shared/lib/bars/` — только примитив: `IBar` (offset/height +
   show/hide/snap/shift) на `makeMutable`, `createBarContext(name)` (провайдер + хук на одну
   панель), `useBarHeight(bar)` через `useSyncExternalStore` (высота не в React-state),

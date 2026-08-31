@@ -13,12 +13,11 @@ export interface IScrollWorkletHandlers {
 }
 
 /**
- * Телеметрия скролла — единственный владелец scroll-событий компонента.
- * Любое scroll-зависимое поведение (бары, pull-to-refresh, коллапс-хедеры,
- * параллакс) читает shared values или реагирует через useAnimatedReaction —
- * без конкуренции за onScroll.
+ * Состояние скролла для чтения: любое scroll-зависимое поведение (панели,
+ * pull-to-refresh, коллапс-хедеры, параллакс) читает эти shared values или
+ * реагирует на них через useAnimatedReaction.
  */
-export interface IScrollTelemetry {
+export interface IScrollValues {
   offsetX: SharedValue<number>;
   offsetY: SharedValue<number>;
   /** Палец на экране (между onBeginDrag и onEndDrag) */
@@ -32,6 +31,14 @@ export interface IScrollTelemetry {
   overscrollBottom: SharedValue<number>;
   /** Максимально возможный offsetY (высота контента минус высота окна) */
   maxOffsetY: SharedValue<number>;
+}
+
+/**
+ * Телеметрия скролла — единственный владелец scroll-событий компонента:
+ * значения плюс обработчики, которые их ведут. Владеет ею тот, кто вешает
+ * scrollHandler на скроллящийся компонент.
+ */
+export interface IScrollTelemetry extends IScrollValues {
   /** Готовый обработчик для onScroll скроллящегося компонента */
   scrollHandler: ScrollHandlerProcessed;
   /** Те же worklet-обработчики — для ручной композиции */

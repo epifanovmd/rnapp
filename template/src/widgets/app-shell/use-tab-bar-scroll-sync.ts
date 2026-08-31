@@ -1,5 +1,5 @@
 import { resolveScrollEdge } from "@shared/lib/bars";
-import { IScrollTelemetry } from "@shared/lib/scroll";
+import { IScrollValues } from "@shared/lib/scroll";
 import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 
 import { useTabBar } from "./tab-bar";
@@ -12,11 +12,10 @@ const TOGGLE_THRESHOLD = 12;
  * Поведение таб-панели: прячется и показывается целиком после накопления
  * порога — на отпускании доводить нечего, состояние всегда крайнее.
  */
-export const useTabBarScrollSync = (telemetry: IScrollTelemetry) => {
+export const useTabBarScrollSync = (scroll: IScrollValues) => {
   const tabBar = useTabBar();
-  // по одному значению: захват телеметрии целиком клонировал бы на UI-поток
-  // и её scrollHandler
-  const { offsetY, overscrollTop, overscrollBottom } = telemetry;
+  // по одному значению: захват объекта целиком клонировал бы его на UI-поток
+  const { offsetY, overscrollTop, overscrollBottom } = scroll;
   const accumulated = useSharedValue(0);
 
   useAnimatedReaction(

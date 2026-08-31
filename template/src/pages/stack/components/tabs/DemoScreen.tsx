@@ -17,7 +17,7 @@ export const DemoScreen: FC<PropsWithChildren> = ({ children }) => {
         styles.content,
         { paddingBottom: bottom + 16, paddingTop: navbarHeight + 8 },
       ]}
-      onScroll={scroll?.scrollHandler}
+      onScroll={scroll.scrollHandler}
       scrollEventThrottle={16}
     >
       {children}

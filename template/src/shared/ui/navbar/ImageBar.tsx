@@ -1,6 +1,6 @@
 import { useInterpolatedValue } from "@shared/lib/animation";
 import { useBarHeight } from "@shared/lib/bars";
-import { useScrollOffsetY } from "@shared/lib/scroll";
+import { useScroll } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import React from "react";
 import { StyleSheet, ViewProps } from "react-native";
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { useNavbar } from "./navbar-bar";
 
+/** Схлопывается при скролле, поэтому требует ScrollProvider выше по дереву */
 export interface IImageBarProps extends ViewProps {
   uri?: string;
   height?: number;
@@ -40,8 +41,7 @@ const ImageBarRoot = ({
   const { colors } = useTheme();
   const navbar = useNavbar();
   const barHeight = useBarHeight(navbar);
-  // вне ScrollProvider офсет константный — бар остаётся статичным
-  const scrollY = useScrollOffsetY();
+  const { offsetY: scrollY } = useScroll();
   const insets = useSafeAreaInsets();
   const { image } = slots;
 

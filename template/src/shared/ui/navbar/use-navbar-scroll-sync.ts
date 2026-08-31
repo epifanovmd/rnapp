@@ -1,5 +1,5 @@
 import { resolveScrollEdge } from "@shared/lib/bars";
-import { IScrollTelemetry } from "@shared/lib/scroll";
+import { IScrollValues } from "@shared/lib/scroll";
 import { useAnimatedReaction } from "react-native-reanimated";
 
 import { useNavbar } from "./navbar-bar";
@@ -11,12 +11,11 @@ const MAX_FOLLOW_DELTA = 3;
  * Поведение навигационной панели: следует за скроллом попиксельно и
  * доводится до ближайшего состояния, когда жест и инерция закончились.
  */
-export const useNavbarScrollSync = (telemetry: IScrollTelemetry) => {
+export const useNavbarScrollSync = (scroll: IScrollValues) => {
   const navbar = useNavbar();
-  // по одному значению: захват телеметрии целиком клонировал бы на UI-поток
-  // и её scrollHandler
+  // по одному значению: захват объекта целиком клонировал бы его на UI-поток
   const { offsetY, overscrollTop, overscrollBottom, isDragging, isMomentum } =
-    telemetry;
+    scroll;
 
   useAnimatedReaction(
     () => offsetY.value,
