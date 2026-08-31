@@ -40,7 +40,10 @@ type: project
 - У каждой панели свой слой управления рядом с её UI: навбар — `shared/ui/navbar/`
   (`NavbarProvider`, `useNavbar`, `useNavbarHeight`, `useNavbarScrollSync` — follow + snap),
   таб-бар — `widgets/app-shell/` (`TabBarProvider`, `useTabBar`, `useTabBarHeight`,
-  `useTabBarScrollSync` — toggle через чистый `accumulateToggle`). Экран подключает только
+  `useTabBarScrollSync` — toggle через чистый `accumulateToggle`). Визуал скрытия отделён
+  от поведения: `useTabBarStyle(mode)` — `"slide"` (уезжает вниз) или `"shrink"` (сжимается
+  на месте вместе с иконками), выбор через проп `hideMode` у `<TabBar>`; прогресс скрытия
+  любой панели — `barProgress(offset, height)`. Экран подключает только
   те панели, которые у него есть (пример: `pages/stack/components/` — один `NavbarProvider`).
 - Анимации от значения: `shared/lib/animation/useInterpolatedValue(source, in, out, extrapolation)`
   поверх любого SharedValue (офсет скролла, offset панели); прогресс 0..1 — тот же хук

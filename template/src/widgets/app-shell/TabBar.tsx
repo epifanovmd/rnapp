@@ -13,13 +13,20 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useTabBar } from "./tab-bar";
+import { TTabBarHideMode, useTabBarStyle } from "./use-tab-bar-style";
 
-export const TabBar = memo<BottomTabBarProps>(
+export interface ITabBarProps extends BottomTabBarProps {
+  /** Как панель прячется при скролле (default "slide") */
+  hideMode?: TTabBarHideMode;
+}
+
+export const TabBar = memo<ITabBarProps>(
   ({
     state: { routes, index },
     insets: { bottom },
     navigation,
     descriptors,
+    hideMode,
   }) => {
     const [width, setWidth] = useState(0);
     const [prevIndex, setPrevIndex] = useState(0);
@@ -27,6 +34,7 @@ export const TabBar = memo<BottomTabBarProps>(
     const tabBar = useTabBar();
     const { isLight } = useTheme();
 
+    // переключение таба возвращает панель, не дожидаясь скролла
     useEffect(() => {
       tabBar.show();
       animatedIndex.set(index);
@@ -82,11 +90,7 @@ export const TabBar = memo<BottomTabBarProps>(
       [bottom, tabBar],
     );
 
-    const { offset } = tabBar;
-
-    const hideStyle = useAnimatedStyle(() => ({
-      transform: [{ translateY: offset.value }],
-    }));
+    const hideStyle = useTabBarStyle(hideMode);
 
     return (
       <Animated.View

@@ -19,7 +19,7 @@ export const MainTabsLayout = ({ children }: PropsWithChildren) => (
 /** Static-конфиг нижних табов (экран `Tabs` корневого стека). */
 export const MainTabs = createBottomTabNavigator({
   initialRouteName: "Main",
-  tabBar: props => <TabBar {...props} />,
+  tabBar: props => <TabBar {...props} hideMode={"shrink"} />,
   screenOptions: {
     headerShown: false,
     animation: "shift",

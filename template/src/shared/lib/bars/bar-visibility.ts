@@ -16,3 +16,14 @@ export const snapOffset = (offset: number, height: number): number => {
 
   return offset > height / 2 ? height : 0;
 };
+
+/** Прогресс скрытия: 0 — панель показана, 1 — скрыта */
+export const barProgress = (offset: number, height: number): number => {
+  "worklet";
+
+  if (height <= 0) {
+    return 0;
+  }
+
+  return clampOffset(offset, height) / height;
+};

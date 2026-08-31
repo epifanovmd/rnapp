@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import { resolveScrollEdge } from "@shared/lib/bars";
 import { IScrollValues } from "@shared/lib/scroll";
 import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
@@ -17,6 +18,18 @@ export const useTabBarScrollSync = (scroll: IScrollValues) => {
   // по одному значению: захват объекта целиком клонировал бы его на UI-поток
   const { offsetY, overscrollTop, overscrollBottom } = scroll;
   const accumulated = useSharedValue(0);
+  const isFocused = useIsFocused();
+  const { offset: barOffset } = tabBar;
+
+  useAnimatedReaction(
+    () => barOffset.value === 0,
+    (isShown, wasShown) => {
+      if ((isShown && wasShown === false) || !isFocused) {
+        accumulated.value = 0;
+      }
+    },
+    [isFocused],
+  );
 
   useAnimatedReaction(
     () => offsetY.value,
