@@ -73,6 +73,12 @@ export const InputBar = forwardRef<IInputBarRef, InputBarProps>(
       [],
     );
 
+    const handleFullWidthChange = useCallback(
+      (isFullWidth: boolean) =>
+        propsRef.current.onFullWidthChange?.(isFullWidth),
+      [],
+    );
+
     return (
       <View style={style}>
         <InputBarView
@@ -80,6 +86,7 @@ export const InputBar = forwardRef<IInputBarRef, InputBarProps>(
           mode={mode}
           delegate={delegate}
           onHeightChange={handleHeightChange}
+          onFullWidthChange={handleFullWidthChange}
         />
       </View>
     );

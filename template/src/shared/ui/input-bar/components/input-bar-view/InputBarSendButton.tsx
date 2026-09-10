@@ -20,7 +20,7 @@ interface IInputBarSendButtonProps {
 
 export const InputBarSendButton: FC<IInputBarSendButtonProps> = memo(
   ({ enabled, scale, alpha, onPress }) => {
-    const { styles } = useInputBarSkin();
+    const { colors, styles } = useInputBarSkin();
 
     const animatedStyle = useAnimatedStyle(() => ({
       opacity: alpha.value,
@@ -36,7 +36,7 @@ export const InputBarSendButton: FC<IInputBarSendButtonProps> = memo(
           <InputIcon
             name="arrow.up"
             size={14}
-            color="#FFFFFF"
+            color={colors.inputAccentForeground}
             strokeWidth={2.6}
           />
         </Pressable>

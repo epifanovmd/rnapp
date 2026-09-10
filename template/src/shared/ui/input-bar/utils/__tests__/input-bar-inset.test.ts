@@ -1,4 +1,5 @@
 import {
+  resolveInputBarEdgeInset,
   resolveInputBarInset,
   resolveInputBarOffset,
 } from "../input-bar-inset";
@@ -53,5 +54,62 @@ describe("resolveInputBarInset", () => {
         barHeight: 56,
       }),
     ).toBe(347);
+  });
+});
+
+describe("resolveInputBarEdgeInset", () => {
+  const parts = {
+    keyboardHeight: 291,
+    safeAreaBottom: 34,
+    barHeight: 104,
+    rowHeight: 56,
+  };
+
+  it("с полем в своей колонке край занят только рядом ввода", () => {
+    expect(resolveInputBarEdgeInset({ ...parts, fullWidthProgress: 0 })).toBe(
+      347,
+    );
+  });
+
+  it("с полем на всю ширину край занят всей панелью", () => {
+    expect(resolveInputBarEdgeInset({ ...parts, fullWidthProgress: 1 })).toBe(
+      395,
+    );
+  });
+
+  it("на ходу микрофона край едет между рядом и панелью", () => {
+    expect(resolveInputBarEdgeInset({ ...parts, fullWidthProgress: 0.5 })).toBe(
+      371,
+    );
+  });
+
+  it("без панели ответа обе величины совпадают", () => {
+    expect(
+      resolveInputBarEdgeInset({
+        ...parts,
+        barHeight: 56,
+        fullWidthProgress: 0,
+      }),
+    ).toBe(347);
+  });
+
+  it("ряд не может занять больше самой панели", () => {
+    expect(
+      resolveInputBarEdgeInset({
+        ...parts,
+        barHeight: 40,
+        fullWidthProgress: 0,
+      }),
+    ).toBe(331);
+  });
+
+  it("добавка сверх панели входит в обе величины", () => {
+    expect(
+      resolveInputBarEdgeInset({
+        ...parts,
+        extraPadding: 8,
+        fullWidthProgress: 0,
+      }),
+    ).toBe(355);
   });
 });

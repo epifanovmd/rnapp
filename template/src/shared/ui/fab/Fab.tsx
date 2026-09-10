@@ -3,8 +3,8 @@ import React, { FC, memo } from "react";
 import { Icon, TIconName } from "../icon";
 import { Touchable } from "../touchable";
 
-/** Диаметр кнопки по умолчанию. */
-const FAB_SIZE = 44;
+/** Диаметр кнопки по умолчанию — как у круглых кнопок панели ввода. */
+const FAB_SIZE = 40;
 
 export interface IFabProps {
   icon: TIconName;

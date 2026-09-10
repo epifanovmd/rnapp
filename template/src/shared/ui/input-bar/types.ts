@@ -52,4 +52,9 @@ export interface InputBarProps {
   onRecordingStateChange?: (isRecording: boolean) => void;
   /** Собственная высота панели изменилась (RN задаёт размер сам). */
   onHeightChange?: (height: number) => void;
+  /**
+   * Поле ввода растянулось на всю ширину ряда — микрофон уступил ему место.
+   * По нему кнопки у правого края решают, свободен ли край выше ряда.
+   */
+  onFullWidthChange?: (isFullWidth: boolean) => void;
 }

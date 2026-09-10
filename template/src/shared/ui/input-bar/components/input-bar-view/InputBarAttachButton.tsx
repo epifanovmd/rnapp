@@ -40,7 +40,7 @@ export const InputBarAttachButton: FC<IInputBarAttachButtonProps> = memo(
           <InputIcon
             name={showTrash ? "trash.fill" : "paperclip"}
             size={16}
-            color={showTrash ? colors.inputRecordingCancel : colors.inputTint}
+            color={showTrash ? colors.inputRecordingCancel : colors.inputIcon}
           />
         </Pressable>
       </Animated.View>

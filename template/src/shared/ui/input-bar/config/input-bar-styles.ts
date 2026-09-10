@@ -1,7 +1,9 @@
 import { TextStyle, ViewStyle } from "react-native";
 
+import type { TColorTheme, TThemeName } from "../../../lib/theme";
+import { shadowStyle } from "../../flex-view";
 import { inputTextBase } from "../utils";
-import { IInputBarColors, INPUT_BAR_COLORS } from "./input-bar-colors";
+import { IInputBarColors, inputBarColors } from "./input-bar-colors";
 
 /**
  * Готовые стили панели ввода, собранные один раз на палитру. Метрики —
@@ -38,6 +40,10 @@ const REPLY_SPACING = 8;
 const SEND_INSET = 4;
 const SEND_SIZE = INPUT_BAR_FIELD_MIN_HEIGHT - SEND_INSET * 2;
 
+/** Обводка и тень плавающих поверхностей — те же, что у `Fab`. */
+const SURFACE_BORDER_WIDTH = 1;
+const SURFACE_ELEVATION = 4;
+
 /** Насколько капсула замка выше своей ширины. */
 const LOCK_EXTRA_HEIGHT = 14;
 const LOCK_SIZE = 44;
@@ -53,7 +59,7 @@ export interface IInputBarStyles {
   stack: ViewStyle;
   /** Круглая кнопка по краям панели. */
   roundButton: ViewStyle;
-  /** Она же во время записи: залитая, без обводки. */
+  /** Она же во время записи: залита акцентом. */
   roundButtonActive: ViewStyle;
   field: ViewStyle;
   textInput: TextStyle;
@@ -90,24 +96,26 @@ const createInputBarStyles = (c: IInputBarColors): IInputBarStyles => ({
     gap: 6,
   },
   roundButton: {
+    ...shadowStyle(SURFACE_ELEVATION),
     alignItems: "center",
     justifyContent: "center",
     width: INPUT_BAR_BUTTON_SIZE,
     height: INPUT_BAR_BUTTON_SIZE,
     borderRadius: INPUT_BAR_BUTTON_SIZE / 2,
-    borderWidth: 0.5,
+    borderWidth: SURFACE_BORDER_WIDTH,
     borderColor: c.inputBorder,
     backgroundColor: c.inputBackground,
   },
   roundButtonActive: {
-    borderWidth: 0,
-    backgroundColor: c.inputRecordingMicFill,
+    borderColor: c.inputAccent,
+    backgroundColor: c.inputAccent,
   },
   field: {
+    ...shadowStyle(SURFACE_ELEVATION),
     flex: 1,
     overflow: "visible",
     borderRadius: 20,
-    borderWidth: 0.5,
+    borderWidth: SURFACE_BORDER_WIDTH,
     borderColor: c.inputBorder,
     backgroundColor: c.inputBackground,
   },
@@ -128,7 +136,7 @@ const createInputBarStyles = (c: IInputBarColors): IInputBarStyles => ({
     width: SEND_SIZE,
     height: SEND_SIZE,
     borderRadius: SEND_SIZE / 2,
-    backgroundColor: c.inputRecordingMicFill,
+    backgroundColor: c.inputAccent,
   },
 
   replyWrap: { overflow: "hidden" },
@@ -200,6 +208,7 @@ const createInputBarStyles = (c: IInputBarColors): IInputBarStyles => ({
   // Капсула, а не круг: высота на 14 больше ширины, шеврон прижат
   // к верху, замок центрирован со смещением вниз.
   lockBadge: {
+    ...shadowStyle(SURFACE_ELEVATION),
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
@@ -209,26 +218,38 @@ const createInputBarStyles = (c: IInputBarColors): IInputBarStyles => ({
     width: LOCK_SIZE,
     height: LOCK_SIZE + LOCK_EXTRA_HEIGHT,
     borderRadius: LOCK_SIZE / 2,
+    borderWidth: SURFACE_BORDER_WIDTH,
+    borderColor: c.inputBorder,
     backgroundColor: c.inputLockBackground,
   },
   lockChevron: { position: "absolute", top: 6 },
   lockIconShift: { transform: [{ translateY: 5 }] },
 });
 
-/** Цвета и стили под каждую схему — собраны один раз на модуле. */
-const INPUT_BAR_SKIN = {
-  light: {
-    colors: INPUT_BAR_COLORS.light,
-    styles: createInputBarStyles(INPUT_BAR_COLORS.light),
-  },
-  dark: {
-    colors: INPUT_BAR_COLORS.dark,
-    styles: createInputBarStyles(INPUT_BAR_COLORS.dark),
-  },
+export interface IInputBarSkin {
+  colors: IInputBarColors;
+  styles: IInputBarStyles;
+}
+
+/**
+ * Скин собирается один раз на тему: у панели восемь потребителей, и пересчёт
+ * на каждом из них плодил бы новые объекты стилей на каждый рендер.
+ */
+const SKIN_CACHE = new Map<TThemeName, IInputBarSkin>();
+
+/** Палитра и стили панели по текущей теме приложения. */
+export const inputBarSkin = (
+  name: TThemeName,
+  themeColors: TColorTheme,
+): IInputBarSkin => {
+  const cached = SKIN_CACHE.get(name);
+
+  if (cached) return cached;
+
+  const colors = inputBarColors(themeColors);
+  const skin: IInputBarSkin = { colors, styles: createInputBarStyles(colors) };
+
+  SKIN_CACHE.set(name, skin);
+
+  return skin;
 };
-
-export type IInputBarSkin = (typeof INPUT_BAR_SKIN)["light"];
-
-/** Палитра и стили панели по текущей схеме приложения. */
-export const inputBarSkin = (isDark: boolean): IInputBarSkin =>
-  isDark ? INPUT_BAR_SKIN.dark : INPUT_BAR_SKIN.light;

@@ -101,7 +101,7 @@ export const ChatView: FC<IChatViewProps> = ({
       />
 
       <ChatScrollToEndButton
-        bottomInset={inset.liveInset}
+        bottomInset={inset.edgeInset}
         isAtEnd={isAtEnd}
         onPress={handleScrollToEnd}
       />
@@ -114,6 +114,7 @@ export const ChatView: FC<IChatViewProps> = ({
           onEditMessage={composer.handleEdit}
           onCancelInputAction={composer.cancel}
           onHeightChange={inset.setBarHeight}
+          onFullWidthChange={inset.setInputFullWidth}
         />
       </KeyboardInputBar>
     </Col>

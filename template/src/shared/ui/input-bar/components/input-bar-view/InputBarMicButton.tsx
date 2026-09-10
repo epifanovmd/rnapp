@@ -79,7 +79,9 @@ export const InputBarMicButton: FC<IInputBarMicButtonProps> = memo(
               <InputIcon
                 name={icon}
                 size={16}
-                color={isRecording ? "#FFFFFF" : colors.inputTint}
+                color={
+                  isRecording ? colors.inputAccentForeground : colors.inputIcon
+                }
                 strokeWidth={icon === "arrow.up" ? 2.6 : 2}
               />
             </Pressable>

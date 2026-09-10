@@ -43,7 +43,7 @@ export const InputBarTextField: FC<IInputBarTextFieldProps> = memo(
         placeholder={PLACEHOLDER}
         placeholderTextColor={colors.inputPlaceholder}
         style={style}
-        selectionColor={colors.inputTint}
+        selectionColor={colors.inputAccent}
         onChangeText={onChangeText}
       />
     );

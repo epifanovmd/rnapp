@@ -22,10 +22,17 @@ export interface IChatListInset {
   /** Подъём самой панели ввода: клавиатура, а без неё — safe area. */
   barOffset: SharedValue<number>;
   /**
-   * Живое перекрытие для кнопки «вниз»: она держится над панелью, а панель
-   * едет с клавиатурой даже когда отступ контента заморожен.
+   * Живое перекрытие для оверлеев над панелью: они едут с клавиатурой даже
+   * когда отступ контента заморожен.
    */
   liveInset: SharedValue<number>;
+  /**
+   * То же для кнопки «вниз»: она садится у правого края, а панель ответа его
+   * не занимает, пока поле не растянулось на всю ширину ряда.
+   */
+  edgeInset: SharedValue<number>;
+  /** Поле ввода заняло всю ширину ряда: уходит в `InputBar.onFullWidthChange`. */
+  setInputFullWidth: (isFullWidth: boolean) => void;
   /** Собственная высота панели: уходит в `InputBar.onHeightChange`. */
   setBarHeight: (height: number) => void;
   /** Заморозить отступ на время контекстного меню поверх списка. */
@@ -57,6 +64,8 @@ export const useChatListInset = ({
       insetEnd: inset.contentInset,
       barOffset: inset.barOffset,
       liveInset: inset.liveInset,
+      edgeInset: inset.edgeInset,
+      setInputFullWidth: inset.setInputFullWidth,
       setBarHeight: inset.setBarHeight,
       freeze: inset.freeze,
       restore: inset.restore,

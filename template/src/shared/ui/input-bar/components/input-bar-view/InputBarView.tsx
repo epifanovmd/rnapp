@@ -1,6 +1,7 @@
 import React, {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -39,10 +40,11 @@ interface IInputBarViewProps {
   mode: InputBarMode;
   delegate: IInputBarViewDelegate;
   onHeightChange: (height: number) => void;
+  onFullWidthChange: (isFullWidth: boolean) => void;
 }
 
 export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
-  ({ mode, delegate, onHeightChange }, ref) => {
+  ({ mode, delegate, onHeightChange, onFullWidthChange }, ref) => {
     const { styles } = useInputBarSkin();
 
     const inputRef = useRef<TextInput>(null);
@@ -114,8 +116,15 @@ export const InputBarView = forwardRef<IInputBarViewRef, IInputBarViewProps>(
       hasText,
     );
 
-    const { micAnimatedStyle: micContainerStyle } = useRightButtonAnimation(
-      !hasText || isRecording,
+    const isMicVisible = !hasText || isRecording;
+
+    const { micAnimatedStyle: micContainerStyle } =
+      useRightButtonAnimation(isMicVisible);
+
+    // Место микрофона достаётся полю: край панели над рядом освобождается.
+    useEffect(
+      () => onFullWidthChange(!isMicVisible),
+      [isMicVisible, onFullWidthChange],
     );
 
     const recordingStateRef = useRef(recordingState);

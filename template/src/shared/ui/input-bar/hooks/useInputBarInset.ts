@@ -10,7 +10,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { INPUT_BAR_MIN_HEIGHT } from "../config";
-import { resolveInputBarInset, resolveInputBarOffset } from "../utils";
+import {
+  resolveInputBarEdgeInset,
+  resolveInputBarInset,
+  resolveInputBarOffset,
+} from "../utils";
 
 /**
  * Нижнее перекрытие экрана панелью ввода: safe area, клавиатура и высота самой
@@ -31,6 +35,12 @@ import { resolveInputBarInset, resolveInputBarOffset } from "../utils";
  * ответа это 48 px.
  */
 const INSET_STEP_DURATION = 200;
+
+/**
+ * Насколько едет след правого края, когда поле растягивается на всю ширину.
+ * Столько же уступает место микрофон — они обязаны ехать в один ход.
+ */
+const EDGE_STEP_DURATION = 250;
 
 export interface IInputBarInsetOptions {
   /** Что добавить сверх панели и зоны: зазор, тень, что угодно своё. */
@@ -55,6 +65,14 @@ export interface IInputBarInset {
    * Его берут те, кто едет с клавиатурой всегда: кнопки и оверлеи над панелью.
    */
   liveInset: SharedValue<number>;
+  /**
+   * След правого края панели: докуда он занят. Его берут кнопки, что садятся
+   * у края, — панель ответа тянется по ширине поля и края не касается, пока
+   * поле не растянулось на всю ширину ряда.
+   */
+  edgeInset: SharedValue<number>;
+  /** Поле ввода заняло всю ширину ряда — уходит в `InputBar.onFullWidthChange`. */
+  setInputFullWidth: (isFullWidth: boolean) => void;
   /**
    * То же перекрытие с учётом заморозки — уходит контенту: `insetEnd` списка
    * или распорка скролла.
@@ -84,6 +102,7 @@ export const useInputBarInset = ({
   // см. INSET_STEP_DURATION.
   const barHeight = useSharedValue(INPUT_BAR_MIN_HEIGHT);
   const safeBottom = useSharedValue(safeAreaBottom);
+  const fullWidthProgress = useSharedValue(0);
 
   useEffect(() => {
     safeBottom.value = withTiming(safeAreaBottom, {
@@ -107,6 +126,28 @@ export const useInputBarInset = ({
         extraPadding,
       }),
     [extraPadding],
+  );
+
+  const edgeInset = useDerivedValue(
+    () =>
+      resolveInputBarEdgeInset({
+        keyboardHeight: keyboard.height.value,
+        safeAreaBottom: safeBottom.value,
+        barHeight: barHeight.value,
+        rowHeight: INPUT_BAR_MIN_HEIGHT,
+        fullWidthProgress: fullWidthProgress.value,
+        extraPadding,
+      }),
+    [extraPadding],
+  );
+
+  const setInputFullWidth = useCallback(
+    (isFullWidth: boolean) => {
+      fullWidthProgress.value = withTiming(isFullWidth ? 1 : 0, {
+        duration: EDGE_STEP_DURATION,
+      });
+    },
+    [fullWidthProgress],
   );
 
   // Цель хода известна из `onStart`: по ней резервируется место до того, как
@@ -176,6 +217,8 @@ export const useInputBarInset = ({
       setBarHeight,
       barOffset,
       liveInset,
+      edgeInset,
+      setInputFullWidth,
       contentInset,
       reservedInset,
       isFrozen,
@@ -186,6 +229,8 @@ export const useInputBarInset = ({
       setBarHeight,
       barOffset,
       liveInset,
+      edgeInset,
+      setInputFullWidth,
       contentInset,
       reservedInset,
       isFrozen,

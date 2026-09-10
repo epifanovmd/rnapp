@@ -40,3 +40,34 @@ export const resolveInputBarInset = (parts: IInputBarInsetParts): number => {
     resolveInputBarOffset(parts) + parts.barHeight + (parts.extraPadding ?? 0)
   );
 };
+
+/** След правого края панели на этом кадре. */
+export interface IInputBarEdgeInsetParts extends IInputBarInsetParts {
+  /** Высота ряда «вложение — поле — микрофон». */
+  rowHeight: number;
+  /** 0 — поле в своей колонке, 1 — растянуто на всю ширину ряда. */
+  fullWidthProgress: number;
+}
+
+/**
+ * След правого края панели: докуда занят край, у которого садятся плавающие
+ * кнопки.
+ *
+ * Панель ответа тянется только по ширине поля, поэтому справа от неё край
+ * свободен — пока поле не растянулось на всю ширину ряда. Промежуточные
+ * значения нужны потому, что микрофон уступает место движением, и кнопка
+ * обязана ехать вместе с ним, а не прыгать по готовности.
+ */
+export const resolveInputBarEdgeInset = (
+  parts: IInputBarEdgeInsetParts,
+): number => {
+  "worklet";
+
+  const full = resolveInputBarInset(parts);
+  const row = Math.min(
+    full,
+    resolveInputBarOffset(parts) + parts.rowHeight + (parts.extraPadding ?? 0),
+  );
+
+  return row + (full - row) * parts.fullWidthProgress;
+};
