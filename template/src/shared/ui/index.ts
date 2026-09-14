@@ -4,6 +4,7 @@ export * from "./badge";
 export * from "./balanced-row";
 export * from "./bottom-sheet";
 export * from "./button";
+export * from "./calendar";
 export * from "./camera";
 export * from "./carousel";
 export * from "./chart";

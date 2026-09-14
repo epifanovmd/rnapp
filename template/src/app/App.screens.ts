@@ -1,4 +1,5 @@
 /* eslint-disable check-file/filename-naming-convention -- часть неймспейса `App.*`, не обычный модуль */
+import { CalendarDemo, CalendarListDemo } from "@pages/stack/calendar-demo";
 import { Charts } from "@pages/stack/charts";
 import { Chat } from "@pages/stack/chat";
 import { Components } from "@pages/stack/components";
@@ -69,6 +70,16 @@ export const RootStack = createStackNavigator({
           linking: "components",
         },
         Charts: { screen: Charts, linking: "charts" },
+        CalendarDemo: {
+          screen: CalendarDemo,
+          options: { title: "Calendar" },
+          linking: "calendar",
+        },
+        CalendarListDemo: {
+          screen: CalendarListDemo,
+          options: { title: "Calendar list" },
+          linking: "calendarlist",
+        },
         Chat: { screen: Chat, linking: "chat" },
         ContextMenu: { screen: ContextMenu, linking: "contextmenu" },
         InputBar: { screen: InputBar, linking: "inputbar" },
