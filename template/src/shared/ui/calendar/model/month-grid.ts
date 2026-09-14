@@ -62,17 +62,15 @@ export const computeMonthGrid = (
     weeks.push(week);
   }
 
-  const lastWeek = weeks[weeks.length - 1]!;
-
-  return {
-    key,
+  // Границы сетки считаются той же формулой, что и ячейки: первая — со смещением 1 − leading, последняя — weeksCount × 7 − leading.
+  const fromKey = cellFor(year, month, 1 - leading).dateKey;
+  const toKey = cellFor(
     year,
     month,
-    daysInMonth: total,
-    weeks,
-    fromKey: weeks[0]![0]!.dateKey,
-    toKey: lastWeek[lastWeek.length - 1]!.dateKey,
-  };
+    weeksCount * WEEK_LENGTH - leading,
+  ).dateKey;
+
+  return { key, year, month, daysInMonth: total, weeks, fromKey, toKey };
 };
 
 /** Высота блока недель: строки по `dayHeight` с зазорами `weekGap` между ними. */

@@ -35,25 +35,27 @@ export const CalendarHeader: FC<ICalendarHeaderProps> = memo(props => {
 
   return (
     <View style={[SS.header, styles.header]}>
-      {renderHeaderTitle ? (
-        renderHeaderTitle(props)
-      ) : (
-        <Pressable
-          disabled={!onTitlePress && !onTitleLongPress}
-          onPress={onTitlePress}
-          onLongPress={onTitleLongPress}
-          style={SS.titleBox}
-          hitSlop={8}
-        >
-          <Text
-            textStyle={"Title_L"}
-            style={[SS.title, styles.headerTitle]}
-            numberOfLines={1}
+      {/* Слот названия всегда занимает всю свободную ширину — кнопки остаются справа, даже если названия нет. */}
+      <View style={SS.titleBox}>
+        {renderHeaderTitle ? (
+          renderHeaderTitle(props)
+        ) : (
+          <Pressable
+            disabled={!onTitlePress && !onTitleLongPress}
+            onPress={onTitlePress}
+            onLongPress={onTitleLongPress}
+            hitSlop={8}
           >
-            {title}
-          </Text>
-        </Pressable>
-      )}
+            <Text
+              textStyle={"Title_L"}
+              style={[SS.title, styles.headerTitle]}
+              numberOfLines={1}
+            >
+              {title}
+            </Text>
+          </Pressable>
+        )}
+      </View>
       {showNavButtons && (
         <View style={SS.buttons}>
           {renderNavButton ? (
