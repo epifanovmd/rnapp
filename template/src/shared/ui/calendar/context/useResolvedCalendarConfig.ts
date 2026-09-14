@@ -1,4 +1,4 @@
-import { useShallowStable } from "@shared/lib/hooks";
+import { useStableValue } from "@shared/lib/hooks";
 import { useMemo } from "react";
 
 import type {
@@ -74,8 +74,8 @@ export const useResolvedCalendarConfig = <TExtra>(
   const minKey = toDateKey(minDate);
   const maxKey = toDateKey(maxDate);
 
-  const formats = useShallowStable({ ...DEFAULT_FORMATS, ...formatsProp });
-  const styles = useShallowStable(stylesProp ?? EMPTY_STYLES);
+  const formats = useStableValue({ ...DEFAULT_FORMATS, ...formatsProp });
+  const styles = useStableValue(stylesProp ?? EMPTY_STYLES);
 
   const disabledKeys = useMemo(
     () =>
@@ -120,7 +120,7 @@ export const useResolvedCalendarConfig = <TExtra>(
     [dayData, getDayData, locale],
   );
 
-  return useShallowStable<ICalendarResolvedConfig<TExtra>>({
+  return useStableValue<ICalendarResolvedConfig<TExtra>>({
     locale,
     firstDayOfWeek,
     todayKey,
