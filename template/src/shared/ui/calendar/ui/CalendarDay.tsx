@@ -81,13 +81,18 @@ const CalendarDayImpl = <TExtra,>(props: ICalendarDayProps<TExtra>) => {
           isToday && styles.dayToday,
           isOutside && styles.dayOutside,
           isDisabled && styles.dayDisabled,
-          isSelected && [
-            { backgroundColor: selectedColor },
-            styles.daySelected,
-          ],
-          isEdge && styles.dayRangeEdge,
         ]}
       >
+        {isSelected && (
+          <View
+            style={[
+              SS.highlight,
+              { backgroundColor: selectedColor },
+              styles.daySelected,
+              isEdge && styles.dayRangeEdge,
+            ]}
+          />
+        )}
         <Text
           textStyle={"Body_L1"}
           color={textColor}
@@ -127,6 +132,13 @@ const SS = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  highlight: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: INNER_RADIUS,
   },
   // Когда под числом есть контент, число уезжает вверх — небольшой отступ возвращает его к центру.

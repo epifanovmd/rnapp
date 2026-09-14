@@ -42,9 +42,9 @@ const CalendarDayContentImpl = <TExtra,>({
 
   return (
     <View style={[SS.markers, styles.dayMarkers]}>
-      {markers.map((marker, index) => {
+      {markers.map(({ key: markerKey, ...marker }, index) => {
         const props = { ...marker, index, count: markers.length };
-        const key = marker.key ?? String(index);
+        const key = markerKey ?? String(index);
 
         return renderMarker ? (
           <React.Fragment key={key}>{renderMarker(props)}</React.Fragment>

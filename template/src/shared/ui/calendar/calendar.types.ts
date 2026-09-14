@@ -172,7 +172,8 @@ export interface ICalendarDayProps<
   hasRowContent: boolean;
 }
 
-export interface ICalendarMarkerProps extends ICalendarMarker {
+/** `key` маркера уходит в React-ключ, в пропсы не попадает. */
+export interface ICalendarMarkerProps extends Omit<ICalendarMarker, "key"> {
   index: number;
   count: number;
 }
