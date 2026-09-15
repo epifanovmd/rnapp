@@ -7,7 +7,10 @@ import type {
 } from "../calendar.types";
 import { getMonthGrid, isSpanAffected } from "../model";
 import { buildDayState, EMPTY_SELECTION_INDEX } from "./build-day-state";
-import { useCalendarConfig, useCalendarState } from "./calendar-context";
+import {
+  useCalendarConfig,
+  useCalendarSelectionState,
+} from "./calendar-context";
 
 export interface ICalendarMonthDays<TExtra> {
   grid: ICalendarMonthGrid;
@@ -22,7 +25,7 @@ export const useCalendarMonthDays = <TExtra = unknown>(
   monthKey: TCalendarMonthKey,
 ): ICalendarMonthDays<TExtra> => {
   const config = useCalendarConfig<TExtra>();
-  const { selection, selectionIndex } = useCalendarState();
+  const { selection, selectionIndex } = useCalendarSelectionState();
   const { firstDayOfWeek, fixedWeeks } = config;
 
   const grid = getMonthGrid(monthKey, { firstDayOfWeek, fixedWeeks });

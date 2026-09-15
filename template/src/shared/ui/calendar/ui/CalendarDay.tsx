@@ -10,6 +10,8 @@ import { CalendarDayContent } from "./CalendarDayContent";
 
 const INNER_RADIUS = 12;
 const INNER_PADDING_TOP = 4;
+/** Полная дата для скринридера — одно число без месяца ни о чём не говорит. */
+const ACCESSIBILITY_DATE_FORMAT = "D MMMM YYYY";
 
 /**
  * Ячейка дня. Снизу вверх: полоса периода (за ячейкой), скруглённая плашка
@@ -20,6 +22,7 @@ const CalendarDayImpl = <TExtra,>(props: ICalendarDayProps<TExtra>) => {
   const {
     dateKey,
     date,
+    monthKey,
     isOutside,
     isToday,
     isDisabled,
@@ -37,10 +40,13 @@ const CalendarDayImpl = <TExtra,>(props: ICalendarDayProps<TExtra>) => {
   const rangeColor = isDark ? colors.blue900 : colors.blue50;
   const selectedColor = isDark ? colors.blue800 : colors.blue100;
 
-  const handlePress = useCallback(() => onPress?.(dateKey), [dateKey, onPress]);
+  const handlePress = useCallback(
+    () => onPress?.(dateKey, monthKey),
+    [dateKey, monthKey, onPress],
+  );
   const handleLongPress = useCallback(
-    () => onLongPress?.(dateKey),
-    [dateKey, onLongPress],
+    () => onLongPress?.(dateKey, monthKey),
+    [dateKey, monthKey, onLongPress],
   );
 
   if (isOutside && !showOutsideDays) {
@@ -66,6 +72,7 @@ const CalendarDayImpl = <TExtra,>(props: ICalendarDayProps<TExtra>) => {
   return (
     <Pressable
       accessibilityRole={"button"}
+      accessibilityLabel={date.format(ACCESSIBILITY_DATE_FORMAT)}
       accessibilityState={{ disabled: isDisabled, selected: isSelected }}
       disabled={isDisabled}
       onPress={handlePress}

@@ -27,10 +27,15 @@ const EMPTY_STYLES = {};
  * Пропсы → конфиг с дефолтами и готовыми функциями проверки. Ссылка на конфиг
  * меняется только когда меняется хоть одно значение — от неё зависят все месяцы.
  */
+export type TResolvedCalendarConfig<TExtra> = Omit<
+  ICalendarResolvedConfig<TExtra>,
+  "initialMonthKey" | "monthBounds"
+>;
+
 export const useResolvedCalendarConfig = <TExtra>(
   props: ICalendarBaseProps<TExtra>,
   defaults: Partial<Pick<ICalendarBaseProps, "showOutsideDays">> = {},
-): ICalendarResolvedConfig<TExtra> => {
+): TResolvedCalendarConfig<TExtra> => {
   const {
     locale: localeProp,
     firstDayOfWeek: firstDayOfWeekProp,
@@ -69,10 +74,17 @@ export const useResolvedCalendarConfig = <TExtra>(
   } = props;
 
   const locale = localeProp ?? globalLocale();
-  const firstDayOfWeek = firstDayOfWeekProp ?? localeFirstDayOfWeek(locale);
-  const todayKey = toDateKey(today) ?? toDateKey(new Date())!;
-  const minKey = toDateKey(minDate);
-  const maxKey = toDateKey(maxDate);
+  // Разбор дат и локали — через dayjs; провайдер рендерится на каждый тап, поэтому считаем только по смене входов.
+  const firstDayOfWeek = useMemo(
+    () => firstDayOfWeekProp ?? localeFirstDayOfWeek(locale),
+    [firstDayOfWeekProp, locale],
+  );
+  const todayKey = useMemo(
+    () => toDateKey(today) ?? toDateKey(new Date())!,
+    [today],
+  );
+  const minKey = useMemo(() => toDateKey(minDate), [minDate]);
+  const maxKey = useMemo(() => toDateKey(maxDate), [maxDate]);
 
   const formats = useStableValue({ ...DEFAULT_FORMATS, ...formatsProp });
   const styles = useStableValue(stylesProp ?? EMPTY_STYLES);
@@ -113,14 +125,28 @@ export const useResolvedCalendarConfig = <TExtra>(
     locale,
   ]);
 
-  const resolveDayData = useMemo(
-    () =>
-      (key: TCalendarDateKey): ICalendarDayData<TExtra> | undefined =>
-        dayData?.[key] ?? getDayData?.(keyToDayjs(key, locale), key),
-    [dayData, getDayData, locale],
-  );
+  const resolveDayData = useMemo(() => {
+    if (!getDayData) {
+      return (key: TCalendarDateKey) => dayData?.[key];
+    }
+    // Результат `getDayData` запоминается по ключу: новый объект на каждый вызов ломал бы memo ячеек.
+    const cache = new Map<
+      TCalendarDateKey,
+      ICalendarDayData<TExtra> | undefined
+    >();
 
-  return useStableValue<ICalendarResolvedConfig<TExtra>>({
+    return (key: TCalendarDateKey): ICalendarDayData<TExtra> | undefined => {
+      if (cache.has(key)) return cache.get(key);
+
+      const data = dayData?.[key] ?? getDayData(keyToDayjs(key, locale), key);
+
+      cache.set(key, data);
+
+      return data;
+    };
+  }, [dayData, getDayData, locale]);
+
+  return useStableValue<TResolvedCalendarConfig<TExtra>>({
     locale,
     firstDayOfWeek,
     todayKey,

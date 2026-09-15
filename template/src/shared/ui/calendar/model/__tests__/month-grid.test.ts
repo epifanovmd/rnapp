@@ -1,4 +1,4 @@
-import { computeMonthGrid, getMonthGrid } from "../month-grid";
+import { computeMonthGrid, findGridCell, getMonthGrid } from "../month-grid";
 
 describe("month-grid", () => {
   it("сентябрь 2026 с понедельника: 5 недель, хвосты августа и октября", () => {
@@ -64,5 +64,28 @@ describe("month-grid", () => {
     expect(getMonthGrid("2026-03", opts)).not.toBe(
       getMonthGrid("2026-03", { ...opts, fixedWeeks: true }),
     );
+  });
+});
+
+describe("findGridCell", () => {
+  const grid = getMonthGrid("2026-09", {
+    firstDayOfWeek: 1,
+    fixedWeeks: false,
+  });
+
+  it("находит ячейку по ключу, включая хвосты", () => {
+    expect(findGridCell(grid, "2026-09-15")).toMatchObject({
+      day: 15,
+      isOutside: false,
+    });
+    expect(findGridCell(grid, "2026-08-31")).toMatchObject({
+      day: 31,
+      isOutside: true,
+    });
+  });
+
+  it("для дня вне сетки — undefined", () => {
+    expect(findGridCell(grid, "2026-08-30")).toBeUndefined();
+    expect(findGridCell(grid, "2026-10-05")).toBeUndefined();
   });
 });

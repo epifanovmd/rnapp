@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 import { StyleProp, View, ViewStyle } from "react-native";
 
-import { useCalendarConfig, useCalendarState } from "../context";
+import { useCalendarConfig, useCalendarMonthState } from "../context";
 import { CalendarHeaderConnected } from "./CalendarHeaderConnected";
 import { CalendarMonthConnected } from "./CalendarMonthConnected";
 import { CalendarMonthSlider } from "./CalendarMonthSlider";
@@ -24,7 +24,7 @@ export const CalendarView: FC<ICalendarViewProps> = ({
   gestureEnabled = true,
 }) => {
   const { showHeader, showWeekDays, styles } = useCalendarConfig();
-  const { monthKey } = useCalendarState();
+  const { monthKey } = useCalendarMonthState();
 
   return (
     <View style={[styles.container, style]}>

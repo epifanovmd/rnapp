@@ -6,12 +6,15 @@
 module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/src"],
-  testMatch: ["**/__tests__/**/*.test.ts"],
+  testMatch: ["**/__tests__/**/*.test.{ts,tsx}"],
   setupFiles: ["<rootDir>/jest.setup.js"],
   transform: {
     "^.+\\.(t|j)sx?$": ["babel-jest", { configFile: "./babel-jest.config.js" }],
   },
   moduleNameMapper: {
+    "^react-native$": "<rootDir>/jest/stubs/react-native.js",
+    "^react-native-reanimated$": "<rootDir>/jest/stubs/empty.js",
+    "^react-native-worklets$": "<rootDir>/jest/stubs/empty.js",
     "^@app(.*)$": "<rootDir>/src/app$1",
     "^@pages(.*)$": "<rootDir>/src/pages$1",
     "^@widgets(.*)$": "<rootDir>/src/widgets$1",

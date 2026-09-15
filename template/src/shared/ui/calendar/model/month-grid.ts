@@ -1,6 +1,7 @@
 import type {
   ICalendarGridCell,
   ICalendarMonthGrid,
+  TCalendarDateKey,
   TCalendarMonthKey,
   TCalendarWeekDay,
 } from "../calendar.types";
@@ -79,6 +80,22 @@ export const weeksBlockHeight = (
   dayHeight: number,
   weekGap: number,
 ): number => weeksCount * dayHeight + Math.max(0, weeksCount - 1) * weekGap;
+
+/** Ячейка сетки по ключу дня; `undefined`, если день в сетку не попадает. */
+export const findGridCell = (
+  grid: ICalendarMonthGrid,
+  key: TCalendarDateKey,
+): ICalendarGridCell | undefined => {
+  if (key < grid.fromKey || key > grid.toKey) return undefined;
+
+  for (const week of grid.weeks) {
+    const cell = week.find(c => c.dateKey === key);
+
+    if (cell) return cell;
+  }
+
+  return undefined;
+};
 
 const gridCache = new Map<string, ICalendarMonthGrid>();
 

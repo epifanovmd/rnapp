@@ -166,8 +166,9 @@ export interface ICalendarDayState<TExtra = unknown> extends ICalendarGridCell {
 export interface ICalendarDayProps<
   TExtra = unknown,
 > extends ICalendarDayState<TExtra> {
-  onPress?: (key: TCalendarDateKey) => void;
-  onLongPress?: (key: TCalendarDateKey) => void;
+  /** Ключ дня и месяц сетки, в которой он отрисован (для хвостов не совпадает с месяцем дня). */
+  onPress?: (key: TCalendarDateKey, monthKey: TCalendarMonthKey) => void;
+  onLongPress?: (key: TCalendarDateKey, monthKey: TCalendarMonthKey) => void;
   /** В этой строке недели есть хотя бы один день с подписью или маркерами. Если нет — число ставится по центру. */
   hasRowContent: boolean;
 }
@@ -226,6 +227,11 @@ export interface ICalendarHeaderProps {
 // Рендер-функции всех элементов
 // ---------------------------------------------------------------------------
 
+/**
+ * Функции сравниваются по ссылке: inline-стрелка в JSX меняет конфиг на каждом
+ * рендере родителя и перерисовывает все месяцы. Объявлять на уровне модуля
+ * или через `useCallback`.
+ */
 export interface ICalendarRenderers<TExtra = unknown> {
   renderHeader?: (props: ICalendarHeaderProps) => ReactNode;
   renderHeaderTitle?: (props: ICalendarHeaderProps) => ReactNode;
@@ -300,7 +306,7 @@ export interface ICalendarBaseProps<
   locale?: string;
   /** Первый день недели. По умолчанию — из локали. */
   firstDayOfWeek?: TCalendarWeekDay;
-  /** Что считать сегодняшним днём. По умолчанию — текущая дата. */
+  /** Что считать сегодняшним днём. По умолчанию — дата на момент монтирования. */
   today?: TCalendarDateInput;
   minDate?: TCalendarDateInput | null;
   maxDate?: TCalendarDateInput | null;
@@ -334,11 +340,26 @@ export interface ICalendarBaseProps<
   /** Тап по доступному дню. `day` описывает состояние до применения выбора. */
   onDayPress?: (day: ICalendarDayState<TExtra>) => void;
   onDayLongPress?: (day: ICalendarDayState<TExtra>) => void;
-  /** Смена текущего (видимого) месяца. */
+  /**
+   * Запрос на смену месяца: кнопки, свайп, скролл списка, ref. Если задан
+   * `month`, календарь сам месяц не меняет — его нужно записать в `month`.
+   */
   onMonthChange?: (month: Dayjs, key: TCalendarMonthKey) => void;
   /** Тап по названию месяца в шапке. */
   onHeaderTitlePress?: (month: Dayjs, key: TCalendarMonthKey) => void;
   onHeaderTitleLongPress?: (month: Dayjs, key: TCalendarMonthKey) => void;
+}
+
+/** Список упёрся в начало или конец контента — дальше скроллить некуда. */
+export interface ICalendarScrollEdges {
+  atStart: boolean;
+  atEnd: boolean;
+}
+
+/** Первый и последний месяц, между которыми ходит календарь. */
+export interface ICalendarMonthBounds {
+  from: TCalendarMonthKey;
+  to: TCalendarMonthKey;
 }
 
 /** Конфигурация после применения дефолтов — то, что лежит в контексте. */
@@ -348,6 +369,10 @@ export interface ICalendarResolvedConfig<
   locale: string;
   firstDayOfWeek: TCalendarWeekDay;
   todayKey: TCalendarDateKey;
+  /** Месяц, с которого календарь стартовал. Не меняется за время жизни. */
+  initialMonthKey: TCalendarMonthKey;
+  /** Границы списка месяцев (`pastMonths`/`futureMonths` с учётом `minDate`/`maxDate`); у одиночного календаря — `null`. */
+  monthBounds: ICalendarMonthBounds | null;
   minKey: TCalendarDateKey | null;
   maxKey: TCalendarDateKey | null;
   showOutsideDays: boolean;
@@ -380,14 +405,20 @@ export interface ICalendarState {
 }
 
 export interface ICalendarActions {
-  pressDay: (key: TCalendarDateKey) => void;
-  longPressDay: (key: TCalendarDateKey) => void;
+  /**
+   * Тап по дню: применяет правила режима, недоступные дни игнорирует.
+   * `monthKey` — месяц сетки, где тапнули; по умолчанию — месяц самого дня.
+   */
+  pressDay: (key: TCalendarDateKey, monthKey?: TCalendarMonthKey) => void;
+  longPressDay: (key: TCalendarDateKey, monthKey?: TCalendarMonthKey) => void;
   goToMonth: (month: TCalendarDateInput, animated?: boolean) => void;
   goToNextMonth: (animated?: boolean) => void;
   goToPrevMonth: (animated?: boolean) => void;
   goToToday: (animated?: boolean) => void;
   /** Список сообщает, какой месяц сейчас виден, — без прокрутки. */
   syncMonth: (monthKey: TCalendarMonthKey) => void;
+  /** Список сообщает, что упёрся в край: соответствующая кнопка шапки гаснет, даже если текущий месяц не крайний. */
+  syncScrollEdges: (edges: ICalendarScrollEdges) => void;
   /** Вью (слайдер или список) регистрирует, как физически перейти к месяцу. */
   registerNavigator: (navigator: ICalendarNavigator | null) => void;
 }
@@ -424,7 +455,7 @@ interface ICalendarViewProps<
 > extends ICalendarBaseProps<TExtra> {
   /** Стартовый месяц. По умолчанию — выбранная дата или сегодня. */
   initialMonth?: TCalendarDateInput;
-  /** Контролируемый месяц. */
+  /** Контролируемый месяц: переходы приходят в `onMonthChange`, а применяются записью сюда. */
   month?: TCalendarDateInput;
   style?: StyleProp<ViewStyle>;
 }

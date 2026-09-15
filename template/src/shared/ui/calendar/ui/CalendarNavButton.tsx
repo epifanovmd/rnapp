@@ -7,6 +7,8 @@ import type { ICalendarNavButtonProps } from "../calendar.types";
 import { useCalendarConfig } from "../context";
 
 const SIZE = 36;
+/** Недоступная кнопка приглушается целиком. */
+const DISABLED_OPACITY = 0.4;
 
 /** Кнопка перехода к предыдущему или следующему месяцу. */
 export const CalendarNavButton: FC<ICalendarNavButtonProps> = memo(
@@ -22,7 +24,7 @@ export const CalendarNavButton: FC<ICalendarNavButtonProps> = memo(
         bg={"onSurface"}
         radius={12}
         centerContent
-        opacity={disabled ? 0.4 : 1}
+        opacity={disabled ? DISABLED_OPACITY : 1}
         style={[SS.button, styles.navButton]}
       >
         <Icon

@@ -23,7 +23,7 @@ import type { TCalendarMonthKey } from "../calendar.types";
 import {
   useCalendarActions,
   useCalendarConfig,
-  useCalendarState,
+  useCalendarMonthState,
 } from "../context";
 import {
   addMonths,
@@ -57,12 +57,13 @@ const EASING = Easing.out(Easing.cubic);
  * на UI-потоке: `(номер − page) × ширина + сдвиг пальцем`. Смена месяца — это
  * анимация `page`; свайп двигает `offset`, а по отпусканию `page` и `offset`
  * меняются одним махом там же, на UI-потоке, так что картинка не дёргается.
- * React только добавляет и убирает страницы по ключу. Соседние месяцы
- * смонтированы всегда, поэтому свайп начинается мгновенно.
+ * React только добавляет и убирает страницы по ключу. При включённых
+ * жестах соседние месяцы смонтированы заранее, чтобы свайп начинался
+ * мгновенно; без жестов держим только текущий и уходящий.
  */
 export const CalendarMonthSlider: FC<ICalendarMonthSliderProps> = memo(
   ({ monthKey, duration, gestureEnabled }) => {
-    const { canGoPrev, canGoNext } = useCalendarState();
+    const { canGoPrev, canGoNext } = useCalendarMonthState();
     const { goToNextMonth, goToPrevMonth, registerNavigator } =
       useCalendarActions();
     const { firstDayOfWeek, fixedWeeks, dayHeight, weekGap } =
@@ -233,11 +234,11 @@ export const CalendarMonthSlider: FC<ICalendarMonthSliderProps> = memo(
       const keys = [shown];
 
       if (outgoing) keys.push(outgoing);
-      if (canGoPrev) keys.push(addMonths(shown, -1));
-      if (canGoNext) keys.push(addMonths(shown, 1));
+      if (gestureEnabled && canGoPrev) keys.push(addMonths(shown, -1));
+      if (gestureEnabled && canGoNext) keys.push(addMonths(shown, 1));
 
       return Array.from(new Set(keys));
-    }, [shown, outgoing, canGoPrev, canGoNext]);
+    }, [shown, outgoing, gestureEnabled, canGoPrev, canGoNext]);
 
     return (
       <GestureDetector gesture={pan}>

@@ -12,18 +12,23 @@ import React, {
 import type {
   ICalendarActions,
   ICalendarBaseProps,
+  ICalendarMonthBounds,
   ICalendarRef,
+  ICalendarResolvedConfig,
   TCalendarDateInput,
   TCalendarDateKey,
+  TCalendarMonthKey,
   TCalendarSelectionProps,
 } from "../calendar.types";
 import {
   buildSelectionIndex,
   dateKeyToMonthKey,
+  findGridCell,
   firstSelectedKey,
   getMonthGrid,
   monthKeyToDayjs,
   monthToNavigateOnPress,
+  resolveMonthBounds,
   toDateKey,
   toMonthKey,
 } from "../model";
@@ -31,8 +36,10 @@ import { buildDayState } from "./build-day-state";
 import {
   CalendarActionsContext,
   CalendarConfigContext,
-  CalendarStateContext,
-  ICalendarStateContext,
+  CalendarMonthContext,
+  CalendarSelectionContext,
+  ICalendarSelectionContext,
+  TCalendarMonthContext,
 } from "./calendar-context";
 import { useCalendarMonthNavigation } from "./useCalendarMonthNavigation";
 import { useCalendarSelection } from "./useCalendarSelection";
@@ -43,6 +50,9 @@ export type TCalendarProviderProps<TExtra> = PropsWithChildren<
     TCalendarSelectionProps & {
       initialMonth?: TCalendarDateInput;
       month?: TCalendarDateInput;
+      /** Границы навигации в месяцах от стартового — задаёт список. Без них ходить можно только в пределах `minDate`/`maxDate`. */
+      pastMonths?: number;
+      futureMonths?: number;
       /** Дефолты, которые у конкретной вью отличаются от общих. */
       defaults?: Partial<Pick<ICalendarBaseProps, "showOutsideDays">>;
     }
@@ -56,23 +66,20 @@ const CalendarProviderImpl = <TExtra,>(
     children,
     initialMonth,
     month,
+    pastMonths,
+    futureMonths,
     defaults,
     onMonthChange,
     onDayPress,
     onDayLongPress,
   } = props;
 
-  const config = useResolvedCalendarConfig<TExtra>(props, defaults);
-  const { locale, todayKey, minKey, maxKey } = config;
+  const resolved = useResolvedCalendarConfig<TExtra>(props, defaults);
+  const { locale, todayKey, minKey, maxKey } = resolved;
 
   const selectionApi = useCalendarSelection(props, locale);
   const { selection, pressDay: selectKey } = selectionApi;
   const selectionRef = useLatestRef(selection);
-
-  const configRef = useLatestRef(config);
-  const onMonthChangeRef = useLatestRef(onMonthChange);
-  const onDayPressRef = useLatestRef(onDayPress);
-  const onDayLongPressRef = useLatestRef(onDayLongPress);
 
   // Стартовый месяц берётся один раз при монтировании: initialMonth — не controlled-проп.
   const initialMonthKey = useConstant(() => {
@@ -81,11 +88,38 @@ const CalendarProviderImpl = <TExtra,>(
     return toMonthKey(initialMonth) ?? dateKeyToMonthKey(selected ?? todayKey);
   });
 
+  const minMonthKey = minKey ? dateKeyToMonthKey(minKey) : null;
+  const maxMonthKey = maxKey ? dateKeyToMonthKey(maxKey) : null;
+
+  // Список ограничен своими месяцами — навигация и кнопки шапки не должны уходить за них.
+  const monthBounds = useMemo<ICalendarMonthBounds | null>(
+    () =>
+      pastMonths === undefined && futureMonths === undefined
+        ? null
+        : resolveMonthBounds({
+            initialMonth: initialMonthKey,
+            minMonth: minMonthKey,
+            maxMonth: maxMonthKey,
+            pastMonths: pastMonths ?? 0,
+            futureMonths: futureMonths ?? 0,
+          }),
+    [pastMonths, futureMonths, initialMonthKey, minMonthKey, maxMonthKey],
+  );
+
+  const config = useMemo<ICalendarResolvedConfig<TExtra>>(
+    () => ({ ...resolved, initialMonthKey, monthBounds }),
+    [resolved, initialMonthKey, monthBounds],
+  );
+  const configRef = useLatestRef(config);
+  const onMonthChangeRef = useLatestRef(onMonthChange);
+  const onDayPressRef = useLatestRef(onDayPress);
+  const onDayLongPressRef = useLatestRef(onDayLongPress);
+
   const navigation = useCalendarMonthNavigation({
     initialMonthKey,
     controlledMonthKey: toMonthKey(month),
-    minMonthKey: minKey ? dateKeyToMonthKey(minKey) : null,
-    maxMonthKey: maxKey ? dateKeyToMonthKey(maxKey) : null,
+    minMonthKey: monthBounds?.from ?? minMonthKey,
+    maxMonthKey: monthBounds?.to ?? maxMonthKey,
     todayMonthKey: dateKeyToMonthKey(todayKey),
     onMonthChange: useCallback(
       (key: string) =>
@@ -100,21 +134,23 @@ const CalendarProviderImpl = <TExtra,>(
   const { monthKey, canGoPrev, canGoNext, goToMonth } = navigation;
   const monthRef = useLatestRef(monthKey);
 
-  /** Полное состояние дня для колбэков. Считается только по факту тапа. */
+  /** Полное состояние дня в сетке `monthKey` — для колбэков и проверки доступности. Считается только по факту тапа. */
   const dayStateFor = useCallback(
-    (key: TCalendarDateKey) => {
+    (key: TCalendarDateKey, gridMonthKey: TCalendarMonthKey) => {
       const cfg = configRef.current;
-      const monthOfKey = dateKeyToMonthKey(key);
-      const cell = getMonthGrid(monthOfKey, {
+      const options = {
         firstDayOfWeek: cfg.firstDayOfWeek,
         fixedWeeks: cfg.fixedWeeks,
-      })
-        .weeks.flat()
-        .find(c => c.dateKey === key)!;
+      };
+      const ownMonthKey = dateKeyToMonthKey(key);
+      // День всегда есть в сетке собственного месяца — это запасной вариант, если указали чужую сетку.
+      const cell =
+        findGridCell(getMonthGrid(gridMonthKey, options), key) ??
+        findGridCell(getMonthGrid(ownMonthKey, options), key)!;
 
       return buildDayState(
         cell,
-        monthOfKey,
+        cell.isOutside ? gridMonthKey : ownMonthKey,
         cfg,
         buildSelectionIndex(selectionRef.current),
       );
@@ -123,9 +159,13 @@ const CalendarProviderImpl = <TExtra,>(
   );
 
   const pressDay = useCallback(
-    (key: TCalendarDateKey) => {
+    (key: TCalendarDateKey, gridMonthKey = dateKeyToMonthKey(key)) => {
+      const day = dayStateFor(key, gridMonthKey);
+
+      if (day.isDisabled) return;
+
       selectKey(key);
-      onDayPressRef.current?.(dayStateFor(key));
+      onDayPressRef.current?.(day);
 
       const target = monthToNavigateOnPress(
         key,
@@ -139,7 +179,11 @@ const CalendarProviderImpl = <TExtra,>(
   );
 
   const longPressDay = useCallback(
-    (key: TCalendarDateKey) => onDayLongPressRef.current?.(dayStateFor(key)),
+    (key: TCalendarDateKey, gridMonthKey = dateKeyToMonthKey(key)) => {
+      const day = dayStateFor(key, gridMonthKey);
+
+      if (!day.isDisabled) onDayLongPressRef.current?.(day);
+    },
     [dayStateFor, onDayLongPressRef],
   );
 
@@ -152,20 +196,20 @@ const CalendarProviderImpl = <TExtra,>(
       goToPrevMonth: navigation.goToPrevMonth,
       goToToday: navigation.goToToday,
       syncMonth: navigation.syncMonth,
+      syncScrollEdges: navigation.syncScrollEdges,
       registerNavigator: navigation.registerNavigator,
     }),
     [pressDay, longPressDay, navigation],
   );
 
-  const state = useMemo<ICalendarStateContext>(
-    () => ({
-      selection,
-      selectionIndex: buildSelectionIndex(selection),
-      monthKey,
-      canGoPrev,
-      canGoNext,
-    }),
-    [selection, monthKey, canGoPrev, canGoNext],
+  const selectionState = useMemo<ICalendarSelectionContext>(
+    () => ({ selection, selectionIndex: buildSelectionIndex(selection) }),
+    [selection],
+  );
+
+  const monthState = useMemo<TCalendarMonthContext>(
+    () => ({ monthKey, canGoPrev, canGoNext }),
+    [monthKey, canGoPrev, canGoNext],
   );
 
   useImperativeHandle(
@@ -180,7 +224,9 @@ const CalendarProviderImpl = <TExtra,>(
       select: date => {
         const key = toDateKey(date);
 
-        if (key && !dayStateFor(key).isDisabled) selectKey(key);
+        if (key && !dayStateFor(key, dateKeyToMonthKey(key)).isDisabled) {
+          selectKey(key);
+        }
       },
       setSelection: selectionApi.setSelection,
       clearSelection: selectionApi.clear,
@@ -192,9 +238,11 @@ const CalendarProviderImpl = <TExtra,>(
   return (
     <CalendarConfigContext.Provider value={config}>
       <CalendarActionsContext.Provider value={actions}>
-        <CalendarStateContext.Provider value={state}>
-          {children}
-        </CalendarStateContext.Provider>
+        <CalendarMonthContext.Provider value={monthState}>
+          <CalendarSelectionContext.Provider value={selectionState}>
+            {children}
+          </CalendarSelectionContext.Provider>
+        </CalendarMonthContext.Provider>
       </CalendarActionsContext.Provider>
     </CalendarConfigContext.Provider>
   );

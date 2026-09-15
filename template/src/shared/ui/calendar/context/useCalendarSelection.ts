@@ -1,4 +1,4 @@
-import { useLatestRef } from "@shared/lib/hooks";
+import { useLatestRef, useStableValue } from "@shared/lib/hooks";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
@@ -15,22 +15,6 @@ import {
   selectionStateFromValue,
   selectionStateToValue,
 } from "../model";
-
-/** Что именно из controlled-значения отслеживать. Кортеж фиксированной длины — иначе useMemo ругается. */
-const selectionDeps = (
-  props: TCalendarSelectionProps,
-): [string, unknown, unknown] => {
-  switch (props.mode) {
-    case "single":
-      return ["single", props.value, null];
-    case "multiple":
-      return ["multiple", props.value, null];
-    case "range":
-      return ["range", props.value?.start, props.value?.end];
-    default:
-      return ["none", null, null];
-  }
-};
 
 const rulesOf = (props: TCalendarSelectionProps): ISelectionRules => {
   switch (props.mode) {
@@ -92,13 +76,8 @@ export const useCalendarSelection = (
     selectionStateFromProps(props, true),
   );
   const controlled = isControlled(props);
-  const [depMode, depA, depB] = selectionDeps(props);
-  const fromProps = useMemo(
-    () => selectionStateFromProps(props, false),
-    // Пересчитываем только при смене controlled-значения — остальные пропсы на состояние не влияют.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [depMode, depA, depB],
-  );
+  // Сравниваем по ключам дней, а не по ссылкам: новый массив или новые dayjs с теми же датами — то же состояние.
+  const fromProps = useStableValue(selectionStateFromProps(props, false));
 
   const selection = controlled ? fromProps : internal;
 

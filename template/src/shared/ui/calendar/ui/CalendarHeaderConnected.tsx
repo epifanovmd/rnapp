@@ -1,9 +1,10 @@
-import React, { FC, memo } from "react";
+import React, { FC, memo, useMemo } from "react";
 
+import type { ICalendarHeaderProps } from "../calendar.types";
 import {
   useCalendarActions,
   useCalendarConfig,
-  useCalendarState,
+  useCalendarMonthState,
 } from "../context";
 import { formatDate, monthKeyToDayjs } from "../model";
 import { CalendarHeader } from "./CalendarHeader";
@@ -18,26 +19,41 @@ export const CalendarHeaderConnected: FC = memo(() => {
     onHeaderTitlePress,
     onHeaderTitleLongPress,
   } = useCalendarConfig();
-  const { monthKey, canGoPrev, canGoNext } = useCalendarState();
+  const { monthKey, canGoPrev, canGoNext } = useCalendarMonthState();
   const { goToPrevMonth, goToNextMonth } = useCalendarActions();
 
-  const month = monthKeyToDayjs(monthKey, locale);
-  const props = {
+  // Пропсы собираются один раз на месяц: иначе новые замыкания ломали бы memo шапки и кнопок.
+  const props = useMemo<ICalendarHeaderProps>(() => {
+    const month = monthKeyToDayjs(monthKey, locale);
+
+    return {
+      monthKey,
+      month,
+      title: formatDate(month, formats.headerTitle),
+      canGoPrev,
+      canGoNext,
+      onPrev: () => goToPrevMonth(),
+      onNext: () => goToNextMonth(),
+      showNavButtons,
+      onTitlePress: onHeaderTitlePress
+        ? () => onHeaderTitlePress(month, monthKey)
+        : undefined,
+      onTitleLongPress: onHeaderTitleLongPress
+        ? () => onHeaderTitleLongPress(month, monthKey)
+        : undefined,
+    };
+  }, [
     monthKey,
-    month,
-    title: formatDate(month, formats.headerTitle),
+    locale,
+    formats.headerTitle,
     canGoPrev,
     canGoNext,
-    onPrev: () => goToPrevMonth(),
-    onNext: () => goToNextMonth(),
+    goToPrevMonth,
+    goToNextMonth,
     showNavButtons,
-    onTitlePress: onHeaderTitlePress
-      ? () => onHeaderTitlePress(month, monthKey)
-      : undefined,
-    onTitleLongPress: onHeaderTitleLongPress
-      ? () => onHeaderTitleLongPress(month, monthKey)
-      : undefined,
-  };
+    onHeaderTitlePress,
+    onHeaderTitleLongPress,
+  ]);
 
   return (
     <>{renderHeader ? renderHeader(props) : <CalendarHeader {...props} />}</>

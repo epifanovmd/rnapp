@@ -85,7 +85,7 @@ export const clampMonthKey = (
   return key;
 };
 
-const DAYJS_CACHE_LIMIT = 4096;
+export const DAYJS_CACHE_LIMIT = 4096;
 const dayjsCache = new Map<string, Dayjs>();
 
 /**
@@ -100,8 +100,11 @@ export const keyToDayjs = (key: TCalendarDateKey, locale: string): Dayjs => {
 
   if (cached) return cached;
 
+  // Вытесняем самый старый ключ, а не весь кэш: полный сброс менял бы ссылки `date` у всех ячеек разом.
   if (dayjsCache.size >= DAYJS_CACHE_LIMIT) {
-    dayjsCache.clear();
+    const oldest = dayjsCache.keys().next().value;
+
+    if (oldest !== undefined) dayjsCache.delete(oldest);
   }
   const d = dayjs(key).locale(locale);
 

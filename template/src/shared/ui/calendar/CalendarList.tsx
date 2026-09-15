@@ -6,12 +6,24 @@ import { CalendarListView } from "./ui";
 
 /** Список показывает месяцы подряд — хвосты только дублировали бы соседние дни. */
 const LIST_DEFAULTS = { showOutsideDays: false };
+const DEFAULT_PAST_MONTHS = 12;
+const DEFAULT_FUTURE_MONTHS = 12;
 
 const CalendarListImpl = <TExtra,>(
-  props: TCalendarListProps<TExtra>,
+  {
+    pastMonths = DEFAULT_PAST_MONTHS,
+    futureMonths = DEFAULT_FUTURE_MONTHS,
+    ...props
+  }: TCalendarListProps<TExtra>,
   ref: Ref<ICalendarRef>,
 ) => (
-  <CalendarProvider<TExtra> ref={ref} defaults={LIST_DEFAULTS} {...props}>
+  <CalendarProvider<TExtra>
+    ref={ref}
+    defaults={LIST_DEFAULTS}
+    pastMonths={pastMonths}
+    futureMonths={futureMonths}
+    {...props}
+  >
     <CalendarListView {...props} />
   </CalendarProvider>
 );

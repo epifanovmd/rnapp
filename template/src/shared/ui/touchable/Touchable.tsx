@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { FlexProps, useFlexProps } from "../flex-view";
+import { splitAnimatedStyle } from "./split-animated-style";
 
 export interface ITouchableProps<T = unknown>
   extends
@@ -40,7 +41,9 @@ const TouchableImpl = <T extends any = undefined>({
   onPressOut: _onPressOut,
   ...rest
 }: ITouchableProps<T>) => {
-  const { style, ownProps } = useFlexProps(rest);
+  const { style: flexStyle, ownProps } = useFlexProps(rest);
+  // Прозрачность и трансформации из пропсов — базовые; нажатие домножает их, а не заменяет.
+  const { baseOpacity, baseTransform, style } = splitAnimatedStyle(flexStyle);
   const opacity = useSharedValue(1);
   const scale = useSharedValue(1);
 
@@ -79,8 +82,8 @@ const TouchableImpl = <T extends any = undefined>({
   const onPressOut = useMergedCallback(_onPressOut, handlePressOut);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [{ scale: scale.value }],
+    opacity: baseOpacity * opacity.value,
+    transform: [...baseTransform, { scale: scale.value }],
   }));
 
   return (

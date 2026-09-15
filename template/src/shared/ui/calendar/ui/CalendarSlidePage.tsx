@@ -25,6 +25,8 @@ export interface ICalendarSlidePageProps {
 export const CalendarSlidePage: FC<ICalendarSlidePageProps> = memo(
   ({ monthKey, index, page, offset, width, interactive }) => {
     const style = useAnimatedStyle(() => ({
+      // До первого onLayout ширина нулевая и все страницы легли бы в одну точку — соседей прячем.
+      opacity: width.value === 0 && index !== page.value ? 0 : 1,
       transform: [
         { translateX: (index - page.value) * width.value + offset.value },
       ],
