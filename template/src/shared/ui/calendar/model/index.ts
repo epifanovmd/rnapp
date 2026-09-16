@@ -5,5 +5,6 @@ export * from "./day-state";
 export * from "./list-scroll";
 export * from "./month-grid";
 export * from "./month-range";
+export * from "./month-slide";
 export * from "./outside-day";
 export * from "./selection";

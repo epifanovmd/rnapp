@@ -12,24 +12,20 @@ export interface ICalendarSlidePageProps {
   monthKey: TCalendarMonthKey;
   /** Номер месяца относительно якоря слайдера: 0 — стартовый, 1 — следующий, -1 — предыдущий. */
   index: number;
-  /** Текущая страница; во время анимации — дробная. */
+  /** Текущая позиция слайдера; дробная, пока страница едет или под пальцем. */
   page: SharedValue<number>;
-  /** Сдвиг пальцем, px. */
-  offset: SharedValue<number>;
   width: SharedValue<number>;
   /** Нажатия принимает только текущая страница. */
   interactive: boolean;
 }
 
-/** Страница слайдера. Её позиция считается на UI-потоке из индекса, текущей страницы и сдвига пальцем. */
+/** Страница слайдера. Её позиция считается на UI-потоке из индекса и текущей позиции. */
 export const CalendarSlidePage: FC<ICalendarSlidePageProps> = memo(
-  ({ monthKey, index, page, offset, width, interactive }) => {
+  ({ monthKey, index, page, width, interactive }) => {
     const style = useAnimatedStyle(() => ({
       // До первого onLayout ширина нулевая и все страницы легли бы в одну точку — соседей прячем.
       opacity: width.value === 0 && index !== page.value ? 0 : 1,
-      transform: [
-        { translateX: (index - page.value) * width.value + offset.value },
-      ],
+      transform: [{ translateX: (index - page.value) * width.value }],
     }));
 
     return (
