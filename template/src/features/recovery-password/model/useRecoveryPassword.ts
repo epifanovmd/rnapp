@@ -1,4 +1,4 @@
-import { IApiService } from "@shared/api";
+import { IMainApi } from "@shared/api";
 import { useNotifications } from "@shared/lib/notifications";
 import { useZodForm } from "@shared/ui";
 import { useCallback } from "react";
@@ -9,7 +9,7 @@ import {
 } from "./validation";
 
 export const useRecoveryPassword = (onSuccess: () => void) => {
-  const api = IApiService.useInstance();
+  const api = IMainApi.useInstance();
   const notifications = useNotifications();
 
   const form = useZodForm(recoveryPasswordValidationSchema, {

@@ -1,7 +1,7 @@
 import { IAuthStore } from "@entities/auth";
 import { IUserStore } from "@entities/user";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { IApiService } from "@shared/api";
+import { IMainApi } from "@shared/api";
 import { useNotifications } from "@shared/lib/notifications";
 import { useCallback, useEffect, useState } from "react";
 import ReactNativeBiometrics from "react-native-biometrics";
@@ -13,7 +13,7 @@ export const useBiometric = () => {
   const [support, setSupport] = useState<boolean>(false);
   const [registeredUserId, setRegisteredUserId] = useState<string | null>(null);
 
-  const api = IApiService.useInstance();
+  const api = IMainApi.useInstance();
   const authStore = IAuthStore.useInstance();
   const userStore = IUserStore.useInstance();
   const notifications = useNotifications();

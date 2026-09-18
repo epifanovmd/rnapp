@@ -1,10 +1,23 @@
+import { INotificationService } from "@shared/lib/notifications";
 import { ContainerModule } from "inversify";
 
-import { api } from "./api";
-import { IApiService } from "./api.types";
-import { HttpClient, IHttpClient } from "./http-client";
+import { ITokenSource } from "./contract";
+import { getRestApi } from "./gen/main/api";
+import { createMainHttpClient, IMainApi, IMainHttpClient } from "./main";
 
+/**
+ * Регистрация HTTP-клиентов и API. Новый бэкенд = ещё одна пара
+ * `bind(IXxxHttpClient)` + `bind(IXxxApi)`; ручные API — наследники `BaseApi`.
+ */
 export const apiModule = new ContainerModule(({ bind }) => {
-  bind(IApiService.Tid).toConstantValue(api);
-  bind(IHttpClient.Tid).to(HttpClient).inSingletonScope();
+  bind(IMainHttpClient.Tid)
+    .toDynamicValue(ctx =>
+      createMainHttpClient({
+        tokenSource: ctx.get(ITokenSource.Tid),
+        notifications: ctx.get(INotificationService.Tid),
+      }),
+    )
+    .inSingletonScope();
+
+  bind(IMainApi.Tid).toConstantValue(getRestApi());
 });

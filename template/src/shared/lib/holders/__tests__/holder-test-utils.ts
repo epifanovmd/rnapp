@@ -10,11 +10,9 @@ export const item = (id: number): TestItem => ({
   name: `item-${id}`,
 });
 
-export const cancelError = { __CANCEL__: true };
+export const cancelError = { message: "canceled", isCanceled: true };
 
-export const cancelResponse: IApiResponse<never> & { isCanceled: true } = {
-  isCanceled: true,
-};
+export const cancelResponse: IApiResponse<never> = { error: cancelError };
 
 export const deferred = <T>() => {
   let resolve!: (value: T) => void;

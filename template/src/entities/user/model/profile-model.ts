@@ -1,4 +1,4 @@
-import { KnownRole, ProfileDto } from "@shared/api/gen/model";
+import { KnownRole, ProfileDto } from "@shared/api/gen/main/model";
 import { TypedModel } from "@shared/lib/models";
 import { DateModel } from "@shared/lib/models/date";
 import { formatFullName, formatInitials } from "@shared/lib/utils";

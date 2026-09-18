@@ -110,6 +110,7 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
 
 Конкретика проекта (проверенные факты, gotcha, точные файловые карты):
 
+- API-слой (HTTP-ядро, middleware, ошибки): `.claude/memory/project_api.md`
 - Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
 - UI-кит: `.claude/memory/project_components.md`
 - Экраны / навигация: `.claude/memory/project_screens.md`

@@ -1,27 +1,17 @@
-import { BASE_URL } from "@shared/config/env";
-import axios from "axios";
 import { injectable } from "inversify";
 
-import {
-  IAuthSessionService,
-  IAuthTokenStorage,
-  RefreshResponse,
-} from "./types";
-
-const REFRESH_PATH = "/api/auth/refresh";
+import { IAuthSessionApi } from "./session-api";
+import { IAuthSessionService, IAuthTokenStorage } from "./types";
 
 @injectable()
 export class AuthSessionService implements IAuthSessionService {
   private _refreshPromise: Promise<void> | null = null;
   private _sessionExpiredListeners = new Set<() => void>();
 
-  private readonly _axios = axios.create({
-    baseURL: BASE_URL,
-    timeout: 10_000,
-    withCredentials: true,
-  });
-
-  constructor(@IAuthTokenStorage() private _tokenStorage: IAuthTokenStorage) {}
+  constructor(
+    @IAuthTokenStorage() private _tokenStorage: IAuthTokenStorage,
+    @IAuthSessionApi() private _api: IAuthSessionApi,
+  ) {}
 
   get accessToken(): string {
     return this._tokenStorage.accessToken;
@@ -74,17 +64,15 @@ export class AuthSessionService implements IAuthSessionService {
       throw new Error("No refresh token available");
     }
 
-    try {
-      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, {
-        refreshToken,
-      });
+    const { data, error } = await this._api.refresh(refreshToken);
 
-      this._tokenStorage.setTokens(data.accessToken, data.refreshToken);
-    } catch (error) {
+    if (error) {
       this._tokenStorage.clear();
       this._sessionExpiredListeners.forEach(l => l());
       throw error;
     }
+
+    this._tokenStorage.setTokens(data.accessToken, data.refreshToken);
   }
 
   private _forceRefresh(): Promise<void> {

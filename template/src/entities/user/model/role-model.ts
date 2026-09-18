@@ -1,4 +1,4 @@
-import { KnownRole } from "@shared/api/gen/model";
+import { KnownRole } from "@shared/api/gen/main/model";
 import { createEnumModelBase } from "@shared/lib/models";
 
 const ROLE_MAP: Record<KnownRole, string> = {

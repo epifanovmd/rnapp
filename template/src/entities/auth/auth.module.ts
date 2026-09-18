@@ -5,6 +5,7 @@ import { ContainerModule } from "inversify";
 
 import { AuthJwtService } from "./api/jwt-service";
 import { IAuthJwtService } from "./api/jwt-types";
+import { createAuthSessionApi, IAuthSessionApi } from "./api/session-api";
 import { AuthSessionGuard } from "./api/session-guard";
 import { AuthSessionService } from "./api/session-service";
 import { AuthTokenProvider } from "./api/token-provider";
@@ -16,6 +17,9 @@ import { IAuthStore } from "./model/types";
 
 export const authModule = new ContainerModule(({ bind }) => {
   bind(IAuthTokenStorage.Tid).to(AuthTokenStorage).inSingletonScope();
+  bind(IAuthSessionApi.Tid)
+    .toDynamicValue(createAuthSessionApi)
+    .inSingletonScope();
   bind(IAuthSessionService.Tid).to(AuthSessionService).inSingletonScope();
   bind(IAuthJwtService.Tid).to(AuthJwtService).inSingletonScope();
   bind(IAuthSessionGuard.Tid).to(AuthSessionGuard).inSingletonScope();

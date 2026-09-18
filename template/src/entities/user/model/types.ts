@@ -8,7 +8,7 @@ import {
   ProfileDto,
   UpdatePrivacySettingsBody,
   UserDto,
-} from "@shared/api/gen/model";
+} from "@shared/api/gen/main/model";
 import { createInjectDecorator, SupportInitialize } from "@shared/lib/di";
 import { IEntityHolderResult, IHolderError } from "@shared/lib/holders";
 

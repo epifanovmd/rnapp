@@ -1,4 +1,4 @@
-import { KnownPermission, KnownRole } from "@shared/api/gen/model";
+import { KnownPermission, KnownRole } from "@shared/api/gen/main/model";
 
 /**
  * Проверяет наличие права с поддержкой wildcard-иерархии.

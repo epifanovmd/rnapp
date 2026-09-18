@@ -1,4 +1,4 @@
-import { IApiService } from "@shared/api";
+import { IMainApi } from "@shared/api";
 import {
   IProfileUpdateRequestDto,
   KnownPermission,
@@ -7,7 +7,7 @@ import {
   ProfileDto,
   UpdatePrivacySettingsBody,
   UserDto,
-} from "@shared/api/gen/model";
+} from "@shared/api/gen/main/model";
 import { EntityHolder } from "@shared/lib/holders";
 import { injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
@@ -31,7 +31,7 @@ class UserStore implements IUserStore {
     onFetch: () => this._api.getPrivacySettings(),
   });
 
-  constructor(@IApiService() private _api: IApiService) {
+  constructor(@IMainApi() private _api: IMainApi) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
 

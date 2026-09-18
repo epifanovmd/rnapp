@@ -20,14 +20,16 @@ export interface IHolderError {
   status?: number;
   code?: string | number;
   details?: unknown;
+  /** Запрос отменён — не ошибка для UI (см. `ApiError.isCanceled`). */
+  isCanceled?: boolean;
 }
 
+/** Отменённый ответ: `error` с флагом `isCanceled` (контракт `ApiError`). */
 export function isCancelResponse(res: unknown): boolean {
   return (
     typeof res === "object" &&
     res !== null &&
-    "isCanceled" in res &&
-    (res as { isCanceled: unknown }).isCanceled === true
+    isCancelError((res as { error?: unknown }).error)
   );
 }
 
@@ -35,8 +37,7 @@ export function isCancelError(e: unknown): boolean {
   return (
     typeof e === "object" &&
     e !== null &&
-    "__CANCEL__" in e &&
-    (e as { __CANCEL__: unknown }).__CANCEL__ === true
+    (e as { isCanceled?: unknown }).isCanceled === true
   );
 }
 

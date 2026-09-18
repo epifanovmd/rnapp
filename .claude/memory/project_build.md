@@ -122,12 +122,14 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 
 ## orval
 
-Конфиг: `orval.config.ts`. Генерит `shared/api/gen/`:
+Конфиг: `orval.config.ts`. Один бэкенд = один проект, объявляется хелпером
+`defineApi(name, input)` → генерит в `shared/api/gen/<name>/`:
 
 - `mode: "single"` → `api.ts` (все эндпоинты в одном файле)
-- `client: "axios"`, mutator — `shared/api/http-client.ts` (`axiosInstance`)
-- `clean: ["./src/shared/api/gen"]` — полная очистка перед генерацией
-- Спецификация: `http://147.45.245.104:8181/api-docs/swagger.json`
+- `client: "axios"`, mutator — `shared/api/<name>/<name>.mutator.ts` (`<name>Mutator`)
+- `clean: ["./src/shared/api/gen/<name>"]` — очистка только своей папки
+- Спецификация основного бэкенда: `http://147.45.245.104:8181/api-docs/swagger.json`,
+  переопределяется переменной `MAIN_SWAGGER` (генерация из локального файла без сети)
 - `transformer`: переименовывает дублирующийся `operationId` `SearchMessages` → `SearchChatMessages` (конфликт между `/api/chat/{chatId}/message/search` и `/api/message/search`)
 - `afterAllFilesWrite`: `prettier --parser typescript --write`
 

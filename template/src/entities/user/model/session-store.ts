@@ -1,5 +1,5 @@
-import { IApiService } from "@shared/api";
-import type { SessionDto } from "@shared/api/gen/model";
+import { IMainApi } from "@shared/api";
+import type { SessionDto } from "@shared/api/gen/main/model";
 import { IAuthSessionGuard } from "@shared/lib/contracts";
 import { CollectionHolder, MutationHolder } from "@shared/lib/holders";
 import { createModelMapper } from "@shared/lib/models";
@@ -22,7 +22,7 @@ export class SessionStore implements ISessionStore {
   );
 
   constructor(
-    @IApiService() private _api: IApiService,
+    @IMainApi() private _api: IMainApi,
     @IAuthSessionGuard() private _authGuard: IAuthSessionGuard,
   ) {
     makeAutoObservable(

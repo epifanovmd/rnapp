@@ -121,33 +121,48 @@ import type {
   UserDto,
 } from "./model";
 
-import { axiosInstance } from "../http-client";
+import { mainMutator } from "../../main/main.mutator";
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
 export const getRestApi = () => {
   /**
    * Получить список активных сессий пользователя.
    * @summary Список сессий
    */
-  const getSessions = () => {
-    return axiosInstance<SessionDto[]>({ url: `/api/session`, method: "GET" });
+  const getSessions = (
+    options?: SecondParameter<typeof mainMutator<SessionDto[]>>,
+  ) => {
+    return mainMutator<SessionDto[]>(
+      { url: `/api/session`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Завершить конкретную сессию.
    * @summary Завершение сессии
    */
-  const terminateSession = (id: string) => {
-    return axiosInstance<void>({ url: `/api/session/${id}`, method: "DELETE" });
+  const terminateSession = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/session/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Завершить все сессии, кроме текущей.
    * @summary Завершение остальных сессий
    */
-  const terminateOtherSessions = () => {
-    return axiosInstance<void>({
-      url: `/api/session/terminate-others`,
-      method: "POST",
-    });
+  const terminateOtherSessions = (
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/session/terminate-others`, method: "POST" },
+      options,
+    );
   };
 
   /**
@@ -156,8 +171,13 @@ export const getRestApi = () => {
    * Используется для получения информации о текущем пользователе, например, его имени, email, и других данных.
    * @summary Получение профиля текущего пользователя
    */
-  const getMyProfile = () => {
-    return axiosInstance<ProfileDto>({ url: `/api/profile/my`, method: "GET" });
+  const getMyProfile = (
+    options?: SecondParameter<typeof mainMutator<ProfileDto>>,
+  ) => {
+    return mainMutator<ProfileDto>(
+      { url: `/api/profile/my`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -167,24 +187,30 @@ export const getRestApi = () => {
    */
   const updateMyProfile = (
     iProfileUpdateRequestDto: IProfileUpdateRequestDto,
+    options?: SecondParameter<typeof mainMutator<ProfileDto>>,
   ) => {
-    return axiosInstance<ProfileDto>({
-      url: `/api/profile/my/update`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iProfileUpdateRequestDto,
-    });
+    return mainMutator<ProfileDto>(
+      {
+        url: `/api/profile/my/update`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iProfileUpdateRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Получить настройки приватности.
    * @summary Настройки приватности
    */
-  const getPrivacySettings = () => {
-    return axiosInstance<PrivacySettingsDto>({
-      url: `/api/profile/my/privacy`,
-      method: "GET",
-    });
+  const getPrivacySettings = (
+    options?: SecondParameter<typeof mainMutator<PrivacySettingsDto>>,
+  ) => {
+    return mainMutator<PrivacySettingsDto>(
+      { url: `/api/profile/my/privacy`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -193,13 +219,17 @@ export const getRestApi = () => {
    */
   const updatePrivacySettings = (
     updatePrivacySettingsBody: UpdatePrivacySettingsBody,
+    options?: SecondParameter<typeof mainMutator<PrivacySettingsDto>>,
   ) => {
-    return axiosInstance<PrivacySettingsDto>({
-      url: `/api/profile/my/privacy`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: updatePrivacySettingsBody,
-    });
+    return mainMutator<PrivacySettingsDto>(
+      {
+        url: `/api/profile/my/privacy`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: updatePrivacySettingsBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -207,11 +237,13 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет пользователю удалить свой профиль из системы.
    * @summary Удаление профиля текущего пользователя
    */
-  const deleteMyProfile = () => {
-    return axiosInstance<string>({
-      url: `/api/profile/my/delete`,
-      method: "DELETE",
-    });
+  const deleteMyProfile = (
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/profile/my/delete`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -220,12 +252,14 @@ export const getRestApi = () => {
    * Он поддерживает пагинацию через параметры `offset` и `limit`.
    * @summary Получение всех профилей
    */
-  const getProfiles = (params?: GetProfilesParams) => {
-    return axiosInstance<IProfileListDto>({
-      url: `/api/profile/all`,
-      method: "GET",
-      params,
-    });
+  const getProfiles = (
+    params?: GetProfilesParams,
+    options?: SecondParameter<typeof mainMutator<IProfileListDto>>,
+  ) => {
+    return mainMutator<IProfileListDto>(
+      { url: `/api/profile/all`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -233,11 +267,14 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет получить профиль другого пользователя по его ID. Доступен только для администраторов.
    * @summary Получение профиля по ID
    */
-  const getProfileById = (userId: string) => {
-    return axiosInstance<PublicProfileDto>({
-      url: `/api/profile/${userId}`,
-      method: "GET",
-    });
+  const getProfileById = (
+    userId: string,
+    options?: SecondParameter<typeof mainMutator<PublicProfileDto>>,
+  ) => {
+    return mainMutator<PublicProfileDto>(
+      { url: `/api/profile/${userId}`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -248,13 +285,17 @@ export const getRestApi = () => {
   const updateProfile = (
     userId: string,
     iProfileUpdateRequestDto: IProfileUpdateRequestDto,
+    options?: SecondParameter<typeof mainMutator<ProfileDto>>,
   ) => {
-    return axiosInstance<ProfileDto>({
-      url: `/api/profile/update/${userId}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iProfileUpdateRequestDto,
-    });
+    return mainMutator<ProfileDto>(
+      {
+        url: `/api/profile/update/${userId}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iProfileUpdateRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -262,40 +303,60 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет администраторам удалить профиль другого пользователя из системы.
    * @summary Удаление профиля другого пользователя
    */
-  const deleteProfile = (userId: string) => {
-    return axiosInstance<string>({
-      url: `/api/profile/delete/${userId}`,
-      method: "DELETE",
-    });
+  const deleteProfile = (
+    userId: string,
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/profile/delete/${userId}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Получить все роли с их правами.
    * @summary Список ролей
    */
-  const getRoles = () => {
-    return axiosInstance<IRoleDto[]>({ url: `/api/roles`, method: "GET" });
+  const getRoles = (
+    options?: SecondParameter<typeof mainMutator<IRoleDto[]>>,
+  ) => {
+    return mainMutator<IRoleDto[]>(
+      { url: `/api/roles`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Создать новую роль.
    * @summary Создание роли
    */
-  const createRole = (iCreateRoleRequestDto: ICreateRoleRequestDto) => {
-    return axiosInstance<IRoleDto>({
-      url: `/api/roles`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateRoleRequestDto,
-    });
+  const createRole = (
+    iCreateRoleRequestDto: ICreateRoleRequestDto,
+    options?: SecondParameter<typeof mainMutator<IRoleDto>>,
+  ) => {
+    return mainMutator<IRoleDto>(
+      {
+        url: `/api/roles`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateRoleRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить роль.
    * @summary Удаление роли
    */
-  const deleteRole = (id: string) => {
-    return axiosInstance<void>({ url: `/api/roles/${id}`, method: "DELETE" });
+  const deleteRole = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/roles/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -306,13 +367,17 @@ export const getRestApi = () => {
   const setRolePermissions = (
     id: string,
     iRolePermissionsRequestDto: IRolePermissionsRequestDto,
+    options?: SecondParameter<typeof mainMutator<IRoleDto>>,
   ) => {
-    return axiosInstance<IRoleDto>({
-      url: `/api/roles/${id}/permissions`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iRolePermissionsRequestDto,
-    });
+    return mainMutator<IRoleDto>(
+      {
+        url: `/api/roles/${id}/permissions`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iRolePermissionsRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -320,8 +385,13 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет получить данные пользователя, который выполнил запрос.
    * @summary Получение данных текущего пользователя
    */
-  const getMyUser = () => {
-    return axiosInstance<UserDto>({ url: `/api/user/my`, method: "GET" });
+  const getMyUser = (
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
+  ) => {
+    return mainMutator<UserDto>(
+      { url: `/api/user/my`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -329,13 +399,19 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет пользователю обновить свои данные, такие как email, телефон и другие параметры пользователя.
    * @summary Обновление данных текущего пользователя
    */
-  const updateMyUser = (iUserUpdateRequestDto: IUserUpdateRequestDto) => {
-    return axiosInstance<UserDto>({
-      url: `/api/user/my/update`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUserUpdateRequestDto,
-    });
+  const updateMyUser = (
+    iUserUpdateRequestDto: IUserUpdateRequestDto,
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
+  ) => {
+    return mainMutator<UserDto>(
+      {
+        url: `/api/user/my/update`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUserUpdateRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -343,47 +419,60 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет удалить пользователя из системы.
    * @summary Удаление текущего пользователя
    */
-  const deleteMyUser = () => {
-    return axiosInstance<boolean>({
-      url: `/api/user/my/delete`,
-      method: "DELETE",
-    });
+  const deleteMyUser = (
+    options?: SecondParameter<typeof mainMutator<boolean>>,
+  ) => {
+    return mainMutator<boolean>(
+      { url: `/api/user/my/delete`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Установить username для текущего пользователя.
    * @summary Установка username
    */
-  const setUsername = (setUsernameBody: SetUsernameBody) => {
-    return axiosInstance<UserDto>({
-      url: `/api/user/my/username`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: setUsernameBody,
-    });
+  const setUsername = (
+    setUsernameBody: SetUsernameBody,
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
+  ) => {
+    return mainMutator<UserDto>(
+      {
+        url: `/api/user/my/username`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: setUsernameBody,
+      },
+      options,
+    );
   };
 
   /**
    * Поиск пользователей по запросу (username, email, имя, фамилия).
    * @summary Поиск пользователей
    */
-  const searchUsers = (params: SearchUsersParams) => {
-    return axiosInstance<IUserListDto>({
-      url: `/api/user/search`,
-      method: "GET",
-      params,
-    });
+  const searchUsers = (
+    params: SearchUsersParams,
+    options?: SecondParameter<typeof mainMutator<IUserListDto>>,
+  ) => {
+    return mainMutator<IUserListDto>(
+      { url: `/api/user/search`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить пользователя по username.
    * @summary Получение по username
    */
-  const getUserByUsername = (username: string) => {
-    return axiosInstance<PublicUserDto>({
-      url: `/api/user/by-username/${username}`,
-      method: "GET",
-    });
+  const getUserByUsername = (
+    username: string,
+    options?: SecondParameter<typeof mainMutator<PublicUserDto>>,
+  ) => {
+    return mainMutator<PublicUserDto>(
+      { url: `/api/user/by-username/${username}`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -391,12 +480,14 @@ export const getRestApi = () => {
    * Поддерживает пагинацию и поиск по email.
    * @summary Получение всех пользователей
    */
-  const getUsers = (params?: GetUsersParams) => {
-    return axiosInstance<IUserListDto>({
-      url: `/api/user/all`,
-      method: "GET",
-      params,
-    });
+  const getUsers = (
+    params?: GetUsersParams,
+    options?: SecondParameter<typeof mainMutator<IUserListDto>>,
+  ) => {
+    return mainMutator<IUserListDto>(
+      { url: `/api/user/all`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -404,12 +495,14 @@ export const getRestApi = () => {
    * name — имя и фамилия или email если профиль не заполнен.
    * @summary Опции пользователей
    */
-  const getUserOptions = (params?: GetUserOptionsParams) => {
-    return axiosInstance<IUserOptionsDto>({
-      url: `/api/user/options`,
-      method: "GET",
-      params,
-    });
+  const getUserOptions = (
+    params?: GetUserOptionsParams,
+    options?: SecondParameter<typeof mainMutator<IUserOptionsDto>>,
+  ) => {
+    return mainMutator<IUserOptionsDto>(
+      { url: `/api/user/options`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -417,8 +510,14 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет получить пользователя по его ID. Доступен только для администраторов.
    * @summary Получение пользователя по ID
    */
-  const getUserById = (id: string) => {
-    return axiosInstance<UserDto>({ url: `/api/user/${id}`, method: "GET" });
+  const getUserById = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
+  ) => {
+    return mainMutator<UserDto>(
+      { url: `/api/user/${id}`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -429,13 +528,17 @@ export const getRestApi = () => {
   const setPrivileges = (
     id: string,
     iUserPrivilegesRequestDto: IUserPrivilegesRequestDto,
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
   ) => {
-    return axiosInstance<UserDto>({
-      url: `/api/user/setPrivileges/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUserPrivilegesRequestDto,
-    });
+    return mainMutator<UserDto>(
+      {
+        url: `/api/user/setPrivileges/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUserPrivilegesRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -443,11 +546,13 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет отправить пользователю письмо для подтверждения его email-адреса.
    * @summary Запрос подтверждения email
    */
-  const requestVerifyEmail = () => {
-    return axiosInstance<boolean>({
-      url: `/api/user/requestVerifyEmail`,
-      method: "POST",
-    });
+  const requestVerifyEmail = (
+    options?: SecondParameter<typeof mainMutator<boolean>>,
+  ) => {
+    return mainMutator<boolean>(
+      { url: `/api/user/requestVerifyEmail`, method: "POST" },
+      options,
+    );
   };
 
   /**
@@ -455,11 +560,14 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет пользователю подтвердить свой email, используя код, полученный в письме.
    * @summary Подтверждение email-адреса
    */
-  const verifyEmail = (code: string) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/user/verifyEmail/${code}`,
-      method: "GET",
-    });
+  const verifyEmail = (
+    code: string,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
+  ) => {
+    return mainMutator<ApiResponseDto>(
+      { url: `/api/user/verifyEmail/${code}`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -470,13 +578,17 @@ export const getRestApi = () => {
   const updateUser = (
     id: string,
     iUserUpdateRequestDto: IUserUpdateRequestDto,
+    options?: SecondParameter<typeof mainMutator<UserDto>>,
   ) => {
-    return axiosInstance<UserDto>({
-      url: `/api/user/update/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUserUpdateRequestDto,
-    });
+    return mainMutator<UserDto>(
+      {
+        url: `/api/user/update/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUserUpdateRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -484,13 +596,19 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет пользователю изменить свой пароль.
    * @summary Изменение пароля
    */
-  const changePassword = (iUserChangePasswordDto: IUserChangePasswordDto) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/user/changePassword`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iUserChangePasswordDto,
-    });
+  const changePassword = (
+    iUserChangePasswordDto: IUserChangePasswordDto,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
+  ) => {
+    return mainMutator<ApiResponseDto>(
+      {
+        url: `/api/user/changePassword`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iUserChangePasswordDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -498,50 +616,71 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет администраторам удалить другого пользователя из системы.
    * @summary Удаление другого пользователя
    */
-  const deleteUser = (id: string) => {
-    return axiosInstance<boolean>({
-      url: `/api/user/delete/${id}`,
-      method: "DELETE",
-    });
+  const deleteUser = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<boolean>>,
+  ) => {
+    return mainMutator<boolean>(
+      { url: `/api/user/delete/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Регистрация нового пользователя
    * @summary Регистрация
    */
-  const signUp = (tSignUpRequestDto: TSignUpRequestDto) => {
-    return axiosInstance<IUserWithTokensDto>({
-      url: `/api/auth/sign-up`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: tSignUpRequestDto,
-    });
+  const signUp = (
+    tSignUpRequestDto: TSignUpRequestDto,
+    options?: SecondParameter<typeof mainMutator<IUserWithTokensDto>>,
+  ) => {
+    return mainMutator<IUserWithTokensDto>(
+      {
+        url: `/api/auth/sign-up`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: tSignUpRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Авторизация пользователя
    * @summary Вход в систему
    */
-  const signIn = (iSignInRequestDto: ISignInRequestDto) => {
-    return axiosInstance<ISignInResponseDto>({
-      url: `/api/auth/sign-in`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iSignInRequestDto,
-    });
+  const signIn = (
+    iSignInRequestDto: ISignInRequestDto,
+    options?: SecondParameter<typeof mainMutator<ISignInResponseDto>>,
+  ) => {
+    return mainMutator<ISignInResponseDto>(
+      {
+        url: `/api/auth/sign-in`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iSignInRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Запрос на сброс пароля
    * @summary Запрос сброса пароля
    */
-  const requestResetPassword = (iUserLoginRequestDto: IUserLoginRequestDto) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/auth/request-reset-password`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iUserLoginRequestDto,
-    });
+  const requestResetPassword = (
+    iUserLoginRequestDto: IUserLoginRequestDto,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
+  ) => {
+    return mainMutator<ApiResponseDto>(
+      {
+        url: `/api/auth/request-reset-password`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iUserLoginRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -550,65 +689,93 @@ export const getRestApi = () => {
    */
   const resetPassword = (
     iUserResetPasswordRequestDto: IUserResetPasswordRequestDto,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
   ) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/auth/reset-password`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iUserResetPasswordRequestDto,
-    });
+    return mainMutator<ApiResponseDto>(
+      {
+        url: `/api/auth/reset-password`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iUserResetPasswordRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Обновление токенов доступа
    * @summary Обновление токенов
    */
-  const refresh = (refreshBody: RefreshBody) => {
-    return axiosInstance<ITokensDto>({
-      url: `/api/auth/refresh`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: refreshBody,
-    });
+  const refresh = (
+    refreshBody: RefreshBody,
+    options?: SecondParameter<typeof mainMutator<ITokensDto>>,
+  ) => {
+    return mainMutator<ITokensDto>(
+      {
+        url: `/api/auth/refresh`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: refreshBody,
+      },
+      options,
+    );
   };
 
   /**
    * Включить двухфакторную аутентификацию.
    * @summary Включение 2FA
    */
-  const enable2FA = (iEnable2FARequestDto: IEnable2FARequestDto) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/auth/enable-2fa`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iEnable2FARequestDto,
-    });
+  const enable2FA = (
+    iEnable2FARequestDto: IEnable2FARequestDto,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
+  ) => {
+    return mainMutator<ApiResponseDto>(
+      {
+        url: `/api/auth/enable-2fa`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iEnable2FARequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Отключить двухфакторную аутентификацию.
    * @summary Отключение 2FA
    */
-  const disable2FA = (iDisable2FARequestDto: IDisable2FARequestDto) => {
-    return axiosInstance<ApiResponseDto>({
-      url: `/api/auth/disable-2fa`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iDisable2FARequestDto,
-    });
+  const disable2FA = (
+    iDisable2FARequestDto: IDisable2FARequestDto,
+    options?: SecondParameter<typeof mainMutator<ApiResponseDto>>,
+  ) => {
+    return mainMutator<ApiResponseDto>(
+      {
+        url: `/api/auth/disable-2fa`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iDisable2FARequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Верифицировать 2FA и получить токены.
    * @summary Верификация 2FA
    */
-  const verify2FA = (iVerify2FARequestDto: IVerify2FARequestDto) => {
-    return axiosInstance<IUserWithTokensDto>({
-      url: `/api/auth/verify-2fa`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iVerify2FARequestDto,
-    });
+  const verify2FA = (
+    iVerify2FARequestDto: IVerify2FARequestDto,
+    options?: SecondParameter<typeof mainMutator<IUserWithTokensDto>>,
+  ) => {
+    return mainMutator<IUserWithTokensDto>(
+      {
+        url: `/api/auth/verify-2fa`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iVerify2FARequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -616,13 +783,19 @@ export const getRestApi = () => {
    */
   const registerBiometric = (
     iRegisterBiometricRequestDto: IRegisterBiometricRequestDto,
+    options?: SecondParameter<
+      typeof mainMutator<IRegisterBiometricResponseDto>
+    >,
   ) => {
-    return axiosInstance<IRegisterBiometricResponseDto>({
-      url: `/api/biometric/register`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iRegisterBiometricRequestDto,
-    });
+    return mainMutator<IRegisterBiometricResponseDto>(
+      {
+        url: `/api/biometric/register`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iRegisterBiometricRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -630,13 +803,17 @@ export const getRestApi = () => {
    */
   const generateNonce = (
     iGenerateNonceRequestDto: IGenerateNonceRequestDto,
+    options?: SecondParameter<typeof mainMutator<IGenerateNonceResponseDto>>,
   ) => {
-    return axiosInstance<IGenerateNonceResponseDto>({
-      url: `/api/biometric/generate-nonce`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iGenerateNonceRequestDto,
-    });
+    return mainMutator<IGenerateNonceResponseDto>(
+      {
+        url: `/api/biometric/generate-nonce`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iGenerateNonceRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -644,46 +821,63 @@ export const getRestApi = () => {
    */
   const verifySignature = (
     iVerifyBiometricSignatureRequestDto: IVerifyBiometricSignatureRequestDto,
+    options?: SecondParameter<
+      typeof mainMutator<IVerifyBiometricSignatureResponseDto>
+    >,
   ) => {
-    return axiosInstance<IVerifyBiometricSignatureResponseDto>({
-      url: `/api/biometric/verify-signature`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iVerifyBiometricSignatureRequestDto,
-    });
+    return mainMutator<IVerifyBiometricSignatureResponseDto>(
+      {
+        url: `/api/biometric/verify-signature`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iVerifyBiometricSignatureRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Список зарегистрированных устройств пользователя
    */
-  const getDevices = () => {
-    return axiosInstance<IBiometricDevicesResponseDto>({
-      url: `/api/biometric/devices`,
-      method: "GET",
-    });
+  const getDevices = (
+    options?: SecondParameter<typeof mainMutator<IBiometricDevicesResponseDto>>,
+  ) => {
+    return mainMutator<IBiometricDevicesResponseDto>(
+      { url: `/api/biometric/devices`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Удалить зарегистрированное устройство
    */
-  const deleteDevice = (deviceId: string) => {
-    return axiosInstance<IDeleteBiometricResponseDto>({
-      url: `/api/biometric/${deviceId}`,
-      method: "DELETE",
-    });
+  const deleteDevice = (
+    deviceId: string,
+    options?: SecondParameter<typeof mainMutator<IDeleteBiometricResponseDto>>,
+  ) => {
+    return mainMutator<IDeleteBiometricResponseDto>(
+      { url: `/api/biometric/${deviceId}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Отправить сообщение от имени бота.
    * @summary Bot: отправка сообщения
    */
-  const botSendMessage = (iBotSendMessageBody: IBotSendMessageBody) => {
-    return axiosInstance<MessageDto>({
-      url: `/api/bot-api/message/send`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iBotSendMessageBody,
-    });
+  const botSendMessage = (
+    iBotSendMessageBody: IBotSendMessageBody,
+    options?: SecondParameter<typeof mainMutator<MessageDto>>,
+  ) => {
+    return mainMutator<MessageDto>(
+      {
+        url: `/api/bot-api/message/send`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iBotSendMessageBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -693,147 +887,207 @@ export const getRestApi = () => {
   const botEditMessage = (
     id: string,
     iBotEditMessageBody: IBotEditMessageBody,
+    options?: SecondParameter<typeof mainMutator<MessageDto>>,
   ) => {
-    return axiosInstance<MessageDto>({
-      url: `/api/bot-api/message/${id}/edit`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iBotEditMessageBody,
-    });
+    return mainMutator<MessageDto>(
+      {
+        url: `/api/bot-api/message/${id}/edit`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iBotEditMessageBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить сообщение бота.
    * @summary Bot: удаление сообщения
    */
-  const botDeleteMessage = (id: string) => {
-    return axiosInstance<void>({
-      url: `/api/bot-api/message/${id}`,
-      method: "DELETE",
-    });
+  const botDeleteMessage = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/bot-api/message/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * @summary Создать бота
    */
-  const createBot = (iCreateBotBody: ICreateBotBody) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateBotBody,
-    });
+  const createBot = (
+    iCreateBotBody: ICreateBotBody,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
+  ) => {
+    return mainMutator<BotDetailDto>(
+      {
+        url: `/api/bot`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateBotBody,
+      },
+      options,
+    );
   };
 
   /**
    * @summary Мои боты
    */
-  const getMyBots = () => {
-    return axiosInstance<BotDto[]>({ url: `/api/bot`, method: "GET" });
+  const getMyBots = (
+    options?: SecondParameter<typeof mainMutator<BotDto[]>>,
+  ) => {
+    return mainMutator<BotDto[]>({ url: `/api/bot`, method: "GET" }, options);
   };
 
   /**
    * @summary Детали бота
    */
-  const getBotById = (id: string) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot/${id}`,
-      method: "GET",
-    });
+  const getBotById = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
+  ) => {
+    return mainMutator<BotDetailDto>(
+      { url: `/api/bot/${id}`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * @summary Обновить бота
    */
-  const updateBot = (id: string, iUpdateBotBody: IUpdateBotBody) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateBotBody,
-    });
+  const updateBot = (
+    id: string,
+    iUpdateBotBody: IUpdateBotBody,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
+  ) => {
+    return mainMutator<BotDetailDto>(
+      {
+        url: `/api/bot/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateBotBody,
+      },
+      options,
+    );
   };
 
   /**
    * @summary Удалить бота
    */
-  const deleteBot = (id: string) => {
-    return axiosInstance<void>({ url: `/api/bot/${id}`, method: "DELETE" });
+  const deleteBot = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/bot/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * @summary Перегенерировать токен
    */
-  const regenerateToken = (id: string) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot/${id}/token`,
-      method: "POST",
-    });
+  const regenerateToken = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
+  ) => {
+    return mainMutator<BotDetailDto>(
+      { url: `/api/bot/${id}/token`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * @summary Установить webhook
    */
-  const setWebhook = (id: string, iSetWebhookBody: ISetWebhookBody) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot/${id}/webhook`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iSetWebhookBody,
-    });
+  const setWebhook = (
+    id: string,
+    iSetWebhookBody: ISetWebhookBody,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
+  ) => {
+    return mainMutator<BotDetailDto>(
+      {
+        url: `/api/bot/${id}/webhook`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iSetWebhookBody,
+      },
+      options,
+    );
   };
 
   /**
    * @summary Удалить webhook
    */
-  const deleteWebhook = (id: string) => {
-    return axiosInstance<void>({
-      url: `/api/bot/${id}/webhook`,
-      method: "DELETE",
-    });
+  const deleteWebhook = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/bot/${id}/webhook`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * @summary Установить команды бота
    */
-  const setCommands = (id: string, iSetCommandsBody: ISetCommandsBody) => {
-    return axiosInstance<BotCommandDto[]>({
-      url: `/api/bot/${id}/commands`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iSetCommandsBody,
-    });
+  const setCommands = (
+    id: string,
+    iSetCommandsBody: ISetCommandsBody,
+    options?: SecondParameter<typeof mainMutator<BotCommandDto[]>>,
+  ) => {
+    return mainMutator<BotCommandDto[]>(
+      {
+        url: `/api/bot/${id}/commands`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iSetCommandsBody,
+      },
+      options,
+    );
   };
 
   /**
    * @summary Получить команды бота
    */
-  const getCommands = (id: string) => {
-    return axiosInstance<BotCommandDto[]>({
-      url: `/api/bot/${id}/commands`,
-      method: "GET",
-    });
+  const getCommands = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<BotCommandDto[]>>,
+  ) => {
+    return mainMutator<BotCommandDto[]>(
+      { url: `/api/bot/${id}/commands`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * @summary Тестировать webhook (отправляет ping)
    */
-  const testWebhook = (id: string) => {
-    return axiosInstance<IWebhookTestResponse>({
-      url: `/api/bot/${id}/webhook/test`,
-      method: "POST",
-    });
+  const testWebhook = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<IWebhookTestResponse>>,
+  ) => {
+    return mainMutator<IWebhookTestResponse>(
+      { url: `/api/bot/${id}/webhook/test`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * @summary Получить логи доставки webhook
    */
-  const getWebhookLogs = (id: string, params?: GetWebhookLogsParams) => {
-    return axiosInstance<IWebhookLogsResponse>({
-      url: `/api/bot/${id}/webhook/logs`,
-      method: "GET",
-      params,
-    });
+  const getWebhookLogs = (
+    id: string,
+    params?: GetWebhookLogsParams,
+    options?: SecondParameter<typeof mainMutator<IWebhookLogsResponse>>,
+  ) => {
+    return mainMutator<IWebhookLogsResponse>(
+      { url: `/api/bot/${id}/webhook/logs`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -842,95 +1096,125 @@ export const getRestApi = () => {
   const setWebhookEvents = (
     id: string,
     iSetWebhookEventsBody: ISetWebhookEventsBody,
+    options?: SecondParameter<typeof mainMutator<BotDetailDto>>,
   ) => {
-    return axiosInstance<BotDetailDto>({
-      url: `/api/bot/${id}/webhook/events`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iSetWebhookEventsBody,
-    });
+    return mainMutator<BotDetailDto>(
+      {
+        url: `/api/bot/${id}/webhook/events`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iSetWebhookEventsBody,
+      },
+      options,
+    );
   };
 
   /**
    * Инициировать звонок.
    * @summary Начать звонок
    */
-  const initiateCall = (iInitiateCallBody: IInitiateCallBody) => {
-    return axiosInstance<CallDto>({
-      url: `/api/call`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iInitiateCallBody,
-    });
+  const initiateCall = (
+    iInitiateCallBody: IInitiateCallBody,
+    options?: SecondParameter<typeof mainMutator<CallDto>>,
+  ) => {
+    return mainMutator<CallDto>(
+      {
+        url: `/api/call`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iInitiateCallBody,
+      },
+      options,
+    );
   };
 
   /**
    * Ответить на звонок.
    * @summary Ответить
    */
-  const answerCall = (id: string) => {
-    return axiosInstance<CallDto>({
-      url: `/api/call/${id}/answer`,
-      method: "POST",
-    });
+  const answerCall = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<CallDto>>,
+  ) => {
+    return mainMutator<CallDto>(
+      { url: `/api/call/${id}/answer`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Отклонить звонок.
    * @summary Отклонить
    */
-  const declineCall = (id: string) => {
-    return axiosInstance<CallDto>({
-      url: `/api/call/${id}/decline`,
-      method: "POST",
-    });
+  const declineCall = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<CallDto>>,
+  ) => {
+    return mainMutator<CallDto>(
+      { url: `/api/call/${id}/decline`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Завершить звонок.
    * @summary Завершить
    */
-  const endCall = (id: string) => {
-    return axiosInstance<CallDto>({
-      url: `/api/call/${id}/end`,
-      method: "POST",
-    });
+  const endCall = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<CallDto>>,
+  ) => {
+    return mainMutator<CallDto>(
+      { url: `/api/call/${id}/end`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Получить историю звонков.
    * @summary История звонков
    */
-  const getCallHistory = (params?: GetCallHistoryParams) => {
-    return axiosInstance<ICallHistoryDto>({
-      url: `/api/call/history`,
-      method: "GET",
-      params,
-    });
+  const getCallHistory = (
+    params?: GetCallHistoryParams,
+    options?: SecondParameter<typeof mainMutator<ICallHistoryDto>>,
+  ) => {
+    return mainMutator<ICallHistoryDto>(
+      { url: `/api/call/history`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить активный звонок.
    * @summary Активный звонок
    */
-  const getActiveCall = () => {
-    return axiosInstance<CallDto | null>({
-      url: `/api/call/active`,
-      method: "GET",
-    });
+  const getActiveCall = (
+    options?: SecondParameter<typeof mainMutator<CallDto | null>>,
+  ) => {
+    return mainMutator<CallDto | null>(
+      { url: `/api/call/active`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Установить режим медленной отправки.
    * @summary Медленный режим
    */
-  const setSlowMode = (id: string, iSetSlowModeBody: ISetSlowModeBody) => {
-    return axiosInstance<SetSlowMode200>({
-      url: `/api/chat/${id}/slow-mode`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iSetSlowModeBody,
-    });
+  const setSlowMode = (
+    id: string,
+    iSetSlowModeBody: ISetSlowModeBody,
+    options?: SecondParameter<typeof mainMutator<SetSlowMode200>>,
+  ) => {
+    return mainMutator<SetSlowMode200>(
+      {
+        url: `/api/chat/${id}/slow-mode`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iSetSlowModeBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -941,74 +1225,103 @@ export const getRestApi = () => {
     id: string,
     userId: string,
     iBanMemberBody: IBanMemberBody,
+    options?: SecondParameter<typeof mainMutator<void>>,
   ) => {
-    return axiosInstance<void>({
-      url: `/api/chat/${id}/members/${userId}/ban`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iBanMemberBody,
-    });
+    return mainMutator<void>(
+      {
+        url: `/api/chat/${id}/members/${userId}/ban`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iBanMemberBody,
+      },
+      options,
+    );
   };
 
   /**
    * Разблокировать участника чата.
    * @summary Разблокировка участника
    */
-  const unbanMember = (id: string, userId: string) => {
-    return axiosInstance<void>({
-      url: `/api/chat/${id}/members/${userId}/ban`,
-      method: "DELETE",
-    });
+  const unbanMember = (
+    id: string,
+    userId: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/chat/${id}/members/${userId}/ban`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Получить заблокированных участников.
    * @summary Заблокированные участники
    */
-  const getBannedMembers = (id: string) => {
-    return axiosInstance<IBannedMemberDto[]>({
-      url: `/api/chat/${id}/members/banned`,
-      method: "GET",
-    });
+  const getBannedMembers = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<IBannedMemberDto[]>>,
+  ) => {
+    return mainMutator<IBannedMemberDto[]>(
+      { url: `/api/chat/${id}/members/banned`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Создать или получить существующий личный чат.
    * @summary Создание личного чата
    */
-  const createDirectChat = (iCreateDirectChatBody: ICreateDirectChatBody) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/direct`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateDirectChatBody,
-    });
+  const createDirectChat = (
+    iCreateDirectChatBody: ICreateDirectChatBody,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      {
+        url: `/api/chat/direct`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateDirectChatBody,
+      },
+      options,
+    );
   };
 
   /**
    * Создать групповой чат.
    * @summary Создание группового чата
    */
-  const createGroupChat = (iCreateGroupChatBody: ICreateGroupChatBody) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/group`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateGroupChatBody,
-    });
+  const createGroupChat = (
+    iCreateGroupChatBody: ICreateGroupChatBody,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      {
+        url: `/api/chat/group`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateGroupChatBody,
+      },
+      options,
+    );
   };
 
   /**
    * Создать канал.
    * @summary Создание канала
    */
-  const createChannel = (iCreateChannelBody: ICreateChannelBody) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/channel`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateChannelBody,
-    });
+  const createChannel = (
+    iCreateChannelBody: ICreateChannelBody,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      {
+        url: `/api/chat/channel`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateChannelBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -1018,88 +1331,121 @@ export const getRestApi = () => {
   const updateChannel = (
     id: string,
     iUpdateChannelBody: IUpdateChannelBody,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
   ) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/channel/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateChannelBody,
-    });
+    return mainMutator<ChatDto>(
+      {
+        url: `/api/chat/channel/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateChannelBody,
+      },
+      options,
+    );
   };
 
   /**
    * Подписаться на публичный канал.
    * @summary Подписка на канал
    */
-  const subscribeToChannel = (id: string) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/channel/${id}/subscribe`,
-      method: "POST",
-    });
+  const subscribeToChannel = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      { url: `/api/chat/channel/${id}/subscribe`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Отписаться от канала.
    * @summary Отписка от канала
    */
-  const unsubscribeFromChannel = (id: string) => {
-    return axiosInstance<string>({
-      url: `/api/chat/channel/${id}/subscribe`,
-      method: "DELETE",
-    });
+  const unsubscribeFromChannel = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/chat/channel/${id}/subscribe`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Поиск публичных каналов.
    * @summary Поиск каналов
    */
-  const searchChannels = (params?: SearchChannelsParams) => {
-    return axiosInstance<IChatListDto>({
-      url: `/api/chat/channel/search`,
-      method: "GET",
-      params,
-    });
+  const searchChannels = (
+    params?: SearchChannelsParams,
+    options?: SecondParameter<typeof mainMutator<IChatListDto>>,
+  ) => {
+    return mainMutator<IChatListDto>(
+      { url: `/api/chat/channel/search`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить список чатов текущего пользователя.
    * @summary Список чатов
    */
-  const getUserChats = (params?: GetUserChatsParams) => {
-    return axiosInstance<IChatListDto>({
-      url: `/api/chat`,
-      method: "GET",
-      params,
-    });
+  const getUserChats = (
+    params?: GetUserChatsParams,
+    options?: SecondParameter<typeof mainMutator<IChatListDto>>,
+  ) => {
+    return mainMutator<IChatListDto>(
+      { url: `/api/chat`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить информацию о чате.
    * @summary Получение чата
    */
-  const getChatById = (id: string) => {
-    return axiosInstance<ChatDto>({ url: `/api/chat/${id}`, method: "GET" });
+  const getChatById = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      { url: `/api/chat/${id}`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Обновить групповой чат (название, аватар).
    * @summary Обновление чата
    */
-  const updateChat = (id: string, iUpdateChatBody: IUpdateChatBody) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateChatBody,
-    });
+  const updateChat = (
+    id: string,
+    iUpdateChatBody: IUpdateChatBody,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      {
+        url: `/api/chat/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateChatBody,
+      },
+      options,
+    );
   };
 
   /**
    * Покинуть чат.
    * @summary Выход из чата
    */
-  const leaveChat = (id: string) => {
-    return axiosInstance<string>({ url: `/api/chat/${id}`, method: "DELETE" });
+  const leaveChat = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/chat/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -1109,83 +1455,115 @@ export const getRestApi = () => {
   const createInviteLink = (
     id: string,
     iCreateInviteBody: ICreateInviteBody,
+    options?: SecondParameter<typeof mainMutator<ChatInviteDto>>,
   ) => {
-    return axiosInstance<ChatInviteDto>({
-      url: `/api/chat/${id}/invite`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateInviteBody,
-    });
+    return mainMutator<ChatInviteDto>(
+      {
+        url: `/api/chat/${id}/invite`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateInviteBody,
+      },
+      options,
+    );
   };
 
   /**
    * Получить список invite-ссылок чата.
    * @summary Список invite-ссылок
    */
-  const getInvites = (id: string) => {
-    return axiosInstance<ChatInviteDto[]>({
-      url: `/api/chat/${id}/invite`,
-      method: "GET",
-    });
+  const getInvites = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ChatInviteDto[]>>,
+  ) => {
+    return mainMutator<ChatInviteDto[]>(
+      { url: `/api/chat/${id}/invite`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Отозвать invite-ссылку.
    * @summary Отзыв invite-ссылки
    */
-  const revokeInvite = (id: string, inviteId: string) => {
-    return axiosInstance<void>({
-      url: `/api/chat/${id}/invite/${inviteId}`,
-      method: "DELETE",
-    });
+  const revokeInvite = (
+    id: string,
+    inviteId: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/chat/${id}/invite/${inviteId}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Присоединиться к чату по invite-коду.
    * @summary Вступление по invite-ссылке
    */
-  const joinByInvite = (code: string) => {
-    return axiosInstance<ChatDto>({
-      url: `/api/chat/join/${code}`,
-      method: "POST",
-    });
+  const joinByInvite = (
+    code: string,
+    options?: SecondParameter<typeof mainMutator<ChatDto>>,
+  ) => {
+    return mainMutator<ChatDto>(
+      { url: `/api/chat/join/${code}`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Замутить или размутить чат.
    * @summary Мут чата
    */
-  const muteChat = (id: string, iMuteChatBody: IMuteChatBody) => {
-    return axiosInstance<ChatMemberDto>({
-      url: `/api/chat/${id}/mute`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iMuteChatBody,
-    });
+  const muteChat = (
+    id: string,
+    iMuteChatBody: IMuteChatBody,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto>>,
+  ) => {
+    return mainMutator<ChatMemberDto>(
+      {
+        url: `/api/chat/${id}/mute`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iMuteChatBody,
+      },
+      options,
+    );
   };
 
   /**
    * Добавить участников в групповой чат.
    * @summary Добавление участников
    */
-  const addMembers = (id: string, iAddMembersBody: IAddMembersBody) => {
-    return axiosInstance<ChatMemberDto[]>({
-      url: `/api/chat/${id}/members`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iAddMembersBody,
-    });
+  const addMembers = (
+    id: string,
+    iAddMembersBody: IAddMembersBody,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto[]>>,
+  ) => {
+    return mainMutator<ChatMemberDto[]>(
+      {
+        url: `/api/chat/${id}/members`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iAddMembersBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить участника из группового чата.
    * @summary Удаление участника
    */
-  const removeMember = (id: string, userId: string) => {
-    return axiosInstance<string>({
-      url: `/api/chat/${id}/members/${userId}`,
-      method: "DELETE",
-    });
+  const removeMember = (
+    id: string,
+    userId: string,
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/chat/${id}/members/${userId}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -1196,35 +1574,45 @@ export const getRestApi = () => {
     id: string,
     userId: string,
     iUpdateMemberRoleBody: IUpdateMemberRoleBody,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto>>,
   ) => {
-    return axiosInstance<ChatMemberDto>({
-      url: `/api/chat/${id}/members/${userId}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateMemberRoleBody,
-    });
+    return mainMutator<ChatMemberDto>(
+      {
+        url: `/api/chat/${id}/members/${userId}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateMemberRoleBody,
+      },
+      options,
+    );
   };
 
   /**
    * Закрепить чат.
    * @summary Закрепление чата
    */
-  const pinChat = (id: string) => {
-    return axiosInstance<ChatMemberDto>({
-      url: `/api/chat/${id}/pin`,
-      method: "POST",
-    });
+  const pinChat = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto>>,
+  ) => {
+    return mainMutator<ChatMemberDto>(
+      { url: `/api/chat/${id}/pin`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Открепить чат.
    * @summary Открепление чата
    */
-  const unpinChat = (id: string) => {
-    return axiosInstance<ChatMemberDto>({
-      url: `/api/chat/${id}/pin`,
-      method: "DELETE",
-    });
+  const unpinChat = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto>>,
+  ) => {
+    return mainMutator<ChatMemberDto>(
+      { url: `/api/chat/${id}/pin`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -1234,37 +1622,49 @@ export const getRestApi = () => {
   const moveChatToFolder = (
     id: string,
     iMoveChatToFolderBody: IMoveChatToFolderBody,
+    options?: SecondParameter<typeof mainMutator<ChatMemberDto>>,
   ) => {
-    return axiosInstance<ChatMemberDto>({
-      url: `/api/chat/${id}/folder`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iMoveChatToFolderBody,
-    });
+    return mainMutator<ChatMemberDto>(
+      {
+        url: `/api/chat/${id}/folder`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iMoveChatToFolderBody,
+      },
+      options,
+    );
   };
 
   /**
    * Получить список папок чатов.
    * @summary Список папок
    */
-  const getUserFolders = () => {
-    return axiosInstance<ChatFolderDto[]>({
-      url: `/api/chat/folder/list`,
-      method: "GET",
-    });
+  const getUserFolders = (
+    options?: SecondParameter<typeof mainMutator<ChatFolderDto[]>>,
+  ) => {
+    return mainMutator<ChatFolderDto[]>(
+      { url: `/api/chat/folder/list`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Создать папку для чатов.
    * @summary Создание папки
    */
-  const createFolder = (iCreateFolderBody: ICreateFolderBody) => {
-    return axiosInstance<ChatFolderDto>({
-      url: `/api/chat/folder`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateFolderBody,
-    });
+  const createFolder = (
+    iCreateFolderBody: ICreateFolderBody,
+    options?: SecondParameter<typeof mainMutator<ChatFolderDto>>,
+  ) => {
+    return mainMutator<ChatFolderDto>(
+      {
+        url: `/api/chat/folder`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateFolderBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -1274,82 +1674,106 @@ export const getRestApi = () => {
   const updateFolder = (
     folderId: string,
     iUpdateFolderBody: IUpdateFolderBody,
+    options?: SecondParameter<typeof mainMutator<ChatFolderDto>>,
   ) => {
-    return axiosInstance<ChatFolderDto>({
-      url: `/api/chat/folder/${folderId}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateFolderBody,
-    });
+    return mainMutator<ChatFolderDto>(
+      {
+        url: `/api/chat/folder/${folderId}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateFolderBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить папку.
    * @summary Удаление папки
    */
-  const deleteFolder = (folderId: string) => {
-    return axiosInstance<void>({
-      url: `/api/chat/folder/${folderId}`,
-      method: "DELETE",
-    });
+  const deleteFolder = (
+    folderId: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/chat/folder/${folderId}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Добавить контакт.
    * @summary Добавление контакта
    */
-  const addContact = (iCreateContactBody: ICreateContactBody) => {
-    return axiosInstance<ContactDto>({
-      url: `/api/contact`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreateContactBody,
-    });
+  const addContact = (
+    iCreateContactBody: ICreateContactBody,
+    options?: SecondParameter<typeof mainMutator<ContactDto>>,
+  ) => {
+    return mainMutator<ContactDto>(
+      {
+        url: `/api/contact`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreateContactBody,
+      },
+      options,
+    );
   };
 
   /**
    * Получить список контактов текущего пользователя.
    * @summary Список контактов
    */
-  const getContacts = (params?: GetContactsParams) => {
-    return axiosInstance<ContactDto[]>({
-      url: `/api/contact`,
-      method: "GET",
-      params,
-    });
+  const getContacts = (
+    params?: GetContactsParams,
+    options?: SecondParameter<typeof mainMutator<ContactDto[]>>,
+  ) => {
+    return mainMutator<ContactDto[]>(
+      { url: `/api/contact`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Принять запрос на добавление в контакты.
    * @summary Принять контакт
    */
-  const acceptContact = (id: string) => {
-    return axiosInstance<ContactDto>({
-      url: `/api/contact/${id}/accept`,
-      method: "PATCH",
-    });
+  const acceptContact = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ContactDto>>,
+  ) => {
+    return mainMutator<ContactDto>(
+      { url: `/api/contact/${id}/accept`, method: "PATCH" },
+      options,
+    );
   };
 
   /**
    * Удалить контакт.
    * @summary Удаление контакта
    */
-  const removeContact = (id: string) => {
-    return axiosInstance<string>({
-      url: `/api/contact/${id}`,
-      method: "DELETE",
-    });
+  const removeContact = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<string>>,
+  ) => {
+    return mainMutator<string>(
+      { url: `/api/contact/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Заблокировать контакт.
    * @summary Блокировка контакта
    */
-  const blockContact = (id: string) => {
-    return axiosInstance<ContactDto>({
-      url: `/api/contact/${id}/block`,
-      method: "POST",
-    });
+  const blockContact = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<ContactDto>>,
+  ) => {
+    return mainMutator<ContactDto>(
+      { url: `/api/contact/${id}/block`, method: "POST" },
+      options,
+    );
   };
 
   /**
@@ -1358,8 +1782,14 @@ export const getRestApi = () => {
    * Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут получить доступ к этому ресурсу.
    * @summary Получение файла по ID
    */
-  const getFileById = (params: GetFileByIdParams) => {
-    return axiosInstance<IFileDto>({ url: `/api/file`, method: "GET", params });
+  const getFileById = (
+    params: GetFileByIdParams,
+    options?: SecondParameter<typeof mainMutator<IFileDto>>,
+  ) => {
+    return mainMutator<IFileDto>(
+      { url: `/api/file`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -1368,16 +1798,22 @@ export const getRestApi = () => {
    * Он защищен с использованием JWT-аутентификации, что означает, что только аутентифицированные пользователи могут загружать файлы.
    * @summary Загрузка файла
    */
-  const uploadFile = (uploadFileBody: UploadFileBody) => {
+  const uploadFile = (
+    uploadFileBody: UploadFileBody,
+    options?: SecondParameter<typeof mainMutator<IFileDto[]>>,
+  ) => {
     const formData = new FormData();
     formData.append(`file`, uploadFileBody.file);
 
-    return axiosInstance<IFileDto[]>({
-      url: `/api/file`,
-      method: "POST",
-      headers: { "Content-Type": "multipart/form-data" },
-      data: formData,
-    });
+    return mainMutator<IFileDto[]>(
+      {
+        url: `/api/file`,
+        method: "POST",
+        headers: { "Content-Type": "multipart/form-data" },
+        data: formData,
+      },
+      options,
+    );
   };
 
   /**
@@ -1385,21 +1821,34 @@ export const getRestApi = () => {
    * Этот эндпоинт позволяет пользователю удалить файл по его ID. Доступ разрешен только пользователю, который загрузил файл, либо администратору.
    * @summary Удаление файла
    */
-  const deleteFile = (id: string) => {
-    return axiosInstance<boolean>({ url: `/api/file/${id}`, method: "DELETE" });
+  const deleteFile = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<boolean>>,
+  ) => {
+    return mainMutator<boolean>(
+      { url: `/api/file/${id}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Отправить сообщение в чат.
    * @summary Отправка сообщения
    */
-  const sendMessage = (chatId: string, iSendMessageBody: ISendMessageBody) => {
-    return axiosInstance<MessageDto>({
-      url: `/api/chat/${chatId}/message`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iSendMessageBody,
-    });
+  const sendMessage = (
+    chatId: string,
+    iSendMessageBody: ISendMessageBody,
+    options?: SecondParameter<typeof mainMutator<MessageDto>>,
+  ) => {
+    return mainMutator<MessageDto>(
+      {
+        url: `/api/chat/${chatId}/message`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iSendMessageBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -1410,12 +1859,15 @@ export const getRestApi = () => {
    * - без параметров — последние сообщения
    * @summary Список сообщений
    */
-  const getMessages = (chatId: string, params?: GetMessagesParams) => {
-    return axiosInstance<IMessageListDto>({
-      url: `/api/chat/${chatId}/message`,
-      method: "GET",
-      params,
-    });
+  const getMessages = (
+    chatId: string,
+    params?: GetMessagesParams,
+    options?: SecondParameter<typeof mainMutator<IMessageListDto>>,
+  ) => {
+    return mainMutator<IMessageListDto>(
+      { url: `/api/chat/${chatId}/message`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -1425,142 +1877,186 @@ export const getRestApi = () => {
   const searchChatMessages = (
     chatId: string,
     params: SearchChatMessagesParams,
+    options?: SecondParameter<typeof mainMutator<IMessageSearchDto>>,
   ) => {
-    return axiosInstance<IMessageSearchDto>({
-      url: `/api/chat/${chatId}/message/search`,
-      method: "GET",
-      params,
-    });
+    return mainMutator<IMessageSearchDto>(
+      { url: `/api/chat/${chatId}/message/search`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить закреплённые сообщения чата.
    * @summary Закреплённые сообщения
    */
-  const getPinnedMessages = (chatId: string) => {
-    return axiosInstance<MessageDto[]>({
-      url: `/api/chat/${chatId}/message/pinned`,
-      method: "GET",
-    });
+  const getPinnedMessages = (
+    chatId: string,
+    options?: SecondParameter<typeof mainMutator<MessageDto[]>>,
+  ) => {
+    return mainMutator<MessageDto[]>(
+      { url: `/api/chat/${chatId}/message/pinned`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Получить медиафайлы чата.
    * @summary Медиа-галерея чата
    */
-  const getChatMedia = (chatId: string, params?: GetChatMediaParams) => {
-    return axiosInstance<IMediaGalleryDto>({
-      url: `/api/chat/${chatId}/media`,
-      method: "GET",
-      params,
-    });
+  const getChatMedia = (
+    chatId: string,
+    params?: GetChatMediaParams,
+    options?: SecondParameter<typeof mainMutator<IMediaGalleryDto>>,
+  ) => {
+    return mainMutator<IMediaGalleryDto>(
+      { url: `/api/chat/${chatId}/media`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Получить статистику медиафайлов чата.
    * @summary Статистика медиа
    */
-  const getChatMediaStats = (chatId: string) => {
-    return axiosInstance<IMediaStatsDto>({
-      url: `/api/chat/${chatId}/media/stats`,
-      method: "GET",
-    });
+  const getChatMediaStats = (
+    chatId: string,
+    options?: SecondParameter<typeof mainMutator<IMediaStatsDto>>,
+  ) => {
+    return mainMutator<IMediaStatsDto>(
+      { url: `/api/chat/${chatId}/media/stats`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Отметить сообщения как прочитанные.
    * @summary Прочитать сообщения
    */
-  const markAsRead = (chatId: string, iMarkReadBody: IMarkReadBody) => {
-    return axiosInstance<void>({
-      url: `/api/chat/${chatId}/message/read`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iMarkReadBody,
-    });
+  const markAsRead = (
+    chatId: string,
+    iMarkReadBody: IMarkReadBody,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      {
+        url: `/api/chat/${chatId}/message/read`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iMarkReadBody,
+      },
+      options,
+    );
   };
 
   /**
    * Глобальный поиск по сообщениям во всех чатах пользователя.
    * @summary Глобальный поиск сообщений
    */
-  const searchMessages = (params: SearchMessagesParams) => {
-    return axiosInstance<IMessageSearchDto>({
-      url: `/api/message/search`,
-      method: "GET",
-      params,
-    });
+  const searchMessages = (
+    params: SearchMessagesParams,
+    options?: SecondParameter<typeof mainMutator<IMessageSearchDto>>,
+  ) => {
+    return mainMutator<IMessageSearchDto>(
+      { url: `/api/message/search`, method: "GET", params },
+      options,
+    );
   };
 
   /**
    * Отредактировать сообщение.
    * @summary Редактирование сообщения
    */
-  const editMessage = (id: string, iEditMessageBody: IEditMessageBody) => {
-    return axiosInstance<MessageDto>({
-      url: `/api/message/${id}`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iEditMessageBody,
-    });
+  const editMessage = (
+    id: string,
+    iEditMessageBody: IEditMessageBody,
+    options?: SecondParameter<typeof mainMutator<MessageDto>>,
+  ) => {
+    return mainMutator<MessageDto>(
+      {
+        url: `/api/message/${id}`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iEditMessageBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить сообщение. forAll=true — для всех, forAll=false — только для себя.
    * @summary Удаление сообщения
    */
-  const deleteMessage = (id: string, params?: DeleteMessageParams) => {
-    return axiosInstance<void>({
-      url: `/api/message/${id}`,
-      method: "DELETE",
-      params,
-    });
+  const deleteMessage = (
+    id: string,
+    params?: DeleteMessageParams,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/message/${id}`, method: "DELETE", params },
+      options,
+    );
   };
 
   /**
    * Добавить реакцию на сообщение.
    * @summary Добавление реакции
    */
-  const addReaction = (id: string, iAddReactionBody: IAddReactionBody) => {
-    return axiosInstance<void>({
-      url: `/api/message/${id}/reaction`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iAddReactionBody,
-    });
+  const addReaction = (
+    id: string,
+    iAddReactionBody: IAddReactionBody,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      {
+        url: `/api/message/${id}/reaction`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iAddReactionBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить реакцию с сообщения.
    * @summary Удаление реакции
    */
-  const removeReaction = (id: string) => {
-    return axiosInstance<void>({
-      url: `/api/message/${id}/reaction`,
-      method: "DELETE",
-    });
+  const removeReaction = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/message/${id}/reaction`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Закрепить сообщение.
    * @summary Закрепление сообщения
    */
-  const pinMessage = (id: string) => {
-    return axiosInstance<MessageDto>({
-      url: `/api/message/${id}/pin`,
-      method: "POST",
-    });
+  const pinMessage = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<MessageDto>>,
+  ) => {
+    return mainMutator<MessageDto>(
+      { url: `/api/message/${id}/pin`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Открепить сообщение.
    * @summary Открепление сообщения
    */
-  const unpinMessage = (id: string) => {
-    return axiosInstance<void>({
-      url: `/api/message/${id}/pin`,
-      method: "DELETE",
-    });
+  const unpinMessage = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/message/${id}/pin`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
@@ -1568,11 +2064,14 @@ export const getRestApi = () => {
    * Доступно для участников чата.
    * @summary Информация о прочтении сообщения
    */
-  const getReceiptInfo = (id: string) => {
-    return axiosInstance<MessageReceiptDto[]>({
-      url: `/api/message/${id}/receipts`,
-      method: "GET",
-    });
+  const getReceiptInfo = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<MessageReceiptDto[]>>,
+  ) => {
+    return mainMutator<MessageReceiptDto[]>(
+      { url: `/api/message/${id}/receipts`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -1580,11 +2079,15 @@ export const getRestApi = () => {
    * Требует авторизации — passkey привязывается к текущему пользователю.
    * @summary Параметры регистрации passkey
    */
-  const generateRegistrationOptions = () => {
-    return axiosInstance<PublicKeyCredentialCreationOptionsJSON>({
-      url: `/api/passkeys/generate-registration-options`,
-      method: "POST",
-    });
+  const generateRegistrationOptions = (
+    options?: SecondParameter<
+      typeof mainMutator<PublicKeyCredentialCreationOptionsJSON>
+    >,
+  ) => {
+    return mainMutator<PublicKeyCredentialCreationOptionsJSON>(
+      { url: `/api/passkeys/generate-registration-options`, method: "POST" },
+      options,
+    );
   };
 
   /**
@@ -1593,13 +2096,19 @@ export const getRestApi = () => {
    */
   const verifyRegistration = (
     iVerifyRegistrationRequestDto: IVerifyRegistrationRequestDto,
+    options?: SecondParameter<
+      typeof mainMutator<IVerifyRegistrationResponseDto>
+    >,
   ) => {
-    return axiosInstance<IVerifyRegistrationResponseDto>({
-      url: `/api/passkeys/verify-registration`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iVerifyRegistrationRequestDto,
-    });
+    return mainMutator<IVerifyRegistrationResponseDto>(
+      {
+        url: `/api/passkeys/verify-registration`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iVerifyRegistrationRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -1609,13 +2118,19 @@ export const getRestApi = () => {
    */
   const generateAuthenticationOptions = (
     iGenerateAuthenticationOptionsRequestDto: IGenerateAuthenticationOptionsRequestDto,
+    options?: SecondParameter<
+      typeof mainMutator<PublicKeyCredentialRequestOptionsJSON>
+    >,
   ) => {
-    return axiosInstance<PublicKeyCredentialRequestOptionsJSON>({
-      url: `/api/passkeys/generate-authentication-options`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iGenerateAuthenticationOptionsRequestDto,
-    });
+    return mainMutator<PublicKeyCredentialRequestOptionsJSON>(
+      {
+        url: `/api/passkeys/generate-authentication-options`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iGenerateAuthenticationOptionsRequestDto,
+      },
+      options,
+    );
   };
 
   /**
@@ -1624,104 +2139,147 @@ export const getRestApi = () => {
    */
   const verifyAuthentication = (
     iVerifyAuthenticationRequestDto: IVerifyAuthenticationRequestDto,
+    options?: SecondParameter<
+      typeof mainMutator<IVerifyAuthenticationResponseDto>
+    >,
   ) => {
-    return axiosInstance<IVerifyAuthenticationResponseDto>({
-      url: `/api/passkeys/verify-authentication`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iVerifyAuthenticationRequestDto,
-    });
+    return mainMutator<IVerifyAuthenticationResponseDto>(
+      {
+        url: `/api/passkeys/verify-authentication`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iVerifyAuthenticationRequestDto,
+      },
+      options,
+    );
   };
 
   /**
    * Создать опрос в чате.
    * @summary Создание опроса
    */
-  const createPoll = (chatId: string, iCreatePollBody: ICreatePollBody) => {
-    return axiosInstance<PollDto>({
-      url: `/api/chat/${chatId}/poll`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iCreatePollBody,
-    });
+  const createPoll = (
+    chatId: string,
+    iCreatePollBody: ICreatePollBody,
+    options?: SecondParameter<typeof mainMutator<PollDto>>,
+  ) => {
+    return mainMutator<PollDto>(
+      {
+        url: `/api/chat/${chatId}/poll`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iCreatePollBody,
+      },
+      options,
+    );
   };
 
   /**
    * Проголосовать в опросе.
    * @summary Голосование
    */
-  const vote = (id: string, iVotePollBody: IVotePollBody) => {
-    return axiosInstance<PollDto>({
-      url: `/api/poll/${id}/vote`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iVotePollBody,
-    });
+  const vote = (
+    id: string,
+    iVotePollBody: IVotePollBody,
+    options?: SecondParameter<typeof mainMutator<PollDto>>,
+  ) => {
+    return mainMutator<PollDto>(
+      {
+        url: `/api/poll/${id}/vote`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iVotePollBody,
+      },
+      options,
+    );
   };
 
   /**
    * Отозвать голос.
    * @summary Отзыв голоса
    */
-  const retractVote = (id: string) => {
-    return axiosInstance<PollDto>({
-      url: `/api/poll/${id}/vote`,
-      method: "DELETE",
-    });
+  const retractVote = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<PollDto>>,
+  ) => {
+    return mainMutator<PollDto>(
+      { url: `/api/poll/${id}/vote`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Закрыть опрос.
    * @summary Закрытие опроса
    */
-  const closePoll = (id: string) => {
-    return axiosInstance<PollDto>({
-      url: `/api/poll/${id}/close`,
-      method: "POST",
-    });
+  const closePoll = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<PollDto>>,
+  ) => {
+    return mainMutator<PollDto>(
+      { url: `/api/poll/${id}/close`, method: "POST" },
+      options,
+    );
   };
 
   /**
    * Получить опрос по ID.
    * @summary Получение опроса
    */
-  const getPoll = (id: string) => {
-    return axiosInstance<PollDto>({ url: `/api/poll/${id}`, method: "GET" });
+  const getPoll = (
+    id: string,
+    options?: SecondParameter<typeof mainMutator<PollDto>>,
+  ) => {
+    return mainMutator<PollDto>(
+      { url: `/api/poll/${id}`, method: "GET" },
+      options,
+    );
   };
 
   /**
    * Зарегистрировать устройство для push-уведомлений.
    * @summary Регистрация устройства
    */
-  const registerDevice = (iRegisterDeviceBody: IRegisterDeviceBody) => {
-    return axiosInstance<DeviceTokenDto>({
-      url: `/api/device`,
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      data: iRegisterDeviceBody,
-    });
+  const registerDevice = (
+    iRegisterDeviceBody: IRegisterDeviceBody,
+    options?: SecondParameter<typeof mainMutator<DeviceTokenDto>>,
+  ) => {
+    return mainMutator<DeviceTokenDto>(
+      {
+        url: `/api/device`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: iRegisterDeviceBody,
+      },
+      options,
+    );
   };
 
   /**
    * Удалить устройство из push-уведомлений.
    * @summary Удаление устройства
    */
-  const unregisterDevice = (token: string) => {
-    return axiosInstance<void>({
-      url: `/api/device/${token}`,
-      method: "DELETE",
-    });
+  const unregisterDevice = (
+    token: string,
+    options?: SecondParameter<typeof mainMutator<void>>,
+  ) => {
+    return mainMutator<void>(
+      { url: `/api/device/${token}`, method: "DELETE" },
+      options,
+    );
   };
 
   /**
    * Получить настройки уведомлений текущего пользователя.
    * @summary Настройки уведомлений
    */
-  const getSettings = () => {
-    return axiosInstance<NotificationSettingsDto>({
-      url: `/api/notification/settings`,
-      method: "GET",
-    });
+  const getSettings = (
+    options?: SecondParameter<typeof mainMutator<NotificationSettingsDto>>,
+  ) => {
+    return mainMutator<NotificationSettingsDto>(
+      { url: `/api/notification/settings`, method: "GET" },
+      options,
+    );
   };
 
   /**
@@ -1730,13 +2288,17 @@ export const getRestApi = () => {
    */
   const updateSettings = (
     iUpdateNotificationSettingsBody: IUpdateNotificationSettingsBody,
+    options?: SecondParameter<typeof mainMutator<NotificationSettingsDto>>,
   ) => {
-    return axiosInstance<NotificationSettingsDto>({
-      url: `/api/notification/settings`,
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      data: iUpdateNotificationSettingsBody,
-    });
+    return mainMutator<NotificationSettingsDto>(
+      {
+        url: `/api/notification/settings`,
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        data: iUpdateNotificationSettingsBody,
+      },
+      options,
+    );
   };
 
   /**
@@ -1744,12 +2306,14 @@ export const getRestApi = () => {
    * Если версия клиента устарела — вернёт requiresSnapshot: true.
    * @summary Incremental sync
    */
-  const getChanges = (params?: GetChangesParams) => {
-    return axiosInstance<ISyncResponseDto>({
-      url: `/api/sync`,
-      method: "GET",
-      params,
-    });
+  const getChanges = (
+    params?: GetChangesParams,
+    options?: SecondParameter<typeof mainMutator<ISyncResponseDto>>,
+  ) => {
+    return mainMutator<ISyncResponseDto>(
+      { url: `/api/sync`, method: "GET", params },
+      options,
+    );
   };
 
   /**
@@ -1757,11 +2321,13 @@ export const getRestApi = () => {
    * Используется при первом запуске для установки начальной точки синхронизации.
    * @summary Current sync version
    */
-  const getVersion = () => {
-    return axiosInstance<ISyncVersionDto>({
-      url: `/api/sync/version`,
-      method: "GET",
-    });
+  const getVersion = (
+    options?: SecondParameter<typeof mainMutator<ISyncVersionDto>>,
+  ) => {
+    return mainMutator<ISyncVersionDto>(
+      { url: `/api/sync/version`, method: "GET" },
+      options,
+    );
   };
 
   return {

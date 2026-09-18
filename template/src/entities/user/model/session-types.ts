@@ -1,4 +1,4 @@
-import { SessionDto } from "@shared/api/gen/model";
+import { SessionDto } from "@shared/api/gen/main/model";
 import { createInjectDecorator } from "@shared/lib/di";
 import { CollectionHolder, MutationHolder } from "@shared/lib/holders";
 

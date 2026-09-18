@@ -2,7 +2,7 @@ import type {
   ISignInRequestDto,
   ITokensDto,
   TSignUpRequestDto,
-} from "@shared/api/gen/model";
+} from "@shared/api/gen/main/model";
 import { createInjectDecorator } from "@shared/lib/di";
 
 export enum AuthStatus {

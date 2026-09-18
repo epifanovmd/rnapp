@@ -1,11 +1,11 @@
-import { IApiService } from "@shared/api";
+import { IMainApi } from "@shared/api";
 import {
   I2FARequiredDto,
   ISignInRequestDto,
   ISignInResponseDto,
   ITokensDto,
   TSignUpRequestDto,
-} from "@shared/api/gen/model";
+} from "@shared/api/gen/main/model";
 import { createEnumModelBase } from "@shared/lib/models";
 import { injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
@@ -26,7 +26,7 @@ class AuthStore implements IAuthStore {
   public verifyError?: string;
 
   constructor(
-    @IApiService() private _api: IApiService,
+    @IMainApi() private _api: IMainApi,
     @IAuthSessionService() private _session: IAuthSessionService,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
