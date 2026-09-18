@@ -11,8 +11,14 @@ module.exports = {
   transform: {
     "^.+\\.(t|j)sx?$": ["babel-jest", { configFile: "./babel-jest.config.js" }],
   },
+  // inversify и его пакеты поставляются как ESM — без трансформации jest на них падает.
+  transformIgnorePatterns: [
+    "node_modules/(?!(inversify|inversify-inject-decorators|@inversifyjs)/)",
+  ],
   moduleNameMapper: {
     "^react-native$": "<rootDir>/jest/stubs/react-native.js",
+    "^react-native-mmkv$": "<rootDir>/jest/stubs/react-native-mmkv.js",
+    "^react-native-config$": "<rootDir>/jest/stubs/react-native-config.js",
     "^react-native-reanimated$": "<rootDir>/jest/stubs/empty.js",
     "^react-native-worklets$": "<rootDir>/jest/stubs/empty.js",
     "^@app(.*)$": "<rootDir>/src/app$1",

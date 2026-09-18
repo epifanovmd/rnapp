@@ -1,4 +1,4 @@
-import { IMainApi } from "@shared/api";
+import { IMainApi, IMainSession } from "@shared/api";
 import {
   I2FARequiredDto,
   ISignInRequestDto,
@@ -7,10 +7,10 @@ import {
   TSignUpRequestDto,
 } from "@shared/api/gen/main/model";
 import { createEnumModelBase } from "@shared/lib/models";
+import type { ITokenSession } from "@shared/lib/session";
 import { injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
 
-import { IAuthSessionService } from "../api/types";
 import { AuthStatus, IAuthStore } from "./types";
 
 const AuthStatusModel = createEnumModelBase<typeof AuthStatus>(AuthStatus);
@@ -27,7 +27,7 @@ class AuthStore implements IAuthStore {
 
   constructor(
     @IMainApi() private _api: IMainApi,
-    @IAuthSessionService() private _session: IAuthSessionService,
+    @IMainSession() private _session: ITokenSession,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
 
@@ -91,7 +91,7 @@ class AuthStore implements IAuthStore {
 
     const { tokens } = res.data;
 
-    this._session.setTokens(tokens.accessToken, tokens.refreshToken);
+    this._session.setTokens(tokens);
     this._setStatus(AuthStatus.Authenticated);
   }
 
@@ -122,7 +122,7 @@ class AuthStore implements IAuthStore {
 
     const { tokens } = res.data;
 
-    this._session.setTokens(tokens.accessToken, tokens.refreshToken);
+    this._session.setTokens(tokens);
     this.twoFactorToken = null;
     this.twoFactorHint = undefined;
     this._setStatus(AuthStatus.Authenticated);
@@ -141,7 +141,7 @@ class AuthStore implements IAuthStore {
 
     const { tokens } = res.data;
 
-    this._session.setTokens(tokens.accessToken, tokens.refreshToken);
+    this._session.setTokens(tokens);
     this._setStatus(AuthStatus.Authenticated);
   }
 
@@ -151,7 +151,7 @@ class AuthStore implements IAuthStore {
     let ok: boolean;
 
     if (tokens) {
-      this._session.setTokens(tokens.accessToken, tokens.refreshToken);
+      this._session.setTokens(tokens);
       ok = true;
     } else {
       ok = await this._session.restoreSession();
@@ -161,7 +161,7 @@ class AuthStore implements IAuthStore {
   }
 
   signOut() {
-    this._session.clearTokens();
+    this._session.clear();
     this.twoFactorToken = null;
     this.twoFactorHint = undefined;
     this.verifyError = undefined;

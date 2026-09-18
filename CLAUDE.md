@@ -29,7 +29,8 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 - `features/` — sign-in, sign-up, recovery-password, biometric, container-scan,
   message-actions, object-scan, plate-scan, text-scan
 - `entities/` — auth, message, user
-- `shared/` — ui | api | config | lib (di, holders, navigation, theme, socket, keyboard, ...)
+- `shared/` — ui | api (только конкретные бэкенды) | config | lib (http, session, di, holders,
+  navigation, theme, socket, keyboard, ...)
 
 ## Правила (обязательные)
 
@@ -111,6 +112,7 @@ CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. �
 Конкретика проекта (проверенные факты, gotcha, точные файловые карты):
 
 - API-слой (HTTP-ядро, middleware, ошибки): `.claude/memory/project_api.md`
+- Сессия и токены (`lib/session`): `.claude/memory/project_session.md`
 - Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
 - UI-кит: `.claude/memory/project_components.md`
 - Экраны / навигация: `.claude/memory/project_screens.md`
