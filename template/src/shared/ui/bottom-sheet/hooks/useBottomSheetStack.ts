@@ -40,6 +40,12 @@ export interface IBottomSheetStack<K extends string> {
  * Стек шторок поверх `stackBehavior: "replace"`: на экране всегда один лист,
  * история переходов хранится в хуке. Свайп-закрытие верхнего листа закрывает
  * весь стек — визуально предыдущих листов уже нет.
+ *
+ * Закрытие листа асинхронное и непрерываемое: `present` по листу, который ещё
+ * доигрывает закрытие, в `@gorhom/bottom-sheet` игнорируется, а сам лист всё
+ * равно размонтируется. Поэтому показ такого листа откладывается до его
+ * `onDismiss`, а закрытием стека считается только `onDismiss` листа, который
+ * на этот момент был на экране.
  */
 export const useBottomSheetStack = <K extends string>(
   config: TBottomSheetStackConfig<K>,
@@ -50,6 +56,12 @@ export const useBottomSheetStack = <K extends string>(
     () => new Map<K, TBottomSheetStackSheetProps>(),
   );
   const historyRef = useRef<K[]>([]);
+  /** Лист, который сейчас на экране. */
+  const visibleRef = useRef<K | null>(null);
+  /** Листы, чьё закрытие запущено и чей `onDismiss` ещё не пришёл. */
+  const closingRef = useConstant(() => new Set<K>());
+  /** Лист, показ которого отложен до конца его же закрытия. */
+  const pendingPresentRef = useRef<K | null>(null);
   const [activeSheet, setActiveSheet] = useState<K | null>(null);
 
   const getRef = useCallback(
@@ -66,17 +78,69 @@ export const useBottomSheetStack = <K extends string>(
     [refsStore],
   );
 
-  const handleDismiss = useCallback(
+  const show = useCallback(
     (key: K) => {
-      if (historyRef.current.at(-1) !== key) {
+      if (closingRef.has(key)) {
+        pendingPresentRef.current = key;
+
         return;
       }
 
+      pendingPresentRef.current = null;
+
+      const visible = visibleRef.current;
+
+      // replace закроет текущий лист сам; его `onDismiss` — не закрытие стека
+      if (visible && visible !== key) {
+        closingRef.add(visible);
+      }
+
+      visibleRef.current = key;
+      getRef(key).current?.present();
+    },
+    [closingRef, getRef],
+  );
+
+  const closeStack = useCallback(() => {
+    pendingPresentRef.current = null;
+
+    const visible = visibleRef.current;
+
+    if (!visible || closingRef.has(visible)) {
+      return;
+    }
+
+    closingRef.add(visible);
+    getRef(visible).current?.dismiss();
+  }, [closingRef, getRef]);
+
+  const handleDismiss = useCallback(
+    (key: K) => {
+      closingRef.delete(key);
+
+      const wasVisible = visibleRef.current === key;
+
+      if (wasVisible) {
+        visibleRef.current = null;
+      }
+
+      if (pendingPresentRef.current === key) {
+        show(key);
+
+        return;
+      }
+
+      if (!wasVisible) {
+        return;
+      }
+
+      const top = historyRef.current.at(-1) ?? key;
+
       historyRef.current = [];
       setActiveSheet(null);
-      configRef.current[key]?.onDismiss?.();
+      configRef.current[top]?.onDismiss?.();
     },
-    [configRef],
+    [closingRef, configRef, show],
   );
 
   const present = useCallback(
@@ -88,10 +152,10 @@ export const useBottomSheetStack = <K extends string>(
       }
 
       historyRef.current = [...history.filter(item => item !== key), key];
-      getRef(key).current?.present();
       setActiveSheet(key);
+      show(key);
     },
-    [getRef],
+    [show],
   );
 
   const back = useCallback(() => {
@@ -102,25 +166,25 @@ export const useBottomSheetStack = <K extends string>(
       return;
     }
 
-    historyRef.current = history.slice(0, -1);
+    const prev = history.at(-2) ?? null;
 
-    const prev = historyRef.current.at(-1) ?? null;
+    if (!prev) {
+      closeStack();
 
-    if (prev) {
-      getRef(prev).current?.present();
-      setActiveSheet(prev);
-    } else {
-      getRef(top).current?.dismiss();
+      return;
     }
-  }, [getRef]);
+
+    // история чистится только по факту закрытия — в `handleDismiss`
+    historyRef.current = history.slice(0, -1);
+    setActiveSheet(prev);
+    show(prev);
+  }, [closeStack, show]);
 
   const dismiss = useCallback(() => {
-    const top = historyRef.current.at(-1);
-
-    if (top) {
-      getRef(top).current?.dismiss();
+    if (historyRef.current.length > 0) {
+      closeStack();
     }
-  }, [getRef]);
+  }, [closeStack]);
 
   const isOpen = useCallback((key: K) => historyRef.current.at(-1) === key, []);
 

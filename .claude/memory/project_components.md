@@ -122,6 +122,27 @@ ReactNode; `fallbackIcon`; `source` (полный FastImage-source, главне
 (`shared/ui/navbar`) использует его в слоте `image`: анимация
 высоты/прозрачности — на Animated.View-обёртке, не на самом Image.
 
+## Стек шторок (`shared/ui/bottom-sheet/hooks/useBottomSheetStack.ts`, 2026-09-29)
+
+Стек поверх `stackBehavior: "replace"` (он зашит в `BottomSheet`, наружу не
+пробрасывается): на экране всегда один лист, история — в хуке. API:
+`sheets[key]` (`ref` + `onDismiss`) в лист, `present/back/dismiss/isOpen/activeSheet`.
+
+Gotcha gorhom 5.2.x, из-за которой стек ломался при быстром переключении:
+закрытие асинхронное и **непрерываемое** — `handleSnapToIndex` выходит по
+`isForcedClosing`, поэтому `present()` по листу, который ещё доигрывает закрытие,
+не открывает его, но `mountSheet` при этом всё равно закрывает текущий верхний
+лист (схлопывается весь стек). Плюс запоздавший `onDismiss` заменённого листа
+нельзя отличать от настоящего по вершине истории — при `back()` вершина уже
+равна этому же ключу.
+
+Решение в хуке: `visibleRef` (что реально на экране), `closingRef` (закрытия, чей
+`onDismiss` ещё не пришёл), `pendingPresentRef` (показ, отложенный до `onDismiss`
+того же листа). Закрытием стека считается только `onDismiss` листа, который на
+этот момент был видимым; история чистится там же, а не в `back/dismiss`.
+Тесты — `hooks/__tests__/use-bottom-sheet-stack.test.ts` (фейковый хост
+моделирует replace + отложенный `onDismiss`).
+
 ## ActionSheet (`shared/ui/action-sheet`, 2026-09-26)
 
 Шторка выбора действия поверх `BottomSheet`: пункты данными (`IActionSheetItem<TKey>`: key, title, description, icon, destructive, disabled), карточка `surface` со строками (иконка в круге `primary`/`danger`, заголовок, подпись, chevron), кнопка «Отмена». `onSelect(key)` вызывается ПОСЛЕ закрытия (`onDismiss`) — иначе системный пикер iOS не откроется поверх модалки. Открытие — `ref.current?.present()` (`useBottomSheetRef`).
