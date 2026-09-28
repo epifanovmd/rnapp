@@ -1,4 +1,5 @@
 import { createInjectDecorator } from "@shared/lib/di";
+import { HttpError } from "@shared/lib/http";
 import {
   ITokenSession,
   PersistentTokenStorage,
@@ -18,6 +19,10 @@ const REFRESH_TOKEN_KEY = "app:refresh_token";
 /** Запас до истечения access-токена, при котором пора обновляться. */
 const REFRESH_BUFFER_SECONDS = 60;
 
+/** Сессии нет, только если бэкенд ответил 4xx; сеть, таймаут, 5xx и 429 — временные. */
+const isSessionRejected = (error: unknown): boolean =>
+  error instanceof HttpError && error.status < 500 && error.status !== 429;
+
 /**
  * Сессия основного бэкенда: refresh-токен переживает перезапуск, access — нет
  * и восстанавливается обновлением по `exp` JWT. Доменное состояние
@@ -30,6 +35,7 @@ export const createMainSession = (
   new TokenSession({
     storage: new PersistentTokenStorage(storage, { key: REFRESH_TOKEN_KEY }),
     shouldRefresh: refreshBeforeJwtExpiry(REFRESH_BUFFER_SECONDS),
+    isSessionRejected,
     refresh: async refreshToken => {
       const { data, error } = await api.refresh(refreshToken);
 

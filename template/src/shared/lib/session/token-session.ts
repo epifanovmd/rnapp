@@ -14,8 +14,9 @@ import { MemoryTokenStorage } from "./storage/memory-token-storage";
  * Хранение и обновление пары токенов. Специфика бэкенда приходит конфигом:
  * чем обновлять, где хранить и когда обновлять заранее.
  *
- * Параллельные запросы делят одно обновление. Неудачное очищает сессию и
- * поднимает `onSessionExpired`, на который подписан доменный стор.
+ * Параллельные запросы делят одно обновление. Отказ бэкенда
+ * (`isSessionRejected`) очищает сессию и поднимает `onSessionExpired`, на
+ * который подписан доменный стор; временная ошибка оставляет токены.
  */
 export class TokenSession implements ITokenSession {
   private _tokens: TokenPair = EMPTY_TOKENS;
@@ -169,8 +170,11 @@ export class TokenSession implements ITokenSession {
     try {
       this.setTokens(await this._config.refresh(refreshToken));
     } catch (error) {
-      this.clear();
-      this._notifyExpired();
+      if (this._config.isSessionRejected?.(error) ?? true) {
+        this.clear();
+        this._notifyExpired();
+      }
+
       throw error;
     }
   }

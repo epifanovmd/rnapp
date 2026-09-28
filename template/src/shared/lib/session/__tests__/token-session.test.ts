@@ -108,6 +108,37 @@ describe("TokenSession", () => {
     expect(onExpired).toHaveBeenCalledTimes(1);
   });
 
+  it("временная ошибка refresh сессию не завершает", async () => {
+    const error = new Error("offline");
+    const { session, refresh } = createSession({
+      isSessionRejected: () => false,
+    });
+    const onExpired = jest.fn();
+
+    refresh.mockRejectedValue(error);
+    session.onSessionExpired(onExpired);
+    session.setTokens(pair("1"));
+
+    await expect(session.refreshToken()).rejects.toBe(error);
+    expect(session.tokens).toEqual(pair("1"));
+    expect(onExpired).not.toHaveBeenCalled();
+  });
+
+  it("отказ бэкенда по предикату завершает сессию", async () => {
+    const { session, refresh } = createSession({
+      isSessionRejected: error => (error as Error).message === "401",
+    });
+    const onExpired = jest.fn();
+
+    refresh.mockRejectedValue(new Error("401"));
+    session.onSessionExpired(onExpired);
+    session.setTokens(pair("1"));
+
+    await expect(session.refreshToken()).rejects.toThrow("401");
+    expect(session.isAuthorized).toBe(false);
+    expect(onExpired).toHaveBeenCalledTimes(1);
+  });
+
   it("refresh без токена бросает, но сессию протухшей не объявляет", async () => {
     const { session, refresh } = createSession();
     const onExpired = jest.fn();

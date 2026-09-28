@@ -27,6 +27,12 @@ export interface TokenSessionConfig {
   storage?: ITokenStorage;
   /** По умолчанию заранее не обновляет: реагирует на 401. */
   shouldRefresh?: RefreshPolicy;
+  /**
+   * Ошибка refresh означает, что сессии больше нет (например, 401). Остальные
+   * — временные (нет сети, 5xx): токены сохраняются, обновление повторится при
+   * следующем запросе. По умолчанию сессию завершает любая ошибка.
+   */
+  isSessionRejected?: (error: unknown) => boolean;
 }
 
 /**

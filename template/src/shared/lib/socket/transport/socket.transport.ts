@@ -7,6 +7,7 @@ import { INetworkStatusService } from "../../network";
 import { ITokenProvider } from "../contract";
 import { EmitQueue } from "./emit-queue";
 import { PersistentListeners } from "./persistent-listeners";
+import { ReconnectScheduler } from "./reconnect-scheduler";
 import {
   AppSocket,
   ISocketTransport,
@@ -14,50 +15,48 @@ import {
   SocketTransportState,
 } from "./socket.transport.types";
 
-// ── Constants ───────────────────────────────────────────────────────
-
 /** Application-level heartbeat interval. */
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
 /** Max time to wait for pong response. */
 const HEARTBEAT_TIMEOUT_MS = 5_000;
 
-/** Max consecutive auth errors before circuit breaker trips. */
-const AUTH_ERROR_MAX_RETRIES = 3;
+const noop = () => {};
 
-/** Cooldown after circuit breaker trips (ms). */
-const AUTH_CIRCUIT_BREAKER_COOLDOWN_MS = 60_000;
+interface IPendingConnect {
+  promise: Promise<void>;
+  reject: (err: Error) => void;
+}
 
-/** Min delay between connect attempts from platform triggers (ms). */
-const CONNECT_THROTTLE_MS = 2_000;
-
-// ── Transport ───────────────────────────────────────────────────────
-
+/**
+ * Одно долгоживущее соединение socket.io.
+ *
+ * - Токен запрашивается перед каждым handshake (`auth`-колбэк), поэтому
+ *   встроенные повторы не уходят со старым токеном после фона.
+ * - Сетевые обрывы переподключает сам socket.io. Когда он сдаётся — сервер
+ *   отказал в подключении или разорвал его (`socket.active === false`), —
+ *   транспорт обновляет токен и повторяет с backoff.
+ * - Новый токен уходит по живому соединению (`auth:refresh`), в том числе
+ *   в ответ на `auth:expired`, — сервер не рвёт соединение по сроку.
+ * - Возвращение приложения и появление сети поднимают сдавшийся сокет сразу,
+ *   а живой проверяют пингом: после фона соединение может оказаться мёртвым.
+ */
 @injectable()
 export class SocketTransport implements ISocketTransport {
   private _socket: AppSocket | null = null;
   private _isManualDisconnect = false;
-
-  // Guards against concurrent connect() calls
-  private _connectingPromise: Promise<void> | null = null;
+  private _pending: IPendingConnect | null = null;
 
   private _statusListeners = new Set<SocketStatusListener>();
   private _persistentListeners = new PersistentListeners();
   private _emitQueue = new EmitQueue();
 
-  // ── Heartbeat ──────────────────────────────────────────────────
   private _heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private _heartbeatTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  // ── Auth circuit breaker ───────────────────────────────────────
-  private _authErrorCount = 0;
-  private _authCircuitOpen = false;
-  private _authCooldownTimer: ReturnType<typeof setTimeout> | null = null;
-
-  // ── Connect throttle ──────────────────────────────────────────
-  private _lastConnectAttempt = 0;
-
   private _state: SocketTransportState = { status: "idle", error: null };
+  private _initializeDisposers: (() => void) | null = null;
+  private _reconnect = new ReconnectScheduler();
 
   constructor(
     @ITokenProvider() private _tokenProvider: ITokenProvider,
@@ -69,64 +68,78 @@ export class SocketTransport implements ISocketTransport {
     return this._state;
   }
 
-  // ─── Lifecycle ────────────────────────────────────────────────────
-
   initialize(): () => void {
-    const disposeTokenChange = this._tokenProvider.onTokenChange(token => {
-      if (this._socket && token) {
-        this._socket.auth = { token };
-        (this._socket.io.opts.query as Record<string, string>).access_token =
-          token;
-      }
-    });
+    if (this._initializeDisposers) return this._initializeDisposers;
 
+    const disposeToken = this._tokenProvider.onTokenChange(this._sendToken);
     const disposeAppActive = this._appState.onChange(isActive => {
-      if (this._isManualDisconnect || !isActive) return;
-
-      if (!this._socket?.connected) {
-        this._throttledConnect();
-      } else {
-        this._sendHeartbeat();
-      }
+      if (isActive) this._onWake();
     });
+    const disposeNetworkOnline = this._network.onOnline(this._onWake);
 
-    const disposeNetworkOnline = this._network.onOnline(() => {
-      if (!this._isManualDisconnect && !this._socket?.connected) {
-        this._throttledConnect();
-      }
-    });
+    this.connect().catch(noop);
 
-    this.connect().catch(() => {});
-
-    return () => {
-      disposeTokenChange();
+    const disposers = () => {
+      disposeToken();
       disposeAppActive();
       disposeNetworkOnline();
       this.disconnect();
+      this._initializeDisposers = null;
     };
+
+    this._initializeDisposers = disposers;
+
+    return disposers;
   }
 
   connect(): Promise<void> {
     if (this._socket?.connected) return Promise.resolve();
-    if (this._connectingPromise) return this._connectingPromise;
+    if (this._pending) return this._pending.promise;
 
-    this._connectingPromise = this._doConnect().finally(() => {
-      this._connectingPromise = null;
+    this._isManualDisconnect = false;
+
+    const socket = this._socket ?? this._createSocket();
+    const pending = {} as IPendingConnect;
+
+    pending.promise = new Promise<void>((resolve, reject) => {
+      const settle = () => {
+        socket.off("connect", onConnect);
+        socket.off("connect_error", onError);
+        if (this._pending === pending) this._pending = null;
+      };
+      const onConnect = () => {
+        settle();
+        resolve();
+      };
+      const onError = (err: Error) => {
+        settle();
+        reject(err);
+      };
+
+      pending.reject = onError;
+      socket.once("connect", onConnect);
+      socket.once("connect_error", onError);
     });
 
-    return this._connectingPromise;
+    this._pending = pending;
+
+    if (!socket.active) {
+      this._setState({ status: "connecting", error: null });
+      socket.connect();
+    }
+
+    return pending.promise;
   }
 
   disconnect(): void {
     this._isManualDisconnect = true;
+    this._reconnect.reset();
     this._emitQueue.clear();
     this._persistentListeners.clear();
+    this._pending?.reject(new Error("Socket disconnected"));
     this._teardown();
-    this._clearAuthCircuitBreaker();
     this._setState({ status: "disconnected", error: null });
   }
-
-  // ─── Pub/Sub ──────────────────────────────────────────────────────
 
   on<TArgs extends any[]>(
     event: string,
@@ -190,28 +203,11 @@ export class SocketTransport implements ISocketTransport {
   }
 
   onConnect(handler: () => void): () => void {
-    const removeFromStore = this._persistentListeners.add("connect", handler);
-
-    this._socket?.on("connect", handler);
-
-    return () => {
-      removeFromStore();
-      this._socket?.off("connect", handler);
-    };
+    return this.on("connect", handler);
   }
 
   onDisconnect(handler: (reason: string) => void): () => void {
-    const removeFromStore = this._persistentListeners.add(
-      "disconnect",
-      handler,
-    );
-
-    this._socket?.on("disconnect", handler as never);
-
-    return () => {
-      removeFromStore();
-      this._socket?.off("disconnect", handler as never);
-    };
+    return this.on("disconnect", handler);
   }
 
   onStatusChange(listener: SocketStatusListener): () => void {
@@ -220,66 +216,29 @@ export class SocketTransport implements ISocketTransport {
     return () => this._statusListeners.delete(listener);
   }
 
-  // ─── Private: Connection ──────────────────────────────────────────
-
-  private _doConnect(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this._teardown();
-
-      const accessToken = this._tokenProvider.accessToken;
-
-      if (!accessToken) {
-        const err = new Error("[Socket] No access token available");
-
-        this._setState({ status: "error", error: err });
-        reject(err);
-
-        return;
-      }
-
-      this._isManualDisconnect = false;
-      this._setState({ status: "connecting", error: null });
-
-      const socket: AppSocket = connect(SOCKET_BASE_URL, {
-        withCredentials: true,
-        autoConnect: false,
-        reconnection: true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 2_000,
-        reconnectionDelayMax: 30_000,
-        randomizationFactor: 0.3, // jitter: ±30% на reconnection delay
-        transports: ["websocket"],
-        timeout: 10_000,
-        auth: { token: accessToken },
-        query: { access_token: accessToken },
-      });
-
-      this._socket = socket;
-
-      this._persistentListeners.bindTo(socket);
-
-      // One-shot handlers that settle the Promise
-      const onFirstConnect = () => {
-        socket.off("connect_error", onFirstError);
-        resolve();
-      };
-      const onFirstError = (err: Error) => {
-        socket.off("connect", onFirstConnect);
-        this._setState({ status: "error", error: err });
-        reject(err);
-      };
-
-      socket.once("connect", onFirstConnect);
-      socket.once("connect_error", onFirstError);
-
-      // Internal lifecycle handlers
-      socket.on("connect", this._onConnect);
-      socket.on("connect_error", this._onConnectError);
-      socket.on("disconnect", this._onDisconnect);
-      socket.on("auth_error", this._onAuthError);
-
-      socket.connect();
+  private _createSocket(): AppSocket {
+    const socket: AppSocket = connect(SOCKET_BASE_URL, {
+      withCredentials: true,
+      autoConnect: false,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 10_000,
+      randomizationFactor: 0.3,
+      transports: ["websocket"],
+      timeout: 10_000,
+      auth: this._provideAuth,
     });
+
+    this._socket = socket;
+    this._persistentListeners.bindTo(socket);
+
+    socket.on("connect", this._onConnect);
+    socket.on("connect_error", this._onConnectError);
+    socket.on("disconnect", this._onDisconnect);
+    socket.on("auth:expired", this._onAuthExpired);
+
+    return socket;
   }
 
   private _teardown(): void {
@@ -291,17 +250,69 @@ export class SocketTransport implements ISocketTransport {
     }
   }
 
-  /** Throttle: prevent rapid-fire connect attempts from platform triggers. */
-  private _throttledConnect(): void {
-    const now = Date.now();
-
-    if (now - this._lastConnectAttempt < CONNECT_THROTTLE_MS) return;
-
-    this._lastConnectAttempt = now;
-    this.connect().catch(() => {});
+  private _setState(partial: Partial<SocketTransportState>): void {
+    this._state = { ...this._state, ...partial };
+    this._statusListeners.forEach(l => l(this._state));
   }
 
-  // ─── Private: Heartbeat ───────────────────────────────────────────
+  /** Данные handshake: socket.io вызывает перед каждой попыткой подключения. */
+  private _provideAuth = (cb: (data: object) => void): void => {
+    const provider = this._tokenProvider;
+
+    provider
+      .ensureFreshToken()
+      .catch(noop)
+      .then(() => {
+        const token = provider.accessToken;
+
+        cb(token ? { token } : {});
+      });
+  };
+
+  /** Отдать серверу токен по живому соединению, чтобы тот продлил его срок. */
+  private _sendToken = (token: string): void => {
+    if (token && this._socket?.connected) {
+      this._socket.emit("auth:refresh", { accessToken: token });
+    }
+  };
+
+  /** Сокет, от которого socket.io отказался; живой или повторяющий не в счёт. */
+  private _isAbandoned(): boolean {
+    if (this._isManualDisconnect || !this._socket) return false;
+
+    return !this._socket.connected && !this._socket.active;
+  }
+
+  /**
+   * Приложение вернулось или сеть появилась: брошенный сокет поднять сразу,
+   * без ожидания backoff, а живой проверить пингом.
+   */
+  private _onWake = (): void => {
+    if (this._socket?.connected) {
+      this._sendHeartbeat();
+
+      return;
+    }
+
+    if (!this._isAbandoned()) return;
+
+    this._reconnect.reset();
+    this.connect().catch(noop);
+  };
+
+  /** socket.io сдался: обновить токен и повторить с backoff. */
+  private _scheduleReconnect(): void {
+    this._reconnect.schedule(() => {
+      if (!this._isAbandoned()) return;
+
+      this._tokenProvider
+        .refreshToken()
+        .catch(noop)
+        .then(() => {
+          if (this._isAbandoned()) this.connect().catch(noop);
+        });
+    });
+  }
 
   private _startHeartbeat(): void {
     this._stopHeartbeat();
@@ -322,10 +333,10 @@ export class SocketTransport implements ISocketTransport {
   }
 
   private _sendHeartbeat(): void {
-    if (!this._socket?.connected) return;
-    if (this._heartbeatTimeout) return;
+    const socket = this._socket;
 
-    const ts = Date.now();
+    if (!socket?.connected) return;
+    if (this._heartbeatTimeout) return;
 
     const onPong = () => {
       if (this._heartbeatTimeout) {
@@ -334,66 +345,26 @@ export class SocketTransport implements ISocketTransport {
       }
     };
 
-    this._socket.once("pong", onPong);
-    this._socket.emit("ping", { ts });
+    socket.once("pong", onPong);
+    socket.emit("ping", { ts: Date.now() });
 
     this._heartbeatTimeout = setTimeout(() => {
       this._heartbeatTimeout = null;
-      this._socket?.off("pong", onPong);
-      // Соединение мертво — принудительно разрываем,
-      // socket.io reconnection переподключит автоматически.
-      this._socket?.disconnect();
+      socket.off("pong", onPong);
+      this._restart(socket);
     }, HEARTBEAT_TIMEOUT_MS);
   }
 
-  // ─── Private: Auth Circuit Breaker ────────────────────────────────
-
   /**
-   * Предотвращает бесконечный цикл auth_error → restoreSession → connect → auth_error.
-   * После AUTH_ERROR_MAX_RETRIES подряд — cooldown 60s.
+   * Соединение мертво, а socket.io этого не заметил. После `disconnect()`
+   * он сам не переподключается, поэтому сразу `connect()` тем же сокетом.
    */
-  private _handleAuthError(message: string): void {
-    if (this._authCircuitOpen) return;
+  private _restart(socket: AppSocket): void {
+    if (socket !== this._socket || this._isManualDisconnect) return;
 
-    this._authErrorCount++;
-
-    if (this._authErrorCount >= AUTH_ERROR_MAX_RETRIES) {
-      this._authCircuitOpen = true;
-      this._setState({
-        status: "error",
-        error: new Error(`[Socket] Auth circuit breaker: ${message}`),
-      });
-
-      this._authCooldownTimer = setTimeout(() => {
-        this._authCircuitOpen = false;
-        this._authErrorCount = 0;
-        this._authCooldownTimer = null;
-        // Одна попытка после cooldown
-        this._tokenProvider
-          .restoreSession()
-          .then(() => this.connect())
-          .catch(() => {});
-      }, AUTH_CIRCUIT_BREAKER_COOLDOWN_MS);
-
-      return;
-    }
-
-    this._tokenProvider
-      .restoreSession()
-      .then(() => this.connect())
-      .catch(err => this._setState({ status: "error", error: err }));
+    socket.disconnect();
+    this.connect().catch(noop);
   }
-
-  private _clearAuthCircuitBreaker(): void {
-    this._authErrorCount = 0;
-    this._authCircuitOpen = false;
-    if (this._authCooldownTimer) {
-      clearTimeout(this._authCooldownTimer);
-      this._authCooldownTimer = null;
-    }
-  }
-
-  // ─── Private: emitWithAck helpers ─────────────────────────────────
 
   private _emitWithTimeout<T>(
     event: string,
@@ -457,43 +428,38 @@ export class SocketTransport implements ISocketTransport {
     });
   }
 
-  // ─── Private: State & Handlers ────────────────────────────────────
-
-  private _setState(partial: Partial<SocketTransportState>): void {
-    this._state = { ...this._state, ...partial };
-    this._statusListeners.forEach(l => l(this._state));
-  }
-
   private _onConnect = (): void => {
+    this._reconnect.reset();
     this._setState({ status: "connected", error: null });
-    this._authErrorCount = 0; // Reset auth error counter on successful connect
     this._startHeartbeat();
     if (this._socket) {
       this._emitQueue.flush(this._socket);
     }
   };
 
-  private _onDisconnect = (reason: string): void => {
+  private _onDisconnect = (): void => {
     this._stopHeartbeat();
     if (this._isManualDisconnect) return;
 
-    this._setState({ status: "disconnected" });
+    this._setState({ status: "connecting" });
 
-    // "io server disconnect" — server intentionally closed, socket.io won't retry
-    if (reason === "io server disconnect") {
-      this._tokenProvider
-        .refreshToken()
-        .then(() => this.connect())
-        .catch(err => this._setState({ status: "error", error: err }));
-    }
-    // All other reasons: socket.io built-in reconnection handles automatically
+    if (!this._socket?.active) this._scheduleReconnect();
   };
 
   private _onConnectError = (err: Error): void => {
+    if (this._isManualDisconnect) return;
+
     this._setState({ status: "error", error: err });
+
+    if (!this._socket?.active) this._scheduleReconnect();
   };
 
-  private _onAuthError = ({ message }: { message: string }): void => {
-    this._handleAuthError(message);
+  private _onAuthExpired = (): void => {
+    const provider = this._tokenProvider;
+
+    provider
+      .ensureFreshToken()
+      .catch(noop)
+      .then(() => this._sendToken(provider.accessToken));
   };
 }
