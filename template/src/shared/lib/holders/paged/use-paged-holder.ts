@@ -1,5 +1,6 @@
 import { IHolderError, PagedFetchFn } from "../holder.types";
 import { useHolderRef } from "../hooks/use-holder-ref";
+import { useLatestFn } from "../hooks/use-latest-fn";
 import { useWatchEffect, WatchOptions } from "../hooks/watch-effect";
 import { IPagedHolderPagination, PagedHolder } from "./paged-holder";
 
@@ -72,16 +73,18 @@ export const usePaged = <
 >(
   options?: UsePagedOptions<TItem, TArgs>,
 ): UsePagedResult<TItem, TArgs, TError> => {
-  const holder = useHolderRef(() => {
-    const fetchFn = (options?.queryFn ?? options?.onFetch) as
-      PagedFetchFn<TItem, TArgs> | undefined;
-
-    return new PagedHolder<TItem, TArgs, TError>({
-      onFetch: fetchFn,
-      pageSize: options?.pageSize,
-      keyExtractor: options?.keyExtractor,
-    });
-  });
+  const fetchFn = useLatestFn(
+    (options?.queryFn ?? options?.onFetch) as
+      PagedFetchFn<TItem, TArgs> | undefined,
+  );
+  const holder = useHolderRef(
+    () =>
+      new PagedHolder<TItem, TArgs, TError>({
+        onFetch: fetchFn,
+        pageSize: options?.pageSize,
+        keyExtractor: options?.keyExtractor,
+      }),
+  );
 
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],

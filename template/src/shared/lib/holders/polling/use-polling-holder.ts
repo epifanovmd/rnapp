@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import { EntityFetchFn, IHolderError } from "../holder.types";
 import { useHolderRef } from "../hooks/use-holder-ref";
+import { useLatestFn } from "../hooks/use-latest-fn";
 import { PollingHolder, PollingStartOptions } from "./polling-holder";
 
 export interface UsePollingOptions<TData, TArgs = void> {
@@ -53,16 +54,18 @@ export const usePolling = <
 >(
   options?: UsePollingOptions<TData, TArgs>,
 ): UsePollingResult<TData, TArgs, TError> => {
-  const holder = useHolderRef(() => {
-    const fetchFn = (options?.queryFn ?? options?.onFetch) as
-      EntityFetchFn<TData, TArgs> | undefined;
-
-    return new PollingHolder<TData, TArgs, TError>({
-      onFetch: fetchFn,
-      interval: options?.interval,
-      initialData: options?.initialData,
-    });
-  });
+  const fetchFn = useLatestFn(
+    (options?.queryFn ?? options?.onFetch) as
+      EntityFetchFn<TData, TArgs> | undefined,
+  );
+  const holder = useHolderRef(
+    () =>
+      new PollingHolder<TData, TArgs, TError>({
+        onFetch: fetchFn,
+        interval: options?.interval,
+        initialData: options?.initialData,
+      }),
+  );
 
   useEffect(() => {
     const { autoStart } = options ?? {};

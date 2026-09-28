@@ -58,4 +58,20 @@ describe("Mutation React integration", () => {
     expect(hook.current.holder).toBe(holder);
     await hook.unmount();
   });
+
+  it("calls the mutationFn of the latest render", async () => {
+    const hook = await renderHook(() =>
+      useMutation<void, string>({
+        mutationFn: async () => ({ data: "first" }),
+      }),
+    );
+
+    await hook.rerender(() =>
+      useMutation<void, string>({
+        mutationFn: async () => ({ data: "second" }),
+      }),
+    );
+    await expect(hook.current.mutate()).resolves.toBe("second");
+    await hook.unmount();
+  });
 });

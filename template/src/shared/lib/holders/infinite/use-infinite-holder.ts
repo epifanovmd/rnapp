@@ -1,5 +1,6 @@
 import { IHolderError, InfiniteFetchFn } from "../holder.types";
 import { useHolderRef } from "../hooks/use-holder-ref";
+import { useLatestFn } from "../hooks/use-latest-fn";
 import { useWatchEffect, WatchOptions } from "../hooks/watch-effect";
 import { InfiniteHolder } from "./infinite-holder";
 
@@ -59,16 +60,18 @@ export const useInfinite = <
 >(
   options?: UseInfiniteOptions<TItem, TArgs>,
 ): UseInfiniteResult<TItem, TArgs, TError> => {
-  const holder = useHolderRef(() => {
-    const fetchFn = (options?.queryFn ?? options?.onFetch) as
-      InfiniteFetchFn<TItem, TArgs> | undefined;
-
-    return new InfiniteHolder<TItem, TArgs, TError>({
-      onFetch: fetchFn,
-      pageSize: options?.pageSize,
-      keyExtractor: options?.keyExtractor,
-    });
-  });
+  const fetchFn = useLatestFn(
+    (options?.queryFn ?? options?.onFetch) as
+      InfiniteFetchFn<TItem, TArgs> | undefined,
+  );
+  const holder = useHolderRef(
+    () =>
+      new InfiniteHolder<TItem, TArgs, TError>({
+        onFetch: fetchFn,
+        pageSize: options?.pageSize,
+        keyExtractor: options?.keyExtractor,
+      }),
+  );
 
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],

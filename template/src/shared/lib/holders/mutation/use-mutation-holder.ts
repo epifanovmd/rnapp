@@ -1,6 +1,8 @@
 import { useCallback, useRef } from "react";
 
 import { IHolderError, MutationFn } from "../holder.types";
+import { useHolderRef } from "../hooks/use-holder-ref";
+import { useLatestFn } from "../hooks/use-latest-fn";
 import { IMutationHolderResult, MutationHolder } from "./mutation-holder";
 
 export interface UseMutationOptions<
@@ -47,18 +49,17 @@ export const useMutation = <
 >(
   options?: UseMutationOptions<TArgs, TData, TError>,
 ): UseMutationResult<TArgs, TData, TError> => {
-  const ref = useRef<MutationHolder<TArgs, TData, TError> | null>(null);
   const callbacksRef = useRef(options);
 
   callbacksRef.current = options;
 
-  if (!ref.current) {
-    ref.current = new MutationHolder<TArgs, TData, TError>({
-      onMutate: options?.mutationFn,
-    });
-  }
-
-  const holder = ref.current;
+  const mutationFn = useLatestFn(options?.mutationFn);
+  const holder = useHolderRef(
+    () =>
+      new MutationHolder<TArgs, TData, TError>({
+        onMutate: mutationFn,
+      }),
+  );
 
   const executeWrapper = useCallback(
     async (...params: any[]): Promise<IMutationHolderResult<TData, TError>> => {

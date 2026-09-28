@@ -62,4 +62,19 @@ describe("Collection React integration", () => {
     expect(queryFn).not.toHaveBeenCalled();
     await disabled.unmount();
   });
+
+  it("calls the queryFn of the latest render", async () => {
+    const hook = await renderHook(() =>
+      useCollection<string>({ queryFn: async () => ({ data: ["first"] }) }),
+    );
+
+    await hook.rerender(() =>
+      useCollection<string>({ queryFn: async () => ({ data: ["second"] }) }),
+    );
+    await act(async () => {
+      await hook.current.load();
+    });
+    expect(hook.current.items).toEqual(["second"]);
+    await hook.unmount();
+  });
 });

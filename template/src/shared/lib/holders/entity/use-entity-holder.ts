@@ -1,5 +1,6 @@
 import { EntityFetchFn, IHolderError } from "../holder.types";
 import { useHolderRef } from "../hooks/use-holder-ref";
+import { useLatestFn } from "../hooks/use-latest-fn";
 import { useWatchEffect, WatchOptions } from "../hooks/watch-effect";
 import { EntityHolder } from "./entity-holder";
 
@@ -56,15 +57,17 @@ export const useEntity = <
 >(
   options?: UseEntityOptions<TData, TArgs>,
 ): UseEntityResult<TData, TArgs, TError> => {
-  const holder = useHolderRef(() => {
-    const fetchFn = (options?.queryFn ?? options?.onFetch) as
-      EntityFetchFn<TData, TArgs> | undefined;
-
-    return new EntityHolder<TData, TArgs, TError>({
-      onFetch: fetchFn,
-      initialData: options?.initialData,
-    });
-  });
+  const fetchFn = useLatestFn(
+    (options?.queryFn ?? options?.onFetch) as
+      EntityFetchFn<TData, TArgs> | undefined,
+  );
+  const holder = useHolderRef(
+    () =>
+      new EntityHolder<TData, TArgs, TError>({
+        onFetch: fetchFn,
+        initialData: options?.initialData,
+      }),
+  );
 
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],
