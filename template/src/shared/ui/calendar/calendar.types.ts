@@ -1,9 +1,9 @@
-import type { ConfigType, Dayjs } from "dayjs";
+import type { Locale } from "date-fns";
 import type { ReactNode } from "react";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
 
-/** Всё, что принимает `dayjs()`: Dayjs, Date, ISO-строка, timestamp. */
-export type TCalendarDateInput = ConfigType;
+/** Дата на входе календаря: `Date`, ISO-строка (`YYYY-MM-DD` — локальный день) или timestamp. */
+export type TCalendarDateInput = Date | string | number;
 
 /** Ключ дня `YYYY-MM-DD`. Строковое сравнение таких ключей совпадает с хронологическим. */
 export type TCalendarDateKey = string;
@@ -11,7 +11,7 @@ export type TCalendarDateKey = string;
 /** Ключ месяца `YYYY-MM`. */
 export type TCalendarMonthKey = string;
 
-/** День недели по dayjs: 0 — воскресенье … 6 — суббота. */
+/** День недели как у `Date.getDay()`: 0 — воскресенье … 6 — суббота. */
 export type TCalendarWeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 // ---------------------------------------------------------------------------
@@ -19,8 +19,8 @@ export type TCalendarWeekDay = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 // ---------------------------------------------------------------------------
 
 export interface ICalendarRange {
-  start: Dayjs | null;
-  end: Dayjs | null;
+  start: Date | null;
+  end: Date | null;
 }
 
 export interface ICalendarRangeInput {
@@ -36,7 +36,7 @@ export interface ICalendarSingleSelectionProps {
   mode: "single";
   value?: TCalendarDateInput | null;
   defaultValue?: TCalendarDateInput | null;
-  onChange?: (date: Dayjs | null) => void;
+  onChange?: (date: Date | null) => void;
   /** Повторный тап по выбранному дню снимает выбор. */
   allowDeselect?: boolean;
 }
@@ -45,7 +45,7 @@ export interface ICalendarMultipleSelectionProps {
   mode: "multiple";
   value?: TCalendarDateInput[];
   defaultValue?: TCalendarDateInput[];
-  onChange?: (dates: Dayjs[]) => void;
+  onChange?: (dates: Date[]) => void;
   /** Максимум выбранных дней; при достижении новые тапы игнорируются. */
   max?: number;
 }
@@ -69,7 +69,7 @@ export type TCalendarSelectionProps =
 
 export type TCalendarSelectionMode = "none" | "single" | "multiple" | "range";
 
-/** Внутреннее состояние выбора — только ключи дней, без dayjs-объектов. */
+/** Внутреннее состояние выбора — только ключи дней, без `Date`. */
 export type TCalendarSelectionState =
   | { mode: "none" }
   | { mode: "single"; key: TCalendarDateKey | null }
@@ -80,11 +80,11 @@ export type TCalendarSelectionState =
       end: TCalendarDateKey | null;
     };
 
-/** Выбор для внешнего кода: те же режимы, но уже с dayjs-объектами. */
+/** Выбор для внешнего кода: те же режимы, но уже с `Date`. */
 export type TCalendarSelectionValue =
   | { mode: "none" }
-  | { mode: "single"; value: Dayjs | null }
-  | { mode: "multiple"; value: Dayjs[] }
+  | { mode: "single"; value: Date | null }
+  | { mode: "multiple"; value: Date[] }
   | { mode: "range"; value: ICalendarRange };
 
 // ---------------------------------------------------------------------------
@@ -122,7 +122,7 @@ export interface ICalendarGridCell {
   dateKey: TCalendarDateKey;
   /** Число месяца 1–31. */
   day: number;
-  /** День недели 0–6 (по dayjs). */
+  /** День недели 0–6 (как у `Date.getDay()`). */
   weekday: TCalendarWeekDay;
   /** Хвост соседнего месяца. */
   isOutside: boolean;
@@ -146,8 +146,8 @@ export interface ICalendarMonthGrid {
 // ---------------------------------------------------------------------------
 
 export interface ICalendarDayState<TExtra = unknown> extends ICalendarGridCell {
-  /** Dayjs этого дня в локали календаря. Экземпляр общий (из кэша), но dayjs иммутабелен. */
-  date: Dayjs;
+  /** `Date` этого дня (локальная полночь). Экземпляр общий (из кэша) — не мутировать. */
+  date: Date;
   /** Месяц сетки, в которой день отрисован. Для хвостов не совпадает с месяцем самого дня. */
   monthKey: TCalendarMonthKey;
   isToday: boolean;
@@ -211,7 +211,7 @@ export interface ICalendarNavButtonProps {
 
 export interface ICalendarHeaderProps {
   monthKey: TCalendarMonthKey;
-  month: Dayjs;
+  month: Date;
   title: string;
   canGoPrev: boolean;
   canGoNext: boolean;
@@ -251,7 +251,7 @@ export interface ICalendarRenderers<TExtra = unknown> {
 // Форматы и стили
 // ---------------------------------------------------------------------------
 
-export type TCalendarFormat = string | ((date: Dayjs) => string);
+export type TCalendarFormat = string | ((date: Date) => string);
 
 export interface ICalendarFormats {
   /** Заголовок шапки. */
@@ -302,8 +302,8 @@ export interface ICalendarStyles {
 export interface ICalendarBaseProps<
   TExtra = unknown,
 > extends ICalendarRenderers<TExtra> {
-  /** Локаль dayjs (`ru`, `en`, …) — её файл должен быть импортирован. По умолчанию — глобальная локаль dayjs. */
-  locale?: string;
+  /** Локаль date-fns (`ru` из `date-fns/locale`). По умолчанию — из `setDefaultOptions`, иначе en-US. */
+  locale?: Locale;
   /** Первый день недели. По умолчанию — из локали. */
   firstDayOfWeek?: TCalendarWeekDay;
   /** Что считать сегодняшним днём. По умолчанию — дата на момент монтирования. */
@@ -312,7 +312,7 @@ export interface ICalendarBaseProps<
   maxDate?: TCalendarDateInput | null;
   disabledDates?: readonly TCalendarDateInput[];
   disabledWeekDays?: readonly TCalendarWeekDay[];
-  isDateDisabled?: (date: Dayjs, key: TCalendarDateKey) => boolean;
+  isDateDisabled?: (date: Date, key: TCalendarDateKey) => boolean;
   /** Показывать дни соседних месяцев (хвосты). По умолчанию — true у Calendar и false у CalendarList. */
   showOutsideDays?: boolean;
   /** Хвосты можно выбирать. По умолчанию — true. */
@@ -334,7 +334,7 @@ export interface ICalendarBaseProps<
   dayData?: TCalendarDayDataMap<TExtra>;
   /** Альтернатива `dayData` — данные считаются по запросу. Если ключ есть в `dayData`, берётся он. */
   getDayData?: (
-    date: Dayjs,
+    date: Date,
     key: TCalendarDateKey,
   ) => ICalendarDayData<TExtra> | undefined;
   /** Тап по доступному дню. `day` описывает состояние до применения выбора. */
@@ -344,10 +344,10 @@ export interface ICalendarBaseProps<
    * Запрос на смену месяца: кнопки, свайп, скролл списка, ref. Если задан
    * `month`, календарь сам месяц не меняет — его нужно записать в `month`.
    */
-  onMonthChange?: (month: Dayjs, key: TCalendarMonthKey) => void;
+  onMonthChange?: (month: Date, key: TCalendarMonthKey) => void;
   /** Тап по названию месяца в шапке. */
-  onHeaderTitlePress?: (month: Dayjs, key: TCalendarMonthKey) => void;
-  onHeaderTitleLongPress?: (month: Dayjs, key: TCalendarMonthKey) => void;
+  onHeaderTitlePress?: (month: Date, key: TCalendarMonthKey) => void;
+  onHeaderTitleLongPress?: (month: Date, key: TCalendarMonthKey) => void;
 }
 
 /** Список упёрся в начало или конец контента — дальше скроллить некуда. */
@@ -366,7 +366,7 @@ export interface ICalendarMonthBounds {
 export interface ICalendarResolvedConfig<
   TExtra = unknown,
 > extends ICalendarRenderers<TExtra> {
-  locale: string;
+  locale: Locale;
   firstDayOfWeek: TCalendarWeekDay;
   todayKey: TCalendarDateKey;
   /** Месяц, с которого календарь стартовал. Не меняется за время жизни. */
@@ -392,8 +392,8 @@ export interface ICalendarResolvedConfig<
   resolveDayData: (
     key: TCalendarDateKey,
   ) => ICalendarDayData<TExtra> | undefined;
-  onHeaderTitlePress?: (month: Dayjs, key: TCalendarMonthKey) => void;
-  onHeaderTitleLongPress?: (month: Dayjs, key: TCalendarMonthKey) => void;
+  onHeaderTitlePress?: (month: Date, key: TCalendarMonthKey) => void;
+  onHeaderTitleLongPress?: (month: Date, key: TCalendarMonthKey) => void;
 }
 
 export interface ICalendarState {
@@ -438,7 +438,7 @@ export interface ICalendarRef {
   goToPrevMonth: (animated?: boolean) => void;
   goToToday: (animated?: boolean) => void;
   /** Текущий/видимый месяц. */
-  getMonth: () => Dayjs;
+  getMonth: () => Date;
   /** То же, что тап по дню: применяет правила режима, недоступные дни игнорирует. */
   select: (date: TCalendarDateInput) => void;
   setSelection: (value: TCalendarSelectionValue) => void;
@@ -490,7 +490,7 @@ export interface ICalendarListOwnProps<
   /** Своя высота месяца (без `monthGap`), если `renderMonth` рисует его иначе. */
   getMonthHeight?: (grid: ICalendarMonthGrid) => number;
   /** Смена видимого месяца при скролле (в дополнение к onMonthChange). */
-  onVisibleMonthChange?: (month: Dayjs, key: TCalendarMonthKey) => void;
+  onVisibleMonthChange?: (month: Date, key: TCalendarMonthKey) => void;
   contentContainerStyle?: StyleProp<ViewStyle>;
   showsVerticalScrollIndicator?: boolean;
   scrollEnabled?: boolean;

@@ -62,3 +62,11 @@ type: project
 - поля DTO — только через `model.data.x` (Proxy/`TypedModel` убраны 2026-09-28);
 - геттеры наследника помечаются `computed` явно в `makeObservable` его конструктора;
 - `createEnumModelBase` — `isX`-геттеры без `computed` (дешёвое сравнение с `data`).
+
+## Даты
+
+Во всех проектах одна библиотека — `date-fns` (dayjs удалён из rnapp 2026-09-28). Локаль по
+умолчанию — `setDefaultOptions({ locale: ru })` в `App.tsx`. Календарь (`shared/ui/calendar`)
+отдаёт и принимает `Date` (локальная полночь, экземпляр из кэша — не мутировать), `locale` —
+объект `Locale` из `date-fns/locale`, строковые форматы — токены date-fns (`LLLL yyyy`,
+`EEEEEE`, `d`).

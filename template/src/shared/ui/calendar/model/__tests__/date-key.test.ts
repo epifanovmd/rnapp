@@ -2,7 +2,7 @@ import {
   addMonths,
   clampMonthKey,
   diffMonths,
-  keyToDayjs,
+  keyToDate,
   makeDateKey,
   parseMonthKey,
   toDateKey,
@@ -43,12 +43,13 @@ describe("date-key", () => {
     expect(clampMonthKey("2026-05", "2026-03", "2026-06")).toBe("2026-05");
   });
 
-  it("keyToDayjs кэширует экземпляр по (locale, key)", () => {
-    const a = keyToDayjs("2026-09-14", "en");
-    const b = keyToDayjs("2026-09-14", "en");
+  it("keyToDate: локальная полночь, экземпляр кэшируется по ключу", () => {
+    const a = keyToDate("2026-09-14");
+    const b = keyToDate("2026-09-14");
 
     expect(a).toBe(b);
-    expect(a.date()).toBe(14);
-    expect(a.month()).toBe(8);
+    expect(a.getDate()).toBe(14);
+    expect(a.getMonth()).toBe(8);
+    expect(a.getHours()).toBe(0);
   });
 });

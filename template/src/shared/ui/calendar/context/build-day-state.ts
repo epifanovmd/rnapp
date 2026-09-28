@@ -7,7 +7,7 @@ import type {
 import {
   ISelectionIndex,
   isWeekendDay,
-  keyToDayjs,
+  keyToDate,
   resolveDayFlags,
 } from "../model";
 
@@ -25,7 +25,7 @@ export const buildDayState = <TExtra>(
 ): ICalendarDayState<TExtra> => ({
   ...cell,
   ...resolveDayFlags(cell.dateKey, index),
-  date: keyToDayjs(cell.dateKey, config.locale),
+  date: keyToDate(cell.dateKey),
   monthKey,
   isToday: cell.dateKey === config.todayKey,
   isDisabled: config.isDayDisabled(cell),

@@ -1,5 +1,3 @@
-import "dayjs/locale/ru";
-
 import { useNavigation } from "@shared/lib/navigation";
 import {
   Button,
@@ -13,6 +11,7 @@ import {
   useBottomSheetRef,
   useCalendarRef,
 } from "@shared/ui";
+import { setDate } from "date-fns";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import { View } from "react-native";
@@ -81,7 +80,9 @@ export const CalendarDemo: FC = observer(() => {
               size={"small"}
               title={"Выбрать 15-е"}
               onPress={() =>
-                calendar.current?.select(calendar.current.getMonth().date(15))
+                calendar.current?.select(
+                  setDate(calendar.current.getMonth(), 15),
+                )
               }
             />
             <Button

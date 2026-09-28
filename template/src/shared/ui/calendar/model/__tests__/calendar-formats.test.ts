@@ -1,10 +1,11 @@
-import "dayjs/locale/ru";
-
-import dayjs from "dayjs";
+import { setDefaultOptions } from "date-fns";
+import { enUS, ru } from "date-fns/locale";
 
 import {
+  DEFAULT_FORMATS,
   formatDate,
   getWeekDayLabels,
+  globalLocale,
   localeFirstDayOfWeek,
   orderedWeekDays,
 } from "../calendar-formats";
@@ -16,7 +17,7 @@ describe("calendar-formats", () => {
   });
 
   it("подписи дней недели в локали ru и кэш", () => {
-    const items = getWeekDayLabels("ru", 1, "dd");
+    const items = getWeekDayLabels(ru, 1, "EEEEEE");
 
     expect(items.map(i => i.label)).toEqual([
       "пн",
@@ -28,12 +29,32 @@ describe("calendar-formats", () => {
       "вс",
     ]);
     expect(items[5]!.isWeekend).toBe(true);
-    expect(getWeekDayLabels("ru", 1, "dd")).toBe(items);
+    expect(getWeekDayLabels(ru, 1, "EEEEEE")).toBe(items);
   });
 
   it("формат-функция и первый день недели локали", () => {
-    expect(formatDate(dayjs("2026-09-14"), d => `#${d.date()}`)).toBe("#14");
-    expect(localeFirstDayOfWeek("ru")).toBe(1);
-    expect(localeFirstDayOfWeek("en")).toBe(0);
+    expect(formatDate(new Date(2026, 8, 14), d => `#${d.getDate()}`, ru)).toBe(
+      "#14",
+    );
+    expect(localeFirstDayOfWeek(ru)).toBe(1);
+    expect(localeFirstDayOfWeek(enUS)).toBe(0);
+  });
+
+  it("заголовок месяца — именительный падеж, число — без нуля", () => {
+    const date = new Date(2026, 8, 5);
+
+    expect(formatDate(date, DEFAULT_FORMATS.headerTitle, ru)).toBe(
+      "сентябрь 2026",
+    );
+    expect(formatDate(date, DEFAULT_FORMATS.day, ru)).toBe("5");
+  });
+
+  it("локаль по умолчанию — из setDefaultOptions, иначе en-US", () => {
+    expect(globalLocale()).toBe(enUS);
+
+    setDefaultOptions({ locale: ru });
+    expect(globalLocale()).toBe(ru);
+
+    setDefaultOptions({ locale: undefined });
   });
 });

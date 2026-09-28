@@ -1,19 +1,19 @@
-import dayjs from "dayjs";
+import { addDays, format } from "date-fns";
 
-import { DAYJS_CACHE_LIMIT, keyToDayjs } from "../date-key";
+import { DATE_CACHE_LIMIT, keyToDate } from "../date-key";
 
 // Отдельный файл: кэш — модульный, и порядок вставок должен быть известен с нуля.
-describe("date-key: кэш dayjs", () => {
+describe("date-key: кэш Date", () => {
   it("при переполнении вытесняет только самый старый ключ, а не весь кэш", () => {
-    const first = keyToDayjs("1900-01-01", "en");
-    const second = keyToDayjs("1900-01-02", "en");
-    const base = dayjs("2000-01-01");
+    const first = keyToDate("1900-01-01");
+    const second = keyToDate("1900-01-02");
+    const base = new Date(2000, 0, 1);
 
-    for (let i = 0; i < DAYJS_CACHE_LIMIT - 1; i++) {
-      keyToDayjs(base.add(i, "day").format("YYYY-MM-DD"), "en");
+    for (let i = 0; i < DATE_CACHE_LIMIT - 1; i++) {
+      keyToDate(format(addDays(base, i), "yyyy-MM-dd"));
     }
 
-    expect(keyToDayjs("1900-01-02", "en")).toBe(second);
-    expect(keyToDayjs("1900-01-01", "en")).not.toBe(first);
+    expect(keyToDate("1900-01-02")).toBe(second);
+    expect(keyToDate("1900-01-01")).not.toBe(first);
   });
 });

@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
 /**
  * Группировка переписки по дням.
@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 
 /** Ключ дня: по нему сообщения собираются под один разделитель. */
 export const messageDayKey = (createdAt: number): string =>
-  dayjs(createdAt).format("YYYY-MM-DD");
+  format(createdAt, "yyyy-MM-dd");
 
 /**
  * Подпись разделителя: сегодня, вчера или дата целиком.
@@ -21,12 +21,11 @@ export const formatChatDay = (
   dayKey: string,
   now: number = Date.now(),
 ): string => {
-  const day = dayjs(dayKey).startOf("day");
-  const today = dayjs(now).startOf("day");
-  const diff = day.diff(today, "day");
+  const day = parseISO(dayKey);
+  const diff = differenceInCalendarDays(day, now);
 
   if (diff === 0) return "Сегодня";
   if (diff === -1) return "Вчера";
 
-  return day.format("DD.MM.YYYY");
+  return format(day, "dd.MM.yyyy");
 };

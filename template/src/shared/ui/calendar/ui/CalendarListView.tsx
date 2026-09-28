@@ -22,7 +22,7 @@ import {
   isProgrammaticScrollSettled,
   isScrollAtOffset,
   monthIndexOf,
-  monthKeyToDayjs,
+  monthKeyToDate,
   resolveScrollEdges,
   weeksBlockHeight,
 } from "../model";
@@ -73,7 +73,7 @@ export const CalendarListView = ({
   style,
 }: TCalendarListViewProps) => {
   const config = useCalendarConfig();
-  const { showHeader, showWeekDays, styles, locale } = config;
+  const { showHeader, showWeekDays, styles } = config;
   const { firstDayOfWeek, fixedWeeks, dayHeight, weekGap } = config;
   const { registerNavigator, syncMonth, syncScrollEdges } =
     useCalendarActions();
@@ -133,7 +133,6 @@ export const CalendarListView = ({
   const initialIndex = monthIndexOf(bounds.from, bounds.to, anchor);
   const visibleRef = useRef(anchor);
   const onVisibleMonthChangeRef = useLatestRef(onVisibleMonthChange);
-  const localeRef = useLatestRef(locale);
   const syncMonthRef = useLatestRef(syncMonth);
   const syncScrollEdgesRef = useLatestRef(syncScrollEdges);
 
@@ -179,12 +178,9 @@ export const CalendarListView = ({
       if (key === visibleRef.current) return;
       visibleRef.current = key;
       syncMonthRef.current(key);
-      onVisibleMonthChangeRef.current?.(
-        monthKeyToDayjs(key, localeRef.current),
-        key,
-      );
+      onVisibleMonthChangeRef.current?.(monthKeyToDate(key), key);
     },
-    [localeRef, onVisibleMonthChangeRef, syncMonthRef],
+    [onVisibleMonthChangeRef, syncMonthRef],
   );
 
   const finishProgrammaticScroll = useCallback(

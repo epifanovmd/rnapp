@@ -26,7 +26,7 @@ import {
   findGridCell,
   firstSelectedKey,
   getMonthGrid,
-  monthKeyToDayjs,
+  monthKeyToDate,
   monthToNavigateOnPress,
   resolveMonthBounds,
   toDateKey,
@@ -77,7 +77,7 @@ const CalendarProviderImpl = <TExtra,>(
   const resolved = useResolvedCalendarConfig<TExtra>(props, defaults);
   const { locale, todayKey, minKey, maxKey } = resolved;
 
-  const selectionApi = useCalendarSelection(props, locale);
+  const selectionApi = useCalendarSelection(props);
   const { selection, pressDay: selectKey } = selectionApi;
   const selectionRef = useLatestRef(selection);
 
@@ -122,12 +122,8 @@ const CalendarProviderImpl = <TExtra,>(
     maxMonthKey: monthBounds?.to ?? maxMonthKey,
     todayMonthKey: dateKeyToMonthKey(todayKey),
     onMonthChange: useCallback(
-      (key: string) =>
-        onMonthChangeRef.current?.(
-          monthKeyToDayjs(key, configRef.current.locale),
-          key,
-        ),
-      [configRef, onMonthChangeRef],
+      (key: string) => onMonthChangeRef.current?.(monthKeyToDate(key), key),
+      [onMonthChangeRef],
     ),
   });
 
@@ -219,8 +215,7 @@ const CalendarProviderImpl = <TExtra,>(
       goToNextMonth: navigation.goToNextMonth,
       goToPrevMonth: navigation.goToPrevMonth,
       goToToday: navigation.goToToday,
-      getMonth: () =>
-        monthKeyToDayjs(monthRef.current, configRef.current.locale),
+      getMonth: () => monthKeyToDate(monthRef.current),
       select: date => {
         const key = toDateKey(date);
 
@@ -232,7 +227,7 @@ const CalendarProviderImpl = <TExtra,>(
       clearSelection: selectionApi.clear,
       getSelection: selectionApi.getValue,
     }),
-    [navigation, monthRef, configRef, dayStateFor, selectKey, selectionApi],
+    [navigation, monthRef, dayStateFor, selectKey, selectionApi],
   );
 
   return (

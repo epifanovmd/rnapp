@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { differenceInCalendarDays } from "date-fns";
 
 import type {
   ICalendarRange,
@@ -7,7 +7,7 @@ import type {
   TCalendarSelectionState,
   TCalendarSelectionValue,
 } from "../calendar.types";
-import { keyToDayjs, toDateKey } from "./date-key";
+import { keyToDate, toDateKey } from "./date-key";
 
 export interface ISelectionRules {
   allowDeselect?: boolean;
@@ -18,7 +18,7 @@ export interface ISelectionRules {
 
 /** Количество дней в периоде включительно. */
 const rangeLength = (start: TCalendarDateKey, end: TCalendarDateKey) =>
-  dayjs(end).diff(dayjs(start), "day") + 1;
+  differenceInCalendarDays(keyToDate(end), keyToDate(start)) + 1;
 
 /**
  * Что происходит с выбором при тапе по дню. Если тап ничего не меняет,
@@ -166,10 +166,9 @@ export const selectionStateFromValue = (
   }
 };
 
-/** Состояние в виде, который отдаём наружу: dayjs-объекты в локали календаря. */
+/** Состояние в виде, который отдаём наружу: `Date` на локальную полночь. */
 export const selectionStateToValue = (
   state: TCalendarSelectionState,
-  locale: string,
 ): TCalendarSelectionValue => {
   switch (state.mode) {
     case "none":
@@ -177,17 +176,17 @@ export const selectionStateToValue = (
     case "single":
       return {
         mode: "single",
-        value: state.key ? keyToDayjs(state.key, locale) : null,
+        value: state.key ? keyToDate(state.key) : null,
       };
     case "multiple":
       return {
         mode: "multiple",
-        value: state.keys.map(k => keyToDayjs(k, locale)),
+        value: state.keys.map(k => keyToDate(k)),
       };
     case "range": {
       const range: ICalendarRange = {
-        start: state.start ? keyToDayjs(state.start, locale) : null,
-        end: state.end ? keyToDayjs(state.end, locale) : null,
+        start: state.start ? keyToDate(state.start) : null,
+        end: state.end ? keyToDate(state.end) : null,
       };
 
       return { mode: "range", value: range };

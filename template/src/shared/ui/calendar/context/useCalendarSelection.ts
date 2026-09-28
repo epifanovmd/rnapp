@@ -41,9 +41,8 @@ const isControlled = (props: TCalendarSelectionProps) =>
 const emit = (
   props: TCalendarSelectionProps,
   next: TCalendarSelectionState,
-  locale: string,
 ) => {
-  const value = selectionStateToValue(next, locale);
+  const value = selectionStateToValue(next);
 
   // Сужаем оба union одновременно по одному и тому же `mode`, чтобы типы onChange и value совпали.
   if (props.mode === "single" && value.mode === "single") {
@@ -70,28 +69,26 @@ export interface ICalendarSelectionApi {
  */
 export const useCalendarSelection = (
   props: TCalendarSelectionProps,
-  locale: string,
 ): ICalendarSelectionApi => {
   const [internal, setInternal] = useState<TCalendarSelectionState>(() =>
     selectionStateFromProps(props, true),
   );
   const controlled = isControlled(props);
-  // Сравниваем по ключам дней, а не по ссылкам: новый массив или новые dayjs с теми же датами — то же состояние.
+  // Сравниваем по ключам дней, а не по ссылкам: новый массив или новые `Date` с теми же датами — то же состояние.
   const fromProps = useStableValue(selectionStateFromProps(props, false));
 
   const selection = controlled ? fromProps : internal;
 
   const propsRef = useLatestRef(props);
   const selectionRef = useLatestRef(selection);
-  const localeRef = useLatestRef(locale);
 
   const commit = useCallback(
     (next: TCalendarSelectionState) => {
       if (next === selectionRef.current) return;
       if (!isControlled(propsRef.current)) setInternal(next);
-      emit(propsRef.current, next, localeRef.current);
+      emit(propsRef.current, next);
     },
-    [localeRef, propsRef, selectionRef],
+    [propsRef, selectionRef],
   );
 
   const pressDay = useCallback(
@@ -111,8 +108,8 @@ export const useCalendarSelection = (
   );
 
   const getValue = useCallback(
-    () => selectionStateToValue(selectionRef.current, localeRef.current),
-    [localeRef, selectionRef],
+    () => selectionStateToValue(selectionRef.current),
+    [selectionRef],
   );
 
   return useMemo(

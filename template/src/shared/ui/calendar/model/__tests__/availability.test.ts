@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { parseISO } from "date-fns";
 
 import { IAvailabilityRules, isDayDisabled } from "../availability";
 
@@ -8,7 +8,7 @@ const rules = (over: Partial<IAvailabilityRules> = {}): IAvailabilityRules => ({
   disabledKeys: new Set(),
   disabledWeekDays: new Set(),
   disableOutside: true,
-  resolveDayjs: key => dayjs(key),
+  resolveDate: key => parseISO(key),
   ...over,
 });
 
@@ -51,8 +51,8 @@ describe("availability", () => {
     ).toBe(true);
   });
 
-  it("пользовательский предикат вызывается последним и получает dayjs", () => {
-    const isDateDisabled = jest.fn((d: dayjs.Dayjs) => d.date() === 13);
+  it("пользовательский предикат вызывается последним и получает Date", () => {
+    const isDateDisabled = jest.fn((d: Date) => d.getDate() === 13);
     const r = rules({ minKey: "2026-09-10", isDateDisabled });
 
     expect(isDayDisabled(cell("2026-09-01", 2), r)).toBe(true);

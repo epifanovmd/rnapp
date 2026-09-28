@@ -3,7 +3,8 @@ import type {
   ICalendarRange,
   TCalendarSelectionMode,
 } from "@shared/ui";
-import dayjs, { Dayjs } from "dayjs";
+import { addDays, addMonths, endOfMonth, format, startOfMonth } from "date-fns";
+import { ru } from "date-fns/locale";
 import { ReactNode, useCallback, useMemo, useState } from "react";
 
 import { buildDemoDayData, stripLabels } from "./calendar-demo-data";
@@ -43,13 +44,13 @@ export const DEMO_MODES: { mode: TCalendarSelectionMode; title: string }[] = [
   { mode: "range", title: "Период" },
 ];
 
-const logHeaderPress = (month: Dayjs) =>
-  console.log("header press", month.format("MMMM YYYY"));
-const logHeaderLongPress = (month: Dayjs) =>
-  console.log("header long press", month.format("MMMM YYYY"));
+const logHeaderPress = (month: Date) =>
+  console.log("header press", format(month, "LLLL yyyy", { locale: ru }));
+const logHeaderLongPress = (month: Date) =>
+  console.log("header long press", format(month, "LLLL yyyy", { locale: ru }));
 
-const DAY_FORMAT = "DD.MM.YYYY";
-const fmt = (d: Dayjs | null) => (d ? d.format(DAY_FORMAT) : "—");
+const DAY_FORMAT = "dd.MM.yyyy";
+const fmt = (d: Date | null) => (d ? format(d, DAY_FORMAT) : "—");
 
 /**
  * Состояние настроек демо + готовые пропсы календаря. Один хук на экран,
@@ -80,8 +81,8 @@ export const useCalendarDemoSettings = (
     [],
   );
 
-  const [single, setSingle] = useState<Dayjs | null>(null);
-  const [multiple, setMultiple] = useState<Dayjs[]>([]);
+  const [single, setSingle] = useState<Date | null>(null);
+  const [multiple, setMultiple] = useState<Date[]>([]);
   const [range, setRange] = useState<ICalendarRange>({
     start: null,
     end: null,
@@ -125,13 +126,13 @@ export const useCalendarDemoSettings = (
   }, [mode, multiple, range, single]);
 
   const calendarProps = {
-    locale: "ru",
+    locale: ru,
     dayData,
     minDate: toggles.limitDates
-      ? dayjs().startOf("month").add(3, "day")
+      ? addDays(startOfMonth(new Date()), 3)
       : undefined,
     maxDate: toggles.limitDates
-      ? dayjs().add(2, "month").endOf("month")
+      ? endOfMonth(addMonths(new Date(), 2))
       : undefined,
     showHeader: toggles.showHeader,
     showWeekDays: toggles.showWeekDays,

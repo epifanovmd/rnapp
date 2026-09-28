@@ -1,5 +1,4 @@
-import dayjs from "dayjs";
-import localeData from "dayjs/plugin/localeData";
+import { format, getDefaultOptions } from "date-fns";
 import React, {
   FC,
   JSX,
@@ -27,8 +26,6 @@ import {
   PickerItem,
   PickerProps,
 } from "./shared";
-
-dayjs.extend(localeData);
 
 const years = Array.from({ length: 201 }, (_, i) => {
   return i + new Date().getFullYear() - 100;
@@ -58,9 +55,20 @@ const allDays = Array.from({ length: 31 }, (_, i) => i + 1);
 const daysCount = (month: number, year: number) =>
   daysInMonth[month || 0](isLeapYear(year));
 
+/** Названия месяцев в локали date-fns по умолчанию, с заглавной буквы. */
+const monthNames = () => {
+  const { locale } = getDefaultOptions();
+
+  return Array.from({ length: 12 }, (_, i) => {
+    const name = format(new Date(2000, i, 1), "LLLL", { locale });
+
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  });
+};
+
 export interface DatePickerProps extends ITouchableProps {
-  date?: dayjs.Dayjs | null;
-  onChange: (date: dayjs.Dayjs) => void;
+  date?: Date | null;
+  onChange: (date: Date) => void;
   /** Заголовок шапки листа. */
   title?: string;
 
@@ -90,19 +98,12 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   }) => {
     const modalRef = useBottomSheetRef();
 
-    const months = useMemo(
-      () =>
-        dayjs
-          .months()
-          .map(item => item[0]?.toUpperCase() + item.slice(1, item.length)),
+    const months = useMemo(monthNames, []);
 
-      [],
-    );
-
-    const now = useMemo(() => (date ? dayjs(date) : dayjs()), [date]);
+    const now = useMemo(() => date ?? new Date(), [date]);
 
     const [_day, _month, _year] = useMemo(
-      () => [now.get("dates"), now.get("month"), now.get("year")],
+      () => [now.getDate(), now.getMonth(), now.getFullYear()],
       [now],
     );
 
@@ -127,7 +128,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         setDay(Number(value));
 
         if (onChange && !renderFooter) {
-          onChange(dayjs(new Date(`${year}-${month + 1}-${Number(value)}`)));
+          onChange(new Date(year, month, Number(value)));
         }
       },
       [month, onChange, renderFooter, year],
@@ -143,11 +144,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         }
 
         if (onChange && !renderFooter) {
-          onChange(
-            dayjs(
-              new Date(`${year}-${Number(value) + 1}-${Math.min(day, count)}`),
-            ),
-          );
+          onChange(new Date(year, Number(value), Math.min(day, count)));
         }
       },
       [day, onChange, renderFooter, year],
@@ -158,7 +155,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
         setYear(Number(value));
 
         if (onChange && !renderFooter) {
-          onChange(dayjs(new Date(`${Number(value)}-${month + 1}-${day}`)));
+          onChange(new Date(Number(value), month, day));
         }
       },
       [day, month, onChange, renderFooter],
@@ -166,7 +163,7 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const onApply = useCallback(() => {
       if (onChange) {
-        onChange(dayjs(new Date(`${year}-${month + 1}-${day}`)));
+        onChange(new Date(year, month, day));
         modalRef.current?.close();
       }
     }, [day, modalRef, month, onChange, year]);

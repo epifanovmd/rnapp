@@ -1,14 +1,14 @@
 import type { TCalendarDayDataMap } from "@shared/ui";
-import dayjs from "dayjs";
+import { format, setDate } from "date-fns";
 
 const MARKER_COLORS = ["#2965FF", "#B0246E", "#35B645", "#E49E22"];
 
-const key = (day: number, month = dayjs()) =>
-  month.date(day).format("YYYY-MM-DD");
+const key = (day: number, month = new Date()) =>
+  format(setDate(month, day), "yyyy-MM-dd");
 
 /** Демо-данные текущего месяца: подписи-суммы и маркеры, как на макете. */
 export const buildDemoDayData = (): TCalendarDayDataMap => {
-  const now = dayjs();
+  const now = new Date();
   const markers = (count: number) =>
     MARKER_COLORS.slice(0, count).map(color => ({ color }));
 

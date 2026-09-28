@@ -2,7 +2,7 @@ import React, { FC, memo } from "react";
 
 import type { TCalendarMonthKey } from "../calendar.types";
 import { useCalendarConfig, useCalendarMonthDays } from "../context";
-import { formatDate, monthKeyToDayjs } from "../model";
+import { formatDate, monthKeyToDate } from "../model";
 import { CalendarMonth } from "./CalendarMonth";
 
 export interface ICalendarMonthConnectedProps {
@@ -18,7 +18,7 @@ export const CalendarMonthConnected: FC<ICalendarMonthConnectedProps> = memo(
     const { grid, weeks } = useCalendarMonthDays(monthKey);
 
     const title = withTitle
-      ? formatDate(monthKeyToDayjs(monthKey, locale), formats.monthTitle)
+      ? formatDate(monthKeyToDate(monthKey), formats.monthTitle, locale)
       : undefined;
     const props = { grid, weeks, title };
 

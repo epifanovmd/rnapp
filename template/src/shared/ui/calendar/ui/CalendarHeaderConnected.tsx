@@ -6,7 +6,7 @@ import {
   useCalendarConfig,
   useCalendarMonthState,
 } from "../context";
-import { formatDate, monthKeyToDayjs } from "../model";
+import { formatDate, monthKeyToDate } from "../model";
 import { CalendarHeader } from "./CalendarHeader";
 
 /** Шапка, подключённая к контексту: знает текущий месяц и умеет его переключать. */
@@ -24,12 +24,12 @@ export const CalendarHeaderConnected: FC = memo(() => {
 
   // Пропсы собираются один раз на месяц: иначе новые замыкания ломали бы memo шапки и кнопок.
   const props = useMemo<ICalendarHeaderProps>(() => {
-    const month = monthKeyToDayjs(monthKey, locale);
+    const month = monthKeyToDate(monthKey);
 
     return {
       monthKey,
       month,
-      title: formatDate(month, formats.headerTitle),
+      title: formatDate(month, formats.headerTitle, locale),
       canGoPrev,
       canGoNext,
       onPrev: () => goToPrevMonth(),

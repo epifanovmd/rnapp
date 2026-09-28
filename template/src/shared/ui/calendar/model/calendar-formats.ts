@@ -1,5 +1,10 @@
-import dayjs, { Dayjs } from "dayjs";
-import localeData from "dayjs/plugin/localeData";
+import {
+  format as formatFns,
+  getDefaultOptions,
+  Locale,
+  setDay,
+} from "date-fns";
+import { enUS } from "date-fns/locale";
 
 import type {
   ICalendarFormats,
@@ -8,17 +13,22 @@ import type {
   TCalendarWeekDay,
 } from "../calendar.types";
 
-dayjs.extend(localeData);
-
 export const DEFAULT_FORMATS: ICalendarFormats = {
-  headerTitle: "MMMM YYYY",
-  monthTitle: "MMMM YYYY",
-  weekDay: "dd",
-  day: "D",
+  headerTitle: "LLLL yyyy",
+  monthTitle: "LLLL yyyy",
+  weekDay: "EEEEEE",
+  day: "d",
 };
 
-export const formatDate = (date: Dayjs, format: TCalendarFormat): string =>
-  typeof format === "function" ? format(date) : date.format(format);
+/** Строковый формат — токены date-fns (`LLLL yyyy`, `EEEEEE`, `d`). */
+export const formatDate = (
+  date: Date,
+  format: TCalendarFormat,
+  locale: Locale,
+): string =>
+  typeof format === "function"
+    ? format(date)
+    : formatFns(date, format, { locale });
 
 export const isWeekendDay = (weekday: TCalendarWeekDay) =>
   weekday === 0 || weekday === 6;
@@ -36,12 +46,14 @@ const labelsCache = new Map<string, ICalendarWeekDayProps[]>();
 
 /** Подписи дней недели. Кэшируются по локали, формату и первому дню недели — если формат строковый. */
 export const getWeekDayLabels = (
-  locale: string,
+  locale: Locale,
   firstDayOfWeek: TCalendarWeekDay,
   format: TCalendarFormat,
 ): ICalendarWeekDayProps[] => {
   const cacheKey =
-    typeof format === "string" ? `${locale}|${firstDayOfWeek}|${format}` : null;
+    typeof format === "string"
+      ? `${locale.code}|${firstDayOfWeek}|${format}`
+      : null;
 
   if (cacheKey) {
     const cached = labelsCache.get(cacheKey);
@@ -50,10 +62,10 @@ export const getWeekDayLabels = (
   }
 
   // Конкретная дата не важна — нужны только названия дней недели.
-  const base = dayjs("2024-01-07").locale(locale);
+  const base = new Date(2024, 0, 7);
   const items = orderedWeekDays(firstDayOfWeek).map(weekday => ({
     weekday,
-    label: formatDate(base.day(weekday), format),
+    label: formatDate(setDay(base, weekday), format, locale),
     isWeekend: isWeekendDay(weekday),
   }));
 
@@ -62,9 +74,9 @@ export const getWeekDayLabels = (
   return items;
 };
 
-/** Первый день недели из локали dayjs. */
-export const localeFirstDayOfWeek = (locale: string): TCalendarWeekDay =>
-  dayjs().locale(locale).localeData().firstDayOfWeek() as TCalendarWeekDay;
+/** Первый день недели из локали. */
+export const localeFirstDayOfWeek = (locale: Locale): TCalendarWeekDay =>
+  (locale.options?.weekStartsOn ?? 0) as TCalendarWeekDay;
 
-/** Глобальная локаль dayjs. */
-export const globalLocale = (): string => dayjs.locale();
+/** Локаль по умолчанию: из `setDefaultOptions` date-fns, иначе en-US. */
+export const globalLocale = (): Locale => getDefaultOptions().locale ?? enUS;

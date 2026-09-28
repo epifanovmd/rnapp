@@ -1,5 +1,5 @@
-import dayjs from "dayjs";
+import { format } from "date-fns";
 
 /** Время в пузыре сообщения. */
 export const formatMessageTime = (createdAt: number): string =>
-  dayjs(createdAt).format("HH:mm");
+  format(createdAt, "HH:mm");

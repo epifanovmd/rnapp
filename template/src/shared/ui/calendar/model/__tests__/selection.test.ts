@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+
 import type { TCalendarSelectionState } from "../../calendar.types";
 import {
   clearSelection,
@@ -142,12 +144,16 @@ describe("selection: конвертации", () => {
       start: "2026-03-01",
       end: "2026-03-10",
     };
-    const value = selectionStateToValue(state, "en");
+    const value = selectionStateToValue(state);
 
     expect(value.mode).toBe("range");
     if (value.mode === "range") {
-      expect(value.value.start?.format("YYYY-MM-DD")).toBe("2026-03-01");
-      expect(value.value.end?.format("YYYY-MM-DD")).toBe("2026-03-10");
+      expect(value.value.start && format(value.value.start, "yyyy-MM-dd")).toBe(
+        "2026-03-01",
+      );
+      expect(value.value.end && format(value.value.end, "yyyy-MM-dd")).toBe(
+        "2026-03-10",
+      );
     }
     expect(selectionStateFromValue(value)).toEqual(state);
   });

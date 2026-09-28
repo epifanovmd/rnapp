@@ -1,5 +1,3 @@
-import "dayjs/locale/ru";
-
 import {
   Button,
   CalendarList,
@@ -9,7 +7,7 @@ import {
   useBottomSheetRef,
   useCalendarRef,
 } from "@shared/ui";
-import dayjs from "dayjs";
+import { addMonths, subMonths } from "date-fns";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -44,13 +42,13 @@ export const CalendarListDemo: FC = observer(() => {
           size={"small"}
           appearance={"outline"}
           title={"+3 мес"}
-          onPress={() => list.current?.goToMonth(dayjs().add(3, "month"))}
+          onPress={() => list.current?.goToMonth(addMonths(new Date(), 3))}
         />
         <Button
           size={"small"}
           appearance={"outline"}
           title={"−6 мес"}
-          onPress={() => list.current?.goToMonth(dayjs().subtract(6, "month"))}
+          onPress={() => list.current?.goToMonth(subMonths(new Date(), 6))}
         />
         <Button
           size={"small"}

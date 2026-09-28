@@ -13,7 +13,7 @@ import {
   globalLocale,
   IAvailabilityRules,
   isDayDisabled,
-  keyToDayjs,
+  keyToDate,
   localeFirstDayOfWeek,
   toDateKey,
 } from "../model";
@@ -74,7 +74,7 @@ export const useResolvedCalendarConfig = <TExtra>(
   } = props;
 
   const locale = localeProp ?? globalLocale();
-  // Разбор дат и локали — через dayjs; провайдер рендерится на каждый тап, поэтому считаем только по смене входов.
+  // Провайдер рендерится на каждый тап, поэтому разбор дат и локали считаем только по смене входов.
   const firstDayOfWeek = useMemo(
     () => firstDayOfWeekProp ?? localeFirstDayOfWeek(locale),
     [firstDayOfWeekProp, locale],
@@ -111,7 +111,7 @@ export const useResolvedCalendarConfig = <TExtra>(
       disabledWeekDays: disabledWeekDaysSet,
       disableOutside: !selectableOutsideDays,
       isDateDisabled,
-      resolveDayjs: key => keyToDayjs(key, locale),
+      resolveDate: keyToDate,
     };
 
     return (cell: ICalendarGridCell) => isDayDisabled(cell, rules);
@@ -122,7 +122,6 @@ export const useResolvedCalendarConfig = <TExtra>(
     disabledWeekDaysSet,
     selectableOutsideDays,
     isDateDisabled,
-    locale,
   ]);
 
   const resolveDayData = useMemo(() => {
@@ -138,13 +137,13 @@ export const useResolvedCalendarConfig = <TExtra>(
     return (key: TCalendarDateKey): ICalendarDayData<TExtra> | undefined => {
       if (cache.has(key)) return cache.get(key);
 
-      const data = dayData?.[key] ?? getDayData(keyToDayjs(key, locale), key);
+      const data = dayData?.[key] ?? getDayData(keyToDate(key), key);
 
       cache.set(key, data);
 
       return data;
     };
-  }, [dayData, getDayData, locale]);
+  }, [dayData, getDayData]);
 
   return useStableValue<TResolvedCalendarConfig<TExtra>>({
     locale,

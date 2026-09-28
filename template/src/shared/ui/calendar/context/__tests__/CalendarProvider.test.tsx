@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+import { enUS } from "date-fns/locale";
 import React, { createRef } from "react";
 import { act, create, ReactTestRenderer } from "react-test-renderer";
 
@@ -62,7 +64,7 @@ const mount = (props: TProps) => {
 };
 
 const BASE: TProps = {
-  locale: "en",
+  locale: enUS,
   firstDayOfWeek: 1,
   today: "2026-09-15",
   initialMonth: "2026-09",
@@ -147,7 +149,7 @@ describe("CalendarProvider: тап по дню", () => {
 
     act(() => c.actions.pressDay("2026-09-11"));
 
-    expect(onChange.mock.calls[0]![0].format("YYYY-MM-DD")).toBe("2026-09-11");
+    expect(format(onChange.mock.calls[0]![0], "yyyy-MM-dd")).toBe("2026-09-11");
     expect(onDayPress).toHaveBeenCalledTimes(1);
   });
 
@@ -191,7 +193,7 @@ describe("CalendarProvider: controlled-выбор", () => {
     expect(c.state.selection).toBe(before);
   });
 
-  it("новые dayjs-объекты периода с теми же датами не меняют ссылку на selection", () => {
+  it("новые Date-объекты периода с теми же датами не меняют ссылку на selection", () => {
     const value = () => ({
       start: new Date(2026, 8, 1),
       end: new Date(2026, 8, 3),

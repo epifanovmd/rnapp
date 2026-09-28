@@ -1,5 +1,3 @@
-import type { Dayjs } from "dayjs";
-
 import type {
   ICalendarGridCell,
   TCalendarDateKey,
@@ -13,9 +11,9 @@ export interface IAvailabilityRules {
   disabledWeekDays: ReadonlySet<TCalendarWeekDay>;
   /** Хвосты недоступны для выбора. */
   disableOutside: boolean;
-  isDateDisabled?: (date: Dayjs, key: TCalendarDateKey) => boolean;
-  /** Dayjs создаётся только если дело дошло до пользовательского предиката. */
-  resolveDayjs: (key: TCalendarDateKey) => Dayjs;
+  isDateDisabled?: (date: Date, key: TCalendarDateKey) => boolean;
+  /** `Date` берётся только если дело дошло до пользовательского предиката. */
+  resolveDate: (key: TCalendarDateKey) => Date;
 }
 
 /** Недоступен ли день. Проверки идут от дешёвых к дорогим, пользовательский предикат — последним. */
@@ -29,7 +27,7 @@ export const isDayDisabled = (
   if (rules.disabledWeekDays.has(cell.weekday)) return true;
   if (rules.disabledKeys.has(cell.dateKey)) return true;
   if (rules.isDateDisabled) {
-    return rules.isDateDisabled(rules.resolveDayjs(cell.dateKey), cell.dateKey);
+    return rules.isDateDisabled(rules.resolveDate(cell.dateKey), cell.dateKey);
   }
 
   return false;
