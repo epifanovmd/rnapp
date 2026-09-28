@@ -16,9 +16,8 @@ HTTP, ни о конкретном бэкенде. Единственная за
 | `storage/memory-token-storage.ts`     | токены только в памяти                                                                                                            |
 | `storage/persistent-token-storage.ts` | поверх `IStorageService`; по умолчанию хранит только refresh                                                                      |
 
-`token-session.ts` и `session.types.ts` **идентичны веб-проектам** (react-vite и др.) — правки
-переносить во все. Веб-ветки (`document`/`visibilitychange`, `navigator.locks`) в RN
-просто не срабатывают; `CrossTabTokenStorage` в RN нет.
+В `token-session.ts` есть браузерные ветки (`document`/`visibilitychange`, `navigator.locks`):
+в RN их нет, ветки просто не срабатывают.
 
 ## Как конфигурируется
 

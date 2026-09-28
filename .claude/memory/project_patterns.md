@@ -55,7 +55,7 @@ type: project
 
 ## Модели данных (`shared/lib/models`)
 
-Базовые классы одинаковы во всех проектах (react-vite, ml-labeling-web, wg-admin-web, rnapp):
+Базовые классы:
 
 - `DataModelBase<TDto>` — `_data: observable.ref`: DTO не копируется, реакция только на
   замену объекта целиком (по полям DTO не мутировать);
@@ -65,7 +65,7 @@ type: project
 
 ## Даты
 
-Во всех проектах одна библиотека — `date-fns` (dayjs удалён из rnapp 2026-09-28). Локаль по
+Библиотека дат — только `date-fns` (dayjs удалён 2026-09-28). Локаль по
 умолчанию — `setDefaultOptions({ locale: ru })` в `App.tsx`. Календарь (`shared/ui/calendar`)
 отдаёт и принимает `Date` (локальная полночь, экземпляр из кэша — не мутировать), `locale` —
 объект `Locale` из `date-fns/locale`, строковые форматы — токены date-fns (`LLLL yyyy`,

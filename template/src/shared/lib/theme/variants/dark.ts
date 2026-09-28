@@ -1,6 +1,6 @@
 import { ITheme } from "../types";
 
-// Темная тема — цвета портированы из палитры проекта react-vite
+// Темная тема
 export const DARK_COLOR_THEME = {
   textPrimary: "#FAFAFA",
   textSecondary: "#A1A1A1",

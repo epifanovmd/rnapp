@@ -18,9 +18,9 @@ describe("describeUserAgent", () => {
   });
 
   it("мобильное приложение на iOS (CFNetwork/Darwin)", () => {
-    expect(
-      describeUserAgent("rnapp/1 CFNetwork/3860.700.2 Darwin/25.6.0"),
-    ).toBe("Приложение, iOS");
+    expect(describeUserAgent("App/1 CFNetwork/3860.700.2 Darwin/25.6.0")).toBe(
+      "Приложение, iOS",
+    );
   });
 
   it("мобильное приложение на Android (okhttp)", () => {

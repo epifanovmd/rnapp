@@ -1,6 +1,6 @@
 import { ITheme } from "../types";
 
-// Светлая тема — цвета портированы из палитры проекта react-vite
+// Светлая тема
 export const LIGHT_COLOR_THEME = {
   textPrimary: "#0A0A0A",
   textSecondary: "#717182",
