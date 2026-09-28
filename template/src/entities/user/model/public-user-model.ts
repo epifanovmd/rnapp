@@ -1,12 +1,24 @@
 import { PublicUserDto } from "@shared/api/gen/main/model";
-import { TypedModel } from "@shared/lib/models";
+import { DataModelBase } from "@shared/lib/models";
 import { DateModel } from "@shared/lib/models/date";
 import { formatFullName, formatInitials } from "@shared/lib/utils";
+import { LambdaValue } from "@shared/lib/utils/lambda-value";
+import { computed, makeObservable } from "mobx";
 
-export class PublicUserModel extends TypedModel<PublicUserDto>() {
+export class PublicUserModel extends DataModelBase<PublicUserDto> {
   public readonly lastOnlineDate = new DateModel(
     () => this.data.profile?.lastOnline,
   );
+
+  constructor(data: LambdaValue<PublicUserDto>) {
+    super(data);
+    makeObservable(this, {
+      id: computed,
+      displayName: computed,
+      initials: computed,
+      lastOnline: computed,
+    });
+  }
 
   get id() {
     return this.data.userId;

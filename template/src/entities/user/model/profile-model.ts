@@ -1,16 +1,26 @@
 import { KnownRole, ProfileDto } from "@shared/api/gen/main/model";
-import { TypedModel } from "@shared/lib/models";
+import { DataModelBase } from "@shared/lib/models";
 import { DateModel } from "@shared/lib/models/date";
 import { formatFullName, formatInitials } from "@shared/lib/utils";
 import { LambdaValue } from "@shared/lib/utils/lambda-value";
+import { computed, makeObservable } from "mobx";
 
-export class ProfileModel extends TypedModel<ProfileDto>() {
+export class ProfileModel extends DataModelBase<ProfileDto> {
   public readonly registeredAtDate = new DateModel(() => this.data?.createdAt);
   public readonly lastOnlineDate = new DateModel(() => this.data.lastOnline);
   public readonly birthDateModel = new DateModel(() => this.data.birthDate);
 
   constructor(data: LambdaValue<ProfileDto>) {
     super(data);
+    makeObservable(this, {
+      displayName: computed,
+      initials: computed,
+      email: computed,
+      phone: computed,
+      login: computed,
+      roleLabel: computed,
+      emailVerified: computed,
+    });
   }
 
   get displayName() {

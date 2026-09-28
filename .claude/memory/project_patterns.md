@@ -52,3 +52,13 @@ type: project
   на shared values + адаптеры `usePullToRefreshScroll({ telemetry })`/`usePullToRefreshGesture`),
   визуал строится на месте вызова по `pullDistance`/`progress`/`state` (пример: `pages/tabs/main/`).
 - Внутри слайса/сегмента — только относительные импорты.
+
+## Модели данных (`shared/lib/models`)
+
+Базовые классы одинаковы во всех проектах (react-vite, ml-labeling-web, wg-admin-web, rnapp):
+
+- `DataModelBase<TDto>` — `_data: observable.ref`: DTO не копируется, реакция только на
+  замену объекта целиком (по полям DTO не мутировать);
+- поля DTO — только через `model.data.x` (Proxy/`TypedModel` убраны 2026-09-28);
+- геттеры наследника помечаются `computed` явно в `makeObservable` его конструктора;
+- `createEnumModelBase` — `isX`-геттеры без `computed` (дешёвое сравнение с `data`).

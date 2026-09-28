@@ -3,18 +3,39 @@ import {
   KnownRole,
   UserDto,
 } from "@shared/api/gen/main/model";
-import { TypedModel } from "@shared/lib/models";
+import { DataModelBase } from "@shared/lib/models";
 import { DateModel } from "@shared/lib/models/date";
 import { formatFullName, formatInitials } from "@shared/lib/utils";
+import { LambdaValue } from "@shared/lib/utils/lambda-value";
+import { computed, makeObservable } from "mobx";
 
 import { computeEffectivePermissions, isAdminRole } from "../lib/permissions";
 
-export class UserModel extends TypedModel<UserDto>() {
+export class UserModel extends DataModelBase<UserDto> {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
   public readonly updatedAtDate = new DateModel(() => this.data.updatedAt);
   public readonly lastOnlineDate = new DateModel(
     () => this.data.profile?.lastOnline,
   );
+
+  constructor(data: LambdaValue<UserDto>) {
+    super(data);
+    makeObservable(this, {
+      displayName: computed,
+      initials: computed,
+      avatarUrl: computed,
+      avatarId: computed,
+      login: computed,
+      roleNames: computed,
+      directPermissionNames: computed,
+      effectivePermissions: computed,
+      isAdmin: computed,
+      roleLabel: computed,
+      formattedCreatedAt: computed,
+      formattedUpdatedAt: computed,
+      formattedLastOnline: computed,
+    });
+  }
 
   get displayName() {
     const p = this.data.profile;

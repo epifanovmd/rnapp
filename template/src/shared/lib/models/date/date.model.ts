@@ -1,8 +1,21 @@
 import { formatter, Maybe } from "@shared/lib/utils";
+import { computed, makeObservable } from "mobx";
 
 import { DataModelBase } from "../data-model-base";
 
 export class DateModel extends DataModelBase<Maybe<string | null>> {
+  constructor(value: Maybe<string | null> | (() => Maybe<string | null>)) {
+    super(value);
+    makeObservable(this, {
+      formatted: computed,
+      formattedDate: computed,
+      formattedTime: computed,
+      formattedInputDate: computed,
+      formattedDiff: computed,
+      isExpired: computed,
+    });
+  }
+
   get formatted() {
     return formatter.date.format(this.data);
   }
