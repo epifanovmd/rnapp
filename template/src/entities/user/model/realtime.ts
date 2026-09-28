@@ -1,0 +1,46 @@
+import { injectable } from "inversify";
+
+import { IUserSocketService } from "../api/user-socket.types";
+import { ISessionStore } from "./session-types";
+import { IUserRealtime, IUserStore } from "./types";
+
+@injectable()
+export class UserRealtime implements IUserRealtime {
+  constructor(
+    @IUserSocketService() private _userSocket: IUserSocketService,
+    @IUserStore() private _userStore: IUserStore,
+    @ISessionStore() private _sessionStore: ISessionStore,
+  ) {}
+
+  initialize() {
+    return this._userSocket.subscribe({
+      // Событие несёт публичный профиль (`avatarUrl`, не `avatar`) — свой
+      // перечитываем целиком, иначе аватар с другого устройства не обновится.
+      onProfileUpdated: profile => {
+        if (profile.userId !== this._userStore.user?.id) return;
+        this._userStore.refresh().then();
+      },
+      onUsernameChanged: ({ username }) => {
+        this._userStore.patchUser({ username });
+      },
+      onEmailVerified: ({ verified }) => {
+        this._userStore.patchUser({ emailVerified: verified });
+      },
+      onEmailChanged: ({ email }) => {
+        this._userStore.patchUser({ email, emailVerified: true });
+      },
+      onPrivilegesChanged: () => {
+        this._userStore.refresh();
+      },
+      onPrivacyChanged: settings => {
+        this._userStore.patchPrivacy(settings);
+      },
+      onNewSession: session => {
+        this._sessionStore.handleNewSession(session);
+      },
+      onSessionTerminated: ({ sessionId }) => {
+        this._sessionStore.handleSessionTerminated(sessionId);
+      },
+    });
+  }
+}

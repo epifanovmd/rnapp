@@ -1,0 +1,15 @@
+<resources>
+    <!--
+      Android 12+: раскладку splash рисует система, windowBackground не нужен.
+      Длительность анимации 0 — оверлей AppSplashView подхватывает показ сразу.
+    -->
+    <style name="Theme.AppSplash" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowSplashScreenBackground">?attr/splashBackground</item>
+        <item name="android:windowSplashScreenAnimatedIcon">?attr/splashLogo</item>
+        <item name="android:windowSplashScreenBrandingImage">?attr/splashBrand</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

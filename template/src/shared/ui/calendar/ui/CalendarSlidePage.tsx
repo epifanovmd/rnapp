@@ -1,0 +1,44 @@
+import React, { FC, memo } from "react";
+import { StyleSheet } from "react-native";
+import Animated, {
+  SharedValue,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+
+import type { TCalendarMonthKey } from "../calendar.types";
+import { CalendarMonthConnected } from "./CalendarMonthConnected";
+
+export interface ICalendarSlidePageProps {
+  monthKey: TCalendarMonthKey;
+  /** Номер месяца относительно якоря слайдера: 0 — стартовый, 1 — следующий, -1 — предыдущий. */
+  index: number;
+  /** Текущая позиция слайдера; дробная, пока страница едет или под пальцем. */
+  page: SharedValue<number>;
+  width: SharedValue<number>;
+  /** Нажатия принимает только текущая страница. */
+  interactive: boolean;
+}
+
+/** Страница слайдера. Её позиция считается на UI-потоке из индекса и текущей позиции. */
+export const CalendarSlidePage: FC<ICalendarSlidePageProps> = memo(
+  ({ monthKey, index, page, width, interactive }) => {
+    const style = useAnimatedStyle(() => ({
+      // До первого onLayout ширина нулевая и все страницы легли бы в одну точку — соседей прячем.
+      opacity: width.value === 0 && index !== page.value ? 0 : 1,
+      transform: [{ translateX: (index - page.value) * width.value }],
+    }));
+
+    return (
+      <Animated.View
+        pointerEvents={interactive ? "auto" : "none"}
+        style={[SS.page, style]}
+      >
+        <CalendarMonthConnected monthKey={monthKey} />
+      </Animated.View>
+    );
+  },
+);
+
+const SS = StyleSheet.create({
+  page: { position: "absolute", top: 0, left: 0, right: 0 },
+});

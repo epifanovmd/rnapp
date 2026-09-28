@@ -1,0 +1,100 @@
+import { useBarHeight } from "@shared/lib/bars";
+import { useLayout } from "@shared/lib/hooks";
+import { useTheme } from "@shared/lib/theme";
+import React, { useCallback, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { useNavbar } from "./navbar-bar";
+
+export interface IHiddenNavbarProps extends ViewProps {
+  safeArea?: boolean;
+}
+
+const hiddenBarSlots = {
+  stickyContent: slot.of(View),
+};
+
+const HiddenBarRoot = ({
+  props,
+  slots,
+  content,
+}: CompoundRootProps<IHiddenNavbarProps, typeof hiddenBarSlots>) => {
+  const { safeArea, style, ...rest } = props;
+  const { colors } = useTheme();
+  const { height: contentHeight, onLayout } = useLayout();
+  const navbar = useNavbar();
+  const barHeight = useBarHeight(navbar);
+  const { offset } = navbar;
+  const insets = useSafeAreaInsets();
+  const { stickyContent } = slots;
+
+  const top = safeArea ? insets.top : 0;
+
+  // sticky-часть остаётся на экране: прячется только то, что над ней
+  const hiddenHeight = barHeight - (stickyContent.present ? contentHeight : 0);
+
+  const animatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      offset.value,
+      [hiddenHeight, 0],
+      [-hiddenHeight, 0],
+      "clamp",
+    );
+
+    return {
+      top,
+      transform: [{ translateY }],
+    };
+  }, [top, hiddenHeight]);
+
+  const backgroundColor = colors.background;
+
+  return (
+    <View
+      style={[styles.container, { backgroundColor, paddingTop: top }, style]}
+      {...rest}
+    >
+      {safeArea && (
+        <View style={[styles.overlay, { backgroundColor, paddingTop: top }]} />
+      )}
+      <Animated.View
+        onLayout={navbar.onLayout}
+        style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
+      >
+        {content}
+        {stickyContent.render({ inject: { onLayout } })}
+      </Animated.View>
+    </View>
+  );
+};
+
+export const HiddenBar = createCompound<IHiddenNavbarProps>()({
+  name: "HiddenBar",
+  render: HiddenBarRoot,
+  slots: hiddenBarSlots,
+});
+
+const styles = StyleSheet.create({
+  container: {
+    position: "relative",
+    zIndex: 999,
+  },
+  overlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 998,
+  },
+  animatedContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 997,
+  },
+});

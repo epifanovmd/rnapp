@@ -1,0 +1,52 @@
+/**
+ * Юнит-тесты чистой логики (worklet-функции в Node — обычные функции).
+ * RN-рантайм не поднимается: testEnvironment=node, трансформ — babel
+ * без плагина Reanimated (см. babel-jest.config.js).
+ */
+module.exports = {
+  testEnvironment: "node",
+  roots: ["<rootDir>/src"],
+  testMatch: ["**/__tests__/**/*.test.{ts,tsx}"],
+  setupFiles: ["<rootDir>/jest.setup.js"],
+  transform: {
+    "^.+\\.(t|j)sx?$": ["babel-jest", { configFile: "./babel-jest.config.js" }],
+  },
+  // inversify и его пакеты поставляются как ESM — без трансформации jest на них падает.
+  transformIgnorePatterns: [
+    "node_modules/(?!(inversify|inversify-inject-decorators|@inversifyjs)/)",
+  ],
+  moduleNameMapper: {
+    "^react-native$": "<rootDir>/jest/stubs/react-native.js",
+    "^react-native-mmkv$": "<rootDir>/jest/stubs/react-native-mmkv.js",
+    "^react-native-config$": "<rootDir>/jest/stubs/react-native-config.js",
+    "^react-native-image-picker$":
+      "<rootDir>/jest/stubs/react-native-image-picker.js",
+    "^@react-native-documents/picker$":
+      "<rootDir>/jest/stubs/react-native-documents-picker.js",
+    "^react-native-device-info$":
+      "<rootDir>/jest/stubs/react-native-device-info.js",
+    "^react-native-reanimated$": "<rootDir>/jest/stubs/empty.js",
+    "^react-native-worklets$": "<rootDir>/jest/stubs/empty.js",
+    "^@app(.*)$": "<rootDir>/src/app$1",
+    "^@pages(.*)$": "<rootDir>/src/pages$1",
+    "^@widgets(.*)$": "<rootDir>/src/widgets$1",
+    "^@features(.*)$": "<rootDir>/src/features$1",
+    "^@entities(.*)$": "<rootDir>/src/entities$1",
+    "^@shared(.*)$": "<rootDir>/src/shared$1",
+  },
+  collectCoverageFrom: [
+    "src/shared/lib/holders/**/*.{ts,tsx}",
+    "!src/shared/lib/holders/**/index.ts",
+    "!src/shared/lib/holders/**/*.types.ts",
+    "!src/shared/lib/holders/**/__tests__/**",
+    "src/shared/lib/holders/holder.types.ts",
+  ],
+  coverageThreshold: {
+    global: {
+      statements: 100,
+      branches: 100,
+      functions: 100,
+      lines: 100,
+    },
+  },
+};
