@@ -1,4 +1,4 @@
-import { Image, ImageViewing, Row, Text, Touchable } from "@shared/ui";
+import { Col, Image, ImageViewing, Row, Text, Touchable } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
@@ -6,6 +6,9 @@ import { DemoScreen, DemoSection } from "./DemoScreen";
 const GALLERY = [1, 12, 25, 33, 41].map(
   seed => `https://picsum.photos/id/${seed}/600/400`,
 );
+
+/** Заведомо несуществующее изображение — демонстрация фолбэка. */
+const BROKEN_URL = "https://picsum.photos/id/broken/600/400";
 
 const VIEWER_IMAGES = GALLERY.map(uri => ({ uri }));
 
@@ -27,6 +30,44 @@ export const MediaTab: FC = memo(() => {
             height={96}
             radius={12}
             resizeMode={"contain"}
+          />
+        </Row>
+      </DemoSection>
+
+      <DemoSection
+        title={"Image: скелетон и фолбэк"}
+        description={
+          "Пульс на время загрузки; при ошибке или пустом url — фолбэк: " +
+          "стандартный, своя иконка или полностью свой ReactNode"
+        }
+      >
+        <Row gap={12}>
+          <Image url={BROKEN_URL} width={96} height={96} radius={12} />
+          <Image
+            url={BROKEN_URL}
+            width={96}
+            height={96}
+            radius={12}
+            fallbackIcon={"closeCircle"}
+          />
+          <Image
+            url={BROKEN_URL}
+            width={96}
+            height={96}
+            radius={12}
+            fallback={
+              <Col
+                flex={1}
+                centerContent={true}
+                bg={"onSurface"}
+                gap={4}
+                pa={8}
+              >
+                <Text textStyle={"Caption_M1"} color={"textSecondary"}>
+                  {"Нет фото"}
+                </Text>
+              </Col>
+            }
           />
         </Row>
       </DemoSection>

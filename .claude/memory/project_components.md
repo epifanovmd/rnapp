@@ -108,6 +108,20 @@ Notifications, Modals, Dialogs, Pickers, Ticket.
 JSX-маркеры перекрывают. Примеры — `shared/ui/navbar/Navbar.tsx`,
 `shared/ui/bottom-sheet/`. Детали — `shared/lib/slots/README.md`.
 
+## Image (`shared/ui/image`, 2026-09-26)
+
+`Image` = контейнер `View` (overflow hidden, FlexProps-размеры/радиус на нём) +
+`FastImage` absoluteFill. Скелетон на загрузке и фолбэк при ошибке/пустом url
+из коробки: пропы `skeleton`/`fallback` — `true` (дефолт) | `false` | свой
+ReactNode; `fallbackIcon`; `source` (полный FastImage-source, главнее `url`;
+`url` теперь опционален); `children` — слой поверх (бейджи, градиенты).
+Состояние — чистый `image-load-state.ts` (loading|loaded|error, тесты) + хук
+`useImageLoadState` (сброс по смене источника); экспортируются `ImageSkeleton`,
+`ImageFallback`, хук — для своих композиций (пример — GalleryTile).
+Проп `fallback` FastImage перекрыт нашим (Omit в типе). `ImageBar`
+(`shared/ui/navbar`) использует его в слоте `image`: анимация
+высоты/прозрачности — на Animated.View-обёртке, не на самом Image.
+
 ## ActionSheet (`shared/ui/action-sheet`, 2026-09-26)
 
 Шторка выбора действия поверх `BottomSheet`: пункты данными (`IActionSheetItem<TKey>`: key, title, description, icon, destructive, disabled), карточка `surface` со строками (иконка в круге `primary`/`danger`, заголовок, подпись, chevron), кнопка «Отмена». `onSelect(key)` вызывается ПОСЛЕ закрытия (`onDismiss`) — иначе системный пикер iOS не откроется поверх модалки. Открытие — `ref.current?.present()` (`useBottomSheetRef`).

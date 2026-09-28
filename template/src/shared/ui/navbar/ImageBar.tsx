@@ -11,6 +11,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import { Image } from "../image";
 import { useNavbar } from "./navbar-bar";
 
 /** Схлопывается при скролле, поэтому требует ScrollProvider выше по дереву */
@@ -22,7 +23,8 @@ export interface IImageBarProps extends ViewProps {
 }
 
 const imageBarSlots = {
-  image: slot.of(Animated.Image, { always: true }),
+  /** Image кита: скелетон на загрузке и фолбэк при ошибке из коробки. */
+  image: slot.of(Image, { always: true }),
 };
 
 const ImageBarRoot = ({
@@ -80,13 +82,19 @@ const ImageBarRoot = ({
       ]}
       {...rest}
     >
-      {(!!uri || image.present) &&
-        image.render({
-          defaults: {
-            source: { uri },
-            style: [StyleSheet.absoluteFill, SS.image, animatedStyles],
-          },
-        })}
+      {(!!uri || image.present) && (
+        // высота/прозрачность анимируются обёрткой — Image остаётся простым
+        <Animated.View
+          style={[StyleSheet.absoluteFill, SS.image, animatedStyles]}
+        >
+          {image.render({
+            defaults: {
+              url: uri,
+              style: StyleSheet.absoluteFill,
+            },
+          })}
+        </Animated.View>
+      )}
       {content}
     </Animated.View>
   );
@@ -109,5 +117,6 @@ const SS = StyleSheet.create({
   image: {
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
+    overflow: "hidden",
   },
 });
