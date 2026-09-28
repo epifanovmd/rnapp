@@ -33,6 +33,7 @@ import type {
   IPaginatedDtoJobRunDto,
   IPaginatedDtoPasskeyDto,
   IPaginatedDtoSessionDto,
+  IPermissionCatalogDto,
   IProfileListDto,
   IProfileUpdateRequestDto,
   IRefreshRequestDto,
@@ -189,6 +190,20 @@ export const getRestApi = () => {
   ) => {
     return mainMutator<IFileDto>(
       { url: `/api/v1/file/uploads/${fileId}/complete`, method: "POST" },
+      options,
+    );
+  };
+
+  /**
+   * Каталог прав по группам с подписями — для редакторов ролей и прав
+   * пользователей. Первая группа — «Система» (полный доступ `*`).
+   * @summary Каталог прав
+   */
+  const getPermissionCatalog = (
+    options?: SecondParameter<typeof mainMutator<IPermissionCatalogDto>>,
+  ) => {
+    return mainMutator<IPermissionCatalogDto>(
+      { url: `/api/v1/permissions`, method: "GET" },
       options,
     );
   };
@@ -373,7 +388,8 @@ export const getRestApi = () => {
   };
 
   /**
-   * Удалить роль.
+   * Удалить роль. Системные роли (`admin`, `user`, `guest`) не удаляются,
+   * собственную роль удаляет только суперпользователь.
    * @summary Удаление роли
    */
   const deleteRole = (
@@ -390,7 +406,8 @@ export const getRestApi = () => {
    * Установить права для роли.
    * Заменяет текущий набор прав роли указанным. Роль `admin`, право `*` и
    * собственную роль меняет только суперпользователь. Все пользователи роли
-   * получают `user:privileges-changed`, их сессии завершаются.
+   * получают `user:privileges-changed` с новыми правами; их прежние
+   * access-токены отклоняются (`AUTH_PRIVILEGES_CHANGED`), сессии остаются.
    * @summary Установка прав роли
    */
   const setRolePermissions = (
@@ -1353,6 +1370,7 @@ export const getRestApi = () => {
     deleteFile,
     createUpload,
     completeUpload,
+    getPermissionCatalog,
     getMyProfile,
     updateMyProfile,
     getPrivacySettings,
@@ -1439,6 +1457,9 @@ export type CreateUploadResult = NonNullable<
 >;
 export type CompleteUploadResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getRestApi>["completeUpload"]>>
+>;
+export type GetPermissionCatalogResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof getRestApi>["getPermissionCatalog"]>>
 >;
 export type GetMyProfileResult = NonNullable<
   Awaited<ReturnType<ReturnType<typeof getRestApi>["getMyProfile"]>>

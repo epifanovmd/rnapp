@@ -1,6 +1,6 @@
-import type { KnownPermission } from "./knownPermission";
-
 /**
- * Permission — произвольная строка; предопределённые значения дают автодополнение.
+ * Право — строка `domain:action` (или `domain:*` — wildcard). Модуль объявляет
+ * свои права сам через `definePermissions`; каталог с подписями отдаёт
+ * `GET /api/v1/permissions`.
  */
-export type TPermission = KnownPermission | string;
+export type TPermission = string;

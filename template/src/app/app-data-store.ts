@@ -1,4 +1,4 @@
-import { IAuditStore } from "@entities/audit";
+import { IAuditRealtime, IAuditStore } from "@entities/audit";
 import { IAuthStore } from "@entities/auth";
 import { IFileRealtime, IFileStore } from "@entities/file";
 import { IJobRealtime, IJobStore } from "@entities/job";
@@ -22,6 +22,7 @@ export class AppDataStore implements IAppDataStore {
     @IJobStore() private _jobStore: IJobStore,
     @IJobRealtime() private _jobRealtime: IJobRealtime,
     @IAuditStore() private _auditStore: IAuditStore,
+    @IAuditRealtime() private _auditRealtime: IAuditRealtime,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -39,9 +40,13 @@ export class AppDataStore implements IAppDataStore {
             socketDisposers.add(this._userRealtime.initialize());
             socketDisposers.add(this._fileRealtime.initialize());
             socketDisposers.add(this._jobRealtime.initialize());
+            socketDisposers.add(this._auditRealtime.initialize());
           } else {
             disposer(Array.from(socketDisposers));
             socketDisposers.clear();
+            // Данные прежнего пользователя (права, профиль) не должны пережить
+            // выход: следующий вход — возможно, другой человек.
+            this._userStore.reset();
             this._fileStore.reset();
             this._jobStore.reset();
             this._auditStore.reset();

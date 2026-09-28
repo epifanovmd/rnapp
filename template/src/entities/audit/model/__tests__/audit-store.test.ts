@@ -47,4 +47,20 @@ describe("AuditStore", () => {
 
     expect(getMyAudit).toHaveBeenCalledTimes(1);
   });
+
+  it("новое событие — в начало загруженной ленты, без дублей", async () => {
+    const getMyAudit = jest.fn().mockResolvedValue({
+      data: { items: [event("e1")], nextCursor: null },
+    });
+    const store = new AuditStore({ getMyAudit } as unknown as IMainApi);
+
+    store.prepend(event("e0"));
+    expect(store.events).toEqual([]);
+
+    await store.load();
+    store.prepend(event("e2"));
+    store.prepend(event("e2"));
+
+    expect(store.events.map(e => e.id)).toEqual(["e2", "e1"]);
+  });
 });

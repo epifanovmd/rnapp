@@ -41,4 +41,22 @@ describe("SessionStore", () => {
 
     expect(store.sessions.map(s => s.id)).toEqual(["s1", "s2"]);
   });
+
+  it("завершены все сессии (аккаунт удалён) — выход", () => {
+    const guard = { isCurrentSession: () => false, signOut: jest.fn() };
+    const store = new SessionStore({} as IMainApi, guard as IAuthSessionGuard);
+
+    store.handleSessionTerminated("all");
+
+    expect(guard.signOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("завершена чужая сессия — без выхода", () => {
+    const guard = { isCurrentSession: () => false, signOut: jest.fn() };
+    const store = new SessionStore({} as IMainApi, guard as IAuthSessionGuard);
+
+    store.handleSessionTerminated("s9");
+
+    expect(guard.signOut).not.toHaveBeenCalled();
+  });
 });

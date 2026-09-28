@@ -1,15 +1,15 @@
-import {
-  KnownPermission,
-  KnownRole,
-  UserDto,
-} from "@shared/api/gen/main/model";
+import { KnownRole, UserDto } from "@shared/api/gen/main/model";
 import { DataModelBase } from "@shared/lib/models";
 import { DateModel } from "@shared/lib/models/date";
 import { formatFullName, formatInitials } from "@shared/lib/utils";
 import { LambdaValue } from "@shared/lib/utils/lambda-value";
 import { computed, makeObservable } from "mobx";
 
-import { computeEffectivePermissions, isAdminRole } from "../lib/permissions";
+import {
+  computeEffectivePermissions,
+  isAdminRole,
+  type Permission,
+} from "../lib/permissions";
 
 export class UserModel extends DataModelBase<UserDto> {
   public readonly createdAtDate = new DateModel(() => this.data.createdAt);
@@ -78,14 +78,14 @@ export class UserModel extends DataModelBase<UserDto> {
   }
 
   /** Прямые права пользователя */
-  get directPermissionNames(): KnownPermission[] {
-    return this.data.directPermissions.map(p => p.name as KnownPermission);
+  get directPermissionNames(): Permission[] {
+    return this.data.directPermissions.map(p => p.name);
   }
 
   /** Effective permissions = union(роль.permissions) + directPermissions */
-  get effectivePermissions(): KnownPermission[] {
+  get effectivePermissions(): Permission[] {
     const rolePerms = this.data.roles.flatMap(r =>
-      r.permissions.map(p => p.name as KnownPermission),
+      r.permissions.map(p => p.name),
     );
 
     return computeEffectivePermissions(rolePerms, this.directPermissionNames);

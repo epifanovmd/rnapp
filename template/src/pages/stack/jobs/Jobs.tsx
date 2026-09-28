@@ -1,4 +1,4 @@
-import { IJobStore } from "@entities/job";
+import { IJobStore, JOB_PERMISSIONS } from "@entities/job";
 import { IUserStore } from "@entities/user";
 import { notifyApiError } from "@shared/lib/http";
 import { useNotifications } from "@shared/lib/notifications";
@@ -18,7 +18,7 @@ import { FlatList, StyleSheet } from "react-native";
 
 import { JobRow } from "./JobRow";
 
-/** Запуск демо-задачи `demo.echo` внешнему воркеру; сервер пускает только админов. */
+/** Запуск демо-задачи `demo.echo` внешнему воркеру (право `jobs:demo`). */
 const DemoJobLauncher: FC = observer(() => {
   const jobStore = IJobStore.useInstance();
   const notifications = useNotifications();
@@ -60,7 +60,8 @@ const DemoJobLauncher: FC = observer(() => {
 /** Фоновые задачи пользователя; статусы обновляются по сокету `job:updated`. */
 export const Jobs: FC = observer(() => {
   const jobStore = IJobStore.useInstance();
-  const { isAdmin } = IUserStore.useInstance();
+  // Демо-задачу сервер ставит только по праву jobs:demo.
+  const canRunDemo = IUserStore.useInstance().can(JOB_PERMISSIONS.DEMO);
   const notifications = useNotifications();
   const holder = jobStore.jobsHolder;
 
@@ -84,7 +85,7 @@ export const Jobs: FC = observer(() => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => <JobRow job={item} onCancel={onCancel} />}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={isAdmin ? <DemoJobLauncher /> : null}
+        ListHeaderComponent={canRunDemo ? <DemoJobLauncher /> : null}
         refreshing={holder.isRefreshing}
         onRefresh={jobStore.refresh}
         onEndReached={jobStore.loadMore}

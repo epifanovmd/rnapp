@@ -15,7 +15,7 @@ export interface IJobStore {
   loadMore(): Promise<void>;
   /** Отменить задачу; новый статус придёт событием `job:updated`. */
   cancel(id: string): Promise<ApiResponse<void, ApiError>>;
-  /** Поставить демо-задачу `demo.echo` (только для админов). */
+  /** Поставить демо-задачу `demo.echo` (право `jobs:demo`). */
   startDemoEcho(text: string): Promise<ApiResponse<JobRunDto, ApiError>>;
   /** Новое состояние задачи: заменить в списке или добавить в начало. */
   handleJobUpdated(job: JobRunDto): void;

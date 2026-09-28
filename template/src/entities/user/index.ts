@@ -1,3 +1,4 @@
+export { ALL_PERMISSIONS, type Permission } from "./lib/permissions";
 export { ProfileModel } from "./model/profile-model";
 export { PublicUserModel } from "./model/public-user-model";
 export { RoleModel } from "./model/role-model";

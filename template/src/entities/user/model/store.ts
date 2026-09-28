@@ -1,7 +1,6 @@
 import { IMainApi } from "@shared/api";
 import {
   IProfileUpdateRequestDto,
-  KnownPermission,
   KnownRole,
   PrivacySettingsDto,
   ProfileDto,
@@ -16,6 +15,7 @@ import {
   canAccess,
   computeEffectivePermissions,
   isAdminRole,
+  type Permission,
 } from "../lib/permissions";
 import { ProfileModel } from "./profile-model";
 import { IUserStore } from "./types";
@@ -53,17 +53,13 @@ class UserStore implements IUserStore {
     return this.user?.roles.map(r => r.name as KnownRole) ?? [];
   }
 
-  get directPermissions(): KnownPermission[] {
-    return (
-      this.user?.directPermissions.map(p => p.name as KnownPermission) ?? []
-    );
+  get directPermissions(): Permission[] {
+    return this.user?.directPermissions.map(p => p.name) ?? [];
   }
 
-  get permissions(): KnownPermission[] {
+  get permissions(): Permission[] {
     const rolePerms =
-      this.user?.roles.flatMap(r =>
-        r.permissions.map(p => p.name as KnownPermission),
-      ) ?? [];
+      this.user?.roles.flatMap(r => r.permissions.map(p => p.name)) ?? [];
 
     return computeEffectivePermissions(rolePerms, this.directPermissions);
   }
@@ -88,7 +84,7 @@ class UserStore implements IUserStore {
     return this._holder.isReady;
   }
 
-  can(permission: KnownPermission): boolean {
+  can(permission: Permission): boolean {
     return canAccess(this.roles, this.permissions, permission);
   }
 

@@ -77,3 +77,15 @@ DI-модули импортируют контракты напрямую (`not
 Исчезновение токенов трактуется как конец сессии: поднимается
 `onSessionExpired`, то есть доменный стор разлогинится. `dispose()` снимает
 подписку.
+
+## Смена прав и завершение сессий (сервер)
+
+- Смена прав не разлогинивает: старые access-токены получают 401
+  `AUTH_PRIVILEGES_CHANGED`, `bearerAuth` обновляет токен и повторяет запрос;
+  `user:privileges-changed` → `userStore.refresh()`.
+- `session:terminated { sessionId: "all" }` (аккаунт удалён) → выход
+  (`SessionStore.handleSessionTerminated`).
+- Выход сбрасывает `userStore` (и файлы, задачи, журнал) в `AppDataStore`.
+- Права — строки (`Permission` в entities/user), `KnownPermission` в спеке нет;
+  демо-задача — по праву `jobs:demo` (`JOB_PERMISSIONS`).
+- «Мой журнал» живой: `audit:created` → `IAuditRealtime` → `AuditStore.prepend`.

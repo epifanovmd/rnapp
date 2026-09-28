@@ -63,6 +63,15 @@ export class AuditStore implements IAuditStore {
     holder.appendItems(res.data.items, res.data.nextCursor !== null);
   }
 
+  prepend(event: AuditEventDto) {
+    const holder = this.eventsHolder;
+
+    // До первой загрузки лента пустая — событие придёт вместе с ней.
+    if (!holder.isSuccess || holder.items.some(e => e.id === event.id)) return;
+
+    holder.prependItem(event);
+  }
+
   reset() {
     this._nextCursor = null;
     this.eventsHolder.reset();
