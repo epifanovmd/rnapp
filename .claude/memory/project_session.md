@@ -9,26 +9,31 @@ type: project
 `shared/lib/session/` — переиспользуемая механика токенов, ничего не знает ни об
 HTTP, ни о конкретном бэкенде. Единственная зависимость — тип `IStorageService`.
 
-| Файл                                  | Что                                                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `session.types.ts`                    | `TokenPair`, `ITokenStorage`, `RefreshHandler`, `RefreshPolicy`, `ITokenSession`, `toTokenPair` |
-| `token-session.ts`                    | `TokenSession` — ядро: состояние, дедупликация refresh, подписки                                |
-| `refresh-policy.ts`                   | `refreshNever`, `refreshBeforeJwtExpiry(buffer)`, `refreshAlways`                               |
-| `jwt.ts`                              | чистые `parseJwt`, `isJwtExpired`, `jwtExpiresIn`                                               |
-| `storage/memory-token-storage.ts`     | токены только в памяти                                                                          |
-| `storage/persistent-token-storage.ts` | поверх `IStorageService`; по умолчанию хранит только refresh                                    |
+| Файл                                  | Что                                                                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `session.types.ts`                    | `TokenGrant` (ответ бэкенда), `TokenPair` (+`expiresAt`/`refreshAt`/`sessionId`), `ITokenStorage`, `ITokenSession`, `toTokenPair` |
+| `token-session.ts`                    | `TokenSession` — ядро: состояние, дедупликация, таймер тихого обновления, подписки                                                |
+| `storage/memory-token-storage.ts`     | токены только в памяти                                                                                                            |
+| `storage/persistent-token-storage.ts` | поверх `IStorageService`; по умолчанию хранит только refresh                                                                      |
+
+`token-session.ts` и `session.types.ts` **идентичны веб-проектам** (react-vite и др.) — правки
+переносить во все. Веб-ветки (`document`/`visibilitychange`, `navigator.locks`) в RN
+просто не срабатывают; `CrossTabTokenStorage` в RN нет.
 
 ## Как конфигурируется
 
-`new TokenSession({ refresh, storage?, shouldRefresh? })`:
+`new TokenSession({ refresh, storage?, refreshBufferSeconds?, autoRefresh?, lockName?, isSessionRejected? })`:
 
-- `refresh` — как именно этот бэкенд меняет пару токенов; реджект = сессия
-  недействительна, сессия очищается и поднимается `onSessionExpired`;
-- `storage` — где пара живёт между запусками (по умолчанию память);
-- `shouldRefresh` — обновлять ли заранее (по умолчанию нет, реагируем на 401).
-
-`setTokens` нормализует вход через `toTokenPair`: ответы логина несут ещё и
-профиль, в сессию попадают только токены.
+- `refresh` — как бэкенд меняет пару; возвращает `TokenGrant` (`accessToken`,
+  `refreshToken`, `expiresIn?`, `sessionId?`);
+- срок — из `expiresIn` ответа по часам клиента на получении (JWT **не разбирается**,
+  `jwt.ts`/`refresh-policy.ts` удалены 2026-09-28). Без `expiresIn` (DummyJSON) —
+  только реакция на 401;
+- `refreshBufferSeconds` (60, не больше половины срока), `autoRefresh` (true) — таймер;
+  после фона просроченный таймер срабатывает при возврате, плюс `ensureFreshToken`
+  перед каждым запросом (`bearerAuth`) и handshake сокета;
+- `isSessionRejected(error)` — конец сессии (clear + `onSessionExpired`); иначе ошибка
+  временная: токены остаются, повтор через 10 с. Основной бэкенд: только HTTP 4xx кроме 429.
 
 ## Направление зависимостей
 
@@ -47,7 +52,7 @@ type-only контракты соседей → `shared/api/*` соединяе�
 Сессия — инфраструктура бэкенда, поэтому лежит рядом с его API, а не в домене:
 
 - `shared/api/main/main-session.ts` — `PersistentTokenStorage` по ключу
-  `app:refresh_token` плюс `refreshBeforeJwtExpiry(60)`;
+  `app:refresh_token`, `refreshBufferSeconds: 60`, `isSessionRejected`;
 - `shared/api/dummyjson/dummyjson-session.ts` — `DummyJsonSession extends
 TokenSession`: память, реактивная стратегия, сверху только `login`.
 
@@ -73,7 +78,3 @@ DI-модули импортируют контракты напрямую (`not
 Исчезновение токенов трактуется как конец сессии: поднимается
 `onSessionExpired`, то есть доменный стор разлогинится. `dispose()` снимает
 подписку.
-
-## Gotcha: JWT без `sub` (2026-09-26)
-
-Токен API содержит `userId`/`sessionId`/`exp`, но не `sub`. `parseJwt` раньше требовал `sub` → возвращал `null` → `refreshBeforeJwtExpiry` считал любой токен истёкшим → refresh перед каждым запросом, гонки ротации refresh-токена, падающие запросы (пустой профиль). Теперь обязателен только `exp`. Текущую сессию определять по `TokenPair.sessionId` из ответа, не из JWT.

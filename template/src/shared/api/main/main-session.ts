@@ -3,7 +3,6 @@ import { HttpError } from "@shared/lib/http";
 import {
   ITokenSession,
   PersistentTokenStorage,
-  refreshBeforeJwtExpiry,
   TokenSession,
 } from "@shared/lib/session";
 import type { IStorageService } from "@shared/lib/storage";
@@ -24,8 +23,8 @@ const isSessionRejected = (error: unknown): boolean =>
   error instanceof HttpError && error.status < 500 && error.status !== 429;
 
 /**
- * Сессия основного бэкенда: refresh-токен переживает перезапуск, access — нет
- * и восстанавливается обновлением по `exp` JWT. Доменное состояние
+ * Сессия основного бэкенда: refresh-токен переживает перезапуск, access живёт
+ * в памяти и обновляется заранее по `expiresIn` из ответа. Доменное состояние
  * авторизации живёт в `entities/auth`.
  */
 export const createMainSession = (
@@ -34,7 +33,7 @@ export const createMainSession = (
 ): ITokenSession =>
   new TokenSession({
     storage: new PersistentTokenStorage(storage, { key: REFRESH_TOKEN_KEY }),
-    shouldRefresh: refreshBeforeJwtExpiry(REFRESH_BUFFER_SECONDS),
+    refreshBufferSeconds: REFRESH_BUFFER_SECONDS,
     isSessionRejected,
     refresh: async refreshToken => {
       const { data, error } = await api.refresh(refreshToken);
