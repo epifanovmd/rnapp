@@ -12,6 +12,9 @@ export interface UseCollectionOptions<TItem, TArgs = void> {
 
   enabled?: boolean;
 
+  /** Загрузить при монтировании без аргументов (холдер без `watch`). */
+  autoLoad?: boolean;
+
   onFetch?: CollectionFetchFn<TItem, TArgs>;
 }
 
@@ -39,6 +42,7 @@ type CollectionMethods<TItem, TArgs, TError extends IHolderError> = Pick<
   | "appendItem"
   | "removeItem"
   | "updateItem"
+  | "updateItems"
   | "upsertItem"
   | "reset"
 >;
@@ -74,6 +78,7 @@ export const useCollection = <
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],
     enabled: options?.enabled,
+    autoLoad: options?.autoLoad,
   });
 
   return {
@@ -120,6 +125,7 @@ export const useCollection = <
     appendItem: holder.appendItem.bind(holder),
     removeItem: holder.removeItem.bind(holder),
     updateItem: holder.updateItem.bind(holder),
+    updateItems: holder.updateItems.bind(holder),
     upsertItem: holder.upsertItem.bind(holder),
     reset: holder.reset.bind(holder),
 

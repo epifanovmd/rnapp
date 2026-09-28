@@ -14,6 +14,9 @@ export interface UseInfiniteOptions<TItem, TArgs = void> {
 
   enabled?: boolean;
 
+  /** Загрузить при монтировании без аргументов (холдер без `watch`). */
+  autoLoad?: boolean;
+
   onFetch?: InfiniteFetchFn<TItem, TArgs>;
 }
 
@@ -70,6 +73,7 @@ export const useInfinite = <
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],
     enabled: options?.enabled,
+    autoLoad: options?.autoLoad,
   });
 
   return {

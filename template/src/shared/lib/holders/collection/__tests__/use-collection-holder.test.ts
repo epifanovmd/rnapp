@@ -3,6 +3,7 @@ import "../../__tests__/react-test-setup";
 import { act } from "react-test-renderer";
 
 import { renderHook } from "../../__tests__/hook-probe";
+import { testRuntime } from "../../__tests__/test-runtime";
 import { useCollection } from "../use-collection-holder";
 
 describe("Collection React integration", () => {
@@ -30,5 +31,35 @@ describe("Collection React integration", () => {
     hook.current.reset();
     expect(hook.current.isIdle).toBe(true);
     await hook.unmount();
+  });
+
+  it("без watch сама не грузит; autoLoad — один раз при монтировании; enabled: false — не грузит", async () => {
+    const queryFn = testRuntime.fn(async () => ({ data: [{ id: 1 }] }));
+
+    const manual = await renderHook(() => useCollection({ queryFn }));
+
+    await act(async () => undefined);
+    expect(queryFn).not.toHaveBeenCalled();
+    expect(manual.current.count).toBe(0);
+    await manual.unmount();
+
+    const auto = await renderHook(() =>
+      useCollection({ queryFn, autoLoad: true }),
+    );
+
+    await act(async () => undefined);
+    expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(auto.current.count).toBe(1);
+    await auto.unmount();
+
+    queryFn.mockClear();
+
+    const disabled = await renderHook(() =>
+      useCollection({ queryFn, autoLoad: true, enabled: false }),
+    );
+
+    await act(async () => undefined);
+    expect(queryFn).not.toHaveBeenCalled();
+    await disabled.unmount();
   });
 });

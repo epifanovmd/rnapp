@@ -12,6 +12,9 @@ export interface UseEntityOptions<TData, TArgs = void> {
 
   enabled?: boolean;
 
+  /** Загрузить при монтировании без аргументов (холдер без `watch`). */
+  autoLoad?: boolean;
+
   onFetch?: EntityFetchFn<TData, TArgs>;
 }
 
@@ -66,6 +69,7 @@ export const useEntity = <
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],
     enabled: options?.enabled,
+    autoLoad: options?.autoLoad,
   });
 
   return {

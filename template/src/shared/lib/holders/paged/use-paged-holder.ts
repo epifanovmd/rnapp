@@ -14,6 +14,9 @@ export interface UsePagedOptions<TItem, TArgs = void> {
 
   enabled?: boolean;
 
+  /** Загрузить при монтировании без аргументов (холдер без `watch`). */
+  autoLoad?: boolean;
+
   onFetch?: PagedFetchFn<TItem, TArgs>;
 }
 
@@ -47,6 +50,7 @@ type PagedMethods<TItem, TArgs, TError extends IHolderError> = Pick<
   | "appendItem"
   | "removeItem"
   | "updateItem"
+  | "updateItems"
   | "reset"
 >;
 
@@ -82,6 +86,7 @@ export const usePaged = <
   useWatchEffect(holder.load.bind(holder) as (...args: any[]) => unknown, {
     watch: options?.watch as WatchOptions<TArgs>["watch"],
     enabled: options?.enabled,
+    autoLoad: options?.autoLoad,
   });
 
   return {
@@ -136,6 +141,7 @@ export const usePaged = <
     appendItem: holder.appendItem.bind(holder),
     removeItem: holder.removeItem.bind(holder),
     updateItem: holder.updateItem.bind(holder),
+    updateItems: holder.updateItems.bind(holder),
     reset: holder.reset.bind(holder),
 
     holder,

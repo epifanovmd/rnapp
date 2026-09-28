@@ -22,6 +22,7 @@ export abstract class BaseListHolder<
       count: computed,
 
       updateItem: action,
+      updateItems: action,
       upsertItem: action,
     });
   }
@@ -47,6 +48,24 @@ export abstract class BaseListHolder<
     const fn = this._normalizePredicate(predicate);
 
     this.items = this.items.map(item => (fn(item) ? updated : item));
+  }
+
+  /**
+   * Обновление многих элементов одним действием: `updater` возвращает новый
+   * элемент или тот же, если менять нечего. Массив заменяется, только если
+   * изменился хотя бы один элемент, — наблюдатели перерисуются один раз.
+   */
+  updateItems(updater: (item: TItem) => TItem) {
+    let changed = false;
+    const next = this.items.map(item => {
+      const updated = updater(item);
+
+      if (updated !== item) changed = true;
+
+      return updated;
+    });
+
+    if (changed) this.items = next;
   }
 
   upsertItem(

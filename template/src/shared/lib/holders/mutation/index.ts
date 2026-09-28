@@ -4,6 +4,7 @@ export type {
 } from "./mutation-holder";
 export { MutationHolder } from "./mutation-holder";
 export { MutationProvider } from "./MutationProvider";
+export { runMutation } from "./run-mutation";
 export { useMutationContext } from "./use-mutation-context";
 export type {
   UseMutationOptions,

@@ -132,4 +132,24 @@ describe("CollectionHolder", () => {
 
     await expect(canceled.load()).resolves.toEqual({ data: null, error: null });
   });
+
+  it("updateItems — одно изменение массива, без изменений массив прежний", () => {
+    const holder = new CollectionHolder<Item>({
+      keyExtractor: value => value.id,
+    });
+
+    holder.setItems([item(1), item(2)]);
+
+    const before = holder.items;
+
+    holder.updateItems(value => value);
+    expect(holder.items).toBe(before);
+
+    holder.updateItems(value =>
+      value.id === 2 ? { ...value, name: "two" } : value,
+    );
+    expect(holder.items).not.toBe(before);
+    expect(holder.items[0]).toBe(before[0]);
+    expect(holder.items[1].name).toBe("two");
+  });
 });
