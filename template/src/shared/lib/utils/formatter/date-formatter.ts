@@ -1,10 +1,11 @@
 import {
-  differenceInDays,
+  differenceInCalendarDays,
   differenceInHours,
   differenceInMinutes,
   format,
   isAfter,
   isToday,
+  isYesterday,
   parseISO,
 } from "date-fns";
 
@@ -68,9 +69,10 @@ export class DateFormatter {
       return `${pluralizeHour(hours, true)} назад`;
     }
 
-    const days = differenceInDays(now, date);
+    if (isYesterday(date)) return "вчера";
 
-    if (days <= 1) return "вчера";
+    const days = differenceInCalendarDays(now, date);
+
     if (days < 7) return `${pluralizeDay(days, true)} назад`;
 
     return format(date, "d MMMM yyyy");

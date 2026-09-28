@@ -1,17 +1,11 @@
-import { useCallback } from "react";
+import { useEvent } from "./use-latest-ref";
 
-type CallbackFunction<T extends any[]> = (...args: T) => void;
+type CallbackFunction<Args extends unknown[]> = (...args: Args) => void;
 
-export const useMergedCallback = <T extends any[]>(
-  ...callbacks: (CallbackFunction<T> | undefined)[]
-): CallbackFunction<T> => {
-  return useCallback(
-    (...args: T) => {
-      callbacks.forEach(callback => {
-        callback?.(...args);
-      });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    callbacks.filter(Boolean) as CallbackFunction<T>[],
-  );
-};
+/** Один стабильный колбэк, вызывающий все переданные по очереди. */
+export const useMergedCallback = <Args extends unknown[]>(
+  ...callbacks: (CallbackFunction<Args> | undefined)[]
+): CallbackFunction<Args> =>
+  useEvent((...args: Args) => {
+    callbacks.forEach(callback => callback?.(...args));
+  });

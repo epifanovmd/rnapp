@@ -10,6 +10,6 @@ export const IAppStateService =
 export interface IAppStateService {
   readonly isActive: boolean;
 
-  /** Вызывает callback при каждом переходе приложения в активное состояние. Возвращает unsubscribe. */
+  /** Вызывает callback при смене активности приложения. Возвращает unsubscribe. */
   onChange(callback: (isActive: boolean) => void): () => void;
 }

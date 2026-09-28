@@ -9,8 +9,12 @@ const createStorage = (): IStorageService => {
 
   return {
     getItem: key => data.get(key) ?? null,
-    setItem: (key, value) => void data.set(key, value),
-    removeItem: key => void data.delete(key),
+    setItem: (key, value) => {
+      data.set(key, value);
+    },
+    removeItem: key => {
+      data.delete(key);
+    },
     getAllKeys: () => [...data.keys()],
   };
 };
