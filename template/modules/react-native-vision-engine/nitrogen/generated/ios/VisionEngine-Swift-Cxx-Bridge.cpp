@@ -8,6 +8,7 @@
 #include "VisionEngine-Swift-Cxx-Bridge.hpp"
 
 // Include C++ implementation defined types
+#include "HybridFrameSessionSpecSwift.hpp"
 #include "HybridVisionEngineSpecSwift.hpp"
 #include "VisionEngine-Swift-Cxx-Umbrella.hpp"
 #include <NitroModules/NitroDefines.hpp>
@@ -15,10 +16,26 @@
 
 namespace margelo::nitro::visionengine::bridge::swift {
 
-  // pragma MARK: std::function<void(bool /* result */)>
-  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept {
-    auto swiftClosure = VisionEngine::Func_void_bool::fromUnsafe(swiftClosureWrapper);
-    return [swiftClosure = std::move(swiftClosure)](bool result) mutable -> void {
+  // pragma MARK: std::shared_ptr<HybridFrameSessionSpec>
+  std::shared_ptr<HybridFrameSessionSpec> create_std__shared_ptr_HybridFrameSessionSpec_(void* NON_NULL swiftUnsafePointer) noexcept {
+    VisionEngine::HybridFrameSessionSpec_cxx swiftPart = VisionEngine::HybridFrameSessionSpec_cxx::fromUnsafe(swiftUnsafePointer);
+    return std::make_shared<margelo::nitro::visionengine::HybridFrameSessionSpecSwift>(swiftPart);
+  }
+  void* NON_NULL get_std__shared_ptr_HybridFrameSessionSpec_(std__shared_ptr_HybridFrameSessionSpec_ cppType) {
+    std::shared_ptr<margelo::nitro::visionengine::HybridFrameSessionSpecSwift> swiftWrapper = std::dynamic_pointer_cast<margelo::nitro::visionengine::HybridFrameSessionSpecSwift>(cppType);
+    #ifdef NITRO_DEBUG
+    if (swiftWrapper == nullptr) [[unlikely]] {
+      throw std::runtime_error("Class \"HybridFrameSessionSpec\" is not implemented in Swift!");
+    }
+    #endif
+    VisionEngine::HybridFrameSessionSpec_cxx& swiftPart = swiftWrapper->getSwiftPart();
+    return swiftPart.toUnsafe();
+  }
+  
+  // pragma MARK: std::function<void(const DetectorModelInfo& /* result */)>
+  Func_void_DetectorModelInfo create_Func_void_DetectorModelInfo(void* NON_NULL swiftClosureWrapper) noexcept {
+    auto swiftClosure = VisionEngine::Func_void_DetectorModelInfo::fromUnsafe(swiftClosureWrapper);
+    return [swiftClosure = std::move(swiftClosure)](const DetectorModelInfo& result) mutable -> void {
       swiftClosure.call(result);
     };
   }

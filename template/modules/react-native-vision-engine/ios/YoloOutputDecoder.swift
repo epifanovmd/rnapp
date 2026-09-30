@@ -3,30 +3,30 @@ import Foundation
 
 /// Детекция в нормализованных координатах (top-left origin)
 struct RawDetection {
-  let rect: CGRect
+  var rect: CGRect
   let score: Float
-  /// Индекс класса модели; -1 — класс известен только меткой
-  let classIndex: Int32
-  /// Метка класса, если модель её содержит; иначе пустая строка
-  let label: String
+  /// Индекс класса модели; -1 — класс не сопоставлен индексу
+  var classIndex: Int32
+  /// Имя класса; пустая строка — имя неизвестно
+  var label: String
 }
 
-/// Чистый декодер сырых тензоров YOLO. Поддерживает оба поколения формата
-/// выхода, различаемых по размерности:
-/// - классический (v8/11/12): `[C, N]`/`[N, C]`, тысячи кандидатов
-///   `cx,cy,w,h` — фильтр по score + NMS;
-/// - end-to-end (v10/26): `[N, 6]` с малым N — готовые боксы
-///   `x1,y1,x2,y2,score,class`.
-/// Координаты нормализуются адаптивно: значения крупнее 1.5 считаются
-/// пикселями входа модели.
+/// Чистый декодер сырых тензоров детекции. Поддерживает оба поколения
+/// формата выхода, различаемых по размерности:
+/// - классический: `[C, N]`/`[N, C]`, тысячи кандидатов `cx,cy,w,h` и
+///   оценки классов — фильтр по score + NMS;
+/// - end-to-end: `[N, 6]` с малым N — готовые боксы `x1,y1,x2,y2,score,class`.
+/// Координаты возвращаются нормализованными относительно входа модели.
 enum YoloOutputDecoder {
-  /// Верхняя граница числа детекций у end-to-end моделей (обычно 300)
-  private static let maxEndToEndDetections = 512
+  /// Верхняя граница числа детекций end-to-end выхода (обычно 300)
+  static let maxEndToEndDetections = 512
 
   /// Тензор выхода модели → детекции, отсортированные по score
   static func decode(
     _ array: MLMultiArray,
-    inputSide: CGFloat,
+    inputWidth: CGFloat,
+    inputHeight: CGFloat,
+    boxUnits: DetectorBoxUnits,
     minConfidence: Float,
     iouThreshold: CGFloat
   ) -> [RawDetection] {
@@ -44,9 +44,27 @@ enum YoloOutputDecoder {
     let rowStride = strides[0]
     let colStride = strides[1]
 
-    func norm(_ value: Float) -> CGFloat {
-      let cg = CGFloat(value)
-      return cg > 1.5 ? cg / inputSide : cg
+    // координаты бокса → доли входа; в auto-режиме бокс считается
+    // пиксельным, если хоть одна его координата выходит за пределы [0..1.5]
+    func normalize(_ a: Float, _ b: Float, _ c: Float, _ d: Float) -> (CGFloat, CGFloat, CGFloat, CGFloat) {
+      let pixels: Bool
+      switch boxUnits {
+      case .pixels:
+        pixels = true
+      case .normalized:
+        pixels = false
+      case .auto:
+        pixels = max(a, b, c, d) > 1.5
+      }
+      if !pixels {
+        return (CGFloat(a), CGFloat(b), CGFloat(c), CGFloat(d))
+      }
+      return (
+        CGFloat(a) / inputWidth,
+        CGFloat(b) / inputHeight,
+        CGFloat(c) / inputWidth,
+        CGFloat(d) / inputHeight
+      )
     }
 
     var detections: [RawDetection] = []
@@ -57,10 +75,12 @@ enum YoloOutputDecoder {
         if score < minConfidence {
           continue
         }
-        let x1 = norm(read(i * rowStride))
-        let y1 = norm(read(i * rowStride + colStride))
-        let x2 = norm(read(i * rowStride + 2 * colStride))
-        let y2 = norm(read(i * rowStride + 3 * colStride))
+        let (x1, y1, x2, y2) = normalize(
+          read(i * rowStride),
+          read(i * rowStride + colStride),
+          read(i * rowStride + 2 * colStride),
+          read(i * rowStride + 3 * colStride)
+        )
         if x2 <= x1 || y2 <= y1 {
           continue
         }
@@ -96,10 +116,7 @@ enum YoloOutputDecoder {
         if score < minConfidence {
           continue
         }
-        let cx = norm(value(0, i))
-        let cy = norm(value(1, i))
-        let w = norm(value(2, i))
-        let h = norm(value(3, i))
+        let (cx, cy, w, h) = normalize(value(0, i), value(1, i), value(2, i), value(3, i))
         let x = max(cx - w / 2, 0)
         let y = max(cy - h / 2, 0)
         detections.append(RawDetection(
@@ -138,8 +155,8 @@ enum YoloOutputDecoder {
 
   /// Жадный NMS внутри класса: кандидат с IoU выше порога к уже принятой
   /// детекции ТОГО ЖЕ класса отбрасывается. Боксы разных классов друг друга
-  /// не подавляют — у многоклассовых моделей соседние области (номер, тип,
-  /// веса) частично перекрываются.
+  /// не подавляют — у многоклассовых моделей соседние области частично
+  /// перекрываются.
   private static func nonMaxSuppression(
     _ detections: [RawDetection],
     iouThreshold: CGFloat

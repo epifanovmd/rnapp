@@ -122,104 +122,44 @@ open class HybridVisionEngineSpec_cxx {
   }
 
   // Properties
-  public final var isDetectorLoaded: Bool {
-    @inline(__always)
-    get {
-      return self.__implementation.isDetectorLoaded
-    }
-  }
   
-  public final var isObjectModelLoaded: Bool {
-    @inline(__always)
-    get {
-      return self.__implementation.isObjectModelLoaded
-    }
-  }
 
   // Methods
   @inline(__always)
-  public final func loadDetector(modelName: std.string) -> bridge.Result_std__shared_ptr_Promise_bool___ {
+  public final func loadModel(config: DetectorModelConfig) -> bridge.Result_std__shared_ptr_Promise_DetectorModelInfo___ {
     do {
-      let __result = try self.__implementation.loadDetector(modelName: String(modelName))
-      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_bool__ in
-        let __promise = bridge.create_std__shared_ptr_Promise_bool__()
-        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_bool__(__promise)
+      let __result = try self.__implementation.loadModel(config: config)
+      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_DetectorModelInfo__ in
+        let __promise = bridge.create_std__shared_ptr_Promise_DetectorModelInfo__()
+        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_DetectorModelInfo__(__promise)
         __result
           .then({ __result in __promiseHolder.resolve(__result) })
           .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
         return __promise
       }()
-      return bridge.create_Result_std__shared_ptr_Promise_bool___(__resultCpp)
+      return bridge.create_Result_std__shared_ptr_Promise_DetectorModelInfo___(__resultCpp)
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_std__shared_ptr_Promise_bool___(__exceptionPtr)
+      return bridge.create_Result_std__shared_ptr_Promise_DetectorModelInfo___(__exceptionPtr)
     }
   }
   
   @inline(__always)
-  public final func scan(frame: bridge.std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_, options: OcrScanOptions) -> bridge.Result_OcrScanResult_ {
+  public final func openFrame(frame: bridge.std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_) -> bridge.Result_std__shared_ptr_HybridFrameSessionSpec__ {
     do {
-      let __result = try self.__implementation.scan(frame: { () -> any HybridFrameSpec in
+      let __result = try self.__implementation.openFrame(frame: { () -> any HybridFrameSpec in
         let __unsafePointer = bridge.get_std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_(frame)
         let __instance = HybridFrameSpec_cxx.fromUnsafe(__unsafePointer)
         return __instance.getHybridFrameSpec()
-      }(), options: options)
-      let __resultCpp = __result
-      return bridge.create_Result_OcrScanResult_(__resultCpp)
-    } catch (let __error) {
-      let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_OcrScanResult_(__exceptionPtr)
-    }
-  }
-  
-  @inline(__always)
-  public final func loadObjectModel(modelName: std.string) -> bridge.Result_std__shared_ptr_Promise_bool___ {
-    do {
-      let __result = try self.__implementation.loadObjectModel(modelName: String(modelName))
-      let __resultCpp = { () -> bridge.std__shared_ptr_Promise_bool__ in
-        let __promise = bridge.create_std__shared_ptr_Promise_bool__()
-        let __promiseHolder = bridge.wrap_std__shared_ptr_Promise_bool__(__promise)
-        __result
-          .then({ __result in __promiseHolder.resolve(__result) })
-          .catch({ __error in __promiseHolder.reject(__error.toCpp()) })
-        return __promise
+      }())
+      let __resultCpp = { () -> bridge.std__shared_ptr_HybridFrameSessionSpec_ in
+        let __cxxWrapped = __result.getCxxWrapper()
+        return __cxxWrapped.getCxxPart()
       }()
-      return bridge.create_Result_std__shared_ptr_Promise_bool___(__resultCpp)
+      return bridge.create_Result_std__shared_ptr_HybridFrameSessionSpec__(__resultCpp)
     } catch (let __error) {
       let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_std__shared_ptr_Promise_bool___(__exceptionPtr)
-    }
-  }
-  
-  @inline(__always)
-  public final func detectObjects(frame: bridge.std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_, options: ObjectScanOptions) -> bridge.Result_ObjectScanResult_ {
-    do {
-      let __result = try self.__implementation.detectObjects(frame: { () -> any HybridFrameSpec in
-        let __unsafePointer = bridge.get_std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_(frame)
-        let __instance = HybridFrameSpec_cxx.fromUnsafe(__unsafePointer)
-        return __instance.getHybridFrameSpec()
-      }(), options: options)
-      let __resultCpp = __result
-      return bridge.create_Result_ObjectScanResult_(__resultCpp)
-    } catch (let __error) {
-      let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_ObjectScanResult_(__exceptionPtr)
-    }
-  }
-  
-  @inline(__always)
-  public final func analyze(frame: bridge.std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_, options: AnalyzeOptions) -> bridge.Result_AnalyzeResult_ {
-    do {
-      let __result = try self.__implementation.analyze(frame: { () -> any HybridFrameSpec in
-        let __unsafePointer = bridge.get_std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_(frame)
-        let __instance = HybridFrameSpec_cxx.fromUnsafe(__unsafePointer)
-        return __instance.getHybridFrameSpec()
-      }(), options: options)
-      let __resultCpp = __result
-      return bridge.create_Result_AnalyzeResult_(__resultCpp)
-    } catch (let __error) {
-      let __exceptionPtr = __error.toCpp()
-      return bridge.create_Result_AnalyzeResult_(__exceptionPtr)
+      return bridge.create_Result_std__shared_ptr_HybridFrameSessionSpec__(__exceptionPtr)
     }
   }
 }

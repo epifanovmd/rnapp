@@ -25,104 +25,109 @@ type: project
   `splash.config.mjs` скриптом `scripts/splash/` (sharp): Android — `drawable-*`,
   `drawable-night-*`, `values*/colors.xml`; iOS — xcassets + сториборд.
 - **VisionEngine** (`template/modules/react-native-vision-engine`) — локальный Nitro-модуль
-  (link:-зависимость в package.json, symlink в node_modules): универсальный on-device OCR для
-  **VisionCamera v5** (Nitro-архитектура, `useFrameOutput` + `react-native-vision-camera-worklets`),
-  предметной области не знает — домены в JS.
+  (link:-зависимость в package.json, symlink в node_modules): универсальный on-device OCR и
+  детекция объектов для **VisionCamera v5** (`useFrameOutput` + `react-native-vision-camera-worklets`),
+  предметной области не знает — модели, классы и правила чтения задаёт JS.
   Спека `src/specs/VisionEngine.nitro.ts` (кодоген: `npx nitrogen@0.36.5`, генерат закоммичен в
-  `nitrogen/generated/`), принимает `Frame` VisionCamera как внешний nitro-тип.
-  iOS: `ios/HybridVisionEngine.swift` — `VNRecognizeTextRequest` + опц. CoreML-детектор регионов
-  (`ios/MLModels/container_code_detector.mlpackage`, synchronized group в pbxproj).
-  Android: Kotlin — ML Kit text-recognition + опц. TFLite YOLO-детектор
-  (`android/app/src/main/assets/container_code_detector.tflite`), `YoloRegionDetector` — декодер+NMS;
-  cast `frame as NativeFrame` → `ImageProxy`. `scan` синхронный, вызывается из frame-worklet'а
-  через `NitroModules.box`/`unbox`. Модели детекторов (YOLO → CoreML со
-  встроенным NMS либо сырым тензором / TFLite) кладутся в приложение вручную
-  (`ios/MLModels/`, `android/.../assets/`); без модели OCR работает
-  полнокадрово. Классы модели привязываются по `classIndex` — порядок
-  классов при обучении обязан совпадать с доменом.
-  Нативный слой разбит по SRP, платформы зеркальны (таблица — README модуля):
-  фасад `HybridVisionEngine` + `{CoreML,Tflite}ModelLoader` + чистый
-  `YoloOutputDecoder` + `{CoreMLObjectDetector,TfliteDetector}` +
-  `{VisionTextRecognizer,MlKitTextRecognizer}` + `FrameGeometry`.
-  JS-архитектура мультидоменная: примитивы кадрового конвейера —
-  `shared/lib/ocr-scan/use-frame-pipeline` (`getWorkletEngine`, `shouldEmit`,
-  `publishOverlay`, `useOverlayChannel`, `useStableCallback`,
-  `useVisionFrameOutput`) — на них построены `useOcrScanner`
-  (параметризуется `IOcrScanDomain`) и `useObjectScanner`. UI-каркас камеры —
-  `shared/ui/scan/ScanCameraShell` (девайс, разрешения, фонарик,
-  заглушки; конвейер и оверлеи — через `outputs`/`children`), поверх него
-  `OcrScanCamera` (проп `overlayLayers` — доп. слои оверлея) и фичевые камеры. Frame-output создаётся на каждый маунт:
-  переиспользование между сессиями роняет AVFoundation. Домены: `shared/lib/container-ocr` (ISO 6346: контрольная
-  цифра, перебор OCR-подстановок, веса/типоразмер), `shared/lib/plate-ocr`
-  (РФ-номера: формат ГОСТ, латинско-кириллические подстановки). Фичи-обвязки:
-  `features/container-scan`, `features/plate-scan`, `features/text-scan`
-  (произвольный текст через `onObservations`). Детекция объектов: методы
-  `loadObjectModel`/`detectObjects` (отдельный слот модели `object_detector`,
-  декодеры classic+end-to-end YOLO с classIndex/label), ядро —
-  `shared/lib/object-scan` (`useObjectScanner`, COCO-метки), пример —
-  `features/object-scan` + `pages/stack/object-scanner`. `scan(...).regions` —
-  детекции наведения OCR (та же форма `DetectedObject`);
-  `analyze(frame, {ocr?, objects?})` — комбинированный проход с общим
-  upright-битмапом (Android). Оверлей — хост + слои:
-  `shared/lib/scan-overlay` — данные (типы `IScanOverlayBox`
-  `{rect, kind: text|candidate|valid|region, label?}`, cover-маппинг,
-  сглаживание); `shared/ui/scan/overlay/` — `ScanOverlayHost` (опрос
-  Synchronizable на UI-потоке, анти-мигание, маппинг в пиксели один раз,
-  слои-children получают `IScanOverlayApi` render-prop'ом, не контекстом),
-  слои `OverlayFrames` (рамки/уголки категории), `OverlayLabels` (подписи
-  SkPicture: метка класса / значение кандидата из `label`), `OverlayDim`
-  (затемнение вне боксов, even-odd), хук `useOverlayPath` для своей
-  геометрии; `ScanOverlay` — стандартный пресет (регион — синие уголки).
-  Системы координат: кадры frame-output выпрямляются по ориентации
-  устройства (`orientationSource="device"` у `CameraView` — распознавание
-  получает изображение, выпрямленное по гравитации), превью на обеих
-  платформах ориентацию выхода игнорирует и всегда идёт по ориентации
-  интерфейса. Разницу держит `usePreviewOrientation`
-  (`previewOrientationDelta`), `publishOverlay` доворачивает боксы и
-  меняет стороны кадра — оверлей публикуется уже в координатах превью,
-  доменные rect'ы остаются в выпрямленных.
-  Экраны с BottomSheet-камерой —
-  `pages/stack/{container,plate,text,object}-scanner`.
-  Движки — per-scanner (`createVisionEngine`/`createBoxedVisionEngine`,
-  `useScannerInstanceKey` — namespaced worklet-кэш и ключи троттлинга);
-  модели кэшируются нативно по имени на всё приложение (iOS
-  `CoreMLModelLoader`, Android `TfliteDetector.load`), слоты фасадов
-  потокобезопасны (NSLock / @Volatile). Пороги детектора — опциональные
-  поля `OcrScanOptions`/`ObjectScanOptions`, рантайм-источник дефолтов —
-  `DETECTOR_DEFAULTS` модуля (нативные фолбэки совпадают). Android подаёт
-  кадр letterbox'ом (поля 114, обратный пересчёт координат), iOS —
-  `scaleFill` (конвенция ultralytics-CoreML); TFLite-буферы прогона
-  переиспользуются, `detect` synchronized. iOS OCR по регионам — батч
-  запросов одним `VNImageRequestHandler`. Покадровые шаги OCR-конвейера —
-  worklet-хелперы `shared/lib/ocr-scan/ocr-worklets`; домены создаются
-  фабрикой `createOcrDomain(partial)` и целиком описывают свой конвейер:
-  `detector` (`modelName`, `classLabels`, `classes`, `minScore`,
-  `maxRegions`, `maxRegionsPerClass`, `padding`, `iouThreshold`) и
-  `recognition` (`mode`, `minConfidence`, `maxObservations`,
-  `fullFrameFallback`); пропы `OcrScanCamera` перекрывают режим точечно,
-  незаданное берётся из `OCR_SCAN_DEFAULTS`/`DETECTOR_DEFAULTS`.
-  Многоклассовые детекторы: `OcrObservation.regionClassIndex` — класс
-  региона, из кропа которого прочитан текст (-1 = полный кадр,
-  `FULL_FRAME_REGION_CLASS`); домен раскладывает области хелпером
-  `selectByRegionClass` (без размеченных классов возвращает все — работа
-  без модели не ломается). NMS подавляет только внутри класса, отбор
-  регионов — квота на класс плюс общий лимит. Контейнерный детектор —
-  3 класса (`CONTAINER_REGION_CLASSES`: 0 код, 1 типоразмер, 2 веса);
-  веса разбираются по меткам таблички, а при их отсутствии — по
-  тождеству брутто = тара + нетто (килограммовая тройка предпочитается
-  фунтовой); после подтверждения кода домен ждёт типоразмер и веса
-  ограниченное число кадров и отдаёт результат с тем, что прочиталось. Сканеры отдают `onError`
-  (троттлится) и dev-диагностику (`durationMs`/`detectorUsed`,
-  `ScanDiagnosticsBadge`, только `__DEV__`); `useObjectScanner` имеет
-  `pause`/`resume`. Юнит-тесты чистой логики — jest
-  (`npm test`, `jest.config.js` + `babel-jest.config.js` без
-  Reanimated-плагина): iso6346, container-candidates, `toUprightRect`,
-  cover-маппинг, сглаживание.
-  Важно worklet'ам: worklet захватывает в замыкание только функции,
-  объявленные ВЫШЕ по модулю — вызов объявленной ниже падает в рантайме
-  камеры как «undefined is not a function»; общий хелпер выносится наверх.
-  module-scope RegExp не сериализуется в worklet-рантайм
-  (объект без методов) — литералы только внутри тел функций.
+  `nitrogen/generated/`; после добавления файлов — `pod install`), принимает `Frame` VisionCamera.
+  **API — примитивы над сессией кадра** (конвейер собирает JS): `loadModel(config)` кладёт модель
+  в реестр движка по `config.name` и возвращает `DetectorModelInfo` (`loaded`, `labels`,
+  `classCount`, `inputWidth/Height`); `openFrame(frame)` → HybridObject `FrameSession`
+  (`width/height`, `detect(model, {minScore, iouThreshold?, maxResults?})`,
+  `recognize(rois[{rect, padding?}], {mode, minConfidence, maxObservations?, languages?, minRoiSizePx?})`
+  → `OcrRoiResult[]` выровнен по индексу запроса, `{read, observations}`; полный кадр —
+  rect `{0,0,1,1}`). Сессия освобождается `dispose()` (встроенный метод Nitro, нативно
+  переопределён) ДО `frame.dispose()` — иначе держит pixel buffer/битмап. Координаты всегда
+  выпрямленные (bufferOrientation/`toUprightRect` убраны). `scan`/`detectObjects`/`analyze`,
+  нативный `RegionSelector` удалены — отбор регионов в JS.
+  `DetectorModelConfig`: `name`, `labels?`, `resize: letterbox|stretch`, `boxUnits: auto|normalized|pixels`,
+  `accelerator: cpu|gpu|nnapi` + `threads` (Android, недоступный делегат → CPU). Дефолты —
+  `VISION_ENGINE_DEFAULTS` модуля (resize, boxUnits, accelerator, threads, iouThreshold, minRoiSizePx).
+  **Классы — по имени**: имена из метаданных модели (`names`: CoreML — userDefined или
+  classLabels NMS-пайплайна; TFLite — `metadata.json` в zip-хвосте файла, смещения архива бывают
+  абсолютными и относительными — парсер понимает оба), `labels` конфига их перекрывает.
+  Нативный слой зеркален (таблица — README модуля): фасад `HybridVisionEngine` (реестр
+  моделей) + `HybridFrameSession` + `{CoreML,Tflite}ModelLoader` + чистые `ModelMetadata`,
+  `YoloOutputDecoder` + модель с конфигом (`CoreMLObjectDetector` / `DetectorSlot` поверх
+  кэшируемого `TfliteDetector`) + `{VisionTextRecognizer,MlKitTextRecognizer}` + `FrameGeometry`;
+  iOS letterbox — `FrameLetterbox` (CoreImage, поля 114, свой буфер, затем `scaleFill`).
+  Android: полный кадр (rect `{0,0,1,1}` без padding) читается ML Kit по media image с поворотом,
+  прочие области — кропом upright-битмапа сессии; float32 и квантованные uint8/int8 вход/выход,
+  вход NHWC/NCHW, выход — любой тензор, двумерный после отбрасывания единичных осей;
+  GPU-делегат — зависимость `tensorflow-lite-gpu`.
+  **Gotcha кодогена**: `npm run specs` в модуле = `npx nitrogen@0.36.5` + `scripts/strip-struct-equality.cjs`
+  (вырезает `operator== = default` из структур с полями `std::vector` — иначе Swift 6.2/Xcode 26
+  теряет CxxRandomAccessCollection у вектора во всём модуле: «vector has no member 'map'» в
+  генерате; проявилось со вторым HybridObject; margelo/nitro#1186). После — `pod install`.
+  Кэши моделей: iOS — по имени (`CoreMLModelLoader`), Android — по имени+вычислителю+потокам;
+  реестр — per-instance (NSLock / ConcurrentHashMap), `detect` моделей сериализован.
+  JVM-тесты чистых Kotlin-частей: `modules/react-native-vision-engine/android/src/test`,
+  запуск `./gradlew :react-native-vision-engine:testDebugUnitTest` из `template/android`
+  (junit + org.json testImplementation). Сборка iOS-пода для проверки:
+  `xcodebuild -workspace rnapp.xcworkspace -scheme VisionEngine -sdk iphonesimulator build`.
+  Gotcha Swift: `Range` в модуле перекрыт типом VisionCamera — писать `Swift.Range`.
+  Модели кладутся вручную (`ios/MLModels/*.mlpackage`, `android/.../assets/*.tflite`); без
+  модели OCR полнокадровый. Контейнерная модель — 6 классов (`container_code`,
+  `container_type`, `container_weight`, `max_gross`, `tare`, `net`), вход 960, выход
+  `[1, 10, 18900]` без NMS; CoreML fp16 (координаты в пикселях), TFLite fp32 80 МБ
+  (координаты нормализованы). Из метаданных при установке вычищаются `description`/`date`
+  (там локальные пути), атрибуция лицензии остаётся.
+  JS-архитектура: примитивы кадрового конвейера — `shared/lib/ocr-scan/use-frame-pipeline`
+  (`getWorkletEngine`, `shouldEmit`, `publishOverlay`, `useOverlayChannel`, `useStableCallback`,
+  `useVisionFrameOutput`). OCR-конвейер кадра — worklet `runOcrPipeline(session, config)`
+  (`ocr-worklets.ts`): detect → `selectRegions` (`region-selection.ts`, правила/квоты/отступы,
+  `decodeThreshold`) → один `recognize` по кропам → `IOcrScanFrame` {`regions[]`: label,
+  classIndex, score, rect, read, observations; `fullFrame[]`; imageWidth/Height}; полный кадр —
+  без детектора либо при `fullFrameFallback` и пустых регионах. Конфиг конвейера собирает
+  чистый `buildOcrPipelineConfig` (`pipeline-config.ts`; общий лимит регионов по умолчанию —
+  сумма квот; детектор входит только после успешного `loadModel`), `resolveModelConfig`,
+  `buildRegionTitles`, `findMissingRegions` (dev-warn). Домены получают кадр:
+  `extractCandidates(frame)`/`extractAttributes(frame)`; хелперы `frame.ts`: `collectCandidates`
+  (извлечение по каждому региону отдельно — текст разных регионов не смешивается; без
+  регионов — fullFrame; слияние одинаковых значений, валидные первыми), `regionsOf`,
+  `regionObservations`, `frameObservations`, `hasDetectorRegions`. `REGION_DEFAULTS` — пороги
+  отбора, `OCR_SCAN_DEFAULTS.maxObservations` — на одну область чтения. `useOcrScanner` отдаёт
+  `detectorInfo`; `useObjectScanner` (`model`, `titles` — подписи по имени класса, `classes`;
+  отбор — чистый `selectObjects`). Детектор домена — `IOcrScanDetectorConfig`: `model`
+  (DetectorModelConfig) + `regions` (`{label, title?, minScore?, maxCount?, padding?}`) + общие
+  пороги; камера сужает регионы пропом `regions: string[]`.
+  UI-каркас камеры — `shared/ui/scan/ScanCameraShell`, поверх него `OcrScanCamera`
+  (`overlayLayers`) и фичевые камеры. Frame-output создаётся на каждый маунт: переиспользование
+  между сессиями роняет AVFoundation.
+  Домены: `shared/lib/container-ocr` (ISO 6346: контрольная цифра, перебор OCR-подстановок,
+  типоразмер, веса), `shared/lib/plate-ocr` (РФ-номера). Контейнерный домен
+  (`features/container-scan`) читает регионы `container_code`, `container_type`, `max_gross`,
+  `tare`, `net` (табличку `container_weight` целиком — нет); веса: поле из своего региона
+  (кг по единице, иначе меньшее правдоподобное число — кг меньше фунтов) приоритетнее разбора
+  таблички по подписям и тождеству брутто = тара + нетто; нетто добирается вычитанием после
+  слияния. Без детектора `fullFrame` идёт в `sizeType` и `weightPlate`. Кандидаты кода —
+  `collectCandidates` по регионам `container_code`. После подтверждения
+  кода домен ждёт типоразмер и веса ограниченное число кадров. Автономера — модель
+  `plate_detector` одноклассовая, регионы не объявлены (читаются все). Объекты — пример
+  `features/object-scan` (`OBJECT_DETECTOR_MODEL`, `OBJECT_CLASS_TITLES` — русские подписи
+  по именам классов модели) + `pages/stack/object-scanner`.
+  Оверлей — хост + слои: `shared/lib/scan-overlay` — данные (`IScanOverlayBox`
+  `{rect, kind: text|candidate|valid|region, label?}`, cover-маппинг, сглаживание);
+  `shared/ui/scan/overlay/` — `ScanOverlayHost` (опрос Synchronizable на UI-потоке,
+  анти-мигание, маппинг в пиксели один раз, слои получают `IScanOverlayApi` render-prop'ом),
+  слои `OverlayFrames`, `OverlayLabels` (подпись региона — `title` из конфига, иначе имя
+  класса), `OverlayDim`, хук `useOverlayPath`; `ScanOverlay` — стандартный пресет.
+  Системы координат: кадры выпрямляются по ориентации устройства
+  (`orientationSource="device"`), превью идёт по ориентации интерфейса; разницу держит
+  `usePreviewOrientation`, `publishOverlay` доворачивает боксы — оверлей публикуется в
+  координатах превью, доменные rect'ы остаются выпрямленными.
+  Экраны с BottomSheet-камерой — `pages/stack/{container,plate,text,object}-scanner`.
+  Движки — per-scanner (`createBoxedVisionEngine`, `useScannerInstanceKey` — namespaced
+  worklet-кэш и ключи троттлинга). Рантайм-источник дефолтов движка — `VISION_ENGINE_DEFAULTS`
+  модуля (нативные фолбэки совпадают). Сканеры отдают `onError` (троттлится) и
+  dev-диагностику (`ScanDiagnosticsBadge`, только `__DEV__`).
+  Юнит-тесты JS — jest (`npm test`; `react-native-vision-engine` замаплен на
+  `jest/stubs/react-native-vision-engine.js` — только `VISION_ENGINE_DEFAULTS`): iso6346,
+  candidates, attributes, pipeline-config, region-selection, frame, ocr-pipeline (фейковая
+  сессия), select-objects, orientation, cover-маппинг, сглаживание.
+  Важно worklet'ам: worklet захватывает в замыкание только функции, объявленные ВЫШЕ по
+  модулю — вызов объявленной ниже падает в рантайме камеры как «undefined is not a function»;
+  module-scope RegExp не сериализуется в worklet-рантайм — литералы только внутри тел функций.
 - **Fabric-спеки**: осталась одна — `NativeWheelPickerSpec`; `codegenConfig` name
   `"RNAppSpec"`, `jsSrcsDir: "src"`. Имя файла фиксировано RN (исключение в
   `eslint.naming.mjs`). Нативная сторона — legacy `RCTViewManager`/`SimpleViewManager`

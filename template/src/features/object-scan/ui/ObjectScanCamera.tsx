@@ -1,4 +1,4 @@
-import { COCO_LABELS, useObjectScanner } from "@shared/lib/object-scan";
+import { useObjectScanner } from "@shared/lib/object-scan";
 import { useTheme } from "@shared/lib/theme";
 import {
   Col,
@@ -11,7 +11,9 @@ import {
 import React, { FC, memo } from "react";
 import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 
-import { IObjectScanVM, OBJECT_MODEL_NAME } from "../model/useObjectScanVM";
+import { OBJECT_CLASS_TITLES } from "../model/object-class-titles";
+import { OBJECT_DETECTOR_MODEL } from "../model/object-detector";
+import { IObjectScanVM } from "../model/useObjectScanVM";
 
 export interface IObjectScanCameraProps {
   vm: IObjectScanVM;
@@ -21,17 +23,17 @@ export interface IObjectScanCameraProps {
 }
 
 /**
- * Пример «чистой» детекции объектов: модель `object_detector` из тех же
- * папок моделей, что и детекторы OCR-сканеров; боксы — на Skia-оверлее,
- * метки классов — COCO (для предобученных YOLO).
+ * Пример «чистой» детекции объектов: модель из тех же папок моделей, что и
+ * детекторы OCR-сканеров; боксы — на Skia-оверлее, подписи — по именам
+ * классов модели.
  */
 export const ObjectScanCamera: FC<IObjectScanCameraProps> = memo(
   ({ vm, isActive, style }) => {
     const { colors } = useTheme();
 
     const scanner = useObjectScanner({
-      modelName: OBJECT_MODEL_NAME,
-      labels: COCO_LABELS,
+      model: OBJECT_DETECTOR_MODEL,
+      titles: OBJECT_CLASS_TITLES,
       onDetections: vm.handleDetections,
     });
 
@@ -63,7 +65,7 @@ export const ObjectScanCamera: FC<IObjectScanCameraProps> = memo(
         {scanner.isModelLoaded === false && (
           <Col style={styles.modelHint} pa={12} radius={12}>
             <Text color={"primaryForeground"} textStyle={"Caption_M2"}>
-              Модель «{OBJECT_MODEL_NAME}» не найдена — положите её в
+              Модель «{OBJECT_DETECTOR_MODEL.name}» не найдена — положите её в
               ios/MLModels и android/…/assets и пересоберите приложение
             </Text>
           </Col>

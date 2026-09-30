@@ -14,9 +14,6 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
  * поэтому `Tasks.await` допустим.
  */
 internal object MlKitTextRecognizer {
-  /** Класс области, прочитанной полнокадровым OCR (детектор не участвовал) */
-  const val FULL_FRAME_CLASS_INDEX = -1
-
   private val recognizer by lazy {
     TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
   }
@@ -31,25 +28,14 @@ internal object MlKitTextRecognizer {
     return Tasks.await(recognizer.process(InputImage.fromBitmap(bitmap, 0)))
   }
 
-  /**
-   * Строки ML Kit → области контракта модуля (нормализованный top-left).
-   * `regionClassIndex` — класс региона детектора, из кропа которого читался
-   * текст; `FULL_FRAME_CLASS_INDEX` для полнокадрового прохода.
-   */
-  fun toObservations(
-    text: Text,
-    width: Int,
-    height: Int,
-    regionClassIndex: Int,
-  ): List<OcrObservation> {
+  /** Строки ML Kit → строки контракта модуля (нормализованный top-left изображения `width × height`) */
+  fun toObservations(text: Text, width: Int, height: Int): List<OcrObservation> {
     return text.textBlocks.flatMap { block -> block.lines }.mapNotNull { line ->
       val box = line.boundingBox ?: return@mapNotNull null
       OcrObservation(
         text = line.text,
         confidence = line.confidence.toDouble(),
         rect = FrameGeometry.toNormalizedRect(box, width, height),
-        fromDetector = regionClassIndex != FULL_FRAME_CLASS_INDEX,
-        regionClassIndex = regionClassIndex.toDouble(),
       )
     }
   }

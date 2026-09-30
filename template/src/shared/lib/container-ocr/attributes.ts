@@ -33,14 +33,20 @@ export interface IContainerAttributes {
 
 /**
  * OCR-области кадра, разложенные по назначению. Домен наполняет их из
- * регионов детектора (`selectByRegionClass`); без модели в оба поля
- * попадают все области кадра.
+ * регионов детектора; без детектора области кадра целиком идут в
+ * `sizeType` и `weightPlate`, а поля отдельных весов пусты.
  */
 export interface IContainerAttributeSources {
   /** Области региона типоразмера */
   sizeType: OcrObservation[];
-  /** Области региона таблички весов */
-  weights: OcrObservation[];
+  /** Области таблички весов целиком: роли чисел — по подписям и тождеству */
+  weightPlate: OcrObservation[];
+  /** Области региона брутто (MAX GROSS) */
+  maxGross: OcrObservation[];
+  /** Области региона тары (TARE) */
+  tare: OcrObservation[];
+  /** Области региона нетто (NET / PAYLOAD) */
+  net: OcrObservation[];
 }
 
 export const EMPTY_CONTAINER_ATTRIBUTES: IContainerAttributes = {
@@ -340,11 +346,12 @@ const resolveWeightTriple = (numbers: number[]): IContainerWeights | null => {
 };
 
 /**
- * Веса таблички: сначала по меткам, затем — для непрочитанных полей —
- * по тождеству MAX GROSS = TARE + NET, и в последнюю очередь нетто
- * добирается вычитанием.
+ * Веса таблички целиком: сначала по меткам, затем — для непрочитанных
+ * брутто и тары — по тождеству MAX GROSS = TARE + NET.
  */
-const extractWeights = (observations: OcrObservation[]): IContainerWeights => {
+const extractPlateWeights = (
+  observations: OcrObservation[],
+): IContainerWeights => {
   "worklet";
 
   const lines = joinLines(observations);
@@ -359,6 +366,55 @@ const extractWeights = (observations: OcrObservation[]): IContainerWeights => {
       weights.netKg = weights.netKg ?? triple.netKg;
     }
   }
+
+  return weights;
+};
+
+/**
+ * Вес одного поля таблички, кг: число с единицей кг, иначе меньшее из
+ * правдоподобных чисел региона — килограммовая колонка меньше фунтовой.
+ */
+const extractFieldKg = (observations: OcrObservation[]): number | null => {
+  "worklet";
+
+  const lines = joinLines(observations);
+
+  for (let i = 0; i < lines.length; i++) {
+    const kg = matchKg(lines[i].text);
+
+    if (kg !== null && kg >= MIN_WEIGHT_KG && kg <= MAX_WEIGHT_KG) {
+      return kg;
+    }
+  }
+  const numbers = collectWeightNumbers(lines);
+  let smallest: number | null = null;
+
+  for (let i = 0; i < numbers.length; i++) {
+    if (smallest === null || numbers[i] < smallest) {
+      smallest = numbers[i];
+    }
+  }
+
+  return smallest;
+};
+
+/**
+ * Веса кадра: поле из своего региона приоритетнее разбора таблички
+ * целиком; нетто, если не прочитано, добирается вычитанием.
+ */
+const extractWeights = (
+  sources: IContainerAttributeSources,
+): IContainerWeights => {
+  "worklet";
+
+  const plate = extractPlateWeights(sources.weightPlate);
+  const weights: IContainerWeights = {
+    maxGrossKg: extractFieldKg(sources.maxGross) ?? plate.maxGrossKg,
+    tareKg: extractFieldKg(sources.tare) ?? plate.tareKg,
+    netKg: extractFieldKg(sources.net) ?? plate.netKg,
+    cubicCapacityM3: plate.cubicCapacityM3,
+  };
+
   if (
     weights.netKg === null &&
     weights.maxGrossKg !== null &&
@@ -372,8 +428,8 @@ const extractWeights = (observations: OcrObservation[]): IContainerWeights => {
 
 /**
  * Атрибуты контейнера кадра: типоразмер и веса из своих регионов детектора.
- * Метки и значения часто распознаются отдельными областями — внутри региона
- * области сначала склеиваются в строки по вертикальному положению.
+ * Подписи и значения часто распознаются отдельными областями — внутри
+ * региона области сначала склеиваются в строки по вертикальному положению.
  */
 export const extractContainerAttributes = (
   sources: IContainerAttributeSources,
@@ -389,7 +445,7 @@ export const extractContainerAttributes = (
 
   return {
     sizeTypeCode,
-    weights: extractWeights(sources.weights),
+    weights: extractWeights(sources),
     codeVotes: {},
     codeConfidence: {},
     framesSinceCode: 0,

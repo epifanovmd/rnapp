@@ -11,15 +11,11 @@ import VisionCamera
 /// See ``HybridVisionEngineSpec``
 public protocol HybridVisionEngineSpec_protocol: HybridObject {
   // Properties
-  var isDetectorLoaded: Bool { get }
-  var isObjectModelLoaded: Bool { get }
+  
 
   // Methods
-  func loadDetector(modelName: String) throws -> Promise<Bool>
-  func scan(frame: (any HybridFrameSpec), options: OcrScanOptions) throws -> OcrScanResult
-  func loadObjectModel(modelName: String) throws -> Promise<Bool>
-  func detectObjects(frame: (any HybridFrameSpec), options: ObjectScanOptions) throws -> ObjectScanResult
-  func analyze(frame: (any HybridFrameSpec), options: AnalyzeOptions) throws -> AnalyzeResult
+  func loadModel(config: DetectorModelConfig) throws -> Promise<DetectorModelInfo>
+  func openFrame(frame: (any HybridFrameSpec)) throws -> (any HybridFrameSessionSpec)
 }
 
 public extension HybridVisionEngineSpec_protocol {

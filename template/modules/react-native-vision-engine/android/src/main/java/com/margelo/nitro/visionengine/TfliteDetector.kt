@@ -5,106 +5,197 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
-import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.DataType
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
- * Прогон TFLite-модели детекции (YOLO, ultralytics-экспорт) по Bitmap.
- * Формат выхода определяется по размерности тензора:
- * классический `[1, 4+nc, N]` (свой NMS) либо end-to-end `[1, N, 6]`
- * (v10/26, NMS не требуется) — декодирует `YoloOutputDecoder`.
+ * Прогон TFLite-модели детекции по выпрямленному кадру. Вход — RGB
+ * `[1, H, W, 3]` либо `[1, 3, H, W]` в float32 или квантованный uint8/int8;
+ * выход — один тензор, который после отбрасывания единичных осей двумерен
+ * (float32 или квантованный), формат разбирает `YoloOutputDecoder`.
  *
- * Кадр подаётся letterbox'ом (масштаб с сохранением пропорций + серые
- * поля) — как в препроцессинге обучения ultralytics; координаты детекций
- * обратно пересчитываются в систему исходного кадра.
+ * Кадр подаётся letterbox'ом (пропорции + серые поля 114) либо растяжением;
+ * координаты детекций пересчитываются обратно в систему кадра.
  *
- * Экземпляры кэшируются по имени asset'а на всё приложение и шарятся
- * между движками; `detect` синхронизирован — Interpreter и переиспользуемые
- * буферы прогона не потокобезопасны.
+ * Экземпляры кэшируются по модели и вычислителю на всё приложение и
+ * шарятся между движками; `detect` синхронизирован — Interpreter и
+ * переиспользуемые буферы прогона не потокобезопасны.
  */
-internal class TfliteDetector private constructor(
-  private val interpreter: Interpreter,
-) {
-  private val inputSize: Int = interpreter.getInputTensor(0).shape()[1]
-  private val outputShape: IntArray = interpreter.getOutputTensor(0).shape()
+internal class TfliteDetector private constructor(private val model: TfliteModel) {
+  private val interpreter = model.interpreter
+  private val inputTensor = interpreter.getInputTensor(0)
+  private val outputTensor = interpreter.getOutputTensor(0)
+  private val inputShape: IntArray = inputTensor.shape()
 
-  /** `[1, N, 6]` с небольшим N — сеть уже вернула финальные детекции */
-  private val isEndToEnd: Boolean =
-    outputShape.size == 3 &&
-      outputShape[2] == 6 &&
-      outputShape[1] <= MAX_END_TO_END_DETECTIONS
+  /** Вход `[1, 3, H, W]` — каналы первыми */
+  private val inputChannelsFirst: Boolean =
+    inputShape.size == 4 && inputShape[1] == 3 && inputShape[3] != 3
+
+  val inputWidth: Int = if (inputChannelsFirst) inputShape[3] else inputShape[2]
+  val inputHeight: Int = if (inputChannelsFirst) inputShape[2] else inputShape[1]
+
+  private val outputRows: Int
+  private val outputCols: Int
+
+  init {
+    require(inputShape.size == 4) {
+      "VisionEngine: unsupported model input shape ${inputShape.contentToString()}"
+    }
+    val matrix = YoloOutputDecoder.matrixShape(outputTensor.shape())
+    requireNotNull(matrix) {
+      "VisionEngine: unsupported model output shape ${outputTensor.shape().contentToString()}"
+    }
+    outputRows = matrix.first
+    outputCols = matrix.second
+  }
+
+  /** Имена классов из метаданных модели */
+  val labels: List<String> get() = model.labels
+
+  /** Число классов по форме выхода; 0 — не определено */
+  val outputClassCount: Int = YoloOutputDecoder.classCount(outputRows, outputCols)
+
+  private val inputType: DataType = inputTensor.dataType()
+  private val inputScale: Float = inputTensor.quantizationParams().scale
+  private val inputZeroPoint: Int = inputTensor.quantizationParams().zeroPoint
+  private val outputType: DataType = outputTensor.dataType()
+  private val outputScale: Float = outputTensor.quantizationParams().scale
+  private val outputZeroPoint: Int = outputTensor.quantizationParams().zeroPoint
 
   // Переиспользуемые буферы прогона — аллоцируются один раз на модель
-  private val inputBuffer: ByteBuffer = ByteBuffer
-    .allocateDirect(inputSize * inputSize * 3 * 4)
-    .order(ByteOrder.nativeOrder())
-  private val pixels = IntArray(inputSize * inputSize)
-  private val output = Array(outputShape[1]) { FloatArray(outputShape[2]) }
-  private val letterboxBitmap: Bitmap =
-    Bitmap.createBitmap(inputSize, inputSize, Bitmap.Config.ARGB_8888)
-  private val letterboxCanvas = Canvas(letterboxBitmap)
-  private val letterboxPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+  private val inputBuffer: ByteBuffer =
+    ByteBuffer.allocateDirect(inputTensor.numBytes()).order(ByteOrder.nativeOrder())
+  private val outputBuffer: ByteBuffer =
+    ByteBuffer.allocateDirect(outputTensor.numBytes()).order(ByteOrder.nativeOrder())
+  private val outputValues = FloatArray(outputRows * outputCols)
+  private val pixels = IntArray(inputWidth * inputHeight)
+  private val inputBitmap: Bitmap =
+    Bitmap.createBitmap(inputWidth, inputHeight, Bitmap.Config.ARGB_8888)
+  private val inputCanvas = Canvas(inputBitmap)
+  private val inputPaint = Paint(Paint.FILTER_BITMAP_FLAG)
   private val contentRect = RectF()
 
-  /** Детекции по выпрямленному кадру: letterbox → инференс → декодер → un-letterbox */
+  /** Детекции по выпрямленному кадру: подготовка входа → инференс → декодер → координаты кадра */
   @Synchronized
-  fun detect(upright: Bitmap, minScore: Float, iouThreshold: Float): List<DetectedRegion> {
+  fun detect(
+    upright: Bitmap,
+    resize: DetectorResizeMode,
+    boxUnits: DetectorBoxUnits,
+    minScore: Float,
+    iouThreshold: Float,
+  ): List<DetectedRegion> {
+    placeContent(upright, resize)
+    inputCanvas.drawColor(LETTERBOX_FILL)
+    inputCanvas.drawBitmap(upright, null, contentRect, inputPaint)
+
+    fillInputBuffer()
+    outputBuffer.rewind()
+    interpreter.run(inputBuffer, outputBuffer)
+    readOutput()
+
+    return YoloOutputDecoder
+      .decode(
+        outputValues,
+        outputRows,
+        outputCols,
+        inputWidth,
+        inputHeight,
+        boxUnits,
+        minScore,
+        iouThreshold,
+      )
+      .mapNotNull(::toFrame)
+  }
+
+  /** Область кадра во входе модели: по центру с полями либо на весь вход */
+  private fun placeContent(upright: Bitmap, resize: DetectorResizeMode) {
+    if (resize == DetectorResizeMode.STRETCH) {
+      contentRect.set(0f, 0f, inputWidth.toFloat(), inputHeight.toFloat())
+      return
+    }
     val scale = min(
-      inputSize / upright.width.toFloat(),
-      inputSize / upright.height.toFloat(),
+      inputWidth / upright.width.toFloat(),
+      inputHeight / upright.height.toFloat(),
     )
     val contentWidth = upright.width * scale
     val contentHeight = upright.height * scale
-    val padX = (inputSize - contentWidth) / 2f
-    val padY = (inputSize - contentHeight) / 2f
-
-    letterboxCanvas.drawColor(LETTERBOX_FILL)
-    contentRect.set(padX, padY, padX + contentWidth, padY + contentHeight)
-    letterboxCanvas.drawBitmap(upright, null, contentRect, letterboxPaint)
-
-    fillInputBuffer()
-    interpreter.run(inputBuffer, arrayOf<Any>(output))
-
-    val decoded = if (isEndToEnd) {
-      YoloOutputDecoder.decodeEndToEnd(output, inputSize, minScore)
-    } else {
-      YoloOutputDecoder.nms(
-        YoloOutputDecoder.decodeClassic(output, inputSize, minScore),
-        iouThreshold,
-      )
-    }
-
-    return decoded.mapNotNull { region ->
-      unletterbox(region, padX, padY, contentWidth, contentHeight)
-    }
+    val left = (inputWidth - contentWidth) / 2f
+    val top = (inputHeight - contentHeight) / 2f
+    contentRect.set(left, top, left + contentWidth, top + contentHeight)
   }
 
-  /** letterboxBitmap → float32 RGB [0..1] (NHWC), вход ultralytics-экспорта */
+  /** inputBitmap → тензор входа: RGB [0..1] либо квантованные значения */
   private fun fillInputBuffer() {
-    letterboxBitmap.getPixels(pixels, 0, inputSize, 0, 0, inputSize, inputSize)
+    inputBitmap.getPixels(pixels, 0, inputWidth, 0, 0, inputWidth, inputHeight)
     inputBuffer.clear()
-    for (pixel in pixels) {
-      inputBuffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
-      inputBuffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
-      inputBuffer.putFloat((pixel and 0xFF) / 255f)
+    if (inputType == DataType.FLOAT32 && !inputChannelsFirst) {
+      for (pixel in pixels) {
+        inputBuffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
+        inputBuffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
+        inputBuffer.putFloat((pixel and 0xFF) / 255f)
+      }
+      inputBuffer.rewind()
+      return
+    }
+    val planeSize = pixels.size
+    for (index in pixels.indices) {
+      val pixel = pixels[index]
+      writeInput(0, index, planeSize, (pixel shr 16) and 0xFF)
+      writeInput(1, index, planeSize, (pixel shr 8) and 0xFF)
+      writeInput(2, index, planeSize, pixel and 0xFF)
     }
     inputBuffer.rewind()
   }
 
+  private fun writeInput(channel: Int, pixelIndex: Int, planeSize: Int, value: Int) {
+    val element = if (inputChannelsFirst) channel * planeSize + pixelIndex else pixelIndex * 3 + channel
+    when (inputType) {
+      DataType.FLOAT32 -> inputBuffer.putFloat(element * 4, value / 255f)
+      DataType.UINT8 -> inputBuffer.put(element, quantize(value, 0, 255).toByte())
+      DataType.INT8 -> inputBuffer.put(element, quantize(value, -128, 127).toByte())
+      else -> throw IllegalStateException("VisionEngine: unsupported model input type $inputType")
+    }
+  }
+
+  /** Канал пикселя [0..255] → квантованное значение входа */
+  private fun quantize(value: Int, minValue: Int, maxValue: Int): Int {
+    if (inputScale == 0f) {
+      return (value + minValue).coerceIn(minValue, maxValue)
+    }
+
+    return ((value / 255f) / inputScale + inputZeroPoint).roundToInt().coerceIn(minValue, maxValue)
+  }
+
+  /** Тензор выхода → float-значения (с деквантованием) */
+  private fun readOutput() {
+    outputBuffer.rewind()
+    when (outputType) {
+      DataType.FLOAT32 -> outputBuffer.asFloatBuffer().get(outputValues)
+      DataType.UINT8 -> for (i in outputValues.indices) {
+        outputValues[i] = dequantize(outputBuffer.get(i).toInt() and 0xFF)
+      }
+      DataType.INT8 -> for (i in outputValues.indices) {
+        outputValues[i] = dequantize(outputBuffer.get(i).toInt())
+      }
+      else -> throw IllegalStateException("VisionEngine: unsupported model output type $outputType")
+    }
+  }
+
+  private fun dequantize(value: Int): Float {
+    return if (outputScale == 0f) value.toFloat() else (value - outputZeroPoint) * outputScale
+  }
+
   /** Координаты входа модели → нормализованные координаты кадра; null — бокс ушёл в поля */
-  private fun unletterbox(
-    region: DetectedRegion,
-    padX: Float,
-    padY: Float,
-    contentWidth: Float,
-    contentHeight: Float,
-  ): DetectedRegion? {
-    val x = (region.x * inputSize - padX) / contentWidth
-    val y = (region.y * inputSize - padY) / contentHeight
-    val width = region.width * inputSize / contentWidth
-    val height = region.height * inputSize / contentHeight
+  private fun toFrame(region: DetectedRegion): DetectedRegion? {
+    val contentWidth = contentRect.width()
+    val contentHeight = contentRect.height()
+    val x = (region.x * inputWidth - contentRect.left) / contentWidth
+    val y = (region.y * inputHeight - contentRect.top) / contentHeight
+    val width = region.width * inputWidth / contentWidth
+    val height = region.height * inputHeight / contentHeight
     val left = x.coerceIn(0f, 1f)
     val top = y.coerceIn(0f, 1f)
     val right = (x + width).coerceIn(0f, 1f)
@@ -113,36 +204,34 @@ internal class TfliteDetector private constructor(
       return null
     }
 
-    return region.copy(
-      x = left,
-      y = top,
-      width = right - left,
-      height = bottom - top,
-    )
+    return region.copy(x = left, y = top, width = right - left, height = bottom - top)
   }
 
   companion object {
-    /** Верхняя граница числа детекций у end-to-end моделей (обычно 300) */
-    private const val MAX_END_TO_END_DETECTIONS = 512
-
-    /** Цвет полей letterbox — 114/114/114, как в препроцессинге ultralytics */
+    /** Цвет полей letterbox — 114/114/114 */
     private const val LETTERBOX_FILL = 0xFF727272.toInt()
 
     private val cacheLock = Any()
     private val cache = HashMap<String, TfliteDetector>()
 
     /**
-     * null — модель не найдена в assets. Экземпляры кэшируются по имени
-     * на время жизни приложения — повторная загрузка (ремоунт сканера,
-     * другой движок) не перечитывает asset и не создаёт Interpreter.
+     * null — модель не найдена в assets. Экземпляры кэшируются по модели и
+     * вычислителю на время жизни приложения — повторная загрузка (ремоунт
+     * сканера, другой движок) не перечитывает asset и не создаёт Interpreter.
      */
-    fun load(context: Context, assetName: String): TfliteDetector? {
+    fun load(
+      context: Context,
+      assetName: String,
+      accelerator: DetectorAccelerator,
+      threads: Int,
+    ): TfliteDetector? {
+      val key = "$assetName|$accelerator|$threads"
       synchronized(cacheLock) {
-        cache[assetName]?.let { return it }
-        val interpreter = TfliteModelLoader.load(context, assetName) ?: return null
-        val detector = TfliteDetector(interpreter)
+        cache[key]?.let { return it }
+        val model = TfliteModelLoader.load(context, assetName, accelerator, threads) ?: return null
+        val detector = TfliteDetector(model)
 
-        cache[assetName] = detector
+        cache[key] = detector
         return detector
       }
     }

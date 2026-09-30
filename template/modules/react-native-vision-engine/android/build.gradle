@@ -128,6 +128,12 @@ dependencies {
   // OCR
   implementation "com.google.mlkit:text-recognition:16.0.1"
 
-  // Обученный детектор регионов кода контейнера
+  // Детекторы (TFLite) и GPU-делегат инференса
   implementation "org.tensorflow:tensorflow-lite:2.16.1"
+  implementation "org.tensorflow:tensorflow-lite-gpu:2.16.1"
+  implementation "org.tensorflow:tensorflow-lite-gpu-api:2.16.1"
+
+  // JVM-тесты чистых компонентов (декодер, метаданные, отбор регионов)
+  testImplementation "junit:junit:4.13.2"
+  testImplementation "org.json:json:20180813"
 }

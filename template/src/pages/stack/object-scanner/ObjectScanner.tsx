@@ -52,9 +52,9 @@ export const ObjectScanner: FC = observer(() => {
       <ScrollView>
         <Content>
           <Text mt={8} color={"textSecondary"}>
-            Детекция объектов моделью «object_detector» (YOLO в CoreML/TFLite,
-            кладётся в те же папки, что модели сканеров). Для предобученной
-            COCO-модели метки — 80 стандартных классов.
+            Детекция объектов моделью «object_detector» — она кладётся в те же
+            папки, что модели сканеров. Классы и их имена берутся из метаданных
+            модели.
           </Text>
 
           <Button mt={16} title={"Найти объекты"} onPress={openScanner} />

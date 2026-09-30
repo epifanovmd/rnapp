@@ -23,10 +23,10 @@ export interface IOcrScanCameraProps<TAttributes> {
   /** Читать полный кадр, когда кропы детектора не дали текста (по умолчанию нет) */
   fullFrameFallback?: boolean;
   /**
-   * Классы регионов детектора, читаемые OCR; перекрывает настройку домена
-   * и применяется на лету
+   * Имена регионов детектора, читаемых OCR; сужает регионы домена и
+   * применяется на лету
    */
-  regionClasses?: number[];
+  regions?: string[];
   torchEnabled?: boolean;
   /** Показать кнопку фонарика поверх камеры (правый верхний угол) */
   onToggleTorch?: () => void;
@@ -60,7 +60,7 @@ export const OcrScanCamera = <TAttributes,>({
   isActive,
   mode,
   fullFrameFallback,
-  regionClasses,
+  regions,
   torchEnabled = false,
   onToggleTorch,
   hasPermission,
@@ -79,7 +79,7 @@ export const OcrScanCamera = <TAttributes,>({
     domain,
     mode,
     fullFrameFallback,
-    regionClasses,
+    regions,
     onCandidateConfirmed,
     onObservations,
     onError,

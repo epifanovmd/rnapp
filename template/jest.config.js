@@ -27,6 +27,8 @@ module.exports = {
       "<rootDir>/jest/stubs/react-native-device-info.js",
     "^react-native-reanimated$": "<rootDir>/jest/stubs/empty.js",
     "^react-native-worklets$": "<rootDir>/jest/stubs/empty.js",
+    "^react-native-vision-engine$":
+      "<rootDir>/jest/stubs/react-native-vision-engine.js",
     "^@app(.*)$": "<rootDir>/src/app$1",
     "^@pages(.*)$": "<rootDir>/src/pages$1",
     "^@widgets(.*)$": "<rootDir>/src/widgets$1",

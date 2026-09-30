@@ -14,13 +14,8 @@ namespace margelo::nitro::visionengine {
     HybridObject::loadHybridMethods();
     // load custom methods/properties
     registerHybrids(this, [](Prototype& prototype) {
-      prototype.registerHybridGetter("isDetectorLoaded", &HybridVisionEngineSpec::getIsDetectorLoaded);
-      prototype.registerHybridGetter("isObjectModelLoaded", &HybridVisionEngineSpec::getIsObjectModelLoaded);
-      prototype.registerHybridMethod("loadDetector", &HybridVisionEngineSpec::loadDetector);
-      prototype.registerHybridMethod("scan", &HybridVisionEngineSpec::scan);
-      prototype.registerHybridMethod("loadObjectModel", &HybridVisionEngineSpec::loadObjectModel);
-      prototype.registerHybridMethod("detectObjects", &HybridVisionEngineSpec::detectObjects);
-      prototype.registerHybridMethod("analyze", &HybridVisionEngineSpec::analyze);
+      prototype.registerHybridMethod("loadModel", &HybridVisionEngineSpec::loadModel);
+      prototype.registerHybridMethod("openFrame", &HybridVisionEngineSpec::openFrame);
     });
   }
 

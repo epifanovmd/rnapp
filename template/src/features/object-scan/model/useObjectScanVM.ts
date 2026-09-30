@@ -2,9 +2,6 @@ import { IDetectedObjectInfo } from "@shared/lib/object-scan";
 import { useCallback, useState } from "react";
 import { useCameraPermission } from "react-native-vision-camera";
 
-/** Имя модели детекции объектов (без расширения) в бандле/assets */
-export const OBJECT_MODEL_NAME = "object_detector";
-
 export interface IObjectScanVM {
   /** Объекты последнего скана, по убыванию уверенности */
   detections: IDetectedObjectInfo[];

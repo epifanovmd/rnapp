@@ -2,39 +2,29 @@ import CoreVideo
 import Foundation
 import Vision
 
-/// Область интереса для OCR: прямоугольник в системе координат Vision
-/// (bottom-left origin) и класс региона детектора, из которого он получен
-struct OcrRegionOfInterest {
-  let rect: CGRect
-  /// Индекс класса детектора; попадает в `OcrObservation.regionClassIndex`
-  let classIndex: Int32
-}
-
 /// OCR через Apple Vision (`VNRecognizeTextRequest`).
-/// Возвращает области в нормализованных top-left координатах
-/// ориентированного изображения (контракт модуля).
+/// Возвращает строки в нормализованных top-left координатах
+/// ориентированного (выпрямленного) изображения.
 enum VisionTextRecognizer {
-  /// Класс области, прочитанной полнокадровым OCR (детектор не участвовал)
-  static let fullFrameClassIndex: Int32 = -1
+  /// Языки распознавания, когда опции их не задают
+  private static let defaultLanguages = ["en-US"]
 
-  /// Один проход Vision по кадру: `regions == nil` — полнокадровый запрос,
-  /// иначе батч из запроса на каждую область — все выполняются одним
-  /// `VNImageRequestHandler` (один проход подготовки изображения).
+  /// Один проход Vision по кадру: запрос на каждую область, все выполняются
+  /// одним `VNImageRequestHandler`. `regions` — области в координатах Vision
+  /// (bottom-left origin); `result[i]` — строки `regions[i]`.
   static func recognize(
     in pixelBuffer: CVPixelBuffer,
     orientation: CGImagePropertyOrientation,
-    regions: [OcrRegionOfInterest]?,
-    options: OcrScanOptions
-  ) throws -> [OcrObservation] {
-    let targets: [OcrRegionOfInterest?] = regions ?? [nil]
-    let requests = targets.map { target -> VNRecognizeTextRequest in
+    regions: [CGRect],
+    options: OcrOptions
+  ) throws -> [[OcrObservation]] {
+    let languages = options.languages ?? []
+    let requests = regions.map { region -> VNRecognizeTextRequest in
       let request = VNRecognizeTextRequest()
       request.recognitionLevel = options.mode == .fast ? .fast : .accurate
       request.usesLanguageCorrection = false
-      request.recognitionLanguages = ["en-US"]
-      if let target {
-        request.regionOfInterest = target.rect
-      }
+      request.recognitionLanguages = languages.isEmpty ? defaultLanguages : languages
+      request.regionOfInterest = region
       return request
     }
 
@@ -45,33 +35,26 @@ enum VisionTextRecognizer {
     )
     try handler.perform(requests)
 
-    var observations: [OcrObservation] = []
-    for (index, request) in requests.enumerated() {
-      let target = targets[index]
-      for observation in request.results ?? [] {
+    return requests.enumerated().map { index, request in
+      let region = regions[index]
+      return (request.results ?? []).compactMap { observation in
         guard let candidate = observation.topCandidates(1).first else {
-          continue
+          return nil
         }
-        var box = observation.boundingBox
-        if let target {
-          // с regionOfInterest боксы нормализованы относительно ROI
-          box = CGRect(
-            x: target.rect.origin.x + box.origin.x * target.rect.width,
-            y: target.rect.origin.y + box.origin.y * target.rect.height,
-            width: box.width * target.rect.width,
-            height: box.height * target.rect.height
-          )
-        }
-        observations.append(OcrObservation(
+        // с regionOfInterest боксы нормализованы относительно области
+        let box = observation.boundingBox
+        let frameBox = CGRect(
+          x: region.origin.x + box.origin.x * region.width,
+          y: region.origin.y + box.origin.y * region.height,
+          width: box.width * region.width,
+          height: box.height * region.height
+        )
+        return OcrObservation(
           text: candidate.string,
           confidence: Double(candidate.confidence),
-          rect: FrameGeometry.toTopLeftRect(box),
-          fromDetector: target != nil,
-          regionClassIndex: Double(target?.classIndex ?? fullFrameClassIndex)
-        ))
+          rect: FrameGeometry.toTopLeftRect(frameBox)
+        )
       }
     }
-
-    return observations
   }
 }

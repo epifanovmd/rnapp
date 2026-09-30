@@ -13,31 +13,21 @@
 #error NitroModules cannot be found! Are you sure you installed NitroModules properly?
 #endif
 
-// Forward declaration of `OcrScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanResult; }
+// Forward declaration of `DetectorModelInfo` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelInfo; }
+// Forward declaration of `DetectorModelConfig` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelConfig; }
+// Forward declaration of `HybridFrameSessionSpec` to properly resolve imports.
+namespace margelo::nitro::visionengine { class HybridFrameSessionSpec; }
 // Forward declaration of `HybridFrameSpec` to properly resolve imports.
 namespace margelo::nitro::camera { class HybridFrameSpec; }
-// Forward declaration of `OcrScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanOptions; }
-// Forward declaration of `ObjectScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanResult; }
-// Forward declaration of `ObjectScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanOptions; }
-// Forward declaration of `AnalyzeResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeResult; }
-// Forward declaration of `AnalyzeOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeOptions; }
 
+#include "DetectorModelInfo.hpp"
 #include <NitroModules/Promise.hpp>
-#include <string>
-#include "OcrScanResult.hpp"
+#include "DetectorModelConfig.hpp"
 #include <memory>
+#include "HybridFrameSessionSpec.hpp"
 #include <VisionCamera/HybridFrameSpec.hpp>
-#include "OcrScanOptions.hpp"
-#include "ObjectScanResult.hpp"
-#include "ObjectScanOptions.hpp"
-#include "AnalyzeResult.hpp"
-#include "AnalyzeOptions.hpp"
 
 namespace margelo::nitro::visionengine {
 
@@ -66,16 +56,12 @@ namespace margelo::nitro::visionengine {
 
     public:
       // Properties
-      virtual bool getIsDetectorLoaded() = 0;
-      virtual bool getIsObjectModelLoaded() = 0;
+      
 
     public:
       // Methods
-      virtual std::shared_ptr<Promise<bool>> loadDetector(const std::string& modelName) = 0;
-      virtual OcrScanResult scan(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const OcrScanOptions& options) = 0;
-      virtual std::shared_ptr<Promise<bool>> loadObjectModel(const std::string& modelName) = 0;
-      virtual ObjectScanResult detectObjects(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const ObjectScanOptions& options) = 0;
-      virtual AnalyzeResult analyze(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const AnalyzeOptions& options) = 0;
+      virtual std::shared_ptr<Promise<DetectorModelInfo>> loadModel(const DetectorModelConfig& config) = 0;
+      virtual std::shared_ptr<HybridFrameSessionSpec> openFrame(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) = 0;
 
     protected:
       // Hybrid Setup

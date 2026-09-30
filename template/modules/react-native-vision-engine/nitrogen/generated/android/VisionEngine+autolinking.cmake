@@ -33,8 +33,10 @@ target_sources(
   # Autolinking Setup
   ../nitrogen/generated/android/VisionEngineOnLoad.cpp
   # Shared Nitrogen C++ sources
+  ../nitrogen/generated/shared/c++/HybridFrameSessionSpec.cpp
   ../nitrogen/generated/shared/c++/HybridVisionEngineSpec.cpp
   # Android-specific Nitrogen C++ sources
+  ../nitrogen/generated/android/c++/JHybridFrameSessionSpec.cpp
   ../nitrogen/generated/android/c++/JHybridVisionEngineSpec.cpp
 )
 

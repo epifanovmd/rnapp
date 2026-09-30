@@ -1,31 +1,10 @@
 import CoreGraphics
 import Foundation
 import ImageIO
-import VisionCamera
 
 /// Геометрия кадра: ориентации и преобразования координат между
 /// системами Vision (bottom-left) и контрактом модуля (top-left, upright).
 enum FrameGeometry {
-  /// CameraOrientation VisionCamera → CGImagePropertyOrientation для Vision.
-  /// Конвенции поворотов противоположны: «rotated 90° left» VisionCamera
-  /// соответствует EXIF `right`, поэтому left/right меняются местами
-  /// (up/down — самоинверсные, без изменений).
-  static func cgOrientation(
-    _ orientation: CameraOrientation,
-    isMirrored: Bool
-  ) -> CGImagePropertyOrientation {
-    switch orientation {
-    case .up:
-      return isMirrored ? .upMirrored : .up
-    case .down:
-      return isMirrored ? .downMirrored : .down
-    case .left:
-      return isMirrored ? .rightMirrored : .right
-    case .right:
-      return isMirrored ? .leftMirrored : .left
-    }
-  }
-
   /// Vision отдаёт боксы с началом в левом нижнем углу —
   /// переводим начало в верхний левый (контракт модуля).
   static func toTopLeftRect(_ box: CGRect) -> OcrRect {
@@ -45,6 +24,22 @@ enum FrameGeometry {
       width: rect.width,
       height: rect.height
     )
+  }
+
+  /// Бокс во входе модели → бокс выпрямленного кадра по области кадра
+  /// во входе (letterbox); nil — бокс целиком в полях
+  static func unletterbox(_ rect: CGRect, content: CGRect) -> CGRect? {
+    guard content.width > 0, content.height > 0 else {
+      return nil
+    }
+    let mapped = CGRect(
+      x: (rect.minX - content.minX) / content.width,
+      y: (rect.minY - content.minY) / content.height,
+      width: rect.width / content.width,
+      height: rect.height / content.height
+    ).intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+
+    return mapped.isNull || mapped.isEmpty ? nil : mapped
   }
 
   /// Расширение прямоугольника на долю его размеров, с обрезкой по [0..1]

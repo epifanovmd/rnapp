@@ -15,6 +15,7 @@
 #include <fbjni/fbjni.h>
 #include <NitroModules/HybridObjectRegistry.hpp>
 
+#include "JHybridFrameSessionSpec.hpp"
 #include "JHybridVisionEngineSpec.hpp"
 #include <NitroModules/DefaultConstructableObject.hpp>
 
@@ -40,6 +41,7 @@ void registerAllNatives() {
   using namespace margelo::nitro::visionengine;
 
   // Register native JNI methods
+  margelo::nitro::visionengine::JHybridFrameSessionSpec::CxxPart::registerNatives();
   margelo::nitro::visionengine::JHybridVisionEngineSpec::CxxPart::registerNatives();
 
   // Register Nitro Hybrid Objects

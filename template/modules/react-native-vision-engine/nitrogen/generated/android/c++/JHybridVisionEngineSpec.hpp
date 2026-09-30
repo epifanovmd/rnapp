@@ -50,16 +50,12 @@ namespace margelo::nitro::visionengine {
 
   public:
     // Properties
-    bool getIsDetectorLoaded() override;
-    bool getIsObjectModelLoaded() override;
+    
 
   public:
     // Methods
-    std::shared_ptr<Promise<bool>> loadDetector(const std::string& modelName) override;
-    OcrScanResult scan(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const OcrScanOptions& options) override;
-    std::shared_ptr<Promise<bool>> loadObjectModel(const std::string& modelName) override;
-    ObjectScanResult detectObjects(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const ObjectScanOptions& options) override;
-    AnalyzeResult analyze(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const AnalyzeOptions& options) override;
+    std::shared_ptr<Promise<DetectorModelInfo>> loadModel(const DetectorModelConfig& config) override;
+    std::shared_ptr<HybridFrameSessionSpec> openFrame(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override;
 
   private:
     jni::global_ref<JHybridVisionEngineSpec::JavaPart> _javaPart;

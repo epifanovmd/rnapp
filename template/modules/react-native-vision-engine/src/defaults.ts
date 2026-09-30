@@ -1,17 +1,32 @@
+import type {
+  DetectorAccelerator,
+  DetectorBoxUnits,
+  DetectorResizeMode,
+} from "./specs/VisionEngine.nitro";
+
 /**
- * Дефолтные пороги детекторов — единственный источник значений в рантайме:
- * JS-потребители всегда передают их в опциях явно. Нативные фолбэки
- * (на случай прямого вызова без этих полей) обязаны совпадать с ними.
+ * Дефолты движка — единственный источник значений в рантайме:
+ * JS-потребители передают их в конфиге и опциях явно. Нативные фолбэки
+ * (на случай вызова без этих полей) обязаны совпадать с ними.
  */
-export const DETECTOR_DEFAULTS = {
-  /** Порог уверенности детектора регионов OCR */
-  regionMinScore: 0.35,
-  /** Максимум регионов детектора, прогоняемых через OCR за кадр */
-  maxRegions: 6,
-  /** Максимум регионов одного класса детектора за кадр */
-  maxRegionsPerClass: 2,
-  /** Расширение региона детектора перед OCR, доля его размеров */
-  regionPadding: 0.18,
+export const VISION_ENGINE_DEFAULTS: {
+  /** Подача кадра на вход модели */
+  resize: DetectorResizeMode;
+  /** Единицы координат выхода модели */
+  boxUnits: DetectorBoxUnits;
+  /** Вычислитель инференса */
+  accelerator: DetectorAccelerator;
+  /** Потоки CPU-инференса; 0 — по числу ядер */
+  threads: number;
   /** IoU-порог NMS детекций (подавление — внутри класса) */
+  iouThreshold: number;
+  /** Минимальная сторона области OCR, px */
+  minRoiSizePx: number;
+} = {
+  resize: "letterbox",
+  boxUnits: "auto",
+  accelerator: "cpu",
+  threads: 0,
   iouThreshold: 0.45,
-} as const;
+  minRoiSizePx: 32,
+};

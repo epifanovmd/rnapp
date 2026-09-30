@@ -5,26 +5,35 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CameraFrameOutput, Frame } from "react-native-vision-camera";
 import type {
+  DetectorModelInfo,
   OcrRecognitionMode,
-  OcrScanOptions,
 } from "react-native-vision-engine";
-import {
-  createBoxedVisionEngine,
-  DETECTOR_DEFAULTS,
-} from "react-native-vision-engine";
+import { createBoxedVisionEngine } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable, scheduleOnRN } from "react-native-worklets";
 
-import { OCR_SCAN_DEFAULTS } from "./defaults";
+import { frameObservations } from "./frame";
 import {
   accumulateCandidateVotes,
   collectOverlayBoxes,
   IOcrStreak,
   mergeFrameAttributes,
   resolveConfirmation,
-  toUprightObservations,
+  runOcrPipeline,
 } from "./ocr-worklets";
-import { IOcrScanDomain, IOcrScanObservation, IScanDiagnostics } from "./types";
+import {
+  buildOcrPipelineConfig,
+  buildRegionTitles,
+  findMissingRegions,
+  IOcrPipelineConfig,
+  resolveModelConfig,
+} from "./pipeline-config";
+import {
+  IOcrScanDomain,
+  IOcrScanFrame,
+  IOcrScanObservation,
+  IScanDiagnostics,
+} from "./types";
 import {
   getWorkletEngine,
   publishOverlay,
@@ -35,9 +44,6 @@ import {
   useStableCallback,
   useVisionFrameOutput,
 } from "./use-frame-pipeline";
-
-/** Метки классов по умолчанию — детектор без `classLabels` подписей не даёт */
-const NO_CLASS_LABELS: string[] = [];
 
 /** Троттлинг потока наблюдений в JS (onObservations), мс */
 const OBSERVATIONS_INTERVAL_MS = 400;
@@ -57,17 +63,17 @@ export interface IUseOcrScannerProps<TAttributes> {
    */
   fullFrameFallback?: boolean;
   /**
-   * Классы регионов, читаемые OCR; перекрывает `domain.detector.classes`.
-   * Меняется на лету — например, «только номер» против «номер, тип и веса».
+   * Имена регионов, читаемых OCR; сужает `domain.detector.regions`.
+   * Меняется на лету — например, «только номер» против всех регионов домена.
    */
-  regionClasses?: number[];
+  regions?: string[];
   /** Стабилизированное значение подтверждено */
   onCandidateConfirmed?: (
     value: string,
     confidence: number,
     attributes: TAttributes,
   ) => void;
-  /** Поток OCR-областей (троттлится) — для «сырых» сценариев */
+  /** Поток строк текста кадра (троттлится) — для «сырых» сценариев */
   onObservations?: (observations: IOcrScanObservation[]) => void;
   /** Ошибка обработки кадра (троттлится); без обработчика — console.warn */
   onError?: (message: string) => void;
@@ -81,26 +87,28 @@ export interface IOcrScanner {
   resume: () => void;
   /** Диагностика последнего кадра; заполняется только в __DEV__ */
   diagnostics: IScanDiagnostics | null;
+  /** Описание загруженного детектора; null — детектора нет или он ещё грузится */
+  detectorInfo: DetectorModelInfo | null;
 }
 
 /**
- * Универсальный frame-пайплайн сканера: нативный OCR на worklet-потоке
- * камеры, доменное извлечение кандидатов, стабилизация серией одинаковых
- * результатов, накопление доменных атрибутов и публикация областей для
- * оверлея. Домен задаёт `IOcrScanDomain`, покадровые шаги — worklet-хелперы
- * `ocr-worklets`.
+ * Универсальный frame-пайплайн сканера: OCR-конвейер над сессией кадра на
+ * worklet-потоке камеры (`runOcrPipeline`), доменное извлечение
+ * кандидатов, стабилизация серией одинаковых результатов, накопление
+ * доменных атрибутов и публикация регионов и текста для оверлея. Домен
+ * задаёт `IOcrScanDomain`, покадровые шаги — worklet-хелперы `ocr-worklets`.
  */
 export const useOcrScanner = <TAttributes>({
   domain,
   mode,
   fullFrameFallback,
-  regionClasses,
+  regions,
   onCandidateConfirmed,
   onObservations,
   onError,
 }: IUseOcrScannerProps<TAttributes>): IOcrScanner => {
   const instanceKey = useScannerInstanceKey("ocr");
-  // движок per-scanner: слоты моделей не делятся с другими сканерами
+  // движок per-scanner: реестр моделей не делится с другими сканерами
   const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
   const previewOrientation = usePreviewOrientation();
@@ -121,25 +129,48 @@ export const useOcrScanner = <TAttributes>({
   );
   const [diagnostics, setDiagnostics] = useState<IScanDiagnostics | null>(null);
 
-  const modelName = domain.detector?.modelName ?? null;
+  const [detectorInfo, setDetectorInfo] = useState<DetectorModelInfo | null>(
+    null,
+  );
+  const detector = domain.detector;
 
   useEffect(() => {
-    if (modelName !== null) {
-      // детектор опционален: без обученной модели работает полнокадровый OCR
-      boxedEngine
-        .unbox()
-        .loadDetector(modelName)
-        .then(loaded => {
-          if (!loaded) {
-            console.warn(
-              `[OcrScan] детектор «${modelName}» не найден в бандле/assets — ` +
-                "OCR работает полнокадрово",
-            );
-          }
-        })
-        .catch(error => console.warn("[OcrScan] loadDetector:", error));
+    if (detector === null) {
+      return;
     }
-  }, [boxedEngine, modelName]);
+    let cancelled = false;
+
+    // детектор опционален: без модели работает полнокадровый OCR
+    boxedEngine
+      .unbox()
+      .loadModel(resolveModelConfig(detector.model))
+      .then((info: DetectorModelInfo) => {
+        if (cancelled) {
+          return;
+        }
+        if (!info.loaded) {
+          console.warn(
+            `[OcrScan] детектор «${detector.model.name}» не найден в бандле/assets — ` +
+              "OCR работает полнокадрово",
+          );
+
+          return;
+        }
+        const missing = findMissingRegions(detector, info);
+
+        if (missing.length > 0) {
+          console.warn(
+            `[OcrScan] в модели «${detector.model.name}» нет классов: ${missing.join(", ")}`,
+          );
+        }
+        setDetectorInfo(info);
+      })
+      .catch((error: unknown) => console.warn("[OcrScan] loadModel:", error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [boxedEngine, detector]);
 
   const handleConfirmed = useStableCallback(onCandidateConfirmed);
   const handleObservations = useStableCallback(onObservations);
@@ -148,46 +179,33 @@ export const useOcrScanner = <TAttributes>({
   );
   const hasObservationsListener = onObservations !== undefined;
 
-  const scanOptions = useMemo<OcrScanOptions>(() => {
-    const { detector, recognition } = domain;
+  // детектор входит в конвейер только загруженным — до этого читается полный кадр
+  const pipelineConfig = useMemo<IOcrPipelineConfig>(
+    () =>
+      buildOcrPipelineConfig(
+        detectorInfo === null ? null : domain.detector,
+        domain.recognition,
+        { mode, fullFrameFallback, regions },
+      ),
+    [domain, detectorInfo, mode, fullFrameFallback, regions],
+  );
 
-    return {
-      mode: mode ?? recognition.mode ?? OCR_SCAN_DEFAULTS.mode,
-      minConfidence:
-        recognition.minConfidence ?? OCR_SCAN_DEFAULTS.minConfidence,
-      maxObservations:
-        recognition.maxObservations ?? OCR_SCAN_DEFAULTS.maxObservations,
-      fullFrameFallback:
-        fullFrameFallback ??
-        recognition.fullFrameFallback ??
-        OCR_SCAN_DEFAULTS.fullFrameFallback,
-      regionMinScore: detector?.minScore ?? DETECTOR_DEFAULTS.regionMinScore,
-      maxRegions: detector?.maxRegions ?? DETECTOR_DEFAULTS.maxRegions,
-      maxRegionsPerClass:
-        detector?.maxRegionsPerClass ?? DETECTOR_DEFAULTS.maxRegionsPerClass,
-      regionClasses: regionClasses ?? detector?.classes,
-      regionPadding: detector?.padding ?? DETECTOR_DEFAULTS.regionPadding,
-      regionIouThreshold:
-        detector?.iouThreshold ?? DETECTOR_DEFAULTS.iouThreshold,
-    };
-  }, [domain, mode, fullFrameFallback, regionClasses]);
-
-  // опции читаются с потока камеры: смена режима из JS не пересоздаёт
+  // конфиг читается с потока камеры: смена режима из JS не пересоздаёт
   // frame-output (нативный output нельзя переносить между сессиями)
-  const options = useMemo(
-    () => createSynchronizable<OcrScanOptions>(scanOptions),
+  const config = useMemo(
+    () => createSynchronizable<IOcrPipelineConfig>(pipelineConfig),
     // начальное значение; дальше обновляется эффектом ниже
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
   useEffect(() => {
-    options.setBlocking(scanOptions);
-  }, [options, scanOptions]);
+    config.setBlocking(pipelineConfig);
+  }, [config, pipelineConfig]);
 
   const onFrame = useMemo(() => {
     const isDev = __DEV__;
-    const classLabels = domain.detector?.classLabels ?? NO_CLASS_LABELS;
+    const regionTitles = buildRegionTitles(domain.detector);
 
     return (frame: Frame) => {
       "worklet";
@@ -198,8 +216,16 @@ export const useOcrScanner = <TAttributes>({
         }
 
         const engine = getWorkletEngine(boxedEngine, instanceKey);
-        const result = engine.scan(frame, options.getDirty());
-        const observations = toUprightObservations(result);
+        const frameConfig = config.getDirty();
+        const startedAt = Date.now();
+        const session = engine.openFrame(frame);
+        let result: IOcrScanFrame;
+
+        try {
+          result = runOcrPipeline(session, frameConfig);
+        } finally {
+          session.dispose();
+        }
         const overlayOrientation = previewOrientation.getDirty();
 
         if (
@@ -207,9 +233,9 @@ export const useOcrScanner = <TAttributes>({
           shouldEmit(`${instanceKey}:diag`, DIAGNOSTICS_INTERVAL_MS)
         ) {
           scheduleOnRN(setDiagnostics, {
-            durationMs: result.durationMs,
-            detectorUsed: result.detectorUsed,
-            resultCount: observations.length,
+            durationMs: Date.now() - startedAt,
+            detectorUsed: frameConfig.detector !== null,
+            resultCount: frameObservations(result).length,
             regionCount: result.regions.length,
           });
         }
@@ -217,19 +243,18 @@ export const useOcrScanner = <TAttributes>({
           hasObservationsListener &&
           shouldEmit(`${instanceKey}:observations`, OBSERVATIONS_INTERVAL_MS)
         ) {
-          scheduleOnRN(handleObservations, observations);
+          scheduleOnRN(handleObservations, frameObservations(result));
         }
 
-        mergeFrameAttributes(domain, attributes, observations);
-        const candidates = domain.extractCandidates(observations);
+        mergeFrameAttributes(domain, attributes, result);
+        const candidates = domain.extractCandidates(result);
 
         publishOverlay(
           overlay,
           collectOverlayBoxes(
             result,
-            observations,
             candidates,
-            classLabels,
+            regionTitles,
             domain.maxOverlayBoxes,
           ),
           result.imageWidth,
@@ -288,7 +313,7 @@ export const useOcrScanner = <TAttributes>({
     confirmationDelivered,
     attributes,
     domain,
-    options,
+    config,
     handleConfirmed,
     handleObservations,
     handleError,
@@ -315,5 +340,5 @@ export const useOcrScanner = <TAttributes>({
     suspended,
   ]);
 
-  return { frameOutput, overlay, resume, diagnostics };
+  return { frameOutput, overlay, resume, diagnostics, detectorInfo };
 };

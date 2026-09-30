@@ -10,29 +10,86 @@ internal data class DetectedRegion(
   val width: Float,
   val height: Float,
   val score: Float,
+  /** Индекс класса модели; -1 — класс не сопоставлен индексу */
   val classIndex: Int,
+  /** Имя класса; пустая строка — имя неизвестно */
+  val label: String = "",
 )
 
 /**
- * Чистый декодер сырых выходов YOLO (без зависимостей от Android/TFLite).
- * Координаты нормализуются адаптивно: значения крупнее 1.5 считаются
- * пикселями входа модели (`inputSize`).
+ * Чистый декодер сырых тензоров детекции (без зависимостей от Android/TFLite).
+ * Выход — плоский массив с формой `[rows, cols]` (ведущие единичные оси
+ * отброшены). Форматы различаются по размерности:
+ * - классический: `[C, N]`/`[N, C]`, тысячи кандидатов `cx,cy,w,h` и оценки
+ *   классов — фильтр по score, затем `nms`;
+ * - end-to-end: `[N, 6]` с малым N — готовые боксы `x1,y1,x2,y2,score,class`.
+ * Координаты возвращаются нормализованными относительно входа модели.
  */
 internal object YoloOutputDecoder {
-  /** Классический выход: `[C, N]` (каналы первыми) либо `[N, C]`, cx,cy,w,h */
-  fun decodeClassic(
-    output: Array<FloatArray>,
-    inputSize: Int,
+  /** Верхняя граница числа детекций end-to-end выхода (обычно 300) */
+  const val MAX_END_TO_END_DETECTIONS = 512
+
+  /** Форма выхода без ведущих единичных осей; null — не двумерная */
+  fun matrixShape(shape: IntArray): Pair<Int, Int>? {
+    val dims = shape.dropWhile { it == 1 }
+
+    return if (dims.size == 2) dims[0] to dims[1] else null
+  }
+
+  /** Выход `[N, 6]` с небольшим N — сеть уже вернула финальные детекции */
+  fun isEndToEnd(rows: Int, cols: Int): Boolean {
+    return cols == 6 && rows <= MAX_END_TO_END_DETECTIONS
+  }
+
+  /** Число классов классического выхода; 0 — end-to-end или форма не распознана */
+  fun classCount(rows: Int, cols: Int): Int {
+    if (isEndToEnd(rows, cols)) {
+      return 0
+    }
+    val channels = min(rows, cols)
+
+    return if (channels > 4) channels - 4 else 0
+  }
+
+  /** Выход модели → детекции, отсортированные по score (классический — после NMS) */
+  fun decode(
+    values: FloatArray,
+    rows: Int,
+    cols: Int,
+    inputWidth: Int,
+    inputHeight: Int,
+    boxUnits: DetectorBoxUnits,
+    minScore: Float,
+    iouThreshold: Float,
+  ): List<DetectedRegion> {
+    val normalizer = BoxNormalizer(inputWidth.toFloat(), inputHeight.toFloat(), boxUnits)
+
+    return if (isEndToEnd(rows, cols)) {
+      decodeEndToEnd(values, rows, cols, normalizer, minScore)
+    } else {
+      nms(decodeClassic(values, rows, cols, normalizer, minScore), iouThreshold)
+    }
+  }
+
+  private fun decodeClassic(
+    values: FloatArray,
+    rows: Int,
+    cols: Int,
+    normalizer: BoxNormalizer,
     minScore: Float,
   ): List<DetectedRegion> {
-    val channelsFirst = output.size < (output.firstOrNull()?.size ?: 0)
-    val count = if (channelsFirst) output[0].size else output.size
-    val channels = if (channelsFirst) output.size else output[0].size
+    val channelsFirst = rows < cols
+    val count = if (channelsFirst) cols else rows
+    val channels = if (channelsFirst) rows else cols
+    if (channels <= 4) {
+      return emptyList()
+    }
 
     fun value(channel: Int, index: Int): Float =
-      if (channelsFirst) output[channel][index] else output[index][channel]
+      if (channelsFirst) values[channel * cols + index] else values[index * cols + channel]
 
     val regions = ArrayList<DetectedRegion>()
+    val box = FloatArray(4)
     for (i in 0 until count) {
       var score = 0f
       var classIndex = 0
@@ -46,18 +103,15 @@ internal object YoloOutputDecoder {
       if (score < minScore) {
         continue
       }
-      val cx = normalized(value(0, i), inputSize)
-      val cy = normalized(value(1, i), inputSize)
-      val w = normalized(value(2, i), inputSize)
-      val h = normalized(value(3, i), inputSize)
-      val x = (cx - w / 2f).coerceIn(0f, 1f)
-      val y = (cy - h / 2f).coerceIn(0f, 1f)
+      normalizer.normalize(value(0, i), value(1, i), value(2, i), value(3, i), box)
+      val x = (box[0] - box[2] / 2f).coerceIn(0f, 1f)
+      val y = (box[1] - box[3] / 2f).coerceIn(0f, 1f)
       regions.add(
         DetectedRegion(
           x = x,
           y = y,
-          width = min(w, 1f - x),
-          height = min(h, 1f - y),
+          width = min(box[2], 1f - x),
+          height = min(box[3], 1f - y),
           score = score,
           classIndex = classIndex,
         ),
@@ -67,22 +121,26 @@ internal object YoloOutputDecoder {
     return regions
   }
 
-  /** End-to-end выход: строки `x1,y1,x2,y2,score,class`, дублей нет */
-  fun decodeEndToEnd(
-    output: Array<FloatArray>,
-    inputSize: Int,
+  private fun decodeEndToEnd(
+    values: FloatArray,
+    rows: Int,
+    cols: Int,
+    normalizer: BoxNormalizer,
     minScore: Float,
   ): List<DetectedRegion> {
     val regions = ArrayList<DetectedRegion>()
-    for (row in output) {
-      val score = row[4]
+    val box = FloatArray(4)
+    for (i in 0 until rows) {
+      val offset = i * cols
+      val score = values[offset + 4]
       if (score < minScore) {
         continue
       }
-      val x1 = normalized(row[0], inputSize).coerceIn(0f, 1f)
-      val y1 = normalized(row[1], inputSize).coerceIn(0f, 1f)
-      val x2 = normalized(row[2], inputSize).coerceIn(0f, 1f)
-      val y2 = normalized(row[3], inputSize).coerceIn(0f, 1f)
+      normalizer.normalize(values[offset], values[offset + 1], values[offset + 2], values[offset + 3], box)
+      val x1 = box[0].coerceIn(0f, 1f)
+      val y1 = box[1].coerceIn(0f, 1f)
+      val x2 = box[2].coerceIn(0f, 1f)
+      val y2 = box[3].coerceIn(0f, 1f)
       if (x2 <= x1 || y2 <= y1) {
         continue
       }
@@ -93,7 +151,7 @@ internal object YoloOutputDecoder {
           width = x2 - x1,
           height = y2 - y1,
           score = score,
-          classIndex = row[5].toInt(),
+          classIndex = values[offset + 5].toInt(),
         ),
       )
     }
@@ -105,10 +163,10 @@ internal object YoloOutputDecoder {
   /**
    * Жадный NMS внутри класса: кандидат с IoU выше порога к уже принятой
    * детекции ТОГО ЖЕ класса отбрасывается. Боксы разных классов друг друга
-   * не подавляют — у многоклассовых моделей соседние области (номер, тип,
-   * веса) частично перекрываются.
+   * не подавляют — у многоклассовых моделей соседние области частично
+   * перекрываются.
    */
-  fun nms(regions: List<DetectedRegion>, iouThreshold: Float): List<DetectedRegion> {
+  private fun nms(regions: List<DetectedRegion>, iouThreshold: Float): List<DetectedRegion> {
     val sorted = regions.sortedByDescending { it.score }
     val kept = ArrayList<DetectedRegion>()
     for (candidate in sorted) {
@@ -118,10 +176,6 @@ internal object YoloOutputDecoder {
     }
 
     return kept
-  }
-
-  private fun normalized(value: Float, inputSize: Int): Float {
-    return if (value > 1.5f) value / inputSize else value
   }
 
   private fun iou(a: DetectedRegion, b: DetectedRegion): Float {
@@ -136,5 +190,34 @@ internal object YoloOutputDecoder {
     val union = a.width * a.height + b.width * b.height - intersection
 
     return if (union <= 0f) 0f else intersection / union
+  }
+
+  /**
+   * Координаты бокса → доли входа. В auto-режиме бокс считается пиксельным,
+   * если хоть одна его координата выходит за пределы [0..1.5].
+   */
+  private class BoxNormalizer(
+    private val inputWidth: Float,
+    private val inputHeight: Float,
+    private val units: DetectorBoxUnits,
+  ) {
+    fun normalize(a: Float, b: Float, c: Float, d: Float, out: FloatArray) {
+      val pixels = when (units) {
+        DetectorBoxUnits.PIXELS -> true
+        DetectorBoxUnits.NORMALIZED -> false
+        DetectorBoxUnits.AUTO -> max(max(a, b), max(c, d)) > 1.5f
+      }
+      if (pixels) {
+        out[0] = a / inputWidth
+        out[1] = b / inputHeight
+        out[2] = c / inputWidth
+        out[3] = d / inputHeight
+      } else {
+        out[0] = a
+        out[1] = b
+        out[2] = c
+        out[3] = d
+      }
+    }
   }
 }

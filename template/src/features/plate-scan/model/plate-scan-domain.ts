@@ -1,12 +1,14 @@
 import {
+  collectCandidates,
   createOcrDomain,
   IOcrScanCandidate,
+  IOcrScanFrame,
   IOcrScanObservation,
 } from "@shared/lib/ocr-scan";
 import { extractPlateCandidates } from "@shared/lib/plate-ocr";
 
-/** OCR-области → кандидаты автономера (адаптер библиотеки к контракту домена) */
-const extractCandidates = (
+/** Строки одной области чтения → кандидаты автономера */
+const extractAreaCandidates = (
   observations: IOcrScanObservation[],
 ): IOcrScanCandidate[] => {
   "worklet";
@@ -26,10 +28,18 @@ const extractCandidates = (
   return result;
 };
 
+/** Кандидаты кадра: по каждому региону номера отдельно, без детектора — по полному кадру */
+const extractCandidates = (frame: IOcrScanFrame): IOcrScanCandidate[] => {
+  "worklet";
+
+  return collectCandidates(frame, null, extractAreaCandidates);
+};
+
 /** Домен сканирования российских автономеров */
 export const PLATE_SCAN_DOMAIN = createOcrDomain({
   extractCandidates,
   /** У номера нет контрольной цифры — серия подтверждения длиннее */
   confirmStreak: 4,
-  detector: { modelName: "plate_detector", classLabels: ["номер"] },
+  // модель одноклассовая — читаются все её регионы
+  detector: { model: { name: "plate_detector" } },
 });

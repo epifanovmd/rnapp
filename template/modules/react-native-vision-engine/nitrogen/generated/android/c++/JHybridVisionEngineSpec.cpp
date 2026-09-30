@@ -7,61 +7,41 @@
 
 #include "JHybridVisionEngineSpec.hpp"
 
-// Forward declaration of `OcrScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanResult; }
-// Forward declaration of `OcrObservation` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrObservation; }
-// Forward declaration of `OcrRect` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrRect; }
-// Forward declaration of `DetectedObject` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct DetectedObject; }
-// Forward declaration of `OcrBufferOrientation` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrBufferOrientation; }
-// Forward declaration of `ObjectScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanResult; }
-// Forward declaration of `AnalyzeResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeResult; }
+// Forward declaration of `DetectorModelInfo` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelInfo; }
+// Forward declaration of `HybridFrameSessionSpec` to properly resolve imports.
+namespace margelo::nitro::visionengine { class HybridFrameSessionSpec; }
+// Forward declaration of `DetectorModelConfig` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelConfig; }
+// Forward declaration of `DetectorResizeMode` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorResizeMode; }
+// Forward declaration of `DetectorBoxUnits` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorBoxUnits; }
+// Forward declaration of `DetectorAccelerator` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorAccelerator; }
 // Forward declaration of `HybridFrameSpec` to properly resolve imports.
 namespace margelo::nitro::camera { class HybridFrameSpec; }
-// Forward declaration of `OcrScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanOptions; }
-// Forward declaration of `OcrRecognitionMode` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
-// Forward declaration of `ObjectScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanOptions; }
-// Forward declaration of `AnalyzeOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeOptions; }
 
+#include "DetectorModelInfo.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/JPromise.hpp>
-#include "OcrScanResult.hpp"
-#include "JOcrScanResult.hpp"
-#include "OcrObservation.hpp"
-#include <vector>
-#include "JOcrObservation.hpp"
+#include "JDetectorModelInfo.hpp"
 #include <string>
-#include "OcrRect.hpp"
-#include "JOcrRect.hpp"
-#include "DetectedObject.hpp"
-#include "JDetectedObject.hpp"
-#include "OcrBufferOrientation.hpp"
-#include "JOcrBufferOrientation.hpp"
-#include "ObjectScanResult.hpp"
-#include "JObjectScanResult.hpp"
-#include "AnalyzeResult.hpp"
-#include "JAnalyzeResult.hpp"
-#include <optional>
+#include <vector>
 #include <memory>
+#include "HybridFrameSessionSpec.hpp"
+#include "JHybridFrameSessionSpec.hpp"
+#include "DetectorModelConfig.hpp"
+#include "JDetectorModelConfig.hpp"
+#include <optional>
+#include "DetectorResizeMode.hpp"
+#include "JDetectorResizeMode.hpp"
+#include "DetectorBoxUnits.hpp"
+#include "JDetectorBoxUnits.hpp"
+#include "DetectorAccelerator.hpp"
+#include "JDetectorAccelerator.hpp"
 #include <VisionCamera/HybridFrameSpec.hpp>
 #include <VisionCamera/JHybridFrameSpec.hpp>
-#include "OcrScanOptions.hpp"
-#include "JOcrScanOptions.hpp"
-#include "OcrRecognitionMode.hpp"
-#include "JOcrRecognitionMode.hpp"
-#include "ObjectScanOptions.hpp"
-#include "JObjectScanOptions.hpp"
-#include "AnalyzeOptions.hpp"
-#include "JAnalyzeOptions.hpp"
 
 namespace margelo::nitro::visionengine {
 
@@ -93,26 +73,17 @@ namespace margelo::nitro::visionengine {
   }
 
   // Properties
-  bool JHybridVisionEngineSpec::getIsDetectorLoaded() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("isDetectorLoaded");
-    auto __result = method(_javaPart);
-    return static_cast<bool>(__result);
-  }
-  bool JHybridVisionEngineSpec::getIsObjectModelLoaded() {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jboolean()>("isObjectModelLoaded");
-    auto __result = method(_javaPart);
-    return static_cast<bool>(__result);
-  }
+  
 
   // Methods
-  std::shared_ptr<Promise<bool>> JHybridVisionEngineSpec::loadDetector(const std::string& modelName) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* modelName */)>("loadDetector");
-    auto __result = method(_javaPart, jni::make_jstring(modelName));
+  std::shared_ptr<Promise<DetectorModelInfo>> JHybridVisionEngineSpec::loadModel(const DetectorModelConfig& config) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<JDetectorModelConfig> /* config */)>("loadModel");
+    auto __result = method(_javaPart, JDetectorModelConfig::fromCpp(config));
     return [&]() {
-      auto __promise = Promise<bool>::create();
+      auto __promise = Promise<DetectorModelInfo>::create();
       __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
-        auto __result = jni::static_ref_cast<jni::JBoolean>(__boxedResult);
-        __promise->resolve(static_cast<bool>(__result->value()));
+        auto __result = jni::static_ref_cast<JDetectorModelInfo>(__boxedResult);
+        __promise->resolve(__result->toCpp());
       });
       __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
         jni::JniException __jniError(__throwable);
@@ -121,36 +92,10 @@ namespace margelo::nitro::visionengine {
       return __promise;
     }();
   }
-  OcrScanResult JHybridVisionEngineSpec::scan(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const OcrScanOptions& options) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JOcrScanResult>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */, jni::alias_ref<JOcrScanOptions> /* options */)>("scan");
-    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart(), JOcrScanOptions::fromCpp(options));
-    return __result->toCpp();
-  }
-  std::shared_ptr<Promise<bool>> JHybridVisionEngineSpec::loadObjectModel(const std::string& modelName) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JPromise::javaobject>(jni::alias_ref<jni::JString> /* modelName */)>("loadObjectModel");
-    auto __result = method(_javaPart, jni::make_jstring(modelName));
-    return [&]() {
-      auto __promise = Promise<bool>::create();
-      __result->cthis()->addOnResolvedListener([=](const jni::alias_ref<jni::JObject>& __boxedResult) {
-        auto __result = jni::static_ref_cast<jni::JBoolean>(__boxedResult);
-        __promise->resolve(static_cast<bool>(__result->value()));
-      });
-      __result->cthis()->addOnRejectedListener([=](const jni::alias_ref<jni::JThrowable>& __throwable) {
-        jni::JniException __jniError(__throwable);
-        __promise->reject(std::make_exception_ptr(__jniError));
-      });
-      return __promise;
-    }();
-  }
-  ObjectScanResult JHybridVisionEngineSpec::detectObjects(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const ObjectScanOptions& options) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JObjectScanResult>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */, jni::alias_ref<JObjectScanOptions> /* options */)>("detectObjects");
-    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart(), JObjectScanOptions::fromCpp(options));
-    return __result->toCpp();
-  }
-  AnalyzeResult JHybridVisionEngineSpec::analyze(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const AnalyzeOptions& options) {
-    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JAnalyzeResult>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */, jni::alias_ref<JAnalyzeOptions> /* options */)>("analyze");
-    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart(), JAnalyzeOptions::fromCpp(options));
-    return __result->toCpp();
+  std::shared_ptr<HybridFrameSessionSpec> JHybridVisionEngineSpec::openFrame(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) {
+    static const auto method = _javaPart->javaClassStatic()->getMethod<jni::local_ref<JHybridFrameSessionSpec::JavaPart>(jni::alias_ref<margelo::nitro::camera::JHybridFrameSpec::JavaPart> /* frame */)>("openFrame");
+    auto __result = method(_javaPart, std::dynamic_pointer_cast<margelo::nitro::camera::JHybridFrameSpec>(frame)->getJavaPart());
+    return __result->getJHybridFrameSessionSpec();
   }
 
 } // namespace margelo::nitro::visionengine

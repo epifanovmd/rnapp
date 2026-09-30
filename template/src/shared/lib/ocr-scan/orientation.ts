@@ -1,5 +1,4 @@
 import type { CameraOrientation } from "react-native-vision-camera";
-import type { OcrBufferOrientation } from "react-native-vision-engine";
 
 import { IOcrScanRect } from "./types";
 
@@ -39,50 +38,6 @@ const rotateRect = (
       return { x: 1 - y - height, y: x, width: height, height: width };
     case "right":
       return { x: y, y: 1 - x - width, width: height, height: width };
-    default:
-      return rect;
-  }
-};
-
-/** Отражение нормализованного прямоугольника по горизонтали */
-const mirrorRect = (rect: IOcrScanRect): IOcrScanRect => {
-  "worklet";
-
-  return {
-    x: 1 - rect.x - rect.width,
-    y: rect.y,
-    width: rect.width,
-    height: rect.height,
-  };
-};
-
-/**
- * Нормализованный прямоугольник из системы координат буфера кадра →
- * координаты выпрямленного изображения (top-left origin).
- *
- * Ориентация приходит в конвенции VisionCamera (`CameraOrientation`, не
- * EXIF); зеркальные варианты — дополнительное отражение по горизонтали
- * выпрямленного изображения.
- */
-export const toUprightRect = (
-  rect: IOcrScanRect,
-  orientation: OcrBufferOrientation,
-): IOcrScanRect => {
-  "worklet";
-
-  switch (orientation) {
-    case "down":
-    case "left":
-    case "right":
-      return rotateRect(rect, orientation);
-    case "upMirrored":
-      return mirrorRect(rect);
-    case "downMirrored":
-      return mirrorRect(rotateRect(rect, "down"));
-    case "leftMirrored":
-      return mirrorRect(rotateRect(rect, "left"));
-    case "rightMirrored":
-      return mirrorRect(rotateRect(rect, "right"));
     default:
       return rect;
   }

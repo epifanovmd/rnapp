@@ -12,48 +12,33 @@
 // Forward declaration of `HybridVisionEngineSpec_cxx` to properly resolve imports.
 namespace VisionEngine { class HybridVisionEngineSpec_cxx; }
 
-// Forward declaration of `OcrScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanResult; }
-// Forward declaration of `OcrObservation` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrObservation; }
-// Forward declaration of `OcrRect` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrRect; }
-// Forward declaration of `DetectedObject` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct DetectedObject; }
-// Forward declaration of `OcrBufferOrientation` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrBufferOrientation; }
+// Forward declaration of `DetectorModelInfo` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelInfo; }
+// Forward declaration of `DetectorModelConfig` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelConfig; }
+// Forward declaration of `DetectorResizeMode` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorResizeMode; }
+// Forward declaration of `DetectorBoxUnits` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorBoxUnits; }
+// Forward declaration of `DetectorAccelerator` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorAccelerator; }
+// Forward declaration of `HybridFrameSessionSpec` to properly resolve imports.
+namespace margelo::nitro::visionengine { class HybridFrameSessionSpec; }
 // Forward declaration of `HybridFrameSpec` to properly resolve imports.
 namespace margelo::nitro::camera { class HybridFrameSpec; }
-// Forward declaration of `OcrScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanOptions; }
-// Forward declaration of `OcrRecognitionMode` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
-// Forward declaration of `ObjectScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanResult; }
-// Forward declaration of `ObjectScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanOptions; }
-// Forward declaration of `AnalyzeResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeResult; }
-// Forward declaration of `AnalyzeOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeOptions; }
 
+#include "DetectorModelInfo.hpp"
 #include <NitroModules/Promise.hpp>
 #include <string>
-#include "OcrScanResult.hpp"
-#include "OcrObservation.hpp"
 #include <vector>
-#include "OcrRect.hpp"
-#include "DetectedObject.hpp"
-#include "OcrBufferOrientation.hpp"
-#include <memory>
-#include <VisionCamera/HybridFrameSpec.hpp>
-#include "OcrScanOptions.hpp"
-#include "OcrRecognitionMode.hpp"
+#include "DetectorModelConfig.hpp"
 #include <optional>
-#include "ObjectScanResult.hpp"
-#include "ObjectScanOptions.hpp"
-#include "AnalyzeResult.hpp"
-#include "AnalyzeOptions.hpp"
+#include "DetectorResizeMode.hpp"
+#include "DetectorBoxUnits.hpp"
+#include "DetectorAccelerator.hpp"
+#include <memory>
+#include "HybridFrameSessionSpec.hpp"
+#include <VisionCamera/HybridFrameSpec.hpp>
 
 #include "VisionEngine-Swift-Cxx-Umbrella.hpp"
 
@@ -101,49 +86,20 @@ namespace margelo::nitro::visionengine {
 
   public:
     // Properties
-    inline bool getIsDetectorLoaded() noexcept override {
-      return _swiftPart.isDetectorLoaded();
-    }
-    inline bool getIsObjectModelLoaded() noexcept override {
-      return _swiftPart.isObjectModelLoaded();
-    }
+    
 
   public:
     // Methods
-    inline std::shared_ptr<Promise<bool>> loadDetector(const std::string& modelName) override {
-      auto __result = _swiftPart.loadDetector(modelName);
+    inline std::shared_ptr<Promise<DetectorModelInfo>> loadModel(const DetectorModelConfig& config) override {
+      auto __result = _swiftPart.loadModel(std::forward<decltype(config)>(config));
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }
       auto __value = std::move(__result.value());
       return __value;
     }
-    inline OcrScanResult scan(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const OcrScanOptions& options) override {
-      auto __result = _swiftPart.scan(frame, std::forward<decltype(options)>(options));
-      if (__result.hasError()) [[unlikely]] {
-        std::rethrow_exception(__result.error());
-      }
-      auto __value = std::move(__result.value());
-      return __value;
-    }
-    inline std::shared_ptr<Promise<bool>> loadObjectModel(const std::string& modelName) override {
-      auto __result = _swiftPart.loadObjectModel(modelName);
-      if (__result.hasError()) [[unlikely]] {
-        std::rethrow_exception(__result.error());
-      }
-      auto __value = std::move(__result.value());
-      return __value;
-    }
-    inline ObjectScanResult detectObjects(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const ObjectScanOptions& options) override {
-      auto __result = _swiftPart.detectObjects(frame, std::forward<decltype(options)>(options));
-      if (__result.hasError()) [[unlikely]] {
-        std::rethrow_exception(__result.error());
-      }
-      auto __value = std::move(__result.value());
-      return __value;
-    }
-    inline AnalyzeResult analyze(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame, const AnalyzeOptions& options) override {
-      auto __result = _swiftPart.analyze(frame, std::forward<decltype(options)>(options));
+    inline std::shared_ptr<HybridFrameSessionSpec> openFrame(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& frame) override {
+      auto __result = _swiftPart.openFrame(frame);
       if (__result.hasError()) [[unlikely]] {
         std::rethrow_exception(__result.error());
       }

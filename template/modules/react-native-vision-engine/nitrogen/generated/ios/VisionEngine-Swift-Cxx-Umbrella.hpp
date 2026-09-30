@@ -8,46 +8,55 @@
 #pragma once
 
 // Forward declarations of C++ defined types
-// Forward declaration of `AnalyzeOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeOptions; }
-// Forward declaration of `AnalyzeResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeResult; }
+// Forward declaration of `DetectOptions` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectOptions; }
 // Forward declaration of `DetectedObject` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct DetectedObject; }
+// Forward declaration of `DetectorAccelerator` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorAccelerator; }
+// Forward declaration of `DetectorBoxUnits` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorBoxUnits; }
+// Forward declaration of `DetectorModelConfig` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelConfig; }
+// Forward declaration of `DetectorModelInfo` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelInfo; }
+// Forward declaration of `DetectorResizeMode` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorResizeMode; }
+// Forward declaration of `HybridFrameSessionSpec` to properly resolve imports.
+namespace margelo::nitro::visionengine { class HybridFrameSessionSpec; }
 // Forward declaration of `HybridFrameSpec` to properly resolve imports.
 namespace margelo::nitro::camera { class HybridFrameSpec; }
 // Forward declaration of `HybridVisionEngineSpec` to properly resolve imports.
 namespace margelo::nitro::visionengine { class HybridVisionEngineSpec; }
-// Forward declaration of `ObjectScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanOptions; }
-// Forward declaration of `ObjectScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanResult; }
-// Forward declaration of `OcrBufferOrientation` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrBufferOrientation; }
 // Forward declaration of `OcrObservation` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct OcrObservation; }
+// Forward declaration of `OcrOptions` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct OcrOptions; }
 // Forward declaration of `OcrRecognitionMode` to properly resolve imports.
 namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
 // Forward declaration of `OcrRect` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct OcrRect; }
-// Forward declaration of `OcrScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanOptions; }
-// Forward declaration of `OcrScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanResult; }
+// Forward declaration of `OcrRoiResult` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct OcrRoiResult; }
+// Forward declaration of `OcrRoi` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct OcrRoi; }
 
 // Include C++ defined types
-#include "AnalyzeOptions.hpp"
-#include "AnalyzeResult.hpp"
+#include "DetectOptions.hpp"
 #include "DetectedObject.hpp"
+#include "DetectorAccelerator.hpp"
+#include "DetectorBoxUnits.hpp"
+#include "DetectorModelConfig.hpp"
+#include "DetectorModelInfo.hpp"
+#include "DetectorResizeMode.hpp"
+#include "HybridFrameSessionSpec.hpp"
 #include "HybridVisionEngineSpec.hpp"
-#include "ObjectScanOptions.hpp"
-#include "ObjectScanResult.hpp"
-#include "OcrBufferOrientation.hpp"
 #include "OcrObservation.hpp"
+#include "OcrOptions.hpp"
 #include "OcrRecognitionMode.hpp"
 #include "OcrRect.hpp"
-#include "OcrScanOptions.hpp"
-#include "OcrScanResult.hpp"
+#include "OcrRoi.hpp"
+#include "OcrRoiResult.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/Result.hpp>
 #include <VisionCamera/HybridFrameSpec.hpp>
@@ -67,6 +76,8 @@ namespace margelo::nitro::visionengine { struct OcrScanResult; }
 #include <NitroModules/DateToChronoDate.hpp>
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridFrameSessionSpec_cxx` to properly resolve imports.
+namespace VisionEngine { class HybridFrameSessionSpec_cxx; }
 // Forward declaration of `HybridFrameSpec_cxx` to properly resolve imports.
 namespace VisionCamera { class HybridFrameSpec_cxx; }
 // Forward declaration of `HybridVisionEngineSpec_cxx` to properly resolve imports.

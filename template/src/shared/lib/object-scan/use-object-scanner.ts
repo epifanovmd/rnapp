@@ -2,8 +2,8 @@ import {
   getWorkletEngine,
   IScanDiagnostics,
   publishOverlay,
+  resolveModelConfig,
   shouldEmit,
-  toUprightRect,
   useOverlayChannel,
   usePreviewOrientation,
   useScannerInstanceKey,
@@ -18,15 +18,18 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CameraFrameOutput, Frame } from "react-native-vision-camera";
 import type {
   DetectedObject,
-  ObjectScanOptions,
+  DetectOptions,
+  DetectorModelConfig,
+  DetectorModelInfo,
 } from "react-native-vision-engine";
 import {
   createBoxedVisionEngine,
-  DETECTOR_DEFAULTS,
+  VISION_ENGINE_DEFAULTS,
 } from "react-native-vision-engine";
 import type { Synchronizable } from "react-native-worklets";
 import { createSynchronizable, scheduleOnRN } from "react-native-worklets";
 
+import { selectObjects } from "./select-objects";
 import { IDetectedObjectInfo } from "./types";
 
 /** Троттлинг потока детекций в JS, мс */
@@ -36,25 +39,30 @@ const DIAGNOSTICS_INTERVAL_MS = 500;
 /** Троттлинг сообщений об ошибках кадра, мс */
 const ERROR_INTERVAL_MS = 1000;
 
-/** Метка объекта: из модели (CoreML), из списка потребителя или "#<индекс>" */
-const resolveObjectLabel = (
+/** Подписи классов по умолчанию — имена классов модели как есть */
+const NO_TITLES: Record<string, string> = {};
+
+/** Подпись объекта: заданная потребителем, имя класса модели или "#<индекс>" */
+const resolveObjectTitle = (
   object: DetectedObject,
-  labels: string[],
+  titles: Record<string, string>,
 ): string => {
   "worklet";
 
-  if (object.label !== "") {
-    return object.label;
+  if (object.label === "") {
+    return `#${object.classIndex}`;
   }
 
-  return labels[object.classIndex] ?? `#${object.classIndex}`;
+  return titles[object.label] ?? object.label;
 };
 
 export interface IUseObjectScannerProps {
-  /** Имя модели (без расширения) в `ios/MLModels` / `android assets` */
-  modelName: string;
-  /** Метки классов по индексу (для TFLite, где меток в модели нет) */
-  labels?: string[];
+  /** Модель детекции и способ её прогона (фиксируется по значению) */
+  model: DetectorModelConfig;
+  /** Подписи классов по имени класса модели */
+  titles?: Record<string, string>;
+  /** Имена классов, которые показывать; не задано — все */
+  classes?: string[];
   minScore?: number;
   maxObjects?: number;
   /** Троттлящийся поток обнаруженных объектов */
@@ -69,6 +77,8 @@ export interface IObjectScanner {
   overlay: Synchronizable<IScanOverlaySnapshot>;
   /** null — модель ещё грузится; false — не найдена/несовместима */
   isModelLoaded: boolean | null;
+  /** Описание загруженной модели; null — ещё грузится или не найдена */
+  modelInfo: DetectorModelInfo | null;
   /** Приостановить обработку кадров («нашёл → заморозь») */
   pause: () => void;
   /** Возобновить обработку кадров и очистить оверлей */
@@ -81,36 +91,44 @@ export interface IObjectScanner {
  * Frame-пайплайн детекции объектов: модель гоняется на worklet-потоке
  * камеры, боксы публикуются для Skia-оверлея, поток объектов уходит
  * в JS троттлящимся колбэком. Ядро то же, что у OCR-сканера, — модель
- * кладётся в те же папки моделей приложения.
+ * кладётся в те же папки моделей приложения, классы берутся из её метаданных.
  */
 export const useObjectScanner = ({
-  modelName,
-  labels,
+  model,
+  titles = NO_TITLES,
+  classes,
   minScore = 0.4,
   maxObjects = 8,
   onDetections,
   onError,
 }: IUseObjectScannerProps): IObjectScanner => {
   const instanceKey = useScannerInstanceKey("object");
-  // движок per-scanner: слоты моделей не делятся с другими сканерами
+  // движок per-scanner: реестр моделей не делится с другими сканерами
   const boxedEngine = useMemo(() => createBoxedVisionEngine(), []);
   const overlay = useOverlayChannel();
   const previewOrientation = usePreviewOrientation();
   const modelReady = useMemo(() => createSynchronizable<boolean>(false), []);
   const suspended = useMemo(() => createSynchronizable<boolean>(false), []);
   const [isModelLoaded, setModelLoaded] = useState<boolean | null>(null);
+  const [modelInfo, setModelInfo] = useState<DetectorModelInfo | null>(null);
   const [diagnostics, setDiagnostics] = useState<IScanDiagnostics | null>(null);
+
+  // конфиг сравнивается по значению: литерал у потребителя не перезагружает модель
+  const modelKey = JSON.stringify(model);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const modelConfig = useMemo(() => resolveModelConfig(model), [modelKey]);
 
   useEffect(() => {
     let cancelled = false;
 
     boxedEngine
       .unbox()
-      .loadObjectModel(modelName)
-      .then(loaded => {
+      .loadModel(modelConfig)
+      .then((info: DetectorModelInfo) => {
         if (!cancelled) {
-          setModelLoaded(loaded);
-          modelReady.setBlocking(loaded);
+          setModelLoaded(info.loaded);
+          setModelInfo(info.loaded ? info : null);
+          modelReady.setBlocking(info.loaded);
         }
       })
       .catch(() => {
@@ -122,22 +140,23 @@ export const useObjectScanner = ({
     return () => {
       cancelled = true;
     };
-  }, [boxedEngine, modelName, modelReady]);
+  }, [boxedEngine, modelConfig, modelReady]);
 
   const handleDetections = useStableCallback(onDetections);
   const handleError = useStableCallback(
     onError ?? (message => console.warn("[ObjectScan]", message)),
   );
-  const labelsList = useMemo(() => labels ?? [], [labels]);
+  const classesKey = classes?.join("\n");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const classList = useMemo(() => classes, [classesKey]);
 
   const onFrame = useMemo(() => {
     const isDev = __DEV__;
-    const scanOptions: ObjectScanOptions = {
+    const modelName = modelConfig.name;
+    const detectOptions: DetectOptions = {
       minScore,
-      maxObjects,
-      iouThreshold: DETECTOR_DEFAULTS.iouThreshold,
+      iouThreshold: VISION_ENGINE_DEFAULTS.iouThreshold,
     };
-    const classLabels = labelsList;
 
     return (frame: Frame) => {
       "worklet";
@@ -148,44 +167,57 @@ export const useObjectScanner = ({
         }
 
         const engine = getWorkletEngine(boxedEngine, instanceKey);
-        const result = engine.detectObjects(frame, scanOptions);
+        const startedAt = Date.now();
+        const session = engine.openFrame(frame);
+        let objects: DetectedObject[];
+        const imageWidth = session.width;
+        const imageHeight = session.height;
+
+        try {
+          objects = selectObjects(
+            session.detect(modelName, detectOptions),
+            classList,
+            maxObjects,
+          );
+        } finally {
+          session.dispose();
+        }
 
         if (
           isDev &&
           shouldEmit(`${instanceKey}:diag`, DIAGNOSTICS_INTERVAL_MS)
         ) {
           scheduleOnRN(setDiagnostics, {
-            durationMs: result.durationMs,
+            durationMs: Date.now() - startedAt,
             detectorUsed: true,
-            resultCount: result.objects.length,
-            // детекция объектов регионы под OCR не наводит
+            resultCount: objects.length,
+            // детекция объектов регионы под OCR не читает
             regionCount: 0,
           });
         }
 
         const boxes: IScanOverlayBox[] = [];
 
-        for (let i = 0; i < result.objects.length; i++) {
-          const object = result.objects[i];
-
+        for (let i = 0; i < objects.length; i++) {
           boxes.push({
-            rect: toUprightRect(object.rect, result.bufferOrientation),
+            rect: objects[i].rect,
             kind: "region",
-            label: resolveObjectLabel(object, classLabels),
+            label: resolveObjectTitle(objects[i], titles),
           });
         }
         publishOverlay(
           overlay,
           boxes,
-          result.imageWidth,
-          result.imageHeight,
+          imageWidth,
+          imageHeight,
           previewOrientation.getDirty(),
         );
 
         if (shouldEmit(`${instanceKey}:detections`, DETECTIONS_INTERVAL_MS)) {
-          const infos: IDetectedObjectInfo[] = result.objects.map(object => ({
+          const infos: IDetectedObjectInfo[] = objects.map(object => ({
             classIndex: object.classIndex,
-            label: resolveObjectLabel(object, classLabels),
+            className: object.label,
+            label: resolveObjectTitle(object, titles),
             score: object.score,
           }));
 
@@ -209,9 +241,11 @@ export const useObjectScanner = ({
     previewOrientation,
     modelReady,
     suspended,
+    modelConfig,
     minScore,
     maxObjects,
-    labelsList,
+    classList,
+    titles,
     handleDetections,
     handleError,
   ]);
@@ -232,5 +266,13 @@ export const useObjectScanner = ({
     suspended.setBlocking(false);
   }, [overlay, suspended]);
 
-  return { frameOutput, overlay, isModelLoaded, pause, resume, diagnostics };
+  return {
+    frameOutput,
+    overlay,
+    isModelLoaded,
+    modelInfo,
+    pause,
+    resume,
+    diagnostics,
+  };
 };

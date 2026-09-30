@@ -39,16 +39,10 @@ namespace margelo::nitro::visionengine {
       double confidence = this->getFieldValue(fieldConfidence);
       static const auto fieldRect = clazz->getField<JOcrRect>("rect");
       jni::local_ref<JOcrRect> rect = this->getFieldValue(fieldRect);
-      static const auto fieldFromDetector = clazz->getField<jboolean>("fromDetector");
-      jboolean fromDetector = this->getFieldValue(fieldFromDetector);
-      static const auto fieldRegionClassIndex = clazz->getField<double>("regionClassIndex");
-      double regionClassIndex = this->getFieldValue(fieldRegionClassIndex);
       return OcrObservation(
         text->toStdString(),
         confidence,
-        rect->toCpp(),
-        static_cast<bool>(fromDetector),
-        regionClassIndex
+        rect->toCpp()
       );
     }
 
@@ -58,16 +52,14 @@ namespace margelo::nitro::visionengine {
      */
     [[maybe_unused]]
     static jni::local_ref<JOcrObservation::javaobject> fromCpp(const OcrObservation& value) {
-      using JSignature = JOcrObservation(jni::alias_ref<jni::JString>, double, jni::alias_ref<JOcrRect>, jboolean, double);
+      using JSignature = JOcrObservation(jni::alias_ref<jni::JString>, double, jni::alias_ref<JOcrRect>);
       static const auto clazz = javaClassStatic();
       static const auto create = clazz->getStaticMethod<JSignature>("fromCpp");
       return create(
         clazz,
         jni::make_jstring(value.text),
         value.confidence,
-        JOcrRect::fromCpp(value.rect),
-        value.fromDetector,
-        value.regionClassIndex
+        JOcrRect::fromCpp(value.rect)
       );
     }
   };

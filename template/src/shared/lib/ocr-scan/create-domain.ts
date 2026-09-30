@@ -2,16 +2,14 @@ import {
   IOcrScanCandidate,
   IOcrScanDetectorConfig,
   IOcrScanDomain,
-  IOcrScanObservation,
+  IOcrScanFrame,
   IOcrScanRecognitionConfig,
 } from "./types";
 
 /** Конфиг домена: обязателен только `extractCandidates`, остальное — опции */
 export interface IOcrDomainConfig<TAttributes = null> {
-  /** OCR-области кадра → кандидаты (валидные первыми), worklet */
-  extractCandidates: (
-    observations: IOcrScanObservation[],
-  ) => IOcrScanCandidate[];
+  /** Кадр → кандидаты (валидные первыми), worklet */
+  extractCandidates: (frame: IOcrScanFrame) => IOcrScanCandidate[];
   /**
    * Сколько сканов подряд должны дать одно валидное значение;
    * по умолчанию подтверждения нет — домен только стримит области
@@ -26,7 +24,7 @@ export interface IOcrDomainConfig<TAttributes = null> {
   /** Останавливать обработку кадров после подтверждения; по умолчанию true */
   suspendOnConfirm?: boolean;
   emptyAttributes?: TAttributes;
-  extractAttributes?: (observations: IOcrScanObservation[]) => TAttributes;
+  extractAttributes?: (frame: IOcrScanFrame) => TAttributes;
   mergeAttributes?: (
     accumulated: TAttributes,
     next: TAttributes,

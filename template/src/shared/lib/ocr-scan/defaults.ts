@@ -1,7 +1,4 @@
-import type { OcrRecognitionMode } from "react-native-vision-engine";
-
-/** Класс области, прочитанной полнокадровым OCR (регион детектора не участвовал) */
-export const FULL_FRAME_REGION_CLASS = -1;
+import type { OcrRecognitionMode, OcrRect } from "react-native-vision-engine";
 
 /**
  * Дефолты распознавания: применяются, когда их не задал ни домен
@@ -15,7 +12,22 @@ export const OCR_SCAN_DEFAULTS: {
 } = {
   mode: "accurate",
   minConfidence: 0.25,
-  /** Хватает на несколько регионов сразу: код + типоразмер + строки таблички весов */
+  /** На одну область чтения — регион или полный кадр */
   maxObservations: 24,
   fullFrameFallback: false,
 };
+
+/** Дефолты отбора регионов детектора под OCR */
+export const REGION_DEFAULTS = {
+  /** Порог уверенности региона */
+  minScore: 0.35,
+  /** Максимум регионов кадра без объявленных регионов домена */
+  maxRegions: 6,
+  /** Максимум регионов одного класса за кадр */
+  maxRegionsPerClass: 2,
+  /** Расширение региона перед OCR, доля его размеров */
+  padding: 0.18,
+} as const;
+
+/** Область чтения «весь кадр» */
+export const FULL_FRAME_RECT: OcrRect = { x: 0, y: 0, width: 1, height: 1 };

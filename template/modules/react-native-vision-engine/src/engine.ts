@@ -8,7 +8,7 @@ let instance: VisionEngine | undefined;
 /**
  * Разделяемый экземпляр движка (ленивая инициализация) — для одиночных
  * сценариев. Несколько одновременных сканеров с разными моделями должны
- * использовать `createVisionEngine`: слоты моделей у экземпляров раздельные.
+ * использовать `createVisionEngine`: реестры моделей у экземпляров раздельные.
  */
 export const getVisionEngine = (): VisionEngine => {
   if (instance == null) {
@@ -19,9 +19,9 @@ export const getVisionEngine = (): VisionEngine => {
 };
 
 /**
- * Отдельный экземпляр движка со своими слотами моделей — по одному на
+ * Отдельный экземпляр движка со своим реестром моделей — по одному на
  * сканер. Тяжёлые модели кэшируются нативно по имени, поэтому создание
- * экземпляра и повторный `loadDetector`/`loadObjectModel` дёшевы.
+ * экземпляра и повторный `loadModel` дёшевы.
  */
 export const createVisionEngine = (): VisionEngine => {
   return NitroModules.createHybridObject<VisionEngine>("VisionEngine");

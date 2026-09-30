@@ -10,8 +10,6 @@ const observation = (
     text,
     confidence: 0.9,
     rect,
-    fromDetector: false,
-    regionClassIndex: -1,
   };
 };
 

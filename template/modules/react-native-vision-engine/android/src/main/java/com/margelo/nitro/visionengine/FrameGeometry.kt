@@ -27,20 +27,20 @@ internal object FrameGeometry {
     return upright
   }
 
-  /** Вырезать регион с запасом; null — регион слишком мал после обрезки */
+  /** Вырезать область с запасом; null — область слишком мала после обрезки */
   fun cropRegion(
     upright: Bitmap,
-    region: DetectedRegion,
-    padding: Float,
+    rect: OcrRect,
+    padding: Double,
     minSizePx: Int,
   ): RegionCrop? {
-    val padX = region.width * padding
-    val padY = region.height * padding
-    val left = ((region.x - padX) * upright.width).roundToInt().coerceAtLeast(0)
-    val top = ((region.y - padY) * upright.height).roundToInt().coerceAtLeast(0)
-    val right = ((region.x + region.width + padX) * upright.width).roundToInt()
+    val padX = rect.width * padding
+    val padY = rect.height * padding
+    val left = ((rect.x - padX) * upright.width).roundToInt().coerceAtLeast(0)
+    val top = ((rect.y - padY) * upright.height).roundToInt().coerceAtLeast(0)
+    val right = ((rect.x + rect.width + padX) * upright.width).roundToInt()
       .coerceAtMost(upright.width)
-    val bottom = ((region.y + region.height + padY) * upright.height).roundToInt()
+    val bottom = ((rect.y + rect.height + padY) * upright.height).roundToInt()
       .coerceAtMost(upright.height)
     if (right - left < minSizePx || bottom - top < minSizePx) {
       return null
@@ -51,6 +51,11 @@ internal object FrameGeometry {
       left = left,
       top = top,
     )
+  }
+
+  /** Область — весь кадр без расширения: читается напрямую, без кропа */
+  fun isFullFrame(rect: OcrRect, padding: Double): Boolean {
+    return rect.x <= 0.0 && rect.y <= 0.0 && rect.width >= 1.0 && rect.height >= 1.0 && padding == 0.0
   }
 
   /** Координаты области внутри кропа → нормализованные координаты полного кадра */

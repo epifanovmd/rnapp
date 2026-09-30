@@ -28,34 +28,16 @@ import com.margelo.nitro.core.HybridObject
 )
 abstract class HybridVisionEngineSpec: HybridObject() {
   // Properties
-  @get:DoNotStrip
-  @get:Keep
-  abstract val isDetectorLoaded: Boolean
   
-  @get:DoNotStrip
-  @get:Keep
-  abstract val isObjectModelLoaded: Boolean
 
   // Methods
   @DoNotStrip
   @Keep
-  abstract fun loadDetector(modelName: String): Promise<Boolean>
+  abstract fun loadModel(config: DetectorModelConfig): Promise<DetectorModelInfo>
   
   @DoNotStrip
   @Keep
-  abstract fun scan(frame: com.margelo.nitro.camera.HybridFrameSpec, options: OcrScanOptions): OcrScanResult
-  
-  @DoNotStrip
-  @Keep
-  abstract fun loadObjectModel(modelName: String): Promise<Boolean>
-  
-  @DoNotStrip
-  @Keep
-  abstract fun detectObjects(frame: com.margelo.nitro.camera.HybridFrameSpec, options: ObjectScanOptions): ObjectScanResult
-  
-  @DoNotStrip
-  @Keep
-  abstract fun analyze(frame: com.margelo.nitro.camera.HybridFrameSpec, options: AnalyzeOptions): AnalyzeResult
+  abstract fun openFrame(frame: com.margelo.nitro.camera.HybridFrameSpec): HybridFrameSessionSpec
 
   // Default implementation of `HybridObject.toString()`
   override fun toString(): String {

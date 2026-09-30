@@ -1,4 +1,4 @@
-export { DETECTOR_DEFAULTS } from "./defaults";
+export { VISION_ENGINE_DEFAULTS } from "./defaults";
 export {
   createBoxedVisionEngine,
   createVisionEngine,
@@ -6,16 +6,19 @@ export {
   getVisionEngine,
 } from "./engine";
 export type {
-  AnalyzeOptions,
-  AnalyzeResult,
   DetectedObject,
-  ObjectScanOptions,
-  ObjectScanResult,
-  OcrBufferOrientation,
+  DetectOptions,
+  DetectorAccelerator,
+  DetectorBoxUnits,
+  DetectorModelConfig,
+  DetectorModelInfo,
+  DetectorResizeMode,
+  FrameSession,
   OcrObservation,
+  OcrOptions,
   OcrRecognitionMode,
   OcrRect,
-  OcrScanOptions,
-  OcrScanResult,
+  OcrRoi,
+  OcrRoiResult,
   VisionEngine,
 } from "./specs/VisionEngine.nitro";

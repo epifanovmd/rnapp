@@ -5,23 +5,61 @@ import type { Frame } from "react-native-vision-camera";
 export type OcrRecognitionMode = "fast" | "accurate";
 
 /**
- * Ориентация буфера кадра (EXIF-семантика: где находятся 0-я строка и
- * 0-й столбец буфера относительно выпрямленного изображения).
- * "up" — буфер уже выпрямлен, координаты преобразовывать не нужно.
+ * Подача кадра на вход модели детекции:
+ * letterbox — масштаб с сохранением пропорций и полями,
+ * stretch — растяжение на весь вход без сохранения пропорций.
  */
-export type OcrBufferOrientation =
-  | "up"
-  | "upMirrored"
-  | "down"
-  | "downMirrored"
-  | "left"
-  | "leftMirrored"
-  | "right"
-  | "rightMirrored";
+export type DetectorResizeMode = "letterbox" | "stretch";
 
 /**
- * Прямоугольник в нормализованных координатах [0..1], начало — левый
- * верхний угол. Система координат — буфер кадра (см. `bufferOrientation`).
+ * Единицы координат боксов в выходе модели: normalized — доли входа
+ * [0..1], pixels — пиксели входа, auto — определить по значению.
+ */
+export type DetectorBoxUnits = "auto" | "normalized" | "pixels";
+
+/**
+ * Вычислитель инференса. Учитывается на Android (TFLite-делегат, при
+ * недоступности — CPU); на iOS CoreML распределяет вычисления сам.
+ */
+export type DetectorAccelerator = "cpu" | "gpu" | "nnapi";
+
+/**
+ * Модель детекции и способ её прогона. Модель кладётся в приложение:
+ * iOS — бандл `<name>.mlmodelc`/`<name>.mlpackage`, Android — assets
+ * `<name>.tflite`. Не заданные поля берутся из `DETECTOR_DEFAULTS`.
+ */
+export interface DetectorModelConfig {
+  /** Имя файла модели без расширения */
+  name: string;
+  /**
+   * Имена классов по индексу; перекрывают имена из метаданных модели.
+   * Нужны, только если модель своих имён не содержит.
+   */
+  labels?: string[];
+  resize?: DetectorResizeMode;
+  boxUnits?: DetectorBoxUnits;
+  accelerator?: DetectorAccelerator;
+  /** Потоки CPU-инференса (Android); 0 — по числу ядер */
+  threads?: number;
+}
+
+/** Описание загруженной модели детекции */
+export interface DetectorModelInfo {
+  /** false — модель не найдена в бандле/assets */
+  loaded: boolean;
+  /** Имена классов по индексу; пусто — модель их не содержит и в конфиге не заданы */
+  labels: string[];
+  /** Число классов модели; 0 — не определено */
+  classCount: number;
+  /** Ширина входа модели, px */
+  inputWidth: number;
+  /** Высота входа модели, px */
+  inputHeight: number;
+}
+
+/**
+ * Прямоугольник в нормализованных координатах [0..1] выпрямленного кадра,
+ * начало — левый верхний угол.
  */
 export interface OcrRect {
   x: number;
@@ -30,158 +68,108 @@ export interface OcrRect {
   height: number;
 }
 
-/** Одна распознанная текстовая область кадра */
-export interface OcrObservation {
-  text: string;
-  /** Уверенность распознавания [0..1] */
-  confidence: number;
-  rect: OcrRect;
-  /** Область предложена обученным детектором, а не полнокадровым OCR */
-  fromDetector: boolean;
-  /**
-   * Индекс класса региона детектора, из кропа которого прочитан текст;
-   * -1 — область прочитана полнокадровым OCR. Позволяет потребителю
-   * разбирать многоклассовые модели (номер / тип / веса и т.п.).
-   */
-  regionClassIndex: number;
-}
-
-export interface OcrScanResult {
-  /**
-   * Области в нормализованных координатах буфера (top-left origin, без
-   * применения ориентации) — выпрямление выполняет JS-слой по
-   * `bufferOrientation` (см. `toUprightRect` в `@shared/lib/ocr-scan`).
-   */
-  observations: OcrObservation[];
-  /**
-   * Регионы, найденные детектором и использованные для наведения OCR
-   * (та же форма, что у `detectObjects`); пусто — детектора нет либо
-   * он ничего не нашёл. Пороги наведения — `regionMinScore`/`maxRegions`
-   * из опций (дефолты — `DETECTOR_DEFAULTS`).
-   */
-  regions: DetectedObject[];
-  /** Ориентация буфера; "up" — координаты уже выпрямлены (Android) */
-  bufferOrientation: OcrBufferOrientation;
-  /** Ширина выпрямленного кадра, px */
-  imageWidth: number;
-  /** Высота выпрямленного кадра, px */
-  imageHeight: number;
-  /** Длительность обработки кадра, мс */
-  durationMs: number;
-  /** Кадр обрабатывался через детектор регионов */
-  detectorUsed: boolean;
-}
-
-export interface OcrScanOptions {
-  mode: OcrRecognitionMode;
-  /** Области с уверенностью ниже порога отбрасываются нативно */
-  minConfidence: number;
-  /** Максимум областей в результате */
-  maxObservations: number;
-  /**
-   * Фолбэк на полнокадровый OCR, когда регионы детектора не дали текста;
-   * по умолчанию false — с детектором читаются строго его кропы.
-   * Без загруженного детектора OCR всегда полнокадровый.
-   */
-  fullFrameFallback?: boolean;
-  /** Порог уверенности детектора регионов (`DETECTOR_DEFAULTS.regionMinScore`) */
-  regionMinScore?: number;
-  /** Максимум регионов детектора, прогоняемых через OCR (`DETECTOR_DEFAULTS.maxRegions`) */
-  maxRegions?: number;
-  /**
-   * Максимум регионов одного класса (`DETECTOR_DEFAULTS.maxRegionsPerClass`):
-   * у многоклассовой модели общий лимит иначе целиком забирает самый
-   * уверенный класс.
-   */
-  maxRegionsPerClass?: number;
-  /**
-   * Индексы классов детектора, чьи регионы прогоняются через OCR;
-   * пустой список или отсутствие поля — все классы.
-   */
-  regionClasses?: number[];
-  /** Расширение региона перед OCR, доля его размеров (`DETECTOR_DEFAULTS.regionPadding`) */
-  regionPadding?: number;
-  /** IoU-порог NMS детектора регионов (`DETECTOR_DEFAULTS.iouThreshold`) */
-  regionIouThreshold?: number;
-}
-
 /** Объект, найденный моделью детекции */
 export interface DetectedObject {
-  /** Индекс класса модели; -1 — модель вернула только метку */
+  /** Индекс класса модели; -1 — класс не сопоставлен индексу */
   classIndex: number;
-  /** Метка класса, если модель её содержит (CoreML); иначе пустая строка */
+  /** Имя класса; пустая строка — имя неизвестно */
   label: string;
   score: number;
   rect: OcrRect;
 }
 
-export interface ObjectScanOptions {
+/** Параметры детекции кадра */
+export interface DetectOptions {
+  /** Порог уверенности детекции */
   minScore: number;
-  maxObjects: number;
-  /** IoU-порог NMS детекций (`DETECTOR_DEFAULTS.iouThreshold`) */
+  /** IoU-порог NMS (подавление — внутри класса) */
   iouThreshold?: number;
+  /** Максимум детекций в результате, по убыванию score; не задано — все */
+  maxResults?: number;
 }
 
-export interface ObjectScanResult {
-  objects: DetectedObject[];
-  /** См. OcrScanResult.bufferOrientation */
-  bufferOrientation: OcrBufferOrientation;
-  imageWidth: number;
-  imageHeight: number;
-  durationMs: number;
+/** Строка текста, распознанная OCR */
+export interface OcrObservation {
+  text: string;
+  /** Уверенность распознавания [0..1] */
+  confidence: number;
+  rect: OcrRect;
 }
 
-/** Секции комбинированного анализа; отсутствие секции — не выполнять */
-export interface AnalyzeOptions {
-  ocr?: OcrScanOptions;
-  objects?: ObjectScanOptions;
+/** Область кадра, которую читает OCR */
+export interface OcrRoi {
+  rect: OcrRect;
+  /** Расширение области перед чтением, доля её размеров */
+  padding?: number;
 }
 
-/** Результаты запрошенных секций; незапрошенные отсутствуют */
-export interface AnalyzeResult {
-  ocr?: OcrScanResult;
-  objects?: ObjectScanResult;
+/** Параметры распознавания текста */
+export interface OcrOptions {
+  mode: OcrRecognitionMode;
+  /** Строки с уверенностью ниже порога отбрасываются */
+  minConfidence: number;
+  /** Максимум строк на область, по убыванию уверенности; не задано — все */
+  maxObservations?: number;
+  /**
+   * Языки распознавания в порядке приоритета (iOS, коды BCP 47);
+   * Android читает латиницу независимо от поля.
+   */
+  languages?: string[];
+  /** Минимальная сторона области после расширения, px: меньшие не читаются */
+  minRoiSizePx?: number;
+}
+
+/** Результат чтения одной области; индекс совпадает с индексом запроса */
+export interface OcrRoiResult {
+  /** Область прочитана; false — пропущена (меньше `minRoiSizePx`) */
+  read: boolean;
+  observations: OcrObservation[];
 }
 
 /**
- * Универсальный нативный OCR-движок: читает текст кадра, предметной
- * области не знает (домены — в JS-слое приложения).
+ * Подготовленный кадр: операции распознавания над одним изображением.
+ * Подготовка кадра (выпрямление, буферы) выполняется один раз на сессию.
+ * Сессия действительна, пока жив исходный `Frame`; освобождается
+ * `dispose()` до освобождения кадра. Методы синхронные — вызываются
+ * из frame-worklet'а.
+ */
+export interface FrameSession extends HybridObject<{
+  ios: "swift";
+  android: "kotlin";
+}> {
+  /** Ширина выпрямленного кадра, px */
+  readonly width: number;
+  /** Высота выпрямленного кадра, px */
+  readonly height: number;
+  /**
+   * Детекция загруженной моделью (`loadModel`), по убыванию score.
+   * Бросает, если модель с таким именем не загружена.
+   */
+  detect(model: string, options: DetectOptions): DetectedObject[];
+  /**
+   * OCR областей кадра одним проходом; `result[i]` — текст `rois[i]`.
+   * Полный кадр — область `{ x: 0, y: 0, width: 1, height: 1 }`.
+   */
+  recognize(rois: OcrRoi[], options: OcrOptions): OcrRoiResult[];
+}
+
+/**
+ * Универсальный нативный движок зрения: примитивы детекции и OCR над
+ * кадром, предметной области не знает — модели, порядок операций и
+ * правила разбора задаёт JS.
  *
- * iOS — Apple Vision (`VNRecognizeTextRequest`) + опциональный CoreML-детектор
- * регионов интереса; Android — ML Kit Text Recognition + опциональный
- * TFLite-детектор (любая YOLO-модель регионов в CoreML/TFLite).
- *
- * `scan` синхронный и вызывается из frame-worklet'а VisionCamera
- * (через `NitroModules.box`).
+ * iOS — Apple Vision (`VNRecognizeTextRequest`) + CoreML;
+ * Android — ML Kit Text Recognition + TFLite.
  */
 export interface VisionEngine extends HybridObject<{
   ios: "swift";
   android: "kotlin";
 }> {
   /**
-   * Загрузить обученный детектор регионов кода контейнера.
-   * iOS — имя скомпилированной CoreML-модели в бандле (`<name>.mlmodelc`),
-   * Android — имя TFLite-модели в assets (`<name>.tflite`).
-   * Возвращает `false`, если модель не найдена.
+   * Загрузить модель детекции; доступна в `FrameSession.detect` по
+   * `config.name`. Повторная загрузка того же имени заменяет конфиг.
    */
-  loadDetector(modelName: string): Promise<boolean>;
-  /** Детектор загружен и участвует в `scan` */
-  readonly isDetectorLoaded: boolean;
-  /** Распознать текстовые области кадра */
-  scan(frame: Frame, options: OcrScanOptions): OcrScanResult;
-  /**
-   * Загрузить модель детекции объектов (отдельный слот, те же папки:
-   * iOS — бандл `<name>.mlmodelc`/`.mlpackage`, Android — assets
-   * `<name>.tflite`). Возвращает `false`, если модель не найдена.
-   */
-  loadObjectModel(modelName: string): Promise<boolean>;
-  readonly isObjectModelLoaded: boolean;
-  /** Детекция объектов кадра загруженной моделью */
-  detectObjects(frame: Frame, options: ObjectScanOptions): ObjectScanResult;
-  /**
-   * Комбинированный проход по кадру: OCR и/или детекция объектов за один
-   * вызов с общей подготовкой кадра (на Android — один upright-битмап
-   * на обе секции). Для одиночных сценариев используйте `scan`/`detectObjects`.
-   */
-  analyze(frame: Frame, options: AnalyzeOptions): AnalyzeResult;
+  loadModel(config: DetectorModelConfig): Promise<DetectorModelInfo>;
+  /** Открыть сессию распознавания кадра VisionCamera */
+  openFrame(frame: Frame): FrameSession;
 }

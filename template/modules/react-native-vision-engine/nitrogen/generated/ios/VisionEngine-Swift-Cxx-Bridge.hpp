@@ -8,49 +8,51 @@
 #pragma once
 
 // Forward declarations of C++ defined types
-// Forward declaration of `AnalyzeResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct AnalyzeResult; }
 // Forward declaration of `DetectedObject` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct DetectedObject; }
+// Forward declaration of `DetectorAccelerator` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorAccelerator; }
+// Forward declaration of `DetectorBoxUnits` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorBoxUnits; }
+// Forward declaration of `DetectorModelInfo` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct DetectorModelInfo; }
+// Forward declaration of `DetectorResizeMode` to properly resolve imports.
+namespace margelo::nitro::visionengine { enum class DetectorResizeMode; }
+// Forward declaration of `HybridFrameSessionSpec` to properly resolve imports.
+namespace margelo::nitro::visionengine { class HybridFrameSessionSpec; }
 // Forward declaration of `HybridFrameSpec` to properly resolve imports.
 namespace margelo::nitro::camera { class HybridFrameSpec; }
 // Forward declaration of `HybridVisionEngineSpec` to properly resolve imports.
 namespace margelo::nitro::visionengine { class HybridVisionEngineSpec; }
-// Forward declaration of `ObjectScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanOptions; }
-// Forward declaration of `ObjectScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct ObjectScanResult; }
-// Forward declaration of `OcrBufferOrientation` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrBufferOrientation; }
 // Forward declaration of `OcrObservation` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct OcrObservation; }
-// Forward declaration of `OcrRecognitionMode` to properly resolve imports.
-namespace margelo::nitro::visionengine { enum class OcrRecognitionMode; }
 // Forward declaration of `OcrRect` to properly resolve imports.
 namespace margelo::nitro::visionengine { struct OcrRect; }
-// Forward declaration of `OcrScanOptions` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanOptions; }
-// Forward declaration of `OcrScanResult` to properly resolve imports.
-namespace margelo::nitro::visionengine { struct OcrScanResult; }
+// Forward declaration of `OcrRoiResult` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct OcrRoiResult; }
+// Forward declaration of `OcrRoi` to properly resolve imports.
+namespace margelo::nitro::visionengine { struct OcrRoi; }
 
 // Forward declarations of Swift defined types
+// Forward declaration of `HybridFrameSessionSpec_cxx` to properly resolve imports.
+namespace VisionEngine { class HybridFrameSessionSpec_cxx; }
 // Forward declaration of `HybridFrameSpec_cxx` to properly resolve imports.
 namespace VisionCamera { class HybridFrameSpec_cxx; }
 // Forward declaration of `HybridVisionEngineSpec_cxx` to properly resolve imports.
 namespace VisionEngine { class HybridVisionEngineSpec_cxx; }
 
 // Include C++ defined types
-#include "AnalyzeResult.hpp"
 #include "DetectedObject.hpp"
+#include "DetectorAccelerator.hpp"
+#include "DetectorBoxUnits.hpp"
+#include "DetectorModelInfo.hpp"
+#include "DetectorResizeMode.hpp"
+#include "HybridFrameSessionSpec.hpp"
 #include "HybridVisionEngineSpec.hpp"
-#include "ObjectScanOptions.hpp"
-#include "ObjectScanResult.hpp"
-#include "OcrBufferOrientation.hpp"
 #include "OcrObservation.hpp"
-#include "OcrRecognitionMode.hpp"
 #include "OcrRect.hpp"
-#include "OcrScanOptions.hpp"
-#include "OcrScanResult.hpp"
+#include "OcrRoi.hpp"
+#include "OcrRoiResult.hpp"
 #include <NitroModules/Promise.hpp>
 #include <NitroModules/PromiseHolder.hpp>
 #include <NitroModules/Result.hpp>
@@ -68,38 +70,153 @@ namespace VisionEngine { class HybridVisionEngineSpec_cxx; }
  */
 namespace margelo::nitro::visionengine::bridge::swift {
 
-  // pragma MARK: std::shared_ptr<Promise<bool>>
+  // pragma MARK: std::vector<DetectedObject>
   /**
-   * Specialized version of `std::shared_ptr<Promise<bool>>`.
+   * Specialized version of `std::vector<DetectedObject>`.
    */
-  using std__shared_ptr_Promise_bool__ = std::shared_ptr<Promise<bool>>;
-  inline std::shared_ptr<Promise<bool>> create_std__shared_ptr_Promise_bool__() noexcept {
-    return Promise<bool>::create();
-  }
-  inline PromiseHolder<bool> wrap_std__shared_ptr_Promise_bool__(std::shared_ptr<Promise<bool>> promise) noexcept {
-    return PromiseHolder<bool>(std::move(promise));
+  using std__vector_DetectedObject_ = std::vector<DetectedObject>;
+  inline std::vector<DetectedObject> create_std__vector_DetectedObject_(size_t size) noexcept {
+    std::vector<DetectedObject> vector;
+    vector.reserve(size);
+    return vector;
   }
   
-  // pragma MARK: std::function<void(bool /* result */)>
+  // pragma MARK: std::optional<double>
   /**
-   * Specialized version of `std::function<void(bool)>`.
+   * Specialized version of `std::optional<double>`.
    */
-  using Func_void_bool = std::function<void(bool /* result */)>;
+  using std__optional_double_ = std::optional<double>;
+  inline std::optional<double> create_std__optional_double_(const double& value) noexcept {
+    return std::optional<double>(value);
+  }
+  inline bool has_value_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::vector<OcrObservation>
   /**
-   * Wrapper class for a `std::function<void(bool / * result * /)>`, this can be used from Swift.
+   * Specialized version of `std::vector<OcrObservation>`.
    */
-  class Func_void_bool_Wrapper final {
+  using std__vector_OcrObservation_ = std::vector<OcrObservation>;
+  inline std::vector<OcrObservation> create_std__vector_OcrObservation_(size_t size) noexcept {
+    std::vector<OcrObservation> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<OcrRoiResult>
+  /**
+   * Specialized version of `std::vector<OcrRoiResult>`.
+   */
+  using std__vector_OcrRoiResult_ = std::vector<OcrRoiResult>;
+  inline std::vector<OcrRoiResult> create_std__vector_OcrRoiResult_(size_t size) noexcept {
+    std::vector<OcrRoiResult> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<OcrRoi>
+  /**
+   * Specialized version of `std::vector<OcrRoi>`.
+   */
+  using std__vector_OcrRoi_ = std::vector<OcrRoi>;
+  inline std::vector<OcrRoi> create_std__vector_OcrRoi_(size_t size) noexcept {
+    std::vector<OcrRoi> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::vector<std::string>
+  /**
+   * Specialized version of `std::vector<std::string>`.
+   */
+  using std__vector_std__string_ = std::vector<std::string>;
+  inline std::vector<std::string> create_std__vector_std__string_(size_t size) noexcept {
+    std::vector<std::string> vector;
+    vector.reserve(size);
+    return vector;
+  }
+  
+  // pragma MARK: std::optional<std::vector<std::string>>
+  /**
+   * Specialized version of `std::optional<std::vector<std::string>>`.
+   */
+  using std__optional_std__vector_std__string__ = std::optional<std::vector<std::string>>;
+  inline std::optional<std::vector<std::string>> create_std__optional_std__vector_std__string__(const std::vector<std::string>& value) noexcept {
+    return std::optional<std::vector<std::string>>(value);
+  }
+  inline bool has_value_std__optional_std__vector_std__string__(const std::optional<std::vector<std::string>>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline std::vector<std::string> get_std__optional_std__vector_std__string__(const std::optional<std::vector<std::string>>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::shared_ptr<HybridFrameSessionSpec>
+  /**
+   * Specialized version of `std::shared_ptr<HybridFrameSessionSpec>`.
+   */
+  using std__shared_ptr_HybridFrameSessionSpec_ = std::shared_ptr<HybridFrameSessionSpec>;
+  std::shared_ptr<HybridFrameSessionSpec> create_std__shared_ptr_HybridFrameSessionSpec_(void* NON_NULL swiftUnsafePointer) noexcept;
+  void* NON_NULL get_std__shared_ptr_HybridFrameSessionSpec_(std__shared_ptr_HybridFrameSessionSpec_ cppType);
+  
+  // pragma MARK: std::weak_ptr<HybridFrameSessionSpec>
+  using std__weak_ptr_HybridFrameSessionSpec_ = std::weak_ptr<HybridFrameSessionSpec>;
+  inline std__weak_ptr_HybridFrameSessionSpec_ weakify_std__shared_ptr_HybridFrameSessionSpec_(const std::shared_ptr<HybridFrameSessionSpec>& strong) noexcept { return strong; }
+  
+  // pragma MARK: Result<std::vector<DetectedObject>>
+  using Result_std__vector_DetectedObject__ = Result<std::vector<DetectedObject>>;
+  inline Result_std__vector_DetectedObject__ create_Result_std__vector_DetectedObject__(const std::vector<DetectedObject>& value) noexcept {
+    return Result<std::vector<DetectedObject>>::withValue(value);
+  }
+  inline Result_std__vector_DetectedObject__ create_Result_std__vector_DetectedObject__(const std::exception_ptr& error) noexcept {
+    return Result<std::vector<DetectedObject>>::withError(error);
+  }
+  
+  // pragma MARK: Result<std::vector<OcrRoiResult>>
+  using Result_std__vector_OcrRoiResult__ = Result<std::vector<OcrRoiResult>>;
+  inline Result_std__vector_OcrRoiResult__ create_Result_std__vector_OcrRoiResult__(const std::vector<OcrRoiResult>& value) noexcept {
+    return Result<std::vector<OcrRoiResult>>::withValue(value);
+  }
+  inline Result_std__vector_OcrRoiResult__ create_Result_std__vector_OcrRoiResult__(const std::exception_ptr& error) noexcept {
+    return Result<std::vector<OcrRoiResult>>::withError(error);
+  }
+  
+  // pragma MARK: std::shared_ptr<Promise<DetectorModelInfo>>
+  /**
+   * Specialized version of `std::shared_ptr<Promise<DetectorModelInfo>>`.
+   */
+  using std__shared_ptr_Promise_DetectorModelInfo__ = std::shared_ptr<Promise<DetectorModelInfo>>;
+  inline std::shared_ptr<Promise<DetectorModelInfo>> create_std__shared_ptr_Promise_DetectorModelInfo__() noexcept {
+    return Promise<DetectorModelInfo>::create();
+  }
+  inline PromiseHolder<DetectorModelInfo> wrap_std__shared_ptr_Promise_DetectorModelInfo__(std::shared_ptr<Promise<DetectorModelInfo>> promise) noexcept {
+    return PromiseHolder<DetectorModelInfo>(std::move(promise));
+  }
+  
+  // pragma MARK: std::function<void(const DetectorModelInfo& /* result */)>
+  /**
+   * Specialized version of `std::function<void(const DetectorModelInfo&)>`.
+   */
+  using Func_void_DetectorModelInfo = std::function<void(const DetectorModelInfo& /* result */)>;
+  /**
+   * Wrapper class for a `std::function<void(const DetectorModelInfo& / * result * /)>`, this can be used from Swift.
+   */
+  class Func_void_DetectorModelInfo_Wrapper final {
   public:
-    explicit Func_void_bool_Wrapper(std::function<void(bool /* result */)>&& func): _function(std::make_unique<std::function<void(bool /* result */)>>(std::move(func))) {}
-    inline void call(bool result) const noexcept {
+    explicit Func_void_DetectorModelInfo_Wrapper(std::function<void(const DetectorModelInfo& /* result */)>&& func): _function(std::make_unique<std::function<void(const DetectorModelInfo& /* result */)>>(std::move(func))) {}
+    inline void call(DetectorModelInfo result) const noexcept {
       _function->operator()(result);
     }
   private:
-    std::unique_ptr<std::function<void(bool /* result */)>> _function;
+    std::unique_ptr<std::function<void(const DetectorModelInfo& /* result */)>> _function;
   } SWIFT_NONCOPYABLE;
-  Func_void_bool create_Func_void_bool(void* NON_NULL swiftClosureWrapper) noexcept;
-  inline Func_void_bool_Wrapper wrap_Func_void_bool(Func_void_bool value) noexcept {
-    return Func_void_bool_Wrapper(std::move(value));
+  Func_void_DetectorModelInfo create_Func_void_DetectorModelInfo(void* NON_NULL swiftClosureWrapper) noexcept;
+  inline Func_void_DetectorModelInfo_Wrapper wrap_Func_void_DetectorModelInfo(Func_void_DetectorModelInfo value) noexcept {
+    return Func_void_DetectorModelInfo_Wrapper(std::move(value));
   }
   
   // pragma MARK: std::function<void(const std::exception_ptr& /* error */)>
@@ -124,26 +241,49 @@ namespace margelo::nitro::visionengine::bridge::swift {
     return Func_void_std__exception_ptr_Wrapper(std::move(value));
   }
   
-  // pragma MARK: std::vector<OcrObservation>
+  // pragma MARK: std::optional<DetectorResizeMode>
   /**
-   * Specialized version of `std::vector<OcrObservation>`.
+   * Specialized version of `std::optional<DetectorResizeMode>`.
    */
-  using std__vector_OcrObservation_ = std::vector<OcrObservation>;
-  inline std::vector<OcrObservation> create_std__vector_OcrObservation_(size_t size) noexcept {
-    std::vector<OcrObservation> vector;
-    vector.reserve(size);
-    return vector;
+  using std__optional_DetectorResizeMode_ = std::optional<DetectorResizeMode>;
+  inline std::optional<DetectorResizeMode> create_std__optional_DetectorResizeMode_(const DetectorResizeMode& value) noexcept {
+    return std::optional<DetectorResizeMode>(value);
+  }
+  inline bool has_value_std__optional_DetectorResizeMode_(const std::optional<DetectorResizeMode>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline DetectorResizeMode get_std__optional_DetectorResizeMode_(const std::optional<DetectorResizeMode>& optional) noexcept {
+    return optional.value();
   }
   
-  // pragma MARK: std::vector<DetectedObject>
+  // pragma MARK: std::optional<DetectorBoxUnits>
   /**
-   * Specialized version of `std::vector<DetectedObject>`.
+   * Specialized version of `std::optional<DetectorBoxUnits>`.
    */
-  using std__vector_DetectedObject_ = std::vector<DetectedObject>;
-  inline std::vector<DetectedObject> create_std__vector_DetectedObject_(size_t size) noexcept {
-    std::vector<DetectedObject> vector;
-    vector.reserve(size);
-    return vector;
+  using std__optional_DetectorBoxUnits_ = std::optional<DetectorBoxUnits>;
+  inline std::optional<DetectorBoxUnits> create_std__optional_DetectorBoxUnits_(const DetectorBoxUnits& value) noexcept {
+    return std::optional<DetectorBoxUnits>(value);
+  }
+  inline bool has_value_std__optional_DetectorBoxUnits_(const std::optional<DetectorBoxUnits>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline DetectorBoxUnits get_std__optional_DetectorBoxUnits_(const std::optional<DetectorBoxUnits>& optional) noexcept {
+    return optional.value();
+  }
+  
+  // pragma MARK: std::optional<DetectorAccelerator>
+  /**
+   * Specialized version of `std::optional<DetectorAccelerator>`.
+   */
+  using std__optional_DetectorAccelerator_ = std::optional<DetectorAccelerator>;
+  inline std::optional<DetectorAccelerator> create_std__optional_DetectorAccelerator_(const DetectorAccelerator& value) noexcept {
+    return std::optional<DetectorAccelerator>(value);
+  }
+  inline bool has_value_std__optional_DetectorAccelerator_(const std::optional<DetectorAccelerator>& optional) noexcept {
+    return optional.has_value();
+  }
+  inline DetectorAccelerator get_std__optional_DetectorAccelerator_(const std::optional<DetectorAccelerator>& optional) noexcept {
+    return optional.value();
   }
   
   // pragma MARK: std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>
@@ -158,122 +298,6 @@ namespace margelo::nitro::visionengine::bridge::swift {
   using std__weak_ptr_margelo__nitro__camera__HybridFrameSpec_ = std::weak_ptr<margelo::nitro::camera::HybridFrameSpec>;
   inline std__weak_ptr_margelo__nitro__camera__HybridFrameSpec_ weakify_std__shared_ptr_margelo__nitro__camera__HybridFrameSpec_(const std::shared_ptr<margelo::nitro::camera::HybridFrameSpec>& strong) noexcept { return strong; }
   
-  // pragma MARK: std::optional<bool>
-  /**
-   * Specialized version of `std::optional<bool>`.
-   */
-  using std__optional_bool_ = std::optional<bool>;
-  inline std::optional<bool> create_std__optional_bool_(const bool& value) noexcept {
-    return std::optional<bool>(value);
-  }
-  inline bool has_value_std__optional_bool_(const std::optional<bool>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline bool get_std__optional_bool_(const std::optional<bool>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<double>
-  /**
-   * Specialized version of `std::optional<double>`.
-   */
-  using std__optional_double_ = std::optional<double>;
-  inline std::optional<double> create_std__optional_double_(const double& value) noexcept {
-    return std::optional<double>(value);
-  }
-  inline bool has_value_std__optional_double_(const std::optional<double>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline double get_std__optional_double_(const std::optional<double>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::vector<double>
-  /**
-   * Specialized version of `std::vector<double>`.
-   */
-  using std__vector_double_ = std::vector<double>;
-  inline std::vector<double> create_std__vector_double_(size_t size) noexcept {
-    std::vector<double> vector;
-    vector.reserve(size);
-    return vector;
-  }
-  
-  // pragma MARK: std::optional<std::vector<double>>
-  /**
-   * Specialized version of `std::optional<std::vector<double>>`.
-   */
-  using std__optional_std__vector_double__ = std::optional<std::vector<double>>;
-  inline std::optional<std::vector<double>> create_std__optional_std__vector_double__(const std::vector<double>& value) noexcept {
-    return std::optional<std::vector<double>>(value);
-  }
-  inline bool has_value_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline std::vector<double> get_std__optional_std__vector_double__(const std::optional<std::vector<double>>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<OcrScanResult>
-  /**
-   * Specialized version of `std::optional<OcrScanResult>`.
-   */
-  using std__optional_OcrScanResult_ = std::optional<OcrScanResult>;
-  inline std::optional<OcrScanResult> create_std__optional_OcrScanResult_(const OcrScanResult& value) noexcept {
-    return std::optional<OcrScanResult>(value);
-  }
-  inline bool has_value_std__optional_OcrScanResult_(const std::optional<OcrScanResult>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline OcrScanResult get_std__optional_OcrScanResult_(const std::optional<OcrScanResult>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<ObjectScanResult>
-  /**
-   * Specialized version of `std::optional<ObjectScanResult>`.
-   */
-  using std__optional_ObjectScanResult_ = std::optional<ObjectScanResult>;
-  inline std::optional<ObjectScanResult> create_std__optional_ObjectScanResult_(const ObjectScanResult& value) noexcept {
-    return std::optional<ObjectScanResult>(value);
-  }
-  inline bool has_value_std__optional_ObjectScanResult_(const std::optional<ObjectScanResult>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline ObjectScanResult get_std__optional_ObjectScanResult_(const std::optional<ObjectScanResult>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<OcrScanOptions>
-  /**
-   * Specialized version of `std::optional<OcrScanOptions>`.
-   */
-  using std__optional_OcrScanOptions_ = std::optional<OcrScanOptions>;
-  inline std::optional<OcrScanOptions> create_std__optional_OcrScanOptions_(const OcrScanOptions& value) noexcept {
-    return std::optional<OcrScanOptions>(value);
-  }
-  inline bool has_value_std__optional_OcrScanOptions_(const std::optional<OcrScanOptions>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline OcrScanOptions get_std__optional_OcrScanOptions_(const std::optional<OcrScanOptions>& optional) noexcept {
-    return optional.value();
-  }
-  
-  // pragma MARK: std::optional<ObjectScanOptions>
-  /**
-   * Specialized version of `std::optional<ObjectScanOptions>`.
-   */
-  using std__optional_ObjectScanOptions_ = std::optional<ObjectScanOptions>;
-  inline std::optional<ObjectScanOptions> create_std__optional_ObjectScanOptions_(const ObjectScanOptions& value) noexcept {
-    return std::optional<ObjectScanOptions>(value);
-  }
-  inline bool has_value_std__optional_ObjectScanOptions_(const std::optional<ObjectScanOptions>& optional) noexcept {
-    return optional.has_value();
-  }
-  inline ObjectScanOptions get_std__optional_ObjectScanOptions_(const std::optional<ObjectScanOptions>& optional) noexcept {
-    return optional.value();
-  }
-  
   // pragma MARK: std::shared_ptr<HybridVisionEngineSpec>
   /**
    * Specialized version of `std::shared_ptr<HybridVisionEngineSpec>`.
@@ -286,40 +310,22 @@ namespace margelo::nitro::visionengine::bridge::swift {
   using std__weak_ptr_HybridVisionEngineSpec_ = std::weak_ptr<HybridVisionEngineSpec>;
   inline std__weak_ptr_HybridVisionEngineSpec_ weakify_std__shared_ptr_HybridVisionEngineSpec_(const std::shared_ptr<HybridVisionEngineSpec>& strong) noexcept { return strong; }
   
-  // pragma MARK: Result<std::shared_ptr<Promise<bool>>>
-  using Result_std__shared_ptr_Promise_bool___ = Result<std::shared_ptr<Promise<bool>>>;
-  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::shared_ptr<Promise<bool>>& value) noexcept {
-    return Result<std::shared_ptr<Promise<bool>>>::withValue(value);
+  // pragma MARK: Result<std::shared_ptr<Promise<DetectorModelInfo>>>
+  using Result_std__shared_ptr_Promise_DetectorModelInfo___ = Result<std::shared_ptr<Promise<DetectorModelInfo>>>;
+  inline Result_std__shared_ptr_Promise_DetectorModelInfo___ create_Result_std__shared_ptr_Promise_DetectorModelInfo___(const std::shared_ptr<Promise<DetectorModelInfo>>& value) noexcept {
+    return Result<std::shared_ptr<Promise<DetectorModelInfo>>>::withValue(value);
   }
-  inline Result_std__shared_ptr_Promise_bool___ create_Result_std__shared_ptr_Promise_bool___(const std::exception_ptr& error) noexcept {
-    return Result<std::shared_ptr<Promise<bool>>>::withError(error);
-  }
-  
-  // pragma MARK: Result<OcrScanResult>
-  using Result_OcrScanResult_ = Result<OcrScanResult>;
-  inline Result_OcrScanResult_ create_Result_OcrScanResult_(const OcrScanResult& value) noexcept {
-    return Result<OcrScanResult>::withValue(value);
-  }
-  inline Result_OcrScanResult_ create_Result_OcrScanResult_(const std::exception_ptr& error) noexcept {
-    return Result<OcrScanResult>::withError(error);
+  inline Result_std__shared_ptr_Promise_DetectorModelInfo___ create_Result_std__shared_ptr_Promise_DetectorModelInfo___(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<Promise<DetectorModelInfo>>>::withError(error);
   }
   
-  // pragma MARK: Result<ObjectScanResult>
-  using Result_ObjectScanResult_ = Result<ObjectScanResult>;
-  inline Result_ObjectScanResult_ create_Result_ObjectScanResult_(const ObjectScanResult& value) noexcept {
-    return Result<ObjectScanResult>::withValue(value);
+  // pragma MARK: Result<std::shared_ptr<HybridFrameSessionSpec>>
+  using Result_std__shared_ptr_HybridFrameSessionSpec__ = Result<std::shared_ptr<HybridFrameSessionSpec>>;
+  inline Result_std__shared_ptr_HybridFrameSessionSpec__ create_Result_std__shared_ptr_HybridFrameSessionSpec__(const std::shared_ptr<HybridFrameSessionSpec>& value) noexcept {
+    return Result<std::shared_ptr<HybridFrameSessionSpec>>::withValue(value);
   }
-  inline Result_ObjectScanResult_ create_Result_ObjectScanResult_(const std::exception_ptr& error) noexcept {
-    return Result<ObjectScanResult>::withError(error);
-  }
-  
-  // pragma MARK: Result<AnalyzeResult>
-  using Result_AnalyzeResult_ = Result<AnalyzeResult>;
-  inline Result_AnalyzeResult_ create_Result_AnalyzeResult_(const AnalyzeResult& value) noexcept {
-    return Result<AnalyzeResult>::withValue(value);
-  }
-  inline Result_AnalyzeResult_ create_Result_AnalyzeResult_(const std::exception_ptr& error) noexcept {
-    return Result<AnalyzeResult>::withError(error);
+  inline Result_std__shared_ptr_HybridFrameSessionSpec__ create_Result_std__shared_ptr_HybridFrameSessionSpec__(const std::exception_ptr& error) noexcept {
+    return Result<std::shared_ptr<HybridFrameSessionSpec>>::withError(error);
   }
 
 } // namespace margelo::nitro::visionengine::bridge::swift

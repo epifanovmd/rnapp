@@ -1,56 +1,95 @@
 import type { IScanRect } from "@shared/lib/scan-overlay";
-import type { OcrRecognitionMode } from "react-native-vision-engine";
+import type {
+  DetectorModelConfig,
+  OcrRecognitionMode,
+} from "react-native-vision-engine";
 
 /** Нормализованный [0..1] прямоугольник выпрямленного кадра, top-left origin */
 export type IOcrScanRect = IScanRect;
 
-/** OCR-область кадра в выпрямленных координатах */
+/** Строка текста кадра в выпрямленных координатах */
 export interface IOcrScanObservation {
   text: string;
   confidence: number;
   rect: IOcrScanRect;
-  fromDetector: boolean;
-  /**
-   * Класс региона детектора, из кропа которого прочитан текст;
-   * `FULL_FRAME_REGION_CLASS` (-1) — область прочитана полнокадрово.
-   * Разбор многоклассовых моделей — через `selectByRegionClass`.
-   */
-  regionClassIndex: number;
+}
+
+/** Регион детектора кадра и текст, прочитанный из его кропа */
+export interface IOcrScanRegion {
+  /** Имя класса модели; пустая строка — модель имён не содержит */
+  label: string;
+  /** Индекс класса модели; -1 — класс не сопоставлен индексу */
+  classIndex: number;
+  score: number;
+  rect: IOcrScanRect;
+  /** Кроп прочитан; false — пропущен (слишком мал для OCR) */
+  read: boolean;
+  observations: IOcrScanObservation[];
+}
+
+/**
+ * Результат OCR-конвейера кадра: регионы детектора с их текстом и
+ * полнокадровый текст (без детектора либо при `fullFrameFallback`).
+ */
+export interface IOcrScanFrame {
+  regions: IOcrScanRegion[];
+  fullFrame: IOcrScanObservation[];
+  /** Ширина выпрямленного кадра, px */
+  imageWidth: number;
+  /** Высота выпрямленного кадра, px */
+  imageHeight: number;
 }
 
 /** Настройки нативного распознавания текста; не заданное берётся из `OCR_SCAN_DEFAULTS` */
 export interface IOcrScanRecognitionConfig {
   /** fast — быстрее, accurate — точнее (iOS) */
   mode?: OcrRecognitionMode;
-  /** Порог уверенности области, ниже которого она отбрасывается нативно */
+  /** Порог уверенности строки, ниже которого она отбрасывается */
   minConfidence?: number;
-  /** Максимум областей в результате кадра */
+  /** Максимум строк на область чтения (регион или полный кадр) */
   maxObservations?: number;
   /**
    * Читать полный кадр, когда кропы детектора не дали текста. Без
    * детектора OCR всегда полнокадровый.
    */
   fullFrameFallback?: boolean;
+  /** Языки распознавания в порядке приоритета (iOS, коды BCP 47) */
+  languages?: string[];
+  /** Минимальная сторона кропа региона, px: меньшие не читаются */
+  minRoiSizePx?: number;
 }
 
 /**
- * Детектор регионов интереса домена. Модель кладётся вручную:
- * iOS — `ios/MLModels/<modelName>.mlpackage`, Android — assets
- * `<modelName>.tflite`. Не заданные пороги берутся из `DETECTOR_DEFAULTS`.
+ * Регион детектора, который читает OCR. Не заданные пороги берутся из
+ * общих полей `IOcrScanDetectorConfig`.
  */
-export interface IOcrScanDetectorConfig {
-  /** Имя модели без расширения */
-  modelName: string;
-  /** Метки классов по индексу — подписи регионов в оверлее */
-  classLabels?: string[];
-  /**
-   * Индексы классов, чьи регионы прогоняются через OCR; не задано или
-   * пусто — все классы модели.
-   */
-  classes?: number[];
+export interface IOcrScanRegionConfig {
+  /** Имя класса модели */
+  label: string;
+  /** Подпись региона в оверлее; по умолчанию — имя класса */
+  title?: string;
   /** Порог уверенности детекции */
   minScore?: number;
-  /** Максимум регионов кадра, прогоняемых через OCR */
+  /** Максимум регионов класса за кадр */
+  maxCount?: number;
+  /** Расширение региона перед OCR, доля его размеров */
+  padding?: number;
+}
+
+/**
+ * Детектор регионов интереса домена. Модель кладётся в приложение
+ * (iOS — `ios/MLModels/<name>.mlpackage`, Android — assets `<name>.tflite`);
+ * классы связываются с доменом по именам из метаданных модели.
+ * Не заданные поля берутся из `REGION_DEFAULTS`/`VISION_ENGINE_DEFAULTS`.
+ */
+export interface IOcrScanDetectorConfig {
+  /** Модель и способ её прогона */
+  model: DetectorModelConfig;
+  /** Регионы, которые читает OCR; не задано — все классы модели */
+  regions?: IOcrScanRegionConfig[];
+  /** Порог уверенности детекции */
+  minScore?: number;
+  /** Максимум регионов кадра, прогоняемых через OCR; по умолчанию — сумма квот `regions` */
   maxRegions?: number;
   /** Максимум регионов одного класса за кадр */
   maxRegionsPerClass?: number;
@@ -76,10 +115,8 @@ export interface IOcrScanCandidate {
  * выполняются на потоке камеры.
  */
 export interface IOcrScanDomain<TAttributes> {
-  /** OCR-области кадра → кандидаты (валидные первыми) */
-  extractCandidates: (
-    observations: IOcrScanObservation[],
-  ) => IOcrScanCandidate[];
+  /** Кадр → кандидаты (валидные первыми) */
+  extractCandidates: (frame: IOcrScanFrame) => IOcrScanCandidate[];
   /** Сколько сканов подряд должны дать одно и то же валидное значение */
   confirmStreak: number;
   /** Детектор регионов интереса; null — полнокадровый OCR */
@@ -92,9 +129,8 @@ export interface IOcrScanDomain<TAttributes> {
   suspendOnConfirm: boolean;
   /** Начальное значение накапливаемых атрибутов */
   emptyAttributes: TAttributes;
-  /** Дополнительные атрибуты кадра (веса, регион, …); null — домен без атрибутов */
-  extractAttributes:
-    ((observations: IOcrScanObservation[]) => TAttributes) | null;
+  /** Дополнительные атрибуты кадра; null — домен без атрибутов */
+  extractAttributes: ((frame: IOcrScanFrame) => TAttributes) | null;
   /** Слияние атрибутов между кадрами */
   mergeAttributes:
     ((accumulated: TAttributes, next: TAttributes) => TAttributes) | null;
@@ -132,12 +168,12 @@ export interface IOcrScanResolved {
 
 /** Диагностика кадра для dev-бейджа (собирается только в __DEV__) */
 export interface IScanDiagnostics {
-  /** Длительность нативной обработки кадра, мс */
+  /** Длительность обработки кадра, мс */
   durationMs: number;
   /** Кадр обрабатывался через детектор регионов */
   detectorUsed: boolean;
-  /** Число областей/объектов в результате */
+  /** Число строк/объектов в результате */
   resultCount: number;
-  /** Число регионов, которые детектор отдал под OCR */
+  /** Число регионов детектора, прочитанных OCR */
   regionCount: number;
 }
