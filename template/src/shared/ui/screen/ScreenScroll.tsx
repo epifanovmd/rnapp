@@ -1,3 +1,4 @@
+import { readAnimatedNumber, TAnimatedNumber } from "@shared/lib/animation";
 import {
   usePullToRefreshHaptics,
   usePullToRefreshScroll,
@@ -35,8 +36,11 @@ export interface IScreenScrollProps {
   onRefresh?: () => void | Promise<unknown>;
   /** Доп. отступ снизу (таб-бар); safe-area добавляется сам. */
   bottomInset?: number;
-  /** Отступ сверху (прозрачный навбар); он же отступ индикатора. */
-  topInset?: number;
+  /**
+   * Отступ сверху (прозрачный навбар); он же отступ индикатора. Shared value
+   * (`useNavbarInset()`) — контент следует за живой высотой панели без рывка.
+   */
+  topInset?: TAnimatedNumber;
   gap?: number;
   /** Телеметрия экрана (navbar, tab bar, HiddenBar): в неё пробрасываются события скролла. */
   telemetry?: IScrollTelemetry;
@@ -105,6 +109,10 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
     transform: [{ translateY: contentTranslateY.value }],
   }));
 
+  const insetStyle = useAnimatedStyle(() => ({
+    height: readAnimatedNumber(topInset),
+  }));
+
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>
       {!!onRefresh && (
@@ -119,11 +127,7 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
             ScrollViewComponent={ScreenScrollView}
             contentContainerStyle={[
               styles.content,
-              {
-                gap,
-                paddingTop: 12 + topInset,
-                paddingBottom: 16 + bottom + bottomInset,
-              },
+              { paddingBottom: 16 + bottom + bottomInset },
             ]}
             onScroll={telemetry.scrollHandler}
             scrollEventThrottle={16}
@@ -133,7 +137,8 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
             showsVerticalScrollIndicator={false}
             bottomOffset={16}
           >
-            {children}
+            <Animated.View pointerEvents={"none"} style={insetStyle} />
+            <View style={[styles.body, { gap }]}>{children}</View>
           </KeyboardAwareScrollView>
         </ScreenScrollGestureContext.Provider>
       </Animated.View>
@@ -147,5 +152,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
+  },
+  body: {
+    paddingTop: 12,
   },
 });

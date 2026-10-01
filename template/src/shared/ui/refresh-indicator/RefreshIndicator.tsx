@@ -1,3 +1,4 @@
+import { readAnimatedNumber, TAnimatedNumber } from "@shared/lib/animation";
 import { IPullToRefreshController } from "@shared/lib/pull-to-refresh";
 import { useTheme } from "@shared/lib/theme";
 import React, { FC, memo, useState } from "react";
@@ -29,8 +30,8 @@ export interface IRefreshIndicatorProps {
     IPullToRefreshController,
     "pullDistance" | "progress" | "state"
   >;
-  /** Отступ сверху (высота navbar и т.п.) */
-  topOffset?: number;
+  /** Отступ сверху (высота navbar и т.п.); shared value — следует за живой высотой. */
+  topOffset?: TAnimatedNumber;
 }
 
 /**
@@ -68,6 +69,7 @@ export const RefreshIndicator: FC<IRefreshIndicatorProps> = memo(
       // refreshing — всегда видим (индикатор удерживается на holdDistance);
       // pulling и settling — прозрачность следует за протяжкой: появляется
       // по мере натяжения и так же плавно затухает при возврате вверх.
+      top: readAnimatedNumber(topOffset),
       opacity: state.value === "refreshing" ? 1 : Math.min(1, progress.value),
       transform: [{ translateY: pullDistance.value - INDICATOR_SIZE * 2 }],
     }));
@@ -77,7 +79,7 @@ export const RefreshIndicator: FC<IRefreshIndicatorProps> = memo(
         pointerEvents={"none"}
         style={[
           ss.container,
-          { top: topOffset, backgroundColor: colors.surface },
+          { backgroundColor: colors.surface },
           containerStyle,
         ]}
       >

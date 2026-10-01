@@ -5,7 +5,7 @@ import {
   ScreenScroll,
   Text,
   TextField,
-  useNavbarHeight,
+  useNavbarInset,
 } from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 
@@ -13,7 +13,7 @@ const ROWS = Array.from({ length: 8 }, (_, index) => index + 1);
 
 /** Демо ScreenScroll: pull-to-refresh (Promise) и поля ввода над клавиатурой. */
 export const ScreenTab: FC = memo(() => {
-  const navbarHeight = useNavbarHeight();
+  const navbarInset = useNavbarInset();
   const telemetry = useFocusedScroll();
   const [generation, setGeneration] = useState(0);
   const [comment, setComment] = useState("");
@@ -32,7 +32,7 @@ export const ScreenTab: FC = memo(() => {
 
   return (
     <ScreenScroll
-      topInset={navbarHeight}
+      topInset={navbarInset}
       telemetry={telemetry}
       onRefresh={onRefresh}
     >
