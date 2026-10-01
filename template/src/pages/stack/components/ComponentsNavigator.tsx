@@ -24,6 +24,7 @@ import {
   ModalsTab,
   NotificationsTab,
   PickersTab,
+  ScreenTab,
   TypographyTab,
 } from "./tabs";
 import { TicketTab } from "./tabs/Ticket";
@@ -83,6 +84,7 @@ export const ComponentsNavigator: FC<IComponentsNavigatorProps> = ({
         <TopTab.Screen name={"Layout"} component={LayoutTab} />
         <TopTab.Screen name={"Lists"} component={ListsTab} />
         <TopTab.Screen name={"Data"} component={DataTab} />
+        <TopTab.Screen name={"Screen"} component={ScreenTab} />
         <TopTab.Screen name={"Feedback"} component={FeedbackTab} />
         <TopTab.Screen name={"Media"} component={MediaTab} />
         <TopTab.Screen name={"Carousel"} component={CarouselTab} />

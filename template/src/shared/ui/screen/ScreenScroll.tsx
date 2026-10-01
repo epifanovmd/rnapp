@@ -1,18 +1,45 @@
+import {
+  usePullToRefreshHaptics,
+  usePullToRefreshScroll,
+} from "@shared/lib/pull-to-refresh";
+import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
-import React, { FC, PropsWithChildren } from "react";
-import { RefreshControl, StyleSheet } from "react-native";
+import React, {
+  FC,
+  PropsWithChildren,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
+import { StyleSheet, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { RefreshIndicator } from "../refresh-indicator";
+import {
+  ScreenScrollGestureContext,
+  ScreenScrollView,
+} from "./ScreenScrollView";
+
+/** Сколько ждать `refreshing = true` после void-`onRefresh`, мс. */
+const REFRESHING_GRACE_MS = 300;
+
 export interface IScreenScrollProps {
-  /** Pull-to-refresh: состояние и обработчик. */
+  /**
+   * Pull-to-refresh. Promise из onRefresh держит индикатор до завершения;
+   * без Promise завершение — по переходу refreshing из true в false (если
+   * refreshing не включился за REFRESHING_GRACE_MS — сразу).
+   */
   refreshing?: boolean;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<unknown>;
   /** Доп. отступ снизу (таб-бар); safe-area добавляется сам. */
   bottomInset?: number;
-  /** Отступ сверху (прозрачный навбар). */
+  /** Отступ сверху (прозрачный навбар); он же отступ индикатора. */
   topInset?: number;
   gap?: number;
+  /** Телеметрия экрана (navbar, tab bar, HiddenBar): в неё пробрасываются события скролла. */
+  telemetry?: IScrollTelemetry;
 }
 
 /** Прокручиваемый экран: отступы, клавиатура и pull-to-refresh. */
@@ -22,43 +49,102 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
   bottomInset = 0,
   topInset = 0,
   gap = 12,
+  telemetry: screenTelemetry,
   children,
 }) => {
   const { colors } = useTheme();
   const { bottom } = useSafeAreaInsets();
 
+  const finishRef = useRef<(() => void) | null>(null);
+  const wasRefreshing = useRef(refreshing);
+
+  useEffect(() => {
+    if (refreshing) {
+      wasRefreshing.current = true;
+    } else if (wasRefreshing.current) {
+      wasRefreshing.current = false;
+      finishRef.current?.();
+      finishRef.current = null;
+    }
+  }, [refreshing]);
+
+  const handleRefresh = useCallback(() => {
+    const result = onRefresh?.();
+
+    if (result && typeof result.then === "function") {
+      return result;
+    }
+
+    return new Promise<void>(resolve => {
+      finishRef.current = resolve;
+      // Экран не перевёл `refreshing` в true — ждать нечего, иначе индикатор
+      // висел бы бесконечно.
+      setTimeout(() => {
+        if (!wasRefreshing.current && finishRef.current === resolve) {
+          finishRef.current = null;
+          resolve();
+        }
+      }, REFRESHING_GRACE_MS);
+    });
+  }, [onRefresh]);
+
+  // Протяжку ведёт собственная телеметрия: общая телеметрия табов несёт
+  // скролл соседних вкладок.
+  const telemetry = useScrollTelemetry(screenTelemetry?.handlers);
+  const handleStateChange = usePullToRefreshHaptics(true);
+
+  const ptr = usePullToRefreshScroll({
+    onRefresh: handleRefresh,
+    enabled: !!onRefresh,
+    telemetry,
+    onStateChange: handleStateChange,
+  });
+  const { contentTranslateY } = ptr;
+
+  const translateStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: contentTranslateY.value }],
+  }));
+
   return (
-    <KeyboardAwareScrollView
-      style={{ backgroundColor: colors.background }}
-      contentContainerStyle={[
-        styles.content,
-        {
-          gap,
-          paddingTop: 12 + topInset,
-          paddingBottom: 16 + bottom + bottomInset,
-        },
-      ]}
-      keyboardShouldPersistTaps={"handled"}
-      showsVerticalScrollIndicator={false}
-      bottomOffset={16}
-      refreshControl={
-        onRefresh ? (
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.textSecondary}
-            colors={[colors.primary]}
-            progressViewOffset={topInset}
-          />
-        ) : undefined
-      }
-    >
-      {children}
-    </KeyboardAwareScrollView>
+    <View style={[styles.fill, { backgroundColor: colors.background }]}>
+      {!!onRefresh && (
+        <RefreshIndicator controller={ptr} topOffset={topInset} />
+      )}
+
+      <Animated.View style={[styles.fill, translateStyle]}>
+        <ScreenScrollGestureContext.Provider
+          value={onRefresh ? ptr.gesture : null}
+        >
+          <KeyboardAwareScrollView
+            ScrollViewComponent={ScreenScrollView}
+            contentContainerStyle={[
+              styles.content,
+              {
+                gap,
+                paddingTop: 12 + topInset,
+                paddingBottom: 16 + bottom + bottomInset,
+              },
+            ]}
+            onScroll={telemetry.scrollHandler}
+            scrollEventThrottle={16}
+            bounces
+            alwaysBounceVertical={!!onRefresh}
+            keyboardShouldPersistTaps={"handled"}
+            showsVerticalScrollIndicator={false}
+            bottomOffset={16}
+          >
+            {children}
+          </KeyboardAwareScrollView>
+        </ScreenScrollGestureContext.Provider>
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  fill: {
+    flex: 1,
+  },
   content: {
     paddingHorizontal: 16,
   },

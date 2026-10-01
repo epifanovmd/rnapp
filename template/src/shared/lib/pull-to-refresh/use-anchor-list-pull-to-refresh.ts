@@ -3,14 +3,10 @@ import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
 import { createElement, ReactElement, useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import { trigger } from "react-native-haptic-feedback";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
-import {
-  IPullToRefreshConfig,
-  TPullToRefreshState,
-} from "./pull-to-refresh.types";
+import { IPullToRefreshConfig } from "./pull-to-refresh.types";
+import { usePullToRefreshHaptics } from "./use-pull-to-refresh-haptics";
 import { usePullToRefreshScroll } from "./use-pull-to-refresh-scroll";
 
 export interface IAnchorListPullToRefreshConfig extends IPullToRefreshConfig {
@@ -32,8 +28,6 @@ export type TAnchorListPullToRefreshProps = Required<
   >
 >;
 
-const triggerHaptic = () => trigger("impactMedium");
-
 /**
  * Pull-to-refresh для AnchorList: связка usePullToRefreshScroll со списком.
  *
@@ -53,21 +47,7 @@ export const useAnchorListPullToRefresh = ({
 }: IAnchorListPullToRefreshConfig) => {
   const telemetry = useScrollTelemetry(screenTelemetry?.handlers);
 
-  const handleStateChange = useCallback(
-    (prev: TPullToRefreshState, next: TPullToRefreshState) => {
-      "worklet";
-      // Хаптика срабатывания: armed (release-режим) или запуск из протяжки
-      // (threshold-режим); программный refresh() не вибрирует.
-      if (
-        haptics &&
-        (next === "armed" || (next === "refreshing" && prev === "pulling"))
-      ) {
-        scheduleOnRN(triggerHaptic);
-      }
-      onStateChange?.(prev, next);
-    },
-    [haptics, onStateChange],
-  );
+  const handleStateChange = usePullToRefreshHaptics(haptics, onStateChange);
 
   const ptr = usePullToRefreshScroll({
     ...config,

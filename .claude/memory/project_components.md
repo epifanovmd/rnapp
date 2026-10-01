@@ -45,7 +45,11 @@ double-tap в точку, swipe-to-dismiss; SRP-разделение: `use-zoom-
 `use-dismiss-gesture` (только смахивание, собственный translateY), `use-viewer-gestures`
 (композиция + animatedStyle + reset); кастомизация render-пропсами
 renderHeader/renderFooter/renderImage; FastImage + previewUri + префетч соседних),
-keyboard-scroll-view (проп `insetEnd`, компенсация внутри), fab (круглая кнопка
+keyboard-scroll-view (проп `insetEnd`, компенсация внутри),
+screen/ScreenScroll (KeyboardAwareScrollView + `usePullToRefreshScroll` + RefreshIndicator, без
+системного RefreshControl; GestureDetector ставится через `ScrollViewComponent={ScreenScrollView}` —
+KASV оборачивает скролл в ClippingScrollView, жест приходит контекстом; `onRefresh` → Promise держит
+индикатор, void — завершение по refreshing true→false; `telemetry` экрана чейнится в свою), fab (круглая кнопка
 действия), actions,
 spinner (единый индикатор кита, бывший animated-refreshing; SRP-разделение: Spinner —
 разметка, `hooks/useSpinnerAnimation` — движок (фаза+вращение), поведение — worklet-стратегия
@@ -74,7 +78,8 @@ Media (Image/ImageViewing), Carousel (обёртка без настроек/sto
 Notifications, Modals, Dialogs, Pickers, Ticket, Forms (`tabs/forms/`: Select-варианты, форма
 useZodForm+Form со всеми *FormField, ModalSheet-форма с nested Select/ActionSheet), Data
 (`tabs/data/`: Tag/ListItem/InfoRow/CopyableText/StatCard/Notice/EmptyState/ScreenState/QrCode/
-IconButton/useConfirm).
+IconButton/useConfirm), Screen (`tabs/ScreenTab.tsx`: ScreenScroll с PTR в Promise-режиме + поля ввода внизу —
+отдельная вкладка, т.к. DemoScreen сам скролл).
 Заголовков-компонента (title) в ките нет — обычный `Text` с textStyle.
 Обёртка демо-таба — `tabs/DemoScreen.tsx` (`DemoScreen` — скролл с телеметрией HiddenBar,
 `DemoSection` — секция с заголовком/описанием).
