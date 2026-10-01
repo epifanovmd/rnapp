@@ -75,9 +75,11 @@ export const BalancedRow = memo<BalancedRowProps>(
 );
 
 const SS = StyleSheet.create({
+  // Боковые зоны по центру высоты ряда: центр бывает выше (заголовок в две
+  // строки), и кнопки по краям не должны прилипать к верху.
   side: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "flex-start",
   },
   rightSide: {
@@ -85,7 +87,7 @@ const SS = StyleSheet.create({
   },
   measured: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   center: {
     flexGrow: 1,
