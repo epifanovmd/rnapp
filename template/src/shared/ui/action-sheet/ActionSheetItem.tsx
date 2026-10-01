@@ -2,31 +2,31 @@ import { useTheme } from "@shared/lib/theme";
 import React, { FC, memo } from "react";
 import { StyleSheet } from "react-native";
 
-import { Col, Row } from "../flex-view";
+import { Col } from "../flex-view";
 import { Icon } from "../icon";
 import { Text } from "../text";
 import { Touchable } from "../touchable";
 import type { IActionSheetItem } from "./action-sheet.types";
-
-const ICON_BOX = 40;
 
 interface IActionSheetItemProps {
   item: IActionSheetItem;
   onPress: (key: string) => void;
 }
 
-/** Строка шторки: иконка в круге, заголовок, подпись и стрелка. */
+/** Действие шторки: иконка и подпись; опасное — красным, без стрелки перехода. */
 export const ActionSheetItem: FC<IActionSheetItemProps> = memo(
   ({ item, onPress }) => {
     const { colors } = useTheme();
-    const accent = item.destructive ? colors.danger : colors.primary;
+    const tone = item.destructive ? colors.danger : colors.textPrimary;
 
     return (
       <Touchable
-        row={true}
+        row
         alignItems={"center"}
-        gap={12}
-        pa={16}
+        gap={14}
+        ph={16}
+        minHeight={52}
+        pv={12}
         disabled={item.disabled}
         style={item.disabled ? styles.disabled : undefined}
         ctx={item.key}
@@ -35,40 +35,27 @@ export const ActionSheetItem: FC<IActionSheetItemProps> = memo(
         accessibilityLabel={item.title}
         accessibilityHint={item.description}
       >
-        {item.icon && (
-          <Row
-            centerContent={true}
-            style={[styles.iconBox, { backgroundColor: accent }]}
-          >
-            <Icon name={item.icon} size={20} color={colors.primaryForeground} />
-          </Row>
-        )}
+        {!!item.icon && <Icon name={item.icon} size={20} color={tone} />}
         <Col flex={1} gap={2}>
           <Text
-            textStyle={"Title_S1"}
+            textStyle={"Body_L1"}
             color={item.destructive ? "danger" : "textPrimary"}
           >
             {item.title}
           </Text>
           {!!item.description && (
-            <Text textStyle={"Caption_M1"} color={"textSecondary"}>
+            <Text textStyle={"Caption_M3"} color={"textSecondary"}>
               {item.description}
             </Text>
           )}
         </Col>
-        <Icon name={"chevronRight"} size={18} color={colors.textTertiary} />
       </Touchable>
     );
   },
 );
 
 const styles = StyleSheet.create({
-  iconBox: {
-    width: ICON_BOX,
-    height: ICON_BOX,
-    borderRadius: ICON_BOX / 2,
-  },
   disabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
 });
