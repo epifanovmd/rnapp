@@ -4,6 +4,7 @@ import {
   NavLink,
   RadioGroup,
   Row,
+  Segmented,
   Switch,
   SwitchTheme,
   Text,
@@ -19,6 +20,23 @@ const SIZES = [
   { label: "Недоступный", value: "xl", disabled: true },
 ];
 
+const PERIODS = [
+  { label: "День", value: "day" },
+  { label: "Неделя", value: "week" },
+  { label: "Месяц", value: "month" },
+];
+
+const CATEGORIES = [
+  "Все",
+  "Новости",
+  "Спорт",
+  "Технологии",
+  "Наука",
+  "Культура",
+  "Путешествия",
+  "Еда",
+].map(label => ({ label, value: label }));
+
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const ControlsTab: FC = memo(() => {
@@ -27,6 +45,9 @@ export const ControlsTab: FC = memo(() => {
   const [checked, setChecked] = useState(true);
   const [circleChecked, setCircleChecked] = useState(false);
   const [size, setSize] = useState("m");
+  const [period, setPeriod] = useState("week");
+  const [category, setCategory] = useState("Все");
+  const [segmentSize, setSegmentSize] = useState("m");
   const [tags, setTags] = useState<string[]>(["react"]);
 
   const toggleTag = (tag: string) =>
@@ -96,6 +117,47 @@ export const ControlsTab: FC = memo(() => {
         />
         <Text color={"textSecondary"} textStyle={"Caption_M3"}>
           Выбрано: {size}
+        </Text>
+      </DemoSection>
+
+      <DemoSection
+        title={"Segmented"}
+        description={
+          "Индикатор скользит между сегментами, цвет подписи анимирован"
+        }
+      >
+        <Segmented
+          options={PERIODS}
+          value={period}
+          onValueChange={setPeriod}
+          disabled={disabled}
+        />
+        <Segmented
+          options={SIZES}
+          value={segmentSize}
+          onValueChange={setSegmentSize}
+          disabled={disabled}
+        />
+        <Text color={"textSecondary"} textStyle={"Caption_M3"}>
+          Последний сегмент — disabled
+        </Text>
+      </DemoSection>
+
+      <DemoSection
+        title={"Segmented scrollable"}
+        description={
+          "Ширина по контенту, прокрутка и автоцентрирование активного сегмента"
+        }
+      >
+        <Segmented
+          scrollable
+          options={CATEGORIES}
+          value={category}
+          onValueChange={setCategory}
+          disabled={disabled}
+        />
+        <Text color={"textSecondary"} textStyle={"Caption_M3"}>
+          Выбрано: {category}
         </Text>
       </DemoSection>
 

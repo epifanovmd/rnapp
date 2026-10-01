@@ -12,11 +12,14 @@ import {
   ButtonsTab,
   CarouselTab,
   ControlsTab,
+  DataTab,
   DialogsTab,
   FeedbackTab,
+  FormsTab,
   IconsTab,
   InputsTab,
   LayoutTab,
+  ListsTab,
   MediaTab,
   ModalsTab,
   NotificationsTab,
@@ -76,7 +79,10 @@ export const ComponentsNavigator: FC<IComponentsNavigatorProps> = ({
         <TopTab.Screen name={"Icons"} component={IconsTab} />
         <TopTab.Screen name={"Inputs"} component={InputsTab} />
         <TopTab.Screen name={"Controls"} component={ControlsTab} />
+        <TopTab.Screen name={"Forms"} component={FormsTab} />
         <TopTab.Screen name={"Layout"} component={LayoutTab} />
+        <TopTab.Screen name={"Lists"} component={ListsTab} />
+        <TopTab.Screen name={"Data"} component={DataTab} />
         <TopTab.Screen name={"Feedback"} component={FeedbackTab} />
         <TopTab.Screen name={"Media"} component={MediaTab} />
         <TopTab.Screen name={"Carousel"} component={CarouselTab} />

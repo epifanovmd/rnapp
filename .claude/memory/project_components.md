@@ -71,7 +71,10 @@ skeleton (компаунд: `Skeleton` — блок любой формы (width
 Controls (Switch/Checkbox/RadioGroup/Chip/NavLink/SwitchTheme), Layout (Row/Col/BalancedRow/
 Divider/Collapsable), Feedback (ProgressBar/Skeleton/Badge/Avatar/Spinner),
 Media (Image/ImageViewing), Carousel (обёртка без настроек/stories/parallax/тикер/useCarousel),
-Notifications, Modals, Dialogs, Pickers, Ticket.
+Notifications, Modals, Dialogs, Pickers, Ticket, Forms (`tabs/forms/`: Select-варианты, форма
+useZodForm+Form со всеми *FormField, ModalSheet-форма с nested Select/ActionSheet), Data
+(`tabs/data/`: Tag/ListItem/InfoRow/CopyableText/StatCard/Notice/EmptyState/ScreenState/QrCode/
+IconButton/useConfirm).
 Заголовков-компонента (title) в ките нет — обычный `Text` с textStyle.
 Обёртка демо-таба — `tabs/DemoScreen.tsx` (`DemoScreen` — скролл с телеметрией HiddenBar,
 `DemoSection` — секция с заголовком/описанием).
@@ -154,7 +157,11 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 - `TextField` внутри любой gorhom-шторки — цель клавиатуры (`useSheetKeyboardTarget`,
   повторяет логику `BottomSheetTextInput`), отдельный `BottomSheetTextInput` не нужен.
 - `Select`/`SelectFormField` (шторка со списком и поиском), `Segmented`/
-  `SegmentedFormField`, `NumberFieldFormField` (число или `null`).
+  `SegmentedFormField`, — `Segmented`: индикатор-подложка (Reanimated, x/width из onLayout
+  сегментов, интерполяция по дробному индексу), анимированный цвет подписи (`SegmentedItem`),
+  `scrollable` с автоцентрированием активного, внешний `progress: SharedValue<number>`;
+  `SegmentedTabBar` — tabBar для material-top-tabs (`usePagerProgress` зеркалит RN Animated
+  `position` в shared value через addListener), value сегмента = `route.key`, `NumberFieldFormField` (число или `null`).
 - `Tag` (метка статуса; `Badge` — счётчик), `ListItem`, `EmptyState`, `ScreenState`,
   `ScreenScroll`, `InfoRow`, `CopyableText`, `StatCard`, `Notice`, `QrCode`
   (ядро `qrcode/lib/core/qrcode` — основная точка входа пакета тянет `fs`),

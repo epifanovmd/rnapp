@@ -9,3 +9,4 @@
 - [Patterns](project_patterns.md) — паттерны (store/хук/страница/форма)
 - [Build](project_build.md) — команды, multi-env, неочевидное по сборке
 - [Aliases](project_aliases.md) — path aliases
+- [AnchorList](project_anchorlist.md) — журнал проблем AnchorList по экранам WG Admin
