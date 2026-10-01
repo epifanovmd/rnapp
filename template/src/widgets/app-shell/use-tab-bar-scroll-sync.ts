@@ -16,7 +16,7 @@ const TOGGLE_THRESHOLD = 12;
 export const useTabBarScrollSync = (scroll: IScrollValues) => {
   const tabBar = useTabBar();
   // по одному значению: захват объекта целиком клонировал бы его на UI-поток
-  const { offsetY, overscrollTop, overscrollBottom } = scroll;
+  const { offsetY, overscrollTop, overscrollBottom, maxOffsetY } = scroll;
   const accumulated = useSharedValue(0);
   const isFocused = useIsFocused();
   const { offset: barOffset } = tabBar;
@@ -42,6 +42,7 @@ export const useTabBarScrollSync = (scroll: IScrollValues) => {
         offset,
         overscrollTop.value,
         overscrollBottom.value,
+        maxOffsetY.value,
       );
 
       if (edge) {

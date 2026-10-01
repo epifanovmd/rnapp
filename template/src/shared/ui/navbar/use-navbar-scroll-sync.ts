@@ -14,8 +14,14 @@ const MAX_FOLLOW_JUMP = 200;
 export const useNavbarScrollSync = (scroll: IScrollValues) => {
   const navbar = useNavbar();
   // по одному значению: захват объекта целиком клонировал бы его на UI-поток
-  const { offsetY, overscrollTop, overscrollBottom, isDragging, isMomentum } =
-    scroll;
+  const {
+    offsetY,
+    overscrollTop,
+    overscrollBottom,
+    maxOffsetY,
+    isDragging,
+    isMomentum,
+  } = scroll;
 
   useAnimatedReaction(
     () => offsetY.value,
@@ -28,6 +34,7 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
         offset,
         overscrollTop.value,
         overscrollBottom.value,
+        maxOffsetY.value,
       );
 
       if (edge === "top") {
