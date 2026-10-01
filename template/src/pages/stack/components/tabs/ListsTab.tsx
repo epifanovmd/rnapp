@@ -3,7 +3,7 @@ import {
   IAnchorListRenderItemProps,
 } from "@epifanovmd/anchor-list";
 import { useAnchorListPullToRefresh } from "@shared/lib/pull-to-refresh";
-import { useScroll } from "@shared/lib/scroll";
+import { useFocusedScroll } from "@shared/lib/scroll";
 import {
   Col,
   ListItem,
@@ -38,7 +38,7 @@ const renderItem = ({ item }: IAnchorListRenderItemProps<IDemoRow>) => (
 export const ListsTab: FC = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const navbarHeight = useNavbarHeight();
-  const telemetry = useScroll();
+  const telemetry = useFocusedScroll();
   const [generation, setGeneration] = useState(0);
   const rows = useMemo(() => createRows(generation), [generation]);
 

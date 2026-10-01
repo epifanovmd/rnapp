@@ -2,11 +2,7 @@ import {
   usePullToRefreshHaptics,
   usePullToRefreshScroll,
 } from "@shared/lib/pull-to-refresh";
-import {
-  IScrollTelemetry,
-  useFocusGatedScrollHandlers,
-  useScrollTelemetry,
-} from "@shared/lib/scroll";
+import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import React, {
   FC,
@@ -94,8 +90,7 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
 
   // Протяжку ведёт собственная телеметрия: общая телеметрия табов несёт
   // скролл соседних вкладок.
-  const forwarded = useFocusGatedScrollHandlers(screenTelemetry);
-  const telemetry = useScrollTelemetry(forwarded);
+  const telemetry = useScrollTelemetry(screenTelemetry?.handlers);
   const handleStateChange = usePullToRefreshHaptics(true);
 
   const ptr = usePullToRefreshScroll({

@@ -1,4 +1,4 @@
-import { useScroll } from "@shared/lib/scroll";
+import { useFocusedScroll } from "@shared/lib/scroll";
 import {
   Button,
   Dialog,
@@ -78,7 +78,7 @@ const DIALOG_VARIANTS: IDialogVariant[] = [
 export const DialogsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const navbarHeight = useNavbarHeight();
-  const scroll = useScroll();
+  const scroll = useFocusedScroll();
 
   const imperativeRef = useDialogRef();
 

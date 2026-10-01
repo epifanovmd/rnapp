@@ -1,4 +1,4 @@
-import { useScroll } from "@shared/lib/scroll";
+import { useFocusedScroll } from "@shared/lib/scroll";
 import {
   BottomSheet,
   Button,
@@ -59,7 +59,7 @@ const SHEET_VARIANTS: ISheetVariant[] = [
 export const ModalsTab = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const navbarHeight = useNavbarHeight();
-  const scroll = useScroll();
+  const scroll = useFocusedScroll();
 
   const sheetRefs = useRef<Record<string, BottomSheet | null>>({});
   const keyboardRef = useRef<BottomSheet>(null);

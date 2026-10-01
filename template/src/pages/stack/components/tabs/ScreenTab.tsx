@@ -1,4 +1,4 @@
-import { useScroll } from "@shared/lib/scroll";
+import { useFocusedScroll } from "@shared/lib/scroll";
 import {
   ListItem,
   Notice,
@@ -14,7 +14,7 @@ const ROWS = Array.from({ length: 8 }, (_, index) => index + 1);
 /** Демо ScreenScroll: pull-to-refresh (Promise) и поля ввода над клавиатурой. */
 export const ScreenTab: FC = memo(() => {
   const navbarHeight = useNavbarHeight();
-  const telemetry = useScroll();
+  const telemetry = useFocusedScroll();
   const [generation, setGeneration] = useState(0);
   const [comment, setComment] = useState("");
   const [email, setEmail] = useState("");

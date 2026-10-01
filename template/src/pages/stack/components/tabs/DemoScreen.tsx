@@ -1,4 +1,4 @@
-import { useScroll } from "@shared/lib/scroll";
+import { useFocusedScroll } from "@shared/lib/scroll";
 import { useNavbarHeight } from "@shared/ui";
 import React, { FC, PropsWithChildren } from "react";
 import { StyleSheet } from "react-native";
@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export const DemoScreen: FC<PropsWithChildren> = ({ children }) => {
   const { bottom } = useSafeAreaInsets();
   const navbarHeight = useNavbarHeight();
-  const scroll = useScroll();
+  const scroll = useFocusedScroll();
 
   return (
     <Animated.ScrollView
