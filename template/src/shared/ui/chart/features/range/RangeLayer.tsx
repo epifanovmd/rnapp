@@ -7,7 +7,7 @@ import {
   vec,
 } from "@shopify/react-native-skia";
 import React, { useMemo, useState } from "react";
-import { useAnimatedReaction } from "react-native-reanimated";
+import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import type { ChartLayerComponent } from "../../core";
@@ -61,17 +61,12 @@ const computeStats = (
   };
 };
 
-const updateRangeStats = (
-  data: { y: number }[],
-  from: number,
-  to: number,
-  setter: React.Dispatch<React.SetStateAction<RangeStats | null>>,
-) => {
-  setter(computeStats(data, from, to));
-};
+const sameRange = (a: number[] | null, b: number[] | null | undefined) =>
+  a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
 
 export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
   visible = true,
+  placement = "top-right",
   fillColor = "rgba(59, 130, 246, 0.08)",
   strokeColor = "#3B82F6",
   strokeWidth: sw = 1,
@@ -80,7 +75,7 @@ export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
   textColor = "#FFFFFF",
   labelBackground = "rgba(15, 23, 42, 0.85)",
 }) => {
-  const { series, seriesShared } = useChartSeries();
+  const { series } = useChartSeries();
   const { dimensions } = useChartGeometry();
   const { touchX, isActive, touchX2, isSecondActive } = useChartGesture();
   const { activeIndices, activeIndices2 } = useChartActiveIndices();
@@ -90,40 +85,36 @@ export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
     [fontFamily, fontSize],
   );
 
-  // Состояние подсветки диапазона и статистики.
-  const [rangeRect, setRangeRect] = useState<{
-    rect: { x: number; y: number; width: number; height: number };
-    leftX: number;
-    rightX: number;
-  } | null>(null);
-  const [stats, setStats] = useState<RangeStats | null>(null);
-  const [isDualTouch, setIsDualTouch] = useState(false);
+  const [range, setRange] = useState<number[] | null>(null);
 
-  useAnimatedReaction(
-    () => isActive.value && isSecondActive.value,
-    next => scheduleOnRN(setIsDualTouch, next),
+  const top = dimensions.padding.top;
+  const bottom = dimensions.height - dimensions.padding.bottom;
+
+  const opacity = useDerivedValue(
+    () => (isActive.value && isSecondActive.value ? 1 : 0),
     [isActive, isSecondActive],
   );
-
-  useAnimatedReaction(
-    () => {
-      if (!isActive.value || !isSecondActive.value) return null;
-
-      const x1 = touchX.value;
-      const x2 = touchX2.value;
-      const left = Math.min(x1, x2);
-      const right = Math.max(x1, x2);
-      const top = dimensions.padding.top;
-      const bottom = dimensions.height - dimensions.padding.bottom;
-
-      return {
-        rect: { x: left, y: top, width: right - left, height: bottom - top },
-        leftX: x1 < x2 ? x1 : x2,
-        rightX: x1 < x2 ? x2 : x1,
-      };
-    },
-    next => scheduleOnRN(setRangeRect, next),
-    [isActive, isSecondActive, touchX, touchX2, dimensions],
+  const leftX = useDerivedValue(
+    () => Math.min(touchX.value, touchX2.value),
+    [touchX, touchX2],
+  );
+  const rightX = useDerivedValue(
+    () => Math.max(touchX.value, touchX2.value),
+    [touchX, touchX2],
+  );
+  const rectWidth = useDerivedValue(
+    () => rightX.value - leftX.value,
+    [leftX, rightX],
+  );
+  const leftP1 = useDerivedValue(() => vec(leftX.value, top), [leftX, top]);
+  const leftP2 = useDerivedValue(
+    () => vec(leftX.value, bottom),
+    [leftX, bottom],
+  );
+  const rightP1 = useDerivedValue(() => vec(rightX.value, top), [rightX, top]);
+  const rightP2 = useDerivedValue(
+    () => vec(rightX.value, bottom),
+    [rightX, bottom],
   );
 
   useAnimatedReaction(
@@ -135,16 +126,18 @@ export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
 
       return i1 >= 0 && i2 >= 0 ? [Math.min(i1, i2), Math.max(i1, i2)] : null;
     },
-    next => {
-      if (next) {
-        const data = seriesShared.value[0]?.data;
-
-        if (data) {
-          scheduleOnRN(updateRangeStats, data, next[0], next[1], setStats);
-        }
+    (next, previous) => {
+      if (!sameRange(next, previous)) {
+        scheduleOnRN(setRange, next);
       }
     },
-    [isActive, isSecondActive, activeIndices, activeIndices2, seriesShared],
+    [isActive, isSecondActive, activeIndices, activeIndices2],
+  );
+
+  const stats = useMemo(
+    () =>
+      range ? computeStats(series[0]?.data ?? [], range[0], range[1]) : null,
+    [range, series],
   );
 
   const lines = useMemo(() => {
@@ -165,66 +158,47 @@ export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
 
   if (!visible || !font) return null;
 
-  return (
-    <Group>
-      {rangeRect &&
-        (() => {
-          const r = rangeRect;
+  const plotWidth =
+    dimensions.width - dimensions.padding.left - dimensions.padding.right;
+  const statsWidth = Math.min(
+    lines.reduce((w, l) => Math.max(w, font.measureText(l).width), 0) + 24,
+    plotWidth,
+  );
+  const statsX =
+    placement === "top-left"
+      ? dimensions.padding.left
+      : dimensions.width - dimensions.padding.right - statsWidth;
 
-          return r ? (
-            <>
-              <Rect rect={r.rect} color={fillColor} />
-              <Line
-                p1={vec(r.leftX, dimensions.padding.top)}
-                p2={vec(r.leftX, dimensions.height - dimensions.padding.bottom)}
-                color={strokeColor}
-                strokeWidth={sw}
-              />
-              <Line
-                p1={vec(r.rightX, dimensions.padding.top)}
-                p2={vec(
-                  r.rightX,
-                  dimensions.height - dimensions.padding.bottom,
-                )}
-                color={strokeColor}
-                strokeWidth={sw}
-              />
-            </>
-          ) : null;
-        })()}
-      {lines.length > 0 && isDualTouch && (
+  return (
+    <Group opacity={opacity}>
+      <Rect
+        x={leftX}
+        y={top}
+        width={rectWidth}
+        height={bottom - top}
+        color={fillColor}
+      />
+      <Line p1={leftP1} p2={leftP2} color={strokeColor} strokeWidth={sw} />
+      <Line p1={rightP1} p2={rightP2} color={strokeColor} strokeWidth={sw} />
+      {lines.length > 0 && (
         <Group>
           <Rect
-            rect={{
-              x: dimensions.padding.left,
-              y: dimensions.padding.top,
-              width: Math.min(
-                lines.reduce(
-                  (w, l) => Math.max(w, font.measureText(l).width),
-                  0,
-                ) + 24,
-                dimensions.width -
-                  dimensions.padding.left -
-                  dimensions.padding.right,
-              ),
-              height: lines.length * (fontSize + 6) + 12,
-            }}
+            x={statsX}
+            y={top}
+            width={statsWidth}
+            height={lines.length * (fontSize + 6) + 12}
             color={labelBackground}
           />
-          {lines.map((line, i) => {
-            const y = dimensions.padding.top + 18 + i * (fontSize + 6);
-
-            return (
-              <SkiaText
-                key={i}
-                x={dimensions.padding.left + 12}
-                y={y}
-                text={line}
-                font={font}
-                color={textColor}
-              />
-            );
-          })}
+          {lines.map((line, i) => (
+            <SkiaText
+              key={i}
+              x={statsX + 12}
+              y={top + 18 + i * (fontSize + 6)}
+              text={line}
+              font={font}
+              color={textColor}
+            />
+          ))}
         </Group>
       )}
     </Group>

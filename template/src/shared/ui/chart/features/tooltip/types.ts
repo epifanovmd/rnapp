@@ -8,14 +8,25 @@ export interface ActiveTooltipPoint {
   datum: ChartDatum;
   /** Разрешённый цвет точки (собственный `series.color` либо встроенная палитра по кругу). */
   color: string;
+  /** Каким пальцем выбрана точка: `"primary"` — первым, `"secondary"` — вторым (`Chart.twoFingerEnabled`). */
+  touch: "primary" | "secondary";
 }
+
+/**
+ * Расположение тултипа во время касания:
+ * - `"top-left"` / `"top-right"` — закреплён в верхнем углу области графика (внутри `padding`);
+ * - `"follow"` — следует за пальцем/точкой (`side`, `offset`, `anchorToPoint`), прижимаясь к краям.
+ */
+export type TooltipPlacement = "top-left" | "top-right" | "follow";
 
 export type TooltipSide = "top" | "bottom" | "left" | "right";
 
 export interface TooltipLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** px. Отступ от точки привязки. */
+  /** Расположение тултипа. По умолчанию `"top-left"`. */
+  placement?: TooltipPlacement;
+  /** px. Отступ от точки привязки (только `placement="follow"`). */
   offset?: number;
   backgroundColor?: string;
   textColor?: string;
@@ -24,9 +35,12 @@ export interface TooltipLayerProps {
   fontFamily?: string;
   /** Форматирует строку одной серии (по умолчанию — `"label: value"`). */
   formatRow?: (point: ActiveTooltipPoint) => string;
-  /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца. */
+  /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца (только `placement="follow"`). */
   anchorToPoint?: boolean;
+  /** Сторона от точки привязки (только `placement="follow"`). */
   side?: TooltipSide;
+  /** При двух пальцах (`Chart.twoFingerEnabled`) показывать строки обеих точек, слева направо. По умолчанию `true`. */
+  showSecondTouch?: boolean;
   /** Срабатывает при показе/скрытии тултипа (по `isActive`). */
   onVisibilityChange?: (visible: boolean) => void;
 }

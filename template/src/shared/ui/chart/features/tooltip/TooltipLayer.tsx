@@ -1,9 +1,9 @@
 import { Group, matchFont, RoundedRect } from "@shopify/react-native-skia";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import type { ChartLayerComponent } from "../../core";
+import type { ChartLayerComponent, IChartSeries } from "../../core";
 import {
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
@@ -14,6 +14,7 @@ import {
 } from "../../core";
 import { TooltipRow } from "./TooltipRow";
 import type { ActiveTooltipPoint, TooltipLayerProps } from "./types";
+import { useJsActiveIndex } from "./useJsActiveIndex";
 
 const DOT_RADIUS = 4;
 
@@ -25,8 +26,25 @@ const defaultFormatRow = (point: ActiveTooltipPoint) => {
     : `${point.series.label ?? point.series.id}: x=${x}, y=${y}`;
 };
 
+const collectPoints = (
+  series: IChartSeries[],
+  index: number,
+  touch: ActiveTooltipPoint["touch"],
+): ActiveTooltipPoint[] =>
+  index < 0
+    ? []
+    : series
+        .filter(item => item.data[index] !== undefined)
+        .map(item => ({
+          series: item,
+          datum: item.data[index],
+          color: item.color,
+          touch,
+        }));
+
 export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   visible = true,
+  placement = "top-left",
   offset = 12,
   backgroundColor = "rgba(15, 23, 42, 0.92)",
   textColor = "#FFFFFF",
@@ -35,53 +53,39 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   formatRow = defaultFormatRow,
   anchorToPoint = false,
   side = "top",
+  showSecondTouch = true,
   onVisibilityChange,
 }) => {
   const { series, geometry } = useChartSeries();
   const { dimensions } = useChartGeometry();
-  const { touchX, touchY, isActive, isSecondActive } = useChartGesture();
-  const { activeIndices } = useChartActiveIndices();
+  const { touchX, touchY, isActive, touchX2, touchY2, isSecondActive } =
+    useChartGesture();
+  const { activeIndices, activeIndices2 } = useChartActiveIndices();
 
   const font = useMemo(
     () => matchFont({ fontFamily, fontSize }),
     [fontFamily, fontSize],
   );
 
-  // activeIndex bridge в JS — тултипу нужен только первый (скалярный) индекс.
-  const [activeIndex, setActiveIndex] = useState(
-    () => activeIndices.value[0] ?? -1,
-  );
+  const activeIndex = useJsActiveIndex(activeIndices);
+  const activeIndex2 = useJsActiveIndex(activeIndices2);
+  const secondIndex = showSecondTouch ? activeIndex2 : -1;
 
-  useAnimatedReaction(
-    () => activeIndices.value[0] ?? -1,
-    (next, previous) => {
-      if (next !== previous) {
-        scheduleOnRN(setActiveIndex, next);
-      }
-    },
-    [activeIndices],
-  );
+  const points: ActiveTooltipPoint[] = useMemo(() => {
+    const primary = collectPoints(series, activeIndex, "primary");
+    const secondary = collectPoints(series, secondIndex, "secondary");
 
-  const points: ActiveTooltipPoint[] = useMemo(
-    () =>
-      activeIndex < 0
-        ? []
-        : series
-            .filter(item => item.data[activeIndex] !== undefined)
-            .map(item => ({
-              series: item,
-              datum: item.data[activeIndex],
-              color: item.color,
-            })),
-    [series, activeIndex],
-  );
+    return secondIndex >= 0 && secondIndex < activeIndex
+      ? [...secondary, ...primary]
+      : [...primary, ...secondary];
+  }, [series, activeIndex, secondIndex]);
 
   const rowHeight = fontSize + 6;
 
   const rows = useMemo(
     () =>
       points.map(point => ({
-        id: point.series.id,
+        id: `${point.touch}-${point.series.id}`,
         text: formatRow(point),
         color: point.color,
       })),
@@ -96,17 +100,45 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   const firstSeriesId = series[0]?.id;
 
   const anchorPoint = useDerivedValue(() => {
-    const index = activeIndices.value[0] ?? -1;
-    const target =
-      anchorToPoint && firstSeriesId && index >= 0
-        ? geometry.value[firstSeriesId]?.[index]
-        : undefined;
+    const resolve = (index: number, x: number, y: number) => {
+      const target =
+        anchorToPoint && firstSeriesId && index >= 0
+          ? geometry.value[firstSeriesId]?.[index]
+          : undefined;
 
-    return {
-      x: target ? target.x : touchX.value,
-      y: target ? target.y : touchY.value,
+      return target ?? { x, y };
     };
-  }, [anchorToPoint, activeIndices, geometry, touchX, touchY, firstSeriesId]);
+
+    const first = resolve(
+      activeIndices.value[0] ?? -1,
+      touchX.value,
+      touchY.value,
+    );
+
+    if (!showSecondTouch || !isSecondActive.value) {
+      return first;
+    }
+
+    const second = resolve(
+      activeIndices2.value[0] ?? -1,
+      touchX2.value,
+      touchY2.value,
+    );
+
+    return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+  }, [
+    anchorToPoint,
+    showSecondTouch,
+    activeIndices,
+    activeIndices2,
+    geometry,
+    touchX,
+    touchY,
+    touchX2,
+    touchY2,
+    isSecondActive,
+    firstSeriesId,
+  ]);
 
   const boxX = useDerivedValue(() => {
     const minLeft = dimensions.padding.left;
@@ -114,6 +146,14 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
       minLeft,
       dimensions.width - dimensions.padding.right - boxWidth,
     );
+
+    if (placement === "top-left") {
+      return minLeft;
+    }
+
+    if (placement === "top-right") {
+      return maxLeft;
+    }
 
     let rawLeft = anchorPoint.value.x - boxWidth / 2;
 
@@ -124,7 +164,7 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     }
 
     return Math.min(Math.max(rawLeft, minLeft), maxLeft);
-  }, [anchorPoint, boxWidth, side, offset, dimensions]);
+  }, [anchorPoint, boxWidth, placement, side, offset, dimensions]);
 
   const boxY = useDerivedValue(() => {
     const minTop = dimensions.padding.top;
@@ -132,6 +172,10 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
       minTop,
       dimensions.height - dimensions.padding.bottom - boxHeight,
     );
+
+    if (placement !== "follow") {
+      return minTop;
+    }
 
     let rawTop = anchorPoint.value.y - boxHeight / 2;
 
@@ -142,12 +186,11 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     }
 
     return Math.min(Math.max(rawTop, minTop), maxTop);
-  }, [anchorPoint, boxHeight, side, offset, dimensions]);
+  }, [anchorPoint, boxHeight, placement, side, offset, dimensions]);
 
-  // Прячем тултип при двух касаниях — каждый палец управляет своим кроссхейром.
   const opacity = useDerivedValue(
-    () => (isActive.value && !isSecondActive.value ? 1 : 0),
-    [isActive, isSecondActive],
+    () => (isActive.value && rows.length > 0 ? 1 : 0),
+    [isActive, rows.length],
   );
 
   useAnimatedReaction(

@@ -37,7 +37,7 @@ export const Chart: FC<ChartProps> = ({
   panActivationDistance = 0,
   panActiveOffsetX = DEFAULT_PAN_ACTIVE_OFFSET_X,
   panFailOffsetY = DEFAULT_PAN_FAIL_OFFSET_Y,
-  twoFingerEnabled = true,
+  twoFingerEnabled = false,
   onActiveChange,
   onChange,
   children,

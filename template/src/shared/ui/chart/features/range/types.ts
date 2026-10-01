@@ -1,6 +1,8 @@
 export interface RangeLayerProps {
   /** Скрывает слой без размонтирования. */
   visible?: boolean;
+  /** Угол области графика для блока статистики. По умолчанию `"top-right"` — не перекрывает тултип в дефолтном `"top-left"`. */
+  placement?: "top-left" | "top-right";
   /** Цвет заливки выделенного диапазона. */
   fillColor?: string;
   /** Цвет обводки диапазона. */

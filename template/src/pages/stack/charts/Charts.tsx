@@ -248,7 +248,10 @@ export const Charts: FC = observer(() => {
             charting core (`@shared/ui/chart`).
           </Text>
 
-          <ChartCard title={"Live — Price ticker"}>
+          <ChartCard
+            title={"Live — Price ticker"}
+            description={"Тултип по умолчанию — закреплён сверху слева."}
+          >
             <Chart
               series={livePriceSeries}
               height={300}
@@ -292,7 +295,12 @@ export const Charts: FC = observer(() => {
             </Chart>
           </ChartCard>
 
-          <ChartCard title={"Full-featured — Выручка и расходы"}>
+          <ChartCard
+            title={"Full-featured — Выручка и расходы"}
+            description={
+              "Тултип следует за точкой (placement=follow). Два пальца — диапазон и данные обеих точек."
+            }
+          >
             <View style={styles.periods}>
               {PERIODS.map(({ key, label }) => (
                 <View
@@ -322,6 +330,7 @@ export const Charts: FC = observer(() => {
               padding={{ left: 56, bottom: 36, top: 36 }}
               onActiveChange={handleActiveChange}
               onChange={handleActivePointsChange}
+              twoFingerEnabled
             >
               <GridLayer color={colors.slate200} />
               <AreaLayer curve={"smooth"} opacity={0.15} />
@@ -367,6 +376,7 @@ export const Charts: FC = observer(() => {
               />
               <RangeLayer />
               <TooltipLayer
+                placement={"follow"}
                 anchorToPoint
                 side={"bottom"}
                 formatRow={formatTooltipRow}

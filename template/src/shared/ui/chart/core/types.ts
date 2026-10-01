@@ -100,7 +100,11 @@ export interface ChartProps {
   panActiveOffsetX?: number | [number, number];
   /** Диапазон (px) сброса pan в пользу родительского скролла; по умолчанию `[-8, 8]`. */
   panFailOffsetY?: number | [number, number];
-  /** Включить второе касание (для второго кроссхейра). */
+  /**
+   * Режим двух пальцев: второй палец получает свою активную точку (`activeIndices2`) —
+   * второй кроссхейр, диапазон `RangeLayer`, данные обеих точек в `TooltipLayer` и
+   * `onChange(primary, secondary)`. По умолчанию `false` — учитывается только первый палец.
+   */
   twoFingerEnabled?: boolean;
   /** Срабатывает при начале/окончании (первого) касания. */
   onActiveChange?: (active: boolean) => void;

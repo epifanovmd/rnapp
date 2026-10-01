@@ -1,5 +1,11 @@
 import { useCallback, useMemo } from "react";
-import { TouchData, usePanGesture } from "react-native-gesture-handler";
+import {
+  GestureStateManager,
+  GestureTouchEvent,
+  State,
+  TouchData,
+  usePanGesture,
+} from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
 
 import type { ChartDimensions } from "../types";
@@ -10,6 +16,7 @@ export interface ChartInteractionOptions {
   minDistance?: number;
   activeOffsetX?: number | [number, number];
   failOffsetY?: number | [number, number];
+  /** Отслеживать второй палец (`touchX2`/`isSecondActive`). По умолчанию `false`. */
   twoFingerEnabled?: boolean;
 }
 
@@ -37,7 +44,7 @@ export const useChartInteraction = (
     minDistance = 0,
     activeOffsetX,
     failOffsetY,
-    twoFingerEnabled = true,
+    twoFingerEnabled = false,
   } = options;
 
   const touchX = useSharedValue(0);
@@ -73,38 +80,25 @@ export const useChartInteraction = (
     isSecondActive.value = false;
   }, [primaryTouchId, secondaryTouchId, isActive, isSecondActive]);
 
-  const assignTouches = useCallback(
-    (addedTouches: TouchData[]) => {
+  /** Сверяет слоты с фактическим списком пальцев: освобождает ушедшие, назначает новые. */
+  const syncSlots = useCallback(
+    (touches: TouchData[]) => {
       "worklet";
 
-      for (const touch of addedTouches) {
-        if (
-          touch.id === primaryTouchId.value ||
-          touch.id === secondaryTouchId.value
-        ) {
-          continue;
-        }
+      const hasTouch = (id: number) => touches.some(touch => touch.id === id);
 
-        if (primaryTouchId.value === NO_TOUCH) {
-          primaryTouchId.value = touch.id;
-        } else if (secondaryTouchId.value === NO_TOUCH) {
-          secondaryTouchId.value = touch.id;
-        }
+      if (
+        primaryTouchId.value !== NO_TOUCH &&
+        !hasTouch(primaryTouchId.value)
+      ) {
+        primaryTouchId.value = NO_TOUCH;
       }
-    },
-    [primaryTouchId, secondaryTouchId],
-  );
 
-  const releaseTouches = useCallback(
-    (removedTouches: TouchData[]) => {
-      "worklet";
-
-      for (const touch of removedTouches) {
-        if (touch.id === primaryTouchId.value) {
-          primaryTouchId.value = NO_TOUCH;
-        } else if (touch.id === secondaryTouchId.value) {
-          secondaryTouchId.value = NO_TOUCH;
-        }
+      if (
+        secondaryTouchId.value !== NO_TOUCH &&
+        !hasTouch(secondaryTouchId.value)
+      ) {
+        secondaryTouchId.value = NO_TOUCH;
       }
 
       if (
@@ -114,13 +108,30 @@ export const useChartInteraction = (
         primaryTouchId.value = secondaryTouchId.value;
         secondaryTouchId.value = NO_TOUCH;
       }
+
+      for (const touch of touches) {
+        if (
+          touch.id === primaryTouchId.value ||
+          touch.id === secondaryTouchId.value
+        ) {
+          continue;
+        }
+
+        if (primaryTouchId.value === NO_TOUCH) {
+          primaryTouchId.value = touch.id;
+        } else if (twoFingerEnabled && secondaryTouchId.value === NO_TOUCH) {
+          secondaryTouchId.value = touch.id;
+        }
+      }
     },
-    [primaryTouchId, secondaryTouchId],
+    [primaryTouchId, secondaryTouchId, twoFingerEnabled],
   );
 
   const applyPositions = useCallback(
     (touches: TouchData[]) => {
       "worklet";
+
+      syncSlots(touches);
 
       const primaryTouch = touches.find(
         touch => touch.id === primaryTouchId.value,
@@ -158,6 +169,7 @@ export const useChartInteraction = (
       }
     },
     [
+      syncSlots,
       primaryTouchId,
       secondaryTouchId,
       touchX,
@@ -171,17 +183,22 @@ export const useChartInteraction = (
   );
 
   const onTouchesDown = useCallback(
-    (event: { changedTouches: TouchData[]; allTouches: TouchData[] }) => {
+    (event: GestureTouchEvent) => {
       "worklet";
 
-      assignTouches(event.changedTouches);
       applyPositions(event.allTouches);
+
+      // Второй палец сдвигает центроид pan-жеста: до активации это валит жест по
+      // failOffsetY и отдаёт касание родительскому скроллу. Активируем явно.
+      if (isSecondActive.value && event.state !== State.ACTIVE) {
+        GestureStateManager.activate(event.handlerTag);
+      }
     },
-    [assignTouches, applyPositions],
+    [applyPositions, isSecondActive],
   );
 
   const onTouchesMove = useCallback(
-    (event: { allTouches: TouchData[] }) => {
+    (event: GestureTouchEvent) => {
       "worklet";
 
       applyPositions(event.allTouches);
@@ -190,13 +207,18 @@ export const useChartInteraction = (
   );
 
   const onTouchesUp = useCallback(
-    (event: { changedTouches: TouchData[]; allTouches: TouchData[] }) => {
+    (event: GestureTouchEvent) => {
       "worklet";
 
-      releaseTouches(event.changedTouches);
-      applyPositions(event.allTouches);
+      // allTouches в событии отпускания ещё содержит поднятые пальцы.
+      applyPositions(
+        event.allTouches.filter(
+          touch =>
+            !event.changedTouches.some(changed => changed.id === touch.id),
+        ),
+      );
     },
-    [releaseTouches, applyPositions],
+    [applyPositions],
   );
 
   const useDirectionalOffsets =
