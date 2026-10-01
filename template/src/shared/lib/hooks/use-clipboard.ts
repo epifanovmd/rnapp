@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { TurboModuleRegistry } from "react-native";
 
 interface IClipboardModule {
   setString: (text: string) => void;
 }
 
 /**
- * Модуль буфера грузится при первом копировании: в бинарнике без нативной
- * части (не выполнен `pod install`) приложение не падает на старте.
+ * Модуль буфера грузится при первом копировании и только если нативная часть
+ * есть в бинарнике (без `pod install` её нет). Наличие проверяется заранее:
+ * ошибку инициализации модуля Metro в dev показывает фатальной ещё до catch.
  */
 const loadClipboard = (): IClipboardModule | null => {
+  if (!TurboModuleRegistry.get("RNCClipboard")) return null;
+
   try {
     return require("@react-native-clipboard/clipboard").default;
   } catch {
