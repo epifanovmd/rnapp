@@ -66,6 +66,8 @@ export const FormSheetDemo: FC = memo(() => {
           ...DEMO_FORM_DEFAULTS,
           name: "Стартовый",
           role: "viewer",
+          tags: ["react"],
+          email: "starter@example.com",
           seats: 1,
         });
       } else if (key === "business") {
@@ -74,6 +76,8 @@ export const FormSheetDemo: FC = memo(() => {
           plan: "team",
           role: "admin",
           city: "Берлин",
+          tags: ["react", "typescript", "mobx"],
+          email: "team@example.com",
           seats: 25,
         });
       } else {

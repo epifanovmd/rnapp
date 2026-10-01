@@ -175,3 +175,33 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
   конвертер flex-пропсов его отбрасывал).
 - `useClipboard` (`@shared/lib/hooks`) грузит `@react-native-clipboard/clipboard` лениво:
   без `pod install` приложение не падает, `copy` вернёт `false`.
+
+## Select / GroupedSelect / Autocomplete (`shared/ui/select`, 2026-10-02)
+
+Порт веб-Select (wg-admin-web) под мобильный UX: поле-триггер в стиле TextField +
+`nested` BottomSheet со списком. API как в вебе: дискриминированные режимы
+(single / clearable / labelInValue / multi / multi labelInValue / `multi: boolean`),
+`SelectDataProps` от стратегий (`useStatic/Async/Eager/Infinite/Dependent/ControlledOptions`,
+ядро `useOptionsRequest` с AbortController — как в вебе, без холдеров),
+`groups`, `creatable`+`onCreate`, `optionRender/renderValue/tagRender`, `hideEmpty`,
+`closeOnClear`, `virtual`, ref `{ open, scrollTo }`.
+Отличия от веба: сообщение валидации — `errorMessage` (`error` = ошибка загрузки
+стратегии); `filterOption` у Select (клиентский фильтр, пока нет `onSearch`);
+multi — выбор мгновенный, «Готово»/«Очистить» в футере; single clearable —
+крестик в поле + строка «Не выбрано»; поиск/ввод — над списком в шторке;
+Autocomplete — поле открывает шторку с инпутом (фокус по `onChange` шторки).
+Карта: `hooks/` (useSelectEngine, useLabelCache, useCreatableOption, useSelectSheet —
+present/dismiss по флагу как ModalSheet, useLoadMore — латч догрузки), `utils/`
+(option-rows: clear/create/group/option строки, value-mode, scroll-edge, select-defaults),
+`components/` (SelectTrigger(+Value/Tags/Tag), SelectSheet → SelectSheetBody →
+SelectOptionsList (BottomSheetScrollView) | SelectVirtualList (AnchorList)).
+Высота шторки: тело сообщает в слот контента естественную высоту (шапка + контент
+списка), у AnchorList высота задаётся явно (min(контент/оценка, maxHeight)).
+AnchorList в gorhom-шторке — `bottom-sheet/hooks/useBottomSheetScrollableBridge`
+на публичном API gorhom: `useScrollableSetter` + `useScrollEventsHandlersDefault`
+(через `refScrollView`/`scrollHandlers` AnchorList), нативный жест скролла
+(`useBottomSheetScrollGesture`) — в `GestureDetector` через `renderScrollView` и в
+`simultaneousHandlers` шторки. На устройстве не проверено.
+Типы reanimated у link-пакета anchor-list — своя копия: `refScrollView` кастуется.
+Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiSelectFormField`,
+`AutocompleteFormField`; закрытие шторки = `field.onBlur`.

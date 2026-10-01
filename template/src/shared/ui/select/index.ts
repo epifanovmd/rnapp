@@ -1,3 +1,6 @@
+export * from "./Autocomplete";
+export * from "./GroupedSelect";
 export * from "./Select";
-export * from "./select-utils";
+export * from "./strategies";
 export * from "./types";
+export { getOptionText } from "./utils";

@@ -50,6 +50,8 @@ export const demoFormSchema = z.object({
     .nullable()
     .refine(value => value !== null, "Выберите роль"),
   city: z.string().nullable(),
+  tags: z.array(z.string()).min(1, "Выберите хотя бы один тег"),
+  email: z.string().trim().email("Некорректный email"),
   seats: z
     .number()
     .int("Только целое")
@@ -67,5 +69,7 @@ export const DEMO_FORM_DEFAULTS: TDemoForm = {
   plan: "free",
   role: null,
   city: null,
+  tags: [],
+  email: "",
   seats: null,
 };

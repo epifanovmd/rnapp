@@ -1,165 +1,241 @@
-import { useTheme } from "@shared/lib/theme";
-import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet } from "react-native";
+import { useControllableState, useEvent } from "@shared/lib/hooks";
+import React, { Ref, useMemo } from "react";
 
-import { BottomSheet, useBottomSheetRef } from "../bottom-sheet";
-import { Col } from "../flex-view";
-import { Icon } from "../icon";
 import { TextField } from "../input";
-import { Spinner } from "../spinner";
-import { Text } from "../text";
-import { Touchable } from "../touchable";
-import { filterOptions, optionText } from "./select-utils";
-import { SelectRow } from "./SelectRow";
-import { ISelectProps, SelectValue } from "./types";
+import { SelectSheet, SelectTrigger, SelectTriggerValue } from "./components";
+import type { ISelectListModel } from "./components/select-list-model";
+import { useCreatableOption, useLabelCache, useSelectEngine } from "./hooks";
+import { filterByLabel } from "./strategies/filter-by-label";
+import type {
+  SelectMultiDisplayProps,
+  SelectProps,
+  SelectRef,
+  SelectValue,
+} from "./types";
+import {
+  buildOptionRows,
+  defaultCreateLabel,
+  type RawSelectValue,
+  resolveVirtualConfig,
+  SELECT_DEFAULT_MAX_HEIGHT,
+  SELECT_DEFAULT_PLACEHOLDER,
+  SELECT_EMPTY_TEXT,
+  SELECT_ERROR_TEXT,
+  SELECT_NOT_FOUND_TEXT,
+  toLabeledArray,
+  unwrapLabeled,
+} from "./utils";
 
-const SEARCH_THRESHOLD = 8;
+/**
+ * Выбор из списка: поле открывает шторку (поверх родительской) со списком,
+ * поиском и отметкой выбранного. Режимы — single / clearable / labelInValue /
+ * multi (теги в поле, «Готово» в шторке); опции — напрямую или стратегией
+ * (`useStaticOptions`, `useAsyncOptions`, `useInfiniteOptions`, ...).
+ */
+export const Select = <V extends SelectValue = string>(
+  props: SelectProps<V> & { ref?: Ref<SelectRef> },
+) => {
+  const {
+    ref,
+    options,
+    groups,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    search = false,
+    searchValue,
+    onSearch,
+    onScrollEnd,
+    open: openProp,
+    onOpenChange,
+    disabled,
+    placeholder = SELECT_DEFAULT_PLACEHOLDER,
+    label,
+    description,
+    errorMessage,
+    title,
+    maxHeight = SELECT_DEFAULT_MAX_HEIGHT,
+    empty,
+    errorContent = SELECT_ERROR_TEXT,
+    optionRender,
+    renderValue,
+    tagRender,
+    hideEmpty,
+    closeOnClear,
+    filterOption,
+    creatable = false,
+    onCreate,
+    createLabel = defaultCreateLabel,
+    virtual,
+    onSelect,
+    onDeselect,
+  } = props;
 
-/** Выбор одного варианта: поле открывает шторку со списком (и поиском). */
-export const Select = <V extends SelectValue = string>({
-  options,
-  value,
-  onChange,
-  onClose,
-  label,
-  placeholder = "Не выбрано",
-  description,
-  error,
-  clearable,
-  disabled,
-  loading,
-  searchable,
-  title,
-}: ISelectProps<V>) => {
-  const { colors } = useTheme();
-  const sheetRef = useBottomSheetRef();
-  const [query, setQuery] = useState("");
+  const multi = props.multi === true;
+  const clearable = props.clearable === true;
+  const labelInValue = props.labelInValue === true;
+  const display = props as SelectMultiDisplayProps;
+  const tagsDisplay = multi && display.tagsDisplay !== false;
+  const maxTagCount = multi ? display.maxTagCount : undefined;
+  const rawValue = props.value as RawSelectValue<V>;
+  const rawOnChange = props.onChange as ((value: unknown) => void) | undefined;
 
-  const selected = options.find(option => option.value === value);
-  const showSearch = searchable ?? options.length > SEARCH_THRESHOLD;
-  const visible = useMemo(
-    () => filterOptions(options, query),
-    [options, query],
+  const [query, setQuery] = useControllableState({
+    value: searchValue,
+    defaultValue: "",
+    onChange: onSearch,
+  });
+
+  const filtering = search && (filterOption ?? !onSearch) !== false;
+  const predicate =
+    typeof filterOption === "function" ? filterOption : undefined;
+  const visibleOptions = useMemo(
+    () => (filtering ? filterByLabel(options, query, predicate) : options),
+    [filtering, options, query, predicate],
   );
 
-  const open = useCallback(() => {
-    setQuery("");
-    sheetRef.current?.present();
-  }, [sheetRef]);
+  const { getLabel, toLabeled } = useLabelCache<V>(
+    options,
+    labelInValue ? toLabeledArray(rawValue) : undefined,
+  );
 
-  const pick = useCallback(
-    (next: V | null) => {
-      onChange?.(next);
-      sheetRef.current?.dismiss();
+  const resolvedValue = useMemo(
+    () => unwrapLabeled(rawValue, labelInValue),
+    [rawValue, labelInValue],
+  );
+
+  const handleChange = useEvent((next: V | V[] | null) => {
+    if (!labelInValue) {
+      rawOnChange?.(next);
+    } else if (Array.isArray(next)) {
+      rawOnChange?.(next.map(toLabeled));
+    } else {
+      rawOnChange?.(next == null ? null : toLabeled(next));
+    }
+  });
+
+  const resetQuery = useEvent(() => setQuery(""));
+
+  const engine = useSelectEngine<V>({
+    ref,
+    options,
+    multi,
+    value: resolvedValue,
+    onChange: handleChange,
+    onSelect,
+    onDeselect,
+    open: openProp,
+    onOpenChange,
+    closeOnClear,
+    onSearchReset: resetQuery,
+  });
+
+  // Созданное значение выбирается, но не переключается: в multi повторное
+  // создание уже выбранного не должно его снимать.
+  const { showCreate, createQuery, create } = useCreatableOption<V>({
+    enabled: creatable && search,
+    query,
+    options,
+    blocked: !!loading || !!error,
+    onCreate,
+    onCreated: value => {
+      if (!engine.isSelected(value)) engine.select(value);
+      else if (!multi) engine.close();
+      resetQuery();
     },
-    [onChange, sheetRef],
+  });
+
+  const rows = useMemo(
+    () =>
+      buildOptionRows({
+        options: visibleOptions,
+        groups,
+        withClear: clearable && !multi && query === "",
+        withCreate: showCreate,
+      }),
+    [visibleOptions, groups, clearable, multi, query, showCreate],
   );
+
+  const virtualConfig = useMemo(() => resolveVirtualConfig(virtual), [virtual]);
+
+  const model: ISelectListModel<V> = {
+    rows,
+    multi,
+    loading,
+    loadingMore,
+    hasMore,
+    error,
+    empty:
+      hideEmpty && search
+        ? null
+        : (empty ?? (query ? SELECT_NOT_FOUND_TEXT : SELECT_EMPTY_TEXT)),
+    errorContent,
+    optionRender,
+    isSelected: engine.isSelected,
+    clearLabel: placeholder,
+    clearActive: !engine.hasValue,
+    createContent: showCreate ? createLabel(createQuery) : undefined,
+    onSelect: engine.select,
+    onClear: engine.clear,
+    onCreate: create,
+    onScrollEnd,
+    scrollToIndexRef: engine.scrollToIndexRef,
+    virtual: virtualConfig,
+  };
+
+  const hidden =
+    !!hideEmpty && !search && !loading && !error && options.length === 0;
+  const showClear = clearable && !loading && !disabled && engine.hasValue;
 
   return (
-    <Col gap={4}>
-      <Touchable
+    <>
+      <SelectTrigger
+        label={label}
+        description={description}
+        errorMessage={errorMessage}
         disabled={disabled}
-        onPress={open}
-        style={[
-          styles.field,
-          { backgroundColor: colors.onSurface },
-          !!error && { borderColor: colors.danger },
-          disabled && styles.disabled,
-        ]}
-        accessibilityRole={"button"}
-        accessibilityLabel={label}
+        loading={loading}
+        showClear={showClear}
+        onClear={engine.clear}
+        onPress={() => engine.handleOpen(true)}
       >
-        <Col flex={1} gap={2}>
-          {!!label && (
-            <Text textStyle={"Caption_M3"} color={"textSecondary"}>
-              {label}
-            </Text>
-          )}
-          <Text
-            textStyle={"Body_M2"}
-            color={selected ? "textPrimary" : "textTertiary"}
-            numberOfLines={1}
-          >
-            {selected ? optionText(selected) : placeholder}
-          </Text>
-        </Col>
-        {loading ? (
-          <Spinner size={18} />
-        ) : (
-          <Icon name={"chevronDown"} size={20} color={colors.textTertiary} />
-        )}
-      </Touchable>
-      {!!(error || description) && (
-        <Text
-          textStyle={"Caption_M3"}
-          color={error ? "danger" : "textSecondary"}
-          mh={16}
-        >
-          {error || description}
-        </Text>
-      )}
-
-      <BottomSheet
-        ref={sheetRef}
-        nested
-        maxDynamicContentSize={560}
-        onDismiss={onClose}
-      >
-        <BottomSheet.Header label={title ?? label ?? "Выберите"} />
-        <BottomSheet.Content>
-          <Col gap={4} pb={8}>
-            {showSearch && (
-              <TextField
-                label={"Поиск"}
-                iconName={"search"}
-                value={query}
-                onChangeText={setQuery}
-                clearable
-              />
-            )}
-            {clearable && !query && (
-              <SelectRow
-                text={placeholder}
-                muted
-                active={value == null}
-                onPress={() => pick(null)}
-              />
-            )}
-            {visible.map(option => (
-              <SelectRow
-                key={String(option.value)}
-                text={optionText(option)}
-                description={option.description}
-                disabled={option.disabled}
-                active={option.value === value}
-                onPress={() => pick(option.value)}
-              />
-            ))}
-            {!visible.length && (
-              <Text color={"textSecondary"} textAlign={"center"} pv={16}>
-                {loading ? "Загрузка…" : "Ничего не найдено"}
-              </Text>
-            )}
-          </Col>
-        </BottomSheet.Content>
-      </BottomSheet>
-    </Col>
+        <SelectTriggerValue<V>
+          tags={tagsDisplay}
+          placeholder={placeholder}
+          disabled={disabled}
+          values={engine.selectedValues}
+          labels={engine.selectedValues.map(getLabel)}
+          renderValue={renderValue}
+          tagRender={tagRender}
+          maxTagCount={maxTagCount}
+          onRemoveTag={engine.removeTag}
+        />
+      </SelectTrigger>
+      <SelectSheet<V>
+        visible={engine.open && !hidden}
+        onUserDismiss={engine.close}
+        title={title ?? label}
+        top={
+          search ? (
+            <TextField
+              size={"small"}
+              iconName={"search"}
+              placeholder={"Поиск"}
+              value={query}
+              onChangeText={setQuery}
+              autoCorrect={false}
+              clearable
+            />
+          ) : undefined
+        }
+        model={model}
+        onDone={multi ? engine.close : undefined}
+        onClearAll={
+          multi && clearable && engine.hasValue ? engine.clear : undefined
+        }
+        maxHeight={maxHeight}
+      />
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  field: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    minHeight: 60,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "transparent",
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-});

@@ -1,4 +1,6 @@
+export * from "./AutocompleteFormField";
 export * from "./CheckboxFormField";
+export * from "./MultiSelectFormField";
 export * from "./NumberFieldFormField";
 export * from "./parse-number-input";
 export * from "./SegmentedFormField";

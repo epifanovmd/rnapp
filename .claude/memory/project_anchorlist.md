@@ -38,6 +38,18 @@ type: project
    `flex: 1` по умолчанию; ячейки с `useState` (RolePermissionsCard) корректны лишь при
    выключенном `recycleItems`.
 
+8. **AnchorList внутри gorhom-шторки** (2026-10-02, Select кита): совмещено без правок
+   библиотек — `shared/ui/bottom-sheet/hooks/useBottomSheetScrollableBridge` (свой
+   `useAnimatedRef` → `refScrollView` + `useScrollableSetter`, обработчики
+   `useScrollEventsHandlersDefault` → `scrollHandlers`, `Gesture.Native` вокруг ScrollView
+   через `renderScrollView` и в `simultaneousHandlers` шторки). Ограничения:
+   `BottomSheetScrollView` через `renderScrollView` нельзя (AnchorList создаёт свой
+   `Animated.ScrollView` с UI-обработчиком `onScroll`, gorhom вызывает onScroll через
+   runOnJS); нет высоты по контенту (ScrollView `flex: 1` — высоту списка задаёт Select:
+   контент/оценка ≤ maxHeight); не повторено снятие инерции gorhom (`decelerationRate`
+   до раскрытия шторки); тип `refScrollView` приводится (своя копия reanimated у
+   link-пакета). Жест «тянуть шторку вниз из верха списка» — проверить на устройстве.
+
 ## Исправлено
 
 1. **Pull-to-refresh** (2026-10-01; был: `bounces={false}` жёстко, нет onScroll,

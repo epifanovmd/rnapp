@@ -3,6 +3,7 @@ export * from "./use-boolean";
 export * from "./use-clipboard";
 export * from "./use-close-when-forbidden";
 export * from "./use-constant";
+export * from "./use-controllable-state";
 export * from "./use-crossfade";
 export * from "./use-debounced-value";
 export * from "./use-dimensions";

@@ -1,24 +1,42 @@
 import React from "react";
-import { FieldPath, FieldValues } from "react-hook-form";
+import { FieldPathByValue, FieldValues } from "react-hook-form";
 
-import { ISelectProps, Select, SelectValue } from "../../select";
+import { Select, SelectBaseProps, SelectValue } from "../../select";
 import { FormField } from "../primitives";
 import { FormAdapterProps } from "../types";
 
 export type SelectFormFieldProps<
   TFormData extends FieldValues,
-  TName extends FieldPath<TFormData>,
-  V extends SelectValue = string,
+  TValue extends SelectValue,
+  TName extends FieldPathByValue<TFormData, TValue | null | undefined>,
 > = FormAdapterProps<TFormData, TName> &
-  Omit<ISelectProps<V>, "value" | "onChange" | "error"> & {
-    onValueChange?: (value: V | null) => void;
+  Omit<SelectBaseProps<TValue>, "errorMessage"> & {
+    /** Кнопка очистки (по умолчанию включена); `false` для обязательных полей. */
+    clearable?: boolean;
+    onValueChange?: (value: TValue | null) => void;
   };
 
-/** Select, связанный с RHF: в форму пишется значение варианта или `null`. */
+/** Ветка union-пропсов Select: `null` допустим только с кнопкой очистки. */
+const getSingleValueProps = <TValue extends SelectValue>(
+  clearable: boolean,
+  value: TValue | null | undefined,
+) =>
+  clearable
+    ? { clearable: true as const, value: value ?? null }
+    : { clearable: false as const, value: value ?? undefined };
+
+/**
+ * Одиночный Select, связанный с RHF: в форму пишется значение опции или
+ * `null`; закрытие шторки — blur поля. Для массивов — MultiSelectFormField.
+ *
+ * @example
+ * <SelectFormField<TForm> name={"country"} label={"Страна"} options={options} />
+ */
 export const SelectFormField = <
   TFormData extends FieldValues,
-  TName extends FieldPath<TFormData> = FieldPath<TFormData>,
-  V extends SelectValue = string,
+  TValue extends SelectValue = string,
+  TName extends FieldPathByValue<TFormData, TValue | null | undefined> =
+    FieldPathByValue<TFormData, TValue | null | undefined>,
 >({
   name,
   control,
@@ -26,9 +44,11 @@ export const SelectFormField = <
   shouldUnregister,
   defaultValue,
   disabled,
+  clearable = true,
   onValueChange,
+  onOpenChange,
   ...selectProps
-}: SelectFormFieldProps<TFormData, TName, V>) => (
+}: SelectFormFieldProps<TFormData, TValue, TName>) => (
   <FormField
     name={name}
     control={control}
@@ -37,13 +57,18 @@ export const SelectFormField = <
     defaultValue={defaultValue}
     disabled={disabled}
     render={({ field, fieldState }) => (
-      <Select<V>
+      <Select<TValue>
         {...selectProps}
+        {...getSingleValueProps<TValue>(clearable, field.value)}
+        multi={false}
+        labelInValue={false}
         disabled={field.disabled}
-        error={fieldState.error?.message}
-        value={field.value ?? null}
-        onClose={field.onBlur}
-        onChange={next => {
+        errorMessage={fieldState.error?.message}
+        onOpenChange={open => {
+          if (!open) field.onBlur();
+          onOpenChange?.(open);
+        }}
+        onChange={(next: TValue | null) => {
           field.onChange(next);
           onValueChange?.(next);
         }}

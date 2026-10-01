@@ -1,10 +1,13 @@
 import {
+  AutocompleteFormField,
+  MultiSelectFormField,
   NumberFieldFormField,
   SegmentedFormField,
   SelectFormField,
   TextFieldFormField,
 } from "@shared/ui";
-import React, { FC, memo } from "react";
+import React, { FC, memo, useMemo } from "react";
+import { useWatch } from "react-hook-form";
 
 import {
   CITY_OPTIONS,
@@ -12,33 +15,65 @@ import {
   ROLE_OPTIONS,
   TDemoForm,
 } from "./demo-form-schema";
+import { DOMAIN_OPTIONS, TAG_OPTIONS } from "./select-demo-api";
 
 /** Поля демо-формы; control берётся из ближайшей `Form`. */
-export const DemoFormFields: FC = memo(() => (
-  <>
-    <TextFieldFormField<TDemoForm> name={"name"} label={"Название"} />
-    <SegmentedFormField<TDemoForm, "plan", "free" | "pro" | "team">
-      name={"plan"}
-      label={"Тариф"}
-      options={PLAN_OPTIONS}
-    />
-    <SelectFormField<TDemoForm, "role">
-      name={"role"}
-      label={"Роль"}
-      options={ROLE_OPTIONS}
-    />
-    <SelectFormField<TDemoForm, "city">
-      name={"city"}
-      label={"Город"}
-      placeholder={"Любой"}
-      description={"Необязательно; поиск по 25 вариантам"}
-      options={CITY_OPTIONS}
-      clearable
-    />
-    <NumberFieldFormField<TDemoForm, "seats">
-      name={"seats"}
-      label={"Число мест"}
-      placeholder={"1–100"}
-    />
-  </>
-));
+export const DemoFormFields: FC = memo(() => {
+  const email = useWatch<TDemoForm, "email">({ name: "email" }) ?? "";
+  const emailOptions = useMemo(() => {
+    const [name, domain = ""] = email.split("@");
+
+    if (!name || !email.includes("@")) return [];
+
+    return DOMAIN_OPTIONS.filter(option =>
+      option.value.startsWith(domain.toLowerCase()),
+    ).map(option => ({
+      value: `${name}@${option.value}`,
+      label: `${name}@${option.value}`,
+    }));
+  }, [email]);
+
+  return (
+    <>
+      <TextFieldFormField<TDemoForm> name={"name"} label={"Название"} />
+      <SegmentedFormField<TDemoForm, "plan", "free" | "pro" | "team">
+        name={"plan"}
+        label={"Тариф"}
+        options={PLAN_OPTIONS}
+      />
+      <SelectFormField<TDemoForm>
+        name={"role"}
+        label={"Роль"}
+        options={ROLE_OPTIONS}
+        clearable={false}
+      />
+      <SelectFormField<TDemoForm>
+        name={"city"}
+        label={"Город"}
+        placeholder={"Любой"}
+        description={"Необязательно; поиск по 25 вариантам"}
+        options={CITY_OPTIONS}
+        search
+      />
+      <MultiSelectFormField<TDemoForm>
+        name={"tags"}
+        label={"Теги"}
+        options={TAG_OPTIONS}
+        maxTagCount={3}
+        clearable
+      />
+      <AutocompleteFormField<TDemoForm>
+        name={"email"}
+        label={"Email"}
+        placeholder={"name@domain"}
+        options={emailOptions}
+        inputProps={{ keyboardType: "email-address", autoCapitalize: "none" }}
+      />
+      <NumberFieldFormField<TDemoForm, "seats">
+        name={"seats"}
+        label={"Число мест"}
+        placeholder={"1–100"}
+      />
+    </>
+  );
+});
