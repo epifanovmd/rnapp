@@ -18,7 +18,7 @@ import {
 import { ComponentType } from "react";
 
 import { IIconGlyphProps } from "./icon.types";
-import { CheckBoldIcon } from "./icons/CheckBold";
+import { CheckBoldIcon, CloseCircleFilledIcon } from "./icons";
 
 /**
  * Реестр иконок приложения.
@@ -38,6 +38,7 @@ export const ICONS_MAP = {
   chevronRight: ChevronRight,
   close: X,
   closeCircle: CircleX,
+  closeCircleFilled: CloseCircleFilledIcon,
   document: FileText,
   eye: Eye,
   eyeOff: EyeOff,

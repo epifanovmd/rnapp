@@ -31,7 +31,7 @@ const bottomSheetHeaderSlots = {
   closeIcon: slot<Partial<IIconProps>>({
     always: true,
     component: Icon,
-    defaultProps: { name: "close", size: 21 },
+    defaultProps: { name: "closeCircleFilled" },
   }),
 };
 

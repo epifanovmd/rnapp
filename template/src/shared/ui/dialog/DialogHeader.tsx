@@ -31,7 +31,7 @@ const dialogHeaderSlots = {
   closeIcon: slot<Partial<IIconProps>>({
     always: true,
     component: Icon,
-    defaultProps: { name: "closeCircle" },
+    defaultProps: { name: "closeCircleFilled" },
   }),
 };
 

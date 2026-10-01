@@ -51,7 +51,10 @@ export const TextFieldAccessories: FC<ITextFieldAccessoriesProps> = memo(
             style={styles.icon}
             onPress={onToggleSecure}
           >
-            <Icon color={colors.textTertiary} name={secureIcon} />
+            <Icon
+              color={showError ? colors.danger : colors.textTertiary}
+              name={secureIcon}
+            />
           </TouchableOpacity>
         )}
         {showClear && (
@@ -63,13 +66,11 @@ export const TextFieldAccessories: FC<ITextFieldAccessoriesProps> = memo(
             style={styles.icon}
             onPress={onClear}
           >
-            <Icon color={colors.textTertiary} name={"close"} />
+            <Icon
+              color={showError ? colors.danger : colors.textTertiary}
+              name={"closeCircleFilled"}
+            />
           </TouchableOpacity>
-        )}
-        {showError && (
-          <View style={styles.icon}>
-            <Icon color={colors.danger} name={"closeCircle"} />
-          </View>
         )}
       </View>
     );
