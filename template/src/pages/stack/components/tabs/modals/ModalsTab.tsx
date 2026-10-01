@@ -27,7 +27,7 @@ const SHEET_VARIANTS: ISheetVariant[] = [
   {
     key: "dynamic",
     button: "Dynamic sizing — высота по контенту",
-    props: { maxDynamicContentSize: 500 },
+    props: {},
   },
   {
     key: "snap",
