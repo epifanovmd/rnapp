@@ -44,7 +44,7 @@ const collectPoints = (
 
 export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   visible = true,
-  placement = "top-left",
+  placement = "above-left",
   offset = 12,
   backgroundColor = "rgba(15, 23, 42, 0.92)",
   textColor = "#FFFFFF",
@@ -155,6 +155,14 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
       return maxLeft;
     }
 
+    if (placement === "above-left") {
+      const leftOfFinger = anchorPoint.value.x - boxWidth - offset;
+      const x =
+        leftOfFinger >= minLeft ? leftOfFinger : anchorPoint.value.x + offset;
+
+      return Math.min(Math.max(x, minLeft), maxLeft);
+    }
+
     let rawLeft = anchorPoint.value.x - boxWidth / 2;
 
     if (side === "left") {
@@ -173,8 +181,14 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
       dimensions.height - dimensions.padding.bottom - boxHeight,
     );
 
-    if (placement !== "follow") {
+    if (placement === "top-left" || placement === "top-right") {
       return minTop;
+    }
+
+    if (placement === "above-left") {
+      const aboveFinger = anchorPoint.value.y - boxHeight - offset;
+
+      return Math.min(Math.max(aboveFinger, minTop), maxTop);
     }
 
     let rawTop = anchorPoint.value.y - boxHeight / 2;

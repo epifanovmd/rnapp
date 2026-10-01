@@ -14,19 +14,22 @@ export interface ActiveTooltipPoint {
 
 /**
  * Расположение тултипа во время касания:
+ * - `"above-left"` — следует за пальцем/точкой: над ним и слева, пока хватает
+ *   места, у левого края — справа (`offset`, `anchorToPoint`);
  * - `"top-left"` / `"top-right"` — закреплён в верхнем углу области графика (внутри `padding`);
- * - `"follow"` — следует за пальцем/точкой (`side`, `offset`, `anchorToPoint`), прижимаясь к краям.
+ * - `"follow"` — следует за пальцем/точкой со стороны `side`, прижимаясь к краям.
  */
-export type TooltipPlacement = "top-left" | "top-right" | "follow";
+export type TooltipPlacement =
+  "above-left" | "top-left" | "top-right" | "follow";
 
 export type TooltipSide = "top" | "bottom" | "left" | "right";
 
 export interface TooltipLayerProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** Расположение тултипа. По умолчанию `"top-left"`. */
+  /** Расположение тултипа. По умолчанию `"above-left"`. */
   placement?: TooltipPlacement;
-  /** px. Отступ от точки привязки (только `placement="follow"`). */
+  /** px. Отступ от точки привязки (`"above-left"` и `"follow"`). */
   offset?: number;
   backgroundColor?: string;
   textColor?: string;
@@ -35,7 +38,7 @@ export interface TooltipLayerProps {
   fontFamily?: string;
   /** Форматирует строку одной серии (по умолчанию — `"label: value"`). */
   formatRow?: (point: ActiveTooltipPoint) => string;
-  /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца (только `placement="follow"`). */
+  /** Привязывать тултип к пиксельной позиции активной точки первой серии, а не к сырой позиции пальца (`"above-left"` и `"follow"`). */
   anchorToPoint?: boolean;
   /** Сторона от точки привязки (только `placement="follow"`). */
   side?: TooltipSide;

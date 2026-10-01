@@ -250,7 +250,9 @@ export const Charts: FC = observer(() => {
 
           <ChartCard
             title={"Live — Price ticker"}
-            description={"Тултип по умолчанию — закреплён сверху слева."}
+            description={
+              "Тултип по умолчанию едет за пальцем — над ним и слева, у края — справа."
+            }
           >
             <Chart
               series={livePriceSeries}
