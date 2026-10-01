@@ -18,6 +18,8 @@ module.exports = {
   moduleNameMapper: {
     "^react-native$": "<rootDir>/jest/stubs/react-native.js",
     "^react-native-mmkv$": "<rootDir>/jest/stubs/react-native-mmkv.js",
+    "^@react-native-clipboard/clipboard$":
+      "<rootDir>/jest/stubs/react-native-clipboard.js",
     "^react-native-config$": "<rootDir>/jest/stubs/react-native-config.js",
     "^react-native-image-picker$":
       "<rootDir>/jest/stubs/react-native-image-picker.js",

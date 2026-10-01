@@ -34,7 +34,7 @@ const BottomSheetRoot = ({
   typeof bottomSheetSlots,
   BottomSheetModal
 >) => {
-  const { haptic: hapticEnable, ...modalProps } = props;
+  const { haptic: hapticEnable, nested, ...modalProps } = props;
   const modalStyles = useBottomSheetStyles();
   const { top } = useSafeAreaInsets();
 
@@ -57,7 +57,7 @@ const BottomSheetRoot = ({
       keyboardBlurBehavior={"restore"}
       backdropComponent={BottomSheetBackdrop}
       {...modalProps}
-      stackBehavior={"replace"}
+      stackBehavior={nested ? "push" : "replace"}
       onAnimate={onAnimate}
       style={[BottomSheetStyles.container, modalProps.style]}
     >

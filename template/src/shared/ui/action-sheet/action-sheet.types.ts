@@ -17,4 +17,6 @@ export interface IActionSheetProps<TKey extends string = string> {
   /** Вызывается после закрытия шторки: системные экраны не открываются поверх модалки. */
   onSelect: (key: TKey) => void;
   cancelLabel?: string;
+  /** Открывается из другого листа — поверх него (см. `TBottomSheetProps.nested`). */
+  nested?: boolean;
 }

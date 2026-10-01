@@ -18,7 +18,13 @@ import { ActionSheetItem } from "./ActionSheetItem";
  * данными: новое действие добавляется записью, без правки разметки.
  */
 const ActionSheetImpl = <TKey extends string>(
-  { title, items, onSelect, cancelLabel = "Отмена" }: IActionSheetProps<TKey>,
+  {
+    title,
+    items,
+    onSelect,
+    cancelLabel = "Отмена",
+    nested,
+  }: IActionSheetProps<TKey>,
   ref: ForwardedRef<BottomSheet>,
 ) => {
   const sheetRef = useRef<BottomSheet>(null);
@@ -39,7 +45,7 @@ const ActionSheetImpl = <TKey extends string>(
   }, [onSelect]);
 
   return (
-    <BottomSheet ref={sheetRef} onDismiss={handleDismiss}>
+    <BottomSheet ref={sheetRef} nested={nested} onDismiss={handleDismiss}>
       {!!title && <BottomSheet.Header label={title} />}
       <BottomSheet.Content>
         <Col pb={24} gap={12}>

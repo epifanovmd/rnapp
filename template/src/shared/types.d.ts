@@ -12,3 +12,9 @@ declare module "react-native-config" {
   export const Config: NativeConfig;
   export default Config;
 }
+
+declare module "qrcode/lib/core/qrcode" {
+  import type { QRCode, QRCodeOptions } from "qrcode";
+
+  export const create: (text: string, options?: QRCodeOptions) => QRCode;
+}

@@ -146,3 +146,20 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 ## ActionSheet (`shared/ui/action-sheet`, 2026-09-26)
 
 Шторка выбора действия поверх `BottomSheet`: пункты данными (`IActionSheetItem<TKey>`: key, title, description, icon, destructive, disabled), карточка `surface` со строками (иконка в круге `primary`/`danger`, заголовок, подпись, chevron), кнопка «Отмена». `onSelect(key)` вызывается ПОСЛЕ закрытия (`onDismiss`) — иначе системный пикер iOS не откроется поверх модалки. Открытие — `ref.current?.present()` (`useBottomSheetRef`).
+
+## Дополнения кита (ветка feat/wg-admin-mobile, 2026-10-01)
+
+- `ModalSheet` — управляемая шторка с API модалки (`open`/`onOpenChange`, `title`,
+  `description`, `primaryAction`, `cancelLabel`): формы фич открываются в ней.
+- `TextField` внутри любой gorhom-шторки — цель клавиатуры (`useSheetKeyboardTarget`,
+  повторяет логику `BottomSheetTextInput`), отдельный `BottomSheetTextInput` не нужен.
+- `Select`/`SelectFormField` (шторка со списком и поиском), `Segmented`/
+  `SegmentedFormField`, `NumberFieldFormField` (число или `null`).
+- `Tag` (метка статуса; `Badge` — счётчик), `ListItem`, `EmptyState`, `ScreenState`,
+  `ScreenScroll`, `InfoRow`, `CopyableText`, `StatCard`, `Notice`, `QrCode`
+  (ядро `qrcode/lib/core/qrcode` — основная точка входа пакета тянет `fs`),
+  `useConfirm` (системный Alert), `CHART_COLORS`.
+- `Text`: `color` — токен или любой цвет; `style` применяется последним (раньше
+  конвертер flex-пропсов его отбрасывал).
+- `useClipboard` (`@shared/lib/hooks`) грузит `@react-native-clipboard/clipboard` лениво:
+  без `pod install` приложение не падает, `copy` вернёт `false`.
