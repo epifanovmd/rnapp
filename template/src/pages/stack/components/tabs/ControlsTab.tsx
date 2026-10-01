@@ -12,6 +12,7 @@ import {
 import React, { FC, memo, useState } from "react";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
+import { SegmentedPagerDemo } from "./SegmentedPagerDemo";
 
 const SIZES = [
   { label: "Маленький", value: "s" },
@@ -159,6 +160,13 @@ export const ControlsTab: FC = memo(() => {
         <Text color={"textSecondary"} textStyle={"Caption_M3"}>
           Выбрано: {category}
         </Text>
+      </DemoSection>
+
+      <DemoSection
+        title={"SegmentedTabBar"}
+        description={"Таб-бар top-tabs: подсветка синхронна с пейджером"}
+      >
+        <SegmentedPagerDemo />
       </DemoSection>
 
       <DemoSection

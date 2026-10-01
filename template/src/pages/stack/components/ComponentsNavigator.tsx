@@ -3,13 +3,8 @@ import {
   MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
-import {
-  HiddenBar,
-  Navbar,
-  SegmentedTabBar,
-  useNavbar,
-  useNavbarScrollSync,
-} from "@shared/ui";
+import { HiddenBar, Navbar, useNavbar, useNavbarScrollSync } from "@shared/ui";
+import { Tabs } from "@shared/ui/tabs";
 import React, { FC } from "react";
 
 import { ComponentsTabName, ComponentsTabsParamList } from "./components.types";
@@ -37,13 +32,23 @@ import { TicketTab } from "./tabs/Ticket";
 
 const TopTab = createMaterialTopTabNavigator<ComponentsTabsParamList>();
 
-const renderTabBar = (props: MaterialTopTabBarProps) => (
+const renderTabBar = ({
+  state: { routes: tabRoutes, index },
+  navigation,
+}: MaterialTopTabBarProps) => (
   <HiddenBar safeArea>
     <Navbar title={"Компоненты"}>
       <Navbar.BackButton />
     </Navbar>
     <HiddenBar.StickyContent>
-      <SegmentedTabBar {...props} scrollable mh={16} mb={8} />
+      <Tabs
+        activeIndex={index}
+        onPress={routeName => navigation.navigate(routeName)}
+        items={tabRoutes.map(route => ({
+          title: route.name,
+          value: route.name,
+        }))}
+      />
     </HiddenBar.StickyContent>
   </HiddenBar>
 );
