@@ -17,7 +17,7 @@ const bottomSheetSlots = {
   header: slot.of(BottomSheetHeader),
   content: slot.of(BottomSheetScrollView, {
     always: true,
-    defaultProps: { bounces: false },
+    defaultProps: { bounces: false, keyboardShouldPersistTaps: "handled" },
   }),
   footer: slot.of(BottomSheetFooter),
 };

@@ -19,6 +19,7 @@ export const DemoScreen: FC<PropsWithChildren> = ({ children }) => {
       ]}
       onScroll={scroll.scrollHandler}
       scrollEventThrottle={16}
+      keyboardShouldPersistTaps={"handled"}
     >
       {children}
     </Animated.ScrollView>
