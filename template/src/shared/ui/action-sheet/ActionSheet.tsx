@@ -57,11 +57,10 @@ const ActionSheetImpl = <TKey extends string>(
         <Col gap={10} pb={8}>
           {!!title && (
             <Text
-              textStyle={"Caption_M2"}
-              color={"textSecondary"}
+              textStyle={"Title_S1"}
               textAlign={"center"}
               numberOfLines={2}
-              pb={2}
+              pb={4}
             >
               {title}
             </Text>
