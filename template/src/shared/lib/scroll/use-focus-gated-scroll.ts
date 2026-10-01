@@ -12,8 +12,12 @@ import { useScroll } from "./use-scroll";
  * Телеметрия экрана для вкладки, которая делит её с соседними (top-tabs под
  * общей шапкой): события скролла доходят до неё, только пока вкладка в
  * фокусе. Без этого инерция покинутой вкладки продолжала бы двигать общую
- * шапку после переключения. На blur флаги жеста и инерции сбрасываются — их
- * окончания уже не придут, а доводка панели ждёт именно их.
+ * шапку после переключения.
+ *
+ * Флаги жеста и инерции на blur НЕ сбрасываются: сброс — это «конец жеста»,
+ * навбар запускал бы доводку кадром позже `show()` на фокусе и прятал шапку.
+ * Зависший флаг инерции покинутой вкладки снимает первый жест новой:
+ * начало перетаскивания отменяет инерцию.
  *
  * Только для вкладок: одиночному экрану шлюз не нужен — там телеметрию
  * передают как есть.
@@ -34,8 +38,6 @@ export const useFocusGatedScroll = (
     });
     const offBlur = navigation.addListener("blur", () => {
       focused.value = false;
-      telemetry.isDragging.value = false;
-      telemetry.isMomentum.value = false;
     });
 
     return () => {
@@ -54,7 +56,11 @@ export const useFocusGatedScroll = (
       },
       onBeginDrag: event => {
         "worklet";
-        if (focused.value) target.onBeginDrag?.(event);
+        if (!focused.value) return;
+        // Новый жест отменяет инерцию (в т.ч. оставшуюся от покинутой
+        // вкладки): флаг снимается в один тик с isDragging — без доводки.
+        telemetry.isMomentum.value = false;
+        target.onBeginDrag?.(event);
       },
       onEndDrag: event => {
         "worklet";
