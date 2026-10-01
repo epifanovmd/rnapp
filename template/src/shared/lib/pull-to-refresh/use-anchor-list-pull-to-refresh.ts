@@ -1,9 +1,7 @@
 import type { IAnchorListProps } from "@epifanovmd/anchor-list";
 import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
 import { createElement, ReactElement, useCallback, useMemo } from "react";
-import { StyleSheet } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 import { IPullToRefreshConfig } from "./pull-to-refresh.types";
 import { usePullToRefreshHaptics } from "./use-pull-to-refresh-haptics";
@@ -24,7 +22,7 @@ export interface IAnchorListPullToRefreshConfig extends IPullToRefreshConfig {
 export type TAnchorListPullToRefreshProps = Required<
   Pick<
     IAnchorListProps<unknown>,
-    "bounces" | "scrollHandlers" | "renderScrollView"
+    "bounces" | "scrollHandlers" | "renderScrollView" | "contentTranslate"
   >
 >;
 
@@ -32,8 +30,8 @@ export type TAnchorListPullToRefreshProps = Required<
  * Pull-to-refresh для AnchorList: связка usePullToRefreshScroll со списком.
  *
  * iOS — протяжка с native bounce, Android — pan-жест одновременно с нативным
- * жестом ScrollView; контент на Android сдвигается за протяжкой внутри
- * обёртки ScrollView. Подключение:
+ * жестом ScrollView; контент на Android сдвигается за протяжкой вместе со
+ * слоем прилипших копий (`contentTranslate`). Подключение:
  *
  * const ptr = useAnchorListPullToRefresh({ onRefresh, telemetry });
  * <RefreshIndicator controller={ptr} topOffset={navbarHeight} />
@@ -56,18 +54,10 @@ export const useAnchorListPullToRefresh = ({
   });
   const { gesture, contentTranslateY } = ptr;
 
-  const translateStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: contentTranslateY.value }],
-  }));
-
   const renderScrollView = useCallback(
     (scrollView: ReactElement) =>
-      createElement(
-        Animated.View,
-        { style: [styles.fill, translateStyle] },
-        createElement(GestureDetector, { gesture }, scrollView),
-      ),
-    [gesture, translateStyle],
+      createElement(GestureDetector, { gesture }, scrollView),
+    [gesture],
   );
 
   const listProps = useMemo<TAnchorListPullToRefreshProps>(
@@ -75,8 +65,9 @@ export const useAnchorListPullToRefresh = ({
       bounces: true,
       scrollHandlers: telemetry.handlers,
       renderScrollView,
+      contentTranslate: contentTranslateY,
     }),
-    [renderScrollView, telemetry.handlers],
+    [renderScrollView, telemetry.handlers, contentTranslateY],
   );
 
   return useMemo(
@@ -88,5 +79,3 @@ export const useAnchorListPullToRefresh = ({
 export type TAnchorListPullToRefresh = ReturnType<
   typeof useAnchorListPullToRefresh
 >;
-
-const styles = StyleSheet.create({ fill: { flex: 1 } });

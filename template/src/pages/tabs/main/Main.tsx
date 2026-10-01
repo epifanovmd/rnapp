@@ -25,7 +25,7 @@ import { StyleSheet } from "react-native";
 const CARDS = Array.from({ length: 50 }, (_, index) => index);
 const CARD_HEIGHT = 120;
 const CARD_GAP = 8;
-/** Отступ под ImageBar: шапкой, а не paddingTop — его AnchorList не учитывает. */
+/** Отступ под ImageBar — шапкой списка, без зазора до первой карточки. */
 const LIST_HEADER = <Col height={316} />;
 
 const keyExtractor = (item: number) => String(item);
@@ -84,6 +84,7 @@ export const Main: FC = observer(() => {
             renderItem={renderItem}
             estimatedItemSize={CARD_HEIGHT}
             gap={CARD_GAP}
+            headerGap={0}
             ListHeaderComponent={LIST_HEADER}
             contentContainerStyle={{ paddingBottom: tabBarHeight }}
           />

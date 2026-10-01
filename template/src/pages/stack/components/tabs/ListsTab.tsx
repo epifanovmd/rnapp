@@ -67,7 +67,6 @@ export const ListsTab: FC = memo(() => {
         renderItem={renderItem}
         estimatedItemSize={ROW_HEIGHT}
         contentContainerStyle={{ paddingBottom: bottom + 16 }}
-        // Отступ под навбар — шапкой: paddingTop AnchorList не учитывает.
         ListHeaderComponent={
           <Text
             textStyle={"Body_M1"}

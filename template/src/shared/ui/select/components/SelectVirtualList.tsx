@@ -127,6 +127,7 @@ export const SelectVirtualList = <V extends SelectValue>({
       estimatedItemSize={config.estimateSize}
       drawDistance={config.overscan * config.estimateSize}
       gap={ROW_GAP}
+      footerGap={0}
       sticky={sticky}
       keyboardShouldPersistTaps={"handled"}
       // Типы reanimated у связанного пакета — своя копия; объект тот же.
