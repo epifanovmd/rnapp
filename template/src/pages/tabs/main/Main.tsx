@@ -1,5 +1,9 @@
+import {
+  AnchorList,
+  IAnchorListRenderItemProps,
+} from "@epifanovmd/anchor-list";
 import { useRoute } from "@shared/lib/navigation";
-import { usePullToRefreshScroll } from "@shared/lib/pull-to-refresh";
+import { useAnchorListPullToRefresh } from "@shared/lib/pull-to-refresh";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
 import { useTheme } from "@shared/lib/theme";
 import {
@@ -7,6 +11,7 @@ import {
   Content,
   ImageBar,
   Navbar,
+  RefreshIndicator,
   Text,
   Touchable,
   useNavbarHeight,
@@ -16,14 +21,14 @@ import { useTabBarHeight, useTabBarScrollSync } from "@widgets/app-shell";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback } from "react";
 import { StyleSheet } from "react-native";
-import { GestureDetector } from "react-native-gesture-handler";
-import { trigger } from "react-native-haptic-feedback";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
 
-import { RefreshIndicator } from "./RefreshIndicator";
+const CARDS = Array.from({ length: 50 }, (_, index) => index);
+const CARD_HEIGHT = 120;
+const CARD_GAP = 8;
+/** Отступ под ImageBar: шапкой, а не paddingTop — его AnchorList не учитывает. */
+const LIST_HEADER = <Col height={316} />;
 
-const armedHaptic = () => trigger("impactMedium");
+const keyExtractor = (item: number) => String(item);
 
 export const Main: FC = observer(() => {
   const { name } = useRoute();
@@ -41,26 +46,22 @@ export const Main: FC = observer(() => {
     [],
   );
 
-  const ptr = usePullToRefreshScroll({
-    telemetry,
-    onRefresh,
-    onStateChange: (prev, next) => {
-      "worklet";
-      // Хаптика срабатывания: armed (release-режим) или мгновенный запуск
-      // из протяжки (threshold-режим); программный refresh() не вибрирует.
-      if (next === "armed" || (next === "refreshing" && prev === "pulling")) {
-        scheduleOnRN(armedHaptic);
-      }
-    },
-  });
+  const ptr = useAnchorListPullToRefresh({ onRefresh, telemetry });
 
-  // Захватывать в worklet только shared value: захват всего ptr заморозит
-  // его содержимое (включая gesture) при клонировании на UI-поток.
-  const { contentTranslateY } = ptr;
-
-  const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: contentTranslateY.value }],
-  }));
+  const renderItem = useCallback(
+    ({ index }: IAnchorListRenderItemProps<number>) => (
+      <Touchable bg={colors.onSurface} radius={16} pa={8} height={CARD_HEIGHT}>
+        <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
+        <Text textStyle={"Body_M1"} color={"textSecondary"}>
+          {"Текст"}
+        </Text>
+        <Text textStyle={"Body_M1"} color={"textSecondary"}>
+          {"Текст"}
+        </Text>
+      </Touchable>
+    ),
+    [colors.onSurface],
+  );
 
   return (
     <ScrollProvider telemetry={telemetry}>
@@ -74,41 +75,22 @@ export const Main: FC = observer(() => {
         <Content>
           <RefreshIndicator controller={ptr} topOffset={navbarHeight} />
 
-          <GestureDetector gesture={ptr.gesture}>
-            <Animated.FlatList
-              style={contentStyle}
-              data={new Array(50).fill(0)}
-              onScroll={telemetry.scrollHandler}
-              scrollEventThrottle={16}
-              contentContainerStyle={[
-                styles.content,
-                { paddingBottom: tabBarHeight },
-              ]}
-              showsVerticalScrollIndicator={false}
-              ItemSeparatorComponent={() => <Col height={8} />}
-              renderItem={({ index }) => (
-                <Touchable
-                  bg={colors.onSurface}
-                  radius={16}
-                  pa={8}
-                  height={120}
-                  key={index}
-                >
-                  <Text textStyle={"Title_L"}>{`Карточка ${index + 1}`}</Text>
-                  <Text textStyle={"Body_M1"} color={"textSecondary"}>
-                    {"Текст"}
-                  </Text>
-                  <Text textStyle={"Body_M1"} color={"textSecondary"}>
-                    {"Текст"}
-                  </Text>
-                </Touchable>
-              )}
-            />
-          </GestureDetector>
+          <AnchorList
+            {...ptr.listProps}
+            showsScrollIndicator={false}
+            style={styles.list}
+            data={CARDS}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            estimatedItemSize={CARD_HEIGHT}
+            gap={CARD_GAP}
+            ListHeaderComponent={LIST_HEADER}
+            contentContainerStyle={{ paddingBottom: tabBarHeight }}
+          />
         </Content>
       </Col>
     </ScrollProvider>
   );
 });
 
-const styles = StyleSheet.create({ content: { paddingTop: 316 } });
+const styles = StyleSheet.create({ list: { flex: 1 } });

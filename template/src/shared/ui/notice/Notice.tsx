@@ -33,7 +33,15 @@ const COLORS: Record<TNoticeVariant, keyof TColorTheme> = {
 
 /** Плашка-уведомление внутри экрана: статус, предупреждение, ошибка. */
 export const Notice: FC<INoticeProps> = memo(
-  ({ variant = "info", title, description, action, children, ...rest }) => {
+  ({
+    variant = "info",
+    title,
+    description,
+    action,
+    children,
+    style,
+    ...rest
+  }) => {
     const { colors } = useTheme();
     const tone = colors[COLORS[variant]];
 
@@ -45,6 +53,7 @@ export const Notice: FC<INoticeProps> = memo(
             backgroundColor: `${String(tone)}1A`,
             borderColor: `${String(tone)}4D`,
           },
+          style,
         ]}
         {...rest}
       >

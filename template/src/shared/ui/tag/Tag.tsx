@@ -3,6 +3,7 @@ import React, { FC, memo, PropsWithChildren, ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { FlexProps, Row, useFlexProps } from "../flex-view";
+import { Icon, TIconName } from "../icon";
 import { Text } from "../text";
 
 export type TTagVariant =
@@ -21,8 +22,8 @@ export interface ITagProps extends FlexProps {
   variant?: TTagVariant | null;
   /** Точка-индикатор перед текстом. */
   dot?: boolean;
-  /** Иконка перед текстом. */
-  icon?: ReactNode;
+  /** Иконка перед текстом: имя из реестра (в цвете варианта) или свой элемент. */
+  icon?: TIconName | ReactNode;
 }
 
 interface ITone {
@@ -58,7 +59,7 @@ const SOFT: ReadonlySet<TTagVariant> = new Set([
 export const Tag: FC<PropsWithChildren<ITagProps>> = memo(
   ({ variant, dot, icon, children, ...rest }) => {
     const { colors } = useTheme();
-    const { style } = useFlexProps(rest);
+    const { style, ownProps } = useFlexProps(rest);
     const tone = TONES[variant ?? "default"];
     const base =
       tone.bg in colors ? colors[tone.bg as keyof TColorTheme] : tone.bg;
@@ -76,9 +77,14 @@ export const Tag: FC<PropsWithChildren<ITagProps>> = memo(
           variant === "outline" && styles.outline,
           style,
         ]}
+        {...ownProps}
       >
         {dot && <View style={[styles.dot, { backgroundColor: fg }]} />}
-        {icon}
+        {typeof icon === "string" ? (
+          <Icon name={icon as TIconName} size={12} color={fg} />
+        ) : (
+          icon
+        )}
         {typeof children === "string" || typeof children === "number" ? (
           <Text textStyle={"Caption_M2"} color={tone.fg} numberOfLines={1}>
             {children}

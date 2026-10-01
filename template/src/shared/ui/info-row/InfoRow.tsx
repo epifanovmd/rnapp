@@ -20,12 +20,21 @@ export const InfoRow: FC<IInfoRowProps> = memo(
   ({ label, value, copyValue, mono, placeholder = "—", ...rest }) => {
     const empty = value === undefined || value === null || value === "";
 
+    const isNode = !empty && typeof value !== "string";
+
     const content = copyValue ? (
-      <CopyableText
-        text={copyValue}
-        displayText={typeof value === "string" ? value : undefined}
-        mono={mono}
-      />
+      isNode ? (
+        <Row alignItems={"center"} gap={6} flexShrink={1}>
+          {value}
+          <CopyableText text={copyValue} displayText={""} />
+        </Row>
+      ) : (
+        <CopyableText
+          text={copyValue}
+          displayText={typeof value === "string" ? value : undefined}
+          mono={mono}
+        />
+      )
     ) : empty ? (
       <Text color={"textTertiary"}>{placeholder}</Text>
     ) : typeof value === "string" || typeof value === "number" ? (

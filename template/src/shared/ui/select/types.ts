@@ -16,6 +16,8 @@ export interface ISelectProps<V extends SelectValue = string> {
   options: SelectOption<V>[];
   value?: V | null;
   onChange?: (value: V | null) => void;
+  /** Шторка выбора закрыта (с выбором или без) — для «тронутости» поля формы. */
+  onClose?: () => void;
   label?: string;
   placeholder?: string;
   description?: string;

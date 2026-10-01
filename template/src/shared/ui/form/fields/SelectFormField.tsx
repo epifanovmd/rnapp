@@ -42,9 +42,9 @@ export const SelectFormField = <
         disabled={field.disabled}
         error={fieldState.error?.message}
         value={field.value ?? null}
+        onClose={field.onBlur}
         onChange={next => {
           field.onChange(next);
-          field.onBlur();
           onValueChange?.(next);
         }}
       />

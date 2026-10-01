@@ -1,15 +1,15 @@
 import { IPullToRefreshController } from "@shared/lib/pull-to-refresh";
 import { useTheme } from "@shared/lib/theme";
-import { ISpinnerBehavior, Spinner, WORM_SPINNER_BEHAVIOR } from "@shared/ui";
 import React, { FC, memo, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {
-  Easing,
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+
+import { ISpinnerBehavior, Spinner, WORM_SPINNER_BEHAVIOR } from "../spinner";
 
 const INDICATOR_SIZE = 32;
 
@@ -23,17 +23,22 @@ const PTR_SPINNER_BEHAVIOR: ISpinnerBehavior = {
   initialPhase: 0.5,
 };
 
-interface IProps {
-  controller: IPullToRefreshController;
+export interface IRefreshIndicatorProps {
+  /** Контроллер pull-to-refresh: pullDistance, progress, state. */
+  controller: Pick<
+    IPullToRefreshController,
+    "pullDistance" | "progress" | "state"
+  >;
   /** Отступ сверху (высота navbar и т.п.) */
   topOffset?: number;
 }
 
 /**
- * Визуал pull-to-refresh страницы Main: плавающее кольцо поверх контента —
- * заполняется при протяжке (determinate), во время обновления — червяк.
+ * Визуал pull-to-refresh: плавающее кольцо поверх контента — заполняется при
+ * протяжке (determinate), во время обновления — червяк. Кладётся соседом
+ * скроллящегося компонента внутри общего родителя.
  */
-export const RefreshIndicator: FC<IProps> = memo(
+export const RefreshIndicator: FC<IRefreshIndicatorProps> = memo(
   ({ controller, topOffset = 0 }) => {
     const { colors } = useTheme();
     const { pullDistance, progress, state } = controller;

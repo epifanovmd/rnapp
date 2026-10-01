@@ -20,6 +20,7 @@ export const Select = <V extends SelectValue = string>({
   options,
   value,
   onChange,
+  onClose,
   label,
   placeholder = "Не выбрано",
   description,
@@ -98,7 +99,12 @@ export const Select = <V extends SelectValue = string>({
         </Text>
       )}
 
-      <BottomSheet ref={sheetRef} nested maxDynamicContentSize={560}>
+      <BottomSheet
+        ref={sheetRef}
+        nested
+        maxDynamicContentSize={560}
+        onDismiss={onClose}
+      >
         <BottomSheet.Header label={title ?? label ?? "Выберите"} />
         <BottomSheet.Content>
           <Col gap={4} pb={8}>
