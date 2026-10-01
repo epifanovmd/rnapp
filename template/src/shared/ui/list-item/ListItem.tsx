@@ -1,10 +1,11 @@
 import { useTheme } from "@shared/lib/theme";
 import React, { FC, memo, ReactNode } from "react";
 
+import { DisclosureRow } from "../disclosure-row";
 import { Col, Row } from "../flex-view";
 import { Icon, TIconName } from "../icon";
 import { Text } from "../text";
-import { ITouchableProps, Touchable } from "../touchable";
+import { ITouchableProps } from "../touchable";
 
 export interface IListItemProps extends Omit<ITouchableProps, "children"> {
   title: ReactNode;
@@ -20,7 +21,7 @@ export interface IListItemProps extends Omit<ITouchableProps, "children"> {
   chevron?: boolean;
 }
 
-/** Строка списка-карточки: заголовок, подзаголовок, слоты слева/справа. */
+/** Строка списка-карточки на DisclosureRow: заголовок, подзаголовок, слоты слева/справа и footer. */
 export const ListItem: FC<IListItemProps> = memo(
   ({
     title,
@@ -34,12 +35,12 @@ export const ListItem: FC<IListItemProps> = memo(
     ...rest
   }) => {
     const { colors } = useTheme();
-    const showChevron = chevron ?? !!onPress;
 
     return (
-      <Touchable
-        disabled={!onPress}
+      <DisclosureRow
         onPress={onPress}
+        chevron={chevron}
+        footer={footer}
         bg={"surface"}
         radius={16}
         pv={12}
@@ -74,12 +75,8 @@ export const ListItem: FC<IListItemProps> = memo(
             )}
           </Col>
           {trailing}
-          {showChevron && (
-            <Icon name={"chevronRight"} size={18} color={colors.textTertiary} />
-          )}
         </Row>
-        {!!footer && <Col mt={10}>{footer}</Col>}
-      </Touchable>
+      </DisclosureRow>
     );
   },
 );

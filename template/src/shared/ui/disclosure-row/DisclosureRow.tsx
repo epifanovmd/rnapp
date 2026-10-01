@@ -10,7 +10,12 @@ export interface IDisclosureRowProps extends Omit<ITouchableProps, "children"> {
   /** Стрелка перехода справа; по умолчанию — когда есть `onPress`. */
   chevron?: boolean;
   /** Отступ между содержимым и стрелкой, px. */
-  gap?: number;
+  chevronGap?: number;
+  /**
+   * Блок под строкой на всю ширину (метки, метрики): стрелка центрируется по
+   * основной строке, а не по высоте вместе с ним.
+   */
+  footer?: ReactNode;
 }
 
 /**
@@ -19,7 +24,7 @@ export interface IDisclosureRowProps extends Omit<ITouchableProps, "children"> {
  * задаёт вызывающий (flex-пропсы).
  */
 export const DisclosureRow: FC<IDisclosureRowProps> = memo(
-  ({ children, chevron, gap = 12, onPress, ...rest }) => {
+  ({ children, chevron, chevronGap = 12, footer, onPress, ...rest }) => {
     const { colors } = useTheme();
     const showChevron = chevron ?? !!onPress;
 
@@ -30,12 +35,13 @@ export const DisclosureRow: FC<IDisclosureRowProps> = memo(
         accessibilityRole={onPress ? "button" : undefined}
         {...rest}
       >
-        <Row alignItems={"center"} gap={gap}>
+        <Row alignItems={"center"} gap={chevronGap}>
           <Col flex={1}>{children}</Col>
           {showChevron && (
             <Icon name={"chevronRight"} size={18} color={colors.textTertiary} />
           )}
         </Row>
+        {!!footer && <Col mt={10}>{footer}</Col>}
       </Touchable>
     );
   },
