@@ -1,5 +1,9 @@
 import type { IAnchorListProps } from "@epifanovmd/anchor-list";
-import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
+import {
+  IScrollTelemetry,
+  useFocusGatedScrollHandlers,
+  useScrollTelemetry,
+} from "@shared/lib/scroll";
 import { createElement, ReactElement, useCallback, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
@@ -45,7 +49,8 @@ export const useAnchorListPullToRefresh = ({
   onStateChange,
   ...config
 }: IAnchorListPullToRefreshConfig) => {
-  const telemetry = useScrollTelemetry(screenTelemetry?.handlers);
+  const forwarded = useFocusGatedScrollHandlers(screenTelemetry);
+  const telemetry = useScrollTelemetry(forwarded);
 
   const handleStateChange = usePullToRefreshHaptics(haptics, onStateChange);
 

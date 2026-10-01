@@ -2,5 +2,6 @@ export * from "./scroll.types";
 export * from "./scroll-context";
 export * from "./scroll-metrics";
 export * from "./ScrollProvider";
+export * from "./use-focus-gated-scroll-handlers";
 export * from "./use-scroll";
 export * from "./use-scroll-telemetry";
