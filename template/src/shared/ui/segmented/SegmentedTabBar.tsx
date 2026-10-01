@@ -1,14 +1,26 @@
 import { MaterialTopTabBarProps } from "@react-navigation/material-top-tabs";
 import { CommonActions } from "@react-navigation/native";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
-import { ISegmentedProps, Segmented, SegmentedOption } from "./Segmented";
-import { usePagerProgress } from "./usePagerProgress";
+import { FlexProps, useFlexProps } from "../flex-view";
+import { ISegmentLayout } from "./segment-indicator";
+import { SegmentedOption } from "./segmented.types";
+import { SegmentedTabIndicator } from "./SegmentedTabIndicator";
+import { SegmentedTabLabel } from "./SegmentedTabLabel";
+import { SegmentedTrack } from "./SegmentedTrack";
 
 export type ISegmentedTabBarProps = MaterialTopTabBarProps &
-  Omit<ISegmentedProps, "options" | "value" | "onValueChange" | "progress">;
+  FlexProps & {
+    disabled?: boolean;
+    /** Сегменты по ширине контента с прокруткой и автоцентрированием активного. */
+    scrollable?: boolean;
+  };
 
-/** Таб-бар для material-top-tabs: Segmented с индикатором, следующим за свайпом пейджера. */
+/**
+ * Таб-бар для material-top-tabs в виде Segmented. Подложка и цвет подписей —
+ * RN Animated поверх `position` пейджера на нативном драйвере: синхронно с
+ * пейджером и при свайпе, и при переходе по нажатию.
+ */
 export const SegmentedTabBar = ({
   state,
   navigation,
@@ -16,9 +28,13 @@ export const SegmentedTabBar = ({
   position,
   layout: _layout,
   jumpTo: _jumpTo,
-  ...segmentedProps
+  disabled,
+  scrollable,
+  ...rest
 }: ISegmentedTabBarProps) => {
-  const progress = usePagerProgress(position, state.index);
+  const { style } = useFlexProps(rest);
+  const [layouts, setLayouts] = useState<ISegmentLayout[]>([]);
+  const count = state.routes.length;
 
   const options = useMemo<SegmentedOption[]>(
     () =>
@@ -37,29 +53,60 @@ export const SegmentedTabBar = ({
     [descriptors, state.routes],
   );
 
-  const handleChange = (key: string, index: number) => {
-    const route = state.routes[index];
-    const event = navigation.emit({
-      type: "tabPress",
-      target: key,
-      canPreventDefault: true,
-    });
+  const handleSelect = useCallback(
+    (index: number) => {
+      const route = state.routes[index];
 
-    if (route && index !== state.index && !event.defaultPrevented) {
-      navigation.dispatch({
-        ...CommonActions.navigate(route.name, route.params),
-        target: state.key,
+      if (!route) {
+        return;
+      }
+
+      const event = navigation.emit({
+        type: "tabPress",
+        target: route.key,
+        canPreventDefault: true,
       });
-    }
-  };
+
+      if (index !== state.index && !event.defaultPrevented) {
+        navigation.dispatch({
+          ...CommonActions.navigate(route.name, route.params),
+          target: state.key,
+        });
+      }
+    },
+    [navigation, state.index, state.key, state.routes],
+  );
+
+  const renderLabel = useCallback(
+    (label: string, index: number) => (
+      <SegmentedTabLabel
+        label={label}
+        index={index}
+        count={count}
+        position={position}
+      />
+    ),
+    [count, position],
+  );
 
   return (
-    <Segmented
-      {...segmentedProps}
+    <SegmentedTrack
       options={options}
-      value={state.routes[state.index]?.key}
-      onValueChange={handleChange}
-      progress={progress}
+      selectedIndex={state.index}
+      disabled={disabled}
+      scrollable={scrollable}
+      style={style}
+      itemRole={"tab"}
+      indicator={
+        <SegmentedTabIndicator
+          position={position}
+          layouts={layouts}
+          count={count}
+        />
+      }
+      renderLabel={renderLabel}
+      onLayoutsChange={setLayouts}
+      onSelect={handleSelect}
     />
   );
 };

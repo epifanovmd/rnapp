@@ -3,8 +3,13 @@ import {
   MaterialTopTabBarProps,
 } from "@react-navigation/material-top-tabs";
 import { ScrollProvider, useScrollTelemetry } from "@shared/lib/scroll";
-import { HiddenBar, Navbar, useNavbar, useNavbarScrollSync } from "@shared/ui";
-import { Tabs } from "@shared/ui/tabs";
+import {
+  HiddenBar,
+  Navbar,
+  SegmentedTabBar,
+  useNavbar,
+  useNavbarScrollSync,
+} from "@shared/ui";
 import React, { FC } from "react";
 
 import { ComponentsTabName, ComponentsTabsParamList } from "./components.types";
@@ -25,29 +30,20 @@ import {
   NotificationsTab,
   PickersTab,
   ScreenTab,
+  SettingsTab,
   TypographyTab,
 } from "./tabs";
 import { TicketTab } from "./tabs/Ticket";
 
 const TopTab = createMaterialTopTabNavigator<ComponentsTabsParamList>();
 
-const renderTabBar = ({
-  state: { routes: tabRoutes, index },
-  navigation,
-}: MaterialTopTabBarProps) => (
+const renderTabBar = (props: MaterialTopTabBarProps) => (
   <HiddenBar safeArea>
     <Navbar title={"Компоненты"}>
       <Navbar.BackButton />
     </Navbar>
     <HiddenBar.StickyContent>
-      <Tabs
-        activeIndex={index}
-        onPress={routeName => navigation.navigate(routeName)}
-        items={tabRoutes.map(route => ({
-          title: route.name,
-          value: route.name,
-        }))}
-      />
+      <SegmentedTabBar {...props} scrollable mh={16} mb={8} />
     </HiddenBar.StickyContent>
   </HiddenBar>
 );
@@ -84,6 +80,7 @@ export const ComponentsNavigator: FC<IComponentsNavigatorProps> = ({
         <TopTab.Screen name={"Layout"} component={LayoutTab} />
         <TopTab.Screen name={"Lists"} component={ListsTab} />
         <TopTab.Screen name={"Data"} component={DataTab} />
+        <TopTab.Screen name={"Settings"} component={SettingsTab} />
         <TopTab.Screen name={"Screen"} component={ScreenTab} />
         <TopTab.Screen name={"Feedback"} component={FeedbackTab} />
         <TopTab.Screen name={"Media"} component={MediaTab} />

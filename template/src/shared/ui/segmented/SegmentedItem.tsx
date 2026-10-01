@@ -1,81 +1,49 @@
-import { useTheme } from "@shared/lib/theme";
-import React, { ReactNode } from "react";
-import { LayoutChangeEvent, StyleSheet } from "react-native";
-import Animated, {
-  interpolateColor,
-  SharedValue,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import React, { PropsWithChildren, ReactNode } from "react";
+import {
+  AccessibilityRole,
+  LayoutChangeEvent,
+  StyleSheet,
+} from "react-native";
 
-import { Text } from "../text";
 import { Touchable } from "../touchable";
+import { SEGMENT_RADIUS } from "./segment-indicator";
 
 export interface ISegmentedItemProps {
   index: number;
-  label: ReactNode;
   icon?: ReactNode;
   active: boolean;
   disabled?: boolean;
   fill?: boolean;
-  /** Дробный индекс индикатора: цвет текста зависит от близости к нему. */
-  progress: SharedValue<number>;
+  accessibilityRole: AccessibilityRole;
   onPress: (index: number) => void;
   onLayout: (index: number, event: LayoutChangeEvent) => void;
 }
 
-const AnimatedText = Animated.createAnimatedComponent(Text);
-
-/** Сегмент переключателя с анимированным цветом подписи. */
+/** Сегмент переключателя: нажатие и замер; подпись рисует владелец. */
 export const SegmentedItem = ({
   index,
-  label,
   icon,
   active,
   disabled,
   fill,
-  progress,
+  accessibilityRole,
   onPress,
   onLayout,
-}: ISegmentedItemProps) => {
-  const { colors } = useTheme();
-
-  const textStyle = useAnimatedStyle(() => {
-    const proximity = Math.max(0, 1 - Math.abs(progress.value - index));
-
-    return {
-      color: interpolateColor(
-        proximity,
-        [0, 1],
-        [colors.textSecondary, colors.textPrimary],
-      ),
-    };
-  });
-
-  return (
-    <Touchable
-      ctx={index}
-      disabled={disabled}
-      onPress={onPress}
-      onLayout={event => onLayout(index, event)}
-      style={[styles.item, fill && styles.fill, disabled && styles.disabled]}
-      accessibilityRole={"radio"}
-      accessibilityState={{ selected: active, disabled }}
-    >
-      {icon}
-      {typeof label === "string" ? (
-        <AnimatedText
-          textStyle={"Title_S2"}
-          numberOfLines={1}
-          style={textStyle}
-        >
-          {label}
-        </AnimatedText>
-      ) : (
-        label
-      )}
-    </Touchable>
-  );
-};
+  children,
+}: PropsWithChildren<ISegmentedItemProps>) => (
+  <Touchable
+    ctx={index}
+    disabled={disabled}
+    onPress={onPress}
+    onLayout={event => onLayout(index, event)}
+    style={[styles.item, fill && styles.fill, disabled && styles.disabled]}
+    accessibilityRole={accessibilityRole}
+    accessibilityState={{ selected: active, disabled }}
+  >
+    {icon}
+    {children}
+  </Touchable>
+);
 
 const styles = StyleSheet.create({
   item: {
@@ -85,7 +53,7 @@ const styles = StyleSheet.create({
     gap: 6,
     minHeight: 34,
     paddingHorizontal: 12,
-    borderRadius: 9,
+    borderRadius: SEGMENT_RADIUS,
   },
   fill: {
     flex: 1,

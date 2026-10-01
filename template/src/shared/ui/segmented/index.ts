@@ -1,3 +1,3 @@
 export * from "./Segmented";
+export * from "./segmented.types";
 export * from "./SegmentedTabBar";
-export * from "./usePagerProgress";
