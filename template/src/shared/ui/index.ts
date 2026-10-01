@@ -16,6 +16,7 @@ export * from "./confirm";
 export * from "./context-menu-view";
 export * from "./copyable-text";
 export * from "./dialog";
+export * from "./disclosure-row";
 export * from "./divider";
 export * from "./empty-state";
 export * from "./fab";

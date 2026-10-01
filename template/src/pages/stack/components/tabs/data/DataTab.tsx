@@ -5,6 +5,7 @@ import {
   Button,
   Col,
   CopyableText,
+  DisclosureRow,
   EmptyState,
   Icon,
   IconButton,
@@ -80,6 +81,28 @@ export const DataTab: FC = memo(() => {
             {"eu-west"}
           </Tag>
         </Row>
+      </DemoSection>
+
+      <DemoSection
+        title={"DisclosureRow"}
+        description={
+          "Обёртка-переход: любое содержимое, стрелка справа, нажатие на всю строку"
+        }
+      >
+        <DisclosureRow
+          bg={"surface"}
+          radius={16}
+          pa={14}
+          onPress={() => toast.info("Нажата строка")}
+        >
+          <Text textStyle={"Title_S2"}>{"Нидерланды"}</Text>
+          <Text textStyle={"Caption_M3"} color={"textSecondary"}>
+            {"201.34.146.180 · 9 онлайн"}
+          </Text>
+        </DisclosureRow>
+        <DisclosureRow bg={"surface"} radius={16} pa={14}>
+          <Text>{"Без onPress — без стрелки"}</Text>
+        </DisclosureRow>
       </DemoSection>
 
       <DemoSection
