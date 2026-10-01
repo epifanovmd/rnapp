@@ -1,15 +1,17 @@
 import { LayoutChangeEvent } from "react-native";
-import { makeMutable, withTiming } from "react-native-reanimated";
+import { makeMutable, runOnUI, withTiming } from "react-native-reanimated";
 
 import {
   clampOffset,
+  isRemeasure,
+  rebaseOffset,
   resolveCollapseRange,
   snapOffset,
 } from "./bar-visibility";
 import { IBar } from "./bars.types";
 
 export interface IBarOptions {
-  /** Длительность show/hide/snap, мс */
+  /** Длительность show/hide/snap и анимации отступа контента, мс */
   duration?: number;
 }
 
@@ -20,25 +22,28 @@ const DEFAULT_DURATION = 250;
  * заводит панель по требованию, а не хуком в фиксированном провайдере.
  *
  * Пока высота не измерена (0), hide/snap/shift — no-op: панель нельзя
- * спрятать на неизвестную величину.
+ * спрятать на неизвестную величину. Смена высоты или закреплённой части
+ * перебазирует offset на UI-потоке вместе с самой величиной — в одном кадре.
  */
 export const createBar = (options: IBarOptions = {}): IBar => {
   const { duration = DEFAULT_DURATION } = options;
   const height = makeMutable(0);
-  const collapseRange = makeMutable<number | null>(null);
+  const pinned = makeMutable(0);
+  const inset = makeMutable(0);
   const offset = makeMutable(0);
   const listeners = new Set<() => void>();
   let measured = 0;
-
-  const show = () => {
-    "worklet";
-    offset.value = withTiming(0, { duration });
-  };
+  let measuredPinned = 0;
 
   const range = () => {
     "worklet";
 
-    return resolveCollapseRange(height.value, collapseRange.value);
+    return resolveCollapseRange(height.value, pinned.value);
+  };
+
+  const show = () => {
+    "worklet";
+    offset.value = withTiming(0, { duration });
   };
 
   const hide = () => {
@@ -64,38 +69,53 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     }
   };
 
+  const remeasure = (nextHeight: number, nextPinned: number) => {
+    "worklet";
+    const prevHeight = height.value;
+    const prevRange = range();
+
+    height.value = nextHeight;
+    pinned.value = nextPinned;
+    offset.value = rebaseOffset(
+      offset.value,
+      prevRange,
+      resolveCollapseRange(nextHeight, nextPinned),
+    );
+    inset.value = isRemeasure(prevHeight, nextHeight)
+      ? withTiming(nextHeight, { duration })
+      : nextHeight;
+  };
+
   const setHeight = (next: number) => {
     if (next === measured) {
       return;
     }
 
     measured = next;
-    height.value = next;
-    offset.value = clampOffset(
-      offset.value,
-      resolveCollapseRange(next, collapseRange.value),
-    );
+    runOnUI(remeasure)(next, measuredPinned);
     listeners.forEach(listener => listener());
   };
 
-  const setCollapseRange = (next: number | null) => {
-    collapseRange.value = next;
-    offset.value = clampOffset(
-      offset.value,
-      resolveCollapseRange(height.value, next),
-    );
+  const setPinnedHeight = (next: number) => {
+    if (next === measuredPinned) {
+      return;
+    }
+
+    measuredPinned = next;
+    runOnUI(remeasure)(measured, next);
   };
 
   return {
     height,
-    collapseRange,
+    pinned,
+    inset,
     offset,
     show,
     hide,
     snap,
     shift,
     setHeight,
-    setCollapseRange,
+    setPinnedHeight,
     onLayout: (event: LayoutChangeEvent) =>
       setHeight(event.nativeEvent.layout.height),
     getHeight: () => measured,

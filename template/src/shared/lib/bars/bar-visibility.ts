@@ -29,16 +29,46 @@ export const barProgress = (offset: number, height: number): number => {
 };
 
 /**
- * Ход скрытия панели: сколько из её высоты может уехать. `null` — вся высота;
- * у панели с закреплённой частью (HiddenBar) — высота без неё.
+ * Ход скрытия панели: сколько из её высоты может уехать — всё, кроме
+ * закреплённой части (`pinned`, у HiddenBar — StickyContent).
  */
 export const resolveCollapseRange = (
   height: number,
-  range: number | null,
+  pinned: number,
 ): number => {
   "worklet";
 
-  return range === null ? height : clampOffset(range, height);
+  return clampOffset(height - pinned, height);
+};
+
+/**
+ * Смещение после смены хода скрытия (живая высота шапки, закреплённая часть):
+ * скрытая панель остаётся скрытой на новый ход, показанная — показанной,
+ * промежуточное смещение ограничивается новым ходом. Смена хода — не жест,
+ * поэтому видимое положение панели не меняется.
+ */
+export const rebaseOffset = (
+  offset: number,
+  prevRange: number,
+  nextRange: number,
+): number => {
+  "worklet";
+
+  if (prevRange > 0 && offset >= prevRange) {
+    return Math.max(nextRange, 0);
+  }
+
+  return clampOffset(offset, nextRange);
+};
+
+/**
+ * Переизмерение, а не первое измерение: отступ контента анимируется к новой
+ * высоте; первое измерение (или исчезновение панели) применяется сразу.
+ */
+export const isRemeasure = (prevHeight: number, nextHeight: number): boolean => {
+  "worklet";
+
+  return prevHeight > 0 && nextHeight > 0;
 };
 
 /**

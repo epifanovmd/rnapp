@@ -7,14 +7,17 @@ import { SharedValue } from "react-native-reanimated";
  * собственный слой (navbar, таб-бар), компонент применяет offset к transform.
  *
  * Высота хранится дважды намеренно: shared value читают worklet'ы (hide/snap),
- * JS-зеркало — вёрстка через useBarHeight.
+ * JS-зеркало — вёрстка через useBarHeight. `inset` — та же высота, но
+ * сменяется анимацией: отступ контента по нему не прыгает при живой высоте.
  */
 export interface IBar {
   /** Измеренная высота, px; 0 — ещё не измерена */
   height: SharedValue<number>;
-  /** Ход скрытия, px: `null` — вся высота (см. setCollapseRange) */
-  collapseRange: SharedValue<number | null>;
-  /** 0 — панель показана, ход скрытия — скрыта */
+  /** Закреплённая часть, px: не прячется, ход скрытия — высота без неё */
+  pinned: SharedValue<number>;
+  /** Отступ контента, px: высота, к которой анимируется каждое переизмерение */
+  inset: SharedValue<number>;
+  /** 0 — панель показана, ход скрытия (resolveCollapseRange) — скрыта */
   offset: SharedValue<number>;
   /** worklet: показать */
   show: () => void;
@@ -27,10 +30,10 @@ export interface IBar {
   /** Измерение высоты (JS-поток) */
   setHeight: (height: number) => void;
   /**
-   * Ход скрытия меньше высоты — у панели с закреплённой частью: ограничение и
-   * доводка считаются по нему, отступ контента — по всей высоте. `null` — сброс.
+   * Измерение закреплённой части (JS-поток): ограничение и доводка считаются
+   * по высоте без неё, отступ контента — по всей высоте. 0 — сброс.
    */
-  setCollapseRange: (range: number | null) => void;
+  setPinnedHeight: (height: number) => void;
   onLayout: (event: LayoutChangeEvent) => void;
   /** Высота для вёрстки (JS-поток) */
   getHeight: () => number;

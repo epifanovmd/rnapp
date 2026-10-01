@@ -1,12 +1,8 @@
-import { useBarHeight } from "@shared/lib/bars";
-import { useLayout } from "@shared/lib/hooks";
+import { clampOffset, resolveCollapseRange } from "@shared/lib/bars";
 import { useTheme } from "@shared/lib/theme";
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
-import Animated, {
-  interpolate,
-  useAnimatedStyle,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
@@ -20,6 +16,12 @@ const hiddenBarSlots = {
   stickyContent: slot.of(View),
 };
 
+/**
+ * Скрываемая шапка: прячется всё, кроме StickyContent. Высоты шапки и
+ * закреплённой части уходят в панель прямо из onLayout, а сдвиг считается
+ * worklet'ом по shared values — живая высота содержимого не ждёт ре-рендера
+ * и не дёргает скрытую шапку (offset перебазируется в панели).
+ */
 const HiddenBarRoot = ({
   props,
   slots,
@@ -27,39 +29,37 @@ const HiddenBarRoot = ({
 }: CompoundRootProps<IHiddenNavbarProps, typeof hiddenBarSlots>) => {
   const { safeArea, style, ...rest } = props;
   const { colors } = useTheme();
-  const { height: contentHeight, onLayout } = useLayout();
   const navbar = useNavbar();
-  const barHeight = useBarHeight(navbar);
-  const { offset } = navbar;
   const insets = useSafeAreaInsets();
   const { stickyContent } = slots;
+  const { offset, height, pinned } = navbar;
 
   const top = safeArea ? insets.top : 0;
 
-  // sticky-часть остаётся на экране: прячется только то, что над ней. Ход
-  // скрытия панели — та же величина, иначе последние px хода шапка стоит, а
-  // доводка считает половину от полной высоты.
-  const hiddenHeight = barHeight - (stickyContent.present ? contentHeight : 0);
+  const onStickyLayout = useCallback(
+    (event: LayoutChangeEvent) =>
+      navbar.setPinnedHeight(event.nativeEvent.layout.height),
+    [navbar],
+  );
 
   useEffect(() => {
-    navbar.setCollapseRange(stickyContent.present ? hiddenHeight : null);
-  }, [navbar, hiddenHeight, stickyContent.present]);
+    if (!stickyContent.present) {
+      navbar.setPinnedHeight(0);
+    }
+  }, [navbar, stickyContent.present]);
 
-  useEffect(() => () => navbar.setCollapseRange(null), [navbar]);
+  useEffect(() => () => navbar.setPinnedHeight(0), [navbar]);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(
-      offset.value,
-      [hiddenHeight, 0],
-      [-hiddenHeight, 0],
-      "clamp",
-    );
-
-    return {
-      top,
-      transform: [{ translateY }],
-    };
-  }, [top, hiddenHeight]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: -clampOffset(
+          offset.value,
+          resolveCollapseRange(height.value, pinned.value),
+        ),
+      },
+    ],
+  }));
 
   const backgroundColor = colors.background;
 
@@ -73,10 +73,14 @@ const HiddenBarRoot = ({
       )}
       <Animated.View
         onLayout={navbar.onLayout}
-        style={[styles.animatedContainer, { backgroundColor }, animatedStyle]}
+        style={[
+          styles.animatedContainer,
+          { backgroundColor, top },
+          animatedStyle,
+        ]}
       >
         {content}
-        {stickyContent.render({ inject: { onLayout } })}
+        {stickyContent.render({ inject: { onLayout: onStickyLayout } })}
       </Animated.View>
     </View>
   );
