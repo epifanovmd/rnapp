@@ -37,6 +37,11 @@ export interface ITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly hint?: string;
   readonly hintPosition?: "left" | "right";
   readonly clearable?: boolean;
+  /**
+   * `small` — компактное поле (44 px) для строки поиска и фильтров: без
+   * плавающего label, с placeholder.
+   */
+  readonly size?: "medium" | "small";
   readonly showSymbolCount?: boolean;
   readonly duration?: number;
   /** Произвольный контент слева (после iconName). */
@@ -69,6 +74,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       hint,
       hintPosition = "right",
       clearable,
+      size = "medium",
       maxLength,
       showSymbolCount,
       duration = ANIMATION_DURATION,
@@ -174,7 +180,11 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
           disabled={disabled}
           activeOpacity={1}
           onPress={focusInput}
-          style={[styles.wrap, { backgroundColor: colors.onSurface }]}
+          style={[
+            styles.wrap,
+            size === "small" && styles.wrapSmall,
+            { backgroundColor: colors.onSurface },
+          ]}
         >
           {(!!iconName || !!left) && (
             <View style={[styles.left, multiline && styles.leftTop]}>
@@ -182,6 +192,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
                 <Icon
                   color={iconColor ?? colors.textTertiary}
                   name={iconName}
+                  size={size === "small" ? 20 : undefined}
                 />
               )}
               {left}
@@ -289,6 +300,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     minHeight: 60,
+  },
+  wrapSmall: {
+    minHeight: 44,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
   inputRow: {
     alignSelf: "stretch",

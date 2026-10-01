@@ -59,6 +59,12 @@ export const InputsTab: FC = memo(() => {
       >
         <TextField label={"Поиск"} iconName={"search"} clearable />
         <TextField
+          size={"small"}
+          placeholder={"Поиск (size=small)"}
+          iconName={"search"}
+          clearable
+        />
+        <TextField
           label={"Сумма"}
           keyboardType={"numeric"}
           right={
