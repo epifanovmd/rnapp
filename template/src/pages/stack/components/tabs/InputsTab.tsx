@@ -59,6 +59,11 @@ export const InputsTab: FC = memo(() => {
       >
         <TextField label={"Поиск"} iconName={"search"} clearable />
         <TextField
+          label={"AllowedIPs"}
+          placeholder={"0.0.0.0/0, ::/0"}
+          description={"Пояснение под полем (description) — на всю ширину"}
+        />
+        <TextField
           size={"small"}
           placeholder={"Поиск (size=small)"}
           iconName={"search"}

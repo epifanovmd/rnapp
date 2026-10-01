@@ -34,7 +34,10 @@ export interface ITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly style?: StyleProp<ViewStyle>;
   readonly iconName?: TIconName;
   readonly iconColor?: string;
+  /** Короткий суффикс в строке ввода после текста (единицы: «мс», «/24»). */
   readonly hint?: string;
+  /** Пояснение под полем на всю ширину; при ошибке её текст показывается вместо него. */
+  readonly description?: string;
   readonly hintPosition?: "left" | "right";
   readonly clearable?: boolean;
   /**
@@ -72,6 +75,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       iconName,
       iconColor,
       hint,
+      description,
       hintPosition = "right",
       clearable,
       size = "medium",
@@ -269,6 +273,17 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
             right={right}
           />
         </TouchableOpacity>
+        {!!description && !showError && (
+          <RNText
+            style={[
+              styles.description,
+              getTextStyle("Caption_M3"),
+              { color: colors.textSecondary },
+            ]}
+          >
+            {description}
+          </RNText>
+        )}
         <TextFieldFooter
           error={error}
           showCounter={showCounter}
@@ -284,6 +299,10 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
 const styles = StyleSheet.create({
   disabled: {
     opacity: 0.6,
+  },
+  description: {
+    marginTop: 4,
+    paddingHorizontal: 16,
   },
   valueMeasurer: {
     position: "absolute",
