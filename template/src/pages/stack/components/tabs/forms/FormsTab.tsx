@@ -2,6 +2,7 @@ import React, { FC, memo } from "react";
 
 import { DemoScreen, DemoSection } from "../DemoScreen";
 import { AutocompleteDemo } from "./AutocompleteDemo";
+import { DateFieldDemo } from "./DateFieldDemo";
 import { FormSheetDemo } from "./FormSheetDemo";
 import { InlineFormDemo } from "./InlineFormDemo";
 import { SelectAsyncDemo } from "./SelectAsyncDemo";
@@ -50,6 +51,15 @@ export const FormsTab: FC = memo(() => (
       description={"Свободный ввод с подсказками в шторке"}
     >
       <AutocompleteDemo />
+    </DemoSection>
+
+    <DemoSection
+      title={"DateField"}
+      description={
+        "Поле-триггер TextField: колёса в шторке, «Готово», крестик — сброс в null"
+      }
+    >
+      <DateFieldDemo />
     </DemoSection>
 
     <DemoSection

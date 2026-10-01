@@ -2,9 +2,9 @@ import React from "react";
 import { FieldPathByValue, FieldValues } from "react-hook-form";
 
 import { Col } from "../../flex-view";
-import { ISwitchProps, Switch } from "../../switch";
+import { ISwitchProps } from "../../switch";
+import { SwitchRow } from "../../switch-row";
 import { Text } from "../../text";
-import { Touchable } from "../../touchable";
 import { FormField } from "../primitives";
 import { FormAdapterProps } from "../types";
 
@@ -53,40 +53,19 @@ export const SwitchFormField = <
       return (
         <Col gap={4}>
           {/* Плашка как у TextField: подпись слева, тумблер справа. */}
-          <Touchable
-            row
-            alignItems={"center"}
-            gap={12}
+          <SwitchRow
             bg={"onSurface"}
             radius={16}
             ph={16}
             pv={12}
             minHeight={60}
+            label={label}
+            description={description}
+            value={Boolean(field.value)}
             disabled={field.disabled}
-            opacity={field.disabled ? 0.6 : undefined}
-            onPress={() => toggle(!field.value)}
-            accessibilityRole={"switch"}
-            accessibilityState={{
-              checked: Boolean(field.value),
-              disabled: field.disabled,
-            }}
-          >
-            <Col flex={1} gap={2}>
-              {!!label && <Text textStyle={"Body_M2"}>{label}</Text>}
-              {!!description && (
-                <Text textStyle={"Caption_M3"} color={"textSecondary"}>
-                  {description}
-                </Text>
-              )}
-            </Col>
-            <Switch
-              {...switchProps}
-              accessibilityLabel={label}
-              disabled={field.disabled}
-              isActive={Boolean(field.value)}
-              onChange={toggle}
-            />
-          </Touchable>
+            switchProps={switchProps}
+            onValueChange={toggle}
+          />
           {!!fieldState.error?.message && (
             <Text textStyle={"Caption_M3"} color={"danger"} mh={16}>
               {fieldState.error.message}

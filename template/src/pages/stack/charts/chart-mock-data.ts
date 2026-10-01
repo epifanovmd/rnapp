@@ -1,4 +1,4 @@
-import type { ChartDatum, IChartSeries } from "@shared/ui/chart";
+import { type ChartDatum, type IChartSeries, seriesColor } from "@shared/ui/chart";
 
 const range = (count: number) => Array.from({ length: count }, (_, i) => i);
 
@@ -118,3 +118,22 @@ export const nextLivePriceData = (data: ChartDatum[]): ChartDatum[] => {
     ? window.slice(window.length - LIVE_PRICE_WINDOW)
     : window;
 };
+
+/** Трафик за 30 дней: три серии разного масштаба — для легенды с переключением. */
+export const TRAFFIC_SERIES: IChartSeries[] = [
+  { id: "rx", label: "Входящий", base: 820, amp: 160 },
+  { id: "tx", label: "Исходящий", base: 340, amp: 90 },
+  { id: "errors", label: "Ошибки", base: 24, amp: 10 },
+].map(({ id, label, base, amp }, index) => ({
+  id,
+  label,
+  color: seriesColor(index),
+  data: range(30).map(
+    (day): ChartDatum => ({
+      x: START_DATE + day * DAY_MS,
+      y: Math.round(
+        base + Math.sin(day / 4 + index) * amp + (Math.random() - 0.5) * amp,
+      ),
+    }),
+  ),
+}));

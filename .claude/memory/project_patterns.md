@@ -32,8 +32,12 @@ type: project
   либо самодостаточный компонент держит телеметрию локально, когда хендлер и анимация
   в одном месте); `useScroll()` — только потребление, без провайдера кидает ошибку,
   как `useNavbar`/`useTabBar`.
-- Скрываемые панели: `shared/lib/bars/` — только примитив: `IBar` (offset/height +
-  show/hide/snap/shift) на `makeMutable`, `createBarContext(name)` (провайдер + хук на одну
+- Скрываемые панели: `shared/lib/bars/` — только примитив: `IBar` (offset/height/pinned/inset +
+  show/hide/snap/shift) на `makeMutable`; ход скрытия = height − pinned
+  (`setPinnedHeight` — закреплённая часть HiddenBar); смена высоты перебазирует offset на
+  UI-потоке (`rebaseOffset`: скрытая остаётся скрытой), `inset` — высота с анимацией
+  переизмерения (`NavbarInset`/`useNavbarInset` — отступ контента без рывка при живой
+  высоте шапки; `useNavbarHeight` меняется скачком), `createBarContext(name)` (провайдер + хук на одну
   панель), `useBarHeight(bar)` через `useSyncExternalStore` (высота не в React-state),
   `useBarScrollValues(telemetry)` (безопасные shared values, без telemetry — ближайший
   ScrollProvider) и чистый `resolveScrollEdge` (край списка важнее любого поведения).

@@ -59,6 +59,8 @@ export const demoFormSchema = z.object({
     .max(100, "Максимум 100")
     .nullable()
     .refine(value => value !== null, "Укажите число мест"),
+  expiresAt: z.date().nullable(),
+  notify: z.boolean(),
 });
 
 export type TDemoForm = z.input<typeof demoFormSchema>;
@@ -72,4 +74,6 @@ export const DEMO_FORM_DEFAULTS: TDemoForm = {
   tags: [],
   email: "",
   seats: null,
+  expiresAt: null,
+  notify: true,
 };

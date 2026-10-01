@@ -27,6 +27,7 @@ import {
 } from "./components";
 import { useTextFieldState } from "./hooks";
 import { TextInput, TextInputProps } from "./Input";
+import { resolveTextFieldMode } from "./text-field-mode";
 
 export interface ITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly label?: string;
@@ -51,6 +52,13 @@ export interface ITextFieldProps extends Omit<TextInputProps, "style"> {
   readonly left?: React.ReactNode;
   /** Произвольный контент справа (до системных иконок). */
   readonly right?: React.ReactNode;
+  /**
+   * Поле-триггер: нажатие по плашке вызывает `onPress` (открыть пикер,
+   * шторку) вместо фокуса, ввод с клавиатуры выключен, вид — не disabled.
+   */
+  readonly onPress?: () => void;
+  /** Сброс по крестику (`clearable`); без него — `onChangeText("")`. */
+  readonly onClear?: () => void;
 }
 
 /** @deprecated Используй ITextFieldProps. */
@@ -92,6 +100,8 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       secureTextEntry,
       left,
       right,
+      onPress,
+      onClear,
       ...otherProps
     },
     ref,
@@ -130,11 +140,17 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       onChangeText,
     });
 
-    const disabled = editable === false;
     const showError = !!error;
+    const { isTrigger, disabled, inputEditable, showClear } =
+      resolveTextFieldMode({
+        triggerable: !!onPress,
+        editable,
+        clearable,
+        hasValue,
+        hasError: showError,
+      });
     const active = isFocused || hasValue;
     const labelActive = active && !!label;
-    const showClear = !!clearable && hasValue && !showError;
     const placeholder =
       rawPlaceholder && (isFocused || !label) ? rawPlaceholder : undefined;
     const valueLength = finalValue?.length ?? 0;
@@ -182,8 +198,10 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
         )}
         <TouchableOpacity
           disabled={disabled}
-          activeOpacity={1}
-          onPress={focusInput}
+          activeOpacity={isTrigger ? 0.7 : 1}
+          onPress={isTrigger ? onPress : focusInput}
+          accessibilityRole={isTrigger ? "button" : undefined}
+          accessibilityLabel={isTrigger ? label : undefined}
           style={[
             styles.wrap,
             size === "small" && styles.wrapSmall,
@@ -238,7 +256,8 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
                 multiline={multiline}
                 numberOfLines={numberOfLines}
                 onLayout={handleInputLayout}
-                editable={editable}
+                editable={inputEditable}
+                pointerEvents={isTrigger ? "none" : undefined}
                 secureTextEntry={secure}
                 {...otherProps}
               />
@@ -267,7 +286,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
             secure={secure}
             onToggleSecure={toggleSecure}
             showClear={showClear}
-            onClear={handleClear}
+            onClear={onClear ?? handleClear}
             showError={showError}
             disabled={disabled}
             right={right}

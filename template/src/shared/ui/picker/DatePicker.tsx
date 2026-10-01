@@ -4,8 +4,10 @@ import React, {
   JSX,
   memo,
   PropsWithChildren,
+  Ref,
   useCallback,
   useEffect,
+  useImperativeHandle,
   useMemo,
   useState,
 } from "react";
@@ -66,7 +68,14 @@ const monthNames = () => {
   });
 };
 
+/** Императивное управление шторкой (поле-триггер открывает её само). */
+export interface DatePickerRef {
+  open: () => void;
+  close: () => void;
+}
+
 export interface DatePickerProps extends ITouchableProps {
+  ref?: Ref<DatePickerRef>;
   date?: Date | null;
   onChange: (date: Date) => void;
   /** Заголовок шапки листа. */
@@ -83,8 +92,13 @@ export interface DatePickerProps extends ITouchableProps {
   }) => JSX.Element | null;
 }
 
+/**
+ * Выбор даты колёсами в шторке (nested). С `children` — они же триггер;
+ * без них рендерится только шторка, открытие — через `ref.open()`.
+ */
 export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
   ({
+    ref,
     date,
     onChange,
     title = "Дата",
@@ -210,41 +224,57 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
       modalRef.current?.present();
     }, [modalRef, onReset]);
 
+    useImperativeHandle(
+      ref,
+      () => ({
+        open: handleOpen,
+        close: () => modalRef.current?.dismiss(),
+      }),
+      [handleOpen, modalRef],
+    );
+
+    const sheet = (
+      <BottomSheet ref={modalRef} nested {...bottomSheetProps}>
+        <BottomSheet.Header centered={true} label={title} {...headerProps} />
+
+        <BottomSheet.Content {...containerProps}>
+          <Row ph={8} pb={8} justifyContent={"space-between"}>
+            <Col flexGrow={1} flexBasis={0} minWidth={20}>
+              <Picker {...pickerProps}>
+                <PickerColumn selectedValue={day} onChange={handleDay}>
+                  {renderDayItems}
+                </PickerColumn>
+              </Picker>
+            </Col>
+            <Col flexGrow={3} flexBasis={0}>
+              <Picker {...pickerProps}>
+                <PickerColumn selectedValue={month} onChange={handleMonth}>
+                  {renderMothItems}
+                </PickerColumn>
+              </Picker>
+            </Col>
+            <Col flexGrow={1} flexBasis={0} minWidth={40}>
+              <Picker {...pickerProps}>
+                <PickerColumn selectedValue={year} onChange={handleYear}>
+                  {renderYearItems}
+                </PickerColumn>
+              </Picker>
+            </Col>
+          </Row>
+
+          {renderFooter?.({ onReset, onApply })}
+        </BottomSheet.Content>
+      </BottomSheet>
+    );
+
+    if (children === undefined) {
+      return sheet;
+    }
+
     return (
       <Touchable {...rest} onPress={handleOpen}>
         {children}
-
-        <BottomSheet ref={modalRef} nested {...bottomSheetProps}>
-          <BottomSheet.Header centered={true} label={title} {...headerProps} />
-
-          <BottomSheet.Content {...containerProps}>
-            <Row ph={8} pb={8} justifyContent={"space-between"}>
-              <Col flexGrow={1} flexBasis={0} minWidth={20}>
-                <Picker {...pickerProps}>
-                  <PickerColumn selectedValue={day} onChange={handleDay}>
-                    {renderDayItems}
-                  </PickerColumn>
-                </Picker>
-              </Col>
-              <Col flexGrow={3} flexBasis={0}>
-                <Picker {...pickerProps}>
-                  <PickerColumn selectedValue={month} onChange={handleMonth}>
-                    {renderMothItems}
-                  </PickerColumn>
-                </Picker>
-              </Col>
-              <Col flexGrow={1} flexBasis={0} minWidth={40}>
-                <Picker {...pickerProps}>
-                  <PickerColumn selectedValue={year} onChange={handleYear}>
-                    {renderYearItems}
-                  </PickerColumn>
-                </Picker>
-              </Col>
-            </Row>
-
-            {renderFooter?.({ onReset, onApply })}
-          </BottomSheet.Content>
-        </BottomSheet>
+        {sheet}
       </Touchable>
     );
   },

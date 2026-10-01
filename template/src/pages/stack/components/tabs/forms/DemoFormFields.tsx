@@ -1,11 +1,14 @@
 import {
   AutocompleteFormField,
+  DateFormField,
   MultiSelectFormField,
   NumberFieldFormField,
   SegmentedFormField,
   SelectFormField,
+  SwitchFormField,
   TextFieldFormField,
 } from "@shared/ui";
+import { startOfToday } from "date-fns";
 import React, { FC, memo, useMemo } from "react";
 import { useWatch } from "react-hook-form";
 
@@ -19,6 +22,7 @@ import { DOMAIN_OPTIONS, TAG_OPTIONS } from "./select-demo-api";
 
 /** Поля демо-формы; control берётся из ближайшей `Form`. */
 export const DemoFormFields: FC = memo(() => {
+  const today = useMemo(() => startOfToday(), []);
   const email = useWatch<TDemoForm, "email">({ name: "email" }) ?? "";
   const emailOptions = useMemo(() => {
     const [name, domain = ""] = email.split("@");
@@ -73,6 +77,18 @@ export const DemoFormFields: FC = memo(() => {
         name={"seats"}
         label={"Число мест"}
         placeholder={"1–100"}
+      />
+      <DateFormField<TDemoForm, "expiresAt">
+        name={"expiresAt"}
+        label={"Действует до"}
+        placeholder={"Бессрочно"}
+        description={"Необязательно; не раньше сегодняшнего дня"}
+        minDate={today}
+      />
+      <SwitchFormField<TDemoForm, "notify">
+        name={"notify"}
+        label={"Уведомления"}
+        description={"Письмо о скором окончании срока"}
       />
     </>
   );

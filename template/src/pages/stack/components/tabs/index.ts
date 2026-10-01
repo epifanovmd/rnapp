@@ -15,4 +15,5 @@ export * from "./modals";
 export * from "./NotificationsTab";
 export * from "./PickersTab";
 export * from "./ScreenTab";
+export * from "./settings";
 export * from "./TypographyTab";

@@ -32,6 +32,7 @@ import {
   nextLivePriceData,
   REVENUE_VS_EXPENSES,
 } from "./chart-mock-data";
+import { LegendDemo } from "./LegendDemo";
 
 const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
   datum.y > best.y ? datum : best,
@@ -295,6 +296,15 @@ export const Charts: FC = observer(() => {
               <CrosshairLayer color={colors.slate400} />
               <TooltipLayer />
             </Chart>
+          </ChartCard>
+
+          <ChartCard
+            title={"Легенда — включение серий"}
+            description={
+              "Нажатие по пункту скрывает серию; последнюю видимую выключить нельзя."
+            }
+          >
+            <LegendDemo />
           </ChartCard>
 
           <ChartCard

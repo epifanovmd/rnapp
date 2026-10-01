@@ -162,11 +162,16 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 - `TextField` внутри любой gorhom-шторки — цель клавиатуры (`useSheetKeyboardTarget`,
   повторяет логику `BottomSheetTextInput`), отдельный `BottomSheetTextInput` не нужен.
 - `Select`/`SelectFormField` (шторка со списком и поиском), `Segmented`/
-  `SegmentedFormField`, — `Segmented`: индикатор-подложка (Reanimated, x/width из onLayout
-  сегментов, интерполяция по дробному индексу), анимированный цвет подписи (`SegmentedItem`),
-  `scrollable` с автоцентрированием активного, внешний `progress: SharedValue<number>`;
-  `SegmentedTabBar` — tabBar для material-top-tabs (`usePagerProgress` зеркалит RN Animated
-  `position` в shared value через addListener), value сегмента = `route.key`, `NumberFieldFormField` (число или `null`).
+  `SegmentedFormField`, — общая дорожка `SegmentedTrack` (сегменты, замеры onLayout,
+  `scrollable` с автоцентрированием); `Segmented` — подложка и цвет подписи на Reanimated
+  (`SegmentedIndicator`/`SegmentedLabel`, анимация к индексу `value`);
+  `SegmentedTabBar` — tabBar для material-top-tabs на RN Animated поверх `position`
+  пейджера (нативный драйвер, синхронно со свайпом и нажатием): подложка из трёх слоёв
+  (скруглённые шапки + тело 1px со `scaleX`, как TabBarIndicator в tab-view —
+  `SegmentedTabIndicator`), подписи — два слоя с перекрёстной opacity (`SegmentedTabLabel`);
+  геометрия — чистый `segment-indicator.ts` с тестами. Gotcha: JS-слушатели `position`
+  при нативном драйвере не вызываются — зеркалить в Reanimated нельзя. value сегмента =
+  `route.key`, `NumberFieldFormField` (число или `null`).
 - `Tag` (метка статуса; `Badge` — счётчик), `ListItem`, `EmptyState`, `ScreenState`,
   `ScreenScroll`, `InfoRow`, `CopyableText`, `StatCard`, `Notice`, `QrCode`
   (ядро `qrcode/lib/core/qrcode` — основная точка входа пакета тянет `fs`),
@@ -205,3 +210,28 @@ AnchorList в gorhom-шторке — `bottom-sheet/hooks/useBottomSheetScrollab
 Типы reanimated у link-пакета anchor-list — своя копия: `refScrollView` кастуется.
 Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiSelectFormField`,
 `AutocompleteFormField`; закрытие шторки = `field.onBlur`.
+
+## Дополнения кита (master, 2026-10-02): поля даты, строки настроек, легенда
+
+- `TextField` — режим поля-триггера: проп `onPress` (нажатие по плашке вместо фокуса,
+  ввод выключен, TextInput `pointerEvents="none"`, вид НЕ disabled) + `onClear` (крестик
+  `clearable` работает и в триггере, сброс не открывает пикер). disabled = только
+  `editable={false}`. Логика режима — чистый `input/text-field-mode.ts` (тесты).
+- `DatePicker` — `ref` (React 19 ref-as-prop) `{ open, close }`; без `children` рендерит
+  только шторку. Границ min/max у него нет.
+- `DateField` (`shared/ui/date-field`) — TextField-триггер + DatePicker с «Готово»,
+  clamp по `minDate/maxDate` (`clamp-date.ts`), `format` (date-fns, def `d MMMM yyyy`),
+  сброс → `null`. `DateFormField` (form/fields) пишет `Date | null` (схема `.nullable()`).
+- `ValueRow` (на DisclosureRow), `SwitchRow` (нажатие по строке переключает), `SettingsGroup`
+  (surface/radius 16/ph 16, Divider между детьми, фрагменты раскрываются `flatten-children`).
+  `SwitchFormField` = SwitchRow с плашкой onSurface.
+- `Section` — compound: слот `Section.Action` (`SectionAction` title/onPress) справа от заголовка.
+- `ChartLegend` (`chart/legend`): `series` | `items {key,label,color}`, контролируемо
+  `hiddenKeys`/`onToggle`; `useChartSeriesToggle(series)` → `visibleSeries` (отдавать в
+  `<Chart series>` — скрытая серия уходит из тултипа и домена) + `legendProps`; правила —
+  `series-visibility.ts` (последнюю видимую не выключить, тесты). Gotcha:
+  `CurrentValueLineLayer seriesId=…` при отсутствии серии падает на `series[0]`.
+- `ScreenFallback` (screen/) — Navbar с «назад» (`onBack`) + ScreenState
+  (loading / error+retry / notFound).
+- Плейграунд: вкладка Settings (группы строк, Section.Action, ScreenFallback), Forms —
+  DateField-демо и DateFormField/SwitchFormField в демо-форме; Charts — LegendDemo.
