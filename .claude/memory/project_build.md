@@ -162,3 +162,16 @@ Jobs `pre-commit` (`piped: true`, последовательно, стоп на 
 - `test` (`root: template/`) → `jest --no-watchman --runInBand`
 
 Пропустить хук: `LEFTHOOK=0 git commit` или `git commit --no-verify`.
+
+## iOS: prebuilt React core после `pod install` (2026-10-02)
+
+- RN 0.86 подключает ядро готовым `Pods/React-Core-prebuilt/React.xcframework` (debug ~68 МБ /
+  release ~12 МБ, архивы — `Pods/ReactNativeCore-artifacts/`). Вариант под конфигурацию
+  подставляет фаза сборки `replace-rncore-version.js` по маркеру
+  `Pods/React-Core-prebuilt/.last_build_configuration`.
+- Gotcha: `pod install` стирает маркер; без маркера Debug-сборка считает, что на месте debug, и
+  ничего не меняет. Если остался release — линковка падает: `Undefined symbols … facebook::react::
+  Sealable`, `ShadowNode::getDebugName` в NitroImage/RNGestureHandler/RNSVG.
+- Починка: в `template/ios/Pods`: `printf Release > React-Core-prebuilt/.last_build_configuration &&
+  node ../../node_modules/react-native/scripts/replace-rncore-version.js -c Debug -r 0.86.0 -p "$PWD"`,
+  затем пересборка (при необходимости Clean Build Folder).
