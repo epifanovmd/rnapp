@@ -2,10 +2,9 @@ import { BlurView } from "@react-native-community/blur";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "@shared/lib/theme";
 import { Text, Touchable } from "@shared/ui";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { LayoutChangeEvent, StyleSheet } from "react-native";
 import Animated, {
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -13,11 +12,23 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useTabBar } from "./tab-bar";
+import { resolveIndicatorInsets, resolveWormDelays } from "./tab-bar-indicator";
 import { TTabBarHideMode, useTabBarStyle } from "./use-tab-bar-style";
+
+/** Внутренний отступ панели — от него же отступы подложки, px. */
+const BAR_PADDING = 8;
+/** Задержка догоняющего края «червяка», мс. */
+const WORM_DELAY = 150;
+const WORM_DURATION = 150;
 
 export interface ITabBarProps extends BottomTabBarProps {
   /** Как панель прячется при скролле (default "slide") */
   hideMode?: TTabBarHideMode;
+  /**
+   * Подписи под иконками (default true). Без них панель компактная: вкладки
+   * фиксированной ширины, панель по центру по ширине содержимого.
+   */
+  showLabels?: boolean;
 }
 
 export const TabBar = memo<ITabBarProps>(
@@ -27,53 +38,63 @@ export const TabBar = memo<ITabBarProps>(
     navigation,
     descriptors,
     hideMode,
+    showLabels = true,
   }) => {
     const [width, setWidth] = useState(0);
-    const [prevIndex, setPrevIndex] = useState(0);
-    const animatedIndex = useSharedValue(index);
     const tabBar = useTabBar();
     const { isLight } = useTheme();
+    const leftInset = useSharedValue(BAR_PADDING);
+    const rightInset = useSharedValue(BAR_PADDING);
+    // Прежний индекс — ref, а не state: направление «червяка» нужно в том же
+    // эффекте, где стартует анимация (state отставал на рендер, и при смене
+    // направления задержка не назначалась).
+    const prevIndexRef = useRef(index);
+    const prevWidthRef = useRef(0);
 
     // переключение таба возвращает панель, не дожидаясь скролла
     useEffect(() => {
       tabBar.show();
-      animatedIndex.set(index);
-
-      return () => {
-        setPrevIndex(index);
-      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [index]);
 
-    // Расчет позиции активного индикатора
-    const activeIndicatorStyle = useAnimatedStyle(() => {
-      const tabWidth = width / routes.length;
+    useEffect(() => {
+      if (!width) return;
 
-      return {
-        left: withDelay(
-          animatedIndex.value > prevIndex ? 150 : 0,
-          withTiming(
-            interpolate(
-              animatedIndex.value,
-              routes.map((_, i) => i),
-              routes.map((_, i) => i * tabWidth + 8),
-            ),
-            { duration: 150 },
-          ),
-        ),
-        right: withDelay(
-          animatedIndex.value < prevIndex ? 150 : 0,
-          withTiming(
-            interpolate(
-              animatedIndex.value,
-              routes.map((_, i) => i).reverse(),
-              routes.map((_, i) => i * tabWidth + 8),
-            ),
-            { duration: 150 },
-          ),
-        ),
-      };
-    }, [width, prevIndex]);
+      const tabWidth = width / routes.length;
+      const target = resolveIndicatorInsets(
+        index,
+        routes.length,
+        tabWidth,
+        BAR_PADDING,
+      );
+      const from = prevIndexRef.current;
+      const resized = prevWidthRef.current !== width;
+
+      prevIndexRef.current = index;
+      prevWidthRef.current = width;
+
+      // Первый замер и смена ширины — без анимации.
+      if (resized) {
+        leftInset.value = target.left;
+        rightInset.value = target.right;
+
+        return;
+      }
+
+      const delays = resolveWormDelays(from, index, WORM_DELAY);
+      const timing = { duration: WORM_DURATION };
+
+      leftInset.value = withDelay(delays.left, withTiming(target.left, timing));
+      rightInset.value = withDelay(
+        delays.right,
+        withTiming(target.right, timing),
+      );
+    }, [index, width, routes.length, leftInset, rightInset]);
+
+    const activeIndicatorStyle = useAnimatedStyle(() => ({
+      left: leftInset.value,
+      right: rightInset.value,
+    }));
 
     const handleTabPress = useCallback(
       (routeName: string) => {
@@ -85,7 +106,7 @@ export const TabBar = memo<ITabBarProps>(
     const onLayout = useCallback(
       ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
         tabBar.setHeight(layout.height + bottom);
-        setWidth(layout.width - 16);
+        setWidth(layout.width - BAR_PADDING * 2);
       },
       [bottom, tabBar],
     );
@@ -94,7 +115,12 @@ export const TabBar = memo<ITabBarProps>(
 
     return (
       <Animated.View
-        style={[SS.container, { bottom }, hideStyle]}
+        style={[
+          SS.container,
+          !showLabels && SS.containerCompact,
+          { bottom },
+          hideStyle,
+        ]}
         onLayout={onLayout}
       >
         <BlurView
@@ -113,7 +139,7 @@ export const TabBar = memo<ITabBarProps>(
           const icon = descriptors[route.key]?.options.tabBarIcon?.({
             focused: ind === index,
             color: "white",
-            size: 24,
+            size: showLabels ? 24 : 22,
           });
           const title = descriptors[route.key]?.options.title;
 
@@ -121,11 +147,14 @@ export const TabBar = memo<ITabBarProps>(
             <Touchable
               ctx={route.name}
               key={route.key}
-              style={SS.tabTouchable}
+              style={[SS.tabTouchable, !showLabels && SS.tabCompact]}
               onPress={handleTabPress}
+              accessibilityRole={"tab"}
+              accessibilityLabel={title}
+              accessibilityState={{ selected: ind === index }}
             >
               {icon}
-              {!!title && (
+              {showLabels && !!title && (
                 <Text
                   color={"white"}
                   textStyle={"Caption_M1"}
@@ -154,6 +183,13 @@ const SS = StyleSheet.create({
     justifyContent: "space-between",
     padding: 8,
   },
+  // Без подписей: панель по ширине вкладок, по центру экрана.
+  containerCompact: {
+    left: undefined,
+    right: undefined,
+    alignSelf: "center",
+    flex: 0,
+  },
   tabTouchable: {
     flex: 1,
     flexBasis: 0,
@@ -162,6 +198,12 @@ const SS = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 4,
     minHeight: 36,
+  },
+  tabCompact: {
+    flex: 0,
+    flexBasis: "auto",
+    width: 56,
+    paddingVertical: 10,
   },
   active: {
     borderRadius: 12,
