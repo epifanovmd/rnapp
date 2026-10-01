@@ -102,7 +102,7 @@ const SS = StyleSheet.create({
   center: {
     marginLeft: 4,
     marginRight: 4,
-    alignSelf: "flex-start",
+    alignSelf: "center",
     minHeight: 48,
   },
 });
