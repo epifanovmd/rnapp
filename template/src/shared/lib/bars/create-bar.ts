@@ -1,7 +1,11 @@
 import { LayoutChangeEvent } from "react-native";
 import { makeMutable, withTiming } from "react-native-reanimated";
 
-import { clampOffset, snapOffset } from "./bar-visibility";
+import {
+  clampOffset,
+  resolveCollapseRange,
+  snapOffset,
+} from "./bar-visibility";
 import { IBar } from "./bars.types";
 
 export interface IBarOptions {
@@ -21,6 +25,7 @@ const DEFAULT_DURATION = 250;
 export const createBar = (options: IBarOptions = {}): IBar => {
   const { duration = DEFAULT_DURATION } = options;
   const height = makeMutable(0);
+  const collapseRange = makeMutable<number | null>(null);
   const offset = makeMutable(0);
   const listeners = new Set<() => void>();
   let measured = 0;
@@ -30,17 +35,23 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     offset.value = withTiming(0, { duration });
   };
 
+  const range = () => {
+    "worklet";
+
+    return resolveCollapseRange(height.value, collapseRange.value);
+  };
+
   const hide = () => {
     "worklet";
     if (height.value > 0) {
-      offset.value = withTiming(height.value, { duration });
+      offset.value = withTiming(range(), { duration });
     }
   };
 
   const snap = () => {
     "worklet";
     if (height.value > 0) {
-      offset.value = withTiming(snapOffset(offset.value, height.value), {
+      offset.value = withTiming(snapOffset(offset.value, range()), {
         duration,
       });
     }
@@ -49,7 +60,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
   const shift = (delta: number) => {
     "worklet";
     if (height.value > 0) {
-      offset.value = clampOffset(offset.value + delta, height.value);
+      offset.value = clampOffset(offset.value + delta, range());
     }
   };
 
@@ -60,18 +71,31 @@ export const createBar = (options: IBarOptions = {}): IBar => {
 
     measured = next;
     height.value = next;
-    offset.value = clampOffset(offset.value, next);
+    offset.value = clampOffset(
+      offset.value,
+      resolveCollapseRange(next, collapseRange.value),
+    );
     listeners.forEach(listener => listener());
+  };
+
+  const setCollapseRange = (next: number | null) => {
+    collapseRange.value = next;
+    offset.value = clampOffset(
+      offset.value,
+      resolveCollapseRange(height.value, next),
+    );
   };
 
   return {
     height,
+    collapseRange,
     offset,
     show,
     hide,
     snap,
     shift,
     setHeight,
+    setCollapseRange,
     onLayout: (event: LayoutChangeEvent) =>
       setHeight(event.nativeEvent.layout.height),
     getHeight: () => measured,

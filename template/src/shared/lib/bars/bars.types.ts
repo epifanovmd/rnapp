@@ -12,7 +12,9 @@ import { SharedValue } from "react-native-reanimated";
 export interface IBar {
   /** Измеренная высота, px; 0 — ещё не измерена */
   height: SharedValue<number>;
-  /** 0 — панель показана, height — скрыта */
+  /** Ход скрытия, px: `null` — вся высота (см. setCollapseRange) */
+  collapseRange: SharedValue<number | null>;
+  /** 0 — панель показана, ход скрытия — скрыта */
   offset: SharedValue<number>;
   /** worklet: показать */
   show: () => void;
@@ -20,10 +22,15 @@ export interface IBar {
   hide: () => void;
   /** worklet: доводка до ближайшего состояния */
   snap: () => void;
-  /** worklet: сдвиг offset на delta в пределах [0, height] */
+  /** worklet: сдвиг offset на delta в пределах хода скрытия */
   shift: (delta: number) => void;
   /** Измерение высоты (JS-поток) */
   setHeight: (height: number) => void;
+  /**
+   * Ход скрытия меньше высоты — у панели с закреплённой частью: ограничение и
+   * доводка считаются по нему, отступ контента — по всей высоте. `null` — сброс.
+   */
+  setCollapseRange: (range: number | null) => void;
   onLayout: (event: LayoutChangeEvent) => void;
   /** Высота для вёрстки (JS-поток) */
   getHeight: () => number;

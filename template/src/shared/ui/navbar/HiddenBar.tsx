@@ -1,7 +1,7 @@
 import { useBarHeight } from "@shared/lib/bars";
 import { useLayout } from "@shared/lib/hooks";
 import { useTheme } from "@shared/lib/theme";
-import React, { useCallback, useState } from "react";
+import React, { useEffect } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
 import Animated, {
   interpolate,
@@ -36,8 +36,16 @@ const HiddenBarRoot = ({
 
   const top = safeArea ? insets.top : 0;
 
-  // sticky-часть остаётся на экране: прячется только то, что над ней
+  // sticky-часть остаётся на экране: прячется только то, что над ней. Ход
+  // скрытия панели — та же величина, иначе последние px хода шапка стоит, а
+  // доводка считает половину от полной высоты.
   const hiddenHeight = barHeight - (stickyContent.present ? contentHeight : 0);
+
+  useEffect(() => {
+    navbar.setCollapseRange(stickyContent.present ? hiddenHeight : null);
+  }, [navbar, hiddenHeight, stickyContent.present]);
+
+  useEffect(() => () => navbar.setCollapseRange(null), [navbar]);
 
   const animatedStyle = useAnimatedStyle(() => {
     const translateY = interpolate(

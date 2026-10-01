@@ -1,11 +1,11 @@
-import { resolveScrollEdge } from "@shared/lib/bars";
+import { resolveFollowDelta, resolveScrollEdge } from "@shared/lib/bars";
 import { IScrollValues } from "@shared/lib/scroll";
 import { useAnimatedReaction } from "react-native-reanimated";
 
 import { useNavbar } from "./navbar-bar";
 
-/** Максимальный сдвиг панели за один scroll-тик, px */
-const MAX_FOLLOW_DELTA = 3;
+/** Скачок смещения за тик больше этого — не жест, а смена вкладки/программный скролл, px */
+const MAX_FOLLOW_JUMP = 200;
 
 /**
  * Поведение навигационной панели: следует за скроллом попиксельно и
@@ -37,9 +37,7 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
       } else {
         const delta = offset - prevOffset;
 
-        navbar.shift(
-          Math.min(Math.max(delta, -MAX_FOLLOW_DELTA), MAX_FOLLOW_DELTA),
-        );
+        navbar.shift(resolveFollowDelta(delta, MAX_FOLLOW_JUMP));
       }
     },
     [navbar],

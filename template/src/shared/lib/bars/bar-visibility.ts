@@ -27,3 +27,27 @@ export const barProgress = (offset: number, height: number): number => {
 
   return clampOffset(offset, height) / height;
 };
+
+/**
+ * Ход скрытия панели: сколько из её высоты может уехать. `null` — вся высота;
+ * у панели с закреплённой частью (HiddenBar) — высота без неё.
+ */
+export const resolveCollapseRange = (
+  height: number,
+  range: number | null,
+): number => {
+  "worklet";
+
+  return range === null ? height : clampOffset(range, height);
+};
+
+/**
+ * Шаг следования панели за скроллом: 1:1, а разовый скачок смещения больше
+ * `maxJump` (смена вкладки с общей телеметрией, программный скролл) панель
+ * не двигает.
+ */
+export const resolveFollowDelta = (delta: number, maxJump: number): number => {
+  "worklet";
+
+  return Math.abs(delta) > maxJump ? 0 : delta;
+};
