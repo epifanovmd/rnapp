@@ -469,7 +469,7 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   расширяется `activeWeight`=2.4, подпись рядом раскрывается maxWidth/opacity), `labelPosition`,
   `indicator` pill|dot|line|none + `indicatorAnimation` worm|slide, `surface` blur (тип по теме +
   подцветка surface)|solid, `fit` fill|hug (авто: hug у плавающей без подписей), `activeColor`/
-  `inactiveColor`/`indicatorColor` (токен или цвет), `iconAnimation` bounce|none, `haptics`
+  `inactiveColor`/`indicatorColor` (токен или цвет), `iconAnimation` bounce (один прыжок translateY −6, без пружины)|none, `haptics`
   (selection), `itemWidth`, `iconSize`, `duration`. Бейджи — число (99+) или точка.
 - Геометрия — чистые worklet-функции (`tab-bar-geometry.ts`, тесты): дробное положение выбора `p`,
   вес вкладки `tabWeight`, сумма весов постоянна → рамки `tabFrames`, подложка `indicatorSpan`

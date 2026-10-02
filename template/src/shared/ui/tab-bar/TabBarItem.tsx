@@ -1,11 +1,11 @@
 import React, { FC, memo, useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 
@@ -19,6 +19,11 @@ import type {
 } from "./tab-bar.types";
 import { tabWeight } from "./tab-bar-geometry";
 import { TabBarBadge } from "./TabBarBadge";
+
+/** Высота прыжка иконки при выборе, px. */
+const JUMP_HEIGHT = 6;
+const JUMP_UP = { duration: 130, easing: Easing.out(Easing.quad) };
+const JUMP_DOWN = { duration: 170, easing: Easing.in(Easing.quad) };
 
 /** Наибольшая ширина подписи рядом с иконкой, px. */
 const BESIDE_LABEL_MAX = 160;
@@ -40,7 +45,7 @@ interface ITabBarItemProps {
   onLongPress?: (key: string, index: number) => void;
 }
 
-/** Вкладка: ширина по весу (UI-поток), иконка с пружинкой, подпись, бейдж. */
+/** Вкладка: ширина по весу (UI-поток), иконка с прыжком, подпись, бейдж. */
 export const TabBarItem: FC<ITabBarItemProps> = memo(
   ({
     item,
@@ -58,18 +63,19 @@ export const TabBarItem: FC<ITabBarItemProps> = memo(
     onPress,
     onLongPress,
   }) => {
-    const scale = useSharedValue(1);
+    const jump = useSharedValue(0);
     const mounted = useRef(false);
 
+    // Один прыжок вверх и обратно — без пружинных колебаний.
     useEffect(() => {
       if (mounted.current && focused && bounce) {
-        scale.value = withSequence(
-          withTiming(0.82, { duration: 90 }),
-          withSpring(1, { damping: 9, stiffness: 280 }),
+        jump.value = withSequence(
+          withTiming(-JUMP_HEIGHT, JUMP_UP),
+          withTiming(0, JUMP_DOWN),
         );
       }
       mounted.current = true;
-    }, [focused, bounce, scale]);
+    }, [focused, bounce, jump]);
 
     const sizeStyle = useAnimatedStyle(() => {
       const weight = tabWeight(position.value, index, activeWeight);
@@ -78,8 +84,8 @@ export const TabBarItem: FC<ITabBarItemProps> = memo(
     }, [position, index, activeWeight, fit, itemWidth]);
 
     const iconStyle = useAnimatedStyle(
-      () => ({ transform: [{ scale: scale.value }] }),
-      [scale],
+      () => ({ transform: [{ translateY: jump.value }] }),
+      [jump],
     );
 
     // «Только у активной»: подпись раскрывается вместе с шириной вкладки.
