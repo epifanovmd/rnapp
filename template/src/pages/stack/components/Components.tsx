@@ -10,7 +10,7 @@ export const Components: FC = memo(() => (
       {COMPONENT_DEMOS.map(demo => (
         <NavLink key={demo.route} to={demo.route} hitSlop={8}>
           <Text textStyle={"Body_S1"} color={"textLink"}>
-            {demo.title}
+            {`${demo.title} →`}
           </Text>
         </NavLink>
       ))}
