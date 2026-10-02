@@ -1,5 +1,5 @@
 import { useNavigation } from "@shared/lib/navigation";
-import { Button, Row, ScreenScroll } from "@shared/ui";
+import { Button, Col, ScreenScroll } from "@shared/ui";
 import React, { FC, memo } from "react";
 
 import { COMPONENT_DEMOS } from "./component-demos";
@@ -10,7 +10,7 @@ export const Components: FC = memo(() => {
 
   return (
     <ScreenScroll>
-      <Row wrap gap={16}>
+      <Col alignItems={"flex-start"} gap={16}>
         {COMPONENT_DEMOS.map(demo => (
           <Button
             key={demo.route}
@@ -19,7 +19,7 @@ export const Components: FC = memo(() => {
             onPress={() => navigation.navigate(demo.route)}
           />
         ))}
-      </Row>
+      </Col>
     </ScreenScroll>
   );
 });
