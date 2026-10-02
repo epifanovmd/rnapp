@@ -40,15 +40,18 @@ export const App: FC = observer(() => {
       <ThemeProvider>
         <StatusBar />
         <SafeAreaProvider>
-          <BottomSheetModalProvider>
-            <AppNotifications>
-              <Dialog.Host />
-              <ContextMenuView.Host />
-              <KeyboardProvider navigationBarTranslucent>
+          {/* Выше шторок и хостов: модальные шторки рендерятся порталом у
+              своего провайдера, и без контекста клавиатуры keyboard-controller
+              в них не работает. */}
+          <KeyboardProvider navigationBarTranslucent>
+            <BottomSheetModalProvider>
+              <AppNotifications>
+                <Dialog.Host />
+                <ContextMenuView.Host />
                 <AppNavigator />
-              </KeyboardProvider>
-            </AppNotifications>
-          </BottomSheetModalProvider>
+              </AppNotifications>
+            </BottomSheetModalProvider>
+          </KeyboardProvider>
         </SafeAreaProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
