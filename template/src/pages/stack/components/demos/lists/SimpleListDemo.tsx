@@ -37,8 +37,8 @@ const renderItem = ({ item }: IAnchorListRenderItemProps<IDemoRow>) => (
   <ListItem title={item.title} />
 );
 
-/** Демо AnchorList с pull-to-refresh внутри top-tab навигатора. */
-export const ListsDemo: FC = memo(() => {
+/** Простой список AnchorList с pull-to-refresh. */
+export const SimpleListDemo: FC = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const [generation, setGeneration] = useState(0);
   const rows = useMemo(() => createRows(generation), [generation]);

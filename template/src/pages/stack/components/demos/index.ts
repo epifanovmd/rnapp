@@ -14,7 +14,7 @@ export * from "./input-bar";
 export * from "./InputsDemo";
 export * from "./keyboard";
 export * from "./LayoutDemo";
-export * from "./ListsDemo";
+export * from "./lists";
 export * from "./MediaDemo";
 export * from "./modals";
 export * from "./NotificationsDemo";

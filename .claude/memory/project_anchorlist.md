@@ -83,7 +83,7 @@ type: project
    списка, события чейнятся в телеметрию экрана: общая телеметрия табов
    (ComponentsNavigator) несёт скролл соседних вкладок, и bounce в одной вкладке
    запускал бы refresh в другой. Демо: Main (AnchorList вместо FlatList) и
-   playground → Components → Lists (`pages/stack/components/demos/ListsDemo.tsx`).
+   playground → Components → Lists (`pages/stack/components/demos/lists/SimpleListDemo.tsx`).
 
 2. **Индикатор прокрутки** (2026-10-01): `showsScrollIndicator?: boolean` (default
    `true`) → `shows{Vertical|Horizontal}ScrollIndicator` по `horizontal`;
