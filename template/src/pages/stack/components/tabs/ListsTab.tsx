@@ -20,7 +20,12 @@ interface IDemoRow {
   title: string;
 }
 
-const ROW_HEIGHT = 56;
+/**
+ * Высота строки ListItem без подзаголовка: pv 12 + строка Title_S2 20. Оценка
+ * должна совпадать с замером: иначе высота контента меняется на инерции и
+ * докрутка дёргается.
+ */
+const ROW_HEIGHT = 44;
 
 const createRows = (generation: number): IDemoRow[] =>
   Array.from({ length: 50 }, (_, index) => ({
