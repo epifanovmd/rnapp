@@ -30,6 +30,8 @@ import {
   ScreenReadyDemo,
   ScreenReadyTargetDemo,
   ScrollRevealDemo,
+  SearchDemo,
+  SearchHiddenBarDemo,
   SettingsDemo,
   TabsDemo,
   TicketDemo,
@@ -184,6 +186,16 @@ export const RootStack = createStackNavigator({
           screen: ScrollRevealDemo,
           options: { title: "Scroll reveal" },
           linking: "components/scroll-reveal",
+        },
+        ComponentsSearch: {
+          screen: SearchDemo,
+          options: NO_HEADER,
+          linking: "components/search",
+        },
+        ComponentsSearchHiddenBar: {
+          screen: SearchHiddenBarDemo,
+          options: NO_HEADER,
+          linking: "components/search/hidden-bar",
         },
         ComponentsScreenReadyTarget: {
           screen: ScreenReadyTargetDemo,

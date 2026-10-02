@@ -47,6 +47,7 @@ export * from "./reveal";
 export * from "./scan";
 export * from "./screen";
 export * from "./scroll-view";
+export * from "./search";
 export * from "./section";
 export * from "./segmented";
 export * from "./select";

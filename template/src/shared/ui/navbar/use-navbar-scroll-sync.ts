@@ -5,7 +5,11 @@ import {
   resolveScrollEdge,
 } from "@shared/lib/bars";
 import { IScrollValues } from "@shared/lib/scroll";
-import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useSharedValue,
+} from "react-native-reanimated";
 
 import { useNavbar } from "./navbar-bar";
 
@@ -18,7 +22,15 @@ const MAX_FOLLOW_JUMP = 200;
  * жеста и на инерции за пикселями не следует — анимация не спорит со сдвигом,
  * и после остановки контента панели доезжать нечего.
  */
-export const useNavbarScrollSync = (scroll: IScrollValues) => {
+export interface INavbarScrollSyncOptions {
+  /** Пока `true`, скролл панель не двигает (например, открыт поиск). */
+  paused?: SharedValue<boolean>;
+}
+
+export const useNavbarScrollSync = (
+  scroll: IScrollValues,
+  { paused }: INavbarScrollSyncOptions = {},
+) => {
   const navbar = useNavbar();
   // по одному значению: захват объекта целиком клонировал бы его на UI-поток
   const {
@@ -36,7 +48,7 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
   useAnimatedReaction(
     () => offsetY.value,
     (offset, prevOffset) => {
-      if (prevOffset === null || offset === prevOffset) {
+      if (prevOffset === null || offset === prevOffset || paused?.value) {
         return;
       }
 
@@ -57,12 +69,13 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
         navbar.shift(resolveFollowDelta(delta, MAX_FOLLOW_JUMP));
       }
     },
-    [navbar],
+    [navbar, paused],
   );
 
   useAnimatedReaction(
     () => isDragging.value,
     (dragging, wasDragging) => {
+      if (paused?.value) return;
       if (dragging) {
         settling.value = false;
 
@@ -84,7 +97,7 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
         navbar.show();
       }
     },
-    [navbar],
+    [navbar, paused],
   );
 
   useAnimatedReaction(

@@ -422,3 +422,35 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   навигатора. Навбар внутри страницы — вкладка «Настройки»: `AppMenuNavbar title reveal` (виджет
   app-menu, `Navbar.Content` + `NavbarReveal` с `AppMenuProfileCompact`) и `AppMenu reveal`
   (карточка профиля по центру — якорь).
+
+## Поиск
+- `shared/lib/search`: чистые `normalizeSearchText` (регистр, ё→е, длина сохраняется),
+  `searchTokens`, `matchesQuery` (все слова в любом порядке), `findMatchRanges`/`splitByMatches`
+  (подсветка), `filterByQuery(items, query, fields)`, `pushSearchHistory`, `planSearchBarOpen`/`shouldShowBarOnClose` — тесты. `useSearch({debounceMs=250, duration=280, closeOnBack=true, onActiveChange})` →
+  `{query, debouncedQuery ("" сразу при очистке), active, activeValue (SV), progress (SV 0…1),
+  inputRef, setQuery, open (идемпотентно, без фокуса), close (свернуть, очистить, убрать
+  клавиатуру), clear}`; Android «назад» закрывает.
+- `SearchBar` (compound, `shared/ui/search`): поле с лупой/«очистить» + «Отмена»
+  (`cancel`: active — выезжает по progress, ширина меряется absolute-содержимым | always | never),
+  `autoFocus` — фокус через `focusDelay` (60 мс) после открытия извне (в нулевую ширину iOS фокус
+  не ставит), тап в поле — `open` через onFocus; слоты `Leading`/`Trailing`/`Cancel`.
+- Вариант «в навбаре»: `NavbarSearchButton` (Navbar.Right) + `NavbarSearchField`
+  (`Navbar.Overlay`: панель растёт от кнопки на всю ширину, внутри `SearchBar cancel="always"` или
+  `children`; раскладка — `searchFieldLayout`). `Navbar.Overlay` — слой поверх строки ниже safe
+  area (`BalancedRow overlay`).
+- Вариант «под шапкой»: `HiddenBar.StickyContent` со `SearchBar`; `useSearchBarSync(search, navbar,
+  {hideBar=true, restore: previous|show})` → `{contentShift (SV), shiftRange (ход шапки)}`:
+  открытие прячет видимую шапку (план `planSearchBarOpen`), скрытую не трогает, закрытие
+  возвращает (`shouldShowBarOnClose`); сдвиг — своя `withTiming` на `IBar.duration`.
+  Контент — в `SearchShiftView sync` (translateY в одном кадре с шапкой; продлён вниз
+  `marginBottom: -shiftRange`) + `SearchShiftSpacer sync` в конец списка.
+  Gotcha: сдвиг высотой отступа (`NavbarInset` в шапке FlatList) — перераскладка на кадр, отстаёт
+  от трансформа шапки → дрожь; только transform. `removeClippedSubviews` в сдвигаемом
+  контейнере не включать. `useNavbarScrollSync(telemetry, {paused: search.activeValue})`.
+- `SearchOverlay` (`visible`, `top` — `TAnimatedNumber`, `lazy`, `unmountOnHide`, `duration`):
+  панель режима поиска поверх контента; под скрываемой шапкой `top` = safe top +
+  `useNavbarVisibleHeight()` (navbar-bar: высота минус уехавшая часть).
+- Демо: Components → «Search · Navbar» (оверлей: недавние/подсказки → результаты → пусто) и
+  «Search · Hidden bar» (настройки в шапке списка: оверлей нет/всегда/без запроса, прятать
+  шапку, шапка после закрытия, «Отмена»; без оверлея или с запросом — фильтр на месте;
+  стабильный renderItem по debouncedQuery, ленивый оверлей).

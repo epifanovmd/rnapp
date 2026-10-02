@@ -111,6 +111,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
   };
 
   return {
+    duration,
     height,
     pinned,
     inset,

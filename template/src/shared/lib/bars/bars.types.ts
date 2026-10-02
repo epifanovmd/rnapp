@@ -25,6 +25,8 @@ export interface IBar {
   inset: SharedValue<number>;
   /** 0 — панель показана, ход скрытия (resolveCollapseRange) — скрыта */
   offset: SharedValue<number>;
+  /** Длительность show/hide/snap, мс — для анимаций, идущих вместе с панелью */
+  duration: number;
   /** worklet: показать */
   show: () => void;
   /** worklet: скрыть */

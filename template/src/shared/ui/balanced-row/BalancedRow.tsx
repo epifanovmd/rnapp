@@ -16,6 +16,8 @@ export interface BalancedRowProps extends FlexViewProps {
   rightContent?: ReactNode;
   /** Стиль обеих боковых зон. */
   sideStyle?: StyleProp<ViewStyle>;
+  /** Слой поверх строки (позиционирует себя сам, например absolute). */
+  overlay?: ReactNode;
 }
 
 /**
@@ -31,6 +33,7 @@ export const BalancedRow = memo<BalancedRowProps>(
     leftContent,
     rightContent,
     sideStyle,
+    overlay,
     ...rest
   }) => {
     const [leftWidth, setLeftWidth] = useState(0);
@@ -69,6 +72,7 @@ export const BalancedRow = memo<BalancedRowProps>(
             {rightContent}
           </View>
         </View>
+        {overlay}
       </Row>
     );
   },

@@ -25,6 +25,8 @@ const navbarSlots = {
   title: slot.of(NavbarTitle, { always: true }),
   subtitle: slot.of(NavbarSubTitle),
   right: slot.of(View),
+  /** Слой поверх строки навбара (ниже safe area): поле поиска и т.п. */
+  overlay: slot.of(View),
 };
 
 const NavbarRoot = ({
@@ -38,7 +40,8 @@ const NavbarRoot = ({
   const [isCanGoBack, setIsCanGoBack] = useState(false);
   const { top } = useSafeAreaInsets();
 
-  const { left, backButton, content, title, subtitle, right } = slots;
+  const { left, backButton, content, title, subtitle, right, overlay } =
+    slots;
 
   const { canGoBack, goBack } = useNavigation();
 
@@ -69,6 +72,16 @@ const NavbarRoot = ({
         </>
       }
       rightContent={right.render()}
+      overlay={
+        overlay.present
+          ? overlay.render({
+              defaults: { pointerEvents: "box-none" },
+              inject: {
+                style: [SS.overlay, { top: paddingTop ?? 0 }],
+              },
+            })
+          : undefined
+      }
       {...rest}
     >
       {hasContent ? (
@@ -98,6 +111,12 @@ const SS = StyleSheet.create({
     padding: 4,
     minHeight: 56,
     zIndex: 9999,
+  },
+  overlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   center: {
     marginLeft: 4,
