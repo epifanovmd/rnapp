@@ -1,7 +1,6 @@
 import {
   Group,
   Line,
-  matchFont,
   Path,
   Rect,
   Skia,
@@ -14,6 +13,7 @@ import {
   defaultLabelFormatter,
   formatTimeTick,
   isInScaleRange,
+  matchChartFont,
   scaleToRange,
   useAxisTicks,
   useChartGeometry,
@@ -51,7 +51,7 @@ export const AxisLayerX = React.memo(
   }: AxisLayerXProps) => {
     const { xScale, plot } = useChartGeometry();
     const font = useMemo(
-      () => matchFont({ fontFamily, fontSize }),
+      () => matchChartFont(fontFamily, fontSize),
       [fontFamily, fontSize],
     );
     const format = useMemo<AxisLabelFormatter>(

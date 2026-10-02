@@ -1,4 +1,5 @@
 export * from "./build-path";
+export * from "./chart-font";
 export * from "./clip-to-plot";
 export * from "./compute-trend-direction";
 export * from "./dash-pattern";

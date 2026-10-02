@@ -3,7 +3,6 @@ import {
   DashPathEffect,
   Group,
   Line,
-  matchFont,
   RoundedRect,
   Text,
   vec,
@@ -25,6 +24,7 @@ import {
   LABEL_GAP,
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
+  matchChartFont,
   scaleToRange,
   selectSeries,
   useChartGeometry,
@@ -68,7 +68,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
 
   const intervals = dashArray ?? DASH_PRESETS[lineType];
   const font = useMemo(
-    () => matchFont({ fontFamily: labelFontFamily, fontSize: labelFontSize }),
+    () => matchChartFont(labelFontFamily, labelFontSize),
     [labelFontFamily, labelFontSize],
   );
 

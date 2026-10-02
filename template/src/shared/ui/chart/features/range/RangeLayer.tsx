@@ -1,7 +1,6 @@
 import {
   Group,
   Line,
-  matchFont,
   Rect,
   Text as SkiaText,
   vec,
@@ -12,6 +11,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import type { ChartLayerComponent } from "../../core";
 import {
+  matchChartFont,
   useChartActiveIndices,
   useChartGeometry,
   useChartGesture,
@@ -79,7 +79,7 @@ export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
   const { activeIndices, activeIndices2 } = useChartActiveIndices();
 
   const font = useMemo(
-    () => matchFont({ fontFamily, fontSize }),
+    () => matchChartFont(fontFamily, fontSize),
     [fontFamily, fontSize],
   );
 

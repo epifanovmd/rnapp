@@ -1,9 +1,9 @@
-import { matchFont } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 
 import {
   DASH_PRESETS,
   defaultLabelFormatter,
+  matchChartFont,
   useChartActiveIndices,
   useChartGeometry,
   useChartGesture,
@@ -47,7 +47,7 @@ export const CrosshairLayer = React.memo(
     const intervals = dashArray ?? DASH_PRESETS[lineType];
 
     const font = useMemo(
-      () => matchFont({ fontFamily: labelFontFamily, fontSize: labelFontSize }),
+      () => matchChartFont(labelFontFamily, labelFontSize),
       [labelFontFamily, labelFontSize],
     );
 

@@ -1,4 +1,4 @@
-import { Group, matchFont, RoundedRect } from "@shopify/react-native-skia";
+import { Group, RoundedRect } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
@@ -7,6 +7,7 @@ import type { ChartLayerComponent, IChartSeries } from "../../core";
 import {
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
+  matchChartFont,
   scaleToRange,
   useChartActiveIndices,
   useChartGeometry,
@@ -64,7 +65,7 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     useChartActiveIndices();
 
   const font = useMemo(
-    () => matchFont({ fontFamily, fontSize }),
+    () => matchChartFont(fontFamily, fontSize),
     [fontFamily, fontSize],
   );
 
