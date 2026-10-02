@@ -105,7 +105,9 @@ export const TabBarItem: FC<ITabBarItemProps> = memo(
         <Touchable
           style={[styles.touch, beside ? styles.row : styles.column]}
           onPress={() => onPress(item.key, index)}
-          onLongPress={onLongPress ? () => onLongPress(item.key, index) : undefined}
+          onLongPress={
+            onLongPress ? () => onLongPress(item.key, index) : undefined
+          }
           accessibilityRole={"tab"}
           accessibilityLabel={item.accessibilityLabel ?? item.title}
           accessibilityState={{ selected: focused }}

@@ -26,8 +26,7 @@ export const TabBarBadge: FC<ITabBarBadgeProps> = ({ value }) => {
     );
   }
 
-  const text =
-    typeof value === "number" && value > 99 ? "99+" : String(value);
+  const text = typeof value === "number" && value > 99 ? "99+" : String(value);
 
   return (
     <View

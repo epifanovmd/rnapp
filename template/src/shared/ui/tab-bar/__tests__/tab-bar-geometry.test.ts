@@ -66,7 +66,13 @@ describe("wormDelays", () => {
   });
 
   it("геометрия — worklet", () => {
-    for (const fn of [tabWeight, totalWeight, tabFrames, frameAt, indicatorSpan]) {
+    for (const fn of [
+      tabWeight,
+      totalWeight,
+      tabFrames,
+      frameAt,
+      indicatorSpan,
+    ]) {
       expect(fn.toString()).toMatch(/["']worklet["']/);
     }
   });

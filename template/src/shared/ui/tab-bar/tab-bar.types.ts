@@ -68,7 +68,7 @@ export interface ITabBarAppearance {
   haptics?: boolean;
   /** Во сколько раз активная вкладка шире. По умолчанию 2.4 при `labels="active"`, иначе 1. */
   activeWeight?: number;
-  /** Ширина вкладки при `fit="hug"`, px. По умолчанию 56. */
+  /** Ширина вкладки при `fit="hug"`, px. По умолчанию 76 при `labels="always"`, иначе 56. */
   itemWidth?: number;
   /** Размер иконок, px. По умолчанию 22. */
   iconSize?: number;

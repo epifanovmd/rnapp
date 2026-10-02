@@ -1,4 +1,4 @@
-import { tabLabelStyle, tabSizeStyle } from "../tab-item-style";
+import { hugItemWidth, tabLabelStyle, tabSizeStyle } from "../tab-item-style";
 
 const keys = (style: object) => Object.keys(style).sort();
 
@@ -10,16 +10,19 @@ describe("tabSizeStyle", () => {
   });
 
   it("fill — доля по весу, hug — фиксированная ширина", () => {
-    expect(tabSizeStyle(2, "fill", 56)).toEqual({
-      flexGrow: 2,
-      flexShrink: 1,
-      flexBasis: 0,
-    });
-    expect(tabSizeStyle(2, "hug", 56)).toEqual({
-      flexGrow: 0,
-      flexShrink: 0,
-      flexBasis: 112,
-    });
+    expect(tabSizeStyle(2, "fill", 56)).toEqual({ flexGrow: 2, width: 0 });
+    expect(tabSizeStyle(2, "hug", 56)).toEqual({ flexGrow: 0, width: 112 });
+  });
+});
+
+describe("hugItemWidth", () => {
+  it("подписи у всех — шире, чтобы текст не обрезался", () => {
+    expect(hugItemWidth("always")).toBeGreaterThan(hugItemWidth("never"));
+    expect(hugItemWidth("active")).toBe(hugItemWidth("never"));
+  });
+
+  it("заданная ширина — как есть", () => {
+    expect(hugItemWidth("always", 60)).toBe(60);
   });
 });
 

@@ -11,6 +11,7 @@ import Animated, {
 import type { ITabBarProps } from "./tab-bar.types";
 import { resolveTabBarColor, withAlpha } from "./tab-bar-colors";
 import { totalWeight, wormDelays } from "./tab-bar-geometry";
+import { hugItemWidth } from "./tab-item-style";
 import { TabBarIndicator } from "./TabBarIndicator";
 import { TabBarItem } from "./TabBarItem";
 import { TabBarSurface } from "./TabBarSurface";
@@ -50,16 +51,17 @@ export const TabBar: FC<ITabBarProps> = ({
   iconAnimation = "bounce",
   haptics = true,
   activeWeight,
-  itemWidth = 56,
+  itemWidth: itemWidthProp,
   iconSize = 22,
   duration = 250,
 }) => {
   const { colors } = useTheme();
   const floating = variant === "floating";
-  const resolvedLabelPosition = labelPosition ?? (labels === "active" ? "beside" : "below");
+  const resolvedLabelPosition =
+    labelPosition ?? (labels === "active" ? "beside" : "below");
+  const itemWidth = hugItemWidth(labels, itemWidthProp);
   const weight = activeWeight ?? (labels === "active" ? 2.4 : 1);
-  const resolvedFit =
-    fit ?? (floating && labels === "never" ? "hug" : "fill");
+  const resolvedFit = fit ?? (floating && labels === "never" ? "hug" : "fill");
   const active = resolveTabBarColor(activeColor, colors, "primary");
   const inactive = resolveTabBarColor(inactiveColor, colors, "textSecondary");
   const indicatorFill = indicatorColor
@@ -106,9 +108,14 @@ export const TabBar: FC<ITabBarProps> = ({
   const onRowLayout = useCallback((event: LayoutChangeEvent) => {
     const next = event.nativeEvent.layout.width;
 
-    setRowWidth(previousWidth => (previousWidth === next ? previousWidth : next));
+    setRowWidth(previousWidth =>
+      previousWidth === next ? previousWidth : next,
+    );
   }, []);
 
+  // Анимированный стиль вкладки после перерисовки из React остаётся со старыми
+  // значениями — при смене раскладки вкладки монтируются заново.
+  const layoutKey = `${resolvedFit}:${labels}:${resolvedLabelPosition}:${weight}:${itemWidth}`;
   const radius = floating ? FLOATING_RADIUS : 0;
   const hugWidth = itemWidth * totalWeight(items.length, weight);
 
@@ -117,8 +124,7 @@ export const TabBar: FC<ITabBarProps> = ({
       onLayout={onLayout}
       style={[
         floating ? styles.floating : styles.docked,
-        floating &&
-          (resolvedFit === "hug" ? styles.hug : styles.fill),
+        floating && (resolvedFit === "hug" ? styles.hug : styles.fill),
         floating && { bottom: bottomInset },
         style,
       ]}
@@ -155,7 +161,7 @@ export const TabBar: FC<ITabBarProps> = ({
           )}
           {items.map((item, index) => (
             <TabBarItem
-              key={item.key}
+              key={`${item.key}:${layoutKey}`}
               item={item}
               index={index}
               focused={index === activeIndex}

@@ -4,18 +4,28 @@ import type {
   TTabBarLabels,
 } from "./tab-bar.types";
 
+/** Ширина вкладки при `fit="hug"`: без подписей или только у активной / с подписями у всех, px. */
+const HUG_ITEM_WIDTH = 56;
+const HUG_LABELED_ITEM_WIDTH = 76;
+
+/** Ширина вкладки при `fit="hug"`: заданная или по режиму подписей. */
+export const hugItemWidth = (labels: TTabBarLabels, itemWidth?: number) =>
+  itemWidth ?? (labels === "always" ? HUG_LABELED_ITEM_WIDTH : HUG_ITEM_WIDTH);
+
 /** Наибольшая ширина подписи, px. */
 const LABEL_MAX = 160;
 /** Отступ подписи рядом с иконкой, px. */
 const BESIDE_GAP = 6;
 
 /*
- * Анимированный стиль не сбрасывает ключи, пропавшие из него: при смене
- * настроек прежний `flex` или `maxWidth` остался бы на вкладке. Поэтому
- * стили ниже во всех режимах возвращают один и тот же набор ключей.
+ * Анимированный стиль не сбрасывает ключи, пропавшие из него, поэтому стили
+ * ниже во всех режимах возвращают один и тот же набор ключей.
  */
 
-/** Размер вкладки (worklet): `fill` — доля ряда по весу, `hug` — `weight × itemWidth`. */
+/**
+ * Размер вкладки (worklet): `fill` — доля ряда по весу (`flexGrow` от нулевой
+ * ширины), `hug` — `weight × itemWidth`.
+ */
 export const tabSizeStyle = (
   weight: number,
   fit: TTabBarFit,
@@ -24,8 +34,8 @@ export const tabSizeStyle = (
   "worklet";
 
   return fit === "fill"
-    ? { flexGrow: weight, flexShrink: 1, flexBasis: 0 }
-    : { flexGrow: 0, flexShrink: 0, flexBasis: weight * itemWidth };
+    ? { flexGrow: weight, width: 0 }
+    : { flexGrow: 0, width: weight * itemWidth };
 };
 
 /**
