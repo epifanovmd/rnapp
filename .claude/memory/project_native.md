@@ -146,6 +146,8 @@ type: project
 - Freeze держит content inset; thaw — реакцией (`use-freezable-value.ts`).
 - Interactive dismiss: `onInteractive` per frame + блокировка скролла при касании
   (`onScrollBeginDrag`/`onScrollEndDrag`).
+- Поля форм над клавиатурой — `shared/lib/keyboard-aware` (`useKeyboardAwareScroll`), см.
+  project_components.md «Клавиатура: useKeyboardAwareScroll».
 
 ## Выбор фото и файлов (2026-09-26)
 

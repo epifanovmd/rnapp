@@ -1,36 +1,28 @@
 import { TPullToRefreshScroll } from "@shared/lib/pull-to-refresh";
-import React, {
-  ComponentProps,
-  createContext,
-  forwardRef,
-  useContext,
-} from "react";
+import React, { ComponentPropsWithRef } from "react";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 
-/** Жест протяжки для ScrollView экрана; null — без pull-to-refresh. */
-export const ScreenScrollGestureContext = createContext<
-  TPullToRefreshScroll["gesture"] | null
->(null);
+export interface IScreenScrollViewProps extends ComponentPropsWithRef<
+  typeof Animated.ScrollView
+> {
+  /** Жест протяжки; null — без pull-to-refresh. */
+  gesture?: TPullToRefreshScroll["gesture"] | null;
+}
 
 /**
- * ScrollViewComponent для KeyboardAwareScrollView: тот оборачивает скролл в
- * свою нативную view, поэтому GestureDetector ставится вплотную к самому
- * ScrollView здесь. Жест приходит контекстом — идентичность компонента
- * стабильна.
+ * ScrollView экрана: GestureDetector протяжки ставится вплотную к самому
+ * ScrollView — детектор цепляется к прямому ребёнку.
  */
-export const ScreenScrollView = forwardRef<
-  Animated.ScrollView,
-  ComponentProps<typeof Animated.ScrollView>
->((props, ref) => {
-  const gesture = useContext(ScreenScrollGestureContext);
-  const scrollView = <Animated.ScrollView ref={ref} {...props} />;
+export const ScreenScrollView = ({
+  gesture,
+  ...props
+}: IScreenScrollViewProps) => {
+  const scrollView = <Animated.ScrollView {...props} />;
 
   return gesture ? (
     <GestureDetector gesture={gesture}>{scrollView}</GestureDetector>
   ) : (
     scrollView
   );
-});
-
-ScreenScrollView.displayName = "ScreenScrollView";
+};

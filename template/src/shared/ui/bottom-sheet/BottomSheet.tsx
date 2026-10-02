@@ -1,4 +1,4 @@
-import { BottomSheetModal, BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMergedCallback } from "@shared/lib/hooks";
 import React, { useCallback } from "react";
 import haptic from "react-native-haptic-feedback";
@@ -9,13 +9,14 @@ import { BottomSheetBackdrop } from "./BottomSheetBackdrop";
 import { BottomSheetFooter } from "./BottomSheetFooter";
 import { BottomSheetHeader } from "./BottomSheetHeader";
 import { BottomSheetLayout } from "./BottomSheetLayout";
+import { BottomSheetScrollContent } from "./BottomSheetScrollContent";
 import { useBottomSheetStyles } from "./hooks";
 import { BottomSheetStyles } from "./styles";
 import { TBottomSheetProps } from "./types";
 
 const bottomSheetSlots = {
   header: slot.of(BottomSheetHeader),
-  content: slot.of(BottomSheetScrollView, {
+  content: slot.of(BottomSheetScrollContent, {
     always: true,
     defaultProps: { bounces: false, keyboardShouldPersistTaps: "handled" },
   }),

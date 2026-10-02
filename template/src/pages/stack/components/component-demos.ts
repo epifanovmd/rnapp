@@ -4,6 +4,8 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsTypography", title: "Typography" },
   { route: "ComponentsIcons", title: "Icons" },
   { route: "ComponentsInputs", title: "Inputs" },
+  { route: "ComponentsKeyboardScroll", title: "Keyboard · Scroll" },
+  { route: "ComponentsKeyboardSheet", title: "Keyboard · Sheet" },
   { route: "ComponentsControls", title: "Controls" },
   { route: "ComponentsForms", title: "Forms" },
   { route: "ComponentsLayout", title: "Layout" },

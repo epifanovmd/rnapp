@@ -1,5 +1,9 @@
 import { readAnimatedNumber, TAnimatedNumber } from "@shared/lib/animation";
 import {
+  KeyboardAwareContent,
+  useKeyboardAwareScroll,
+} from "@shared/lib/keyboard-aware";
+import {
   usePullToRefreshHaptics,
   usePullToRefreshScroll,
 } from "@shared/lib/pull-to-refresh";
@@ -13,15 +17,14 @@ import React, {
   useRef,
 } from "react";
 import { StyleSheet, View } from "react-native";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  useAnimatedRef,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { RefreshIndicator } from "../refresh-indicator";
-import {
-  ScreenScrollGestureContext,
-  ScreenScrollView,
-} from "./ScreenScrollView";
+import { ScreenScrollView } from "./ScreenScrollView";
 
 /** Сколько ждать `refreshing = true` после void-`onRefresh`, мс. */
 const REFRESHING_GRACE_MS = 300;
@@ -113,6 +116,9 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
     height: readAnimatedNumber(topInset),
   }));
 
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const keyboardAware = useKeyboardAwareScroll(scrollRef, { topInset });
+
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>
       {!!onRefresh && (
@@ -120,27 +126,29 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
       )}
 
       <Animated.View style={[styles.fill, translateStyle]}>
-        <ScreenScrollGestureContext.Provider
-          value={onRefresh ? ptr.gesture : null}
+        <ScreenScrollView
+          ref={scrollRef}
+          gesture={onRefresh ? ptr.gesture : null}
+          contentContainerStyle={styles.content}
+          onScroll={telemetry.scrollHandler}
+          scrollEventThrottle={16}
+          bounces
+          alwaysBounceVertical={!!onRefresh}
+          keyboardShouldPersistTaps={"handled"}
+          showsVerticalScrollIndicator={false}
         >
-          <KeyboardAwareScrollView
-            ScrollViewComponent={ScreenScrollView}
-            contentContainerStyle={[
-              styles.content,
-              { paddingBottom: 16 + bottom + bottomInset },
-            ]}
-            onScroll={telemetry.scrollHandler}
-            scrollEventThrottle={16}
-            bounces
-            alwaysBounceVertical={!!onRefresh}
-            keyboardShouldPersistTaps={"handled"}
-            showsVerticalScrollIndicator={false}
-            bottomOffset={16}
-          >
+          <KeyboardAwareContent controller={keyboardAware}>
             <Animated.View pointerEvents={"none"} style={insetStyle} />
-            <View style={[styles.body, { gap }]}>{children}</View>
-          </KeyboardAwareScrollView>
-        </ScreenScrollGestureContext.Provider>
+            <View
+              style={[
+                styles.body,
+                { gap, paddingBottom: 16 + bottom + bottomInset },
+              ]}
+            >
+              {children}
+            </View>
+          </KeyboardAwareContent>
+        </ScreenScrollView>
       </Animated.View>
     </View>
   );

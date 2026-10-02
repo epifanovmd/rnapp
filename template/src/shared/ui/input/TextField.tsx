@@ -1,5 +1,6 @@
 import { useMergedCallback } from "@shared/lib/hooks";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { useKeyboardAwareField } from "@shared/lib/keyboard-aware";
 import { useTheme } from "@shared/lib/theme";
 import React, { forwardRef, useCallback, useRef, useState } from "react";
 import {
@@ -116,6 +117,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
     const showHintRight = !!hint && hintPosition === "right" && !multiline;
 
     const sheetKeyboard = useSheetKeyboardTarget(inputRef);
+    const keyboardAware = useKeyboardAwareField(inputRef);
     const handleSheetFocus = useMergedCallback(onFocus, sheetKeyboard.onFocus);
     const handleSheetBlur = useMergedCallback(onBlur, sheetKeyboard.onBlur);
 
@@ -187,7 +189,12 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
     const handleInputLayout = useMergedCallback(onLayout, handleInputWidth);
 
     return (
-      <View style={[style, disabled && styles.disabled]}>
+      <Animated.View
+        ref={keyboardAware.containerRef}
+        collapsable={false}
+        onLayout={keyboardAware.onLayout}
+        style={[style, disabled && styles.disabled]}
+      >
         {showHintRight && (
           <RNText
             style={[styles.valueMeasurer, BODY]}
@@ -310,7 +317,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
           maxLength={maxLength}
           duration={duration}
         />
-      </View>
+      </Animated.View>
     );
   },
 );

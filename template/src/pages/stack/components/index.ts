@@ -14,6 +14,8 @@ export {
   IconsDemo,
   InputBarDemo,
   InputsDemo,
+  KeyboardScrollDemo,
+  KeyboardSheetDemo,
   LayoutDemo,
   ListsDemo,
   MediaDemo,

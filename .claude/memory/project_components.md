@@ -46,9 +46,9 @@ double-tap в точку, swipe-to-dismiss; SRP-разделение: `use-zoom-
 (композиция + animatedStyle + reset); кастомизация render-пропсами
 renderHeader/renderFooter/renderImage; FastImage + previewUri + префетч соседних),
 keyboard-scroll-view (проп `insetEnd`, компенсация внутри),
-screen/ScreenScroll (KeyboardAwareScrollView + `usePullToRefreshScroll` + RefreshIndicator, без
-системного RefreshControl; GestureDetector ставится через `ScrollViewComponent={ScreenScrollView}` —
-KASV оборачивает скролл в ClippingScrollView, жест приходит контекстом; `onRefresh` → Promise держит
+screen/ScreenScroll (`useKeyboardAwareScroll` + `usePullToRefreshScroll` + RefreshIndicator, без
+системного RefreshControl; `ScreenScrollView` — Animated.ScrollView, GestureDetector протяжки вплотную
+к нему (проп `gesture`); `onRefresh` → Promise держит
 индикатор, void — завершение по refreshing true→false; `telemetry` экрана чейнится в свою), fab (круглая кнопка
 действия), actions,
 spinner (единый индикатор кита, бывший animated-refreshing; SRP-разделение: Spinner —
@@ -250,3 +250,45 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 - Каждое демо — отдельный экран корневого стека `Components<Name>` (`App.screens.ts`, linking `components/<name>`), файлы `demos/*Demo.tsx`, обёртка `DemoScreen` (без общей шапки/телеметрии).
 - `ComponentsTabs` (`demos/tabs`) — демо HiddenBar + закреплённые Tabs над top-tabs: общая телеметрия (`useScrollTelemetry` + `useNavbarScrollSync`), во вкладках `useFocusedScroll` и `NavbarInset`, `lazy`, на смене вкладки `navbar.show()`.
 - `Button` appearance: filled | outline | ghost | link (link — только текст, без отступов).
+
+## Клавиатура: useKeyboardAwareScroll (`shared/lib/keyboard-aware`, 2026-10-02)
+
+Замена `KeyboardAwareScrollView` keyboard-controller'а на своих примитивах
+(`useKeyboardHandler`, `useReanimatedFocusedInput`, `useWindowDimensions`).
+- `keyboard-aware-offset.ts` — чистая геометрия (тесты `__tests__/keyboard-aware-offset.test.ts`):
+  `computeKeyboardAwareOffset` (поле целиком над `min(низ скролла, верх клавиатуры) - bottomOffset`;
+  ушло выше `visibleTop` — вниз; высокое поле прижимается началом к верху; clamp `[0, maxOffset]`),
+  `keyboardProgress`, `interpolateScrollOffset`, `keyboardOverlap` (высота распорки),
+  `computeMaxScrollOffset` (конец контента = верх распорки + высота), `clampScrollOffset`.
+- `useKeyboardAwareScroll(scrollRef: AnimatedRef<Animated.ScrollView>, { bottomOffset=16, enabled,
+  topInset (TAnimatedNumber, навбар), spacer=true, containerPosition })` →
+  `{ registry, spacerRef, spacerStyle, spacerHeight }`. Смещение и drag/momentum слушает сам
+  (`useEvent` + `scrollRef.observe` → registerForEvents), onScroll подключать не нужно.
+  onStart: замер поля и распорки в координатах КОНТЕНТА (offset из событий), резерв распорки;
+  onMove: цель пересчитывается каждый кадр по `measure(scrollRef)` (шторка едет одновременно),
+  смещение = lerp(start, goal, прогресс); onEnd — доводка (animated, если > 2px); скрытие —
+  распорка ужимается покадрово с зажимом смещения. Смена поля без смены высоты — onStart →
+  сразу animated scrollTo. Пересчёт: `registry.notifyLayout` (рост любого поля кита),
+  рост `input.value.layout.height`, подъём `containerPosition` (только вверх).
+- Реестр: `KeyboardAwareContext` (тег TextInput → animated ref контейнера). `useKeyboardAwareField(inputRef)`
+  в `TextField` — регистрация на mount (`findNodeHandle`, как useSheetKeyboardTarget; на focus — гонка
+  с onStart), корень TextField стал `Animated.View collapsable={false}` с `onLayout`. Поле не из
+  реестра — fallback на `useReanimatedFocusedInput`, только если `parentScrollViewTarget` = тег скролла.
+  NumberTextField/DateField/Select/Autocomplete — через TextField; InputBar не трогали.
+- `KeyboardAwareContent controller` — Provider + дети + `KeyboardAwareSpacer` последним. После
+  распорки отступов быть не должно (paddingBottom — внутри детей), иначе maxOffset занижен.
+- Подключение: ScrollView — `ref={scrollRef}` + `<KeyboardAwareContent>`; шторка —
+  `BottomSheet.Content` = `bottom-sheet/BottomSheetScrollContent` (BottomSheetScrollView +
+  хук с `spacer: false` + `containerPosition: animatedPosition`; gorhom сам поднимает и ужимает шторку
+  (paddingBottom = клавиатура), видимый низ = min(низ скролла, верх клавиатуры) — без двойного учёта);
+  AnchorList — `refScrollView={scrollRef as unknown as IAnchorListProps<unknown>["refScrollView"]}`,
+  `ListFooterComponent={<KeyboardAwareSpacer/>}` (последним), Provider снаружи; `insetEnd` не
+  передавать (сам двигает смещение), `scrollHandlers` не нужны. Типы проверены, демо нет.
+- Применено: `ScreenScroll`, `BottomSheet.Content` (→ ModalSheet), `DemoScreen` плейграунда.
+  `pages/stack/{profile,security}` ещё на KeyboardAwareScrollView.
+- Демо: `ComponentsKeyboardScroll` (ScreenScroll, 12 полей, onBlur-валидация, multiline внизу) и
+  `ComponentsKeyboardSheet` (ModalSheet с той же формой), `demos/keyboard/`.
+- Не покрыто тестами (RN/Reanimated рантайм): сам хук, реестр, замеры `measure`, события клавиатуры.
+  На устройстве не проверено. Риски: согласованность `measure` (shadow-tree offset) с offset из
+  событий в момент захвата; Android < 11 без onMove — только доводка в onEnd (animated scrollTo);
+  layout, изменившийся во время анимации клавиатуры, учитывается только следующим notifyLayout.

@@ -17,6 +17,8 @@ import {
   IconsDemo,
   InputBarDemo,
   InputsDemo,
+  KeyboardScrollDemo,
+  KeyboardSheetDemo,
   LayoutDemo,
   ListsDemo,
   MediaDemo,
@@ -120,6 +122,16 @@ export const RootStack = createStackNavigator({
           screen: InputsDemo,
           options: { title: "Inputs" },
           linking: "components/inputs",
+        },
+        ComponentsKeyboardScroll: {
+          screen: KeyboardScrollDemo,
+          options: { title: "Keyboard · Scroll" },
+          linking: "components/keyboard-scroll",
+        },
+        ComponentsKeyboardSheet: {
+          screen: KeyboardSheetDemo,
+          options: { title: "Keyboard · Sheet" },
+          linking: "components/keyboard-sheet",
         },
         ComponentsControls: {
           screen: ControlsDemo,
