@@ -17,6 +17,7 @@ import {
   useChartGesture,
   useChartSeries,
 } from "../../core";
+import { sameRange } from "./same-range";
 import type { RangeLayerProps } from "./types";
 
 interface RangeStats {
@@ -60,9 +61,6 @@ const computeStats = (
     avg: Math.round(sum / slice.length),
   };
 };
-
-const sameRange = (a: number[] | null, b: number[] | null | undefined) =>
-  a === b || (!!a && !!b && a[0] === b[0] && a[1] === b[1]);
 
 export const RangeLayer: ChartLayerComponent<RangeLayerProps> = ({
   visible = true,
