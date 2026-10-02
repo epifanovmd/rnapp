@@ -13,6 +13,7 @@ export * from "./IconsDemo";
 export * from "./input-bar";
 export * from "./InputsDemo";
 export * from "./keyboard";
+export * from "./keyboard-anchor-list";
 export * from "./LayoutDemo";
 export * from "./lists";
 export * from "./MediaDemo";

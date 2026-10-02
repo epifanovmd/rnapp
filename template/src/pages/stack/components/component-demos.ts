@@ -6,6 +6,7 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsInputs", title: "Inputs" },
   { route: "ComponentsKeyboardScroll", title: "Keyboard · Scroll" },
   { route: "ComponentsKeyboardSheet", title: "Keyboard · Sheet" },
+  { route: "ComponentsKeyboardAnchorList", title: "Keyboard · AnchorList" },
   { route: "ComponentsControls", title: "Controls" },
   { route: "ComponentsForms", title: "Forms" },
   { route: "ComponentsLayout", title: "Layout" },
