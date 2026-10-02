@@ -387,12 +387,7 @@ export const Charts: FC = observer(() => {
                 secondLineColor={colors.orange500}
               />
               <RangeLayer />
-              <TooltipLayer
-                placement={"follow"}
-                anchorToPoint
-                side={"bottom"}
-                formatRow={formatTooltipRow}
-              />
+              <TooltipLayer formatRow={formatTooltipRow} />
             </Chart>
             <View style={styles.touchStatus}>
               <Text textStyle={"Body_S2"} color={"textSecondary"}>
