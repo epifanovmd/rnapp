@@ -1,6 +1,6 @@
-import { NavigationRouteContext } from "@react-navigation/native";
-import { useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useRoute } from "../hooks/use-route";
 import { screenReadiness } from "./app-screen-readiness";
 import { IScreenReadyOptions } from "./screen-readiness";
 
@@ -21,18 +21,15 @@ export const useScreenReady = ({
   delay = 0,
   timeout,
 }: IUseScreenReadyOptions = {}) => {
-  const routeKey = useContext(NavigationRouteContext)?.key;
+  const { key: routeKey } = useRoute();
 
   const [ready, setReady] = useState(
     () =>
-      !routeKey ||
-      (delay <= 0 &&
-        screenReadiness.isReady(routeKey, { waitForFocus, waitForTransition })),
+      delay <= 0 &&
+      screenReadiness.isReady(routeKey, { waitForFocus, waitForTransition }),
   );
 
   useEffect(() => {
-    if (!routeKey) return;
-
     if (!ready) {
       return screenReadiness.onReady(routeKey, () => setReady(true), {
         waitForFocus,
