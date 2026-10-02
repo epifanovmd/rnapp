@@ -23,7 +23,7 @@ export interface AreaSeriesPathProps {
   geometry: DerivedValue<Record<string, PixelPoint[]>>;
   curve: CurveType;
   /** Y-координата базовой линии (px). */
-  baselineY: number;
+  baselineY: DerivedValue<number>;
   color: string;
   /** Красить по тренду вместо `color`. */
   colorByTrend: boolean;
@@ -55,7 +55,11 @@ export const AreaSeriesPath: FC<AreaSeriesPathProps> = ({
 }) => {
   const path = useDerivedValue(
     () =>
-      buildAreaPathFromPoints(geometry.value[seriesId] ?? [], curve, baselineY),
+      buildAreaPathFromPoints(
+        geometry.value[seriesId] ?? [],
+        curve,
+        baselineY.value,
+      ),
     [geometry, seriesId, curve, baselineY],
   );
 

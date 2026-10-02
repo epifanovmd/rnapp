@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   GestureStateManager,
   GestureTouchEvent,
@@ -18,6 +18,11 @@ export interface ChartInteractionOptions {
   failOffsetY?: number | [number, number];
   /** Отслеживать второй палец (`touchX2`/`isSecondActive`). По умолчанию `false`. */
   twoFingerEnabled?: boolean;
+  /**
+   * Задержка появления перекрестия, мс: 0 — сразу от касания; больше 0 —
+   * после удержания (палец, сдвинутый раньше, отдаёт жест прокрутке окна).
+   */
+  activateAfterLongPress?: number;
 }
 
 export type ChartGesture = ReturnType<typeof usePanGesture>;
@@ -45,7 +50,9 @@ export const useChartInteraction = (
     activeOffsetX,
     failOffsetY,
     twoFingerEnabled = false,
+    activateAfterLongPress = 0,
   } = options;
+  const longPress = activateAfterLongPress > 0;
 
   const touchX = useSharedValue(0);
   const touchY = useSharedValue(0);
@@ -56,6 +63,12 @@ export const useChartInteraction = (
 
   const primaryTouchId = useSharedValue(NO_TOUCH);
   const secondaryTouchId = useSharedValue(NO_TOUCH);
+  /** Перекрестие разрешено: сразу или после удержания (onActivate). */
+  const armed = useSharedValue(!longPress);
+
+  useEffect(() => {
+    armed.value = !longPress;
+  }, [armed, longPress]);
 
   const { padding, width, height } = dimensions;
 
@@ -78,7 +91,15 @@ export const useChartInteraction = (
     secondaryTouchId.value = NO_TOUCH;
     isActive.value = false;
     isSecondActive.value = false;
-  }, [primaryTouchId, secondaryTouchId, isActive, isSecondActive]);
+    armed.value = !longPress;
+  }, [
+    primaryTouchId,
+    secondaryTouchId,
+    isActive,
+    isSecondActive,
+    armed,
+    longPress,
+  ]);
 
   /** Сверяет слоты с фактическим списком пальцев: освобождает ушедшие, назначает новые. */
   const syncSlots = useCallback(
@@ -149,7 +170,7 @@ export const useChartInteraction = (
           Math.max(primaryTouch.y, bounds.minY),
           bounds.maxY,
         );
-        isActive.value = true;
+        isActive.value = armed.value;
       } else {
         isActive.value = false;
       }
@@ -163,12 +184,13 @@ export const useChartInteraction = (
           Math.max(secondaryTouch.y, bounds.minY),
           bounds.maxY,
         );
-        isSecondActive.value = true;
+        isSecondActive.value = armed.value;
       } else {
         isSecondActive.value = false;
       }
     },
     [
+      armed,
       syncSlots,
       primaryTouchId,
       secondaryTouchId,
@@ -190,11 +212,12 @@ export const useChartInteraction = (
 
       // Второй палец сдвигает центроид pan-жеста: до активации это валит жест по
       // failOffsetY и отдаёт касание родительскому скроллу. Активируем явно.
-      if (isSecondActive.value && event.state !== State.ACTIVE) {
+      // С удержанием второй палец до активации — это зум, а не диапазон.
+      if (!longPress && isSecondActive.value && event.state !== State.ACTIVE) {
         GestureStateManager.activate(event.handlerTag);
       }
     },
-    [applyPositions, isSecondActive],
+    [applyPositions, isSecondActive, longPress],
   );
 
   const onTouchesMove = useCallback(
@@ -221,16 +244,36 @@ export const useChartInteraction = (
     [applyPositions],
   );
 
+  const onActivate = useCallback(() => {
+    "worklet";
+
+    if (!longPress) return;
+
+    armed.value = true;
+    isActive.value = primaryTouchId.value !== NO_TOUCH;
+    isSecondActive.value = secondaryTouchId.value !== NO_TOUCH;
+  }, [
+    longPress,
+    armed,
+    isActive,
+    isSecondActive,
+    primaryTouchId,
+    secondaryTouchId,
+  ]);
+
+  // С удержанием активация — по времени, без порогов смещения.
   const useDirectionalOffsets =
-    activeOffsetX !== undefined || failOffsetY !== undefined;
+    !longPress && (activeOffsetX !== undefined || failOffsetY !== undefined);
 
   const gesture = usePanGesture({
     enabled,
     minPointers: 1,
     maxPointers: twoFingerEnabled ? 2 : 1,
-    minDistance: useDirectionalOffsets ? undefined : minDistance,
+    activateAfterLongPress: longPress ? activateAfterLongPress : undefined,
+    minDistance: useDirectionalOffsets || longPress ? undefined : minDistance,
     activeOffsetX: useDirectionalOffsets ? activeOffsetX : undefined,
     failOffsetY: useDirectionalOffsets ? failOffsetY : undefined,
+    onActivate,
     onTouchesDown,
     onTouchesMove,
     onTouchesUp,

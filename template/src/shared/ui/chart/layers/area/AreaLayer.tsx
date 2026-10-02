@@ -1,4 +1,6 @@
+import { Group } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
+import { useDerivedValue } from "react-native-reanimated";
 
 import type { ChartLayerComponent } from "../../core";
 import {
@@ -11,7 +13,7 @@ import {
   useChartGeometry,
   useChartSeries,
 } from "../../core";
-import { CurveType } from "../../core";
+import { clipToPlotX, CurveType } from "../../core";
 import { computeBaselineY } from "../../scales";
 import { AreaSeriesPath } from "./AreaSeriesPath";
 
@@ -49,10 +51,10 @@ export const AreaLayer: ChartLayerComponent<AreaLayerProps> = ({
   seriesId,
 }) => {
   const { series, seriesShared, geometry } = useChartSeries();
-  const { yScale, dimensions } = useChartGeometry();
+  const { yScale, plot } = useChartGeometry();
   const resolvedSeries = selectSeries(series, seriesId);
-  const baselineY = useMemo(
-    () => computeBaselineY(yScale, baseline),
+  const baselineY = useDerivedValue(
+    () => computeBaselineY(yScale.value, baseline),
     [yScale, baseline],
   );
 
@@ -71,7 +73,7 @@ export const AreaLayer: ChartLayerComponent<AreaLayerProps> = ({
   }
 
   return (
-    <>
+    <Group clip={clipToPlotX(plot)}>
       {resolvedSeries.map(item => (
         <AreaSeriesPath
           key={item.id}
@@ -86,10 +88,10 @@ export const AreaLayer: ChartLayerComponent<AreaLayerProps> = ({
           palette={palette}
           opacity={opacity}
           gradient={gradient}
-          gradientTop={dimensions.padding.top}
-          gradientBottom={dimensions.height - dimensions.padding.bottom}
+          gradientTop={plot.top}
+          gradientBottom={plot.bottom}
         />
       ))}
-    </>
+    </Group>
   );
 };

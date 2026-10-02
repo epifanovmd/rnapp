@@ -1,4 +1,8 @@
-import { type ChartDatum, type IChartSeries, seriesColor } from "@shared/ui/chart";
+import {
+  type ChartDatum,
+  type IChartSeries,
+  seriesColor,
+} from "@shared/ui/chart";
 
 const range = (count: number) => Array.from({ length: count }, (_, i) => i);
 
@@ -82,7 +86,8 @@ export const REVENUE_VS_EXPENSES: IChartSeries[] = [
   },
 ];
 
-const LIVE_PRICE_WINDOW = 30;
+/** История live-тикера: 10 минут по секунде. */
+const LIVE_PRICE_WINDOW = 600;
 
 export const createInitialLivePriceData = (): ChartDatum[] => {
   const points: ChartDatum[] = [];
@@ -128,12 +133,50 @@ export const TASK_SERIES: IChartSeries[] = [
   id,
   label,
   color: seriesColor(index),
-  data: range(30).map(
-    (day): ChartDatum => ({
-      x: START_DATE + day * DAY_MS,
-      y: Math.round(
-        base + Math.sin(day / 4 + index) * amp + (Math.random() - 0.5) * amp,
-      ),
-    }),
-  ),
+  data: range(30).map((day): ChartDatum => ({
+    x: START_DATE + day * DAY_MS,
+    y: Math.round(
+      base + Math.sin(day / 4 + index) * amp + (Math.random() - 0.5) * amp,
+    ),
+  })),
 }));
+
+/** Детерминированный генератор (Park–Miller): одинаковые данные на каждом запуске. */
+const createRandom = (seed: number) => {
+  let state = Math.max(1, Math.floor(seed) % 2147483647);
+
+  return () => {
+    state = (state * 16807) % 2147483647;
+
+    return (state - 1) / 2147483646;
+  };
+};
+
+/**
+ * Случайное блуждание из `count` точек с шагом `stepMs` до `end` — большие
+ * данные для проверки уровня детализации и зума.
+ */
+export const createRandomWalk = (
+  count: number,
+  stepMs: number,
+  end: number,
+  seed = 1,
+): ChartDatum[] => {
+  const random = createRandom(seed);
+  const start = end - (count - 1) * stepMs;
+  const data: ChartDatum[] = new Array(count);
+  let value = 100;
+
+  for (let index = 0; index < count; index++) {
+    value = Math.max(
+      1,
+      value + (random() - 0.5) * 2 + Math.sin(index / 500) * 0.05,
+    );
+    data[index] = {
+      x: start + index * stepMs,
+      y: Math.round(value * 100) / 100,
+    };
+  }
+
+  return data;
+};

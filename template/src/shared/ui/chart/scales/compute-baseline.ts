@@ -1,12 +1,18 @@
-import type { IScale } from "../core";
+import { LinearScale, scaleToRange } from "../core/scale/linear-scale";
 
-/** Вычисляет Y-координату базовой линии для area/bar-графиков. */
-export const computeBaselineY = (yScale: IScale, baseline?: number): number => {
+/** Y-координата базовой линии для area/bar-графиков (worklet). */
+export const computeBaselineY = (
+  yScale: LinearScale,
+  baseline?: number,
+): number => {
+  "worklet";
+
   if (baseline !== undefined) {
-    return yScale.toRange(baseline);
+    return scaleToRange(yScale, baseline);
   }
 
-  const [domainMin, domainMax] = yScale.domain;
+  const low = Math.min(yScale.d0, yScale.d1);
+  const high = Math.max(yScale.d0, yScale.d1);
 
-  return yScale.toRange(Math.max(domainMin, Math.min(0, domainMax)));
+  return scaleToRange(yScale, Math.max(low, Math.min(0, high)));
 };

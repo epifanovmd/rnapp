@@ -2,27 +2,42 @@ import {
   Group,
   Line,
   matchFont,
+  Path,
   Rect,
-  RoundedRect,
-  Text,
+  Skia,
   vec,
 } from "@shopify/react-native-skia";
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
+import { useDerivedValue } from "react-native-reanimated";
 
-import { defaultLabelFormatter, useChartGeometry } from "../../core";
+import {
+  defaultLabelFormatter,
+  formatTimeTick,
+  isInScaleRange,
+  scaleToRange,
+  useAxisTicks,
+  useChartGeometry,
+} from "../../core";
+import { AxisLabelSlot } from "./AxisLabelSlot";
 import type { AxisLayerBaseProps } from "./types";
+import { useAxisLabels } from "./useAxisLabels";
 
 export interface AxisLayerYProps extends AxisLayerBaseProps {
   position?: "left" | "right";
 }
 
+/** Доля высоты домена, на которую деления строятся за каждым краем. */
+const LABEL_EXTEND = 0.5;
+
+/** Ось Y: деления следуют за доменом (в т.ч. его анимацией) на UI-потоке. */
 export const AxisLayerY = React.memo(
   ({
     visible = true,
     position = "left",
     labelSide = "out",
     tickCount = 5,
-    formatLabel = defaultLabelFormatter,
+    ticks: mode = "nice",
+    formatLabel,
     color = "#94A3B8",
     showAxisLine = true,
     lineWidth = 1,
@@ -34,18 +49,21 @@ export const AxisLayerY = React.memo(
     labelBackground,
     background,
   }: AxisLayerYProps) => {
-    const { yScale, dimensions } = useChartGeometry();
+    const { yScale, plot } = useChartGeometry();
     const font = useMemo(
       () => matchFont({ fontFamily, fontSize }),
       [fontFamily, fontSize],
     );
+    const format =
+      formatLabel ?? (mode === "time" ? formatTimeTick : defaultLabelFormatter);
 
-    if (!visible || !font) return null;
+    const ticks = useAxisTicks(yScale, mode, tickCount, LABEL_EXTEND);
+    const labels = useAxisLabels(ticks, format, font);
+    const slotCount = mode === "divide" ? tickCount + 1 : tickCount * 2 + 4;
 
     const isRight = position === "right";
-    const pad = isRight ? dimensions.padding.right : dimensions.padding.left;
-    const axisX = isRight ? dimensions.width - pad : pad;
     const isOut = labelSide === "out";
+    const axisX = isRight ? plot.right : plot.left;
 
     const tickEndX = isRight
       ? isOut
@@ -55,94 +73,98 @@ export const AxisLayerY = React.memo(
         ? axisX - tickLength
         : axisX + tickLength;
 
-    const ticks = yScale.ticks(tickCount);
-    const tickLabels = ticks.map(tick => formatLabel(tick));
-    const labelWidths = tickLabels.map(text => font.measureText(text).width);
-    const maxLabelWidth = labelWidths.reduce((a, b) => Math.max(a, b), 0);
-    const bgW = maxLabelWidth + 16;
+    const place = useCallback(
+      (pixel: number, width: number) => {
+        "worklet";
 
-    const bgX = isRight
-      ? isOut
-        ? axisX
-        : axisX - bgW
-      : isOut
-        ? axisX - bgW
-        : axisX;
+        const x = isRight
+          ? isOut
+            ? axisX + 8
+            : axisX - width - 6
+          : isOut
+            ? axisX - width - 8
+            : axisX + 6;
+
+        return { x, y: pixel + fontSize * 0.3 };
+      },
+      [isRight, isOut, axisX, fontSize],
+    );
+
+    const tickPath = useDerivedValue(() => {
+      const builder = Skia.PathBuilder.Make();
+      const scale = yScale.value;
+
+      for (const value of ticks.value.values) {
+        const y = scaleToRange(scale, value);
+
+        if (isInScaleRange(scale, y, 0.5)) {
+          builder.moveTo(axisX, y);
+          builder.lineTo(tickEndX, y);
+        }
+      }
+
+      return builder.detach();
+    }, [yScale, ticks, axisX, tickEndX]);
+
+    // Фон — по самой широкой подписи.
+    const backgroundWidth = useDerivedValue(
+      () => labels.value.widths.reduce((max, w) => Math.max(max, w), 0) + 16,
+      [labels],
+    );
+    const backgroundX = useDerivedValue(() => {
+      const width = backgroundWidth.value;
+
+      return isRight
+        ? isOut
+          ? axisX
+          : axisX - width
+        : isOut
+          ? axisX - width
+          : axisX;
+    }, [backgroundWidth, isRight, isOut, axisX]);
+
+    if (!visible || !font) return null;
 
     return (
       <Group>
         {background && (
           <Rect
-            x={bgX}
-            y={dimensions.padding.top}
-            width={bgW}
-            height={
-              dimensions.height -
-              dimensions.padding.top -
-              dimensions.padding.bottom
-            }
+            x={backgroundX}
+            y={plot.top}
+            width={backgroundWidth}
+            height={plot.height}
             color={background}
           />
         )}
         {showAxisLine && (
           <Line
-            p1={vec(axisX, dimensions.padding.top)}
-            p2={vec(axisX, dimensions.height - dimensions.padding.bottom)}
+            p1={vec(axisX, plot.top)}
+            p2={vec(axisX, plot.bottom)}
             color={color}
             strokeWidth={lineWidth}
           />
         )}
-        {ticks.map((tick, index) => {
-          const label = tickLabels[index];
-          const textWidth = labelWidths[index];
-          const y = yScale.toRange(tick);
-
-          const x = isRight
-            ? isOut
-              ? axisX + 8
-              : axisX - textWidth - 6
-            : isOut
-              ? axisX - textWidth - 8
-              : axisX + 6;
-
-          return (
-            <Group key={index}>
-              {showTicks && (
-                <Line
-                  p1={vec(axisX, y)}
-                  p2={vec(tickEndX, y)}
-                  color={color}
-                  strokeWidth={lineWidth}
-                />
-              )}
-              {labelBackground && (
-                <RoundedRect
-                  x={
-                    isRight
-                      ? isOut
-                        ? axisX + 4
-                        : axisX - textWidth - 10
-                      : isOut
-                        ? axisX - textWidth - 12
-                        : axisX + 2
-                  }
-                  y={y - fontSize / 2 - 3}
-                  width={textWidth + 8}
-                  height={fontSize + 6}
-                  r={3}
-                  color={labelBackground}
-                />
-              )}
-              <Text
-                x={x}
-                y={y + fontSize * 0.3}
-                text={label}
-                font={font}
-                color={labelColor}
-              />
-            </Group>
-          );
-        })}
+        {showTicks && (
+          <Path
+            path={tickPath}
+            style={"stroke"}
+            color={color}
+            strokeWidth={lineWidth}
+          />
+        )}
+        {Array.from({ length: slotCount }, (_, index) => (
+          <AxisLabelSlot
+            key={index}
+            index={index}
+            labels={labels}
+            scale={yScale}
+            place={place}
+            font={font}
+            fontSize={fontSize}
+            color={labelColor}
+            background={labelBackground}
+          />
+        ))}
       </Group>
     );
   },

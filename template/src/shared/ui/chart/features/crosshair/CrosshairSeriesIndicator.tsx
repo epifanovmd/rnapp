@@ -3,6 +3,7 @@ import React, { FC, useState } from "react";
 import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { scaleToRange } from "../../core";
 import { CrosshairYLabel } from "./CrosshairYLabel";
 import type { CrosshairSeriesIndicatorProps } from "./types";
 
@@ -10,8 +11,10 @@ export const CrosshairSeriesIndicator = React.memo(
   ({
     series,
     seriesIndex,
+    seriesShared,
     activeIndices,
-    geometry,
+    xScale,
+    yScale,
     color,
     radius,
     strokeWidth,
@@ -34,11 +37,16 @@ export const CrosshairSeriesIndicator = React.memo(
   }: CrosshairSeriesIndicatorProps) => {
     const point = useDerivedValue(() => {
       const index = activeIndices.value[seriesIndex] ?? -1;
-      const points = geometry.value[series.id];
-      const target = index >= 0 ? points?.[index] : undefined;
+      const target =
+        index >= 0 ? seriesShared.value[seriesIndex]?.data[index] : undefined;
 
-      return target ? vec(target.x, target.y) : vec(0, 0);
-    }, [activeIndices, geometry, seriesIndex, series.id]);
+      return target
+        ? vec(
+            scaleToRange(xScale.value, target.x),
+            scaleToRange(yScale.value, target.y),
+          )
+        : vec(0, 0);
+    }, [activeIndices, seriesShared, xScale, yScale, seriesIndex]);
 
     const horizontalP1 = useDerivedValue(
       () => vec(left, point.value.y),

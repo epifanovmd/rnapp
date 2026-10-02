@@ -1,6 +1,7 @@
 import { Canvas } from "@shopify/react-native-skia";
 import React, { FC, PropsWithChildren } from "react";
 import { StyleSheet } from "react-native";
+import type { ComposedGesture } from "react-native-gesture-handler";
 import { GestureDetector } from "react-native-gesture-handler";
 
 import {
@@ -13,11 +14,10 @@ import {
   useChartGesture,
   useChartSeries,
 } from "./context";
-import type { ChartGesture } from "./interaction";
 
 export interface ChartCanvasProps extends PropsWithChildren {
-  /** Pan-жест из useChartInteraction. */
-  gesture: ChartGesture;
+  /** Жесты графика: перекрестие и навигация по окну. */
+  gesture: ComposedGesture;
 }
 /** Skia Canvas с gesture-детектором и пробросом контекстов внутрь. */
 export const ChartCanvas: FC<ChartCanvasProps> = ({ gesture, children }) => {

@@ -1,4 +1,4 @@
-import { Circle, DashPathEffect, Path, vec } from "@shopify/react-native-skia";
+import { DashPathEffect, Path } from "@shopify/react-native-skia";
 import React, { FC } from "react";
 import {
   DerivedValue,
@@ -18,7 +18,7 @@ import {
 export interface LineSeriesPathProps {
   seriesId: string;
   seriesShared: SharedValue<IChartSeries[]>;
-  /** Точки серии в пиксельных координатах. */
+  /** Точки видимого среза серии в пиксельных координатах. */
   geometry: DerivedValue<Record<string, PixelPoint[]>>;
   curve: CurveType;
   color: string;
@@ -32,12 +32,6 @@ export interface LineSeriesPathProps {
   strokeJoin: "miter" | "round" | "bevel";
   /** Паттерн штрихов (px). */
   dashIntervals?: number[];
-  /** Рисовать точку на конце линии. */
-  showEndDot: boolean;
-  endDotRadius: number;
-  endDotColor?: string;
-  endDotStrokeColor?: string;
-  endDotStrokeWidth: number;
 }
 
 export const LineSeriesPath: FC<LineSeriesPathProps> = ({
@@ -53,11 +47,6 @@ export const LineSeriesPath: FC<LineSeriesPathProps> = ({
   strokeCap,
   strokeJoin,
   dashIntervals,
-  showEndDot,
-  endDotRadius,
-  endDotColor,
-  endDotStrokeColor,
-  endDotStrokeWidth,
 }) => {
   const path = useDerivedValue(
     () => buildLinePathFromPoints(geometry.value[seriesId] ?? [], curve),
@@ -73,44 +62,16 @@ export const LineSeriesPath: FC<LineSeriesPathProps> = ({
     palette,
   });
 
-  const dotColor = useDerivedValue(
-    () => endDotColor ?? lineColor.value,
-    [endDotColor, lineColor],
-  );
-
-  const endPoint = useDerivedValue(() => {
-    const points = geometry.value[seriesId];
-    const last = points?.[points.length - 1];
-
-    return last ? vec(last.x, last.y) : vec(0, 0);
-  }, [geometry, seriesId]);
-
   return (
-    <>
-      <Path
-        path={path}
-        style="stroke"
-        strokeWidth={strokeWidth}
-        strokeJoin={strokeJoin}
-        strokeCap={strokeCap}
-        color={lineColor}
-      >
-        {dashIntervals && <DashPathEffect intervals={dashIntervals} />}
-      </Path>
-      {showEndDot && (
-        <>
-          <Circle c={endPoint} r={endDotRadius} color={dotColor} />
-          {endDotStrokeColor && (
-            <Circle
-              c={endPoint}
-              r={endDotRadius}
-              style="stroke"
-              strokeWidth={endDotStrokeWidth}
-              color={endDotStrokeColor}
-            />
-          )}
-        </>
-      )}
-    </>
+    <Path
+      path={path}
+      style="stroke"
+      strokeWidth={strokeWidth}
+      strokeJoin={strokeJoin}
+      strokeCap={strokeCap}
+      color={lineColor}
+    >
+      {dashIntervals && <DashPathEffect intervals={dashIntervals} />}
+    </Path>
   );
 };

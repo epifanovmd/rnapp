@@ -3,6 +3,7 @@ import React, { FC, useState } from "react";
 import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
+import { scaleToRange } from "../../core";
 import { CrosshairSeriesIndicator } from "./CrosshairSeriesIndicator";
 import { CrosshairXLabel } from "./CrosshairXLabel";
 import type { CrosshairLineProps } from "./types";
@@ -10,8 +11,10 @@ import type { CrosshairLineProps } from "./types";
 export const CrosshairLine = React.memo(
   ({
     series,
+    seriesShared,
     dimensions,
-    geometry,
+    xScale,
+    yScale,
     touchX,
     active,
     activeIndices,
@@ -37,15 +40,14 @@ export const CrosshairLine = React.memo(
     labelTextColor,
   }: CrosshairLineProps) => {
     const referenceData = series[0]?.data ?? [];
-    const firstSeriesId = series[0]?.id;
 
     const snappedX = useDerivedValue(() => {
       const index = activeIndices.value[0] ?? -1;
-      const points = firstSeriesId ? geometry.value[firstSeriesId] : undefined;
-      const target = index >= 0 ? points?.[index] : undefined;
+      const target =
+        index >= 0 ? seriesShared.value[0]?.data[index] : undefined;
 
-      return target ? target.x : touchX.value;
-    }, [activeIndices, geometry, touchX, firstSeriesId]);
+      return target ? scaleToRange(xScale.value, target.x) : touchX.value;
+    }, [activeIndices, seriesShared, xScale, touchX]);
 
     const verticalP1 = useDerivedValue(
       () => vec(snappedX.value, dimensions.padding.top),
@@ -99,8 +101,10 @@ export const CrosshairLine = React.memo(
             key={item.id}
             series={item}
             seriesIndex={index}
+            seriesShared={seriesShared}
             activeIndices={activeIndices}
-            geometry={geometry}
+            xScale={xScale}
+            yScale={yScale}
             color={item.color}
             radius={markerRadius}
             strokeWidth={strokeWidth}

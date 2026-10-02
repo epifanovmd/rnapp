@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from "react";
 
 import type { ChartGestureContextValue } from "./context";
+import type { ChartYDomainResolver } from "./scale/y-domain";
+import type { ChartViewport } from "./viewport/useChartViewport";
 
 export interface ChartDatum {
   /** Значение по оси X (доменные координаты, не пиксели). */
@@ -23,19 +25,6 @@ export interface IChartSeries {
   data: ChartDatum[];
 }
 
-export interface IScale {
-  /** Диапазон значений на входе (доменные координаты). */
-  readonly domain: [number, number];
-  /** Диапазон значений на выходе (пиксели). */
-  readonly range: [number, number];
-  /** Домен → пиксель. */
-  toRange(value: number): number;
-  /** Пиксель → домен. */
-  toDomain(value: number): number;
-  /** Значения делений для сетки/осей. */
-  ticks(count?: number): number[];
-}
-
 export interface ChartPadding {
   top: number;
   right: number;
@@ -51,6 +40,32 @@ export interface ChartDimensions {
   plotWidth: number;
   /** Высота рабочей области за вычетом отступов (px). */
   plotHeight: number;
+}
+
+/** Область построения (px) — канвас за вычетом отступов. */
+export interface ChartPlotRect {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+  width: number;
+  height: number;
+}
+
+/** Жесты навигации по окну (`Chart.zoom`). */
+export interface ChartZoomOptions {
+  /** Прокрутка окна одним пальцем. По умолчанию `true`. */
+  pan?: boolean;
+  /** Зум двумя пальцами вокруг точки между ними. По умолчанию `true`. */
+  pinch?: boolean;
+  /** Двойной тап — приблизить в точку; на минимальной ширине — сброс. По умолчанию `true`. */
+  doubleTap?: boolean;
+  /** Во сколько раз приближает двойной тап. По умолчанию 2. */
+  doubleTapFactor?: number;
+  /** Инерция прокрутки после отпускания. По умолчанию `true`. */
+  inertia?: boolean;
+  /** Через сколько мс удержания появляется перекрестие. По умолчанию 250. */
+  inspectDelay?: number;
 }
 
 /** Слой-компонент, рендерящийся внутри `<Chart>` (как `children`) или в `overlay`. */
@@ -80,10 +95,28 @@ export interface ChartProps {
   padding?: Partial<ChartPadding>;
   /** Фиксированный домен оси X `[min, max]`; без него вычисляется из данных `series`. */
   xDomain?: [number, number];
-  /** Фиксированный домен оси Y `[min, max]`; без него вычисляется из данных `series`. */
-  yDomain?: [number, number];
+  /**
+   * Домен оси Y: `[min, max]` — фиксированный; функция-worklet — из экстента
+   * видимых точек; без него — авто-домен по видимым точкам (`beginAtZero`,
+   * `yPaddingRatio`, `yNice`).
+   */
+  yDomain?: [number, number] | ChartYDomainResolver;
   /** Включать 0 в авто-домен Y. */
   beginAtZero?: boolean;
+  /** Округлять края авто-домена Y до «круглого» шага при таком числе делений; `false` — без округления. По умолчанию 5. */
+  yNice?: number | false;
+  /** Анимировать смену домена Y (окно, live-данные). По умолчанию `true`. */
+  animateYDomain?: boolean;
+  /**
+   * Окно просмотра по X (`useChartViewport`): программная смена, пресеты,
+   * навигатор, синхронизация графиков. Без него — внутреннее окно на все данные.
+   */
+  viewport?: ChartViewport;
+  /**
+   * Жесты навигации: прокрутка, зум двумя пальцами, двойной тап. Перекрестие
+   * и тултип при этом — по долгому нажатию. По умолчанию выключены.
+   */
+  zoom?: boolean | ChartZoomOptions;
   /** Доп. запас по краям авто-домена X, в долях от его размаха. */
   xPaddingRatio?: number;
   /** Доп. запас по краям авто-домена Y, в долях от его размаха. */
@@ -122,9 +155,12 @@ export interface ChartProviderProps {
   series: IChartSeries[];
   dimensions: ChartDimensions;
   interaction: ChartGestureContextValue;
+  viewport: ChartViewport;
   xDomain?: [number, number];
-  yDomain?: [number, number];
+  yDomain?: [number, number] | ChartYDomainResolver;
   beginAtZero?: boolean;
+  yNice?: number | false;
+  animateYDomain?: boolean;
   xPaddingRatio?: number;
   yPaddingRatio?: number;
   xReverse?: boolean;

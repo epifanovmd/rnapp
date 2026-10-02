@@ -1,6 +1,6 @@
 import type { DerivedValue, SharedValue } from "react-native-reanimated";
 
-import type { ChartDimensions, IChartSeries, PixelPoint } from "../../core";
+import type { ChartDimensions, IChartSeries, LinearScale } from "../../core";
 import type { LineDashType } from "../../core/utils/dash-pattern";
 import type { SkFont } from "../../core/utils/label-style";
 
@@ -48,9 +48,10 @@ export interface CrosshairLayerProps {
 
 export interface CrosshairLineProps {
   series: IChartSeries[];
+  seriesShared: SharedValue<IChartSeries[]>;
   dimensions: ChartDimensions;
-  /** { seriesId -> PixelPoint[] }. */
-  geometry: DerivedValue<Record<string, PixelPoint[]>>;
+  xScale: DerivedValue<LinearScale>;
+  yScale: DerivedValue<LinearScale>;
   touchX: SharedValue<number>;
   active: SharedValue<boolean>;
   activeIndices: DerivedValue<number[]>;
@@ -79,8 +80,10 @@ export interface CrosshairLineProps {
 export interface CrosshairSeriesIndicatorProps {
   series: IChartSeries;
   seriesIndex: number;
+  seriesShared: SharedValue<IChartSeries[]>;
   activeIndices: DerivedValue<number[]>;
-  geometry: DerivedValue<Record<string, PixelPoint[]>>;
+  xScale: DerivedValue<LinearScale>;
+  yScale: DerivedValue<LinearScale>;
   color: string;
   radius: number;
   strokeWidth: number;

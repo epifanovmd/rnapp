@@ -1,41 +1,13 @@
-import type {
-  ChartDatum,
-  ChartPadding,
-  IChartSeries,
-  IScale,
-} from "../../core";
+import type { ChartPadding, IChartSeries, LinearScale } from "../../core";
+import { nearestIndexX, scaleToRange } from "../../core";
 import type { MarkerAnchor } from "./types";
-
-/** Бинарный поиск ближайшего по domain-X индекса в данных. */
-const findNearestIndexByDomainX = (data: ChartDatum[], x: number): number => {
-  "worklet";
-
-  let low = 0;
-  let high = data.length - 1;
-
-  while (low < high) {
-    const mid = Math.floor((low + high) / 2);
-
-    if (data[mid].x < x) {
-      low = mid + 1;
-    } else {
-      high = mid;
-    }
-  }
-
-  if (low > 0 && Math.abs(data[low - 1].x - x) <= Math.abs(data[low].x - x)) {
-    return low - 1;
-  }
-
-  return low;
-};
 
 /** Разрешает MarkerAnchor в пиксельные координаты или null. */
 export const resolveMarkerPosition = (
   anchor: MarkerAnchor,
   series: IChartSeries[],
-  xScale: IScale,
-  yScale: IScale,
+  xScale: LinearScale,
+  yScale: LinearScale,
   padding: ChartPadding,
 ): { x: number; y: number } | null => {
   "worklet";
@@ -45,7 +17,10 @@ export const resolveMarkerPosition = (
   }
 
   if (anchor.kind === "domain") {
-    return { x: xScale.toRange(anchor.x), y: yScale.toRange(anchor.y) };
+    return {
+      x: scaleToRange(xScale, anchor.x),
+      y: scaleToRange(yScale, anchor.y),
+    };
   }
 
   const target = series.find(item => item.id === anchor.seriesId);
@@ -54,8 +29,8 @@ export const resolveMarkerPosition = (
     return null;
   }
 
-  const index = findNearestIndexByDomainX(target.data, anchor.x);
+  const index = nearestIndexX(target.data, anchor.x);
   const datum = target.data[index];
 
-  return { x: xScale.toRange(datum.x), y: yScale.toRange(datum.y) };
+  return { x: scaleToRange(xScale, datum.x), y: scaleToRange(yScale, datum.y) };
 };

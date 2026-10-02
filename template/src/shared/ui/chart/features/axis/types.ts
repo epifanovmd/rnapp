@@ -1,11 +1,19 @@
+import type { ChartTickMode, TimeTickUnit } from "../../core";
+
 /** Общие пропсы для `AxisLayerX` и `AxisLayerY`. */
 export interface AxisLayerBaseProps {
   /** Скрывает весь слой без размонтирования. */
   visible?: boolean;
-  /** Примерное число подписей/делений (через `scale.ticks()`). */
+  /** Сколько делений помещается в видимое окно (не больше). */
   tickCount?: number;
-  /** Форматирует значение деления в текст подписи (даты, проценты и т.п.). */
-  formatLabel?: (value: number) => string;
+  /** Как строить деления. По умолчанию `"nice"`; для времени (мс) — `"time"`. */
+  ticks?: ChartTickMode;
+  /**
+   * Текст подписи деления; для `ticks="time"` вторым аргументом приходит
+   * единица шага. Обычная JS-функция — вызывается при смене набора делений.
+   * Для `"time"` по умолчанию — `formatTimeTick`.
+   */
+  formatLabel?: (value: number, unit?: TimeTickUnit) => string;
   color?: string;
   showAxisLine?: boolean;
   /** px */

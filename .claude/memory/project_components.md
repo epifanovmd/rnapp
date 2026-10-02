@@ -226,6 +226,50 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   (surface/radius 16/ph 16, Divider между детьми, фрагменты раскрываются `flatten-children`).
   `SwitchFormField` = SwitchRow с плашкой onSurface.
 - `Section` — compound: слот `Section.Action` (`SectionAction` title/onPress) справа от заголовка.
+
+## График: окно просмотра и зум (`shared/ui/chart`)
+
+- Окно по X — `useChartViewport({initialSpan, minSpan, animationDuration, onChange})` →
+  `ChartViewport` (SV `start/end`, `boundsMin/Max`, `minSpan`, `targetStart/End` — цель анимации,
+  `interacting`; команды `setRange/showLast/showAll/zoomBy/reset` через `scheduleOnUI`;
+  `worklets` — `limits/range/setNow/animateTo/applyBounds/settle/notify/stop`). Передаётся в
+  `<Chart viewport>`, `ChartRangePresets`, `ChartNavigator`; один контроллер на несколько
+  графиков — синхронный зум. Без `viewport` у `Chart` внутреннее окно на все данные.
+- Математика окна — `core/viewport/viewport-math.ts` (чистые worklet-ы, тесты): clamp, zoom вокруг
+  якоря, pan, rubber, `reconcileRange` (первые данные → `initialSpan` у конца; окно на всех данных
+  остаётся на всех; у конца — едет за live-данными; в прошлом — стоит), `resolveViewPin/pinnedRange`
+  (жест «замораживает» слежение, после — догоняет), `matchSpanPreset`, `autoMinSpan` (5 интервалов).
+- `ChartProvider` всё считает на UI: `view` → `xScale` (`LinearScale` — данные `{d0,d1,r0,r1}`,
+  хелперы `scaleToRange/scaleToDomain`; старый `IScale`/`useScale` удалены); LOD-пирамида
+  (`core/lod`: min-max ×2 на уровень, уровень 0 — исходные данные) → `useVisibleSlices` (не больше
+  `plot.width` точек на серию + точка за каждым краем, экстент Y) → `yDomainTarget` (фикс. массив |
+  worklet-резолвер | `resolveAutoYDomain`: запас, ноль, «круглые» края `yNice`=5) → `yMin/yMax`
+  анимируются (200 мс) → `yScale` → `geometry` (пиксели только видимого среза!).
+- Gotcha: индексы `geometry[id]` ≠ индексы данных — перекрестие/тултип/маркеры берут datum из
+  `seriesShared` и мапят через шкалы. Слои серий клипуются по X (`clipToPlotX`), точка конца —
+  отдельно (`LineEndDot`), скрыта вне окна. `CurrentValueLineLayer` анимирует значение в домене,
+  не пиксель (иначе отстаёт при прокрутке).
+- Gotcha Reanimated: derived/reaction видят только SV из своего замыкания — читать `.value` прямо в
+  worklet-е, не через захваченную worklet-функцию (`range()`), иначе не пересчитается.
+- Оси/сетка на UI: `useAxisTicks(scale, mode, count, extend)` (`computeTicks`: `nice` | `divide` |
+  `time` — календарные шаги `timeTicks`, единица шага в форматтер); подписи — пул слотов
+  `AxisLabelSlot` (2·count+4), тексты форматирует JS (`useAxisLabels`) только при смене
+  `TickSet.key`; деления строятся с запасом 0.5 окна за краями — текст готов до въезда.
+  Сетка — один Path на ось; `GridLayer xTicks/yTicks` должны совпадать с `AxisLayer ticks`.
+  `formatTimeTick(value, unit)` — ru-подписи по умолчанию для `ticks="time"`.
+- Жесты: `zoom` (`ChartZoomOptions`: pan, pinch, doubleTap, doubleTapFactor, inertia,
+  inspectDelay=250) → `useCompetingGestures(inspect, simultaneous(pan, pinch), doubleTap)`;
+  перекрестие тогда по удержанию (`activateAfterLongPress`, флаг `armed`), удержание двумя пальцами —
+  диапазон. Pan — rubber за краями + `withDecay` на start/end; pinch — якорь в домене под
+  фокусом (ре-анкеровка при 2→1→2), после pinch pan без инерции и с перепривязкой.
+  Без `zoom` жесты как раньше, окно не замораживается.
+- `ChartRangePresets` (`chart/controls`, на `Chip`): активный — по ширине окна (во время анимации —
+  по цели); пресет не уже данных = «Всё». `ChartNavigator` (`chart/navigator`): мини-график всех
+  данных, рамка (перенос, края, тап — центр в точку), логика — `navigator-drag.ts` (тесты).
+- Демо (`demos/charts`): RevenueDemo (пресеты, зум, навигатор, 2920 точек без прореживания),
+  LivePriceDemo (600 с истории, следование), SyncedChartsDemo, BigDataDemo (100k по кнопке).
+  Стоимость больших данных: копия серии в UI-рантайм при каждой смене `series` — O(n).
+
 - `ChartLegend` (`chart/legend`): `series` | `items {key,label,color}`, контролируемо
   `hiddenKeys`/`onToggle`; `useChartSeriesToggle(series)` → `visibleSeries` (отдавать в
   `<Chart series>` — скрытая серия уходит из тултипа и домена) + `legendProps`; правила —
@@ -238,6 +282,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   DateField-демо и DateFormField/SwitchFormField в демо-форме; Charts — LegendDemo.
 
 ## Готовность экрана (screen-ready)
+
 - `shared/lib/navigation/screen-ready`, три уровня:
   - `route-path.ts` — чистые функции над деревом состояния: `findRoutePath`, `resolveStackRouteKey` (ближайший экран стека), `isPathFocused`, `findRouteKeyByName` (верхний из одноимённых) (тесты).
   - `screen-readiness.ts` — сервис вне React: `createScreenReadiness({ getRootState, subscribeState, tracker })` → `isReady`, `subscribe`, `onReady(routeKey, cb, { waitForFocus, waitForTransition, delay, timeout=1000 })` → отмена, `whenReady` (промис); по имени маршрута — `isRouteReady(name)` (нет в дереве — не готов), `onRouteReady(name, cb(key))` / `whenRouteReady(name)` → ключ: ждёт появления экрана в дереве (тесты на фейковых таймерах).
@@ -247,6 +292,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 - Демо: `ComponentsScreenReady` (ссылки на тяжёлый экран, delay, `whenRouteReady` вне React с тостом времени) и `ComponentsScreenReadyTarget` (скелетоны → 4 Skia-графика, параметр `delay`); файлы `demos/screen-ready/`. Charts и Carousel монтируются сразу, без хука.
 
 ## Плейграунд компонентов
+
 - `pages/stack/components`: экран `Components` — ссылки `NavLink` на демо-экраны; список — `component-demos.ts`.
 - Каждое демо — отдельный экран корневого стека `Components<Name>` (`App.screens.ts`, linking `components/<name>`), файлы `demos/*Demo.tsx`, обёртка `DemoScreen` (без общей шапки/телеметрии).
 - `ComponentsTabs` (`demos/tabs`) — демо HiddenBar + закреплённые Tabs над top-tabs: общая телеметрия (`useScrollTelemetry` + `useNavbarScrollSync`), во вкладках `useFocusedScroll` и `NavbarInset`, `lazy`, на смене вкладки `navbar.show()`.
@@ -256,6 +302,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 
 Замена `KeyboardAwareScrollView` keyboard-controller'а на своих примитивах
 (`useKeyboardHandler`, `useReanimatedFocusedInput`, `useWindowDimensions`).
+
 - `keyboard-aware-offset.ts` — чистая геометрия (тесты `__tests__/keyboard-aware-offset.test.ts`):
   `computeKeyboardAwareOffset` (поле целиком над `min(низ скролла, верх клавиатуры) - bottomOffset`;
   ушло выше `visibleTop` — вниз; высокое поле прижимается началом к верху; clamp `[0, maxOffset]`),
@@ -264,7 +311,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   `predictShiftedViewport` (видимая область контейнера на конец анимации: замер в покое,
   сдвинутый на lift и ужатый на shrink). `field-layout.ts` — `isFieldHeightChange`.
 - `useKeyboardAwareScroll(scrollRef: AnimatedRef<Animated.ScrollView>, { bottomOffset=16, enabled,
-  topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, containerShift?: (kb) => { lift, shrink } })` →
+topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, containerShift?: (kb) => { lift, shrink } })` →
   `{ registry, spacerRef, spacerStyle, spacerHeight }`. Смещение и drag/momentum слушает сам
   (`useEvent` + `scrollRef.observe` → registerForEvents), onScroll подключать не нужно.
   onStart: замер поля и распорки в координатах КОНТЕНТА (offset из событий), резерв распорки;
@@ -333,7 +380,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
      `{ controller, listProps, wrap }`: `refScrollView` с кастом, якорь `KeyboardAwareAnchor` перед
      шапкой потребителя, распорка после его футера; `wrap(list)` — провайдер реестра.
      `return keyboardAware.wrap(<AnchorList {...keyboardAware.listProps} ... />)`. `insetEnd` не нужен.
-  Вручную — `useKeyboardAwareScroll` + `KeyboardAwareContent` (якорь, реестр, распорка).
+     Вручную — `useKeyboardAwareScroll` + `KeyboardAwareContent` (якорь, реестр, распорка).
 - Применено: `ScreenScroll`, `BottomSheet.Content` (→ ModalSheet), `DemoScreen` плейграунда.
   Временное демо `ComponentsKeyboardAnchorList` (`demos/keyboard-anchor-list/`, 24 поля) — может
   быть не закоммичено.
@@ -346,5 +393,6 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   layout, изменившийся во время анимации клавиатуры, учитывается только следующим notifyLayout.
 
 ## Шторка закрывает клавиатуру при открытии
+
 - `BottomSheet` / `ModalSheet` проп `dismissKeyboardOnOpen`: на `onAnimate` из −1 (`isSheetOpening`, тест) — `KeyboardController.dismiss()`; клавиатура уезжает одновременно с выездом шторки. Включён в шторках выбора кита: SelectSheet (Select/Autocomplete), ActionSheet, DatePicker, TimePicker, RangePicker (можно переопределить через bottomSheetProps). Autocomplete фокусирует поиск в `onOpened` — после открытия, конфликта нет.
 - Закрытие любой шторки закрывает клавиатуру (`isSheetClosing`).

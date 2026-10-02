@@ -1,12 +1,24 @@
 import React, { FC, useCallback, useMemo, useState } from "react";
 import { LayoutChangeEvent, View } from "react-native";
+import {
+  useCompetingGestures,
+  useSimultaneousGestures,
+} from "react-native-gesture-handler";
 import { useAnimatedReaction } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
 import { ChartCanvas } from "./ChartCanvas";
 import { ChartProvider } from "./ChartProvider";
 import { useChartInteraction } from "./interaction/useChartInteraction";
-import { ChartDimensions, ChartPadding, ChartProps } from "./types";
+import { useViewportGestures } from "./interaction/useViewportGestures";
+import {
+  ChartDimensions,
+  ChartPadding,
+  ChartProps,
+  ChartZoomOptions,
+} from "./types";
+import { resolvePlotRect } from "./utils/plot-rect";
+import { useChartViewport } from "./viewport/useChartViewport";
 
 const DEFAULT_PADDING: ChartPadding = {
   top: 36,
@@ -20,7 +32,20 @@ const DEFAULT_HEIGHT = 220;
 const DEFAULT_PAN_ACTIVE_OFFSET_X: [number, number] = [-8, 8];
 const DEFAULT_PAN_FAIL_OFFSET_Y: [number, number] = [-8, 8];
 
-/** Главный компонент графика. Управляет layout, жестами и рендерингом слоёв через Sketch + Reanimated. */
+const DEFAULT_ZOOM: Required<ChartZoomOptions> = {
+  pan: true,
+  pinch: true,
+  doubleTap: true,
+  doubleTapFactor: 2,
+  inertia: true,
+  inspectDelay: 250,
+};
+
+/**
+ * Главный компонент графика: layout, жесты, окно просмотра и слои на Skia +
+ * Reanimated. С `zoom` — прокрутка, зум двумя пальцами и двойной тап, а
+ * перекрестие — по долгому нажатию.
+ */
 export const Chart: FC<ChartProps> = ({
   series,
   width: widthProp,
@@ -29,6 +54,10 @@ export const Chart: FC<ChartProps> = ({
   xDomain,
   yDomain,
   beginAtZero,
+  yNice,
+  animateYDomain,
+  viewport: viewportProp,
+  zoom: zoomProp = false,
   xPaddingRatio,
   yPaddingRatio,
   xReverse,
@@ -71,13 +100,65 @@ export const Chart: FC<ChartProps> = ({
     [width, height, padding],
   );
 
+  const zoom = useMemo<Required<ChartZoomOptions>>(
+    () =>
+      zoomProp === false
+        ? { ...DEFAULT_ZOOM, pan: false, pinch: false, doubleTap: false }
+        : { ...DEFAULT_ZOOM, ...(zoomProp === true ? {} : zoomProp) },
+    [zoomProp],
+  );
+  const zoomEnabled = interactive && zoomProp !== false;
+
+  const internalViewport = useChartViewport();
+  const viewport = viewportProp ?? internalViewport;
+
+  const plot = useMemo(() => resolvePlotRect(dimensions), [dimensions]);
+
   const interaction = useChartInteraction(dimensions, {
     enabled: interactive,
     minDistance: panActivationDistance,
     activeOffsetX: panActiveOffsetX,
     failOffsetY: panFailOffsetY,
     twoFingerEnabled,
+    activateAfterLongPress: zoomEnabled ? zoom.inspectDelay : 0,
   });
+
+  const navigation = useViewportGestures(viewport, {
+    enabled: zoomEnabled,
+    zoom,
+    plot,
+    xReverse: xReverse ?? false,
+    activeOffsetX: panActiveOffsetX,
+    failOffsetY: panFailOffsetY,
+  });
+
+  const viewportGestures = useSimultaneousGestures(
+    navigation.pan,
+    navigation.pinch,
+  );
+  const gesture = useCompetingGestures(
+    interaction.gesture,
+    viewportGestures,
+    navigation.doubleTap,
+  );
+
+  const { interacting } = viewport;
+  const { settle } = viewport.worklets;
+  const { panActive, pinchActive } = navigation;
+  const inspecting = interaction.isActive;
+
+  // С зумом, пока идёт жест (вкл. инерцию и перекрестие), окно не едет за
+  // live-данными; без зума окно всегда на всех данных, как раньше.
+  useAnimatedReaction(
+    () =>
+      zoomEnabled && (inspecting.value || panActive.value || pinchActive.value),
+    (next, previous) => {
+      if (next === previous) return;
+      interacting.value = next;
+      if (!next && previous) settle();
+    },
+    [zoomEnabled, inspecting, panActive, pinchActive, interacting, settle],
+  );
 
   const baseInteractionState = useMemo(
     () => ({
@@ -119,6 +200,9 @@ export const Chart: FC<ChartProps> = ({
           xDomain={xDomain}
           yDomain={yDomain}
           beginAtZero={beginAtZero}
+          yNice={yNice}
+          animateYDomain={animateYDomain}
+          viewport={viewport}
           xPaddingRatio={xPaddingRatio}
           yPaddingRatio={yPaddingRatio}
           xReverse={xReverse}
@@ -126,7 +210,7 @@ export const Chart: FC<ChartProps> = ({
           interaction={baseInteractionState}
           onChange={onChange}
         >
-          <ChartCanvas gesture={interaction.gesture}>{children}</ChartCanvas>
+          <ChartCanvas gesture={gesture}>{children}</ChartCanvas>
         </ChartProvider>
       )}
     </View>

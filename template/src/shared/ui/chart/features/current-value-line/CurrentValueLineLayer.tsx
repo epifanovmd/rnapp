@@ -1,6 +1,7 @@
 import {
   Circle,
   DashPathEffect,
+  Group,
   Line,
   matchFont,
   RoundedRect,
@@ -20,26 +21,21 @@ import type { ChartLayerComponent } from "../../core";
 import {
   DASH_PRESETS,
   defaultLabelFormatter,
+  isInScaleRange,
   LABEL_GAP,
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
+  scaleToRange,
   selectSeries,
   useChartGeometry,
   useChartSeries,
 } from "../../core";
 import type { CurrentValueLineLayerProps } from "./types";
 
-interface LastPoint {
+interface LastDatum {
   x: number;
   y: number;
-  rawY: number;
 }
-
-const arePointsEqual = (a: LastPoint | null, b: LastPoint | null): boolean => {
-  "worklet";
-
-  return a === b || (a !== null && b !== null && a.rawY === b.rawY);
-};
 
 export const CurrentValueLineLayer: ChartLayerComponent<
   CurrentValueLineLayerProps
@@ -68,7 +64,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
   seriesId,
 }) => {
   const { seriesShared } = useChartSeries();
-  const { xScale, yScale, dimensions } = useChartGeometry();
+  const { xScale, yScale, dimensions, plot } = useChartGeometry();
 
   const intervals = dashArray ?? DASH_PRESETS[lineType];
   const font = useMemo(
@@ -76,72 +72,81 @@ export const CurrentValueLineLayer: ChartLayerComponent<
     [labelFontFamily, labelFontSize],
   );
 
-  const left = dimensions.padding.left;
-  const right = dimensions.width - dimensions.padding.right;
+  const left = plot.left;
+  const right = plot.right;
 
   // Последняя точка серии считается на UI-потоке из `seriesShared` — компонент
-  // не обязан re-render'иться на каждый live-тик, чтобы просто подвинуть линию/точку.
-  const lastPointDerived = useDerivedValue<LastPoint | null>(() => {
+  // не обязан re-render'иться на каждый live-тик, чтобы подвинуть линию/точку.
+  const lastDatum = useDerivedValue<LastDatum | null>(() => {
     const matched = selectSeries(seriesShared.value, seriesId);
     const item = matched[0] ?? seriesShared.value[0];
     const data = item?.data ?? [];
     const last = data[data.length - 1];
 
-    if (!last) {
-      return null;
-    }
+    return last ? { x: last.x, y: last.y } : null;
+  }, [seriesShared, seriesId]);
 
-    return {
-      x: xScale.toRange(last.x),
-      y: yScale.toRange(last.y),
-      rawY: last.y,
-    };
-  }, [seriesShared, xScale, yScale, seriesId]);
+  // Анимируется значение в домене, а не пиксель: при прокрутке и зуме линия
+  // идёт за шкалой без запаздывания, а анимация — только на смену значения.
+  const animatedX = useSharedValue(NaN);
+  const animatedY = useSharedValue(NaN);
 
-  const animatedY = useSharedValue(0);
-  const animatedX = useSharedValue(0);
-
-  // Мостик в JS только для текста чипа (форматирование/измерение шрифта) — и
-  // только когда значение реально изменилось, а не на любое обновление серий.
-  const [lastPoint, setLastPoint] = useState<LastPoint | null>(
-    () => lastPointDerived.value,
+  // Мостик в JS только для текста чипа — и только при смене значения.
+  const [lastValue, setLastValue] = useState<number | null>(
+    () => lastDatum.value?.y ?? null,
   );
 
   useAnimatedReaction(
-    () => lastPointDerived.value,
+    () => lastDatum.value,
     (next, previous) => {
       if (!next) {
         return;
       }
 
-      if (previous === null || !animate) {
+      if (!previous || !animate || !Number.isFinite(animatedY.value)) {
         animatedX.value = next.x;
         animatedY.value = next.y;
       } else {
-        animatedX.value = withTiming(next.x, { duration: animationDuration });
-        animatedY.value = withTiming(next.y, { duration: animationDuration });
+        if (next.x !== previous.x) {
+          animatedX.value = withTiming(next.x, {
+            duration: animationDuration,
+          });
+        }
+        if (next.y !== previous.y) {
+          animatedY.value = withTiming(next.y, {
+            duration: animationDuration,
+          });
+        }
       }
-      if (previous === null || !arePointsEqual(next, previous)) {
-        scheduleOnRN(setLastPoint, next);
+      if (!previous || next.y !== previous.y) {
+        scheduleOnRN(setLastValue, next.y);
       }
     },
-    [lastPointDerived, animate, animationDuration],
+    [lastDatum, animate, animationDuration],
   );
 
-  const p1 = useDerivedValue(
-    () => vec(left, animatedY.value),
-    [animatedY, left],
+  const pixelY = useDerivedValue(
+    () => scaleToRange(yScale.value, animatedY.value),
+    [yScale, animatedY],
   );
-  const p2 = useDerivedValue(
-    () => vec(right, animatedY.value),
-    [animatedY, right],
+  const pixelX = useDerivedValue(
+    () => scaleToRange(xScale.value, animatedX.value),
+    [xScale, animatedX],
   );
+
+  const p1 = useDerivedValue(() => vec(left, pixelY.value), [pixelY, left]);
+  const p2 = useDerivedValue(() => vec(right, pixelY.value), [pixelY, right]);
   const dotCenter = useDerivedValue(
-    () => vec(animatedX.value, animatedY.value),
-    [animatedX, animatedY],
+    () => vec(pixelX.value, pixelY.value),
+    [pixelX, pixelY],
+  );
+  // Последняя точка за краем окна (окно в прошлом) — без точки.
+  const dotOpacity = useDerivedValue(
+    () => (isInScaleRange(xScale.value, pixelX.value, 1) ? 1 : 0),
+    [xScale, pixelX],
   );
 
-  const text = lastPoint ? formatLabel(lastPoint.rawY) : "";
+  const text = lastValue !== null ? formatLabel(lastValue) : "";
   const metrics = font ? font.measureText(text) : { width: 0 };
   const boxWidth = metrics.width + LABEL_PADDING_X * 2;
   const boxHeight = labelFontSize + LABEL_PADDING_Y * 2;
@@ -160,15 +165,15 @@ export const CurrentValueLineLayer: ChartLayerComponent<
   );
 
   const boxY = useDerivedValue(
-    () => animatedY.value - boxHeight / 2,
-    [animatedY, boxHeight],
+    () => pixelY.value - boxHeight / 2,
+    [pixelY, boxHeight],
   );
   const textY = useDerivedValue(
-    () => animatedY.value + labelFontSize * 0.3,
-    [animatedY, labelFontSize],
+    () => pixelY.value + labelFontSize * 0.3,
+    [pixelY, labelFontSize],
   );
 
-  if (!visible || !lastPoint || !font) {
+  if (!visible || lastValue === null || !font) {
     return null;
   }
 
@@ -180,7 +185,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
         </Line>
       )}
       {showDot && (
-        <>
+        <Group opacity={dotOpacity}>
           <Circle c={dotCenter} r={dotRadius} color={dotColor ?? color} />
           {dotStrokeColor && (
             <Circle
@@ -191,7 +196,7 @@ export const CurrentValueLineLayer: ChartLayerComponent<
               color={dotStrokeColor}
             />
           )}
-        </>
+        </Group>
       )}
       {showLabel && (
         <>

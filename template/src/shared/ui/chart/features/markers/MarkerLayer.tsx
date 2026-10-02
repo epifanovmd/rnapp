@@ -17,8 +17,8 @@ export const MarkerLayer = React.memo(
         resolveMarkerPosition(
           marker.anchor,
           seriesShared.value,
-          xScale,
-          yScale,
+          xScale.value,
+          yScale.value,
           dimensions.padding,
         ),
       );

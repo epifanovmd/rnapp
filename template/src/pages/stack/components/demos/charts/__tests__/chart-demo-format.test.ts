@@ -1,25 +1,20 @@
-import { filterByPeriod } from "../chart-demo-format";
-import { REVENUE_VS_EXPENSES } from "../chart-mock-data";
+import { createRandomWalk } from "../chart-mock-data";
 
 // Индекс графиков тянет Skia; данным нужна только палитра.
 jest.mock("@shared/ui/chart", () => ({ seriesColor: () => "#000000" }));
 
-describe("filterByPeriod", () => {
-  it("прореживает год до 365 точек и сохраняет последнюю", () => {
-    const [revenue] = filterByPeriod(REVENUE_VS_EXPENSES, "year");
-    const source = REVENUE_VS_EXPENSES[0].data;
+describe("createRandomWalk", () => {
+  it("count точек с шагом stepMs, последняя — на end", () => {
+    const data = createRandomWalk(1000, 60_000, 1_000_000_000);
 
-    expect(revenue.data.length).toBeLessThanOrEqual(366);
-    expect(revenue.data[revenue.data.length - 1]).toBe(
-      source[source.length - 1],
-    );
+    expect(data).toHaveLength(1000);
+    expect(data[data.length - 1].x).toBe(1_000_000_000);
+    expect(data[1].x - data[0].x).toBe(60_000);
   });
 
-  it("короткий период не прореживает", () => {
-    const [week] = filterByPeriod(REVENUE_VS_EXPENSES, "week");
-    const source = REVENUE_VS_EXPENSES[0].data;
-    const from = week.data[0].x;
-
-    expect(week.data).toEqual(source.filter(datum => datum.x >= from));
+  it("детерминирован по seed", () => {
+    expect(createRandomWalk(50, 1, 100, 7)).toEqual(
+      createRandomWalk(50, 1, 100, 7),
+    );
   });
 });

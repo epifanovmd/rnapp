@@ -7,6 +7,7 @@ import type { ChartLayerComponent, IChartSeries } from "../../core";
 import {
   LABEL_PADDING_X,
   LABEL_PADDING_Y,
+  scaleToRange,
   useChartActiveIndices,
   useChartGeometry,
   useChartGesture,
@@ -56,8 +57,8 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   showSecondTouch = true,
   onVisibilityChange,
 }) => {
-  const { series, geometry } = useChartSeries();
-  const { dimensions } = useChartGeometry();
+  const { series, seriesShared } = useChartSeries();
+  const { dimensions, xScale, yScale } = useChartGeometry();
   const { touchX, touchY, isActive, touchX2, touchY2, isSecondActive } =
     useChartGesture();
   const { activeIndices, activeIndices2 } = useChartActiveIndices();
@@ -97,16 +98,19 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   const boxWidth = textWidth + DOT_RADIUS * 2 + LABEL_PADDING_X * 3;
   const boxHeight = Math.max(rows.length, 1) * rowHeight + LABEL_PADDING_Y * 2;
 
-  const firstSeriesId = series[0]?.id;
-
   const anchorPoint = useDerivedValue(() => {
     const resolve = (index: number, x: number, y: number) => {
       const target =
-        anchorToPoint && firstSeriesId && index >= 0
-          ? geometry.value[firstSeriesId]?.[index]
+        anchorToPoint && index >= 0
+          ? seriesShared.value[0]?.data[index]
           : undefined;
 
-      return target ?? { x, y };
+      return target
+        ? {
+            x: scaleToRange(xScale.value, target.x),
+            y: scaleToRange(yScale.value, target.y),
+          }
+        : { x, y };
     };
 
     const first = resolve(
@@ -131,13 +135,14 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
     showSecondTouch,
     activeIndices,
     activeIndices2,
-    geometry,
+    seriesShared,
+    xScale,
+    yScale,
     touchX,
     touchY,
     touchX2,
     touchY2,
     isSecondActive,
-    firstSeriesId,
   ]);
 
   const boxX = useDerivedValue(() => {

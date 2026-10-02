@@ -15,12 +15,6 @@ import React, { FC, memo } from "react";
 
 import { TASK_SERIES } from "./chart-mock-data";
 
-const formatDay = (value: number) => {
-  const date = new Date(value);
-
-  return `${date.getDate()}.${date.getMonth() + 1}`;
-};
-
 /** Легенда с переключением серий: скрытая серия уходит из графика, тултипа и домена Y. */
 export const LegendDemo: FC = memo(() => {
   const { colors } = useTheme();
@@ -35,7 +29,7 @@ export const LegendDemo: FC = memo(() => {
         yPaddingRatio={0.15}
         padding={{ left: 48, bottom: 32, top: 24 }}
       >
-        <GridLayer color={colors.slate200} />
+        <GridLayer color={colors.slate200} xTicks={"time"} />
         <LineLayer curve={"smooth"} strokeWidth={2} />
         <AxisLayerY
           tickCount={4}
@@ -46,7 +40,7 @@ export const LegendDemo: FC = memo(() => {
           tickCount={5}
           color={colors.slate400}
           labelColor={colors.textTertiary}
-          formatLabel={formatDay}
+          ticks={"time"}
         />
         <CrosshairLayer color={colors.slate400} />
         <TooltipLayer />

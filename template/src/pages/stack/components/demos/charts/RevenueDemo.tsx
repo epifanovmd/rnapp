@@ -7,46 +7,59 @@ import {
   AxisLayerY,
   Chart,
   ChartMarker,
+  ChartNavigator,
+  ChartRangePresets,
   CrosshairLayer,
   CurrentValueLineLayer,
+  formatTimeTick,
   GridLayer,
   LineLayer,
   MarkerLayer,
   RangeLayer,
   TooltipLayer,
+  useChartViewport,
+  ViewRange,
 } from "@shared/ui/chart";
 import React, { FC, memo, useCallback, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import {
-  filterByPeriod,
   formatActivePoints,
-  formatAxisLabel,
+  formatDateTime,
   formatTooltipRow,
   peakRevenue,
-  Period,
-  PERIODS,
+  TIMEFRAME_PRESETS,
 } from "./chart-demo-format";
 import { REVENUE_VS_EXPENSES } from "./chart-mock-data";
 
-/** Full-featured пример: периоды, маркеры, два пальца, статус касания. */
+const DAY = 86_400_000;
+
+/**
+ * Full-featured пример: таймфреймы и зум по окну (год по 3 часа — 2920
+ * точек на серию без прореживания вручную), навигатор, маркеры, два пальца,
+ * статус касания.
+ */
 export const RevenueDemo: FC = memo(() => {
   const { colors } = useTheme();
   const [touchStatus, setTouchStatus] = useState("Not touching");
   const [activePointLabel, setActivePointLabel] = useState(
-    "Drag over the chart",
+    "Hold over the chart",
   );
-  const [period, setPeriod] = useState<Period>("month");
+  const [rangeLabel, setRangeLabel] = useState("");
 
-  const filteredSeries = useMemo(
-    () => filterByPeriod(REVENUE_VS_EXPENSES, period),
-    [period],
+  const handleViewportChange = useCallback(
+    (range: ViewRange) =>
+      setRangeLabel(
+        `${formatDateTime(range.start)} – ${formatDateTime(range.end)}`,
+      ),
+    [],
   );
 
-  const formatPeriodLabel = useCallback(
-    (value: number) => formatAxisLabel(value, period),
-    [period],
-  );
+  const viewport = useChartViewport({
+    initialSpan: 30 * DAY,
+    minSpan: 6 * 3_600_000,
+    onChange: handleViewportChange,
+  });
 
   const revenueMarkers: ChartMarker[] = useMemo(
     () => [
@@ -87,30 +100,15 @@ export const RevenueDemo: FC = memo(() => {
 
   return (
     <>
-      <View style={styles.periods}>
-        {PERIODS.map(({ key, label }) => (
-          <View
-            key={key}
-            style={[
-              styles.period,
-              {
-                backgroundColor:
-                  period === key ? colors.blue500 : colors.slate200,
-              },
-            ]}
-          >
-            <Text
-              textStyle={"Body_S2"}
-              color={period === key ? "white" : "textSecondary"}
-              onPress={() => setPeriod(key)}
-            >
-              {label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      <ChartRangePresets
+        viewport={viewport}
+        presets={TIMEFRAME_PRESETS}
+        mb={12}
+      />
       <Chart
-        series={filteredSeries}
+        series={REVENUE_VS_EXPENSES}
+        viewport={viewport}
+        zoom
         height={260}
         yPaddingRatio={0.15}
         padding={{ left: 56, bottom: 36, top: 36 }}
@@ -118,7 +116,7 @@ export const RevenueDemo: FC = memo(() => {
         onChange={handleActivePointsChange}
         twoFingerEnabled
       >
-        <GridLayer color={colors.slate200} />
+        <GridLayer color={colors.slate200} xTicks={"time"} />
         <AreaLayer curve={"smooth"} opacity={0.15} />
         <LineLayer
           curve={"smooth"}
@@ -135,10 +133,9 @@ export const RevenueDemo: FC = memo(() => {
         />
         <AxisLayerX
           tickCount={5}
+          ticks={"time"}
           color={colors.slate400}
           labelColor={colors.textTertiary}
-          formatLabel={formatPeriodLabel}
-          // labelSide={"in"}
         />
         <MarkerLayer markers={revenueMarkers} />
         <CurrentValueLineLayer
@@ -155,7 +152,7 @@ export const RevenueDemo: FC = memo(() => {
           color={colors.slate400}
           showXLabel
           xLabelPosition={"top"}
-          xLabelFormatter={formatPeriodLabel}
+          xLabelFormatter={formatTimeTick}
           showYLabels
           // yLabelPosition={"right"}
           secondLineColor={colors.orange500}
@@ -163,7 +160,18 @@ export const RevenueDemo: FC = memo(() => {
         <RangeLayer />
         <TooltipLayer formatRow={formatTooltipRow} />
       </Chart>
+      <ChartNavigator
+        series={REVENUE_VS_EXPENSES}
+        viewport={viewport}
+        paddingLeft={56}
+        windowColor={colors.blue500}
+      />
       <View style={styles.touchStatus}>
+        {!!rangeLabel && (
+          <Text textStyle={"Body_S2"} color={"textSecondary"}>
+            {rangeLabel}
+          </Text>
+        )}
         <Text textStyle={"Body_S2"} color={"textSecondary"}>
           {touchStatus}
         </Text>
@@ -176,16 +184,6 @@ export const RevenueDemo: FC = memo(() => {
 });
 
 const styles = StyleSheet.create({
-  periods: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  period: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
   touchStatus: {
     gap: 4,
     marginTop: 8,

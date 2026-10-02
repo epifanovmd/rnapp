@@ -1,12 +1,21 @@
 import { createContext, useContext } from "react";
+import type { DerivedValue } from "react-native-reanimated";
 
-import type { ChartDimensions, IScale } from "../types";
+import type { LinearScale } from "../scale/linear-scale";
+import type { ChartDimensions, ChartPlotRect } from "../types";
+import type { ChartViewport } from "../viewport/useChartViewport";
 
-/** Размеры канваса и шкалы X/Y. */
+/** Размеры канваса, область построения и шкалы X/Y (на UI-потоке). */
 export interface ChartGeometryContextValue {
   dimensions: ChartDimensions;
-  xScale: IScale;
-  yScale: IScale;
+  plot: ChartPlotRect;
+  /** Шкала X видимого окна. */
+  xScale: DerivedValue<LinearScale>;
+  /** Шкала Y (домен анимируется к `yDomainTarget`). */
+  yScale: DerivedValue<LinearScale>;
+  /** Целевой домен Y — без анимации; `null` — данных нет. */
+  yDomainTarget: DerivedValue<[number, number] | null>;
+  viewport: ChartViewport;
 }
 
 export const ChartGeometryContext =

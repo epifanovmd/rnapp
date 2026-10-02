@@ -1,44 +1,10 @@
-import type { ActivePoint, IChartSeries } from "@shared/ui/chart";
+import type { ActivePoint, ChartRangePreset } from "@shared/ui/chart";
 
 import { REVENUE_VS_EXPENSES } from "./chart-mock-data";
 
 export const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
   datum.y > best.y ? datum : best,
 );
-
-// Модуль-скоуп: не зависят от пропсов/состояния компонента, поэтому не нужно
-// пересоздавать их на каждый рендер через useCallback — уже стабильны сами по себе.
-const MONTHS_SHORT = [
-  "Янв",
-  "Фев",
-  "Мар",
-  "Апр",
-  "Май",
-  "Июн",
-  "Июл",
-  "Авг",
-  "Сен",
-  "Окт",
-  "Ноя",
-  "Дек",
-];
-
-const DAYS_SHORT = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-
-export const formatAxisLabel = (value: number, period: Period) => {
-  const d = new Date(value);
-
-  switch (period) {
-    case "day":
-      return `${String(d.getHours()).padStart(2, "0")}:00`;
-    case "week":
-      return `${DAYS_SHORT[d.getDay()]}, ${d.getDate()}.${d.getMonth() + 1}`;
-    case "month":
-      return `${d.getDate()}.${d.getMonth() + 1}`;
-    case "year":
-      return MONTHS_SHORT[d.getMonth()];
-  }
-};
 
 export const formatTooltipRow = (point: {
   series: { label?: string };
@@ -71,44 +37,41 @@ export const formatActivePoints = (points: ActivePoint[] | null) =>
         .join(" · ")
     : "Drag over the chart";
 
-export type Period = "day" | "week" | "month" | "year";
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
 
-export const PERIODS: { key: Period; label: string }[] = [
-  { key: "day", label: "День" },
-  { key: "week", label: "Неделя" },
-  { key: "month", label: "Месяц" },
-  { key: "year", label: "Год" },
+/** Таймфреймы годовых данных: ширина окна от правого края. */
+export const TIMEFRAME_PRESETS: ChartRangePreset[] = [
+  { key: "day", label: "День", span: DAY },
+  { key: "week", label: "Неделя", span: 7 * DAY },
+  { key: "month", label: "Месяц", span: 30 * DAY },
+  { key: "year", label: "Год", span: 365 * DAY },
+  { key: "all", label: "Всё", span: "all" },
 ];
 
-const LAST_DATE = new Date(2025, 11, 31).getTime();
+/** Таймфреймы минутных данных. */
+export const MINUTE_PRESETS: ChartRangePreset[] = [
+  { key: "hour", label: "Час", span: HOUR },
+  { key: "day", label: "Сутки", span: DAY },
+  { key: "week", label: "Неделя", span: 7 * DAY },
+  { key: "all", label: "Всё", span: "all" },
+];
 
-/** Точек на серию не больше: год по 3 часа — 2920 точек, пути на них дороги. */
-const MAX_POINTS = 365;
+/** Таймфреймы live-тикера (x — секунды). */
+export const LIVE_PRESETS: ChartRangePreset[] = [
+  { key: "30s", label: "30 с", span: 30 },
+  { key: "2m", label: "2 мин", span: 120 },
+  { key: "all", label: "Всё", span: "all" },
+];
 
-const thin = <T>(data: T[]): T[] => {
-  if (data.length <= MAX_POINTS) return data;
+const pad2 = (value: number) => String(value).padStart(2, "0");
 
-  const step = Math.ceil(data.length / MAX_POINTS);
+/** Дата и время для подписи окна: «5.10.2025 14:00». */
+export const formatDateTime = (value: number) => {
+  const date = new Date(value);
 
-  return data.filter(
-    (_, index) => index % step === 0 || index === data.length - 1,
-  );
-};
-
-export const filterByPeriod = (
-  series: IChartSeries[],
-  period: Period,
-): IChartSeries[] => {
-  const limits: Record<Period, number> = {
-    day: LAST_DATE - 86_400_000,
-    week: LAST_DATE - 7 * 86_400_000,
-    month: LAST_DATE - 30 * 86_400_000,
-    year: 0,
-  };
-  const from = limits[period];
-
-  return series.map(s => ({
-    ...s,
-    data: thin(from > 0 ? s.data.filter(d => d.x >= from) : s.data),
-  }));
+  return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()} ${pad2(
+    date.getHours(),
+  )}:${pad2(date.getMinutes())}`;
 };

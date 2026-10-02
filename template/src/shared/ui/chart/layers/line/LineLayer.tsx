@@ -1,6 +1,7 @@
+import { Group } from "@shopify/react-native-skia";
 import React, { useMemo } from "react";
 
-import { useChartSeries } from "../../core/context";
+import { useChartGeometry, useChartSeries } from "../../core/context";
 import {
   DEFAULT_TREND_DOWN_COLOR,
   DEFAULT_TREND_NEUTRAL_COLOR,
@@ -10,8 +11,10 @@ import {
 } from "../../core/hooks/useTrendColor";
 import type { ChartLayerComponent } from "../../core/types";
 import { CurveType } from "../../core/utils/build-path";
+import { clipToPlotX } from "../../core/utils/clip-to-plot";
 import { DASH_PRESETS, LineDashType } from "../../core/utils/dash-pattern";
 import { selectSeries } from "../../core/utils/select-series";
+import { LineEndDot } from "./LineEndDot";
 import { LineSeriesPath } from "./LineSeriesPath";
 
 export interface LineLayerProps {
@@ -69,6 +72,7 @@ export const LineLayer: ChartLayerComponent<LineLayerProps> = ({
   seriesId,
 }) => {
   const { series, seriesShared, geometry } = useChartSeries();
+  const { xScale, yScale, plot } = useChartGeometry();
   const resolvedSeries = selectSeries(series, seriesId);
   const intervals = dashArray ?? DASH_PRESETS[lineType];
 
@@ -86,26 +90,48 @@ export const LineLayer: ChartLayerComponent<LineLayerProps> = ({
     return null;
   }
 
-  return resolvedSeries.map(item => (
-    <LineSeriesPath
-      key={item.id}
-      seriesId={item.id}
-      seriesShared={seriesShared}
-      geometry={geometry}
-      curve={curve}
-      color={item.color}
-      colorByTrend={colorByTrend}
-      trendCompare={trendCompare}
-      palette={palette}
-      strokeWidth={strokeWidth}
-      strokeCap={strokeCap}
-      strokeJoin={strokeJoin}
-      dashIntervals={intervals}
-      showEndDot={showEndDot && item.data.length > 0}
-      endDotRadius={endDotRadius}
-      endDotColor={endDotColor}
-      endDotStrokeColor={endDotStrokeColor}
-      endDotStrokeWidth={endDotStrokeWidth}
-    />
-  ));
+  return (
+    <>
+      <Group clip={clipToPlotX(plot)}>
+        {resolvedSeries.map(item => (
+          <LineSeriesPath
+            key={item.id}
+            seriesId={item.id}
+            seriesShared={seriesShared}
+            geometry={geometry}
+            curve={curve}
+            color={item.color}
+            colorByTrend={colorByTrend}
+            trendCompare={trendCompare}
+            palette={palette}
+            strokeWidth={strokeWidth}
+            strokeCap={strokeCap}
+            strokeJoin={strokeJoin}
+            dashIntervals={intervals}
+          />
+        ))}
+      </Group>
+      {showEndDot &&
+        resolvedSeries.map(
+          item =>
+            item.data.length > 0 && (
+              <LineEndDot
+                key={item.id}
+                seriesId={item.id}
+                seriesShared={seriesShared}
+                xScale={xScale}
+                yScale={yScale}
+                color={item.color}
+                colorByTrend={colorByTrend}
+                trendCompare={trendCompare}
+                palette={palette}
+                radius={endDotRadius}
+                fillColor={endDotColor}
+                strokeColor={endDotStrokeColor}
+                strokeWidth={endDotStrokeWidth}
+              />
+            ),
+        )}
+    </>
+  );
 };

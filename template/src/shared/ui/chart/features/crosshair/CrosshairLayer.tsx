@@ -39,8 +39,8 @@ export const CrosshairLayer = React.memo(
     showSecondTouch = true,
     secondLineColor,
   }: CrosshairLayerProps) => {
-    const { series, geometry } = useChartSeries();
-    const { dimensions } = useChartGeometry();
+    const { series, seriesShared } = useChartSeries();
+    const { dimensions, xScale, yScale } = useChartGeometry();
     const { touchX, isActive, touchX2, isSecondActive } = useChartGesture();
     const { activeIndices, activeIndices2 } = useChartActiveIndices();
     const intervals = dashArray ?? DASH_PRESETS[lineType];
@@ -55,8 +55,10 @@ export const CrosshairLayer = React.memo(
     const sharedLineProps = useMemo(
       () => ({
         series,
+        seriesShared,
         dimensions,
-        geometry,
+        xScale,
+        yScale,
         strokeWidth,
         markerRadius,
         showVerticalLine,
@@ -79,8 +81,10 @@ export const CrosshairLayer = React.memo(
       }),
       [
         series,
+        seriesShared,
         dimensions,
-        geometry,
+        xScale,
+        yScale,
         strokeWidth,
         markerRadius,
         showVerticalLine,
