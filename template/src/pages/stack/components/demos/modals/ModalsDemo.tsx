@@ -9,6 +9,7 @@ import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ActionSheetDemo } from "./ActionSheetDemo";
 import { CustomFilter } from "./CustomFilter";
 import { DemoSheet, IDemoSheetProps } from "./DemoSheet";
 import { SheetKeyboardDemo } from "./SheetKeyboardDemo";
@@ -85,6 +86,9 @@ export const ModalsDemo = memo(() => {
           title={"Клавиатура (keyboardBehavior)"}
           onPress={() => keyboardRef.current?.present()}
         />
+
+        <Text textStyle={"Title_S1"}>{"ActionSheet"}</Text>
+        <ActionSheetDemo />
 
         <Text textStyle={"Title_S1"}>{"Стек шторок"}</Text>
         <Button
