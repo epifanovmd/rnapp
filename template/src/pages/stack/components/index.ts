@@ -17,6 +17,7 @@ export {
   PickersDemo,
   ScreenDemo,
   SettingsDemo,
+  TabsDemo,
   TicketDemo,
   TypographyDemo,
 } from "./demos";

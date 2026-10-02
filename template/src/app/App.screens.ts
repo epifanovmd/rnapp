@@ -22,6 +22,7 @@ import {
   PickersDemo,
   ScreenDemo,
   SettingsDemo,
+  TabsDemo,
   TicketDemo,
   TypographyDemo,
 } from "@pages/stack/components";
@@ -151,6 +152,11 @@ export const RootStack = createStackNavigator({
           screen: ScreenDemo,
           options: { title: "Screen" },
           linking: "components/screen",
+        },
+        ComponentsTabs: {
+          screen: TabsDemo,
+          options: NO_HEADER,
+          linking: "components/tabs",
         },
         ComponentsFeedback: {
           screen: FeedbackDemo,

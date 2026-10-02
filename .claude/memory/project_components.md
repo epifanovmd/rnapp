@@ -246,4 +246,5 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 ## Плейграунд компонентов
 - `pages/stack/components`: экран `Components` — ссылки (`Button appearance="link"`) на демо-экраны; список — `component-demos.ts`.
 - Каждое демо — отдельный экран корневого стека `Components<Name>` (`App.screens.ts`, linking `components/<name>`), файлы `demos/*Demo.tsx`, обёртка `DemoScreen` (без общей шапки/телеметрии).
+- `ComponentsTabs` (`demos/tabs`) — демо HiddenBar + закреплённые Tabs над top-tabs: общая телеметрия (`useScrollTelemetry` + `useNavbarScrollSync`), во вкладках `useFocusedScroll` и `NavbarInset`, `lazy`, на смене вкладки `navbar.show()`.
 - `Button` appearance: filled | outline | ghost | link (link — только текст, без отступов).

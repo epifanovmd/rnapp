@@ -16,5 +16,6 @@ export * from "./NotificationsDemo";
 export * from "./PickersDemo";
 export * from "./ScreenDemo";
 export * from "./settings";
+export * from "./tabs";
 export * from "./TicketDemo";
 export * from "./TypographyDemo";

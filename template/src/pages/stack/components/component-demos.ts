@@ -11,6 +11,7 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsData", title: "Data" },
   { route: "ComponentsSettings", title: "Settings" },
   { route: "ComponentsScreen", title: "Screen" },
+  { route: "ComponentsTabs", title: "Tabs" },
   { route: "ComponentsFeedback", title: "Feedback" },
   { route: "ComponentsMedia", title: "Media" },
   { route: "ComponentsCarousel", title: "Carousel" },
