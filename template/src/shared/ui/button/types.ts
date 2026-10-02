@@ -9,8 +9,11 @@ import { ITouchableProps } from "../touchable";
 /** Смысловой цвет кнопки; новый вариант добавляется одной строкой палитры. */
 export type TButtonVariant = "primary" | "secondary" | "danger";
 
-/** Визуальное исполнение, ортогонально варианту. */
-export type TButtonAppearance = "filled" | "outline" | "ghost";
+/**
+ * Визуальное исполнение, ортогонально варианту: `link` — только текст цвета
+ * варианта, без подложки и отступов (переходы, вторичные действия в строке).
+ */
+export type TButtonAppearance = "filled" | "outline" | "ghost" | "link";
 
 export type TButtonSize = "medium" | "small";
 

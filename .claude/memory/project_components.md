@@ -241,4 +241,9 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 - Память об открытых экранах — `screenTransitions` (трекер), питается `screenTransitionListeners` (`transitionEnd`/`transitionStart` closing). Подключено в `RootStack` (`App.screens.ts`, `screenListeners`). Без подключения хук отпускает по `timeout`.
 - Вложенные экраны (вкладка в экране стека) ждут экран стека: `findStackRouteKey` (тесты).
 - Карточка стека шлёт `transitionEnd` и для начального экрана (анимации нет — сразу).
-- Применено: Charts, CarouselTab. ComponentsNavigator: `lazy: true`.
+- Применено: Charts, CarouselDemo.
+
+## Плейграунд компонентов
+- `pages/stack/components`: экран `Components` — ссылки (`Button appearance="link"`) на демо-экраны; список — `component-demos.ts`.
+- Каждое демо — отдельный экран корневого стека `Components<Name>` (`App.screens.ts`, linking `components/<name>`), файлы `demos/*Demo.tsx`, обёртка `DemoScreen` (без общей шапки/телеметрии).
+- `Button` appearance: filled | outline | ghost | link (link — только текст, без отступов).

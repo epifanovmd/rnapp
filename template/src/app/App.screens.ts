@@ -3,7 +3,28 @@ import { Audit } from "@pages/stack/audit";
 import { CalendarDemo, CalendarListDemo } from "@pages/stack/calendar-demo";
 import { Charts } from "@pages/stack/charts";
 import { Chat } from "@pages/stack/chat";
-import { Components } from "@pages/stack/components";
+import {
+  ButtonsDemo,
+  CarouselDemo,
+  Components,
+  ControlsDemo,
+  DataDemo,
+  DialogsDemo,
+  FeedbackDemo,
+  FormsDemo,
+  IconsDemo,
+  InputsDemo,
+  LayoutDemo,
+  ListsDemo,
+  MediaDemo,
+  ModalsDemo,
+  NotificationsDemo,
+  PickersDemo,
+  ScreenDemo,
+  SettingsDemo,
+  TicketDemo,
+  TypographyDemo,
+} from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
 import { ContextMenu } from "@pages/stack/context-menu";
 import { Files } from "@pages/stack/files";
@@ -73,8 +94,103 @@ export const RootStack = createStackNavigator({
         },
         Components: {
           screen: Components,
-          options: NO_HEADER,
+          options: { title: "Компоненты" },
           linking: "components",
+        },
+        ComponentsButtons: {
+          screen: ButtonsDemo,
+          options: { title: "Buttons" },
+          linking: "components/buttons",
+        },
+        ComponentsTypography: {
+          screen: TypographyDemo,
+          options: { title: "Typography" },
+          linking: "components/typography",
+        },
+        ComponentsIcons: {
+          screen: IconsDemo,
+          options: { title: "Icons" },
+          linking: "components/icons",
+        },
+        ComponentsInputs: {
+          screen: InputsDemo,
+          options: { title: "Inputs" },
+          linking: "components/inputs",
+        },
+        ComponentsControls: {
+          screen: ControlsDemo,
+          options: { title: "Controls" },
+          linking: "components/controls",
+        },
+        ComponentsForms: {
+          screen: FormsDemo,
+          options: { title: "Forms" },
+          linking: "components/forms",
+        },
+        ComponentsLayout: {
+          screen: LayoutDemo,
+          options: { title: "Layout" },
+          linking: "components/layout",
+        },
+        ComponentsLists: {
+          screen: ListsDemo,
+          options: { title: "Lists" },
+          linking: "components/lists",
+        },
+        ComponentsData: {
+          screen: DataDemo,
+          options: { title: "Data" },
+          linking: "components/data",
+        },
+        ComponentsSettings: {
+          screen: SettingsDemo,
+          options: { title: "Settings" },
+          linking: "components/settings",
+        },
+        ComponentsScreen: {
+          screen: ScreenDemo,
+          options: { title: "Screen" },
+          linking: "components/screen",
+        },
+        ComponentsFeedback: {
+          screen: FeedbackDemo,
+          options: { title: "Feedback" },
+          linking: "components/feedback",
+        },
+        ComponentsMedia: {
+          screen: MediaDemo,
+          options: { title: "Media" },
+          linking: "components/media",
+        },
+        ComponentsCarousel: {
+          screen: CarouselDemo,
+          options: { title: "Carousel" },
+          linking: "components/carousel",
+        },
+        ComponentsNotifications: {
+          screen: NotificationsDemo,
+          options: { title: "Notifications" },
+          linking: "components/notifications",
+        },
+        ComponentsModals: {
+          screen: ModalsDemo,
+          options: { title: "Modals" },
+          linking: "components/modals",
+        },
+        ComponentsDialogs: {
+          screen: DialogsDemo,
+          options: { title: "Dialogs" },
+          linking: "components/dialogs",
+        },
+        ComponentsPickers: {
+          screen: PickersDemo,
+          options: { title: "Pickers" },
+          linking: "components/pickers",
+        },
+        ComponentsTicket: {
+          screen: TicketDemo,
+          options: { title: "Ticket" },
+          linking: "components/ticket",
         },
         Charts: { screen: Charts, linking: "charts" },
         CalendarDemo: {

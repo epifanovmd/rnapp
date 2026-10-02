@@ -65,6 +65,7 @@ export const useButtonStyles = (
   return useMemo(() => {
     const palette = VARIANT_PALETTE[variant];
     const isGhost = appearance === "ghost";
+    const isLink = appearance === "link";
 
     const contentColorKey = disabled
       ? "textDisabled"
@@ -90,12 +91,16 @@ export const useButtonStyles = (
     return {
       styles: {
         ...BUTTON_STYLES.base,
-        ...(isGhost ? BUTTON_STYLES.ghostSize : BUTTON_STYLES[size]),
+        ...(isLink
+          ? BUTTON_STYLES.linkSize
+          : isGhost
+            ? BUTTON_STYLES.ghostSize
+            : BUTTON_STYLES[size]),
         ...appearanceStyle,
       },
       contentColorKey,
       contentColor: colors[contentColorKey],
-      hitSlop: isGhost ? GHOST_HIT_SLOP : undefined,
+      hitSlop: isGhost || isLink ? GHOST_HIT_SLOP : undefined,
     };
   }, [variant, appearance, size, disabled, customColor, colors]);
 };
@@ -111,4 +116,5 @@ const BUTTON_STYLES = StyleSheet.create({
   medium: { paddingHorizontal: 16, paddingVertical: 8, minHeight: 48 },
   small: { paddingHorizontal: 12, paddingVertical: 4, minHeight: 40 },
   ghostSize: { paddingHorizontal: 4 },
+  linkSize: { paddingHorizontal: 0, paddingVertical: 0, borderRadius: 0 },
 });

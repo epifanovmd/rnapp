@@ -14,7 +14,7 @@ type: project
    `ListRuntime.getContentOrigin()` = только `headerSize`, паддинг контейнера контента
    не учитывается → диапазон отрисовки, кромки, прилипание и `scrollToIndex` смещены
    на величину паддинга. Обход: верхний отступ (навбар, ImageBar) — через
-   `ListHeaderComponent` (так сделано в Main и ListsTab). `paddingBottom` безопасен
+   `ListHeaderComponent` (так сделано в Main и ListsDemo). `paddingBottom` безопасен
    (входит в нативный contentSize). Выведено из кода, на устройстве не проверялось.
 2. **Сдвиг контента при протяжке на Android не двигает слой прилипших копий**
    (2026-10-01): `useAnchorListPullToRefresh` транслирует обёртку ScrollView внутри
@@ -83,7 +83,7 @@ type: project
    списка, события чейнятся в телеметрию экрана: общая телеметрия табов
    (ComponentsNavigator) несёт скролл соседних вкладок, и bounce в одной вкладке
    запускал бы refresh в другой. Демо: Main (AnchorList вместо FlatList) и
-   playground → вкладка `Lists` (`pages/stack/components/tabs/ListsTab.tsx`).
+   playground → Components → Lists (`pages/stack/components/demos/ListsDemo.tsx`).
 
 2. **Индикатор прокрутки** (2026-10-01): `showsScrollIndicator?: boolean` (default
    `true`) → `shows{Vertical|Horizontal}ScrollIndicator` по `horizontal`;

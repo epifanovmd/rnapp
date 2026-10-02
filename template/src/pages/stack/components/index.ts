@@ -1,1 +1,22 @@
 export * from "./Components";
+export {
+  ButtonsDemo,
+  CarouselDemo,
+  ControlsDemo,
+  DataDemo,
+  DialogsDemo,
+  FeedbackDemo,
+  FormsDemo,
+  IconsDemo,
+  InputsDemo,
+  LayoutDemo,
+  ListsDemo,
+  MediaDemo,
+  ModalsDemo,
+  NotificationsDemo,
+  PickersDemo,
+  ScreenDemo,
+  SettingsDemo,
+  TicketDemo,
+  TypographyDemo,
+} from "./demos";

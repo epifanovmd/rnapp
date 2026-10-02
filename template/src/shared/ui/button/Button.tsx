@@ -9,7 +9,7 @@ import { useButtonStyles } from "./hooks";
 import { IButtonProps } from "./types";
 
 /**
- * Кнопка: `variant` (смысловой цвет) × `appearance` (filled/outline/ghost)
+ * Кнопка: `variant` (смысловой цвет) × `appearance` (filled/outline/ghost/link)
  * ортогональны. Контент — title/children, иконки по краям, loading-спиннер
  * с сохранением цвета контента.
  */

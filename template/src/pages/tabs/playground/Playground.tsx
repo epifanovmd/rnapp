@@ -45,11 +45,7 @@ export const Playground: FC = observer(() => {
           <Button
             mt={8}
             title={"Components"}
-            onPress={() =>
-              navigation.navigate("Components", {
-                initialRouteName: "Carousel",
-              })
-            }
+            onPress={() => navigation.navigate("Components")}
           />
 
           <Button

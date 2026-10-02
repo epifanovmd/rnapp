@@ -1,0 +1,22 @@
+/** Демо-экраны кита: маршрут корневого стека и подпись ссылки. */
+export const COMPONENT_DEMOS = [
+  { route: "ComponentsButtons", title: "Buttons" },
+  { route: "ComponentsTypography", title: "Typography" },
+  { route: "ComponentsIcons", title: "Icons" },
+  { route: "ComponentsInputs", title: "Inputs" },
+  { route: "ComponentsControls", title: "Controls" },
+  { route: "ComponentsForms", title: "Forms" },
+  { route: "ComponentsLayout", title: "Layout" },
+  { route: "ComponentsLists", title: "Lists" },
+  { route: "ComponentsData", title: "Data" },
+  { route: "ComponentsSettings", title: "Settings" },
+  { route: "ComponentsScreen", title: "Screen" },
+  { route: "ComponentsFeedback", title: "Feedback" },
+  { route: "ComponentsMedia", title: "Media" },
+  { route: "ComponentsCarousel", title: "Carousel" },
+  { route: "ComponentsNotifications", title: "Notifications" },
+  { route: "ComponentsModals", title: "Modals" },
+  { route: "ComponentsDialogs", title: "Dialogs" },
+  { route: "ComponentsPickers", title: "Pickers" },
+  { route: "ComponentsTicket", title: "Ticket" },
+] as const;
