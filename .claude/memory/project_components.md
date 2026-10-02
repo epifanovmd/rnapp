@@ -235,3 +235,10 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   (loading / error+retry / notFound).
 - Плейграунд: вкладка Settings (группы строк, Section.Action, ScreenFallback), Forms —
   DateField-демо и DateFormField/SwitchFormField в демо-форме; Charts — LegendDemo.
+
+## Готовность экрана (useScreenReady)
+- `shared/lib/navigation/screen-ready`: `useScreenReady({ waitForFocus, waitForTransition, delay, timeout=1000, once })` — экран активен и анимация открытия ближайшего экрана стека завершилась; до этого экран рисует скелетон.
+- Память об открытых экранах — `screenTransitions` (трекер), питается `screenTransitionListeners` (`transitionEnd`/`transitionStart` closing). Подключено в `RootStack` (`App.screens.ts`, `screenListeners`). Без подключения хук отпускает по `timeout`.
+- Вложенные экраны (вкладка в экране стека) ждут экран стека: `findStackRouteKey` (тесты).
+- Карточка стека шлёт `transitionEnd` и для начального экрана (анимации нет — сразу).
+- Применено: Charts, CarouselTab. ComponentsNavigator: `lazy: true`.

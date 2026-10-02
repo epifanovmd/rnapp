@@ -26,6 +26,7 @@ import {
   createStackNavigator,
   StackNavigationOptions,
 } from "@react-navigation/stack";
+import { screenTransitionListeners } from "@shared/lib/navigation";
 
 import { AppHeader } from "./App.header";
 import { MainTabs, MainTabsLayout } from "./app-tab-screens";
@@ -53,6 +54,7 @@ const MODAL_OPTIONS: StackNavigationOptions = {
  * linking-конфиг выводятся отсюда автоматически.
  */
 export const RootStack = createStackNavigator({
+  screenListeners: screenTransitionListeners,
   screenOptions: {
     gestureEnabled: true,
     cardOverlayEnabled: true,

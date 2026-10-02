@@ -1,5 +1,5 @@
-import { useTransitionReady } from "@shared/lib/navigation";
-import { Container, Content, ScrollView, Spinner, Text } from "@shared/ui";
+import { useScreenReady } from "@shared/lib/navigation";
+import { Col, Container, Content, ScrollView, Skeleton, Text } from "@shared/ui";
 import React, { FC } from "react";
 
 import { ChartCard } from "./ChartCard";
@@ -7,9 +7,12 @@ import { LegendDemo } from "./LegendDemo";
 import { LivePriceDemo } from "./LivePriceDemo";
 import { RevenueDemo } from "./RevenueDemo";
 
-/** Витрина графиков; примеры монтируются после анимации входа экрана. */
+/** Скелетоны карточек графиков, пока не закончилась анимация открытия. */
+const PLACEHOLDER_HEIGHTS = [380, 300, 400];
+
+/** Витрина графиков; до конца анимации открытия — скелетоны. */
 export const Charts: FC = () => {
-  const ready = useTransitionReady();
+  const ready = useScreenReady();
 
   return (
     <Container edges={[]}>
@@ -53,7 +56,11 @@ export const Charts: FC = () => {
               </ChartCard>
             </>
           ) : (
-            <Spinner size={24} />
+            <Col gap={16}>
+              {PLACEHOLDER_HEIGHTS.map((height, index) => (
+                <Skeleton key={index} height={height} borderRadius={16} />
+              ))}
+            </Col>
           )}
         </Content>
       </ScrollView>
