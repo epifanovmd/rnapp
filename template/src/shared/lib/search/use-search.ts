@@ -119,6 +119,17 @@ export const useSearch = ({
     inputRef.current?.focus();
   }, []);
 
+  // Android прячет клавиатуру (системная кнопка, «назад» с клавиатурой) без
+  // потери фокуса полем — onBlur не приходит; скрытие клавиатуры при пустом
+  // запросе — тоже уход из поля.
+  useEffect(() => {
+    if (!active || !closeOnEmptyBlur) return;
+
+    const subscription = Keyboard.addListener("keyboardDidHide", blur);
+
+    return () => subscription.remove();
+  }, [active, closeOnEmptyBlur, blur]);
+
   useEffect(() => {
     if (!active || !closeOnBack) return;
 
