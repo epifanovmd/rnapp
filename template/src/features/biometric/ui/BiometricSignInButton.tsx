@@ -1,20 +1,30 @@
 import { Button } from "@shared/ui";
-import React, { FC } from "react";
+import { observer } from "mobx-react-lite";
+import React, { FC, useCallback, useEffect } from "react";
 
-import { useBiometric } from "../model/useBiometric";
+import { IBiometricStore } from "../model/types";
 
-/** Вход по биометрии; без подключённой на устройстве биометрии ничего не рендерит. */
-export const BiometricSignInButton: FC = () => {
-  const { available, authorization } = useBiometric();
+/** Вход по Face ID / Touch ID / отпечатку; без включённой на устройстве биометрии — пусто. */
+export const BiometricSignInButton: FC = observer(() => {
+  const store = IBiometricStore.useInstance();
+  const { canSignIn, isBusy, label, icon, load, signIn } = store;
 
-  if (!available) return null;
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handlePress = useCallback(() => signIn(), [signIn]);
+
+  if (!canSignIn) return null;
 
   return (
     <Button
       appearance={"outline"}
-      leftIcon={"scanFace"}
-      title={"Войти по биометрии"}
-      onPress={authorization}
+      leftIcon={icon}
+      loading={isBusy}
+      disabled={isBusy}
+      title={`Войти по ${label}`}
+      onPress={handlePress}
     />
   );
-};
+});

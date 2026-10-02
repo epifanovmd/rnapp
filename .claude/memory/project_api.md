@@ -238,7 +238,8 @@ auth-API (обновление токенов) → сессия → HTTP-кли�
   `toHolderPage` (`shared/api/main/main-pagination.ts`) через `mapCancelable`. У `CollectionHolder.fromApi`
   нужен extractor `page => page.items` — без него страница молча кладётся в items (был баг сессий).
 - Аудит — курсор `{ items, nextCursor }`.
-- Биометрия: `generateNonce({ userId, deviceId })`, `verifySignature({ userId, deviceId, nonce, signature })`.
+- Биометрия: `generateNonce({ userId, deviceId }, { auth: false })`, `verifySignature({ userId, deviceId, nonce, signature }, { auth: false })`
+  — публичные, без bearerAuth (иначе 401 verify ушёл бы в refresh); `deleteDevice`/`getDevices` — с `{ notifyErrors: false }`.
 - Загрузка файла: `uploadFile({ file: toFormFile({ uri, name, type }) })` (`shared/lib/files`);
   сервер сверяет расширение, mime и сигнатуру (jpg/png/…/pdf/txt/csv …).
 - Сокет-события: `job:updated` (JobRunDto, владельцу), `file:processed` (IFileDto), `user:email-changed`.

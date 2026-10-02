@@ -231,7 +231,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   `<Chart series>` — скрытая серия уходит из тултипа и домена) + `legendProps`; правила —
   `series-visibility.ts` (последнюю видимую не выключить, тесты). Gotcha:
   `CurrentValueLineLayer seriesId=…` при отсутствии серии падает на `series[0]`.
-- Иконка `scanFace` (lucide ScanFace) — биометрия. Бренд-иконки GitHub в lucide 1.x нет.
+- Иконки `scanFace` (lucide ScanFace) — Face ID, `fingerprint` (lucide FingerprintPattern) — Touch ID/Android. Бренд-иконки GitHub в lucide 1.x нет.
 - `ScreenFallback` (screen/) — Navbar с «назад» (`onBack`) + ScreenState
   (loading / error+retry / notFound).
 - Плейграунд: вкладка Settings (группы строк, Section.Action, ScreenFallback), Forms —

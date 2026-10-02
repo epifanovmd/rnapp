@@ -3,6 +3,7 @@ import { authModule } from "@entities/auth";
 import { fileModule } from "@entities/file";
 import { jobModule } from "@entities/job";
 import { userModule } from "@entities/user";
+import { biometricModule } from "@features/biometric";
 import { apiModule } from "@shared/api";
 import { appStateModule } from "@shared/lib/app-state";
 import { iocContainer } from "@shared/lib/di";
@@ -36,6 +37,7 @@ export const registerContainerModules = (): void => {
     themeModule,
     webrtcModule,
     socketModule,
+    biometricModule,
     appDataModule,
   );
 };

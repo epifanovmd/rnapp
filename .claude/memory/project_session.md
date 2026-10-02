@@ -89,3 +89,23 @@ DI-модули импортируют контракты напрямую (`not
 - Права — строки (`Permission` в entities/user), `KnownPermission` в спеке нет;
   демо-задача — по праву `jobs:demo` (`JOB_PERMISSIONS`).
 - «Мой журнал» живой: `audit:created` → `IAuditRealtime` → `AuditStore.prepend`.
+
+## Вход по биометрии (`features/biometric`)
+
+- Состояние — `IBiometricStore` (MobX, DI-модуль фичи `biometricModule`, грузится в `app/app.module.ts`):
+  один источник для `BiometricMenuItem`, `BiometricSignInButton` и бутстрапа. Нативка — за портом
+  `IBiometricDevice` (`NativeBiometricDevice`: react-native-biometrics + device-info + AsyncStorage
+  для миграции), поэтому стор покрыт тестом на фейках (`model/__tests__/biometric-store.test.ts`).
+- Регистрация — MMKV `app:biometric` = `{ userId, deviceId }`; прежний AsyncStorage `biometricUserId`
+  переносится в `load()` (deviceId — `getUniqueId`) и удаляется.
+- `isEnabled` = регистрация того же `user.id`; `canSignIn` = датчик + регистрация (любого пользователя).
+  Выход из аккаунта ключ не трогает; включение другим пользователем заменяет ключ (запись прежнего
+  на сервере остаётся до его отзыва).
+- Вход: датчик → ключ есть? → nonce (`auth:false`) → `createSignature` → verify (`auth:false`) →
+  `authStore.restore(tokens)`. Один вход за раз (`isBusy`). 2FA и lockout сервер не проверяет.
+- Разбор ошибок — чистые `model/biometric-outcome.ts`: 401 verify в срок nonce (5 мин − 10 с) —
+  ключ отозван → сброс; позже — «время истекло», без сброса; 429/4xx — текст сервера; сеть/5xx — тихо
+  (тост уже от notifyErrors). Нативные: отмена — тихо (авто/включение) или info; `Key not found` /
+  `invalidated` — сброс; lockout — «Датчик заблокирован…».
+- Выключение — `DELETE /biometric/{deviceId}` (404 = успех) + удаление ключа всегда.
+  Сверка `sync()` при показе строки меню: ключа нет → отзыв + сброс; устройства нет в `GET /devices` → сброс.

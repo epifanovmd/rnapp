@@ -46,7 +46,8 @@ type: project
 - `shared/lib/navigation/` — только инфраструктура: `navigationRef`, `NavigationService`
   (императивная навигация вне React, MobX `currentRouteName`/`activePath`),
   `useNavigation()`/`useRoute<Name>()`.
-- Бутстрап (restore, биометрия, splash) — `app/hooks/useAppBootstrap.ts` (onReady).
+- Бутстрап — `app/hooks/useAppBootstrap.ts` (onReady): `authStore.restore()` + `IBiometricStore.load()`
+  параллельно, скрытие splash, затем (нет сессии) `biometricStore.signIn({ auto: true })` — тихая отмена.
 - Deep linking — пути в static-конфиге (`linking:` у экранов), `app/App.linking.ts` —
   prefixes + `enabled: "auto"`.
 
