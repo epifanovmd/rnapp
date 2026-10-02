@@ -1,4 +1,8 @@
-import { clampOffset, resolveCollapseRange } from "@shared/lib/bars";
+import {
+  clampOffset,
+  hiddenBarLayout,
+  resolveCollapseRange,
+} from "@shared/lib/bars";
 import { useTheme } from "@shared/lib/theme";
 import React, { useCallback, useEffect } from "react";
 import { LayoutChangeEvent, StyleSheet, View, ViewProps } from "react-native";
@@ -56,16 +60,24 @@ const HiddenBarRoot = ({
 
   useEffect(() => () => navbar.setPinnedHeight(0), [navbar]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY: -clampOffset(
-          offset.value,
-          resolveCollapseRange(height.value, pinned.value),
-        ),
-      },
-    ],
-  }));
+  // До замера слой в потоке и сам отодвигает контент (отступ ещё 0), после —
+  // поверх контента: иначе первый кадр контента рисуется под шапкой.
+  const animatedStyle = useAnimatedStyle(() => {
+    const layout = hiddenBarLayout(height.value, top);
+
+    return {
+      position: layout.position,
+      top: layout.top,
+      transform: [
+        {
+          translateY: -clampOffset(
+            offset.value,
+            resolveCollapseRange(height.value, pinned.value),
+          ),
+        },
+      ],
+    };
+  }, [height, pinned, offset, top]);
 
   const backgroundColor = resolveBarBackground(background, colors);
 
@@ -81,7 +93,7 @@ const HiddenBarRoot = ({
         onLayout={navbar.onLayout}
         style={[
           styles.animatedContainer,
-          { backgroundColor, top },
+          { backgroundColor },
           bottomRadiusStyle(bottomRadius),
           animatedStyle,
         ]}
@@ -113,7 +125,6 @@ const styles = StyleSheet.create({
     zIndex: 998,
   },
   animatedContainer: {
-    position: "absolute",
     left: 0,
     right: 0,
     zIndex: 997,

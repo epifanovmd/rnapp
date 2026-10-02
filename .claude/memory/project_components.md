@@ -481,3 +481,8 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   (+safe area у плавающей), `hideMode` slide|shrink|none. Старый `TabBar` виджета и
   `tab-bar-indicator` удалены.
 - Демо: Components → Tab bar (`demos/tab-bar`) — живая панель и все настройки.
+- Gotcha `HiddenBar` (первый кадр): высота шапки приходит из onLayout после первого кадра —
+  отступ контента (`inset`) в нём 0, и контент рисовался под шапкой. Слой шапки до замера — в
+  потоке (сам отодвигает контент), после — absolute под safe area (`hiddenBarLayout(height, top)`
+  в том же анимированном стиле, что translateY; переход в одном кадре с `inset`, оба от `height`).
+  У `ImageBar` та же схема absolute + onLayout — при жалобах лечить так же.

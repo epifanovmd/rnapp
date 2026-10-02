@@ -101,3 +101,20 @@ export const resolveReleaseTarget = (
 
   return snapOffset(offset, range) > 0 ? "hide" : "show";
 };
+
+/**
+ * Раскладка слоя скрываемой шапки (worklet): пока высота не измерена — в
+ * потоке (сама отодвигает контент, отступ контента ещё 0), после замера —
+ * поверх контента со сдвигом на безопасную зону (отступ контента — её высота).
+ * Переход — в одном кадре с отступом: оба читают одну высоту панели.
+ */
+export const hiddenBarLayout = (
+  height: number,
+  safeTop: number,
+): { position: "relative" | "absolute"; top: number } => {
+  "worklet";
+
+  return height > 0
+    ? { position: "absolute", top: safeTop }
+    : { position: "relative", top: 0 };
+};

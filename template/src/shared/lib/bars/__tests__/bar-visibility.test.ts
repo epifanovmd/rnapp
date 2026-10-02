@@ -1,5 +1,6 @@
 import {
   clampOffset,
+  hiddenBarLayout,
   isRemeasure,
   rebaseOffset,
   resolveCollapseRange,
@@ -97,5 +98,19 @@ describe("bar-visibility", () => {
     it("панель исчезла — сразу", () => {
       expect(isRemeasure(120, 0)).toBe(false);
     });
+  });
+});
+
+describe("hiddenBarLayout", () => {
+  it("до замера — в потоке: контент не уходит под шапку в первом кадре", () => {
+    expect(hiddenBarLayout(0, 47)).toEqual({ position: "relative", top: 0 });
+  });
+
+  it("после замера — поверх контента под безопасной зоной", () => {
+    expect(hiddenBarLayout(108, 47)).toEqual({ position: "absolute", top: 47 });
+  });
+
+  it("объявлен как worklet", () => {
+    expect(hiddenBarLayout.toString()).toMatch(/["']worklet["']/);
   });
 });
