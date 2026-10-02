@@ -1,7 +1,6 @@
 import {
   Button,
   Row,
-  SwitchTheme,
   TButtonAppearance,
   TButtonVariant,
 } from "@shared/ui";
@@ -27,10 +26,6 @@ export const ButtonsDemo: FC = memo(() => {
 
   return (
     <DemoScreen>
-      <DemoSection title={"Тема"}>
-        <SwitchTheme />
-      </DemoSection>
-
       {APPEARANCES.map(appearance => (
         <DemoSection
           key={appearance}
