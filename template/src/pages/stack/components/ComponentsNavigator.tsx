@@ -32,6 +32,8 @@ import { TicketTab } from "./tabs/Ticket";
 
 const TopTab = createMaterialTopTabNavigator<ComponentsTabsParamList>();
 
+const SCREEN_OPTIONS = { lazy: true };
+
 const renderTabBar = ({
   state: { routes: tabRoutes, index },
   navigation,
@@ -71,6 +73,9 @@ export const ComponentsNavigator: FC<IComponentsNavigatorProps> = ({
         tabBar={renderTabBar}
         initialRouteName={initialRouteName}
         backBehavior={"none"}
+        // Вкладки монтируются при первом показе: иначе открытие любой из них
+        // монтирует все демо разом поверх анимации перехода.
+        screenOptions={SCREEN_OPTIONS}
         screenListeners={{
           blur: () => navbar.show(),
           focus: () => navbar.show(),
