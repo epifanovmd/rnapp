@@ -400,3 +400,20 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
 
 - `BottomSheet` / `ModalSheet` проп `dismissKeyboardOnOpen`: на `onAnimate` из −1 (`isSheetOpening`, тест) — `KeyboardController.dismiss()`; клавиатура уезжает одновременно с выездом шторки. Включён в шторках выбора кита: SelectSheet (Select/Autocomplete), ActionSheet, DatePicker, TimePicker, RangePicker (можно переопределить через bottomSheetProps). Autocomplete фокусирует поиск в `onOpened` — после открытия, конфликта нет.
 - Закрытие любой шторки закрывает клавиатуру (`isSheetClosing`).
+
+## Переход содержимого в шапку (scroll reveal)
+- `shared/lib/scroll-reveal`: `useScrollReveal({start=0.3, end=1, distance?, content?})` →
+  `{progress (DerivedValue 0…1), anchorRef, onLayout, scrollToTop}`. Прогресс — доля якоря, ушедшая
+  за верх видимой области: `offsetY + topInset − anchorTop` (`revealProgress`, `resolveRevealRange`,
+  `subProgress` — чистые, тесты). Якорь меряется `measureLayout` относительно `contentRef` при
+  своём onLayout и при onLayout контента (`subscribeLayout`), на кадре — без измерений.
+- Контекст `ScrollContentContext` (`IScrollContent`: telemetry, contentRef, topInset,
+  subscribeLayout, scrollToTop) даёт `ScreenScroll` (обёртка `View ref={contentRef}` вокруг
+  распорки и тела). Gotcha: хук — в потомке `ScreenScroll`, не в компоненте, который его рендерит.
+- `shared/ui/reveal`: `RevealView` (`preset` slide-up | slide-down | fade | scale, `inverse`,
+  `range`, `distance`, `scaleFrom`; стиль — чистый `revealStyle`). `NavbarReveal` — компактный
+  заголовок/подзаголовок выезжает, `fallbackTitle` гаснет на [0, 0.5], тап с прогресса ≥ 0.5.
+  `useNavbarReveal(props)` ставит его в `options.headerTitle` (фабрика вне компонента — иначе
+  react/no-unstable-nested-components) и снимает при размонтировании; `AppHeader` рендерит
+  функцию `headerTitle` в `Navbar.Content`.
+- Демо: Components → Scroll reveal (`demos/scroll-reveal`, переключатель пресетов).

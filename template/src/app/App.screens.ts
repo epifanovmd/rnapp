@@ -29,6 +29,7 @@ import {
   ScreenDemo,
   ScreenReadyDemo,
   ScreenReadyTargetDemo,
+  ScrollRevealDemo,
   SettingsDemo,
   TabsDemo,
   TicketDemo,
@@ -178,6 +179,11 @@ export const RootStack = createStackNavigator({
           screen: ScreenReadyDemo,
           options: { title: "ScreenReady" },
           linking: "components/screen-ready",
+        },
+        ComponentsScrollReveal: {
+          screen: ScrollRevealDemo,
+          options: { title: "Scroll reveal" },
+          linking: "components/scroll-reveal",
         },
         ComponentsScreenReadyTarget: {
           screen: ScreenReadyTargetDemo,

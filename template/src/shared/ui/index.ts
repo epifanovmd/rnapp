@@ -43,6 +43,7 @@ export * from "./progress-bar";
 export * from "./qr-code";
 export * from "./radio";
 export * from "./refresh-indicator";
+export * from "./reveal";
 export * from "./scan";
 export * from "./screen";
 export * from "./scroll-view";

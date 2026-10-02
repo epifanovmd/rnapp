@@ -15,6 +15,7 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsSettings", title: "Settings" },
   { route: "ComponentsScreen", title: "Screen" },
   { route: "ComponentsScreenReady", title: "ScreenReady" },
+  { route: "ComponentsScrollReveal", title: "Scroll reveal" },
   { route: "ComponentsTabs", title: "Tabs" },
   { route: "ComponentsFeedback", title: "Feedback" },
   { route: "ComponentsMedia", title: "Media" },

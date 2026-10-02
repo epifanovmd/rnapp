@@ -4,6 +4,8 @@ export * from "./Navbar";
 export * from "./navbar-bar";
 export * from "./NavbarIcon";
 export * from "./NavbarInset";
+export * from "./NavbarReveal";
 export * from "./NavbarSubTitle";
 export * from "./NavbarTitle";
+export * from "./use-navbar-reveal";
 export * from "./use-navbar-scroll-sync";

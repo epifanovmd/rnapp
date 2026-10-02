@@ -4,6 +4,10 @@ import {
   usePullToRefreshScroll,
 } from "@shared/lib/pull-to-refresh";
 import { IScrollTelemetry, useScrollTelemetry } from "@shared/lib/scroll";
+import {
+  IScrollContent,
+  ScrollContentContext,
+} from "@shared/lib/scroll-reveal";
 import { useTheme } from "@shared/lib/theme";
 import React, {
   FC,
@@ -11,6 +15,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
 } from "react";
 import { StyleSheet, View } from "react-native";
@@ -117,6 +122,35 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
     height: readAnimatedNumber(topInset),
   }));
 
+  // Скролл экрана для содержимого: якоря (useScrollReveal) меряются от
+  // contentRef и перемеряются при смене раскладки контента.
+  const scrollRef = useRef<Animated.ScrollView>(null);
+  const contentRef = useRef<View | null>(null);
+  const layoutListeners = useRef(new Set<() => void>());
+
+  const notifyLayout = useCallback(() => {
+    layoutListeners.current.forEach(listener => listener());
+  }, []);
+
+  const scrollContent = useMemo<IScrollContent>(
+    () => ({
+      telemetry,
+      contentRef,
+      topInset,
+      subscribeLayout: listener => {
+        layoutListeners.current.add(listener);
+        listener();
+
+        return () => {
+          layoutListeners.current.delete(listener);
+        };
+      },
+      scrollToTop: (animated = true) =>
+        scrollRef.current?.scrollTo({ y: 0, animated }),
+    }),
+    [telemetry, topInset],
+  );
+
   const { gesture } = ptr;
   // GestureDetector протяжки — вплотную к ScrollView: цепляется к прямому ребёнку.
   const renderScrollView = useCallback(
@@ -134,6 +168,7 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
 
       <Animated.View style={[styles.fill, translateStyle]}>
         <KeyboardAwareScrollView
+          ref={scrollRef}
           topInset={topInset}
           restoreScrollOnKeyboardHide={restoreScrollOnKeyboardHide}
           renderScrollView={onRefresh ? renderScrollView : undefined}
@@ -143,14 +178,18 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
           alwaysBounceVertical={!!onRefresh}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.View pointerEvents={"none"} style={insetStyle} />
-          <View
-            style={[
-              styles.body,
-              { gap, paddingBottom: 16 + bottom + bottomInset },
-            ]}
-          >
-            {children}
+          <View ref={contentRef} onLayout={notifyLayout}>
+            <Animated.View pointerEvents={"none"} style={insetStyle} />
+            <View
+              style={[
+                styles.body,
+                { gap, paddingBottom: 16 + bottom + bottomInset },
+              ]}
+            >
+              <ScrollContentContext.Provider value={scrollContent}>
+                {children}
+              </ScrollContentContext.Provider>
+            </View>
           </View>
         </KeyboardAwareScrollView>
       </Animated.View>

@@ -26,6 +26,7 @@ export {
   ScreenDemo,
   ScreenReadyDemo,
   ScreenReadyTargetDemo,
+  ScrollRevealDemo,
   SettingsDemo,
   TabsDemo,
   TicketDemo,
