@@ -1,7 +1,8 @@
-import { Circle, Text, vec } from "@shopify/react-native-skia";
+import { Circle, Text } from "@shopify/react-native-skia";
 import React, { FC } from "react";
 import { useDerivedValue } from "react-native-reanimated";
 
+import { tooltipRowLayout } from "./tooltip-row-layout";
 import type { TooltipRowProps } from "./types";
 
 export const TooltipRow: FC<TooltipRowProps> = ({
@@ -18,22 +19,26 @@ export const TooltipRow: FC<TooltipRowProps> = ({
   rowHeight,
   dotRadius,
 }) => {
-  const rowCenterY = paddingY + rowHeight * index + rowHeight / 2;
+  // Индекс и метрики — в зависимостях: второй палец сдвигает строки, и без
+  // пересоздания derived строка осталась бы на старом месте.
+  const layout = useDerivedValue(
+    () =>
+      tooltipRowLayout(boxX.value, boxY.value, index, {
+        paddingX,
+        paddingY,
+        rowHeight,
+        dotRadius,
+        fontSize,
+      }),
+    [boxX, boxY, index, paddingX, paddingY, rowHeight, dotRadius, fontSize],
+  );
 
   const dotCenter = useDerivedValue(
-    () => vec(boxX.value + paddingX + dotRadius, boxY.value + rowCenterY),
-    [boxX, boxY],
+    () => ({ x: layout.value.dotX, y: layout.value.dotY }),
+    [layout],
   );
-
-  const textX = useDerivedValue(
-    () => boxX.value + paddingX * 2 + dotRadius * 2,
-    [boxX],
-  );
-
-  const textY = useDerivedValue(
-    () => boxY.value + rowCenterY + fontSize * 0.3,
-    [boxY],
-  );
+  const textX = useDerivedValue(() => layout.value.textX, [layout]);
+  const textY = useDerivedValue(() => layout.value.textY, [layout]);
 
   return (
     <>
