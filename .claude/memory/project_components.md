@@ -243,7 +243,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   - `app-screen-readiness.ts` — экземпляр приложения `screenReadiness` (navigationRef + `screenTransitions`).
   - `use-screen-ready.ts` — тонкий хук (`once`), ключ экрана из `NavigationRouteContext`.
 - Память анимаций — `screenTransitions`, питается `screenTransitionListeners` в `RootStack.screenListeners`; карточка стека шлёт `transitionEnd` и стартовому экрану. Без подключения — отпускает по `timeout`.
-- Применено: Charts, CarouselDemo (скелетоны до готовности).
+- Демо: `ComponentsScreenReady` (ссылки на тяжёлый экран, delay, `whenRouteReady` вне React с тостом времени) и `ComponentsScreenReadyTarget` (скелетоны → 4 Skia-графика, параметр `delay`); файлы `demos/screen-ready/`. Charts и Carousel монтируются сразу, без хука.
 
 ## Плейграунд компонентов
 - `pages/stack/components`: экран `Components` — ссылки `NavLink` на демо-экраны; список — `component-demos.ts`.

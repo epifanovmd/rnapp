@@ -1,5 +1,4 @@
-import { useScreenReady } from "@shared/lib/navigation";
-import { Carousel, Image, Skeleton } from "@shared/ui";
+import { Carousel, Image } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet } from "react-native";
 import { Easing } from "react-native-reanimated";
@@ -26,9 +25,6 @@ const TICKER_CARD_GAP = 8;
 
 const GALLERY_HEIGHT = 220;
 
-/** Скелетоны на месте каруселей, пока не закончилась анимация открытия. */
-const PLACEHOLDER_HEIGHTS = [52, 204, GALLERY_HEIGHT, GALLERY_HEIGHT, 204];
-
 const renderPhoto = ({ item }: { item: string }) => (
   <Image url={item} width={"100%"} height={"100%"} radius={16} ph={4} />
 );
@@ -38,18 +34,6 @@ const renderTicker = ({ item }: { item: ITickerCardProps }) => (
 );
 
 export const CarouselDemo: FC = memo(() => {
-  const ready = useScreenReady();
-
-  if (!ready) {
-    return (
-      <DemoScreen>
-        {PLACEHOLDER_HEIGHTS.map((height, index) => (
-          <Skeleton key={index} height={height} borderRadius={16} />
-        ))}
-      </DemoScreen>
-    );
-  }
-
   return (
     <DemoScreen>
       <DemoSection

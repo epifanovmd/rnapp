@@ -16,6 +16,8 @@ export {
   NotificationsDemo,
   PickersDemo,
   ScreenDemo,
+  ScreenReadyDemo,
+  ScreenReadyTargetDemo,
   SettingsDemo,
   TabsDemo,
   TicketDemo,

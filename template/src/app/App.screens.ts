@@ -21,6 +21,8 @@ import {
   NotificationsDemo,
   PickersDemo,
   ScreenDemo,
+  ScreenReadyDemo,
+  ScreenReadyTargetDemo,
   SettingsDemo,
   TabsDemo,
   TicketDemo,
@@ -152,6 +154,16 @@ export const RootStack = createStackNavigator({
           screen: ScreenDemo,
           options: { title: "Screen" },
           linking: "components/screen",
+        },
+        ComponentsScreenReady: {
+          screen: ScreenReadyDemo,
+          options: { title: "ScreenReady" },
+          linking: "components/screen-ready",
+        },
+        ComponentsScreenReadyTarget: {
+          screen: ScreenReadyTargetDemo,
+          options: { title: "Тяжёлый экран" },
+          linking: "components/screen-ready/target",
         },
         ComponentsTabs: {
           screen: TabsDemo,

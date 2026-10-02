@@ -14,6 +14,7 @@ export * from "./MediaDemo";
 export * from "./modals";
 export * from "./NotificationsDemo";
 export * from "./PickersDemo";
+export * from "./screen-ready";
 export * from "./ScreenDemo";
 export * from "./settings";
 export * from "./tabs";
