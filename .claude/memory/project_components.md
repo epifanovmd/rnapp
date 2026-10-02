@@ -238,8 +238,8 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 
 ## Готовность экрана (screen-ready)
 - `shared/lib/navigation/screen-ready`, три уровня:
-  - `route-path.ts` — чистые функции над деревом состояния: `findRoutePath`, `resolveStackRouteKey` (ближайший экран стека), `isPathFocused` (тесты).
-  - `screen-readiness.ts` — сервис вне React: `createScreenReadiness({ getRootState, subscribeState, tracker })` → `isReady`, `subscribe`, `onReady(routeKey, cb, { waitForFocus, waitForTransition, delay, timeout=1000 })` → отмена, `whenReady` (промис) (тесты на фейковых таймерах).
+  - `route-path.ts` — чистые функции над деревом состояния: `findRoutePath`, `resolveStackRouteKey` (ближайший экран стека), `isPathFocused`, `findRouteKeyByName` (верхний из одноимённых) (тесты).
+  - `screen-readiness.ts` — сервис вне React: `createScreenReadiness({ getRootState, subscribeState, tracker })` → `isReady`, `subscribe`, `onReady(routeKey, cb, { waitForFocus, waitForTransition, delay, timeout=1000 })` → отмена, `whenReady` (промис); по имени маршрута — `onRouteReady(name, cb(key))` / `whenRouteReady(name)` → ключ: ждёт появления экрана в дереве (тесты на фейковых таймерах).
   - `app-screen-readiness.ts` — экземпляр приложения `screenReadiness` (navigationRef + `screenTransitions`).
   - `use-screen-ready.ts` — тонкий хук (`once`), ключ экрана из `NavigationRouteContext`.
 - Память анимаций — `screenTransitions`, питается `screenTransitionListeners` в `RootStack.screenListeners`; карточка стека шлёт `transitionEnd` и стартовому экрану. Без подключения — отпускает по `timeout`.

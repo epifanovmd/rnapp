@@ -27,7 +27,10 @@ const createSource = (initial: INavigationStateLike) => {
 const stackWith = (index: number): INavigationStateLike => ({
   type: "stack",
   index,
-  routes: [{ key: "Home" }, { key: "Demo" }],
+  routes: [
+    { key: "Home", name: "Home" },
+    { key: "Demo", name: "Demo" },
+  ],
 });
 
 describe("createScreenReadiness", () => {
@@ -105,5 +108,32 @@ describe("createScreenReadiness", () => {
 
     expect(readiness.isReady("Missing")).toBe(true);
     await expect(readiness.whenReady("Missing")).resolves.toBeUndefined();
+  });
+
+  it("по имени: ждёт появления экрана и отдаёт его ключ", () => {
+    const source = createSource({
+      type: "stack",
+      index: 0,
+      routes: [{ key: "Home", name: "Home" }],
+    });
+    const readiness = createScreenReadiness(source);
+    const callback = jest.fn();
+
+    readiness.onRouteReady("Demo", callback);
+    expect(callback).not.toHaveBeenCalled();
+
+    source.setState(stackWith(1));
+    source.tracker.markOpened("Demo");
+
+    expect(callback).toHaveBeenCalledWith("Demo");
+  });
+
+  it("whenRouteReady резолвится ключом экрана", async () => {
+    const source = createSource(stackWith(1));
+    const readiness = createScreenReadiness(source);
+
+    source.tracker.markOpened("Demo");
+
+    await expect(readiness.whenRouteReady("Demo")).resolves.toBe("Demo");
   });
 });

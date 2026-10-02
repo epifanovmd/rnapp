@@ -8,6 +8,7 @@ export interface INavigationStateLike {
 export interface IRouteLike {
   /** У частичного (ещё не инициализированного) состояния ключа может не быть. */
   key?: string;
+  name?: string;
   /** Вложенный навигатор; у ещё не открытого бывает частичным или пустым. */
   state?: Partial<INavigationStateLike>;
 }
@@ -71,3 +72,24 @@ export const resolveStackRouteKey = (path: IRoutePathEntry[]) => {
 /** Экран активен: активен на каждом уровне пути от корня. */
 export const isPathFocused = (path: IRoutePathEntry[]) =>
   path.every(entry => entry.focused);
+
+/**
+ * Ключ экрана по имени маршрута; из нескольких одноимённых — верхний (обход
+ * каждого уровня с конца: в стеке позже — выше). `null` — экрана нет.
+ */
+export const findRouteKeyByName = (
+  state: Partial<INavigationStateLike> | undefined,
+  name: string,
+): string | null => {
+  if (!state?.routes) return null;
+
+  for (let index = state.routes.length - 1; index >= 0; index--) {
+    const route = state.routes[index];
+    const nested = findRouteKeyByName(route.state, name);
+
+    if (nested) return nested;
+    if (route.name === name && route.key) return route.key;
+  }
+
+  return null;
+};

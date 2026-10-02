@@ -1,4 +1,5 @@
 import {
+  findRouteKeyByName,
   findRoutePath,
   INavigationStateLike,
   isPathFocused,
@@ -44,6 +45,20 @@ export interface IScreenReadiness {
   ) => () => void;
   /** То же промисом — для кода вне React (сервисы, сторы). */
   whenReady: (routeKey: string, options?: IScreenReadyOptions) => Promise<void>;
+  /**
+   * Дождаться экрана по имени маршрута: он появится в дереве и станет готов;
+   * `callback` получает его ключ. Из одноимённых — верхний.
+   */
+  onRouteReady: (
+    name: string,
+    callback: (routeKey: string) => void,
+    options?: IScreenReadyOptions,
+  ) => () => void;
+  /** То же промисом; резолвится ключом экрана. */
+  whenRouteReady: (
+    name: string,
+    options?: IScreenReadyOptions,
+  ) => Promise<string>;
 }
 
 const DEFAULT_TIMEOUT = 1000;
@@ -82,10 +97,14 @@ export const createScreenReadiness = (
     };
   };
 
-  const onReady: IScreenReadiness["onReady"] = (
-    routeKey,
-    callback,
-    { delay = 0, timeout = DEFAULT_TIMEOUT, ...conditions } = {},
+  /**
+   * Ожидание готовности экрана, ключ которого вычисляется на каждой проверке:
+   * `null` — экрана ещё нет в дереве, ждать дальше.
+   */
+  const waitFor = (
+    resolveKey: () => string | null,
+    callback: (routeKey: string) => void,
+    { delay = 0, timeout = DEFAULT_TIMEOUT, ...conditions }: IScreenReadyOptions,
   ) => {
     let done = false;
     let timedOut = false;
@@ -100,20 +119,23 @@ export const createScreenReadiness = (
       clearTimeout(timeoutTimer);
     };
 
-    const finish = () => {
+    const finish = (routeKey: string) => {
       if (done) return;
       cancel();
-      callback();
+      callback(routeKey);
     };
 
     const evaluate = () => {
       if (done || delayTimer !== undefined) return;
-      if (!check(routeKey, conditions, timedOut)) return;
+
+      const routeKey = resolveKey();
+
+      if (routeKey === null || !check(routeKey, conditions, timedOut)) return;
 
       if (delay > 0) {
-        delayTimer = setTimeout(finish, delay);
+        delayTimer = setTimeout(() => finish(routeKey), delay);
       } else {
-        finish();
+        finish(routeKey);
       }
     };
 
@@ -131,6 +153,23 @@ export const createScreenReadiness = (
     return cancel;
   };
 
+  const onReady: IScreenReadiness["onReady"] = (
+    routeKey,
+    callback,
+    options = {},
+  ) => waitFor(() => routeKey, () => callback(), options);
+
+  const onRouteReady: IScreenReadiness["onRouteReady"] = (
+    name,
+    callback,
+    options = {},
+  ) =>
+    waitFor(
+      () => findRouteKeyByName(source.getRootState(), name),
+      callback,
+      options,
+    );
+
   return {
     isReady: (routeKey, conditions = {}) => check(routeKey, conditions, false),
     subscribe,
@@ -138,6 +177,11 @@ export const createScreenReadiness = (
     whenReady: (routeKey, options) =>
       new Promise(resolve => {
         onReady(routeKey, resolve, options);
+      }),
+    onRouteReady,
+    whenRouteReady: (name, options) =>
+      new Promise(resolve => {
+        onRouteReady(name, resolve, options);
       }),
   };
 };

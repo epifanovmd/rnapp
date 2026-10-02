@@ -1,4 +1,5 @@
 import {
+  findRouteKeyByName,
   findRoutePath,
   INavigationStateLike,
   isPathFocused,
@@ -80,5 +81,33 @@ describe("isPathFocused", () => {
 
     expect(isPathFocused(findRoutePath(stack, "B")!)).toBe(true);
     expect(isPathFocused(findRoutePath(stack, "A")!)).toBe(false);
+  });
+});
+
+describe("findRouteKeyByName", () => {
+  const stack: INavigationStateLike = {
+    type: "stack",
+    routes: [
+      { key: "Chat-1", name: "Chat" },
+      {
+        key: "Tabs-1",
+        name: "Tabs",
+        state: { type: "tab", routes: [{ key: "Home-1", name: "Home" }] },
+      },
+      { key: "Chat-2", name: "Chat" },
+    ],
+  };
+
+  it("из одноимённых — верхний экран стека", () => {
+    expect(findRouteKeyByName(stack, "Chat")).toBe("Chat-2");
+  });
+
+  it("находит вложенный экран", () => {
+    expect(findRouteKeyByName(stack, "Home")).toBe("Home-1");
+  });
+
+  it("экрана нет — null", () => {
+    expect(findRouteKeyByName(stack, "Missing")).toBeNull();
+    expect(findRouteKeyByName(undefined, "Chat")).toBeNull();
   });
 });
