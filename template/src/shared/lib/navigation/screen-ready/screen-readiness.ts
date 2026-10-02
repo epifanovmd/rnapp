@@ -32,7 +32,8 @@ export interface IScreenReadinessSource {
   tracker: ITransitionTracker;
 }
 
-export interface IScreenReadiness {
+/** `TName` — имена маршрутов навигатора: `onRouteReady` принимает только их. */
+export interface IScreenReadiness<TName extends string = string> {
   /** Готов ли экран сейчас (без задержки и таймаута). */
   isReady: (routeKey: string, conditions?: IScreenReadyConditions) => boolean;
   /** Оповещение о любом изменении, способном поменять готовность. */
@@ -50,13 +51,13 @@ export interface IScreenReadiness {
    * `callback` получает его ключ. Из одноимённых — верхний.
    */
   onRouteReady: (
-    name: string,
+    name: TName,
     callback: (routeKey: string) => void,
     options?: IScreenReadyOptions,
   ) => () => void;
   /** То же промисом; резолвится ключом экрана. */
   whenRouteReady: (
-    name: string,
+    name: TName,
     options?: IScreenReadyOptions,
   ) => Promise<string>;
 }
@@ -68,9 +69,9 @@ const DEFAULT_TIMEOUT = 1000;
  * экрана стека закончилась. Экран, которого нет в дереве навигации, готов
  * сразу — ждать нечего.
  */
-export const createScreenReadiness = (
+export const createScreenReadiness = <TName extends string = string>(
   source: IScreenReadinessSource,
-): IScreenReadiness => {
+): IScreenReadiness<TName> => {
   const check = (
     routeKey: string,
     { waitForFocus = true, waitForTransition = true }: IScreenReadyConditions,
@@ -153,13 +154,13 @@ export const createScreenReadiness = (
     return cancel;
   };
 
-  const onReady: IScreenReadiness["onReady"] = (
+  const onReady: IScreenReadiness<TName>["onReady"] = (
     routeKey,
     callback,
     options = {},
   ) => waitFor(() => routeKey, () => callback(), options);
 
-  const onRouteReady: IScreenReadiness["onRouteReady"] = (
+  const onRouteReady: IScreenReadiness<TName>["onRouteReady"] = (
     name,
     callback,
     options = {},
