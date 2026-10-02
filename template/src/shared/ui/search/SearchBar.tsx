@@ -291,7 +291,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
     justifyContent: "center",
-    alignItems: "flex-end",
     paddingLeft: 12,
   },
   measure: {
