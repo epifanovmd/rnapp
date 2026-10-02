@@ -259,17 +259,25 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   `computeKeyboardAwareOffset` (поле целиком над `min(низ скролла, верх клавиатуры) - bottomOffset`;
   ушло выше `visibleTop` — вниз; высокое поле прижимается началом к верху; clamp `[0, maxOffset]`),
   `keyboardProgress`, `interpolateScrollOffset`, `keyboardOverlap` (высота распорки),
-  `computeMaxScrollOffset` (конец контента = верх распорки + высота), `clampScrollOffset`.
+  `computeMaxScrollOffset` (конец контента = верх распорки + высота), `clampScrollOffset`,
+  `predictAnchoredViewport` (целевая видимая область шторки: верх = верх в покое − min(клавиатура,
+  запас подъёма), низ = верх клавиатуры − bottomInset). `field-layout.ts` — `isFieldHeightChange`.
 - `useKeyboardAwareScroll(scrollRef: AnimatedRef<Animated.ScrollView>, { bottomOffset=16, enabled,
-  topInset (TAnimatedNumber, навбар), spacer=true, containerPosition })` →
+  topInset (TAnimatedNumber, навбар), spacer=true, keyboardAnchor: { bottomInset, liftRoom } })` →
   `{ registry, spacerRef, spacerStyle, spacerHeight }`. Смещение и drag/momentum слушает сам
   (`useEvent` + `scrollRef.observe` → registerForEvents), onScroll подключать не нужно.
   onStart: замер поля и распорки в координатах КОНТЕНТА (offset из событий), резерв распорки;
-  onMove: цель пересчитывается каждый кадр по `measure(scrollRef)` (шторка едет одновременно),
+  onMove: цель пересчитывается каждый кадр по `measure(scrollRef)` (у шторки — по прогнозу),
   смещение = lerp(start, goal, прогресс); onEnd — доводка (animated, если > 2px); скрытие —
   распорка ужимается покадрово с зажимом смещения. Смена поля без смены высоты — onStart →
-  сразу animated scrollTo. Пересчёт: `registry.notifyLayout` (рост любого поля кита),
-  рост `input.value.layout.height`, подъём `containerPosition` (только вверх).
+  сразу animated scrollTo. Пересчёт: `registry.notifyLayout` (onLayout контейнера и
+  onContentSizeChange TextInput — рост multiline), рост `input.value.layout.height`. Рост во время
+  анимации клавиатуры не теряется: флаг `pendingRecapture` → перезамер и доводка в onEnd.
+- Gotcha шторки: gorhom поднимает шторку по JS `Keyboard` событиям (keyboardWillShow → runOnUI,
+  ждёт target из onFocus) своей анимацией — позже кадров keyboard-controller; высокая шторка
+  (позиция 0) не едет, а ужимает маску снизу (contentMax = container − kb − handle, paddingBottom =
+  kb). Поэтому замер вьюпорта в кадре давал низ «над клавиатурой под футером» и доводку только
+  после анимации. Решение — `keyboardAnchor`: геометрия в покое на onStart (from 0) + прогноз.
 - Реестр: `KeyboardAwareContext` (тег TextInput → animated ref контейнера). `useKeyboardAwareField(inputRef)`
   в `TextField` — регистрация на mount (`findNodeHandle`, как useSheetKeyboardTarget; на focus — гонка
   с onStart), корень TextField стал `Animated.View collapsable={false}` с `onLayout`. Поле не из
@@ -279,8 +287,10 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   распорки отступов быть не должно (paddingBottom — внутри детей), иначе maxOffset занижен.
 - Подключение: ScrollView — `ref={scrollRef}` + `<KeyboardAwareContent>`; шторка —
   `BottomSheet.Content` = `bottom-sheet/BottomSheetScrollContent` (BottomSheetScrollView +
-  хук с `spacer: false` + `containerPosition: animatedPosition`; gorhom сам поднимает и ужимает шторку
-  (paddingBottom = клавиатура), видимый низ = min(низ скролла, верх клавиатуры) — без двойного учёта);
+  хук с `spacer: false` + `keyboardAnchor` { bottomInset из BottomSheetLayout (`keyboardBottomInset`
+  инжектится в слот контента: футер + gap 16 + 12), liftRoom: gorhom `animatedPosition` };
+  `BottomSheetLayout` — paddingBottom по прогрессу клавиатуры: safe area → `SHEET_KEYBOARD_GAP` 12
+  (`sheet-keyboard-layout.ts`, тесты), в dynamic sizing идёт отступ закрытого состояния);
   AnchorList — `refScrollView={scrollRef as unknown as IAnchorListProps<unknown>["refScrollView"]}`,
   `ListFooterComponent={<KeyboardAwareSpacer/>}` (последним), Provider снаружи; `insetEnd` не
   передавать (сам двигает смещение), `scrollHandlers` не нужны. Типы проверены, демо нет.

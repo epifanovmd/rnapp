@@ -6,6 +6,7 @@ import {
   interpolateScrollOffset,
   keyboardOverlap,
   keyboardProgress,
+  predictAnchoredViewport,
 } from "../keyboard-aware-offset";
 
 /** Экран 800, клавиатура 300 → её верх на 500, зазор 16 → видимый низ 484. */
@@ -167,5 +168,56 @@ describe("clampScrollOffset", () => {
     expect(clampScrollOffset(-5, 100)).toBe(0);
     expect(clampScrollOffset(150, 100)).toBe(100);
     expect(clampScrollOffset(50, -20)).toBe(0);
+  });
+});
+
+describe("predictAnchoredViewport (шторка над клавиатурой)", () => {
+  // Экран 800, клавиатура 300 → верх 500. Под скроллом футер + отступы = 80.
+  it("короткая шторка поднимается целиком на высоту клавиатуры", () => {
+    expect(
+      predictAnchoredViewport({
+        restTop: 400,
+        liftRoom: 350,
+        screenHeight: 800,
+        keyboardHeight: 300,
+        bottomInset: 80,
+      }),
+    ).toEqual({ top: 100, bottom: 420 });
+  });
+
+  it("высокая шторка упирается в верх контейнера и ужимается снизу", () => {
+    expect(
+      predictAnchoredViewport({
+        restTop: 120,
+        liftRoom: 20,
+        screenHeight: 800,
+        keyboardHeight: 300,
+        bottomInset: 80,
+      }),
+    ).toEqual({ top: 100, bottom: 420 });
+  });
+
+  it("поле встаёт над футером, а не над клавиатурой под футером", () => {
+    // Скролл замерен до подъёма шторки: низ 720, поле на 430..490 при смещении 0.
+    const viewport = predictAnchoredViewport({
+      restTop: 120,
+      liftRoom: 20,
+      screenHeight: 800,
+      keyboardHeight: 300,
+      bottomInset: 80,
+    });
+    const lift = 120 - viewport.top;
+
+    const offset = computeKeyboardAwareOffset({
+      ...base,
+      fieldTop: 430 - lift,
+      fieldBottom: 490 - lift,
+      visibleTop: viewport.top,
+      viewportBottom: viewport.bottom,
+      currentOffset: 0,
+    });
+
+    // Низ поля после докрутки — над низом скролла (над футером) с зазором.
+    expect(490 - lift - offset).toBeLessThanOrEqual(viewport.bottom - 16);
   });
 });

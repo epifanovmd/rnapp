@@ -15,19 +15,23 @@ import { TBottomSheetContentProps } from "./types";
 
 /**
  * Скролл контента шторки: gorhom поднимает шторку над клавиатурой, а этот
- * скролл докручивает форму к сфокусированному полю. Распорки нет — шторка
- * сама ужимается над клавиатурой; видимая область берётся из реальной
- * геометрии после подъёма (`animatedPosition` шторки → пересчёт).
+ * скролл докручивает форму к сфокусированному полю синхронно с клавиатурой.
+ * Видимая область — целевая (низ — над футером, у верха клавиатуры), а не
+ * текущая в кадре: шторка поднимается своей анимацией позже клавиатуры.
+ * Распорки нет: шторка ужимается над клавиатурой, конец контента достижим.
  */
 export const BottomSheetScrollContent = forwardRef<
   BottomSheetScrollViewMethods,
   TBottomSheetContentProps
->(({ children, ...rest }, ref) => {
+>(({ children, keyboardBottomInset, ...rest }, ref) => {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const sheet = useBottomSheetInternal(true);
   const keyboardAware = useKeyboardAwareScroll(scrollRef, {
     spacer: false,
-    containerPosition: sheet?.animatedPosition,
+    keyboardAnchor:
+      sheet && keyboardBottomInset
+        ? { bottomInset: keyboardBottomInset, liftRoom: sheet.animatedPosition }
+        : undefined,
   });
 
   return (

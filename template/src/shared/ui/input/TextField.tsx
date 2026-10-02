@@ -97,6 +97,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       onBlur,
       onChangeText,
       onLayout,
+      onContentSizeChange,
       editable,
       secureTextEntry,
       left,
@@ -187,6 +188,10 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
     }, []);
 
     const handleInputLayout = useMergedCallback(onLayout, handleInputWidth);
+    const handleContentSizeChange = useMergedCallback(
+      onContentSizeChange,
+      keyboardAware.onContentSizeChange,
+    );
 
     return (
       <Animated.View
@@ -263,6 +268,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
                 multiline={multiline}
                 numberOfLines={numberOfLines}
                 onLayout={handleInputLayout}
+                onContentSizeChange={handleContentSizeChange}
                 editable={inputEditable}
                 pointerEvents={isTrigger ? "none" : undefined}
                 secureTextEntry={secure}

@@ -3,6 +3,7 @@ import {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { ComponentProps } from "react";
+import { SharedValue } from "react-native-reanimated";
 
 import { BottomSheetFooter } from "./BottomSheetFooter";
 import { BottomSheetHeader } from "./BottomSheetHeader";
@@ -20,5 +21,8 @@ export type TBottomSheetProps = Omit<BottomSheetModalProps, "stackBehavior"> & {
 export type TBottomSheetHeaderProps = ComponentProps<typeof BottomSheetHeader>;
 export type TBottomSheetContentProps = ComponentProps<
   typeof BottomSheetScrollView
->;
+> & {
+  /** От низа скролла до клавиатуры при открытой клавиатуре; ставит BottomSheetLayout. */
+  keyboardBottomInset?: SharedValue<number>;
+};
 export type TBottomSheetFooterProps = ComponentProps<typeof BottomSheetFooter>;

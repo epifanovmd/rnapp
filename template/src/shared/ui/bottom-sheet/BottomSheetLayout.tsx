@@ -1,9 +1,18 @@
 import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
 import React, { ReactNode, useCallback, useEffect, useRef } from "react";
-import { LayoutChangeEvent, View } from "react-native";
+import { LayoutChangeEvent } from "react-native";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ResolvedSingleSlot } from "../../lib/slots";
+import {
+  resolveSheetBottomPadding,
+  resolveSheetKeyboardInset,
+} from "./sheet-keyboard-layout";
 import { BottomSheetStyles } from "./styles";
 import {
   TBottomSheetContentProps,
@@ -27,6 +36,12 @@ export interface BottomSheetLayoutProps {
  * значением сразу после штатной записи BottomSheetScrollView (тот же JS-тик) и
  * только когда контент уже замерен — иначе detents пересчитываются на
  * промежуточных значениях и анимация открытия дёргается.
+ *
+ * Нижний отступ при открытой клавиатуре — обычный зазор вместо safe area
+ * (клавиатура закрывает home indicator); в замер высоты для dynamic sizing
+ * идёт отступ закрытого состояния. Скроллу контента уходит расстояние от
+ * его низа до клавиатуры (`keyboardBottomInset`) — по нему он считает
+ * видимую область шторки после подъёма.
  */
 export const BottomSheetLayout = ({
   children,
@@ -41,6 +56,21 @@ export const BottomSheetLayout = ({
   const hasFooter = footer.present;
 
   const sizesRef = useRef({ header: 0, footer: 0, content: -1 });
+  const keyboardBottomInset = useSharedValue(
+    resolveSheetKeyboardInset({
+      hasFooter,
+      footerHeight: 0,
+      gap: BottomSheetStyles.content.gap,
+    }),
+  );
+  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
+
+  const paddingStyle = useAnimatedStyle(() => ({
+    paddingBottom: resolveSheetBottomPadding(
+      paddingBottom,
+      keyboardProgress.value,
+    ),
+  }));
 
   const commit = useCallback(() => {
     const {
@@ -48,6 +78,12 @@ export const BottomSheetLayout = ({
       footer: footerH,
       content: contentH,
     } = sizesRef.current;
+
+    keyboardBottomInset.value = resolveSheetKeyboardInset({
+      hasFooter,
+      footerHeight: footerH,
+      gap: BottomSheetStyles.content.gap,
+    });
 
     // До первого замера контента не пишем: штатная запись тоже ещё не было.
     if (!enableDynamicSizing || contentH < 0) {
@@ -73,6 +109,7 @@ export const BottomSheetLayout = ({
     hasHeader,
     hasFooter,
     animatedLayoutState,
+    keyboardBottomInset,
   ]);
 
   // Изменение insets/наличия слотов меняет формулу — перезаписать высоту.
@@ -105,16 +142,16 @@ export const BottomSheetLayout = ({
   );
 
   return (
-    <View
+    <Animated.View
       collapsable={false}
-      style={[BottomSheetStyles.content, { paddingBottom }]}
+      style={[BottomSheetStyles.content, paddingStyle]}
     >
       {header.render({ inject: { onLayout: onHeaderLayout } })}
       {content.render({
         defaults: { children },
-        inject: { onContentSizeChange },
+        inject: { onContentSizeChange, keyboardBottomInset },
       })}
       {footer.render({ inject: { onLayout: onFooterLayout } })}
-    </View>
+    </Animated.View>
   );
 };

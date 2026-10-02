@@ -114,3 +114,36 @@ export const computeMaxScrollOffset = (
 
   return Math.max(spacerContentTop + spacerHeight - viewportHeight, 0);
 };
+
+export interface IAnchoredViewportInput {
+  /** Верх скролла, замеренный в покое (клавиатура закрыта). */
+  restTop: number;
+  /** Сколько контейнер может подняться до верха (позиция шторки в покое). */
+  liftRoom: number;
+  screenHeight: number;
+  keyboardHeight: number;
+  /** Что лежит между низом скролла и клавиатурой (футер, отступы). */
+  bottomInset: number;
+}
+
+/**
+ * Целевая видимая область скролла в контейнере, который сам встаёт над
+ * клавиатурой (шторка gorhom, `keyboardBehavior: interactive`): контейнер
+ * поднимается на высоту клавиатуры, пока есть место, остальное ужимается
+ * снизу; низ контента — на верхе клавиатуры. Считается по цели, а не по
+ * кадру: свою анимацию шторка запускает позже клавиатуры.
+ */
+export const predictAnchoredViewport = ({
+  restTop,
+  liftRoom,
+  screenHeight,
+  keyboardHeight,
+  bottomInset,
+}: IAnchoredViewportInput) => {
+  "worklet";
+
+  return {
+    top: restTop - Math.min(keyboardHeight, Math.max(liftRoom, 0)),
+    bottom: screenHeight - keyboardHeight - bottomInset,
+  };
+};
