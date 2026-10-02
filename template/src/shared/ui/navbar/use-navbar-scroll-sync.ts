@@ -1,6 +1,11 @@
-import { resolveFollowDelta, resolveScrollEdge } from "@shared/lib/bars";
+import {
+  resolveCollapseRange,
+  resolveFollowDelta,
+  resolveReleaseTarget,
+  resolveScrollEdge,
+} from "@shared/lib/bars";
 import { IScrollValues } from "@shared/lib/scroll";
-import { useAnimatedReaction } from "react-native-reanimated";
+import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
 
 import { useNavbar } from "./navbar-bar";
 
@@ -8,8 +13,10 @@ import { useNavbar } from "./navbar-bar";
 const MAX_FOLLOW_JUMP = 200;
 
 /**
- * Поведение навигационной панели: следует за скроллом попиксельно и
- * доводится до ближайшего состояния, когда жест и инерция закончились.
+ * Поведение навигационной панели: под пальцем следует за скроллом
+ * попиксельно; на отпускании сразу доезжает до состояния по направлению
+ * жеста и на инерции за пикселями не следует — анимация не спорит со сдвигом,
+ * и после остановки контента панели доезжать нечего.
  */
 export const useNavbarScrollSync = (scroll: IScrollValues) => {
   const navbar = useNavbar();
@@ -21,7 +28,10 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
     maxOffsetY,
     isDragging,
     isMomentum,
+    direction,
   } = scroll;
+  /** Палец отпущен, панель доезжает сама — до следующего жеста или конца инерции. */
+  const settling = useSharedValue(false);
 
   useAnimatedReaction(
     () => offsetY.value,
@@ -41,7 +51,7 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
         navbar.show();
       } else if (edge === "bottom") {
         navbar.hide();
-      } else {
+      } else if (!settling.value) {
         const delta = offset - prevOffset;
 
         navbar.shift(resolveFollowDelta(delta, MAX_FOLLOW_JUMP));
@@ -51,12 +61,38 @@ export const useNavbarScrollSync = (scroll: IScrollValues) => {
   );
 
   useAnimatedReaction(
-    () => isDragging.value || isMomentum.value,
-    (isActive, wasActive) => {
-      if (wasActive && !isActive) {
-        navbar.snap();
+    () => isDragging.value,
+    (dragging, wasDragging) => {
+      if (dragging) {
+        settling.value = false;
+
+        return;
+      }
+      if (!wasDragging) return;
+
+      settling.value = true;
+
+      const target = resolveReleaseTarget(
+        navbar.offset.value,
+        resolveCollapseRange(navbar.height.value, navbar.pinned.value),
+        direction.value,
+      );
+
+      if (target === "hide") {
+        navbar.hide();
+      } else {
+        navbar.show();
       }
     },
     [navbar],
+  );
+
+  useAnimatedReaction(
+    () => isMomentum.value,
+    (momentum, wasMomentum) => {
+      if (wasMomentum && !momentum) {
+        settling.value = false;
+      }
+    },
   );
 };

@@ -81,3 +81,23 @@ export const resolveFollowDelta = (delta: number, maxJump: number): number => {
 
   return Math.abs(delta) > maxJump ? 0 : delta;
 };
+
+/**
+ * Куда доехать панели, когда палец отпущен: по направлению последнего
+ * движения (вниз — спрятать, вверх — показать), без движения — к ближайшему
+ * состоянию. Решение принимается сразу, а не после инерции: иначе панель
+ * доезжает уже по остановившемуся контенту, и конец прокрутки дёргается.
+ */
+export const resolveReleaseTarget = (
+  offset: number,
+  range: number,
+  direction: "up" | "down" | "left" | "right" | null,
+): "show" | "hide" => {
+  "worklet";
+
+  if (range <= 0) return "show";
+  if (direction === "down") return "hide";
+  if (direction === "up") return "show";
+
+  return snapOffset(offset, range) > 0 ? "hide" : "show";
+};
