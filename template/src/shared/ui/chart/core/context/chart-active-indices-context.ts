@@ -5,6 +5,12 @@ import type { DerivedValue } from "react-native-reanimated";
 export interface ChartActiveIndicesState {
   activeIndices: DerivedValue<number[]>;
   activeIndices2: DerivedValue<number[]>;
+  /**
+   * Те же индексы в React (тексты подписей и тултипа): один мост на график,
+   * обновляется только при смене индексов.
+   */
+  jsIndices: number[];
+  jsIndices2: number[];
 }
 
 export const ChartActiveIndicesContext =

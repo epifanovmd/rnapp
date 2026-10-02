@@ -15,7 +15,6 @@ import {
 } from "../../core";
 import { TooltipRow } from "./TooltipRow";
 import type { ActiveTooltipPoint, TooltipLayerProps } from "./types";
-import { useJsActiveIndex } from "./useJsActiveIndex";
 
 const DOT_RADIUS = 4;
 
@@ -61,15 +60,16 @@ export const TooltipLayer: ChartLayerComponent<TooltipLayerProps> = ({
   const { dimensions, xScale, yScale } = useChartGeometry();
   const { touchX, touchY, isActive, touchX2, touchY2, isSecondActive } =
     useChartGesture();
-  const { activeIndices, activeIndices2 } = useChartActiveIndices();
+  const { activeIndices, activeIndices2, jsIndices, jsIndices2 } =
+    useChartActiveIndices();
 
   const font = useMemo(
     () => matchFont({ fontFamily, fontSize }),
     [fontFamily, fontSize],
   );
 
-  const activeIndex = useJsActiveIndex(activeIndices);
-  const activeIndex2 = useJsActiveIndex(activeIndices2);
+  const activeIndex = jsIndices[0] ?? -1;
+  const activeIndex2 = jsIndices2[0] ?? -1;
   const secondIndex = showSecondTouch ? activeIndex2 : -1;
 
   const points: ActiveTooltipPoint[] = useMemo(() => {

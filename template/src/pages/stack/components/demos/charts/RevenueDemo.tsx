@@ -20,19 +20,22 @@ import {
   useChartViewport,
   ViewRange,
 } from "@shared/ui/chart";
-import React, { FC, memo, useCallback, useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import React, { FC, memo, useCallback, useMemo, useRef } from "react";
 
 import {
   formatActivePoints,
   formatDateTime,
   formatTooltipRow,
-  peakRevenue,
+  getPeakRevenue,
   TIMEFRAME_PRESETS,
 } from "./chart-demo-format";
-import { REVENUE_VS_EXPENSES } from "./chart-mock-data";
+import { getRevenueSeries } from "./chart-mock-data";
+import { IRevenueStatusHandle, RevenueStatus } from "./RevenueStatus";
 
 const DAY = 86_400_000;
+
+/** Отступы — константой: новый объект на рендер сбрасывал бы memo графика. */
+const CHART_PADDING = { left: 56, bottom: 36, top: 36 };
 
 /**
  * Full-featured пример: таймфреймы и зум по окну (год по 3 часа — 2920
@@ -41,15 +44,13 @@ const DAY = 86_400_000;
  */
 export const RevenueDemo: FC = memo(() => {
   const { colors } = useTheme();
-  const [touchStatus, setTouchStatus] = useState("Not touching");
-  const [activePointLabel, setActivePointLabel] = useState(
-    "Hold over the chart",
-  );
-  const [rangeLabel, setRangeLabel] = useState("");
+  const status = useRef<IRevenueStatusHandle>(null);
+  const series = useMemo(getRevenueSeries, []);
+  const peak = useMemo(getPeakRevenue, []);
 
   const handleViewportChange = useCallback(
     (range: ViewRange) =>
-      setRangeLabel(
+      status.current?.setRange(
         `${formatDateTime(range.start)} – ${formatDateTime(range.end)}`,
       ),
     [],
@@ -65,7 +66,7 @@ export const RevenueDemo: FC = memo(() => {
     () => [
       {
         id: "peak",
-        anchor: { kind: "series", seriesId: "revenue", x: peakRevenue.x / 2 },
+        anchor: { kind: "series", seriesId: "revenue", x: peak.x / 2 },
         color: colors.red500,
         radius: 4,
       },
@@ -78,11 +79,12 @@ export const RevenueDemo: FC = memo(() => {
         strokeWidth: 2,
       },
     ],
-    [colors.red500, colors.orange500],
+    [colors.red500, colors.orange500, peak.x],
   );
 
   const handleActiveChange = useCallback(
-    (active: boolean) => setTouchStatus(active ? "Touching" : "Not touching"),
+    (active: boolean) =>
+      status.current?.setTouch(active ? "Touching" : "Not touching"),
     [],
   );
 
@@ -91,7 +93,7 @@ export const RevenueDemo: FC = memo(() => {
       const primaryLabel = formatActivePoints(primary);
       const secondaryLabel = secondary ? formatActivePoints(secondary) : null;
 
-      setActivePointLabel(
+      status.current?.setPoint(
         secondaryLabel ? `${primaryLabel}  |  ${secondaryLabel}` : primaryLabel,
       );
     },
@@ -106,12 +108,12 @@ export const RevenueDemo: FC = memo(() => {
         mb={12}
       />
       <Chart
-        series={REVENUE_VS_EXPENSES}
+        series={series}
         viewport={viewport}
         zoom
         height={260}
         yPaddingRatio={0.15}
-        padding={{ left: 56, bottom: 36, top: 36 }}
+        padding={CHART_PADDING}
         onActiveChange={handleActiveChange}
         onChange={handleActivePointsChange}
         twoFingerEnabled
@@ -161,31 +163,12 @@ export const RevenueDemo: FC = memo(() => {
         <TooltipLayer formatRow={formatTooltipRow} />
       </Chart>
       <ChartNavigator
-        series={REVENUE_VS_EXPENSES}
+        series={series}
         viewport={viewport}
         paddingLeft={56}
         windowColor={colors.blue500}
       />
-      <View style={styles.touchStatus}>
-        {!!rangeLabel && (
-          <Text textStyle={"Body_S2"} color={"textSecondary"}>
-            {rangeLabel}
-          </Text>
-        )}
-        <Text textStyle={"Body_S2"} color={"textSecondary"}>
-          {touchStatus}
-        </Text>
-        <Text textStyle={"Body_S2"} color={"textSecondary"}>
-          {activePointLabel}
-        </Text>
-      </View>
+      <RevenueStatus ref={status} />
     </>
   );
-});
-
-const styles = StyleSheet.create({
-  touchStatus: {
-    gap: 4,
-    marginTop: 8,
-  },
 });

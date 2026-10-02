@@ -79,7 +79,10 @@ export const Autocomplete = <V extends string = string>({
   });
 
   const rows = useMemo(() => buildOptionRows({ options }), [options]);
-  const virtualConfig = useMemo(() => resolveVirtualConfig(virtual), [virtual]);
+  const virtualConfig = useMemo(
+    () => resolveVirtualConfig(virtual, options.length),
+    [virtual, options.length],
+  );
 
   const model: ISelectListModel<V> = {
     rows,

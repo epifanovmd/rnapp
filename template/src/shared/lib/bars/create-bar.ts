@@ -3,6 +3,7 @@ import { makeMutable, runOnUI, withTiming } from "react-native-reanimated";
 
 import {
   clampOffset,
+  isNewBarTarget,
   isRemeasure,
   rebaseOffset,
   resolveCollapseRange,
@@ -31,6 +32,8 @@ export const createBar = (options: IBarOptions = {}): IBar => {
   const pinned = makeMutable(0);
   const inset = makeMutable(0);
   const offset = makeMutable(0);
+  /** Цель анимации offset; NaN — панель двигали напрямую. */
+  const target = makeMutable(Number.NaN);
   const listeners = new Set<() => void>();
   let measured = 0;
   let measuredPinned = 0;
@@ -41,30 +44,37 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     return resolveCollapseRange(height.value, pinned.value);
   };
 
+  const animateTo = (next: number) => {
+    "worklet";
+    if (!isNewBarTarget(target.value, next)) return;
+
+    target.value = next;
+    offset.value = withTiming(next, { duration });
+  };
+
   const show = () => {
     "worklet";
-    offset.value = withTiming(0, { duration });
+    animateTo(0);
   };
 
   const hide = () => {
     "worklet";
     if (height.value > 0) {
-      offset.value = withTiming(range(), { duration });
+      animateTo(range());
     }
   };
 
   const snap = () => {
     "worklet";
     if (height.value > 0) {
-      offset.value = withTiming(snapOffset(offset.value, range()), {
-        duration,
-      });
+      animateTo(snapOffset(offset.value, range()));
     }
   };
 
   const shift = (delta: number) => {
     "worklet";
     if (height.value > 0) {
+      target.value = Number.NaN;
       offset.value = clampOffset(offset.value + delta, range());
     }
   };
@@ -76,6 +86,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
 
     height.value = nextHeight;
     pinned.value = nextPinned;
+    target.value = Number.NaN;
     offset.value = rebaseOffset(
       offset.value,
       prevRange,

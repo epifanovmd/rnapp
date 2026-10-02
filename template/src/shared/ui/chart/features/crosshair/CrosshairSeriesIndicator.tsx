@@ -1,7 +1,6 @@
 import { Circle, DashPathEffect, Line, vec } from "@shopify/react-native-skia";
-import React, { FC, useState } from "react";
-import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import React from "react";
+import { useDerivedValue } from "react-native-reanimated";
 
 import { scaleToRange } from "../../core";
 import { CrosshairYLabel } from "./CrosshairYLabel";
@@ -11,6 +10,7 @@ export const CrosshairSeriesIndicator = React.memo(
   ({
     series,
     seriesIndex,
+    jsIndex,
     seriesShared,
     activeIndices,
     xScale,
@@ -58,24 +58,10 @@ export const CrosshairSeriesIndicator = React.memo(
       [point, right],
     );
 
-    // activeIndex bridge в JS для текста Y-лейбла (своя серия).
-    const [activeIndexJS, setActiveIndexJS] = useState(
-      () => activeIndices.value[seriesIndex] ?? -1,
-    );
-
-    useAnimatedReaction(
-      () => activeIndices.value[seriesIndex] ?? -1,
-      (next, previous) => {
-        if (next !== previous) {
-          scheduleOnRN(setActiveIndexJS, next);
-        }
-      },
-      [activeIndices, seriesIndex],
-    );
 
     const labelText =
-      showLabel && activeIndexJS >= 0 && series.data[activeIndexJS]
-        ? labelFormatter(series.data[activeIndexJS].y, series)
+      showLabel && jsIndex >= 0 && series.data[jsIndex]
+        ? labelFormatter(series.data[jsIndex].y, series)
         : "";
 
     const horizontalColor = horizontalLineColor ?? color;

@@ -1,10 +1,14 @@
 import { Skia, SkPath } from "@shopify/react-native-skia";
 
 import type { PixelPoint } from "../types";
+import { monotoneSegments } from "./monotone-curve";
 
 export type CurveType = "linear" | "smooth";
 
-/** Строит линейную или сглаженную Catmull-Rom линию в переданный builder. */
+/**
+ * Линия в builder: отрезками или сглаженная монотонной кубической кривой —
+ * без петель при неравномерном шаге и без перелёта значений.
+ */
 const buildLineInBuilder = (
   builder: ReturnType<typeof Skia.PathBuilder.Make>,
   points: PixelPoint[],
@@ -16,31 +20,31 @@ const buildLineInBuilder = (
 
   builder.moveTo(points[0].x, points[0].y);
 
-  if (curve === "smooth" && points.length > 2) {
-    for (let index = 0; index < points.length - 1; index++) {
-      const p0 = points[index === 0 ? 0 : index - 1];
-      const p1 = points[index];
-      const p2 = points[index + 1];
-      const p3 = points[index + 2 < points.length ? index + 2 : index + 1];
+  const segments = curve === "smooth" ? monotoneSegments(points) : [];
 
+  if (segments.length > 0) {
+    for (const segment of segments) {
       builder.cubicTo(
-        p1.x + (p2.x - p0.x) / 6,
-        p1.y + (p2.y - p0.y) / 6,
-        p2.x - (p3.x - p1.x) / 6,
-        p2.y - (p3.y - p1.y) / 6,
-        p2.x,
-        p2.y,
+        segment.c1x,
+        segment.c1y,
+        segment.c2x,
+        segment.c2y,
+        segment.x,
+        segment.y,
       );
     }
-  } else {
-    for (let index = 1; index < points.length; index++) {
-      builder.lineTo(points[index].x, points[index].y);
-    }
+
+    return;
+  }
+
+  for (let index = 1; index < points.length; index++) {
+    builder.lineTo(points[index].x, points[index].y);
   }
 };
 
 /**
- * Строит линию из точек — линейную (`linear`) или сглаженную (`smooth`) Catmull-Rom.
+ * Строит линию из точек — линейную (`linear`) или сглаженную (`smooth`,
+ * монотонная кубическая).
  */
 export const buildLinePathFromPoints = (
   points: PixelPoint[],

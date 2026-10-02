@@ -42,6 +42,12 @@ export interface IUseLiveModelOptions<
   load: (id: string) => Promise<ILiveLoadResult<TSnapshot>>;
   /** Скользящее окно точек (график); без него `points` всегда пуст. */
   window?: ILiveWindowOptions<TSnapshot, TPoint>;
+  /**
+   * Слушать события (например, `useIsFocused()`): выключено — тики не
+   * обрабатываются (скрытый экран не тратит JS и не перерисовывается),
+   * включение — перечитывание пропущенного. По умолчанию `true`.
+   */
+  enabled?: boolean;
 }
 
 /**
@@ -98,6 +104,7 @@ export const useLiveModel = <
   select = selectPayload<TSnapshot>,
   load,
   window,
+  enabled = true,
 }: IUseLiveModelOptions<TSnapshot, TPayload, TPoint>): ILiveModel<
   TSnapshot,
   TPoint
@@ -135,9 +142,10 @@ export const useLiveModel = <
     });
   }, [id, loadRef, windowRef, state]);
 
+  // Открытие и возвращение к слушанию: события за паузу потеряны.
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (enabled) reload();
+  }, [reload, enabled]);
 
   useSocketEvent<[TPayload]>(
     event,
@@ -158,7 +166,7 @@ export const useLiveModel = <
         state.id = id;
       });
     },
-    id !== null,
+    id !== null && enabled,
   );
 
   return useMemo<ILiveModel<TSnapshot, TPoint>>(

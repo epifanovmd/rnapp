@@ -22,12 +22,14 @@ export const accumulateToggle = (
   const sameDirection = accumulated * delta >= 0;
   const next = sameDirection ? accumulated + delta : delta;
 
+  // После команды копится заново: иначе каждый следующий кадр в ту же
+  // сторону повторял бы её (и перезапускал анимацию панели).
   if (next > threshold) {
-    return { accumulated: next, command: "hide" };
+    return { accumulated: 0, command: "hide" };
   }
 
   if (next < -threshold) {
-    return { accumulated: next, command: "show" };
+    return { accumulated: 0, command: "show" };
   }
 
   return { accumulated: next, command: "none" };

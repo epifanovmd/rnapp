@@ -86,7 +86,7 @@ export const ObjectScanner: FC = observer(() => {
         <BottomSheet.Header label={"Наведите камеру на объекты"} />
         <BottomSheet.Content scrollEnabled={false}>
           <ObjectScanCamera
-            vm={vm}
+            vm={vm.camera}
             isActive={isSheetOpen}
             style={styles.camera}
           />

@@ -13,10 +13,10 @@ import { StyleProp, StyleSheet, ViewStyle } from "react-native";
 
 import { OBJECT_CLASS_TITLES } from "../model/object-class-titles";
 import { OBJECT_DETECTOR_MODEL } from "../model/object-detector";
-import { IObjectScanVM } from "../model/useObjectScanVM";
+import { IObjectScanCameraVM } from "../model/useObjectScanVM";
 
 export interface IObjectScanCameraProps {
-  vm: IObjectScanVM;
+  vm: IObjectScanCameraVM;
   /** Камера активна (например, открыт лист сканера) */
   isActive: boolean;
   style?: StyleProp<ViewStyle>;

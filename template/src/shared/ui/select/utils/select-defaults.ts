@@ -17,10 +17,21 @@ const DEFAULT_VIRTUAL: Required<SelectVirtualConfig> = {
 export const defaultCreateLabel = (query: string): ReactNode =>
   `Создать «${query}»`;
 
-/** Настройки виртуализации или `null`, если список обычный. */
+/** С какого числа вариантов список виртуализируется сам (без `virtual`). */
+export const AUTO_VIRTUAL_THRESHOLD = 50;
+
+/**
+ * Настройки виртуализации или `null`, если список обычный. Без `virtual`
+ * длинный список (больше `AUTO_VIRTUAL_THRESHOLD`) виртуализируется сам —
+ * сотни строк в обычном скролле монтируются все разом; `false` — отключить.
+ */
 export const resolveVirtualConfig = (
   virtual: boolean | SelectVirtualConfig | undefined,
+  optionCount: number,
 ): Required<SelectVirtualConfig> | null => {
+  if (virtual === undefined) {
+    return optionCount > AUTO_VIRTUAL_THRESHOLD ? DEFAULT_VIRTUAL : null;
+  }
   if (!virtual) return null;
 
   return virtual === true

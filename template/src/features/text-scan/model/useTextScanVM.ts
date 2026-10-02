@@ -1,11 +1,11 @@
 import { IOcrScanObservation } from "@shared/lib/ocr-scan";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useCameraPermission } from "react-native-vision-camera";
 
-export interface ITextScanVM {
-  /** Строки последнего непустого скана, сверху вниз */
-  lines: string[];
-  clearLines: () => void;
+import { sameLines } from "./same-lines";
+
+/** Всё, что нужно камере: не меняется от результатов скана. */
+export interface ITextScanCameraVM {
   /** Колбэк потока OCR-областей для камеры */
   handleObservations: (observations: IOcrScanObservation[]) => void;
   torchEnabled: boolean;
@@ -13,6 +13,14 @@ export interface ITextScanVM {
   hasPermission: boolean;
   canRequestPermission: boolean;
   requestPermission: () => Promise<boolean>;
+}
+
+export interface ITextScanVM {
+  /** Строки последнего непустого скана, сверху вниз */
+  lines: string[];
+  clearLines: () => void;
+  /** Камера — отдельным стабильным объектом: новый текст её не перерисовывает. */
+  camera: ITextScanCameraVM;
 }
 
 /** Состояние сканера произвольного текста: живой поток распознанных строк */
@@ -35,7 +43,9 @@ export const useTextScanVM = (): ITextScanVM => {
             : a.rect.y - b.rect.y,
         );
 
-      setLines(sorted.map(observation => observation.text));
+      const next = sorted.map(observation => observation.text);
+
+      setLines(current => (sameLines(current, next) ? current : next));
     },
     [],
   );
@@ -48,14 +58,27 @@ export const useTextScanVM = (): ITextScanVM => {
     setTorchEnabled(current => !current);
   }, []);
 
-  return {
-    lines,
-    clearLines,
-    handleObservations,
-    torchEnabled,
-    toggleTorch,
-    hasPermission,
-    canRequestPermission,
-    requestPermission,
-  };
+  const camera = useMemo<ITextScanCameraVM>(
+    () => ({
+      handleObservations,
+      torchEnabled,
+      toggleTorch,
+      hasPermission,
+      canRequestPermission,
+      requestPermission,
+    }),
+    [
+      handleObservations,
+      torchEnabled,
+      toggleTorch,
+      hasPermission,
+      canRequestPermission,
+      requestPermission,
+    ],
+  );
+
+  return useMemo(
+    () => ({ lines, clearLines, camera }),
+    [lines, clearLines, camera],
+  );
 };

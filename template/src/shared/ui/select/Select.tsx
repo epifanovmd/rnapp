@@ -157,7 +157,10 @@ export const Select = <V extends SelectValue = string>(
     [visibleOptions, groups, clearable, multi, query, showCreate],
   );
 
-  const virtualConfig = useMemo(() => resolveVirtualConfig(virtual), [virtual]);
+  const virtualConfig = useMemo(
+    () => resolveVirtualConfig(virtual, options.length),
+    [virtual, options.length],
+  );
 
   const model: ISelectListModel<V> = {
     rows,

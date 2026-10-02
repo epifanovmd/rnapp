@@ -55,6 +55,8 @@ export interface CrosshairLineProps {
   touchX: SharedValue<number>;
   active: SharedValue<boolean>;
   activeIndices: DerivedValue<number[]>;
+  /** Те же индексы в React — для текстов подписей. */
+  jsIndices: number[];
   color: string;
   strokeWidth: number;
   markerRadius: number;
@@ -80,6 +82,8 @@ export interface CrosshairLineProps {
 export interface CrosshairSeriesIndicatorProps {
   series: IChartSeries;
   seriesIndex: number;
+  /** Индекс активной точки серии в React — для текста подписи. */
+  jsIndex: number;
   seriesShared: SharedValue<IChartSeries[]>;
   activeIndices: DerivedValue<number[]>;
   xScale: DerivedValue<LinearScale>;

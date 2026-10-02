@@ -4,10 +4,12 @@ import type { IFileDto } from "@shared/api/gen/main/model";
 import { formatter } from "@shared/lib/utils";
 import { Avatar, Button, Col, Container, Row, Spinner, Text } from "@shared/ui";
 import { observer } from "mobx-react-lite";
-import React, { FC, useCallback, useEffect } from "react";
-import { Alert, FlatList, StyleSheet } from "react-native";
+import React, { FC, memo, useCallback, useEffect } from "react";
+import { Alert, FlatList, ListRenderItem, StyleSheet } from "react-native";
 
-const FileRow: FC<{ file: IFileDto; onDelete: (file: IFileDto) => void }> = ({
+const keyExtractor = (file: IFileDto) => file.id;
+
+const FileRow: FC<{ file: IFileDto; onDelete: (file: IFileDto) => void }> = memo(({
   file,
   onDelete,
 }) => (
@@ -35,7 +37,7 @@ const FileRow: FC<{ file: IFileDto; onDelete: (file: IFileDto) => void }> = ({
       {"Удалить"}
     </Button>
   </Row>
-);
+));
 
 /** Мои файлы: список страницами, загрузка и удаление. */
 export const Files: FC = observer(() => {
@@ -59,12 +61,17 @@ export const Files: FC = observer(() => {
     [fileStore],
   );
 
+  const renderItem = useCallback<ListRenderItem<IFileDto>>(
+    ({ item }) => <FileRow file={item} onDelete={onDelete} />,
+    [onDelete],
+  );
+
   return (
     <Container>
       <FlatList
         data={fileStore.files}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => <FileRow file={item} onDelete={onDelete} />}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
         contentContainerStyle={styles.content}
         ListHeaderComponent={<FileUploadActions />}
         refreshing={holder.isRefreshing}

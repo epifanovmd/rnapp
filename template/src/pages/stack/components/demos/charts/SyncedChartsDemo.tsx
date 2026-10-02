@@ -11,25 +11,27 @@ import {
   TooltipLayer,
   useChartViewport,
 } from "@shared/ui/chart";
-import React, { FC, memo } from "react";
+import React, { FC, memo, useMemo } from "react";
 
 import { TIMEFRAME_PRESETS } from "./chart-demo-format";
-import { REVENUE_VS_EXPENSES } from "./chart-mock-data";
+import { getRevenueSeries } from "./chart-mock-data";
 
 const DAY = 86_400_000;
-const [REVENUE, EXPENSES] = REVENUE_VS_EXPENSES;
-const REVENUE_SERIES = [REVENUE];
-const EXPENSES_SERIES = [EXPENSES];
 
 /** Два графика на одном окне: зум и прокрутка любого двигают оба. */
 export const SyncedChartsDemo: FC = memo(() => {
   const { colors } = useTheme();
   const viewport = useChartViewport({ initialSpan: 7 * DAY });
+  const charts = useMemo(() => {
+    const [revenue, expenses] = getRevenueSeries();
+
+    return [[revenue], [expenses]];
+  }, []);
 
   return (
     <Col gap={12}>
       <ChartRangePresets viewport={viewport} presets={TIMEFRAME_PRESETS} />
-      {[REVENUE_SERIES, EXPENSES_SERIES].map(series => (
+      {charts.map(series => (
         <Chart
           key={series[0].id}
           series={series}

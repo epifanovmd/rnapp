@@ -118,3 +118,15 @@ export const hiddenBarLayout = (
     ? { position: "absolute", top: safeTop }
     : { position: "relative", top: 0 };
 };
+
+/**
+ * Нужна ли новая анимация панели (worklet): повтор той же цели (кадры
+ * скролла у края, повторная команда) не перезапускает уже идущую — иначе
+ * анимация каждый кадр начиналась бы заново с медленного начала кривой.
+ * Не конечная цель — панель двигали напрямую, цель неизвестна.
+ */
+export const isNewBarTarget = (target: number, next: number): boolean => {
+  "worklet";
+
+  return !(Number.isFinite(target) && target === next);
+};

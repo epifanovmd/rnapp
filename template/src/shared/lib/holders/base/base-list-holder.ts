@@ -16,7 +16,9 @@ export abstract class BaseListHolder<
     this._keyExtractor = keyExtractor;
 
     makeObservable(this, {
-      items: observable,
+      // Ссылка: список заменяется целиком, DTO не превращаются в observable
+      // (глубокая конвертация на каждое обновление по сокету — O(размер данных)).
+      items: observable.ref,
 
       isEmpty: computed,
       count: computed,

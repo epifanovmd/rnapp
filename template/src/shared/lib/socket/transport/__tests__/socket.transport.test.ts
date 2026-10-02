@@ -113,6 +113,12 @@ const connectMock = jest.mocked(ioConnect);
 
 let io: IoSocket;
 let wake: (isActive: boolean) => void;
+let appActive = true;
+/** Смена активности приложения: сервис и подписчики видят одно и то же. */
+const setAppActive = (isActive: boolean) => {
+  appActive = isActive;
+  wake(isActive);
+};
 let online: () => void;
 let tokenListener: (token: string) => void;
 let provider: ITokenProvider & {
@@ -122,7 +128,9 @@ let provider: ITokenProvider & {
 
 const createTransport = () => {
   const appState: IAppStateService = {
-    isActive: true,
+    get isActive() {
+      return appActive;
+    },
     onChange: cb => {
       wake = cb;
 
@@ -146,6 +154,7 @@ const flush = () => jest.advanceTimersByTimeAsync(0);
 
 beforeEach(() => {
   jest.useFakeTimers();
+  appActive = true;
   connectMock.mockClear();
 
   let token = "stale";
@@ -394,5 +403,65 @@ describe("SocketTransport", () => {
     await jest.advanceTimersByTimeAsync(30_000);
 
     expect(provider.refreshToken).not.toHaveBeenCalled();
+  });
+
+  describe("фон", () => {
+    it("через 30 с в фоне отключается, не пересоздавая сокет и подписчиков", async () => {
+      const transport = createTransport();
+      const handler = jest.fn();
+
+      transport.initialize();
+      transport.on("ping:any", handler);
+      io.accept();
+      setAppActive(false);
+
+      await jest.advanceTimersByTimeAsync(29_000);
+      expect(io.connected).toBe(true);
+
+      await jest.advanceTimersByTimeAsync(1_000);
+      expect(io.connected).toBe(false);
+      expect(transport.state.status).toBe("disconnected");
+
+      // В фоне не переподключается сам.
+      await jest.advanceTimersByTimeAsync(60_000);
+      expect(io.connectCalls).toBe(1);
+
+      setAppActive(true);
+      await flush();
+      expect(io.connectCalls).toBe(2);
+      expect(connectMock).toHaveBeenCalledTimes(1);
+
+      io.accept();
+      io.fire("ping:any");
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it("короткий уход в фон — без отключения", async () => {
+      const transport = createTransport();
+
+      transport.initialize();
+      io.accept();
+      setAppActive(false);
+      await jest.advanceTimersByTimeAsync(10_000);
+      setAppActive(true);
+      io.fire("pong");
+      // Отложенное отключение отменено: на 32-й секунде с ухода в фон сокет
+      // жив (до таймаута очередного пинга, 35 с, — чтобы его не задеть).
+      await jest.advanceTimersByTimeAsync(22_000);
+
+      expect(io.connectCalls).toBe(1);
+      expect(transport.state.status).not.toBe("disconnected");
+    });
+
+    it("появление сети в фоне не поднимает сокет", async () => {
+      createTransport().initialize();
+      io.reject("denied");
+      setAppActive(false);
+
+      online();
+      await flush();
+
+      expect(io.connectCalls).toBe(1);
+    });
   });
 });

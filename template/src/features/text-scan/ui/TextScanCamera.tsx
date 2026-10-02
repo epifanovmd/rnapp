@@ -3,7 +3,7 @@ import React, { FC, memo, ReactNode } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
 import { TEXT_SCAN_DOMAIN } from "../model/text-scan-domain";
-import { ITextScanVM } from "../model/useTextScanVM";
+import { ITextScanCameraVM } from "../model/useTextScanVM";
 
 /** Распознанный текст — подписью над каждой OCR-областью */
 const renderTextLabels = (api: IScanOverlayApi): ReactNode => (
@@ -11,7 +11,7 @@ const renderTextLabels = (api: IScanOverlayApi): ReactNode => (
 );
 
 export interface ITextScanCameraProps {
-  vm: ITextScanVM;
+  vm: ITextScanCameraVM;
   /** Камера активна (например, открыт лист сканера) */
   isActive: boolean;
   style?: StyleProp<ViewStyle>;

@@ -42,7 +42,8 @@ export const CrosshairLayer = React.memo(
     const { series, seriesShared } = useChartSeries();
     const { dimensions, xScale, yScale } = useChartGeometry();
     const { touchX, isActive, touchX2, isSecondActive } = useChartGesture();
-    const { activeIndices, activeIndices2 } = useChartActiveIndices();
+    const { activeIndices, activeIndices2, jsIndices, jsIndices2 } =
+      useChartActiveIndices();
     const intervals = dashArray ?? DASH_PRESETS[lineType];
 
     const font = useMemo(
@@ -118,6 +119,7 @@ export const CrosshairLayer = React.memo(
           touchX={touchX}
           active={isActive}
           activeIndices={activeIndices}
+          jsIndices={jsIndices}
           color={color}
         />
         {showSecondTouch && (
@@ -126,6 +128,7 @@ export const CrosshairLayer = React.memo(
             touchX={touchX2}
             active={isSecondActive}
             activeIndices={activeIndices2}
+            jsIndices={jsIndices2}
             color={secondColor}
           />
         )}

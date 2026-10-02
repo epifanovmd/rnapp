@@ -7,7 +7,7 @@ import React, { FC, memo, useMemo } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { createFeed, FEED_SIZE, IFeedPost } from "./feed-data";
+import { FEED_SIZE, getFeed, IFeedPost } from "./feed-data";
 import { FeedPostCard } from "./FeedPostCard";
 
 /** Средняя высота карточки: шапка, 1–5 строк текста, метки, счётчики. */
@@ -22,7 +22,7 @@ const renderItem = ({ item }: IAnchorListRenderItemProps<IFeedPost>) => (
 /** Лента на 10 000 постов разной высоты — нагрузочный пример AnchorList. */
 export const FeedListDemo: FC = memo(() => {
   const { bottom } = useSafeAreaInsets();
-  const feed = useMemo(() => createFeed(), []);
+  const feed = useMemo(getFeed, []);
 
   return (
     <AnchorList

@@ -1,10 +1,12 @@
 import type { ActivePoint, ChartRangePreset } from "@shared/ui/chart";
 
-import { REVENUE_VS_EXPENSES } from "./chart-mock-data";
+import { getRevenueSeries } from "./chart-mock-data";
 
-export const peakRevenue = REVENUE_VS_EXPENSES[0].data.reduce((best, datum) =>
-  datum.y > best.y ? datum : best,
-);
+/** Точка максимальной выручки. */
+export const getPeakRevenue = () =>
+  getRevenueSeries()[0].data.reduce((best, datum) =>
+    datum.y > best.y ? datum : best,
+  );
 
 export const formatTooltipRow = (point: {
   series: { label?: string };

@@ -3,6 +3,7 @@ import {
   IAnchorListRef,
 } from "@epifanovmd/anchor-list";
 import { useFocusEffect } from "@react-navigation/native";
+import { useLatestRef } from "@shared/lib/hooks";
 import { IStorageService } from "@shared/lib/storage";
 import { RefObject, useCallback, useMemo, useRef, useState } from "react";
 
@@ -69,7 +70,12 @@ export const useChatScrollRestore = ({
    */
   const snapshot = useRef<ChatScrollPosition | undefined>(undefined);
 
+  // Строки — через ref: иначе новая зависимость на каждое сообщение
+  // пересоздавала бы колбэк, и useFocusEffect записывал бы позицию заново.
+  const rowsRef = useLatestRef(rows);
+
   const capturePosition = useCallback(() => {
+    const currentRows = rowsRef.current;
     const list = listRef.current;
 
     if (!list) return;
@@ -77,11 +83,11 @@ export const useChatScrollRestore = ({
     const range = list.getVisibleRange();
     const topIndex = range.start;
     const position = list.getPositionAtIndex(topIndex);
-    const row = rows[topIndex];
+    const row = currentRows[topIndex];
     // Последняя строка на экране — значит стояли у конца переписки. Возвращать
     // туда нужно к концу контента, а не к строке: к следующему открытию она уже
     // не последняя.
-    const isAtEnd = range.end >= rows.length - 1;
+    const isAtEnd = range.end >= currentRows.length - 1;
 
     if (isAtEnd) {
       snapshot.current = { type: "end" };
@@ -96,7 +102,7 @@ export const useChatScrollRestore = ({
       key: row.key,
       offset: chatScrollOffset(position, list.getScrollOffset()),
     };
-  }, [listRef, rows]);
+  }, [listRef, rowsRef]);
 
   /** Последнее записанное значение — по нему отсекается повторная запись. */
   const written = useRef<string | undefined>(undefined);

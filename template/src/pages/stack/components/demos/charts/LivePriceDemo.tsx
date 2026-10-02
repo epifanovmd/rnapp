@@ -1,3 +1,4 @@
+import { useIsFocused } from "@react-navigation/native";
 import { useTheme } from "@shared/lib/theme";
 import {
   AreaLayer,
@@ -33,13 +34,18 @@ export const LivePriceDemo: FC = memo(() => {
     createInitialLivePriceData,
   );
 
+  // Тикает, только пока экран виден.
+  const focused = useIsFocused();
+
   useEffect(() => {
+    if (!focused) return;
+
     const interval = setInterval(() => {
       setLivePriceData(previous => nextLivePriceData(previous));
     }, 500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [focused]);
 
   const livePriceSeries: IChartSeries[] = useMemo(
     () => [

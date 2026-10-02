@@ -1,6 +1,7 @@
 import {
   clampOffset,
   hiddenBarLayout,
+  isNewBarTarget,
   isRemeasure,
   rebaseOffset,
   resolveCollapseRange,
@@ -112,5 +113,21 @@ describe("hiddenBarLayout", () => {
 
   it("объявлен как worklet", () => {
     expect(hiddenBarLayout.toString()).toMatch(/["']worklet["']/);
+  });
+});
+
+describe("isNewBarTarget", () => {
+  it("повтор той же цели — без новой анимации", () => {
+    expect(isNewBarTarget(0, 0)).toBe(false);
+    expect(isNewBarTarget(56, 56)).toBe(false);
+  });
+
+  it("другая цель или цель неизвестна (сдвиг пальцем) — анимировать", () => {
+    expect(isNewBarTarget(0, 56)).toBe(true);
+    expect(isNewBarTarget(Number.NaN, 0)).toBe(true);
+  });
+
+  it("объявлен как worklet", () => {
+    expect(isNewBarTarget.toString()).toMatch(/["']worklet["']/);
   });
 });

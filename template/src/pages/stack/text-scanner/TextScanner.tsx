@@ -77,7 +77,7 @@ export const TextScanner: FC = observer(() => {
         <BottomSheet.Header label={"Наведите камеру на текст"} />
         <BottomSheet.Content scrollEnabled={false}>
           <TextScanCamera
-            vm={vm}
+            vm={vm.camera}
             isActive={isSheetOpen}
             style={styles.camera}
           />

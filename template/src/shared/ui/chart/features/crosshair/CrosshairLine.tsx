@@ -1,7 +1,6 @@
 import { DashPathEffect, Group, Line, vec } from "@shopify/react-native-skia";
-import React, { FC, useState } from "react";
-import { useAnimatedReaction, useDerivedValue } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import React from "react";
+import { useDerivedValue } from "react-native-reanimated";
 
 import { scaleToRange } from "../../core";
 import { CrosshairSeriesIndicator } from "./CrosshairSeriesIndicator";
@@ -18,6 +17,7 @@ export const CrosshairLine = React.memo(
     touchX,
     active,
     activeIndices,
+    jsIndices,
     color,
     strokeWidth,
     markerRadius,
@@ -61,20 +61,7 @@ export const CrosshairLine = React.memo(
 
     const opacity = useDerivedValue(() => (active.value ? 1 : 0), [active]);
 
-    // activeIndex bridge в JS для текста X-лейбла (только первая серия).
-    const [activeIndex, setActiveIndex] = useState(
-      () => activeIndices.value[0] ?? -1,
-    );
-
-    useAnimatedReaction(
-      () => activeIndices.value[0] ?? -1,
-      (next, previous) => {
-        if (next !== previous) {
-          scheduleOnRN(setActiveIndex, next);
-        }
-      },
-      [activeIndices],
-    );
+    const activeIndex = jsIndices[0] ?? -1;
 
     const xLabelText =
       showXLabel && activeIndex >= 0 && referenceData[activeIndex]
@@ -101,6 +88,7 @@ export const CrosshairLine = React.memo(
             key={item.id}
             series={item}
             seriesIndex={index}
+            jsIndex={jsIndices[index] ?? -1}
             seriesShared={seriesShared}
             activeIndices={activeIndices}
             xScale={xScale}

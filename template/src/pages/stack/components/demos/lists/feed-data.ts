@@ -73,3 +73,12 @@ export const formatPostAge = (minutes: number) => {
 
   return `${Math.floor(minutes / (60 * 24))} дн`;
 };
+
+let feedCache: IFeedPost[] | null = null;
+
+/** Лента по умолчанию — строится один раз, переключение режимов её не пересоздаёт. */
+export const getFeed = (): IFeedPost[] => {
+  feedCache ??= createFeed();
+
+  return feedCache;
+};

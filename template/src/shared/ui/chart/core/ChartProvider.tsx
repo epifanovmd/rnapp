@@ -30,7 +30,7 @@ import {
   useSeriesLod,
   useVisibleSlices,
 } from "./hooks";
-import { useActiveIndices } from "./interaction";
+import { sameIndices, useActiveIndices } from "./interaction";
 import { createLinearScale } from "./scale/linear-scale";
 import { resolveAutoYDomain } from "./scale/y-domain";
 import { ActivePoint, ChartProviderProps } from "./types";
@@ -199,37 +199,32 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
     interaction.isSecondActive,
   );
 
-  // Отслеживание активных точек для обоих касаний.
-  const [primaryIndex, setPrimaryIndex] = useState(
-    () => active1.indices.value[0] ?? -1,
+  // Единственный мост активных индексов в React (подписи, тултип, onChange):
+  // только при их смене — на скрабе это одна перерисовка, а не по одной на слой.
+  const [primaryIndices, setPrimaryIndices] = useState<number[]>(
+    () => active1.indices.value,
   );
-  const [secondaryIndex, setSecondaryIndex] = useState(
-    () => active2.indices.value[0] ?? -1,
+  const [secondaryIndices, setSecondaryIndices] = useState<number[]>(
+    () => active2.indices.value,
   );
 
-  const lastPrimarySV = useSharedValue(-2);
-  const lastSecondarySV = useSharedValue(-2);
+  useAnimatedReaction(
+    () => active1.indices.value,
+    (next, previous) => {
+      if (!sameIndices(next, previous)) scheduleOnRN(setPrimaryIndices, next);
+    },
+    [active1.indices],
+  );
+  useAnimatedReaction(
+    () => active2.indices.value,
+    (next, previous) => {
+      if (!sameIndices(next, previous)) scheduleOnRN(setSecondaryIndices, next);
+    },
+    [active2.indices],
+  );
 
-  useAnimatedReaction(
-    () => active1.indices.value[0] ?? -1,
-    next => {
-      if (next !== lastPrimarySV.value) {
-        lastPrimarySV.value = next;
-        scheduleOnRN(setPrimaryIndex, next);
-      }
-    },
-    [active1.indices, lastPrimarySV],
-  );
-  useAnimatedReaction(
-    () => active2.indices.value[0] ?? -1,
-    next => {
-      if (next !== lastSecondarySV.value) {
-        lastSecondarySV.value = next;
-        scheduleOnRN(setSecondaryIndex, next);
-      }
-    },
-    [active2.indices, lastSecondarySV],
-  );
+  const primaryIndex = primaryIndices[0] ?? -1;
+  const secondaryIndex = secondaryIndices[0] ?? -1;
 
   const buildPoints = useCallback(
     (index: number): ActivePoint[] | null => {
@@ -283,8 +278,10 @@ export const ChartProvider: FC<PropsWithChildren<ChartProviderProps>> = ({
     () => ({
       activeIndices: active1.indices,
       activeIndices2: active2.indices,
+      jsIndices: primaryIndices,
+      jsIndices2: secondaryIndices,
     }),
-    [active1.indices, active2.indices],
+    [active1.indices, active2.indices, primaryIndices, secondaryIndices],
   );
 
   return (

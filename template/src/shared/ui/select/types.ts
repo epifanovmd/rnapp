@@ -151,7 +151,8 @@ export interface SelectBaseProps<V extends SelectValue = string>
   /** Текст пункта «Создать» (по умолчанию «Создать «запрос»»). */
   createLabel?: (query: string) => ReactNode;
   /** Виртуализация длинного списка (AnchorList): рендерятся только видимые
-   *  строки, заголовки групп прилипают к верху. */
+   *  строки, заголовки групп прилипают к верху. Не задано — сама, если
+   *  вариантов больше 50; `false` — отключить. */
   virtual?: boolean | SelectVirtualConfig;
 }
 

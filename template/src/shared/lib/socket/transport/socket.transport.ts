@@ -28,6 +28,9 @@ interface IPendingConnect {
   reject: (err: Error) => void;
 }
 
+/** Через сколько в фоне отключать сокет, мс. */
+const BACKGROUND_SUSPEND_MS = 30_000;
+
 /**
  * Одно долгоживущее соединение socket.io.
  *
@@ -45,6 +48,9 @@ interface IPendingConnect {
 export class SocketTransport implements ISocketTransport {
   private _socket: AppSocket | null = null;
   private _isManualDisconnect = false;
+  /** Приостановлен в фоне: не переподключаться до возвращения приложения. */
+  private _isSuspended = false;
+  private _backgroundTimer: ReturnType<typeof setTimeout> | null = null;
   private _pending: IPendingConnect | null = null;
 
   private _statusListeners = new Set<SocketStatusListener>();
@@ -73,7 +79,12 @@ export class SocketTransport implements ISocketTransport {
 
     const disposeToken = this._tokenProvider.onTokenChange(this._sendToken);
     const disposeAppActive = this._appState.onChange(isActive => {
-      if (isActive) this._onWake();
+      if (isActive) {
+        this._cancelBackgroundSuspend();
+        this._onWake();
+      } else {
+        this._scheduleBackgroundSuspend();
+      }
     });
     const disposeNetworkOnline = this._network.onOnline(this._onWake);
 
@@ -83,6 +94,7 @@ export class SocketTransport implements ISocketTransport {
       disposeToken();
       disposeAppActive();
       disposeNetworkOnline();
+      this._cancelBackgroundSuspend();
       this.disconnect();
       this._initializeDisposers = null;
     };
@@ -97,6 +109,7 @@ export class SocketTransport implements ISocketTransport {
     if (this._pending) return this._pending.promise;
 
     this._isManualDisconnect = false;
+    this._isSuspended = false;
 
     const socket = this._socket ?? this._createSocket();
     const pending = {} as IPendingConnect;
@@ -279,6 +292,7 @@ export class SocketTransport implements ISocketTransport {
   /** Сокет, от которого socket.io отказался; живой или повторяющий не в счёт. */
   private _isAbandoned(): boolean {
     if (this._isManualDisconnect || !this._socket) return false;
+    if (this._isSuspended) return true;
 
     return !this._socket.connected && !this._socket.active;
   }
@@ -288,6 +302,9 @@ export class SocketTransport implements ISocketTransport {
    * без ожидания backoff, а живой проверить пингом.
    */
   private _onWake = (): void => {
+    // Сеть появилась, пока приложение в фоне, — поднимем по возвращении.
+    if (!this._appState.isActive) return;
+
     if (this._socket?.connected) {
       this._sendHeartbeat();
 
@@ -299,6 +316,35 @@ export class SocketTransport implements ISocketTransport {
     this._reconnect.reset();
     this.connect().catch(noop);
   };
+
+  /**
+   * Приложение ушло в фон: через `BACKGROUND_SUSPEND_MS` отключить сокет —
+   * live-события в фоне не нужны и тратят батарею и трафик. Подписчики и
+   * сокет сохраняются: по возвращении `_onWake` подключит его, комнаты
+   * войдут заново и перечитают пропущенное (`onRejoin`).
+   */
+  private _scheduleBackgroundSuspend(): void {
+    this._cancelBackgroundSuspend();
+    this._backgroundTimer = setTimeout(() => {
+      this._backgroundTimer = null;
+      this._suspend();
+    }, BACKGROUND_SUSPEND_MS);
+  }
+
+  private _cancelBackgroundSuspend(): void {
+    if (this._backgroundTimer) clearTimeout(this._backgroundTimer);
+    this._backgroundTimer = null;
+  }
+
+  private _suspend(): void {
+    if (this._isManualDisconnect || !this._socket) return;
+
+    this._isSuspended = true;
+    this._reconnect.reset();
+    this._stopHeartbeat();
+    this._socket.disconnect();
+    this._setState({ status: "disconnected", error: null });
+  }
 
   /** socket.io сдался: обновить токен и повторить с backoff. */
   private _scheduleReconnect(): void {
@@ -439,7 +485,7 @@ export class SocketTransport implements ISocketTransport {
 
   private _onDisconnect = (): void => {
     this._stopHeartbeat();
-    if (this._isManualDisconnect) return;
+    if (this._isManualDisconnect || this._isSuspended) return;
 
     this._setState({ status: "connecting" });
 

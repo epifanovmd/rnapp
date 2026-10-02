@@ -1,11 +1,9 @@
 import { IDetectedObjectInfo } from "@shared/lib/object-scan";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useCameraPermission } from "react-native-vision-camera";
 
-export interface IObjectScanVM {
-  /** Объекты последнего скана, по убыванию уверенности */
-  detections: IDetectedObjectInfo[];
-  clearDetections: () => void;
+/** Всё, что нужно камере: не меняется от результатов детекции. */
+export interface IObjectScanCameraVM {
   /** Колбэк потока детекций для камеры */
   handleDetections: (objects: IDetectedObjectInfo[]) => void;
   torchEnabled: boolean;
@@ -13,6 +11,14 @@ export interface IObjectScanVM {
   hasPermission: boolean;
   canRequestPermission: boolean;
   requestPermission: () => Promise<boolean>;
+}
+
+export interface IObjectScanVM {
+  /** Объекты последнего скана, по убыванию уверенности */
+  detections: IDetectedObjectInfo[];
+  clearDetections: () => void;
+  /** Камера — отдельным стабильным объектом: новые детекции её не перерисовывают. */
+  camera: IObjectScanCameraVM;
 }
 
 /** Состояние примера детекции объектов: живой список найденного */
@@ -36,14 +42,27 @@ export const useObjectScanVM = (): IObjectScanVM => {
     setTorchEnabled(current => !current);
   }, []);
 
-  return {
-    detections,
-    clearDetections,
-    handleDetections,
-    torchEnabled,
-    toggleTorch,
-    hasPermission,
-    canRequestPermission,
-    requestPermission,
-  };
+  const camera = useMemo<IObjectScanCameraVM>(
+    () => ({
+      handleDetections,
+      torchEnabled,
+      toggleTorch,
+      hasPermission,
+      canRequestPermission,
+      requestPermission,
+    }),
+    [
+      handleDetections,
+      torchEnabled,
+      toggleTorch,
+      hasPermission,
+      canRequestPermission,
+      requestPermission,
+    ],
+  );
+
+  return useMemo(
+    () => ({ detections, clearDetections, camera }),
+    [detections, clearDetections, camera],
+  );
 };

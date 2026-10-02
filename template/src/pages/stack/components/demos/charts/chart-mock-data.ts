@@ -38,8 +38,7 @@ const formatLabel = (ts: number) => {
 const intradayPattern = (hour: number) =>
   -Math.cos((hour / 24) * Math.PI * 2) * 12;
 
-/** Ежедневные данные выручки и расходов за 2025 год (8 точек в день). */
-export const REVENUE_VS_EXPENSES: IChartSeries[] = [
+const buildRevenueSeries = (): IChartSeries[] => [
   {
     id: "revenue",
     label: "Выручка",
@@ -85,6 +84,18 @@ export const REVENUE_VS_EXPENSES: IChartSeries[] = [
     }),
   },
 ];
+
+let revenueSeries: IChartSeries[] | null = null;
+
+/**
+ * Ежедневные данные выручки и расходов за 2025 год (8 точек в день): строятся
+ * при первом обращении (открытии примера), а не при загрузке модуля.
+ */
+export const getRevenueSeries = (): IChartSeries[] => {
+  revenueSeries ??= buildRevenueSeries();
+
+  return revenueSeries;
+};
 
 /** История live-тикера: 10 минут по секунде. */
 const LIVE_PRICE_WINDOW = 600;
