@@ -1,44 +1,20 @@
-import { TSignUpForm, useSignUpVM } from "@features/sign-up";
-import {
-  Container,
-  Content,
-  Form,
-  FormSubmit,
-  ScrollView,
-  TextFieldFormField,
-} from "@shared/ui";
-import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
+import { SignUpForm } from "@features/sign-up";
+import { useNavigation } from "@shared/lib/navigation";
+import { AuthLayout } from "@widgets/auth-layout";
+import React, { FC, useCallback } from "react";
 
-export const SignUp: FC = observer(() => {
-  const { form, handleSignUp } = useSignUpVM();
+/** Экран регистрации; после успеха guard-группы стека сами переключают навигатор. */
+export const SignUp: FC = () => {
+  const navigation = useNavigation();
+
+  const handleSignIn = useCallback(
+    () => navigation.navigate("SignIn"),
+    [navigation],
+  );
 
   return (
-    <Container>
-      <Content>
-        <ScrollView>
-          <Form form={form} onSubmit={handleSignUp}>
-            <TextFieldFormField<TSignUpForm>
-              name={"login"}
-              label={"Username"}
-            />
-
-            <TextFieldFormField<TSignUpForm>
-              name={"password"}
-              label={"Password"}
-              secureTextEntry={true}
-            />
-
-            <TextFieldFormField<TSignUpForm>
-              name={"confirmPassword"}
-              label={"confirmPassword"}
-              secureTextEntry={true}
-            />
-
-            <FormSubmit>{"Зарегистрироваться"}</FormSubmit>
-          </Form>
-        </ScrollView>
-      </Content>
-    </Container>
+    <AuthLayout>
+      <SignUpForm onSignIn={handleSignIn} />
+    </AuthLayout>
   );
-});
+};

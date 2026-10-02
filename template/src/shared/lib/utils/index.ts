@@ -3,6 +3,7 @@ export * from "./describe-user-agent";
 export * from "./download-blob";
 export * from "./enum-values";
 export * from "./flatten";
+export * from "./format-app-version";
 export * from "./format-bytes";
 export * from "./format-duration";
 export * from "./format-name";

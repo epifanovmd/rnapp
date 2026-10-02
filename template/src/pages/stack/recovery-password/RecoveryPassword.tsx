@@ -1,39 +1,20 @@
-import {
-  TRecoveryPasswordForm,
-  useRecoveryPassword,
-} from "@features/recovery-password";
+import { RecoveryPasswordForm } from "@features/recovery-password";
 import { useNavigation } from "@shared/lib/navigation";
-import {
-  Container,
-  Content,
-  Form,
-  FormSubmit,
-  ScrollView,
-  TextFieldFormField,
-} from "@shared/ui";
-import { observer } from "mobx-react-lite";
-import React, { FC } from "react";
+import { AuthLayout } from "@widgets/auth-layout";
+import React, { FC, useCallback } from "react";
 
-export const RecoveryPassword: FC = observer(() => {
+/** Экран запроса ссылки для сброса пароля. */
+export const RecoveryPassword: FC = () => {
   const navigation = useNavigation();
-  const { form, handleSubmit } = useRecoveryPassword(() =>
-    navigation.navigate("SignIn"),
+
+  const handleBack = useCallback(
+    () => navigation.navigate("SignIn"),
+    [navigation],
   );
 
   return (
-    <Container>
-      <Content>
-        <ScrollView>
-          <Form form={form} onSubmit={handleSubmit}>
-            <TextFieldFormField<TRecoveryPasswordForm>
-              name={"login"}
-              label={"Логин"}
-            />
-
-            <FormSubmit>{"Восстановить пароль"}</FormSubmit>
-          </Form>
-        </ScrollView>
-      </Content>
-    </Container>
+    <AuthLayout>
+      <RecoveryPasswordForm onBack={handleBack} />
+    </AuthLayout>
   );
-});
+};

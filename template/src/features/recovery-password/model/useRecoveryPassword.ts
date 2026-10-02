@@ -2,16 +2,18 @@ import { IMainApi } from "@shared/api";
 import { notifyApiError } from "@shared/lib/http";
 import { useNotifications } from "@shared/lib/notifications";
 import { useZodForm } from "@shared/ui";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 import {
   recoveryPasswordValidationSchema,
   TRecoveryPasswordSubmit,
 } from "./validation";
 
-export const useRecoveryPassword = (onSuccess: () => void) => {
+/** VM запроса письма для сброса пароля; после успеха — состояние «письмо отправлено». */
+export const useRecoveryPassword = () => {
   const api = IMainApi.useInstance();
   const notifications = useNotifications();
+  const [sentMessage, setSentMessage] = useState<string | null>(null);
 
   const form = useZodForm(recoveryPasswordValidationSchema, {
     defaultValues: {
@@ -26,14 +28,11 @@ export const useRecoveryPassword = (onSuccess: () => void) => {
       if (res.error) {
         notifyApiError(notifications, res.error);
       } else if (res.data) {
-        if (res.data.message) {
-          notifications.success(res.data.message);
-        }
-        onSuccess();
+        setSentMessage(res.data.message ?? "");
       }
     },
-    [api, notifications, onSuccess],
+    [api, notifications],
   );
 
-  return { form, handleSubmit };
+  return { form, handleSubmit, isSent: sentMessage !== null, sentMessage };
 };

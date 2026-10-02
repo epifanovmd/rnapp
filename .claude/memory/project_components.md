@@ -231,6 +231,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   `<Chart series>` — скрытая серия уходит из тултипа и домена) + `legendProps`; правила —
   `series-visibility.ts` (последнюю видимую не выключить, тесты). Gotcha:
   `CurrentValueLineLayer seriesId=…` при отсутствии серии падает на `series[0]`.
+- Иконка `scanFace` (lucide ScanFace) — биометрия. Бренд-иконки GitHub в lucide 1.x нет.
 - `ScreenFallback` (screen/) — Navbar с «назад» (`onBack`) + ScreenState
   (loading / error+retry / notFound).
 - Плейграунд: вкладка Settings (группы строк, Section.Action, ScreenFallback), Forms —
@@ -336,7 +337,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 - Применено: `ScreenScroll`, `BottomSheet.Content` (→ ModalSheet), `DemoScreen` плейграунда.
   Временное демо `ComponentsKeyboardAnchorList` (`demos/keyboard-anchor-list/`, 24 поля) — может
   быть не закоммичено.
-  `pages/stack/{profile,security}` ещё на KeyboardAwareScrollView.
+  `pages/stack/security` ещё на KeyboardAwareScrollView keyboard-controller'а (profile — на ScreenScroll).
 - Демо: `ComponentsKeyboardScroll` (ScreenScroll, 12 полей, onBlur-валидация, multiline внизу) и
   `ComponentsKeyboardSheet` (ModalSheet с той же формой), `demos/keyboard/`.
 - Не покрыто тестами (RN/Reanimated рантайм): сам хук, реестр, замеры `measure`, события клавиатуры.

@@ -1,120 +1,29 @@
-import { useBiometric } from "@features/biometric";
-import { TSignInForm, useSignInVM } from "@features/sign-in";
-import { useTheme } from "@shared/lib/theme";
-import {
-  Button,
-  Col,
-  Container,
-  Content,
-  Form,
-  FormSubmit,
-  Row,
-  Text,
-  TextField,
-  TextFieldFormField,
-} from "@shared/ui";
-import { ScanFace } from "lucide-react-native";
-import { observer } from "mobx-react-lite";
-import React, { FC, useState } from "react";
-import { StyleSheet } from "react-native";
+import { BiometricSignInButton } from "@features/biometric";
+import { SignInForm } from "@features/sign-in";
+import { useNavigation } from "@shared/lib/navigation";
+import { AuthLayout } from "@widgets/auth-layout";
+import React, { FC, useCallback } from "react";
 
-export const SignIn: FC = observer(() => {
-  const { colors } = useTheme();
+/** Экран входа; после успеха guard-группы стека сами переключают навигатор. */
+export const SignIn: FC = () => {
+  const navigation = useNavigation();
 
-  const {
-    form,
-    loginByGithub,
-    handleLogin,
-    isTwoFactorRequired,
-    twoFactorHint,
-    handleVerify2FA,
-  } = useSignInVM();
-
-  const { available, authorization } = useBiometric();
-
-  const [twoFactorPassword, setTwoFactorPassword] = useState("");
-
-  if (isTwoFactorRequired) {
-    return (
-      <Container>
-        <Content justifyContent={"center"}>
-          <Col style={styles.form}>
-            <Text color={"textPrimary"}>
-              {twoFactorHint
-                ? `Введите пароль для подтверждения (${twoFactorHint})`
-                : "Введите пароль для подтверждения входа"}
-            </Text>
-
-            <TextField
-              label={"Пароль"}
-              value={twoFactorPassword}
-              onChangeText={setTwoFactorPassword}
-              secureTextEntry={true}
-            />
-
-            <Button
-              flex={1}
-              size={"small"}
-              onPress={() => handleVerify2FA(twoFactorPassword)}
-            >
-              {"Подтвердить"}
-            </Button>
-          </Col>
-        </Content>
-      </Container>
-    );
-  }
+  const handleForgotPassword = useCallback(
+    () => navigation.navigate("RecoveryPassword"),
+    [navigation],
+  );
+  const handleSignUp = useCallback(
+    () => navigation.navigate("SignUp"),
+    [navigation],
+  );
 
   return (
-    <Container>
-      <Content justifyContent={"center"}>
-        <Form form={form} onSubmit={handleLogin} style={styles.form}>
-          <TextFieldFormField<TSignInForm> name={"login"} label={"Логин"} />
-
-          <TextFieldFormField<TSignInForm>
-            name={"password"}
-            label={"Пароль"}
-            secureTextEntry={true}
-          />
-
-          <Row gap={8} mt={8} alignItems={"center"}>
-            <FormSubmit flex={1} size={"small"}>
-              {"Войти"}
-            </FormSubmit>
-
-            {available && (
-              <Button flex={1} size={"small"} onPress={authorization}>
-                <ScanFace color={colors.textPrimary} />
-              </Button>
-            )}
-          </Row>
-          <Row gap={8} alignItems={"center"}>
-            <Col
-              bg={colors.textPrimary}
-              style={styles.divider}
-              height={1}
-              flex={1}
-            />
-            <Text color={"textPrimary"} textAlign={"center"}>
-              {"или"}
-            </Text>
-            <Col
-              bg={colors.textPrimary}
-              style={styles.divider}
-              height={1}
-              flex={1}
-            />
-          </Row>
-          <Button flex={1} size={"small"} onPress={loginByGithub}>
-            {"Войти через Github"}
-          </Button>
-        </Form>
-      </Content>
-    </Container>
+    <AuthLayout>
+      <SignInForm
+        onForgotPassword={handleForgotPassword}
+        onSignUp={handleSignUp}
+        alternatives={<BiometricSignInButton />}
+      />
+    </AuthLayout>
   );
-});
-
-const styles = StyleSheet.create({
-  form: { gap: 8 },
-  divider: { borderStyle: "dashed" },
-});
+};

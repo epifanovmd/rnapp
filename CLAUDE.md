@@ -25,8 +25,9 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
   `stack/` (sign-in, sign-up, recovery-password, chat, components — плейграунд кита:
   демо-экраны компонентов, графиков, календаря, контекстного меню, input bar;
   container-scanner, object-scanner, pdf-view, plate-scanner, text-scanner, web-view)
-- `widgets/` — app-shell, chat (ChatView: AnchorList + InputBar + контекстное меню)
-- `features/` — sign-in, sign-up, recovery-password, biometric, container-scan,
+- `widgets/` — app-shell, auth-layout (оформление входа и регистрации), app-menu (вкладка
+  настроек), chat (ChatView: AnchorList + InputBar + контекстное меню)
+- `features/` — sign-in, sign-up, recovery-password, edit-profile, biometric, container-scan,
   message-actions, object-scan, plate-scan, text-scan
 - `entities/` — auth, message, user
 - `shared/` — ui | api (только конкретные бэкенды) | config | lib (http, session, di, holders,

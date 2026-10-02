@@ -8,6 +8,7 @@ import { Linking } from "react-native";
 
 import { signInFormValidationSchema, TSignInSubmit } from "./validation";
 
+/** VM входа: логин/пароль, второй пароль (2FA) и GitHub OAuth. */
 export const useSignInVM = () => {
   const authStore = IAuthStore.useInstance();
   const notifications = INotificationService.useInstance();
@@ -58,6 +59,7 @@ export const useSignInVM = () => {
     form,
     loginByGithub,
     handleLogin,
+    isLoading: authStore.isLoading,
     isTwoFactorRequired: authStore.isTwoFactorRequired,
     twoFactorHint: authStore.twoFactorHint,
     handleVerify2FA,

@@ -11,9 +11,26 @@ type: project
   login/logout не нужен).
 - `src/pages/` сгруппированы по навигаторам: `pages/tabs/<slice>` и `pages/stack/<slice>`
   (boundaries-паттерн `src/pages/*/*/**`, capture group+slice).
-- **Public** (`pages/stack/`): SignIn, SignUp, RecoveryPassword.
+- **Public** (`pages/stack/`): SignIn, SignUp, RecoveryPassword — все `NO_HEADER`, тонкие
+  страницы: `widgets/auth-layout` `AuthLayout` (kit `KeyboardAwareScrollView`, safe-area сверху/снизу,
+  логотип-иконка `shieldCheck` на `primary`, `APP_NAME` + карточка `surface` radius 20 + «Версия
+  `APP_VERSION`»; оба из `shared/config/app-info.ts` через device-info — `getApplicationName()` =
+  DISPLAY_NAME сборки) + форма фичи. Ссылки между экранами — `Button appearance="link"`.
+  - `features/sign-in` `SignInForm` (`onForgotPassword`, `onSignUp`, `alternatives` — слот под «или»):
+    логин/пароль, «Забыли пароль?», 2FA `TwoFactorPrompt` (второй пароль + подсказка, заменяет
+    FormSubmit), GitHub OAuth (`loginByGithub`, outline + `externalLink`). Биометрия — из
+    `features/biometric` `BiometricSignInButton` в слот `alternatives` (фича не импортирует фичу).
+  - `features/sign-up` `SignUpForm`: имя/фамилия (необяз.) + логин + пароль×2; `toSignUpRequest`
+    (чистый, тест) — email/phone по логину, пустые имена не шлются.
+  - `features/recovery-password` `RecoveryPasswordForm`: после `requestResetPassword` — состояние
+    «Письмо отправлено» (`RecoveryPasswordSuccess`, текст сервера), без автоперехода.
+  - Passkeys в клиенте нет (только API в gen); `resetPassword({token,password})` в API есть, экрана нет.
 - **Private — табы** (`Tabs`, `src/app/app-tab-screens.tsx` → `MainTabs`, `pages/tabs/`):
-  Main, Playground, Settings.
+  Main, Playground, Settings. Settings — `Container edges top` + `Navbar` + `ScreenScroll` с
+  `widgets/app-menu` `AppMenu`: `AppMenuProfile` (ListItem + Avatar, → Profile), группы
+  `APP_MENU_GROUPS` (Аккаунт: Security/Audit; Данные: Files/Jobs) в `AppMenuGroup` (Section pa 8),
+  группа «Приложение» — `ThemeMenuItem` (widget, Switch Light/Dark) + `BiometricMenuItem`
+  (`features/biometric`, без датчика не рендерится), `SignOutButton` (outline danger + confirm), версия.
 - **Private — стек** (`src/app/App.screens.ts`, `pages/stack/`): Tabs + Components/
   Chat/ContainerScanner/ObjectScanner/PdfView/PlateScanner/TextScanner/WebView.
 - **Плейграунд кита** — `Components` (ссылки) + демо-экраны `Components<Name>`
@@ -35,13 +52,19 @@ type: project
 
 ## Аккаунт (покрытие API шаблона бэкенда)
 
-Вход — вкладка Settings, список ссылок `ACCOUNT_LINKS` (`pages/tabs/settings/Settings.tsx`).
+Вход — вкладка Settings (`widgets/app-menu`, см. выше).
 Экраны стека (`App.screens.ts`, заголовок из `options.title`):
 
-- **Profile** (`pages/stack/profile`) — `features/profile-settings`: `AvatarPicker`
-  (upload случайного фото через `shared/lib/files.downloadSampleImage` → `IFileStore.upload`
-  → `updateProfile({ avatarId })`, выбор из своих изображений, снятие `avatarId: null`),
-  `ProfileForm` (пустые поля → `null`, `toProfileUpdate`), `PrivacySettingsForm`.
+- **Profile** (`pages/stack/profile`, `ScreenScroll` + PTR, `ScreenState`) — секция «Аватар»
+  (`features/profile-settings` `AvatarPicker`: фото из галереи/камеры через ActionSheet →
+  `IFileStore.upload` → `updateProfile({ avatarId })`, выбор из своих изображений, снятие `null`),
+  `ProfileDetails` (SettingsGroup + ValueRow; «Личные данные» по нажатию открывают правку,
+  «Контакты» — email/статус/телефон/роль), `PrivacySettingsForm`, дата регистрации. Правка —
+  `features/edit-profile` `EditProfileModal` (ModalSheet, кнопка `edit` в `headerRight`): имя,
+  фамилия, пол, `DateFormField` даты рождения (maxDate — сегодня), locale; значения из стора
+  (`values` + `keepDirtyValues`), сброс в `onClosed`, `useLeaveConfirmation` при dirty.
+  `profile-form-values.ts` (тест): ISO → локальная дата, пустое → `null`, дата уходит
+  `yyyy-MM-dd` без сдвига UTC.
 - **Security** (`pages/stack/security`) — `features/account-security`: email (смена
   `updateMyUser` → `confirmEmailChange`; подтверждение текущего `requestVerifyEmail`/`verifyEmail`),
   username (регэксп как на сервере `^[a-z0-9_]{5,32}$`), пароль, 2FA (второй пароль; статуса 2FA
