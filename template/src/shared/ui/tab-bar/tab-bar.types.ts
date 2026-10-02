@@ -62,7 +62,7 @@ export interface ITabBarAppearance {
   inactiveColor?: TTabBarColor;
   /** Цвет подложки/точки/линии. По умолчанию — `activeColor` с прозрачностью для `pill`. */
   indicatorColor?: TTabBarColor;
-  /** Прыжок иконки при выборе (один, без колебаний). По умолчанию `"bounce"`. */
+  /** Пружинка иконки при выборе: сжатие и один отскок, без колебаний. По умолчанию `"bounce"`. */
   iconAnimation?: "bounce" | "none";
   /** Вибрация при переключении. По умолчанию `true`. */
   haptics?: boolean;
