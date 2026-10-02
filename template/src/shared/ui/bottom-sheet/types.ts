@@ -24,5 +24,12 @@ export type TBottomSheetContentProps = ComponentProps<
 > & {
   /** От низа скролла до клавиатуры при открытой клавиатуре; ставит BottomSheetLayout. */
   keyboardBottomInset?: SharedValue<number>;
+  /**
+   * При закрытии клавиатуры вернуть скролл к положению на момент её открытия.
+   * В шторке по умолчанию `false`: пока шторка gorhom опускается, её скролл
+   * заблокирован, и любой scrollTo gorhom сбрасывает в начало (onScroll в
+   * LOCKED) — возврат дёргал бы контент.
+   */
+  restoreScrollOnKeyboardHide?: boolean;
 };
 export type TBottomSheetFooterProps = ComponentProps<typeof BottomSheetFooter>;

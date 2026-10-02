@@ -47,6 +47,11 @@ export interface IScreenScrollProps {
   gap?: number;
   /** Телеметрия экрана (navbar, tab bar, HiddenBar): в неё пробрасываются события скролла. */
   telemetry?: IScrollTelemetry;
+  /**
+   * При закрытии клавиатуры вернуть скролл к положению на момент её открытия,
+   * если пользователь не скроллил сам. По умолчанию `true`.
+   */
+  restoreScrollOnKeyboardHide?: boolean;
 }
 
 /** Прокручиваемый экран: отступы, клавиатура и pull-to-refresh. */
@@ -57,6 +62,7 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
   topInset = 0,
   gap = 12,
   telemetry: screenTelemetry,
+  restoreScrollOnKeyboardHide = true,
   children,
 }) => {
   const { colors } = useTheme();
@@ -117,7 +123,10 @@ export const ScreenScroll: FC<PropsWithChildren<IScreenScrollProps>> = ({
   }));
 
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const keyboardAware = useKeyboardAwareScroll(scrollRef, { topInset });
+  const keyboardAware = useKeyboardAwareScroll(scrollRef, {
+    topInset,
+    restoreOnHide: restoreScrollOnKeyboardHide,
+  });
 
   return (
     <View style={[styles.fill, { backgroundColor: colors.background }]}>

@@ -280,6 +280,13 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   onScroll → дёрганье верхних полей. (Гипотеза по коду, на устройстве не подтверждено.)
 - onEnd перезамеряет поле по `event.target` (`focus-capture.ts` `shouldCaptureOnEnd`, тесты): тег
   в onStart мог быть -1/прежним. Реакция на `input.value` — только рост того же target.
+- Возврат при закрытии (`restoreOnHide`, def true; проп кита `restoreScrollOnKeyboardHide` у
+  ScreenScroll/DemoScreen (def true), BottomSheet.Content/ModalSheet (def false)): offset
+  запоминается в onStart при from=0; смена поля не перезаписывает. При скрытии, если не было drag
+  (BeginDrag/MomentumBegin при открытой клавиатуре) и onInteractive, — покадровый lerp к цели,
+  зажатый по контенту с уменьшающейся распоркой; доводка в onEnd. Чистое — `restore-on-hide.ts`
+  (тесты). В шторке выключен: на опускании gorhom её скролл LOCKED, его onScroll сбрасывает
+  любой scrollTo в lockPosition (0) — возврат дёргал бы контент. Демо — SwitchRow в Keyboard · Scroll.
 - Gotcha шторки: gorhom поднимает шторку по JS `Keyboard` событиям (keyboardWillShow → runOnUI,
   ждёт target из onFocus) своей анимацией — позже кадров keyboard-controller; высокая шторка
   (позиция 0) не едет, а ужимает маску снизу (contentMax = container − kb − handle, paddingBottom =

@@ -33,6 +33,11 @@ import {
   predictAnchoredViewport,
   shouldScrollTo,
 } from "./keyboard-aware-offset";
+import {
+  computeRestoreOffset,
+  restoreFrameOffset,
+  shouldRestoreOnHide,
+} from "./restore-on-hide";
 
 export interface IKeyboardAwareScrollOptions {
   /** Зазор между низом поля и клавиатурой, px. По умолчанию 16. */
@@ -47,6 +52,12 @@ export interface IKeyboardAwareScrollOptions {
    * шторку над клавиатурой. По умолчанию `true`.
    */
   spacer?: boolean;
+  /**
+   * При закрытии клавиатуры вернуть скролл покадрово к положению на момент её
+   * открытия — если пользователь не скроллил сам и не закрывал клавиатуру
+   * пальцем. По умолчанию `true`.
+   */
+  restoreOnHide?: boolean;
   /**
    * Скролл в контейнере, который сам встаёт над клавиатурой (шторка gorhom).
    * Видимая область считается по цели (`predictAnchoredViewport`), а не по
@@ -144,6 +155,7 @@ export const useKeyboardAwareScroll = (
     enabled = true,
     topInset = 0,
     spacer = true,
+    restoreOnHide = true,
     keyboardAnchor,
   }: IKeyboardAwareScrollOptions = {},
 ): IKeyboardAwareScroll => {
@@ -173,6 +185,15 @@ export const useKeyboardAwareScroll = (
   const startOffset = useSharedValue(0);
   const pendingRecapture = useSharedValue(false);
 
+  // Возврат при закрытии: положение на момент открытия клавиатуры.
+  const savedOffset = useSharedValue(0);
+  const hasSaved = useSharedValue(false);
+  const userDragged = useSharedValue(false);
+  const interactiveDismiss = useSharedValue(false);
+  const isRestoring = useSharedValue(false);
+  const restoreFrom = useSharedValue(0);
+  const restoreTo = useSharedValue(0);
+
   // Шторка: верх скролла и запас подъёма, замеренные в покое.
   const isAnchored = useSharedValue(false);
   const restTop = useSharedValue(0);
@@ -187,6 +208,8 @@ export const useKeyboardAwareScroll = (
       event.eventName.endsWith("onMomentumScrollBegin")
     ) {
       isDragging.value = true;
+
+      if (hasSaved.value || isRestoring.value) userDragged.value = true;
     } else if (
       event.eventName.endsWith("onScrollEndDrag") ||
       event.eventName.endsWith("onMomentumScrollEnd")
@@ -392,7 +415,31 @@ export const useKeyboardAwareScroll = (
           isAnimating.value = true;
           captureSpacer(viewport);
 
+          const maxOffset =
+            spacerTop.value >= 0
+              ? computeMaxScrollOffset(spacerTop.value, 0, viewport.height)
+              : MAX_OFFSET_UNKNOWN;
+
+          restoreFrom.value = offset.value;
+          restoreTo.value = computeRestoreOffset(savedOffset.value, maxOffset);
+          isRestoring.value =
+            shouldRestoreOnHide({
+              enabled: restoreOnHide,
+              hasSaved: hasSaved.value,
+              userDragged: userDragged.value,
+              interactiveDismiss: interactiveDismiss.value,
+            }) && shouldScrollTo(restoreTo.value, restoreFrom.value);
+          hasSaved.value = false;
+
           return;
+        }
+
+        // Открытие из закрытого состояния — запомнить, куда вернуться.
+        if (from < 1) {
+          savedOffset.value = offset.value;
+          hasSaved.value = true;
+          userDragged.value = false;
+          interactiveDismiss.value = false;
         }
 
         // Шторка ещё в покое — запомнить её геометрию для прогноза.
@@ -436,7 +483,11 @@ export const useKeyboardAwareScroll = (
 
         const hiding = keyboardTo.value <= 0;
 
-        if (hiding ? spacerHeight.value <= 0 : !hasField.value) return;
+        const restoring = isRestoring.value && !userDragged.value;
+
+        if (hiding ? spacerHeight.value <= 0 && !restoring : !hasField.value) {
+          return;
+        }
 
         const measured = measure(scrollRef);
 
@@ -444,8 +495,28 @@ export const useKeyboardAwareScroll = (
 
         if (hiding) {
           const viewport = resolveViewport(measured, 0);
+          const nextSpacer = spacerFor(viewport, event.height);
 
-          resizeSpacer(viewport, spacerFor(viewport, event.height));
+          if (restoring) {
+            const maxOffset =
+              spacerTop.value >= 0
+                ? computeMaxScrollOffset(
+                    spacerTop.value,
+                    Math.min(nextSpacer, spacerHeight.value),
+                    viewport.height,
+                  )
+                : MAX_OFFSET_UNKNOWN;
+            const next = restoreFrameOffset(
+              restoreFrom.value,
+              restoreTo.value,
+              keyboardProgress(event.height, keyboardFrom.value, 0),
+              maxOffset,
+            );
+
+            if (shouldScrollTo(next, offset.value)) setOffset(next, false);
+          }
+
+          resizeSpacer(viewport, nextSpacer);
 
           return;
         }
@@ -471,6 +542,7 @@ export const useKeyboardAwareScroll = (
       onInteractive: event => {
         "worklet";
         keyboardHeight.value = event.height;
+        interactiveDismiss.value = true;
       },
       onEnd: event => {
         "worklet";
@@ -490,6 +562,21 @@ export const useKeyboardAwareScroll = (
           hasField.value = false;
           isAnchored.value = false;
           pendingRecapture.value = false;
+
+          // Доводка возврата: платформы без покадровых событий.
+          if (
+            isRestoring.value &&
+            !userDragged.value &&
+            !isDragging.value &&
+            shouldScrollTo(restoreTo.value, offset.value)
+          ) {
+            setOffset(
+              restoreTo.value,
+              Math.abs(restoreTo.value - offset.value) > 2,
+            );
+          }
+
+          isRestoring.value = false;
           resizeSpacer(resolveViewport(measured, 0), 0);
 
           return;
@@ -536,7 +623,7 @@ export const useKeyboardAwareScroll = (
         }
       },
     },
-    [enabled, spacer, bottomOffset, screenHeight, topInset],
+    [enabled, spacer, restoreOnHide, bottomOffset, screenHeight, topInset],
   );
 
   useAnimatedReaction(

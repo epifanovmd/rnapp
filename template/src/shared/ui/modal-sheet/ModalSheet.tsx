@@ -30,6 +30,11 @@ export interface IModalSheetProps {
   cancelLabel?: string | null;
   /** Предел высоты по контенту; по умолчанию — почти весь экран. */
   maxHeight?: number;
+  /**
+   * При закрытии клавиатуры вернуть скролл формы к положению на момент её
+   * открытия. По умолчанию `false` — см. `BottomSheet.Content`.
+   */
+  restoreScrollOnKeyboardHide?: boolean;
 }
 
 /**
@@ -45,6 +50,7 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   primaryAction,
   cancelLabel = "Отмена",
   maxHeight,
+  restoreScrollOnKeyboardHide,
   children,
 }) => {
   const sheetRef = useBottomSheetRef();
@@ -77,7 +83,9 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
       }}
     >
       {!!title && <BottomSheet.Header label={title} />}
-      <BottomSheet.Content>
+      <BottomSheet.Content
+        restoreScrollOnKeyboardHide={restoreScrollOnKeyboardHide}
+      >
         <Col gap={12} pb={8}>
           {typeof description === "string" ? (
             <Text textStyle={"Body_S2"} color={"textSecondary"}>

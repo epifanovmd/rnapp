@@ -23,24 +23,38 @@ import { TBottomSheetContentProps } from "./types";
 export const BottomSheetScrollContent = forwardRef<
   BottomSheetScrollViewMethods,
   TBottomSheetContentProps
->(({ children, keyboardBottomInset, ...rest }, ref) => {
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const sheet = useBottomSheetInternal(true);
-  const keyboardAware = useKeyboardAwareScroll(scrollRef, {
-    spacer: false,
-    keyboardAnchor:
-      sheet && keyboardBottomInset
-        ? { bottomInset: keyboardBottomInset, liftRoom: sheet.animatedPosition }
-        : undefined,
-  });
+>(
+  (
+    {
+      children,
+      keyboardBottomInset,
+      restoreScrollOnKeyboardHide = false,
+      ...rest
+    },
+    ref,
+  ) => {
+    const scrollRef = useAnimatedRef<Animated.ScrollView>();
+    const sheet = useBottomSheetInternal(true);
+    const keyboardAware = useKeyboardAwareScroll(scrollRef, {
+      spacer: false,
+      restoreOnHide: restoreScrollOnKeyboardHide,
+      keyboardAnchor:
+        sheet && keyboardBottomInset
+          ? {
+              bottomInset: keyboardBottomInset,
+              liftRoom: sheet.animatedPosition,
+            }
+          : undefined,
+    });
 
-  return (
-    <BottomSheetScrollView ref={mergeRefs([ref, scrollRef])} {...rest}>
-      <KeyboardAwareContent controller={keyboardAware}>
-        {children}
-      </KeyboardAwareContent>
-    </BottomSheetScrollView>
-  );
-});
+    return (
+      <BottomSheetScrollView ref={mergeRefs([ref, scrollRef])} {...rest}>
+        <KeyboardAwareContent controller={keyboardAware}>
+          {children}
+        </KeyboardAwareContent>
+      </BottomSheetScrollView>
+    );
+  },
+);
 
 BottomSheetScrollContent.displayName = "BottomSheetScrollContent";
