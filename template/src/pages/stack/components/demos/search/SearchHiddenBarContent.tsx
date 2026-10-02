@@ -10,6 +10,7 @@ import {
   Container,
   EmptyState,
   HiddenBar,
+  IconButton,
   Navbar,
   NavbarInset,
   SearchBar,
@@ -51,7 +52,8 @@ const keyExtractor = (item: ISearchDemoContact) => item.id;
  * Поиск под скрываемой шапкой: строка поиска закреплена, шапка уходит при
  * скролле. Поведение настраивается: оверлей (никогда / весь поиск / только
  * без запроса), прятать ли шапку при открытии, какой её вернуть, «Отмена».
- * Без оверлея или с запросом — список фильтруется на месте.
+ * Без оверлея или с запросом — список фильтруется на месте. «+» справа от
+ * поля — аксессуар, в поиске на его место встаёт «Отмена».
  */
 export const SearchHiddenBarContent: FC = () => {
   const { top, bottom } = useSafeAreaInsets();
@@ -126,7 +128,15 @@ export const SearchHiddenBarContent: FC = () => {
             placeholder={"Имя, должность или город"}
             cancel={options.cancel}
             onSubmit={remember}
-          />
+          >
+            <SearchBar.Accessory>
+              <IconButton
+                name={"plus"}
+                color={"primary"}
+                accessibilityLabel={"Новый контакт"}
+              />
+            </SearchBar.Accessory>
+          </SearchBar>
         </HiddenBar.StickyContent>
       </HiddenBar>
 

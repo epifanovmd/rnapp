@@ -15,6 +15,7 @@ import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { Icon } from "../icon";
 import { getTextStyle, Text } from "../text";
 import { Touchable } from "../touchable";
+import { searchTrailingLayout } from "./search-trailing-layout";
 
 /** Когда показывать «Отмену»: в режиме поиска, всегда или никогда. */
 export type TSearchCancelMode = "active" | "always" | "never";
@@ -47,6 +48,11 @@ const searchBarSlots = {
   trailing: slot.of(View),
   /** Вместо кнопки «Отмена». */
   cancel: slot.of(View),
+  /**
+   * Справа от поля вне режима поиска (например, «добавить»). В режиме
+   * `cancel="active"` сменяется «Отменой» на том же месте.
+   */
+  accessory: slot.of(View),
 };
 
 const INPUT_TEXT_STYLE = getTextStyle("Body_M1");
@@ -83,6 +89,7 @@ const SearchBarRoot = ({
     progress,
   } = search;
   const [cancelWidth, setCancelWidth] = useState(0);
+  const [accessoryWidth, setAccessoryWidth] = useState(0);
 
   // Фокус — когда поле уже раскрывается: в нулевую ширину iOS его не ставит.
   useEffect(() => {
@@ -99,17 +106,38 @@ const SearchBarRoot = ({
     setCancelWidth(previous => (previous === next ? previous : next));
   }, []);
 
-  // «Отмена» в режиме "active" выезжает справа, отнимая ширину у поля.
-  const cancelStyle = useAnimatedStyle(() => {
-    if (cancelMode !== "active") return {};
+  const onAccessoryLayout = useCallback((event: LayoutChangeEvent) => {
+    const next = event.nativeEvent.layout.width;
 
-    return {
-      width: cancelWidth * progress.value,
-      opacity: progress.value,
-    };
-  }, [cancelMode, cancelWidth, progress]);
+    setAccessoryWidth(previous => (previous === next ? previous : next));
+  }, []);
 
-  const { leading, trailing, cancel } = slots;
+  const { leading, trailing, cancel, accessory } = slots;
+  const accessoryOffset = accessory.present ? accessoryWidth : 0;
+
+  // Зона справа в режиме "active": аксессуар и «Отмена» сменяются на одном
+  // месте у правого края, ширина зоны переходит от одного к другому.
+  const zoneStyle = useAnimatedStyle(
+    () => ({
+      width: searchTrailingLayout(progress.value, accessoryOffset, cancelWidth)
+        .width,
+    }),
+    [accessoryOffset, cancelWidth, progress],
+  );
+  const accessoryStyle = useAnimatedStyle(
+    () => ({
+      opacity: searchTrailingLayout(progress.value, accessoryOffset, cancelWidth)
+        .accessoryOpacity,
+    }),
+    [accessoryOffset, cancelWidth, progress],
+  );
+  const cancelStyle = useAnimatedStyle(
+    () => ({
+      opacity: searchTrailingLayout(progress.value, accessoryOffset, cancelWidth)
+        .cancelOpacity,
+    }),
+    [accessoryOffset, cancelWidth, progress],
+  );
 
   const cancelContent = cancel.present ? (
     cancel.render()
@@ -162,24 +190,41 @@ const SearchBarRoot = ({
               </Touchable>
             )}
       </View>
+      {cancelMode !== "active" && accessory.present && (
+        <View style={styles.trailingStatic}>{accessory.render()}</View>
+      )}
       {cancelMode === "always" && (
-        <View style={styles.cancelStatic}>{cancelContent}</View>
+        <View style={styles.trailingStatic}>{cancelContent}</View>
       )}
       {cancelMode === "active" && (
         <>
-          <Animated.View style={[styles.cancel, cancelStyle]}>
-            <View
+          <Animated.View style={[styles.zone, zoneStyle]}>
+            {accessory.present && (
+              <Animated.View
+                style={[
+                  styles.zoneItem,
+                  accessoryWidth > 0 && { width: accessoryWidth },
+                  accessoryStyle,
+                ]}
+                pointerEvents={active ? "none" : "box-none"}
+              >
+                {accessory.render()}
+              </Animated.View>
+            )}
+            <Animated.View
               style={[
-                styles.cancelContent,
+                styles.zoneItem,
                 cancelWidth > 0 && { width: cancelWidth },
+                cancelStyle,
               ]}
+              pointerEvents={active ? "box-none" : "none"}
             >
               {cancelContent}
-            </View>
+            </Animated.View>
           </Animated.View>
-          {/* Замер по всей ширине строки: в анимируемой обёртке текст сжат. */}
+          {/* Замер по всей ширине строки: в анимируемой зоне содержимое сжато. */}
           <View
-            style={styles.cancelMeasure}
+            style={styles.measure}
             pointerEvents={"none"}
             accessibilityElementsHidden
             importantForAccessibility={"no-hide-descendants"}
@@ -187,6 +232,17 @@ const SearchBarRoot = ({
           >
             {cancelContent}
           </View>
+          {accessory.present && (
+            <View
+              style={styles.measure}
+              pointerEvents={"none"}
+              accessibilityElementsHidden
+              importantForAccessibility={"no-hide-descendants"}
+              onLayout={onAccessoryLayout}
+            >
+              {accessory.render()}
+            </View>
+          )}
         </>
       )}
     </View>
@@ -196,7 +252,8 @@ const SearchBarRoot = ({
 /**
  * Строка поиска на контроллере `useSearch`: поле с лупой и «очистить»,
  * «Отмена». Тап в поле открывает поиск; при открытии извне — фокус сам
- * (`autoFocus`); потеря фокуса без запроса закрывает поиск. Слоты `Leading`/`Trailing`/`Cancel` заменяют части.
+ * (`autoFocus`); потеря фокуса без запроса закрывает поиск. Слоты `Leading`/`Trailing`/`Cancel` заменяют части,
+ * `Accessory` — кнопка справа от поля вне поиска, на её место встаёт «Отмена».
  */
 export const SearchBar = createCompound<ISearchBarProps>()({
   name: "SearchBar",
@@ -222,28 +279,28 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 0,
   },
-  cancel: {
+  zone: {
     alignSelf: "stretch",
-    justifyContent: "center",
     overflow: "hidden",
   },
-  // Ширина — измеренная: содержимое не сжимается вместе с обёрткой, а
-  // выезжает справа целиком.
-  cancelContent: {
+  // Ширина — измеренная: содержимое не сжимается вместе с зоной, а стоит у
+  // правого края целиком.
+  zoneItem: {
     position: "absolute",
     top: 0,
     bottom: 0,
     right: 0,
     justifyContent: "center",
+    alignItems: "flex-end",
     paddingLeft: 12,
   },
-  cancelMeasure: {
+  measure: {
     position: "absolute",
     right: 0,
     opacity: 0,
     paddingLeft: 12,
   },
-  cancelStatic: {
+  trailingStatic: {
     paddingLeft: 12,
   },
 });
