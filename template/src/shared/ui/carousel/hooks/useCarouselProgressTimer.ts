@@ -18,10 +18,10 @@ interface ICarouselProgressTimer {
 export const useCarouselProgressTimer = (
   mode: TCarouselProgressBarsMode,
 ): ICarouselProgressTimer => {
-  const { autoplayActive, activeIndex, cycleDuration, touching } =
+  const { autoplayActive, activeIndex, initialIndex, cycleDuration, touching } =
     useCarousel();
   const timer = useSharedValue(0);
-  const timerIndex = useSharedValue(activeIndex.value);
+  const timerIndex = useSharedValue(initialIndex);
 
   useAnimatedReaction(
     () => activeIndex.value,

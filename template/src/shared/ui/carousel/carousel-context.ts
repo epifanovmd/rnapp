@@ -14,6 +14,11 @@ export interface ICarouselApi {
    * в момент остановки, раньше ре-рендера с новым autoplay.
    */
   autoplayActive: SharedValue<boolean>;
+  /**
+   * Начальный слайд обычным числом — для начальных значений в рендере, где
+   * читать `activeIndex.value` нельзя.
+   */
+  initialIndex: number;
   /** Активный слайд для контролов; меняется по приземлению. */
   activeIndex: SharedValue<number>;
   /** Длительность текущего цикла автопрокрутки активного слайда, мс. */

@@ -22,6 +22,7 @@ import {
   slot,
 } from "../../lib/slots";
 import { CarouselContext, ICarouselApi } from "./carousel-context";
+import { normalizeCarouselIndex } from "./carousel-math";
 import { CarouselArrows } from "./components/CarouselArrows";
 import { CarouselCounter } from "./components/CarouselCounter";
 import { CarouselDots } from "./components/CarouselDots";
@@ -125,6 +126,8 @@ const CarouselRoot = ({
     onReachEnd,
   });
 
+  const initialIndex = normalizeCarouselIndex(defaultIndex, data.length, loop);
+
   const api = useMemo<ICarouselApi>(
     () => ({
       progress,
@@ -132,6 +135,7 @@ const CarouselRoot = ({
       loop,
       autoplay: effectiveAutoplay,
       autoplayActive,
+      initialIndex,
       activeIndex,
       cycleDuration,
       autoplayInterval,
@@ -194,6 +198,7 @@ const CarouselRoot = ({
       loop,
       effectiveAutoplay,
       autoplayActive,
+      initialIndex,
       activeIndex,
       cycleDuration,
       autoplayInterval,

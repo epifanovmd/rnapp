@@ -16,8 +16,8 @@ export interface ICarouselCounterProps {
 /** Счётчик «3 / 5» поверх карусели. */
 export const CarouselCounter: FC<ICarouselCounterProps> = memo(
   ({ position = "top-right", inset = 8, style }) => {
-    const { progress, count } = useCarousel();
-    const [index, setIndex] = useState(0);
+    const { progress, count, initialIndex } = useCarousel();
+    const [index, setIndex] = useState(initialIndex);
 
     useAnimatedReaction(
       () => Math.round(progress.value) % count,
