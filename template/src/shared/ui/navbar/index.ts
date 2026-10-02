@@ -1,3 +1,4 @@
+export * from "./bar-appearance";
 export * from "./HiddenBar";
 export * from "./ImageBar";
 export * from "./Navbar";

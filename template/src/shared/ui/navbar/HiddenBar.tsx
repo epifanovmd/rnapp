@@ -6,9 +6,15 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
+import {
+  BarSurfaceContext,
+  bottomRadiusStyle,
+  IBarAppearanceProps,
+  resolveBarBackground,
+} from "./bar-appearance";
 import { useNavbar } from "./navbar-bar";
 
-export interface IHiddenNavbarProps extends ViewProps {
+export interface IHiddenNavbarProps extends ViewProps, IBarAppearanceProps {
   safeArea?: boolean;
 }
 
@@ -27,7 +33,7 @@ const HiddenBarRoot = ({
   slots,
   content,
 }: CompoundRootProps<IHiddenNavbarProps, typeof hiddenBarSlots>) => {
-  const { safeArea, style, ...rest } = props;
+  const { safeArea, style, background, bottomRadius, ...rest } = props;
   const { colors } = useTheme();
   const navbar = useNavbar();
   const insets = useSafeAreaInsets();
@@ -61,7 +67,7 @@ const HiddenBarRoot = ({
     ],
   }));
 
-  const backgroundColor = colors.background;
+  const backgroundColor = resolveBarBackground(background, colors);
 
   return (
     <View
@@ -76,11 +82,14 @@ const HiddenBarRoot = ({
         style={[
           styles.animatedContainer,
           { backgroundColor, top },
+          bottomRadiusStyle(bottomRadius),
           animatedStyle,
         ]}
       >
-        {content}
-        {stickyContent.render({ inject: { onLayout: onStickyLayout } })}
+        <BarSurfaceContext.Provider value={true}>
+          {content}
+          {stickyContent.render({ inject: { onLayout: onStickyLayout } })}
+        </BarSurfaceContext.Provider>
       </Animated.View>
     </View>
   );

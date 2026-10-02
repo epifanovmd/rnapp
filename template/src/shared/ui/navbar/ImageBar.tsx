@@ -12,10 +12,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { Image } from "../image";
+import {
+  BarSurfaceContext,
+  bottomRadiusStyle,
+  IBarAppearanceProps,
+  resolveBarBackground,
+} from "./bar-appearance";
 import { useNavbar } from "./navbar-bar";
 
+/** Скругление нижних углов по умолчанию, px. */
+const DEFAULT_RADIUS = 24;
+
 /** Схлопывается при скролле, поэтому требует ScrollProvider выше по дереву */
-export interface IImageBarProps extends ViewProps {
+export interface IImageBarProps extends ViewProps, IBarAppearanceProps {
   uri?: string;
   height?: number;
   safeArea?: boolean;
@@ -38,6 +47,8 @@ const ImageBarRoot = ({
     activeScrollOpacity = 0.4,
     safeArea,
     style,
+    background,
+    bottomRadius = DEFAULT_RADIUS,
     ...rest
   } = props;
   const { colors } = useTheme();
@@ -67,7 +78,8 @@ const ImageBarRoot = ({
     opacity: imageOpacity.value,
   }));
 
-  const backgroundColor = colors.background;
+  const backgroundColor = resolveBarBackground(background, colors);
+  const radiusStyle = bottomRadiusStyle(bottomRadius);
 
   return (
     <Animated.View
@@ -75,17 +87,24 @@ const ImageBarRoot = ({
       style={[
         StyleSheet.absoluteFill,
         SS.containerStyle,
+        radiusStyle,
         {
           backgroundColor,
           paddingTop: top,
         },
+        style,
       ]}
       {...rest}
     >
       {(!!uri || image.present) && (
         // высота/прозрачность анимируются обёрткой — Image остаётся простым
         <Animated.View
-          style={[StyleSheet.absoluteFill, SS.image, animatedStyles]}
+          style={[
+            StyleSheet.absoluteFill,
+            SS.image,
+            radiusStyle,
+            animatedStyles,
+          ]}
         >
           {image.render({
             defaults: {
@@ -95,7 +114,7 @@ const ImageBarRoot = ({
           })}
         </Animated.View>
       )}
-      {content}
+      <BarSurfaceContext.Provider value={true}>{content}</BarSurfaceContext.Provider>
     </Animated.View>
   );
 };
@@ -109,14 +128,9 @@ export const ImageBar = createCompound<IImageBarProps>()({
 const SS = StyleSheet.create({
   containerStyle: {
     bottom: "auto",
-    borderRadius: 24,
     zIndex: 1,
-    borderBottomRightRadius: 24,
-    borderBottomLeftRadius: 24,
   },
   image: {
-    borderBottomRightRadius: 24,
-    borderBottomLeftRadius: 24,
     overflow: "hidden",
   },
 });

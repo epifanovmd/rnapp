@@ -454,3 +454,10 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   «Search · Hidden bar» (настройки в шапке списка: оверлей нет/всегда/без запроса, прятать
   шапку, шапка после закрытия, «Отмена»; без оверлея или с запросом — фильтр на месте;
   стабильный renderItem по debouncedQuery, ленивый оверлей).
+
+## Внешний вид навбаров
+- Все панели (`Navbar`, `HiddenBar`, `ImageBar`) — `IBarAppearanceProps`: `background` (токен темы
+  или цвет; `resolveBarBackground`, по умолчанию фон экрана) и `bottomRadius` (`bottomRadiusStyle`
+  — только нижние углы; у `ImageBar` по умолчанию 24). `HiddenBar` красит и safe-area-подложку, и
+  сдвигаемый слой. `BarSurfaceContext`: внутри `HiddenBar`/`ImageBar` вложенный `Navbar`
+  прозрачный по умолчанию (явные `transparent`/`background` — приоритетнее).

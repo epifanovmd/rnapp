@@ -1,18 +1,25 @@
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTheme } from "@shared/lib/theme";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { StyleSheet, TouchableOpacity, View, ViewProps } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
 import { BalancedRow } from "../balanced-row";
+import {
+  BarSurfaceContext,
+  bottomRadiusStyle,
+  IBarAppearanceProps,
+  resolveBarBackground,
+} from "./bar-appearance";
 import { NavbarIcon } from "./NavbarIcon";
 import { NavbarSubTitle } from "./NavbarSubTitle";
 import { NavbarTitle } from "./NavbarTitle";
 
-export interface INavbarProps extends ViewProps {
+export interface INavbarProps extends ViewProps, IBarAppearanceProps {
   title?: string;
   safeArea?: boolean;
+  /** Без фона. Внутри `HiddenBar`/`ImageBar` — по умолчанию (фон у них). */
   transparent?: boolean;
 }
 
@@ -35,8 +42,19 @@ const NavbarRoot = ({
   content: restContent,
   hasContent,
 }: CompoundRootProps<INavbarProps, typeof navbarSlots>) => {
-  const { title: titleText, style, safeArea, transparent, ...rest } = props;
+  const {
+    title: titleText,
+    style,
+    safeArea,
+    transparent: transparentProp,
+    background,
+    bottomRadius,
+    ...rest
+  } = props;
   const { colors } = useTheme();
+  const onSurface = useContext(BarSurfaceContext);
+  const transparent =
+    transparentProp ?? (onSurface && background === undefined);
   const [isCanGoBack, setIsCanGoBack] = useState(false);
   const { top } = useSafeAreaInsets();
 
@@ -54,7 +72,9 @@ const NavbarRoot = ({
   const showBackButton =
     backButton.present && (isCanGoBack || !!backButton.props?.onPress);
 
-  const backgroundColor = transparent ? undefined : colors.background;
+  const backgroundColor = transparent
+    ? undefined
+    : resolveBarBackground(background, colors);
   const paddingTop = safeArea ? top : undefined;
   // Свой onPress потребителя остаётся, goBack дописывается только при его отсутствии.
   const onBackPress =
@@ -62,7 +82,12 @@ const NavbarRoot = ({
 
   return (
     <BalancedRow
-      style={[SS.container, { backgroundColor, paddingTop }, style]}
+      style={[
+        SS.container,
+        { backgroundColor, paddingTop },
+        bottomRadiusStyle(bottomRadius),
+        style,
+      ]}
       centerStyle={SS.center}
       leftContent={
         <>
