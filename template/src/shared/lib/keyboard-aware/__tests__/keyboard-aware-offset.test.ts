@@ -7,6 +7,7 @@ import {
   keyboardOverlap,
   keyboardProgress,
   predictAnchoredViewport,
+  shouldScrollTo,
 } from "../keyboard-aware-offset";
 
 /** Экран 800, клавиатура 300 → её верх на 500, зазор 16 → видимый низ 484. */
@@ -96,7 +97,7 @@ describe("computeKeyboardAwareOffset", () => {
     ).toBe(200 + (790 - 784));
   });
 
-  it("текущее смещение за пределом зажимается и без сдвига", () => {
+  it("поле целиком видно — смещение не трогается, даже за прогнозным пределом", () => {
     expect(
       computeKeyboardAwareOffset({
         ...base,
@@ -104,7 +105,30 @@ describe("computeKeyboardAwareOffset", () => {
         fieldBottom: 380,
         currentOffset: 1200,
       }),
-    ).toBe(1000);
+    ).toBe(1200);
+  });
+
+  it("верхнее поле в шторке: прогнозная область вмещает его — смещение то же", () => {
+    const viewport = predictAnchoredViewport({
+      restTop: 120,
+      liftRoom: 20,
+      screenHeight: 800,
+      keyboardHeight: 300,
+      bottomInset: 80,
+    });
+    const lift = 120 - viewport.top;
+
+    expect(
+      computeKeyboardAwareOffset({
+        ...base,
+        fieldTop: 140 - lift,
+        fieldBottom: 200 - lift,
+        visibleTop: viewport.top,
+        viewportBottom: viewport.bottom,
+        currentOffset: 40,
+        maxOffset: 10,
+      }),
+    ).toBe(40);
   });
 });
 
@@ -219,5 +243,16 @@ describe("predictAnchoredViewport (шторка над клавиатурой)",
 
     // Низ поля после докрутки — над низом скролла (над футером) с зазором.
     expect(490 - lift - offset).toBeLessThanOrEqual(viewport.bottom - 16);
+  });
+});
+
+describe("shouldScrollTo", () => {
+  it("цель совпадает с текущим положением — scrollTo не вызывается", () => {
+    expect(shouldScrollTo(200, 200)).toBe(false);
+    expect(shouldScrollTo(200.3, 200)).toBe(false);
+  });
+
+  it("цель отличается — двигать", () => {
+    expect(shouldScrollTo(212, 200)).toBe(true);
   });
 });

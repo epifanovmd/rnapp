@@ -21,6 +21,8 @@ import Animated, {
   useSharedValue,
 } from "react-native-reanimated";
 
+import { isFieldHeightChange } from "./field-layout";
+import { shouldCaptureOnEnd } from "./focus-capture";
 import { IKeyboardAwareFieldRegistry } from "./keyboard-aware-context";
 import {
   computeKeyboardAwareOffset,
@@ -29,6 +31,7 @@ import {
   keyboardOverlap,
   keyboardProgress,
   predictAnchoredViewport,
+  shouldScrollTo,
 } from "./keyboard-aware-offset";
 
 export interface IKeyboardAwareScrollOptions {
@@ -366,7 +369,7 @@ export const useKeyboardAwareScroll = (
       keyboardHeight.value,
     );
 
-    if (Math.abs(goal - offset.value) > 0.5) setOffset(goal, animated);
+    if (shouldScrollTo(goal, offset.value)) setOffset(goal, animated);
   };
 
   useKeyboardHandler(
@@ -452,16 +455,18 @@ export const useKeyboardAwareScroll = (
           resolveViewport(measured, keyboardTo.value),
           keyboardTo.value,
         );
+
+        // Поле и так видно — ни одного scrollTo за анимацию.
+        if (!shouldScrollTo(goal, startOffset.value)) return;
+
         const progress = keyboardProgress(
           event.height,
           keyboardFrom.value,
           keyboardTo.value,
         );
+        const next = interpolateScrollOffset(startOffset.value, goal, progress);
 
-        setOffset(
-          interpolateScrollOffset(startOffset.value, goal, progress),
-          false,
-        );
+        if (shouldScrollTo(next, offset.value)) setOffset(next, false);
       },
       onInteractive: event => {
         "worklet";
@@ -490,24 +495,45 @@ export const useKeyboardAwareScroll = (
           return;
         }
 
-        if (!hasField.value) return;
-
-        const viewport = resolveViewport(measured, event.height);
-
-        resizeSpacer(viewport, spacerFor(viewport, event.height));
-
-        const recapture = pendingRecapture.value;
+        const pending = pendingRecapture.value;
 
         pendingRecapture.value = false;
 
-        if ((!wasAnimating && !recapture) || isDragging.value) return;
-        if (recapture && !captureField(target.value)) return;
+        // Тег из onStart мог быть устаревшим (первый респондер ещё не
+        // сменился) — onEnd несёт актуальный.
+        const captureTag = shouldCaptureOnEnd({
+          keyboardHeight: event.height,
+          hasField: hasField.value,
+          capturedTarget: hasField.value ? target.value : NO_TARGET,
+          endTarget: event.target,
+          pendingRecapture: pending,
+        })
+          ? event.target
+          : pending && hasField.value
+            ? target.value
+            : NO_TARGET;
+
+        if (isDragging.value) return;
+
+        if (captureTag !== NO_TARGET) {
+          if (!captureField(captureTag)) return;
+        } else if (!hasField.value || !wasAnimating) {
+          return;
+        }
+
+        const viewport = resolveViewport(measured, event.height);
+
+        resizeSpacer(
+          viewport,
+          Math.max(spacerHeight.value, spacerFor(viewport, event.height)),
+        );
 
         // Доводка: платформы без покадровых событий и рост поля за анимацию.
         const goal = computeGoal(viewport, event.height);
-        const distance = Math.abs(goal - offset.value);
 
-        if (distance > 0.5) setOffset(goal, distance > 2);
+        if (shouldScrollTo(goal, offset.value)) {
+          setOffset(goal, Math.abs(goal - offset.value) > 2);
+        }
       },
     },
     [enabled, spacer, bottomOffset, screenHeight, topInset],
@@ -521,11 +547,16 @@ export const useKeyboardAwareScroll = (
   );
 
   // Рост незарегистрированного поля (multiline) — по layout от keyboard-controller.
+  // Смена фокуса — не рост: её ведёт onStart/onEnd.
   useAnimatedReaction(
-    () => input.value?.layout.height ?? 0,
-    (height, previous) => {
-      if (previous === null || Math.abs(height - previous) < 0.5) return;
-      if (input.value?.target !== target.value) return;
+    () => ({
+      target: input.value?.target ?? NO_TARGET,
+      height: input.value?.layout.height ?? 0,
+    }),
+    (current, previous) => {
+      if (!previous || current.target !== previous.target) return;
+      if (!isFieldHeightChange(previous.height, current.height)) return;
+      if (current.target !== target.value) return;
 
       ensureVisible(true, true);
     },

@@ -34,7 +34,8 @@ export const clampScrollOffset = (offset: number, maxOffset: number) => {
  * Целевое смещение скролла: поле целиком над клавиатурой с зазором
  * `bottomOffset`. Поле, ушедшее выше видимого верха, возвращается вниз к
  * верху. Поле выше видимой области не поднимается: если оно не помещается,
- * к верху прижимается его начало.
+ * к верху прижимается его начало. Поле, целиком лежащее в видимой области,
+ * оставляет смещение как есть.
  */
 export const computeKeyboardAwareOffset = ({
   fieldTop,
@@ -61,6 +62,9 @@ export const computeKeyboardAwareOffset = ({
   } else if (fieldTop < visibleTop) {
     delta = fieldTop - visibleTop;
   }
+
+  // Поле целиком видно — скролл не трогаем, даже если предел другой.
+  if (delta === 0) return currentOffset;
 
   return clampScrollOffset(currentOffset + delta, maxOffset);
 };
@@ -146,4 +150,11 @@ export const predictAnchoredViewport = ({
     top: restTop - Math.min(keyboardHeight, Math.max(liftRoom, 0)),
     bottom: screenHeight - keyboardHeight - bottomInset,
   };
+};
+
+/** Сдвиг заметен: scrollTo в то же положение не вызывается (лишние события скролла). */
+export const shouldScrollTo = (next: number, current: number) => {
+  "worklet";
+
+  return Math.abs(next - current) >= 0.5;
 };

@@ -273,6 +273,13 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   сразу animated scrollTo. Пересчёт: `registry.notifyLayout` (onLayout контейнера и
   onContentSizeChange TextInput — рост multiline), рост `input.value.layout.height`. Рост во время
   анимации клавиатуры не теряется: флаг `pendingRecapture` → перезамер и доводка в onEnd.
+- Без лишних scrollTo: поле целиком в (прогнозной) видимой области → `computeKeyboardAwareOffset`
+  возвращает текущее смещение без clamp; `shouldScrollTo` (≥0.5px) — в onMove не зовём scrollTo,
+  если цель = старт. Причина: каждый scrollTo шлёт onScroll (RN force-dispatch), а gorhom в
+  LOCKED-состоянии (шторка в переходе, его keyboard status ещё не SHOWN) сбрасывает offset в своём
+  onScroll → дёрганье верхних полей. (Гипотеза по коду, на устройстве не подтверждено.)
+- onEnd перезамеряет поле по `event.target` (`focus-capture.ts` `shouldCaptureOnEnd`, тесты): тег
+  в onStart мог быть -1/прежним. Реакция на `input.value` — только рост того же target.
 - Gotcha шторки: gorhom поднимает шторку по JS `Keyboard` событиям (keyboardWillShow → runOnUI,
   ждёт target из onFocus) своей анимацией — позже кадров keyboard-controller; высокая шторка
   (позиция 0) не едет, а ужимает маску снизу (contentMax = container − kb − handle, paddingBottom =
