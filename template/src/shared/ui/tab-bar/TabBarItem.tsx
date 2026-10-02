@@ -18,6 +18,7 @@ import type {
   TTabBarLabels,
 } from "./tab-bar.types";
 import { tabWeight } from "./tab-bar-geometry";
+import { tabLabelStyle, tabSizeStyle } from "./tab-item-style";
 import { TabBarBadge } from "./TabBarBadge";
 
 /** Пружинка иконки при выборе: сжатие, один отскок, возврат — без колебаний. */
@@ -26,9 +27,6 @@ const OVERSHOOT_SCALE = 1.1;
 const PRESS = { duration: 90, easing: Easing.out(Easing.quad) };
 const OVERSHOOT = { duration: 150, easing: Easing.out(Easing.quad) };
 const SETTLE = { duration: 130, easing: Easing.inOut(Easing.quad) };
-
-/** Наибольшая ширина подписи рядом с иконкой, px. */
-const BESIDE_LABEL_MAX = 160;
 
 interface ITabBarItemProps {
   item: ITabBarItem;
@@ -79,31 +77,25 @@ export const TabBarItem: FC<ITabBarItemProps> = memo(
       mounted.current = true;
     }, [focused, bounce, scale]);
 
-    const sizeStyle = useAnimatedStyle(() => {
-      const weight = tabWeight(position.value, index, activeWeight);
-
-      return fit === "fill" ? { flex: weight } : { width: weight * itemWidth };
-    }, [position, index, activeWeight, fit, itemWidth]);
+    const sizeStyle = useAnimatedStyle(
+      () =>
+        tabSizeStyle(
+          tabWeight(position.value, index, activeWeight),
+          fit,
+          itemWidth,
+        ),
+      [position, index, activeWeight, fit, itemWidth],
+    );
 
     const iconStyle = useAnimatedStyle(
       () => ({ transform: [{ scale: scale.value }] }),
       [scale],
     );
 
-    // «Только у активной»: подпись раскрывается вместе с шириной вкладки.
-    const labelStyle = useAnimatedStyle(() => {
-      if (labels !== "active") return {};
-
-      const visible = Math.max(0, 1 - Math.abs(position.value - index));
-
-      return labelPosition === "beside"
-        ? {
-            opacity: visible,
-            maxWidth: BESIDE_LABEL_MAX * visible,
-            marginLeft: 6 * visible,
-          }
-        : { opacity: visible };
-    }, [labels, labelPosition, position, index]);
+    const labelStyle = useAnimatedStyle(
+      () => tabLabelStyle(position.value, index, labels, labelPosition),
+      [labels, labelPosition, position, index],
+    );
 
     const showLabel = labels !== "never" && !!item.title;
     const beside = labelPosition === "beside";
