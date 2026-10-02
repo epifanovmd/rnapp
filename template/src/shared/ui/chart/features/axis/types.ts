@@ -1,4 +1,4 @@
-import type { ChartTickMode, TimeTickUnit } from "../../core";
+import type { AxisTickInfo, ChartTickMode } from "../../core";
 
 /** Общие пропсы для `AxisLayerX` и `AxisLayerY`. */
 export interface AxisLayerBaseProps {
@@ -6,14 +6,18 @@ export interface AxisLayerBaseProps {
   visible?: boolean;
   /** Сколько делений помещается в видимое окно (не больше). */
   tickCount?: number;
-  /** Как строить деления. По умолчанию `"nice"`; для времени (мс) — `"time"`. */
+  /**
+   * Как строить деления. По умолчанию `"nice"`; для времени (мс) — `"time"`;
+   * для байтов — `"binary"` (шаг круглый в КБ/МБ/ГБ).
+   */
   ticks?: ChartTickMode;
   /**
-   * Текст подписи деления; для `ticks="time"` вторым аргументом приходит
-   * единица шага. Обычная JS-функция — вызывается при смене набора делений.
-   * Для `"time"` по умолчанию — `formatTimeTick`.
+   * Текст подписи деления; второй аргумент — единица и шаг делений (`unit`
+   * для `"time"`, `magnitude` — общая единица значений оси). Обычная
+   * JS-функция — вызывается при смене набора делений. Для `"time"` по
+   * умолчанию — `formatTimeTick`.
    */
-  formatLabel?: (value: number, unit?: TimeTickUnit) => string;
+  formatLabel?: (value: number, tick: AxisTickInfo) => string;
   color?: string;
   showAxisLine?: boolean;
   /** px */

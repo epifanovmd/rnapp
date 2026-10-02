@@ -20,7 +20,7 @@ import {
 } from "../../core";
 import { AxisLabelSlot } from "./AxisLabelSlot";
 import type { AxisLayerBaseProps } from "./types";
-import { useAxisLabels } from "./useAxisLabels";
+import { AxisLabelFormatter, useAxisLabels } from "./useAxisLabels";
 
 export interface AxisLayerXProps extends AxisLayerBaseProps {
   position?: "top" | "bottom";
@@ -54,8 +54,14 @@ export const AxisLayerX = React.memo(
       () => matchFont({ fontFamily, fontSize }),
       [fontFamily, fontSize],
     );
-    const format =
-      formatLabel ?? (mode === "time" ? formatTimeTick : defaultLabelFormatter);
+    const format = useMemo<AxisLabelFormatter>(
+      () =>
+        formatLabel ??
+        (mode === "time"
+          ? (value, tick) => formatTimeTick(value, tick.unit ?? undefined)
+          : defaultLabelFormatter),
+      [formatLabel, mode],
+    );
 
     const ticks = useAxisTicks(xScale, mode, tickCount, LABEL_EXTEND);
     const labels = useAxisLabels(ticks, format, font);

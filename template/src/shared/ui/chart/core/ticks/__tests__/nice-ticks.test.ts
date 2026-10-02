@@ -1,4 +1,11 @@
-import { divideTicks, niceDomain, niceStep, niceTicks } from "../nice-ticks";
+import {
+  divideTicks,
+  niceDomain,
+  niceStep,
+  niceTicks,
+  tickDecimals,
+  unitMagnitude,
+} from "../nice-ticks";
 
 describe("niceStep", () => {
   it("округляет шаг до 1, 2, 2.5, 5 × 10ⁿ", () => {
@@ -52,5 +59,35 @@ describe("worklet", () => {
     for (const fn of [niceStep, niceTicks, divideTicks, niceDomain]) {
       expect(fn.toString()).toMatch(/["']worklet["']/);
     }
+  });
+});
+
+describe("binary (1024ᵏ)", () => {
+  const MB = 1024 * 1024;
+
+  it("unitMagnitude — единица, где значение в [1, base)", () => {
+    expect(unitMagnitude(500, 1024)).toBe(1);
+    expect(unitMagnitude(976.6 * 1024, 1024)).toBe(1024);
+    expect(unitMagnitude(3.8 * MB, 1024)).toBe(MB);
+    expect(unitMagnitude(0, 1024)).toBe(1);
+  });
+
+  it("шаг круглый в единицах: целые МБ", () => {
+    expect(niceTicks(0, 3.8 * MB, 4, undefined, MB)).toEqual([
+      0,
+      MB,
+      2 * MB,
+      3 * MB,
+    ]);
+  });
+
+  it("домен до круглых МБ", () => {
+    expect(niceDomain(0, 3.8 * MB, 4, MB)).toEqual([0, 4 * MB]);
+  });
+
+  it("tickDecimals — знаков для шага в единицах", () => {
+    expect(tickDecimals(MB, MB)).toBe(0);
+    expect(tickDecimals(0.5 * MB, MB)).toBe(1);
+    expect(tickDecimals(0.25 * MB, MB)).toBe(2);
   });
 });

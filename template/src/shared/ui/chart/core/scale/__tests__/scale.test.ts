@@ -62,3 +62,17 @@ describe("resolveAutoYDomain", () => {
     }
   });
 });
+
+describe("resolveAutoYDomain niceBase", () => {
+  it("края — целые единицы 1024ᵏ", () => {
+    const MB = 1024 * 1024;
+
+    expect(
+      resolveAutoYDomain([0, 3.5 * MB], {
+        beginAtZero: true,
+        niceTickCount: 4,
+        niceBase: 1024,
+      }),
+    ).toEqual([0, 4 * MB]);
+  });
+});

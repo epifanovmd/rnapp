@@ -257,6 +257,10 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   `TickSet.key`; деления строятся с запасом 0.5 окна за краями — текст готов до въезда.
   Сетка — один Path на ось; `GridLayer xTicks/yTicks` должны совпадать с `AxisLayer ticks`.
   `formatTimeTick(value, unit)` — ru-подписи по умолчанию для `ticks="time"`.
+  Форматтер оси — `(value, tick: AxisTickInfo {unit, magnitude, step})`. `ticks="binary"` — шаг
+  «круглый» в единицах 1024ᵏ (`unitMagnitude` по верху домена, одна единица на ось, `tickDecimals`
+  — сколько знаков), домен в пару — `resolveAutoYDomain({niceBase: 1024})`.
+  `AxisLayerY labelSide="in"` — подпись над линией деления (у верха — под ней), ширина не нужна.
 - Жесты: `zoom` (`ChartZoomOptions`: pan, pinch, doubleTap, doubleTapFactor, inertia,
   inspectDelay=250) → `useCompetingGestures(inspect, simultaneous(pan, pinch), doubleTap)`;
   перекрестие тогда по удержанию (`activateAfterLongPress`, флаг `armed`), удержание двумя пальцами —

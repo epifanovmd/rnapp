@@ -1,4 +1,4 @@
-import { niceDomain } from "../ticks/nice-ticks";
+import { niceDomain, unitMagnitude } from "../ticks/nice-ticks";
 
 /**
  * Домен Y из экстента видимых точек — worklet: вызывается на UI-потоке на
@@ -15,6 +15,8 @@ export interface AutoYDomainOptions {
   paddingRatio?: number;
   /** Округлять края до «круглого» шага при таком числе делений; 0 — без округления. */
   niceTickCount?: number;
+  /** Шаг «круглый» в единицах `niceBase^k` (1024 — байты, как `ticks="binary"`). */
+  niceBase?: number;
 }
 
 /**
@@ -57,5 +59,13 @@ export const resolveAutoYDomain = (
 
   const tickCount = options.niceTickCount ?? 0;
 
-  return tickCount > 0 ? niceDomain(min, max, tickCount) : [min, max];
+  if (tickCount <= 0) {
+    return [min, max];
+  }
+
+  const magnitude = options.niceBase
+    ? unitMagnitude(Math.max(Math.abs(min), Math.abs(max)), options.niceBase)
+    : 1;
+
+  return niceDomain(min, max, tickCount, magnitude);
 };

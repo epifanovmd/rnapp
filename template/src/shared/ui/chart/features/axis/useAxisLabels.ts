@@ -7,7 +7,7 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import type { SkFont, TickSet, TimeTickUnit } from "../../core";
+import type { AxisTickInfo, SkFont, TickSet } from "../../core";
 
 /** Подписи делений: значения, тексты и их ширины — выровнены по индексу. */
 export interface AxisLabels {
@@ -16,7 +16,8 @@ export interface AxisLabels {
   widths: number[];
 }
 
-export type AxisLabelFormatter = (value: number, unit?: TimeTickUnit) => string;
+/** Подпись деления; `tick` — единица и шаг (для одинакового вида всех подписей оси). */
+export type AxisLabelFormatter = (value: number, tick: AxisTickInfo) => string;
 
 const EMPTY_LABELS: AxisLabels = { values: [], texts: [], widths: [] };
 
@@ -37,10 +38,8 @@ export const useAxisLabels = (
   formatRef.current = format;
 
   const update = useCallback(
-    (values: number[], unit: TimeTickUnit | null) => {
-      const texts = values.map(value =>
-        formatRef.current(value, unit ?? undefined),
-      );
+    (values: number[], tick: AxisTickInfo) => {
+      const texts = values.map(value => formatRef.current(value, tick));
 
       labels.value = {
         values,
@@ -55,7 +54,11 @@ export const useAxisLabels = (
     () => ticks.value,
     (next, previous) => {
       if (next.key !== previous?.key) {
-        scheduleOnRN(update, next.values, next.unit);
+        scheduleOnRN(update, next.values, {
+          unit: next.unit,
+          magnitude: next.magnitude,
+          step: next.step,
+        });
       }
     },
     [ticks, update],
@@ -66,7 +69,9 @@ export const useAxisLabels = (
     const current = labels.value;
 
     if (current.values.length > 0) {
-      update(current.values, ticks.value.unit);
+      const { unit, magnitude, step } = ticks.value;
+
+      update(current.values, { unit, magnitude, step });
     }
   }, [format, update, labels, ticks]);
 

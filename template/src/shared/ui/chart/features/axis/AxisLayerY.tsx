@@ -20,11 +20,14 @@ import {
 } from "../../core";
 import { AxisLabelSlot } from "./AxisLabelSlot";
 import type { AxisLayerBaseProps } from "./types";
-import { useAxisLabels } from "./useAxisLabels";
+import { AxisLabelFormatter, useAxisLabels } from "./useAxisLabels";
 
 export interface AxisLayerYProps extends AxisLayerBaseProps {
   position?: "left" | "right";
 }
+
+/** Зазор подписи внутри графика от линии деления, px. */
+const IN_LABEL_GAP = 3;
 
 /** Доля высоты домена, на которую деления строятся за каждым краем. */
 const LABEL_EXTEND = 0.5;
@@ -54,8 +57,14 @@ export const AxisLayerY = React.memo(
       () => matchFont({ fontFamily, fontSize }),
       [fontFamily, fontSize],
     );
-    const format =
-      formatLabel ?? (mode === "time" ? formatTimeTick : defaultLabelFormatter);
+    const format = useMemo<AxisLabelFormatter>(
+      () =>
+        formatLabel ??
+        (mode === "time"
+          ? (value, tick) => formatTimeTick(value, tick.unit ?? undefined)
+          : defaultLabelFormatter),
+      [formatLabel, mode],
+    );
 
     const ticks = useAxisTicks(yScale, mode, tickCount, LABEL_EXTEND);
     const labels = useAxisLabels(ticks, format, font);
@@ -73,21 +82,29 @@ export const AxisLayerY = React.memo(
         ? axisX - tickLength
         : axisX + tickLength;
 
+    // Снаружи — по центру деления; внутри — над линией сетки (у верхнего края
+    // — под ней), не отнимая ширину у графика.
+    const plotTop = plot.top;
     const place = useCallback(
       (pixel: number, width: number) => {
         "worklet";
 
-        const x = isRight
-          ? isOut
-            ? axisX + 8
-            : axisX - width - 6
-          : isOut
-            ? axisX - width - 8
-            : axisX + 6;
+        if (isOut) {
+          return {
+            x: isRight ? axisX + 8 : axisX - width - 8,
+            y: pixel + fontSize * 0.3,
+          };
+        }
 
-        return { x, y: pixel + fontSize * 0.3 };
+        const above = pixel - IN_LABEL_GAP;
+        const y =
+          above - fontSize < plotTop - 1
+            ? pixel + fontSize + IN_LABEL_GAP
+            : above;
+
+        return { x: isRight ? axisX - width - 4 : axisX + 4, y };
       },
-      [isRight, isOut, axisX, fontSize],
+      [isRight, isOut, axisX, fontSize, plotTop],
     );
 
     const tickPath = useDerivedValue(() => {

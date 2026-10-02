@@ -49,3 +49,19 @@ describe("computeTicks", () => {
     expect(computeTicks.toString()).toMatch(/["']worklet["']/);
   });
 });
+
+describe("computeTicks binary", () => {
+  it("единица по верху домена, шаг круглый в ней", () => {
+    const MB = 1024 * 1024;
+    const ticks = computeTicks(
+      createLinearScale([0, 3.8 * MB], [300, 0]),
+      "binary",
+      4,
+      0,
+    );
+
+    expect(ticks.magnitude).toBe(MB);
+    expect(ticks.step).toBe(MB);
+    expect(ticks.values).toEqual([0, MB, 2 * MB, 3 * MB]);
+  });
+});
