@@ -8,6 +8,7 @@ import {
 } from "react-native-reanimated";
 
 import { useDebouncedValue } from "../hooks/use-debounced-value";
+import { shouldCloseOnBlur } from "./search-blur";
 
 export interface IUseSearchOptions {
   /** Задержка `debouncedQuery` после ввода, мс. По умолчанию 250. */
@@ -16,6 +17,8 @@ export interface IUseSearchOptions {
   duration?: number;
   /** Системная «назад» (Android) закрывает поиск. По умолчанию `true`. */
   closeOnBack?: boolean;
+  /** Потеря фокуса без запроса закрывает поиск. По умолчанию `true`. */
+  closeOnEmptyBlur?: boolean;
   /** Поиск открыт / закрыт. */
   onActiveChange?: (active: boolean) => void;
 }
@@ -44,6 +47,8 @@ export interface ISearchController {
   close: () => void;
   /** Очистить запрос, оставить поиск открытым. */
   clear: () => void;
+  /** Поле потеряло фокус: без запроса — закрыть поиск (`closeOnEmptyBlur`). */
+  blur: () => void;
 }
 
 const EASING = Easing.bezier(0.2, 0.8, 0.2, 1);
@@ -53,6 +58,7 @@ export const useSearch = ({
   debounceMs = 250,
   duration = 280,
   closeOnBack = true,
+  closeOnEmptyBlur = true,
   onActiveChange,
 }: IUseSearchOptions = {}): ISearchController => {
   const [query, setQuery] = useState("");
@@ -95,6 +101,19 @@ export const useSearch = ({
     if (activeRef.current) setActiveState(false);
   }, [setActiveState]);
 
+  const queryRef = useRef(query);
+
+  queryRef.current = query;
+
+  const blur = useCallback(() => {
+    if (
+      activeRef.current &&
+      shouldCloseOnBlur(queryRef.current, closeOnEmptyBlur)
+    ) {
+      close();
+    }
+  }, [closeOnEmptyBlur, close]);
+
   const clear = useCallback(() => {
     setQuery("");
     inputRef.current?.focus();
@@ -127,7 +146,18 @@ export const useSearch = ({
       open,
       close,
       clear,
+      blur,
     }),
-    [query, debouncedQuery, active, progress, activeValue, open, close, clear],
+    [
+      query,
+      debouncedQuery,
+      active,
+      progress,
+      activeValue,
+      open,
+      close,
+      clear,
+      blur,
+    ],
   );
 };

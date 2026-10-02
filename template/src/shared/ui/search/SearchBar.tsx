@@ -71,8 +71,17 @@ const SearchBarRoot = ({
     ...rest
   } = props;
   const { colors } = useTheme();
-  const { query, setQuery, clear, close, open, inputRef, active, progress } =
-    search;
+  const {
+    query,
+    setQuery,
+    clear,
+    close,
+    open,
+    blur,
+    inputRef,
+    active,
+    progress,
+  } = search;
   const [cancelWidth, setCancelWidth] = useState(0);
 
   // Фокус — когда поле уже раскрывается: в нулевую ширину iOS его не ставит.
@@ -125,6 +134,7 @@ const SearchBarRoot = ({
           value={query}
           onChangeText={setQuery}
           onFocus={open}
+          onBlur={blur}
           placeholder={placeholder}
           placeholderTextColor={colors.textTertiary}
           selectionColor={colors.primary}
@@ -186,7 +196,7 @@ const SearchBarRoot = ({
 /**
  * Строка поиска на контроллере `useSearch`: поле с лупой и «очистить»,
  * «Отмена». Тап в поле открывает поиск; при открытии извне — фокус сам
- * (`autoFocus`). Слоты `Leading`/`Trailing`/`Cancel` заменяют части.
+ * (`autoFocus`); потеря фокуса без запроса закрывает поиск. Слоты `Leading`/`Trailing`/`Cancel` заменяют части.
  */
 export const SearchBar = createCompound<ISearchBarProps>()({
   name: "SearchBar",
