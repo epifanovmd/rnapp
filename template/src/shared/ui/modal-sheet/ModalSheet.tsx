@@ -40,6 +40,8 @@ export interface IModalSheetProps {
    * формы: поля не очищаются на глазах, пока шторка уезжает.
    */
   onClosed?: () => void;
+  /** Закрыть клавиатуру в момент открытия шторки. По умолчанию `false`. */
+  dismissKeyboardOnOpen?: boolean;
 }
 
 /**
@@ -57,6 +59,7 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   maxHeight,
   restoreScrollOnKeyboardHide,
   onClosed,
+  dismissKeyboardOnOpen,
   children,
 }) => {
   const sheetRef = useBottomSheetRef();
@@ -80,6 +83,7 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
     <BottomSheet
       ref={sheetRef}
       maxDynamicContentSize={maxHeight}
+      dismissKeyboardOnOpen={dismissKeyboardOnOpen}
       onDismiss={() => {
         presentedRef.current = false;
         if (open) onOpenChange(false);

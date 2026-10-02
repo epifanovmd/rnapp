@@ -49,3 +49,11 @@ export const computeSheetKeyboardLayout = ({
  */
 export const isSheetClosing = (fromIndex: number, toIndex: number) =>
   toIndex === -1 && fromIndex !== -1;
+
+/**
+ * Шторка начала открываться (gorhom `onAnimate` из индекса −1) — момент, когда
+ * шторка с `dismissKeyboardOnOpen` закрывает клавиатуру: шторка выезжает, а
+ * клавиатура уезжает одновременно и не перекрывает её.
+ */
+export const isSheetOpening = (fromIndex: number, toIndex: number) =>
+  fromIndex === -1 && toIndex !== -1;

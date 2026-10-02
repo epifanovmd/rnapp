@@ -179,7 +179,12 @@ export const TimePicker: FC<PropsWithChildren<TimePickerProps>> = memo(
       <Touchable {...rest} onPress={handleOpen}>
         {children}
 
-        <BottomSheet ref={modalRef} nested {...bottomSheetProps}>
+        <BottomSheet
+          ref={modalRef}
+          nested
+          dismissKeyboardOnOpen
+          {...bottomSheetProps}
+        >
           <BottomSheet.Header centered={true} label={title} {...headerProps} />
 
           <BottomSheet.Content {...containerProps}>

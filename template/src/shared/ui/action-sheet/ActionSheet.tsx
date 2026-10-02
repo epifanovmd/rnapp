@@ -52,7 +52,12 @@ const ActionSheetImpl = <TKey extends string>(
   }, [onSelect]);
 
   return (
-    <BottomSheet ref={sheetRef} nested={nested} onDismiss={handleDismiss}>
+    <BottomSheet
+      ref={sheetRef}
+      nested={nested}
+      dismissKeyboardOnOpen
+      onDismiss={handleDismiss}
+    >
       <BottomSheet.Content>
         <Col gap={10} pb={8}>
           {!!title && (

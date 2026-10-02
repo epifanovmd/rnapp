@@ -14,7 +14,7 @@ import { BottomSheetLayout } from "./BottomSheetLayout";
 import { BottomSheetScrollContent } from "./BottomSheetScrollContent";
 import { createKeyboardShiftContainer } from "./createKeyboardShiftContainer";
 import { useBottomSheetStyles } from "./hooks";
-import { isSheetClosing } from "./sheet-keyboard-layout";
+import { isSheetClosing, isSheetOpening } from "./sheet-keyboard-layout";
 import { BottomSheetStyles } from "./styles";
 import { TBottomSheetProps } from "./types";
 
@@ -39,7 +39,12 @@ const BottomSheetRoot = ({
   typeof bottomSheetSlots,
   BottomSheetModal
 >) => {
-  const { haptic: hapticEnable, nested, ...modalProps } = props;
+  const {
+    haptic: hapticEnable,
+    nested,
+    dismissKeyboardOnOpen,
+    ...modalProps
+  } = props;
   const modalStyles = useBottomSheetStyles();
   const { top } = useSafeAreaInsets();
   // Над клавиатурой шторку двигаем сами (BottomSheetLayout), gorhom о ней
@@ -55,11 +60,14 @@ const BottomSheetRoot = ({
       if (fromIndex === -1 && hapticEnable) {
         haptic.trigger();
       }
-      if (isSheetClosing(fromIndex, toIndex)) {
+      if (
+        isSheetClosing(fromIndex, toIndex) ||
+        (dismissKeyboardOnOpen && isSheetOpening(fromIndex, toIndex))
+      ) {
         KeyboardController.dismiss();
       }
     },
-    [hapticEnable],
+    [hapticEnable, dismissKeyboardOnOpen],
   );
 
   const onAnimate = useMergedCallback(modalProps.onAnimate, animateWithHaptic);

@@ -343,3 +343,7 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   На устройстве не проверено. Риски: согласованность `measure` (shadow-tree offset) с offset из
   событий в момент захвата; Android < 11 без onMove — только доводка в onEnd (animated scrollTo);
   layout, изменившийся во время анимации клавиатуры, учитывается только следующим notifyLayout.
+
+## Шторка закрывает клавиатуру при открытии
+- `BottomSheet` / `ModalSheet` проп `dismissKeyboardOnOpen`: на `onAnimate` из −1 (`isSheetOpening`, тест) — `KeyboardController.dismiss()`; клавиатура уезжает одновременно с выездом шторки. Включён в шторках выбора кита: SelectSheet (Select/Autocomplete), ActionSheet, DatePicker, TimePicker, RangePicker (можно переопределить через bottomSheetProps). Autocomplete фокусирует поиск в `onOpened` — после открытия, конфликта нет.
+- Закрытие любой шторки закрывает клавиатуру (`isSheetClosing`).

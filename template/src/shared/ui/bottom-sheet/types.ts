@@ -17,6 +17,12 @@ import { BottomSheetHeader } from "./BottomSheetHeader";
 export type TBottomSheetProps = Omit<BottomSheetModalProps, "stackBehavior"> & {
   haptic?: boolean;
   nested?: boolean;
+  /**
+   * Закрыть клавиатуру в момент открытия шторки — для шторок выбора (Select,
+   * ActionSheet, пикеры), открываемых, пока фокус в поле ввода: иначе
+   * клавиатура остаётся поверх. Шторкам выбора кита включён по умолчанию.
+   */
+  dismissKeyboardOnOpen?: boolean;
 };
 export type TBottomSheetHeaderProps = ComponentProps<typeof BottomSheetHeader>;
 export type TBottomSheetContentProps = ComponentProps<

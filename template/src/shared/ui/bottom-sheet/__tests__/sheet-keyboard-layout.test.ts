@@ -1,6 +1,7 @@
 import {
   computeSheetKeyboardLayout,
   isSheetClosing,
+  isSheetOpening,
   SHEET_KEYBOARD_GAP,
 } from "../sheet-keyboard-layout";
 
@@ -87,5 +88,18 @@ describe("isSheetClosing", () => {
     expect(isSheetClosing(-1, 0)).toBe(false);
     expect(isSheetClosing(0, 1)).toBe(false);
     expect(isSheetClosing(-1, -1)).toBe(false);
+  });
+});
+
+describe("isSheetOpening", () => {
+  it("открытие — переход из закрытого (−1) на точку привязки", () => {
+    expect(isSheetOpening(-1, 0)).toBe(true);
+    expect(isSheetOpening(-1, 2)).toBe(true);
+  });
+
+  it("закрытие и переходы между точками — не открытие", () => {
+    expect(isSheetOpening(0, -1)).toBe(false);
+    expect(isSheetOpening(0, 1)).toBe(false);
+    expect(isSheetOpening(-1, -1)).toBe(false);
   });
 });

@@ -42,6 +42,7 @@ export const SelectSheet = <V extends SelectValue>({
     <BottomSheet
       ref={sheetRef}
       nested
+      dismissKeyboardOnOpen
       maxDynamicContentSize={maxHeight}
       simultaneousHandlers={model.virtual ? gesture : undefined}
       onDismiss={onDismiss}
