@@ -236,12 +236,14 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 - Плейграунд: вкладка Settings (группы строк, Section.Action, ScreenFallback), Forms —
   DateField-демо и DateFormField/SwitchFormField в демо-форме; Charts — LegendDemo.
 
-## Готовность экрана (useScreenReady)
-- `shared/lib/navigation/screen-ready`: `useScreenReady({ waitForFocus, waitForTransition, delay, timeout=1000, once })` — экран активен и анимация открытия ближайшего экрана стека завершилась; до этого экран рисует скелетон.
-- Память об открытых экранах — `screenTransitions` (трекер), питается `screenTransitionListeners` (`transitionEnd`/`transitionStart` closing). Подключено в `RootStack` (`App.screens.ts`, `screenListeners`). Без подключения хук отпускает по `timeout`.
-- Вложенные экраны (вкладка в экране стека) ждут экран стека: `findStackRouteKey` (тесты).
-- Карточка стека шлёт `transitionEnd` и для начального экрана (анимации нет — сразу).
-- Применено: Charts, CarouselDemo.
+## Готовность экрана (screen-ready)
+- `shared/lib/navigation/screen-ready`, три уровня:
+  - `route-path.ts` — чистые функции над деревом состояния: `findRoutePath`, `resolveStackRouteKey` (ближайший экран стека), `isPathFocused` (тесты).
+  - `screen-readiness.ts` — сервис вне React: `createScreenReadiness({ getRootState, subscribeState, tracker })` → `isReady`, `subscribe`, `onReady(routeKey, cb, { waitForFocus, waitForTransition, delay, timeout=1000 })` → отмена, `whenReady` (промис) (тесты на фейковых таймерах).
+  - `app-screen-readiness.ts` — экземпляр приложения `screenReadiness` (navigationRef + `screenTransitions`).
+  - `use-screen-ready.ts` — тонкий хук (`once`), ключ экрана из `NavigationRouteContext`.
+- Память анимаций — `screenTransitions`, питается `screenTransitionListeners` в `RootStack.screenListeners`; карточка стека шлёт `transitionEnd` и стартовому экрану. Без подключения — отпускает по `timeout`.
+- Применено: Charts, CarouselDemo (скелетоны до готовности).
 
 ## Плейграунд компонентов
 - `pages/stack/components`: экран `Components` — ссылки (`Button appearance="link"`) на демо-экраны; список — `component-demos.ts`.
