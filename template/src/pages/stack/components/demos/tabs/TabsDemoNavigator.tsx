@@ -55,10 +55,7 @@ export const TabsDemoNavigator: FC = () => {
         tabBar={renderTabBar}
         backBehavior={"none"}
         screenOptions={SCREEN_OPTIONS}
-        screenListeners={{
-          blur: () => navbar.show(),
-          focus: () => navbar.show(),
-        }}
+        screenListeners={navbar.screenListeners}
       >
         <TopTab.Screen name={"Обзор"} component={TabsDemoPage} />
         <TopTab.Screen name={"Задачи"} component={TabsDemoPage} />

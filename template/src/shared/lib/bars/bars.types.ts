@@ -10,6 +10,12 @@ import { SharedValue } from "react-native-reanimated";
  * JS-зеркало — вёрстка через useBarHeight. `inset` — та же высота, но
  * сменяется анимацией: отступ контента по нему не прыгает при живой высоте.
  */
+/** Слушатели экранов навигатора, которые держат панель показанной при смене экрана. */
+export interface IBarScreenListeners {
+  focus: () => void;
+  blur: () => void;
+}
+
 export interface IBar {
   /** Измеренная высота, px; 0 — ещё не измерена */
   height: SharedValue<number>;
@@ -27,6 +33,12 @@ export interface IBar {
   snap: () => void;
   /** worklet: сдвиг offset на delta в пределах хода скрытия */
   shift: (delta: number) => void;
+  /**
+   * Слушатели для `screenListeners` навигатора: на фокусе и уходе с экрана
+   * панель показывается — шапка, спрятанная скроллом одного экрана, не
+   * остаётся скрытой над другим. Объект стабилен.
+   */
+  screenListeners: IBarScreenListeners;
   /** Измерение высоты (JS-поток) */
   setHeight: (height: number) => void;
   /**

@@ -105,6 +105,11 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     runOnUI(remeasure)(measured, next);
   };
 
+  const screenListeners = {
+    focus: () => show(),
+    blur: () => show(),
+  };
+
   return {
     height,
     pinned,
@@ -114,6 +119,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     hide,
     snap,
     shift,
+    screenListeners,
     setHeight,
     setPinnedHeight,
     onLayout: (event: LayoutChangeEvent) =>
