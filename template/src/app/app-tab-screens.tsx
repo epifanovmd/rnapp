@@ -4,7 +4,7 @@ import { Playground } from "@pages/tabs/playground";
 import { Settings } from "@pages/tabs/settings";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavbarProvider } from "@shared/ui";
-import { TabBar, TabBarProvider } from "@widgets/app-shell";
+import { AppTabBar, TabBarProvider } from "@widgets/app-shell";
 import { HomeIcon, ListIcon, SettingsIcon } from "lucide-react-native";
 import React, { PropsWithChildren } from "react";
 import { Platform } from "react-native";
@@ -19,7 +19,9 @@ export const MainTabsLayout = ({ children }: PropsWithChildren) => (
 /** Static-конфиг нижних табов (экран `Tabs` корневого стека). */
 export const MainTabs = createBottomTabNavigator({
   initialRouteName: "Main",
-  tabBar: props => <TabBar {...props} hideMode={"shrink"} />,
+  tabBar: props => (
+    <AppTabBar {...props} hideMode={"shrink"} labels={"active"} />
+  ),
   screenOptions: {
     headerShown: false,
     animation: "shift",

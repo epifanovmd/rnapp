@@ -25,6 +25,7 @@ export * from "./ScreenDemo";
 export * from "./scroll-reveal";
 export * from "./search";
 export * from "./settings";
+export * from "./tab-bar";
 export * from "./tabs";
 export * from "./TicketDemo";
 export * from "./TypographyDemo";

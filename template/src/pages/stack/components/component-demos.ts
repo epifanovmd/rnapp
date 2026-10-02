@@ -19,6 +19,7 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsSearch", title: "Search · Navbar" },
   { route: "ComponentsSearchHiddenBar", title: "Search · Hidden bar" },
   { route: "ComponentsTabs", title: "Tabs" },
+  { route: "ComponentsTabBar", title: "Tab bar" },
   { route: "ComponentsFeedback", title: "Feedback" },
   { route: "ComponentsMedia", title: "Media" },
   { route: "ComponentsCarousel", title: "Carousel" },

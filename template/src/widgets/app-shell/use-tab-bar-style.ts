@@ -6,9 +6,10 @@ import { useTabBar } from "./tab-bar";
 /**
  * Как таб-панель уходит с глаз:
  * slide — уезжает вниз за край экрана;
- * shrink — остаётся на месте и сжимается вместе с иконками и подписями.
+ * shrink — остаётся на месте и сжимается вместе с иконками и подписями;
+ * none — не прячется.
  */
-export type TTabBarHideMode = "slide" | "shrink";
+export type TTabBarHideMode = "slide" | "shrink" | "none";
 
 /** Масштаб панели в сжатом состоянии */
 const MIN_SCALE = 0.7;
@@ -21,6 +22,8 @@ export const useTabBarStyle = (mode: TTabBarHideMode = "slide") => {
   const { offset, height } = useTabBar();
 
   return useAnimatedStyle(() => {
+    if (mode === "none") return {};
+
     if (mode === "shrink") {
       const progress = barProgress(offset.value, height.value);
 

@@ -461,3 +461,23 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   — только нижние углы; у `ImageBar` по умолчанию 24). `HiddenBar` красит и safe-area-подложку, и
   сдвигаемый слой. `BarSurfaceContext`: внутри `HiddenBar`/`ImageBar` вложенный `Navbar`
   прозрачный по умолчанию (явные `transparent`/`background` — приоритетнее).
+
+## Таб-бар (кит + app-shell)
+- `shared/ui/tab-bar`: `TabBar` не знает про навигатор (`items {key,title,renderIcon,badge}`,
+  `activeIndex`, `onPress/onLongPress`, `bottomInset`, `style` — в т.ч. анимированный). Вид
+  (`ITabBarAppearance`): `variant` floating|docked, `labels` always|active|never (`active` — вкладка
+  расширяется `activeWeight`=2.4, подпись рядом раскрывается maxWidth/opacity), `labelPosition`,
+  `indicator` pill|dot|line|none + `indicatorAnimation` worm|slide, `surface` blur (тип по теме +
+  подцветка surface)|solid, `fit` fill|hug (авто: hug у плавающей без подписей), `activeColor`/
+  `inactiveColor`/`indicatorColor` (токен или цвет), `iconAnimation` bounce|none, `haptics`
+  (selection), `itemWidth`, `iconSize`, `duration`. Бейджи — число (99+) или точка.
+- Геометрия — чистые worklet-функции (`tab-bar-geometry.ts`, тесты): дробное положение выбора `p`,
+  вес вкладки `tabWeight`, сумма весов постоянна → рамки `tabFrames`, подложка `indicatorSpan`
+  от `start` до `end` (у «червяка» края с задержкой `wormDelays`); вкладки — flex/width по весу,
+  индикатор — left/width, всё от одних SV без замеров.
+- `widgets/app-shell/AppTabBar` — адаптер навигатора: вкладки из опций (`title`/`tabBarLabel`,
+  `tabBarIcon`, `tabBarBadge`), `navigation.emit("tabPress", canPreventDefault)` + navigate
+  только для неактивной (повторный тап — `useScrollToTop`), `tabLongPress`, высота для отступов
+  (+safe area у плавающей), `hideMode` slide|shrink|none. Старый `TabBar` виджета и
+  `tab-bar-indicator` удалены.
+- Демо: Components → Tab bar (`demos/tab-bar`) — живая панель и все настройки.

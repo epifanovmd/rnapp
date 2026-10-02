@@ -30,6 +30,7 @@ export {
   SearchDemo,
   SearchHiddenBarDemo,
   SettingsDemo,
+  TabBarDemo,
   TabsDemo,
   TicketDemo,
   TypographyDemo,

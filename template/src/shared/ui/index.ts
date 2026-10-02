@@ -57,6 +57,7 @@ export * from "./spinner";
 export * from "./stat-card";
 export * from "./switch";
 export * from "./switch-row";
+export * from "./tab-bar";
 export * from "./tabs";
 export * from "./tag";
 export * from "./text";

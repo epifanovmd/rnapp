@@ -33,6 +33,7 @@ import {
   SearchDemo,
   SearchHiddenBarDemo,
   SettingsDemo,
+  TabBarDemo,
   TabsDemo,
   TicketDemo,
   TypographyDemo,
@@ -206,6 +207,11 @@ export const RootStack = createStackNavigator({
           screen: TabsDemo,
           options: NO_HEADER,
           linking: "components/tabs",
+        },
+        ComponentsTabBar: {
+          screen: TabBarDemo,
+          options: { title: "Tab bar" },
+          linking: "components/tab-bar",
         },
         ComponentsFeedback: {
           screen: FeedbackDemo,
