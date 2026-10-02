@@ -402,11 +402,13 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
 - Закрытие любой шторки закрывает клавиатуру (`isSheetClosing`).
 
 ## Переход содержимого в шапку (scroll reveal)
-- `shared/lib/scroll-reveal`: `useScrollReveal({start=0.3, end=1, distance?, content?})` →
-  `{progress (DerivedValue 0…1), anchorRef, onLayout, scrollToTop}`. Прогресс — доля якоря, ушедшая
-  за верх видимой области: `offsetY + topInset − anchorTop` (`revealProgress`, `resolveRevealRange`,
-  `subProgress` — чистые, тесты). Якорь меряется `measureLayout` относительно `contentRef` при
-  своём onLayout и при onLayout контента (`subscribeLayout`), на кадре — без измерений.
+- Контроллер `useScrollReveal({start=0.3, end=1, distance?})` → `{progress (SharedValue 0…1),
+  range, scrollToTop, bind}` — создаётся где угодно (страница с навбаром, экран с опциями
+  навигатора). Якорь — `ScrollRevealAnchor reveal={…}` (`shared/ui/reveal`, по умолчанию сам гаснет,
+  `fadeOut`/`preset`) или хук `useScrollRevealAnchor(reveal)` → `{ref, onLayout}` — внутри контента
+  `ScreenScroll`: привязывает контроллер к скроллу (`bind`), меряет якорь `measureLayout` от
+  `contentRef` (при своей раскладке и раскладке контента), ведёт `progress` реакцией от offsetY.
+  Математика — `revealProgress`, `resolveRevealRange`, `subProgress` (тесты).
 - Контекст `ScrollContentContext` (`IScrollContent`: telemetry, contentRef, topInset,
   subscribeLayout, scrollToTop) даёт `ScreenScroll` (обёртка `View ref={contentRef}` вокруг
   распорки и тела). Gotcha: хук — в потомке `ScreenScroll`, не в компоненте, который его рендерит.
@@ -416,4 +418,7 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   `useNavbarReveal(props)` ставит его в `options.headerTitle` (фабрика вне компонента — иначе
   react/no-unstable-nested-components) и снимает при размонтировании; `AppHeader` рендерит
   функцию `headerTitle` в `Navbar.Content`.
-- Демо: Components → Scroll reveal (`demos/scroll-reveal`, переключатель пресетов).
+- Демо: Components → Scroll reveal (`demos/scroll-reveal`, переключатель пресетов) — шапка
+  навигатора. Навбар внутри страницы — вкладка «Настройки»: `AppMenuNavbar title reveal` (виджет
+  app-menu, `Navbar.Content` + `NavbarReveal` с `AppMenuProfileCompact`) и `AppMenu reveal`
+  (карточка профиля по центру — якорь).
