@@ -6,7 +6,7 @@ import {
   interpolateScrollOffset,
   keyboardOverlap,
   keyboardProgress,
-  predictAnchoredViewport,
+  predictShiftedViewport,
   shouldScrollTo,
 } from "../keyboard-aware-offset";
 
@@ -109,22 +109,19 @@ describe("computeKeyboardAwareOffset", () => {
   });
 
   it("верхнее поле в шторке: прогнозная область вмещает его — смещение то же", () => {
-    const viewport = predictAnchoredViewport({
+    const viewport = predictShiftedViewport({
       restTop: 120,
-      liftRoom: 20,
-      screenHeight: 800,
-      keyboardHeight: 300,
-      bottomInset: 80,
+      restHeight: 600,
+      shift: { lift: 0, shrink: 314 },
     });
-    const lift = 120 - viewport.top;
 
     expect(
       computeKeyboardAwareOffset({
         ...base,
-        fieldTop: 140 - lift,
-        fieldBottom: 200 - lift,
+        fieldTop: 140,
+        fieldBottom: 200,
         visibleTop: viewport.top,
-        viewportBottom: viewport.bottom,
+        viewportBottom: viewport.top + viewport.height,
         currentOffset: 40,
         maxOffset: 10,
       }),
@@ -195,54 +192,46 @@ describe("clampScrollOffset", () => {
   });
 });
 
-describe("predictAnchoredViewport (шторка над клавиатурой)", () => {
-  // Экран 800, клавиатура 300 → верх 500. Под скроллом футер + отступы = 80.
-  it("короткая шторка поднимается целиком на высоту клавиатуры", () => {
+describe("predictShiftedViewport (контейнер сдвинут и ужат на конец анимации)", () => {
+  it("подъём сдвигает область целиком", () => {
     expect(
-      predictAnchoredViewport({
+      predictShiftedViewport({
         restTop: 400,
-        liftRoom: 350,
-        screenHeight: 800,
-        keyboardHeight: 300,
-        bottomInset: 80,
+        restHeight: 300,
+        shift: { lift: 314, shrink: 0 },
       }),
-    ).toEqual({ top: 100, bottom: 420 });
+    ).toEqual({ top: 86, height: 300 });
   });
 
-  it("высокая шторка упирается в верх контейнера и ужимается снизу", () => {
+  it("шторка на всю высоту: верх на месте, область ужимается снизу", () => {
     expect(
-      predictAnchoredViewport({
+      predictShiftedViewport({
         restTop: 120,
-        liftRoom: 20,
-        screenHeight: 800,
-        keyboardHeight: 300,
-        bottomInset: 80,
+        restHeight: 600,
+        shift: { lift: 0, shrink: 314 },
       }),
-    ).toEqual({ top: 100, bottom: 420 });
+    ).toEqual({ top: 120, height: 286 });
   });
 
-  it("поле встаёт над футером, а не над клавиатурой под футером", () => {
-    // Скролл замерен до подъёма шторки: низ 720, поле на 430..490 при смещении 0.
-    const viewport = predictAnchoredViewport({
+  it("поле встаёт над ужатой областью (над футером), а не под неё", () => {
+    const viewport = predictShiftedViewport({
       restTop: 120,
-      liftRoom: 20,
-      screenHeight: 800,
-      keyboardHeight: 300,
-      bottomInset: 80,
+      restHeight: 600,
+      shift: { lift: 0, shrink: 314 },
     });
-    const lift = 120 - viewport.top;
 
     const offset = computeKeyboardAwareOffset({
       ...base,
-      fieldTop: 430 - lift,
-      fieldBottom: 490 - lift,
+      fieldTop: 430,
+      fieldBottom: 490,
       visibleTop: viewport.top,
-      viewportBottom: viewport.bottom,
+      viewportBottom: viewport.top + viewport.height,
       currentOffset: 0,
     });
 
-    // Низ поля после докрутки — над низом скролла (над футером) с зазором.
-    expect(490 - lift - offset).toBeLessThanOrEqual(viewport.bottom - 16);
+    expect(490 - offset).toBeLessThanOrEqual(
+      viewport.top + viewport.height - 16,
+    );
   });
 });
 

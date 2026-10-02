@@ -83,7 +83,7 @@ export const ModalsDemo = memo(() => {
 
         <Text textStyle={"Title_S1"}>{"Поведение"}</Text>
         <Button
-          title={"Клавиатура (keyboardBehavior)"}
+          title={"Клавиатура"}
           onPress={() => keyboardRef.current?.present()}
         />
 

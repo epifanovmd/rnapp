@@ -1,7 +1,9 @@
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { useMergedCallback } from "@shared/lib/hooks";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import haptic from "react-native-haptic-feedback";
+import { KeyboardController } from "react-native-keyboard-controller";
+import { useSharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CompoundRootProps, createCompound, slot } from "../../lib/slots";
@@ -10,7 +12,9 @@ import { BottomSheetFooter } from "./BottomSheetFooter";
 import { BottomSheetHeader } from "./BottomSheetHeader";
 import { BottomSheetLayout } from "./BottomSheetLayout";
 import { BottomSheetScrollContent } from "./BottomSheetScrollContent";
+import { createKeyboardShiftContainer } from "./createKeyboardShiftContainer";
 import { useBottomSheetStyles } from "./hooks";
+import { isSheetClosing } from "./sheet-keyboard-layout";
 import { BottomSheetStyles } from "./styles";
 import { TBottomSheetProps } from "./types";
 
@@ -38,11 +42,21 @@ const BottomSheetRoot = ({
   const { haptic: hapticEnable, nested, ...modalProps } = props;
   const modalStyles = useBottomSheetStyles();
   const { top } = useSafeAreaInsets();
+  // Над клавиатурой шторку двигаем сами (BottomSheetLayout), gorhom о ней
+  // не знает: поля не сообщают ему target.
+  const keyboardShift = useSharedValue(0);
+  const containerComponent = useMemo(
+    () => createKeyboardShiftContainer(keyboardShift),
+    [keyboardShift],
+  );
 
   const animateWithHaptic = useCallback(
-    (fromIndex: number) => {
+    (fromIndex: number, toIndex: number) => {
       if (fromIndex === -1 && hapticEnable) {
         haptic.trigger();
+      }
+      if (isSheetClosing(fromIndex, toIndex)) {
+        KeyboardController.dismiss();
       }
     },
     [hapticEnable],
@@ -55,8 +69,9 @@ const BottomSheetRoot = ({
       ref={forwardedRef}
       {...modalStyles}
       topInset={top}
-      keyboardBlurBehavior={"restore"}
+      keyboardBlurBehavior={"none"}
       backdropComponent={BottomSheetBackdrop}
+      containerComponent={containerComponent}
       {...modalProps}
       stackBehavior={nested ? "push" : "replace"}
       onAnimate={onAnimate}
@@ -66,6 +81,7 @@ const BottomSheetRoot = ({
         header={slots.header}
         content={slots.content}
         footer={slots.footer}
+        keyboardShift={keyboardShift}
       >
         {content}
       </BottomSheetLayout>

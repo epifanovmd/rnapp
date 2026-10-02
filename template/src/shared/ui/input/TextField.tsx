@@ -18,7 +18,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useSheetKeyboardTarget } from "../bottom-sheet/hooks/useSheetKeyboardTarget";
 import { Icon, TIconName } from "../icon";
 import { getTextStyle } from "../text";
 import {
@@ -117,10 +116,7 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
     const showHintLeft = !!hint && hintPosition === "left" && !multiline;
     const showHintRight = !!hint && hintPosition === "right" && !multiline;
 
-    const sheetKeyboard = useSheetKeyboardTarget(inputRef);
     const keyboardAware = useKeyboardAwareField(inputRef);
-    const handleSheetFocus = useMergedCallback(onFocus, sheetKeyboard.onFocus);
-    const handleSheetBlur = useMergedCallback(onBlur, sheetKeyboard.onBlur);
 
     const {
       isFocused,
@@ -138,8 +134,8 @@ export const TextField = forwardRef<RNTextInput, ITextFieldProps>(
       secureTextEntry,
       trackLocalValue: showHintRight || showCounter || !!multiline,
       inputRef,
-      onFocus: handleSheetFocus,
-      onBlur: handleSheetBlur,
+      onFocus,
+      onBlur,
       onChangeText,
     });
 

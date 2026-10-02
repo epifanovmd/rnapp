@@ -119,36 +119,36 @@ export const computeMaxScrollOffset = (
   return Math.max(spacerContentTop + spacerHeight - viewportHeight, 0);
 };
 
-export interface IAnchoredViewportInput {
-  /** Верх скролла, замеренный в покое (клавиатура закрыта). */
+/** Сдвиг контейнера скролла над клавиатурой на конец анимации. */
+export interface IContainerKeyboardShift {
+  /** На сколько контейнер поднимется. */
+  lift: number;
+  /** На сколько область скролла ужмётся снизу. */
+  shrink: number;
+}
+
+export interface IShiftedViewportInput {
+  /** Верх скролла в покое (клавиатура закрыта), координаты окна. */
   restTop: number;
-  /** Сколько контейнер может подняться до верха (позиция шторки в покое). */
-  liftRoom: number;
-  screenHeight: number;
-  keyboardHeight: number;
-  /** Что лежит между низом скролла и клавиатурой (футер, отступы). */
-  bottomInset: number;
+  restHeight: number;
+  shift: IContainerKeyboardShift;
 }
 
 /**
- * Целевая видимая область скролла в контейнере, который сам встаёт над
- * клавиатурой (шторка gorhom, `keyboardBehavior: interactive`): контейнер
- * поднимается на высоту клавиатуры, пока есть место, остальное ужимается
- * снизу; низ контента — на верхе клавиатуры. Считается по цели, а не по
- * кадру: свою анимацию шторка запускает позже клавиатуры.
+ * Видимая область скролла в контейнере, который мы сами двигаем над
+ * клавиатурой (шторка): замер в покое, сдвинутый на подъём и ужатый на
+ * отступ — на конец анимации, а не текущий кадр.
  */
-export const predictAnchoredViewport = ({
+export const predictShiftedViewport = ({
   restTop,
-  liftRoom,
-  screenHeight,
-  keyboardHeight,
-  bottomInset,
-}: IAnchoredViewportInput) => {
+  restHeight,
+  shift,
+}: IShiftedViewportInput) => {
   "worklet";
 
   return {
-    top: restTop - Math.min(keyboardHeight, Math.max(liftRoom, 0)),
-    bottom: screenHeight - keyboardHeight - bottomInset,
+    top: restTop - shift.lift,
+    height: Math.max(restHeight - shift.shrink, 0),
   };
 };
 

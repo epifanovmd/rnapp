@@ -32,9 +32,14 @@ export interface IModalSheetProps {
   maxHeight?: number;
   /**
    * При закрытии клавиатуры вернуть скролл формы к положению на момент её
-   * открытия. По умолчанию `false` — см. `BottomSheet.Content`.
+   * открытия, если пользователь не скроллил сам. По умолчанию `true`.
    */
   restoreScrollOnKeyboardHide?: boolean;
+  /**
+   * Шторка закрылась — анимация закрытия закончилась. Место для сброса
+   * формы: поля не очищаются на глазах, пока шторка уезжает.
+   */
+  onClosed?: () => void;
 }
 
 /**
@@ -51,6 +56,7 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   cancelLabel = "Отмена",
   maxHeight,
   restoreScrollOnKeyboardHide,
+  onClosed,
   children,
 }) => {
   const sheetRef = useBottomSheetRef();
@@ -73,13 +79,11 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   return (
     <BottomSheet
       ref={sheetRef}
-      keyboardBehavior={"interactive"}
-      keyboardBlurBehavior={"restore"}
-      android_keyboardInputMode={"adjustResize"}
       maxDynamicContentSize={maxHeight}
       onDismiss={() => {
         presentedRef.current = false;
         if (open) onOpenChange(false);
+        onClosed?.();
       }}
     >
       {!!title && <BottomSheet.Header label={title} />}

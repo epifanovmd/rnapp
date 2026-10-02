@@ -2,8 +2,8 @@ import {
   BottomSheetModalProps,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
+import { IContainerKeyboardShift } from "@shared/lib/keyboard-aware";
 import { ComponentProps } from "react";
-import { SharedValue } from "react-native-reanimated";
 
 import { BottomSheetFooter } from "./BottomSheetFooter";
 import { BottomSheetHeader } from "./BottomSheetHeader";
@@ -22,13 +22,11 @@ export type TBottomSheetHeaderProps = ComponentProps<typeof BottomSheetHeader>;
 export type TBottomSheetContentProps = ComponentProps<
   typeof BottomSheetScrollView
 > & {
-  /** От низа скролла до клавиатуры при открытой клавиатуре; ставит BottomSheetLayout. */
-  keyboardBottomInset?: SharedValue<number>;
+  /** Подъём и ужатие области контента над клавиатурой; ставит BottomSheetLayout. */
+  containerShift?: (keyboardHeight: number) => IContainerKeyboardShift;
   /**
-   * При закрытии клавиатуры вернуть скролл к положению на момент её открытия.
-   * В шторке по умолчанию `false`: пока шторка gorhom опускается, её скролл
-   * заблокирован, и любой scrollTo gorhom сбрасывает в начало (onScroll в
-   * LOCKED) — возврат дёргал бы контент.
+   * При закрытии клавиатуры вернуть скролл к положению на момент её открытия,
+   * если пользователь не скроллил сам. По умолчанию `true`.
    */
   restoreScrollOnKeyboardHide?: boolean;
 };

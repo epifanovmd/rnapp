@@ -9,6 +9,8 @@ import {
 import Animated, {
   AnimatedRef,
   AnimatedStyle,
+  cancelAnimation,
+  Easing,
   measure,
   MeasuredDimensions,
   ScrollEvent,
@@ -19,6 +21,7 @@ import Animated, {
   useAnimatedStyle,
   useEvent,
   useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 
 import { isFieldHeightChange } from "./field-layout";
@@ -27,10 +30,11 @@ import { IKeyboardAwareFieldRegistry } from "./keyboard-aware-context";
 import {
   computeKeyboardAwareOffset,
   computeMaxScrollOffset,
+  IContainerKeyboardShift,
   interpolateScrollOffset,
   keyboardOverlap,
   keyboardProgress,
-  predictAnchoredViewport,
+  predictShiftedViewport,
   shouldScrollTo,
 } from "./keyboard-aware-offset";
 import {
@@ -38,6 +42,7 @@ import {
   restoreFrameOffset,
   shouldRestoreOnHide,
 } from "./restore-on-hide";
+import { planScrollAnimation } from "./scroll-animation";
 
 export interface IKeyboardAwareScrollOptions {
   /** Зазор между низом поля и клавиатурой, px. По умолчанию 16. */
@@ -48,8 +53,8 @@ export interface IKeyboardAwareScrollOptions {
   topInset?: TAnimatedNumber;
   /**
    * Распорка высотой с перекрытие клавиатурой в конце контента — чтобы
-   * нижние поля могли подняться. В шторке выключается: gorhom сам ужимает
-   * шторку над клавиатурой. По умолчанию `true`.
+   * нижние поля могли подняться. В шторке выключается: шторка сама ужимает
+   * область формы над клавиатурой. По умолчанию `true`.
    */
   spacer?: boolean;
   /**
@@ -59,23 +64,23 @@ export interface IKeyboardAwareScrollOptions {
    */
   restoreOnHide?: boolean;
   /**
-   * Скролл в контейнере, который сам встаёт над клавиатурой (шторка gorhom).
-   * Видимая область считается по цели (`predictAnchoredViewport`), а не по
-   * кадру: шторка запускает свою анимацию позже клавиатуры.
+   * Скролл в контейнере, который двигается над клавиатурой вместе с ней
+   * (шторка кита): worklet — подъём и ужатие контейнера при данной высоте
+   * клавиатуры. Видимая область считается по ним на конец анимации от
+   * замера в покое (`predictShiftedViewport`).
    */
-  keyboardAnchor?: IKeyboardAnchor;
-}
-
-export interface IKeyboardAnchor {
-  /** Расстояние от низа скролла до верха клавиатуры при открытой клавиатуре. */
-  bottomInset: SharedValue<number>;
-  /** Сколько контейнер может подняться (позиция шторки от верха контейнера). */
-  liftRoom: SharedValue<number>;
+  containerShift?: (keyboardHeight: number) => IContainerKeyboardShift;
 }
 
 export interface IKeyboardAwareScroll {
   /** Реестр полей — в `KeyboardAwareContext` (его ставит `KeyboardAwareContent`). */
   registry: IKeyboardAwareFieldRegistry;
+  /**
+   * Ref нулевого якоря — первого элемента контента. По нему поле меряется в
+   * координатах контента в одном снимке раскладки, независимо от того, успело
+   * ли смещение дойти до shadow tree (важно во время докрутки).
+   */
+  contentAnchorRef: AnimatedRef<Animated.View>;
   /** Ref распорки — последнего элемента контента. */
   spacerRef: AnimatedRef<Animated.View>;
   spacerStyle: AnimatedStyle<ViewStyle>;
@@ -121,7 +126,14 @@ const SCROLL_EVENTS = [
  * анимации клавиатуры учитывается в её конце. Пока палец на скролле — не
  * вмешивается.
  *
- * Подключение к `Animated.ScrollView` (ref обязан быть animated ref):
+ * Подключение, от простого к ручному:
+ * - контейнеры кита уже подключены: `ScreenScroll`, `BottomSheet.Content`,
+ *   `ModalSheet`;
+ * - свой скролл — `KeyboardAwareScrollView` (shared/ui) вместо ScrollView;
+ * - AnchorList — `useKeyboardAwareAnchorList`:
+ *   `keyboardAware.wrap(<AnchorList {...keyboardAware.listProps} ... />)`.
+ *
+ * Вручную (ref обязан быть animated ref):
  * ```tsx
  * const scrollRef = useAnimatedRef<Animated.ScrollView>();
  * const keyboardAware = useKeyboardAwareScroll(scrollRef, { topInset });
@@ -130,23 +142,8 @@ const SCROLL_EVENTS = [
  *   <KeyboardAwareContent controller={keyboardAware}>{fields}</KeyboardAwareContent>
  * </Animated.ScrollView>
  * ```
- * `KeyboardAwareContent` — реестр полей и распорка последним элементом.
+ * `KeyboardAwareContent` — якорь первым, реестр полей и распорка последним.
  * Нижний отступ контента — внутри детей: после распорки отступов быть не должно.
- *
- * AnchorList — ref через `refScrollView` (у link-пакета своя копия типов
- * reanimated — нужен каст), распорка — последней в футере, реестр — снаружи:
- * ```tsx
- * <KeyboardAwareContext.Provider value={keyboardAware.registry}>
- *   <AnchorList
- *     refScrollView={scrollRef as unknown as IAnchorListProps<unknown>["refScrollView"]}
- *     ListFooterComponent={<KeyboardAwareSpacer controller={keyboardAware} />}
- *     ...
- *   />
- * </KeyboardAwareContext.Provider>
- * ```
- * `insetEnd` вместе с хуком не передавать: он сам поднимает смещение на
- * клавиатуру и спорил бы с докруткой к полю. `scrollHandlers` не нужны —
- * смещение и жест хук слушает сам по ref.
  */
 export const useKeyboardAwareScroll = (
   scrollRef: AnimatedRef<Animated.ScrollView>,
@@ -156,7 +153,7 @@ export const useKeyboardAwareScroll = (
     topInset = 0,
     spacer = true,
     restoreOnHide = true,
-    keyboardAnchor,
+    containerShift,
   }: IKeyboardAwareScrollOptions = {},
 ): IKeyboardAwareScroll => {
   const { height: screenHeight } = useWindowDimensions();
@@ -165,6 +162,15 @@ export const useKeyboardAwareScroll = (
   const fields = useSharedValue<TFieldRefs>({});
   const layoutVersion = useSharedValue(0);
   const spacerRef = useAnimatedRef<Animated.View>();
+  const contentAnchorRef = useAnimatedRef<Animated.View>();
+  // Сколько контента над якорем (paddingTop контейнера); -1 — не замерено.
+  const anchorInset = useSharedValue(-1);
+
+  // Своя докрутка к полю: одна анимация, которую можно перенаправить.
+  const animatedOffset = useSharedValue(0);
+  const isDriving = useSharedValue(false);
+  const driveTarget = useSharedValue(0);
+  const driveEnd = useSharedValue(0);
   const spacerHeight = useSharedValue(0);
 
   const scrollTag = useSharedValue(NO_TARGET);
@@ -194,10 +200,10 @@ export const useKeyboardAwareScroll = (
   const restoreFrom = useSharedValue(0);
   const restoreTo = useSharedValue(0);
 
-  // Шторка: верх скролла и запас подъёма, замеренные в покое.
+  // Контейнер (шторка): прямоугольник скролла, замеренный в покое.
   const isAnchored = useSharedValue(false);
   const restTop = useSharedValue(0);
-  const restLiftRoom = useSharedValue(0);
+  const restHeight = useSharedValue(0);
 
   const scrollEvents = useEvent<ScrollEvent>(event => {
     "worklet";
@@ -208,6 +214,11 @@ export const useKeyboardAwareScroll = (
       event.eventName.endsWith("onMomentumScrollBegin")
     ) {
       isDragging.value = true;
+
+      if (isDriving.value) {
+        cancelAnimation(animatedOffset);
+        isDriving.value = false;
+      }
 
       if (hasSaved.value || isRestoring.value) userDragged.value = true;
     } else if (
@@ -233,10 +244,86 @@ export const useKeyboardAwareScroll = (
     return cleanup;
   }, [scrollRef, scrollEvents, scrollTag]);
 
-  const setOffset = (y: number, animated: boolean) => {
+  const setOffset = (y: number) => {
     "worklet";
     offset.value = y;
-    scrollTo(scrollRef, 0, y, animated);
+    scrollTo(scrollRef, 0, y, false);
+  };
+
+  const stopDrive = () => {
+    "worklet";
+
+    if (!isDriving.value) return;
+
+    cancelAnimation(animatedOffset);
+    isDriving.value = false;
+  };
+
+  /** Немедленный сдвиг (кадр клавиатуры, зажим) — отменяет идущую докрутку. */
+  const jumpTo = (y: number) => {
+    "worklet";
+    stopDrive();
+    setOffset(y);
+  };
+
+  /** Плавная докрутка; новая цель во время идущей — перенаправление. */
+  const animateTo = (goal: number) => {
+    "worklet";
+    const now = Date.now();
+    const plan = planScrollAnimation({
+      animating: isDriving.value,
+      position: isDriving.value ? animatedOffset.value : offset.value,
+      target: driveTarget.value,
+      nextTarget: goal,
+      remaining: Math.max(driveEnd.value - now, 0),
+    });
+
+    if (plan.action === "none") return;
+
+    driveTarget.value = goal;
+    driveEnd.value = now + plan.duration;
+    isDriving.value = true;
+    animatedOffset.value = plan.from;
+    animatedOffset.value = withTiming(
+      goal,
+      { duration: plan.duration, easing: Easing.out(Easing.cubic) },
+      finished => {
+        if (finished) isDriving.value = false;
+      },
+    );
+  };
+
+  useAnimatedReaction(
+    () => animatedOffset.value,
+    y => {
+      if (isDriving.value && shouldScrollTo(y, offset.value)) setOffset(y);
+    },
+  );
+
+  /**
+   * Начало координат контента в окне. С якорем — из того же снимка раскладки,
+   * что и поле; без него (AnchorList) — по смещению из событий скролла.
+   */
+  const contentOrigin = (viewport: MeasuredDimensions) => {
+    "worklet";
+
+    if (anchorInset.value >= 0) {
+      const anchor = measure(contentAnchorRef);
+
+      if (anchor) return anchor.pageY - anchorInset.value;
+    }
+
+    return viewport.pageY - offset.value;
+  };
+
+  /** Замер якоря в покое: клавиатура закрыта, скролл стоит. */
+  const captureAnchor = (viewport: MeasuredDimensions) => {
+    "worklet";
+    const anchor = measure(contentAnchorRef);
+
+    anchorInset.value = anchor
+      ? anchor.pageY - viewport.pageY + offset.value
+      : -1;
   };
 
   /** Верх распорки в координатах контента. */
@@ -244,7 +331,7 @@ export const useKeyboardAwareScroll = (
     "worklet";
     const box = measure(spacerRef);
 
-    spacerTop.value = box ? box.pageY - viewport.pageY + offset.value : -1;
+    spacerTop.value = box ? box.pageY - contentOrigin(viewport) : -1;
   };
 
   /** Замер поля в координатах контента; false — поле не из этого скролла. */
@@ -258,7 +345,7 @@ export const useKeyboardAwareScroll = (
 
     if (!viewport) return false;
 
-    const origin = viewport.pageY - offset.value;
+    const origin = contentOrigin(viewport);
     const containerRef = fields.value[tag];
     const box = containerRef ? measure(containerRef) : null;
 
@@ -296,22 +383,15 @@ export const useKeyboardAwareScroll = (
   ): IViewportBox => {
     "worklet";
 
-    if (!keyboardAnchor || !isAnchored.value || keyboard <= 0) {
+    if (!containerShift || !isAnchored.value || keyboard <= 0) {
       return { top: viewport.pageY, height: viewport.height };
     }
 
-    const predicted = predictAnchoredViewport({
+    return predictShiftedViewport({
       restTop: restTop.value,
-      liftRoom: restLiftRoom.value,
-      screenHeight,
-      keyboardHeight: keyboard,
-      bottomInset: keyboardAnchor.bottomInset.value,
+      restHeight: restHeight.value,
+      shift: containerShift(keyboard),
     });
-
-    return {
-      top: predicted.top,
-      height: Math.max(predicted.bottom - predicted.top, 0),
-    };
   };
 
   const spacerFor = (viewport: IViewportBox, keyboard: number) => {
@@ -361,7 +441,7 @@ export const useKeyboardAwareScroll = (
       );
 
       if (offset.value > maxOffset && !isDragging.value) {
-        setOffset(maxOffset, false);
+        jumpTo(maxOffset);
       }
     }
 
@@ -392,7 +472,10 @@ export const useKeyboardAwareScroll = (
       keyboardHeight.value,
     );
 
-    if (shouldScrollTo(goal, offset.value)) setOffset(goal, animated);
+    if (!shouldScrollTo(goal, offset.value) && !isDriving.value) return;
+
+    if (animated) animateTo(goal);
+    else jumpTo(goal);
   };
 
   useKeyboardHandler(
@@ -411,6 +494,7 @@ export const useKeyboardAwareScroll = (
         if (!viewport) return;
 
         if (event.height <= 0) {
+          stopDrive();
           hasField.value = false;
           isAnimating.value = true;
           captureSpacer(viewport);
@@ -436,17 +520,19 @@ export const useKeyboardAwareScroll = (
 
         // Открытие из закрытого состояния — запомнить, куда вернуться.
         if (from < 1) {
+          stopDrive();
+          captureAnchor(viewport);
           savedOffset.value = offset.value;
           hasSaved.value = true;
           userDragged.value = false;
           interactiveDismiss.value = false;
         }
 
-        // Шторка ещё в покое — запомнить её геометрию для прогноза.
-        if (keyboardAnchor && from < 1) {
+        // Контейнер ещё в покое — запомнить его геометрию для прогноза.
+        if (containerShift && from < 1) {
           isAnchored.value = true;
           restTop.value = viewport.pageY;
-          restLiftRoom.value = keyboardAnchor.liftRoom.value;
+          restHeight.value = viewport.height;
         }
 
         pendingRecapture.value = false;
@@ -513,7 +599,7 @@ export const useKeyboardAwareScroll = (
               maxOffset,
             );
 
-            if (shouldScrollTo(next, offset.value)) setOffset(next, false);
+            if (shouldScrollTo(next, offset.value)) jumpTo(next);
           }
 
           resizeSpacer(viewport, nextSpacer);
@@ -537,7 +623,7 @@ export const useKeyboardAwareScroll = (
         );
         const next = interpolateScrollOffset(startOffset.value, goal, progress);
 
-        if (shouldScrollTo(next, offset.value)) setOffset(next, false);
+        if (shouldScrollTo(next, offset.value)) jumpTo(next);
       },
       onInteractive: event => {
         "worklet";
@@ -570,10 +656,11 @@ export const useKeyboardAwareScroll = (
             !isDragging.value &&
             shouldScrollTo(restoreTo.value, offset.value)
           ) {
-            setOffset(
-              restoreTo.value,
-              Math.abs(restoreTo.value - offset.value) > 2,
-            );
+            if (Math.abs(restoreTo.value - offset.value) > 2) {
+              animateTo(restoreTo.value);
+            } else {
+              jumpTo(restoreTo.value);
+            }
           }
 
           isRestoring.value = false;
@@ -618,12 +705,19 @@ export const useKeyboardAwareScroll = (
         // Доводка: платформы без покадровых событий и рост поля за анимацию.
         const goal = computeGoal(viewport, event.height);
 
-        if (shouldScrollTo(goal, offset.value)) {
-          setOffset(goal, Math.abs(goal - offset.value) > 2);
-        }
+        if (Math.abs(goal - offset.value) > 2) animateTo(goal);
+        else if (shouldScrollTo(goal, offset.value)) jumpTo(goal);
       },
     },
-    [enabled, spacer, restoreOnHide, bottomOffset, screenHeight, topInset],
+    [
+      enabled,
+      spacer,
+      restoreOnHide,
+      bottomOffset,
+      screenHeight,
+      topInset,
+      containerShift,
+    ],
   );
 
   useAnimatedReaction(
@@ -683,7 +777,13 @@ export const useKeyboardAwareScroll = (
   );
 
   return useMemo(
-    () => ({ registry, spacerRef, spacerStyle, spacerHeight }),
-    [registry, spacerRef, spacerStyle, spacerHeight],
+    () => ({
+      registry,
+      contentAnchorRef,
+      spacerRef,
+      spacerStyle,
+      spacerHeight,
+    }),
+    [registry, contentAnchorRef, spacerRef, spacerStyle, spacerHeight],
   );
 };

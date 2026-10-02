@@ -1,7 +1,6 @@
 import {
   BottomSheetScrollView,
   BottomSheetScrollViewMethods,
-  useBottomSheetInternal,
 } from "@gorhom/bottom-sheet";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
 import {
@@ -14,37 +13,25 @@ import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { TBottomSheetContentProps } from "./types";
 
 /**
- * Скролл контента шторки: gorhom поднимает шторку над клавиатурой, а этот
- * скролл докручивает форму к сфокусированному полю синхронно с клавиатурой.
- * Видимая область — целевая (низ — над футером, у верха клавиатуры), а не
- * текущая в кадре: шторка поднимается своей анимацией позже клавиатуры.
- * Распорки нет: шторка ужимается над клавиатурой, конец контента достижим.
+ * Скролл контента шторки: шторку над клавиатурой двигает BottomSheetLayout
+ * (покадрово, без gorhom), а этот скролл докручивает форму к полю синхронно
+ * с клавиатурой. Видимая область — на конец анимации: замер в покое,
+ * сдвинутый и ужатый по `containerShift`. Распорки нет: область формы
+ * ужимается над клавиатурой, конец контента достижим.
  */
 export const BottomSheetScrollContent = forwardRef<
   BottomSheetScrollViewMethods,
   TBottomSheetContentProps
 >(
   (
-    {
-      children,
-      keyboardBottomInset,
-      restoreScrollOnKeyboardHide = false,
-      ...rest
-    },
+    { children, containerShift, restoreScrollOnKeyboardHide = true, ...rest },
     ref,
   ) => {
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
-    const sheet = useBottomSheetInternal(true);
     const keyboardAware = useKeyboardAwareScroll(scrollRef, {
       spacer: false,
       restoreOnHide: restoreScrollOnKeyboardHide,
-      keyboardAnchor:
-        sheet && keyboardBottomInset
-          ? {
-              bottomInset: keyboardBottomInset,
-              liftRoom: sheet.animatedPosition,
-            }
-          : undefined,
+      containerShift,
     });
 
     return (

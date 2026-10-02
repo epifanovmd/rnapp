@@ -1,10 +1,6 @@
-import {
-  KeyboardAwareContent,
-  useKeyboardAwareScroll,
-} from "@shared/lib/keyboard-aware";
+import { KeyboardAwareScrollView } from "@shared/ui";
 import React, { FC, PropsWithChildren } from "react";
-import { StyleSheet, View } from "react-native";
-import Animated, { useAnimatedRef } from "react-native-reanimated";
+import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export interface IDemoScreenProps {
@@ -17,30 +13,21 @@ export interface IDemoScreenProps {
 
 /**
  * Скролл-обёртка демо-экрана: отступы контента, safe area снизу и поля
- * над клавиатурой (`useKeyboardAwareScroll`).
+ * над клавиатурой (`KeyboardAwareScrollView`).
  */
 export const DemoScreen: FC<PropsWithChildren<IDemoScreenProps>> = ({
   restoreScrollOnKeyboardHide = true,
   children,
 }) => {
   const { bottom } = useSafeAreaInsets();
-  const scrollRef = useAnimatedRef<Animated.ScrollView>();
-  const keyboardAware = useKeyboardAwareScroll(scrollRef, {
-    restoreOnHide: restoreScrollOnKeyboardHide,
-  });
 
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      contentContainerStyle={styles.content}
-      keyboardShouldPersistTaps={"handled"}
+    <KeyboardAwareScrollView
+      restoreScrollOnKeyboardHide={restoreScrollOnKeyboardHide}
+      contentContainerStyle={[styles.content, { paddingBottom: bottom + 16 }]}
     >
-      <KeyboardAwareContent controller={keyboardAware}>
-        <View style={[styles.body, { paddingBottom: bottom + 16 }]}>
-          {children}
-        </View>
-      </KeyboardAwareContent>
-    </Animated.ScrollView>
+      {children}
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -51,8 +38,6 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: 16,
     paddingHorizontal: 16,
-  },
-  body: {
     gap: 24,
   },
 });

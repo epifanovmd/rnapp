@@ -1,61 +1,21 @@
-import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { useTheme } from "@shared/lib/theme";
-import { BottomSheet, Col, Text } from "@shared/ui";
-import React, { forwardRef, useMemo } from "react";
-import { StyleSheet, TextStyle } from "react-native";
+import { BottomSheet, Col, Text, TextField } from "@shared/ui";
+import React, { forwardRef } from "react";
 
 /**
- * Демо работы с клавиатурой: контент содержит поле ввода, чтобы показать
- * keyboardBehavior/keyboardBlurBehavior листа.
+ * Демо работы с клавиатурой: шторка с полями ввода поднимается над
+ * клавиатурой покадрово (сдвиг кита, без keyboardBehavior gorhom).
  */
-export const SheetKeyboardDemo = forwardRef<BottomSheet>((_props, ref) => {
-  const { colors } = useTheme();
-
-  const inputStyle = useMemo<TextStyle>(
-    () => ({
-      borderColor: colors.border,
-      color: colors.textPrimary,
-      backgroundColor: colors.background,
-    }),
-    [colors],
-  );
-
-  return (
-    <BottomSheet
-      ref={ref}
-      keyboardBehavior={"interactive"}
-      keyboardBlurBehavior={"restore"}
-    >
-      <BottomSheet.Header label={"Клавиатура"} />
-      <BottomSheet.Content>
-        <Col gap={8} pb={8}>
-          <Text textStyle={"Caption_M3"}>
-            {
-              "keyboardBehavior: interactive — лист подстраивается под клавиатуру."
-            }
-          </Text>
-          <BottomSheetTextInput
-            placeholder={"Введите текст"}
-            placeholderTextColor={colors.textSecondary}
-            style={[SS.input, inputStyle]}
-          />
-          <BottomSheetTextInput
-            placeholder={"Ещё одно поле"}
-            placeholderTextColor={colors.textSecondary}
-            style={[SS.input, inputStyle]}
-          />
-        </Col>
-      </BottomSheet.Content>
-    </BottomSheet>
-  );
-});
-
-const SS = StyleSheet.create({
-  input: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-  },
-});
+export const SheetKeyboardDemo = forwardRef<BottomSheet>((_props, ref) => (
+  <BottomSheet ref={ref}>
+    <BottomSheet.Header label={"Клавиатура"} />
+    <BottomSheet.Content>
+      <Col gap={8} pb={8}>
+        <Text textStyle={"Caption_M3"}>
+          {"Шторка поднимается над клавиатурой вместе с ней."}
+        </Text>
+        <TextField label={"Введите текст"} />
+        <TextField label={"Ещё одно поле"} />
+      </Col>
+    </BottomSheet.Content>
+  </BottomSheet>
+));

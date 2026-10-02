@@ -31,6 +31,7 @@ export * from "./image-viewing";
 export * from "./info-row";
 export * from "./input";
 export * from "./input-bar";
+export * from "./keyboard-aware-scroll-view";
 export * from "./keyboard-scroll-view";
 export * from "./layouts";
 export * from "./list-item";

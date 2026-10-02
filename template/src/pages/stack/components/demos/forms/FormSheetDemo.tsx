@@ -49,14 +49,18 @@ export const FormSheetDemo: FC = memo(() => {
   });
   const { isSubmitting } = form.formState;
 
+  const resetForm = useCallback(
+    () => form.reset(DEMO_FORM_DEFAULTS),
+    [form],
+  );
+
   const onSubmit = useCallback(
     async (data: TDemoFormResult) => {
       await new Promise(resolve => setTimeout(resolve, 800));
       setOpen(false);
-      form.reset(DEMO_FORM_DEFAULTS);
       toast.success(JSON.stringify(data, null, 2), { title: "Сохранено" });
     },
-    [form, toast],
+    [toast],
   );
 
   const applyTemplate = useCallback(
@@ -93,6 +97,7 @@ export const FormSheetDemo: FC = memo(() => {
       <ModalSheet
         open={open}
         onOpenChange={setOpen}
+        onClosed={resetForm}
         title={"Новый проект"}
         description={"Select и шаблоны открываются поверх формы"}
         cancelLabel={null}

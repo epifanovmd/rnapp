@@ -159,8 +159,8 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 
 - `ModalSheet` — управляемая шторка с API модалки (`open`/`onOpenChange`, `title`,
   `description`, `primaryAction`, `cancelLabel`): формы фич открываются в ней.
-- `TextField` внутри любой gorhom-шторки — цель клавиатуры (`useSheetKeyboardTarget`,
-  повторяет логику `BottomSheetTextInput`), отдельный `BottomSheetTextInput` не нужен.
+- Шторки кита сами поднимаются над клавиатурой (`useSheetKeyboardLayout`, см. раздел
+  «Клавиатура»); `BottomSheetTextInput` gorhom не использовать — он включит движение gorhom.
 - `Select`/`SelectFormField` (шторка со списком и поиском), `Segmented`/
   `SegmentedFormField`, — общая дорожка `SegmentedTrack` (сегменты, замеры onLayout,
   `scrollable` с автоцентрированием); `Segmented` — подложка и цвет подписи на Reanimated
@@ -260,10 +260,10 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   ушло выше `visibleTop` — вниз; высокое поле прижимается началом к верху; clamp `[0, maxOffset]`),
   `keyboardProgress`, `interpolateScrollOffset`, `keyboardOverlap` (высота распорки),
   `computeMaxScrollOffset` (конец контента = верх распорки + высота), `clampScrollOffset`,
-  `predictAnchoredViewport` (целевая видимая область шторки: верх = верх в покое − min(клавиатура,
-  запас подъёма), низ = верх клавиатуры − bottomInset). `field-layout.ts` — `isFieldHeightChange`.
+  `predictShiftedViewport` (видимая область контейнера на конец анимации: замер в покое,
+  сдвинутый на lift и ужатый на shrink). `field-layout.ts` — `isFieldHeightChange`.
 - `useKeyboardAwareScroll(scrollRef: AnimatedRef<Animated.ScrollView>, { bottomOffset=16, enabled,
-  topInset (TAnimatedNumber, навбар), spacer=true, keyboardAnchor: { bottomInset, liftRoom } })` →
+  topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, containerShift?: (kb) => { lift, shrink } })` →
   `{ registry, spacerRef, spacerStyle, spacerHeight }`. Смещение и drag/momentum слушает сам
   (`useEvent` + `scrollRef.observe` → registerForEvents), onScroll подключать не нужно.
   onStart: замер поля и распорки в координатах КОНТЕНТА (offset из событий), резерв распорки;
@@ -278,6 +278,15 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   если цель = старт. Причина: каждый scrollTo шлёт onScroll (RN force-dispatch), а gorhom в
   LOCKED-состоянии (шторка в переходе, его keyboard status ещё не SHOWN) сбрасывает offset в своём
   onScroll → дёрганье верхних полей. (Гипотеза по коду, на устройстве не подтверждено.)
+- Одна плавная докрутка (2026-10-02): вне анимации клавиатуры скролл ведёт своя анимация
+  (`animatedOffset` + withTiming 250ms, reaction → scrollTo без animated), новая цель во время неё —
+  перенаправление с текущего места за остаток (`scroll-animation.ts` `planScrollAnimation`, тесты).
+  Причина: смена фокуса при открытой клавиатуре (shouldFocusError RHF после «Сохранить») → onStart
+  той же высоты → нативный animated scrollTo; затем React рендерит тексты ошибок → onLayout полей →
+  notifyLayout → второй animated scrollTo с новой целью = два рывка. Поле меряется от нулевого якоря
+  (`contentAnchorRef`, первый элемент `KeyboardAwareContent`; paddingTop над ним замеряется в покое
+  при открытии клавиатуры) — один снимок раскладки, не зависит от отставания offset в shadow tree во
+  время докрутки. Без якоря (AnchorList) — прежний расчёт по offset из событий.
 - onEnd перезамеряет поле по `event.target` (`focus-capture.ts` `shouldCaptureOnEnd`, тесты): тег
   в onStart мог быть -1/прежним. Реакция на `input.value` — только рост того же target.
 - Возврат при закрытии (`restoreOnHide`, def true; проп кита `restoreScrollOnKeyboardHide` у
@@ -285,30 +294,48 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
   запоминается в onStart при from=0; смена поля не перезаписывает. При скрытии, если не было drag
   (BeginDrag/MomentumBegin при открытой клавиатуре) и onInteractive, — покадровый lerp к цели,
   зажатый по контенту с уменьшающейся распоркой; доводка в onEnd. Чистое — `restore-on-hide.ts`
-  (тесты). В шторке выключен: на опускании gorhom её скролл LOCKED, его onScroll сбрасывает
-  любой scrollTo в lockPosition (0) — возврат дёргал бы контент. Демо — SwitchRow в Keyboard · Scroll.
-- Gotcha шторки: gorhom поднимает шторку по JS `Keyboard` событиям (keyboardWillShow → runOnUI,
-  ждёт target из onFocus) своей анимацией — позже кадров keyboard-controller; высокая шторка
-  (позиция 0) не едет, а ужимает маску снизу (contentMax = container − kb − handle, paddingBottom =
-  kb). Поэтому замер вьюпорта в кадре давал низ «над клавиатурой под футером» и доводку только
-  после анимации. Решение — `keyboardAnchor`: геометрия в покое на onStart (from 0) + прогноз.
+  (тесты). В шторке теперь тоже def true (gorhom больше не входит в keyboard-состояние → нет
+  LOCKED на переходе). Демо — SwitchRow в Keyboard · Scroll.
+- **Шторка над клавиатурой без gorhom (2026-10-02, ЭКСПЕРИМЕНТАЛЬНО, ждёт проверки на устройстве).**
+  gorhom двигал шторку по JS `Keyboard` (iOS keyboardWillShow, Android keyboardDidShow — с
+  опозданием) своей анимацией и только при `animatedKeyboardState.target`. Теперь target не ставится
+  (удалён `useSheetKeyboardTarget`; textInputNodesRef нужен был только BottomSheetTextInput),
+  `keyboardBlurBehavior="none"`, у ModalSheet убраны keyboardBehavior/android_keyboardInputMode.
+  Движение — `bottom-sheet/hooks/useSheetKeyboardLayout` (по `useKeyboardHeight`, покадрово):
+  `computeSheetKeyboardLayout` (`sheet-keyboard-layout.ts`, тесты): подъём R = kb + min(kb,12) −
+  safeArea; translateY = −min(R, позиция gorhom = запас до верха контейнера), paddingBottom =
+  safe + (R − lift). Сдвиг — в `containerComponent` модалки (`createKeyboardShiftContainer`,
+  Animated.View absoluteFill со сдвигом; внутри backdrop и hosting container) — снаружи gorhom,
+  его расчёты в координатах контейнера. paddingBottom — анимированный стиль BottomSheetLayout,
+  в dynamic sizing идёт safe area. `containerShift` (lift, shrink) инжектится в слот контента →
+  хук скролла. Жест шторки при открытой клавиатуре: позиция замораживается на начало жеста
+  (gesture state gorhom ACTIVE/BEGAN), сдвиг вниз > 8px → `Keyboard.dismiss`. Сдвигаются все
+  открытые шторки (и родитель вложенной). Откат: вернуть useSheetKeyboardTarget в TextField,
+  keyboardBlurBehavior restore, убрать containerComponent/keyboardShift/useSheetKeyboardLayout.
 - Реестр: `KeyboardAwareContext` (тег TextInput → animated ref контейнера). `useKeyboardAwareField(inputRef)`
-  в `TextField` — регистрация на mount (`findNodeHandle`, как useSheetKeyboardTarget; на focus — гонка
+  в `TextField` — регистрация на mount (`findNodeHandle`; на focus — гонка
   с onStart), корень TextField стал `Animated.View collapsable={false}` с `onLayout`. Поле не из
   реестра — fallback на `useReanimatedFocusedInput`, только если `parentScrollViewTarget` = тег скролла.
   NumberTextField/DateField/Select/Autocomplete — через TextField; InputBar не трогали.
 - `KeyboardAwareContent controller` — Provider + дети + `KeyboardAwareSpacer` последним. После
   распорки отступов быть не должно (paddingBottom — внутри детей), иначе maxOffset занижен.
-- Подключение: ScrollView — `ref={scrollRef}` + `<KeyboardAwareContent>`; шторка —
-  `BottomSheet.Content` = `bottom-sheet/BottomSheetScrollContent` (BottomSheetScrollView +
-  хук с `spacer: false` + `keyboardAnchor` { bottomInset из BottomSheetLayout (`keyboardBottomInset`
-  инжектится в слот контента: футер + gap 16 + 12), liftRoom: gorhom `animatedPosition` };
-  `BottomSheetLayout` — paddingBottom по прогрессу клавиатуры: safe area → `SHEET_KEYBOARD_GAP` 12
-  (`sheet-keyboard-layout.ts`, тесты), в dynamic sizing идёт отступ закрытого состояния);
-  AnchorList — `refScrollView={scrollRef as unknown as IAnchorListProps<unknown>["refScrollView"]}`,
-  `ListFooterComponent={<KeyboardAwareSpacer/>}` (последним), Provider снаружи; `insetEnd` не
-  передавать (сам двигает смещение), `scrollHandlers` не нужны. Типы проверены, демо нет.
+- Подключение — три уровня:
+  1. контейнеры кита уже подключены: `ScreenScroll`, `BottomSheet.Content`, `ModalSheet`, `DemoScreen`;
+  2. `KeyboardAwareScrollView` (`shared/ui/keyboard-aware-scroll-view`) — Animated.ScrollView с
+     собранным хуком: пропсы ScrollView + `bottomOffset`, `topInset`, `restoreScrollOnKeyboardHide`,
+     `enabled`, `renderScrollView` (обёртка, напр. GestureDetector протяжки); `ref` (React 19 prop)
+     объединяется с внутренним animated ref; `contentContainerStyle` целиком уходит обёртке детей,
+     у контейнера — только `flexGrow` (`split-content-container-style.ts`, тест), статичный стиль.
+     ScreenScroll (протяжка через renderScrollView; ScreenScrollView удалён) и DemoScreen на нём;
+  3. AnchorList — `useKeyboardAwareAnchorList({ ListHeaderComponent, ListFooterComponent, ... })`
+     (`shared/lib/keyboard-aware`, type-import anchor-list как у pull-to-refresh) →
+     `{ controller, listProps, wrap }`: `refScrollView` с кастом, якорь `KeyboardAwareAnchor` перед
+     шапкой потребителя, распорка после его футера; `wrap(list)` — провайдер реестра.
+     `return keyboardAware.wrap(<AnchorList {...keyboardAware.listProps} ... />)`. `insetEnd` не нужен.
+  Вручную — `useKeyboardAwareScroll` + `KeyboardAwareContent` (якорь, реестр, распорка).
 - Применено: `ScreenScroll`, `BottomSheet.Content` (→ ModalSheet), `DemoScreen` плейграунда.
+  Временное демо `ComponentsKeyboardAnchorList` (`demos/keyboard-anchor-list/`, 24 поля) — может
+  быть не закоммичено.
   `pages/stack/{profile,security}` ещё на KeyboardAwareScrollView.
 - Демо: `ComponentsKeyboardScroll` (ScreenScroll, 12 полей, onBlur-валидация, multiline внизу) и
   `ComponentsKeyboardSheet` (ModalSheet с той же формой), `demos/keyboard/`.

@@ -29,13 +29,17 @@ export const KeyboardSheetDemo: FC = memo(() => {
   });
   const { isSubmitting } = form.formState;
 
+  const resetForm = useCallback(
+    () => form.reset(KEYBOARD_DEMO_DEFAULTS),
+    [form],
+  );
+
   const onSubmit = useCallback(
     (data: TKeyboardDemoFormResult) => {
       setOpen(false);
-      form.reset(KEYBOARD_DEMO_DEFAULTS);
       toast.success(JSON.stringify(data, null, 2), { title: "Сохранено" });
     },
-    [form, toast],
+    [toast],
   );
 
   return (
@@ -49,6 +53,7 @@ export const KeyboardSheetDemo: FC = memo(() => {
       <ModalSheet
         open={open}
         onOpenChange={setOpen}
+        onClosed={resetForm}
         title={"Доставка"}
         description={"Профиль, адрес и заказ"}
         primaryAction={{

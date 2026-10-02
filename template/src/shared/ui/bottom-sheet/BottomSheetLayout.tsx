@@ -1,18 +1,11 @@
 import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
 import React, { ReactNode, useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent } from "react-native";
-import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-} from "react-native-reanimated";
+import Animated, { SharedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ResolvedSingleSlot } from "../../lib/slots";
-import {
-  resolveSheetBottomPadding,
-  resolveSheetKeyboardInset,
-} from "./sheet-keyboard-layout";
+import { useSheetKeyboardLayout } from "./hooks/useSheetKeyboardLayout";
 import { BottomSheetStyles } from "./styles";
 import {
   TBottomSheetContentProps,
@@ -25,6 +18,8 @@ export interface BottomSheetLayoutProps {
   content: ResolvedSingleSlot<TBottomSheetContentProps>;
   footer: ResolvedSingleSlot<TBottomSheetFooterProps>;
   header: ResolvedSingleSlot<TBottomSheetHeaderProps>;
+  /** Сдвиг шторки над клавиатурой — его применяет контейнер модалки. */
+  keyboardShift?: SharedValue<number>;
 }
 
 /**
@@ -37,17 +32,17 @@ export interface BottomSheetLayoutProps {
  * только когда контент уже замерен — иначе detents пересчитываются на
  * промежуточных значениях и анимация открытия дёргается.
  *
- * Нижний отступ при открытой клавиатуре — обычный зазор вместо safe area
- * (клавиатура закрывает home indicator); в замер высоты для dynamic sizing
- * идёт отступ закрытого состояния. Скроллу контента уходит расстояние от
- * его низа до клавиатуры (`keyboardBottomInset`) — по нему он считает
- * видимую область шторки после подъёма.
+ * Клавиатура — без gorhom (`useSheetKeyboardLayout`): шторка сдвигается и
+ * ужимает нижним отступом область формы; в замер высоты для dynamic sizing
+ * идёт отступ закрытого состояния. Скроллу контента уходит `containerShift`
+ * — по нему он считает свою видимую область на конец анимации.
  */
 export const BottomSheetLayout = ({
   children,
   content,
   footer,
   header,
+  keyboardShift,
 }: BottomSheetLayoutProps) => {
   const { bottom: paddingBottom } = useSafeAreaInsets();
   const { enableDynamicSizing, animatedLayoutState } = useBottomSheetInternal();
@@ -56,21 +51,10 @@ export const BottomSheetLayout = ({
   const hasFooter = footer.present;
 
   const sizesRef = useRef({ header: 0, footer: 0, content: -1 });
-  const keyboardBottomInset = useSharedValue(
-    resolveSheetKeyboardInset({
-      hasFooter,
-      footerHeight: 0,
-      gap: BottomSheetStyles.content.gap,
-    }),
+  const { paddingStyle, containerShift } = useSheetKeyboardLayout(
+    paddingBottom,
+    keyboardShift,
   );
-  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
-
-  const paddingStyle = useAnimatedStyle(() => ({
-    paddingBottom: resolveSheetBottomPadding(
-      paddingBottom,
-      keyboardProgress.value,
-    ),
-  }));
 
   const commit = useCallback(() => {
     const {
@@ -78,12 +62,6 @@ export const BottomSheetLayout = ({
       footer: footerH,
       content: contentH,
     } = sizesRef.current;
-
-    keyboardBottomInset.value = resolveSheetKeyboardInset({
-      hasFooter,
-      footerHeight: footerH,
-      gap: BottomSheetStyles.content.gap,
-    });
 
     // До первого замера контента не пишем: штатная запись тоже ещё не было.
     if (!enableDynamicSizing || contentH < 0) {
@@ -109,7 +87,6 @@ export const BottomSheetLayout = ({
     hasHeader,
     hasFooter,
     animatedLayoutState,
-    keyboardBottomInset,
   ]);
 
   // Изменение insets/наличия слотов меняет формулу — перезаписать высоту.
@@ -149,7 +126,7 @@ export const BottomSheetLayout = ({
       {header.render({ inject: { onLayout: onHeaderLayout } })}
       {content.render({
         defaults: { children },
-        inject: { onContentSizeChange, keyboardBottomInset },
+        inject: { onContentSizeChange, containerShift },
       })}
       {footer.render({ inject: { onLayout: onFooterLayout } })}
     </Animated.View>
