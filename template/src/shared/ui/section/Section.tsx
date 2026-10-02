@@ -58,8 +58,8 @@ const SectionRoot = ({
  * описание и контент.
  *
  * @example
- * <Section title={"Ноды"} description={"Онлайн и офлайн"}>
- *   <Section.Action title={"Все"} onPress={openNodes} />
+ * <Section title={"Проекты"} description={"Активные и в архиве"}>
+ *   <Section.Action title={"Все"} onPress={openProjects} />
  *   ...
  * </Section>
  */

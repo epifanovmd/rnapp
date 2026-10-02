@@ -4,7 +4,7 @@ export type Permission = string;
 /** Полный доступ. */
 export const ALL_PERMISSIONS = "*";
 
-/** Последний сегмент права «только на свои» сущности: `wg:peer:update:own`. */
+/** Последний сегмент права «только на свои» сущности: `project:task:update:own`. */
 const OWN_SCOPE_SUFFIX = ":own";
 
 /** Область действия права: над всеми сущностями или только над своими. */
@@ -31,7 +31,7 @@ const matches = (
 
 /**
  * Покрывает ли набор право с учётом wildcard-иерархии
- * (`wg:peer:create` ← `wg:peer:*` ← `wg:*` ← `*`). Право на действие над
+ * (`project:task:create` ← `project:task:*` ← `project:*` ← `*`). Право на действие над
  * всеми сущностями покрывает то же право «только на свои»:
  * `x:update` ⊃ `x:update:own`.
  */

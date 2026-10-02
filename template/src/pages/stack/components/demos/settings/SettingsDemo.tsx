@@ -31,18 +31,18 @@ export const SettingsDemo: FC = memo(() => {
       >
         <SettingsGroup>
           <ValueRow
-            icon={"server"}
-            label={"Нода"}
-            value={"nl-ams-01"}
-            onPress={() => toast.info("Переход к ноде")}
+            icon={"briefcase"}
+            label={"Проект"}
+            value={"Atlas"}
+            onPress={() => toast.info("Переход к проекту")}
           />
           <SwitchRow
             icon={"power"}
-            label={"Включён"}
+            label={"Активен"}
             value={enabled}
             onValueChange={setEnabled}
           />
-          <ValueRow icon={"globe"} label={"Регион"} value={"eu-west"} />
+          <ValueRow icon={"globe"} label={"Язык"} value={"Русский"} />
           <ValueRow
             icon={"activity"}
             label={"Статус"}
@@ -75,15 +75,15 @@ export const SettingsDemo: FC = memo(() => {
             <>
               <SwitchRow
                 icon={"terminal"}
-                label={"Удалённый доступ"}
+                label={"Режим разработчика"}
                 value={remote}
                 onValueChange={setRemote}
               />
               <ValueRow
                 icon={"key"}
-                label={"Ключи доступа"}
+                label={"Токены API"}
                 description={"3 активных"}
-                onPress={() => toast.info("Ключи")}
+                onPress={() => toast.info("Токены")}
               />
             </>
           )}
@@ -101,10 +101,10 @@ export const SettingsDemo: FC = memo(() => {
         title={"Section + Section.Action"}
         description={"Действие справа от заголовка, описание ниже"}
       >
-        <Section title={"Ноды"} description={"9 онлайн, 1 офлайн"}>
+        <Section title={"Проекты"} description={"9 активных, 1 в архиве"}>
           <Section.Action
-            title={"Все ноды"}
-            onPress={() => toast.info("Все ноды")}
+            title={"Все проекты"}
+            onPress={() => toast.info("Все проекты")}
           />
           <Text color={"textSecondary"}>{"Контент секции"}</Text>
         </Section>

@@ -11,7 +11,7 @@ import { TabsDemoPage } from "./TabsDemoPage";
 
 type TTabsDemoParamList = {
   Обзор: undefined;
-  Пиры: undefined;
+  Задачи: undefined;
   Логи: undefined;
   Статистика: undefined;
   Настройки: undefined;
@@ -61,7 +61,7 @@ export const TabsDemoNavigator: FC = () => {
         }}
       >
         <TopTab.Screen name={"Обзор"} component={TabsDemoPage} />
-        <TopTab.Screen name={"Пиры"} component={TabsDemoPage} />
+        <TopTab.Screen name={"Задачи"} component={TabsDemoPage} />
         <TopTab.Screen name={"Логи"} component={TabsDemoPage} />
         <TopTab.Screen name={"Статистика"} component={TabsDemoPage} />
         <TopTab.Screen name={"Настройки"} component={TabsDemoPage} />

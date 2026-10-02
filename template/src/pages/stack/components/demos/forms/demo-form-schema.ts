@@ -2,14 +2,14 @@ import type { SegmentedOption, SelectOption } from "@shared/ui";
 import { z } from "zod";
 
 export const PLAN_OPTIONS: SegmentedOption<"free" | "pro" | "team">[] = [
-  { label: "Free", value: "free", description: "1 сервер, без поддержки" },
-  { label: "Pro", value: "pro", description: "До 10 серверов" },
+  { label: "Free", value: "free", description: "1 проект, без поддержки" },
+  { label: "Pro", value: "pro", description: "До 10 проектов" },
   { label: "Team", value: "team", description: "Без лимитов, SSO" },
 ];
 
 export const ROLE_OPTIONS: SelectOption[] = [
   { label: "Администратор", value: "admin", description: "Полный доступ" },
-  { label: "Оператор", value: "operator", description: "Управление серверами" },
+  { label: "Менеджер", value: "manager", description: "Управление проектами" },
   { label: "Наблюдатель", value: "viewer", description: "Только чтение" },
   { label: "Гость", value: "guest", disabled: true },
 ];

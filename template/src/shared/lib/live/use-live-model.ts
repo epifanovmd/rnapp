@@ -72,21 +72,21 @@ const selectPayload = <TSnapshot>(payload: unknown) => payload as TSnapshot;
  *
  * VM отдаёт модель целиком, читает её observer-лист:
  * @example
- * const speed = useLiveModel<IPeerLive, { peers: IPeerLive[] }, ISpeedPoint>({
- *   id: peerId,
- *   event: "peers:stats",
- *   select: ({ peers }, id) => peers.find(peer => peer.peerId === id),
- *   load: id => api.currentPeerStats(id),
+ * const metrics = useLiveModel<IDeviceLive, { devices: IDeviceLive[] }, IMetricPoint>({
+ *   id: deviceId,
+ *   event: "devices:stats",
+ *   select: ({ devices }, id) => devices.find(device => device.deviceId === id),
+ *   load: id => api.currentDeviceStats(id),
  *   window: {
- *     toPoint: s => ({ ts: Date.parse(s.ts), rxBps: s.rxBps, txBps: s.txBps }),
- *     load: id => api.peerStatsWindow(id),
+ *     toPoint: s => ({ ts: Date.parse(s.ts), cpu: s.cpu, memory: s.memory }),
+ *     load: id => api.deviceStatsWindow(id),
  *     maxPoints: 600,
  *     windowMs: 10 * 60_000,
  *   },
  * });
  *
- * const SpeedChart = observer(({ speed }: { speed: ILiveModel<IPeerLive, ISpeedPoint> }) =>
- *   <Chart points={speed.points} />);
+ * const MetricsChart = observer(({ metrics }: { metrics: ILiveModel<IDeviceLive, IMetricPoint> }) =>
+ *   <Chart points={metrics.points} />);
  */
 export const useLiveModel = <
   TSnapshot,

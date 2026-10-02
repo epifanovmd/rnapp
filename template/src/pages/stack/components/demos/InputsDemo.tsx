@@ -59,8 +59,8 @@ export const InputsDemo: FC = memo(() => {
       >
         <TextField label={"Поиск"} iconName={"search"} clearable />
         <TextField
-          label={"AllowedIPs"}
-          placeholder={"0.0.0.0/0, ::/0"}
+          label={"Теги"}
+          placeholder={"дизайн, релиз"}
           description={"Пояснение под полем (description) — на всю ширину"}
         />
         <TextField

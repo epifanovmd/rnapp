@@ -25,7 +25,7 @@ export interface IScreenFallbackProps {
  * загрузка, ошибка с повтором или «не найдено».
  *
  * @example
- * if (!node) return <ScreenFallback title={"Нода"} isLoading={vm.isLoading} notFound={{ title: "Нода не найдена" }} />;
+ * if (!project) return <ScreenFallback title={"Проект"} isLoading={vm.isLoading} notFound={{ title: "Проект не найден" }} />;
  */
 export const ScreenFallback: FC<IScreenFallbackProps> = memo(
   ({ title, isLoading, error, onRetry, notFound, safeArea = true, onBack }) => (

@@ -35,12 +35,12 @@ export const ScreenFallbackDemo: FC = memo(() => {
         borderColor={"border"}
       >
         <ScreenFallback
-          title={"Нода"}
+          title={"Проект"}
           safeArea={false}
           isLoading={state === "loading"}
           error={state === "error" ? "Сервер не отвечает" : null}
           onRetry={() => setState("loading")}
-          notFound={{ title: "Нода не найдена" }}
+          notFound={{ title: "Проект не найден" }}
           onBack={() => toast.info("Назад")}
         />
       </Col>

@@ -9,14 +9,14 @@ export const ConfirmDemo: FC = memo(() => {
 
   const onPress = async () => {
     const confirmed = await confirm({
-      title: "Удалить сервер?",
+      title: "Удалить проект?",
       description: "Действие нельзя отменить",
       confirmLabel: "Удалить",
       confirmVariant: "destructive",
     });
 
     if (confirmed) {
-      toast.success("Сервер удалён");
+      toast.success("Проект удалён");
     } else {
       toast.info("Отменено");
     }
@@ -24,7 +24,7 @@ export const ConfirmDemo: FC = memo(() => {
 
   return (
     <Button
-      title={"Удалить сервер"}
+      title={"Удалить проект"}
       variant={"danger"}
       appearance={"outline"}
       leftIcon={"trash"}

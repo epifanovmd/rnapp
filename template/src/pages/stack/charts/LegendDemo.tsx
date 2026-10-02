@@ -13,7 +13,7 @@ import {
 } from "@shared/ui/chart";
 import React, { FC, memo } from "react";
 
-import { TRAFFIC_SERIES } from "./chart-mock-data";
+import { TASK_SERIES } from "./chart-mock-data";
 
 const formatDay = (value: number) => {
   const date = new Date(value);
@@ -24,7 +24,7 @@ const formatDay = (value: number) => {
 /** Легенда с переключением серий: скрытая серия уходит из графика, тултипа и домена Y. */
 export const LegendDemo: FC = memo(() => {
   const { colors } = useTheme();
-  const { visibleSeries, legendProps } = useChartSeriesToggle(TRAFFIC_SERIES);
+  const { visibleSeries, legendProps } = useChartSeriesToggle(TASK_SERIES);
 
   return (
     <Col gap={12}>

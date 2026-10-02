@@ -25,7 +25,7 @@ const renderRoleOption = ({
 
 /** Single-режимы: обычный, clearable, labelInValue, поиск, renderValue/optionRender, состояния. */
 export const SelectDemo: FC = memo(() => {
-  const [role, setRole] = useState<string | null>("operator");
+  const [role, setRole] = useState<string | null>("manager");
   const [optionalRole, setOptionalRole] = useState<string | null>(null);
   const [city, setCity] = useState<LabeledValue | null>({
     value: "Берлин",

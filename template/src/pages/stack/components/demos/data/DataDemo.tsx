@@ -38,7 +38,7 @@ const TAG_VARIANTS: TTagVariant[] = [
   "muted",
 ];
 
-const PUBLIC_KEY = "nE7mQ3xv2Lk9aP0dR5tY8uW1zC4bH6jF2gS7kV0oX3c=";
+const API_TOKEN = "demo_7Qm3xv2Lk9aP0dR5tY8uW1zC4bH6jF2gS7kV0o";
 const QR_VALUE = "https://reactnative.dev";
 
 export const DataDemo: FC = memo(() => {
@@ -66,19 +66,19 @@ export const DataDemo: FC = memo(() => {
             {"Offline"}
           </Tag>
           <Tag variant={"warning"} dot>
-            {"Деградация"}
+            {"На проверке"}
           </Tag>
           <Tag
             variant={"info"}
             icon={<Icon name={"shield"} size={12} color={colors.info} />}
           >
-            {"VPN"}
+            {"Приватный"}
           </Tag>
           <Tag
             variant={"outline"}
             icon={<Icon name={"globe"} size={12} color={colors.textPrimary} />}
           >
-            {"eu-west"}
+            {"Публичный"}
           </Tag>
         </Row>
       </DemoSection>
@@ -95,9 +95,9 @@ export const DataDemo: FC = memo(() => {
           pa={14}
           onPress={() => toast.info("Нажата строка")}
         >
-          <Text textStyle={"Title_S2"}>{"Нидерланды"}</Text>
+          <Text textStyle={"Title_S2"}>{"Мобильное приложение"}</Text>
           <Text textStyle={"Caption_M3"} color={"textSecondary"}>
-            {"201.34.146.180 · 9 онлайн"}
+            {"24 задачи · 5 участников"}
           </Text>
         </DisclosureRow>
         <DisclosureRow bg={"surface"} radius={16} pa={14}>
@@ -112,15 +112,15 @@ export const DataDemo: FC = memo(() => {
         }
       >
         <ListItem
-          title={"Сервер srv-01"}
-          subtitle={"10.0.0.1 · Frankfurt"}
-          icon={"server"}
+          title={"Проект Atlas"}
+          subtitle={"12 задач · обновлён вчера"}
+          icon={"briefcase"}
           trailing={
             <Tag variant={"success"} dot>
               {"Online"}
             </Tag>
           }
-          onPress={() => toast.info("Открыт srv-01")}
+          onPress={() => toast.info("Открыт Atlas")}
         />
         <ListItem
           title={"Иван Петров"}
@@ -136,17 +136,17 @@ export const DataDemo: FC = memo(() => {
           }
         />
         <ListItem
-          title={"Узел nl-02"}
-          subtitle={"Нагрузка выше нормы"}
+          title={"Релиз 2.4"}
+          subtitle={"Сроки под угрозой"}
           icon={"activity"}
           footer={
             <Row gap={6} flexWrap={"wrap"}>
-              <Tag variant={"warning"}>{"CPU 87%"}</Tag>
-              <Tag variant={"muted"}>{"RAM 4.1 GB"}</Tag>
-              <Tag variant={"info"}>{"12 клиентов"}</Tag>
+              <Tag variant={"warning"}>{"Просрочено 3"}</Tag>
+              <Tag variant={"muted"}>{"Высокий приоритет"}</Tag>
+              <Tag variant={"info"}>{"12 задач"}</Tag>
             </Row>
           }
-          onPress={() => toast.info("Открыт nl-02")}
+          onPress={() => toast.info("Открыт релиз 2.4")}
         />
       </DemoSection>
 
@@ -157,15 +157,19 @@ export const DataDemo: FC = memo(() => {
         }
       >
         <Col bg={"surface"} radius={16} ph={14} pv={8} gap={4}>
-          <InfoRow label={"Имя"} value={"srv-01"} />
-          <InfoRow label={"Адрес"} value={"10.0.0.1"} copyValue={"10.0.0.1"} />
+          <InfoRow label={"Проект"} value={"Atlas"} />
           <InfoRow
-            label={"Ключ"}
-            value={`${PUBLIC_KEY.slice(0, 12)}…`}
-            copyValue={PUBLIC_KEY}
+            label={"Почта"}
+            value={"team@example.com"}
+            copyValue={"team@example.com"}
+          />
+          <InfoRow
+            label={"Токен API"}
+            value={`${API_TOKEN.slice(0, 12)}…`}
+            copyValue={API_TOKEN}
             mono
           />
-          <InfoRow label={"Порт"} value={51820} />
+          <InfoRow label={"Задач"} value={42} />
           <InfoRow label={"Комментарий"} />
           <InfoRow
             label={"Статус"}
@@ -183,21 +187,21 @@ export const DataDemo: FC = memo(() => {
         description={"Нажатие копирует text, иконка → галочка, тост"}
       >
         <CopyableText text={"ivan@example.com"} />
-        <CopyableText text={PUBLIC_KEY} mono copiedLabel={"Ключ скопирован"} />
+        <CopyableText text={API_TOKEN} mono copiedLabel={"Токен скопирован"} />
         <CopyableText text={"Без тоста"} copiedLabel={null} />
       </DemoSection>
 
       <DemoSection title={"StatCard"} description={"Сетка в 2 колонки"}>
         <Row gap={12}>
           <StatCard
-            label={"Клиенты"}
+            label={"Участники"}
             value={128}
             hint={"+12 за неделю"}
             icon={"users"}
           />
           <StatCard
-            label={"Трафик"}
-            value={"1.4 TB"}
+            label={"Задачи закрыты"}
+            value={342}
             hint={"за месяц"}
             icon={"activity"}
             tone={"success"}
@@ -205,15 +209,15 @@ export const DataDemo: FC = memo(() => {
         </Row>
         <Row gap={12}>
           <StatCard
-            label={"Ошибки"}
+            label={"Просрочено"}
             value={3}
-            hint={"за сутки"}
+            hint={"за неделю"}
             icon={"circleAlert"}
             tone={"danger"}
           />
           <StatCard
-            label={"Аптайм"}
-            value={"99.9%"}
+            label={"В срок"}
+            value={"94%"}
             icon={"clock"}
             tone={"warning"}
           />
@@ -225,30 +229,30 @@ export const DataDemo: FC = memo(() => {
           title={"Информация"}
           description={"Обновление будет установлено ночью"}
         />
-        <Notice variant={"success"} description={"Конфигурация применена"} />
+        <Notice variant={"success"} description={"Изменения сохранены"} />
         <Notice
           variant={"warning"}
-          title={"Сертификат истекает"}
+          title={"Подписка истекает"}
           description={"Осталось 5 дней"}
           action={
             <Button
               size={"small"}
               appearance={"outline"}
               title={"Продлить"}
-              onPress={() => toast.success("Сертификат продлён")}
+              onPress={() => toast.success("Подписка продлена")}
             />
           }
         />
         <Notice
           variant={"danger"}
-          title={"Сервер недоступен"}
-          description={"Нет ответа 3 минуты"}
+          title={"Синхронизация не удалась"}
+          description={"Нет связи 3 минуты"}
           action={
             <Button
               size={"small"}
               variant={"danger"}
-              title={"Перезапустить"}
-              onPress={() => toast.info("Перезапуск…")}
+              title={"Повторить"}
+              onPress={() => toast.info("Повтор…")}
             />
           }
         />

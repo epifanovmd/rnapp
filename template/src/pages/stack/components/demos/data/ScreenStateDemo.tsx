@@ -23,12 +23,12 @@ export const ScreenStateDemo: FC = memo(() => {
         onRetry={() => setState("loading")}
         isEmpty={state === "empty" || state === "loading"}
         empty={{
-          icon: "server",
-          title: "Серверов нет",
-          description: "Добавьте первый сервер",
+          icon: "briefcase",
+          title: "Проектов нет",
+          description: "Создайте первый проект",
         }}
       >
-        <ListItem title={"srv-01"} subtitle={"10.0.0.1"} icon={"server"} />
+        <ListItem title={"Atlas"} subtitle={"12 задач"} icon={"briefcase"} />
       </ScreenState>
     </>
   );

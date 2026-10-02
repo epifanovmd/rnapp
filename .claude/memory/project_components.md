@@ -155,7 +155,7 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 
 Шторка выбора действия поверх `BottomSheet`: пункты данными (`IActionSheetItem<TKey>`: key, title, description, icon, destructive, disabled), карточка `surface` со строками (иконка в круге `primary`/`danger`, заголовок, подпись, chevron), кнопка «Отмена». `onSelect(key)` вызывается ПОСЛЕ закрытия (`onDismiss`) — иначе системный пикер iOS не откроется поверх модалки. Открытие — `ref.current?.present()` (`useBottomSheetRef`).
 
-## Дополнения кита (ветка feat/wg-admin-mobile, 2026-10-01)
+## Дополнения кита (2026-10-01)
 
 - `ModalSheet` — управляемая шторка с API модалки (`open`/`onOpenChange`, `title`,
   `description`, `primaryAction`, `cancelLabel`): формы фич открываются в ней.
@@ -183,7 +183,7 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 
 ## Select / GroupedSelect / Autocomplete (`shared/ui/select`, 2026-10-02)
 
-Порт веб-Select (wg-admin-web) под мобильный UX: поле-триггер в стиле TextField +
+Порт веб-Select под мобильный UX: поле-триггер в стиле TextField +
 `nested` BottomSheet со списком. API как в вебе: дискриминированные режимы
 (single / clearable / labelInValue / multi / multi labelInValue / `multi: boolean`),
 `SelectDataProps` от стратегий (`useStatic/Async/Eager/Infinite/Dependent/ControlledOptions`,

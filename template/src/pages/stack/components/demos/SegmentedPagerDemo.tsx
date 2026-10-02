@@ -9,7 +9,7 @@ import { PagerDemoPage } from "./PagerDemoPage";
 
 type TPagerDemoParamList = {
   Обзор: undefined;
-  Пиры: undefined;
+  Задачи: undefined;
   Логи: undefined;
 };
 
@@ -28,7 +28,7 @@ export const SegmentedPagerDemo: FC = () => (
   <Col height={HEIGHT}>
     <PagerTab.Navigator tabBar={renderTabBar} screenOptions={SCREEN_OPTIONS}>
       <PagerTab.Screen name={"Обзор"} component={PagerDemoPage} />
-      <PagerTab.Screen name={"Пиры"} component={PagerDemoPage} />
+      <PagerTab.Screen name={"Задачи"} component={PagerDemoPage} />
       <PagerTab.Screen name={"Логи"} component={PagerDemoPage} />
     </PagerTab.Navigator>
   </Col>

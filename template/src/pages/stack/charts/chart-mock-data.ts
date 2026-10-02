@@ -119,11 +119,11 @@ export const nextLivePriceData = (data: ChartDatum[]): ChartDatum[] => {
     : window;
 };
 
-/** Трафик за 30 дней: три серии разного масштаба — для легенды с переключением. */
-export const TRAFFIC_SERIES: IChartSeries[] = [
-  { id: "rx", label: "Входящий", base: 820, amp: 160 },
-  { id: "tx", label: "Исходящий", base: 340, amp: 90 },
-  { id: "errors", label: "Ошибки", base: 24, amp: 10 },
+/** Задачи за 30 дней: три серии разного масштаба — для легенды с переключением. */
+export const TASK_SERIES: IChartSeries[] = [
+  { id: "created", label: "Создано", base: 820, amp: 160 },
+  { id: "closed", label: "Закрыто", base: 340, amp: 90 },
+  { id: "overdue", label: "Просрочено", base: 24, amp: 10 },
 ].map(({ id, label, base, amp }, index) => ({
   id,
   label,
