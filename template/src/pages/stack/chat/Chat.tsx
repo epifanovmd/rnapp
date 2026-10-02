@@ -1,4 +1,3 @@
-import { setAnchorListDebug, useAnchorListPerf } from "@epifanovmd/anchor-list";
 import { Container } from "@shared/ui";
 import { ChatView } from "@widgets/chat";
 import { observer } from "mobx-react-lite";
@@ -8,11 +7,6 @@ import { useChatMessages } from "./model/useChatMessages";
 
 /** Переписка демо-экрана: под этим ключом хранится позиция скролла. */
 const CHAT_ID = "demo";
-
-// Стартовая позиция и первый показ, нижний отступ, удержание позиции и ход
-// смещения: всё, что решается первыми кадрами открытия. Раскладку не включаем —
-// на прокрутке её поток заглушает остальные каналы.
-setAnchorListDebug(["initial", "insets", "mvcp", "scroll"]);
 
 /**
  * Экран переписки.
@@ -24,8 +18,6 @@ setAnchorListDebug(["initial", "insets", "mvcp", "scroll"]);
 export const Chat: FC = observer(() => {
   const { messages, sendMessage, editMessage, deleteMessage } =
     useChatMessages();
-
-  // useAnchorListPerf("scroll-initial");
 
   return (
     <Container edges={[]}>
