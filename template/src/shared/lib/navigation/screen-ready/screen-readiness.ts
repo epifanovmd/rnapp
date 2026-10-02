@@ -36,6 +36,11 @@ export interface IScreenReadinessSource {
 export interface IScreenReadiness<TName extends string = string> {
   /** Готов ли экран сейчас (без задержки и таймаута). */
   isReady: (routeKey: string, conditions?: IScreenReadyConditions) => boolean;
+  /**
+   * Готов ли сейчас экран по имени маршрута (из одноимённых — верхний);
+   * экрана нет в дереве — не готов.
+   */
+  isRouteReady: (name: TName, conditions?: IScreenReadyConditions) => boolean;
   /** Оповещение о любом изменении, способном поменять готовность. */
   subscribe: (listener: () => void) => () => void;
   /** Вызвать `callback` один раз, когда экран станет готов; возвращает отмену. */
@@ -173,6 +178,11 @@ export const createScreenReadiness = <TName extends string = string>(
 
   return {
     isReady: (routeKey, conditions = {}) => check(routeKey, conditions, false),
+    isRouteReady: (name, conditions = {}) => {
+      const routeKey = findRouteKeyByName(source.getRootState(), name);
+
+      return routeKey !== null && check(routeKey, conditions, false);
+    },
     subscribe,
     onReady,
     whenReady: (routeKey, options) =>

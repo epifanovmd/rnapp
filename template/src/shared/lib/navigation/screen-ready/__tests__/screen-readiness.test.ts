@@ -136,4 +136,28 @@ describe("createScreenReadiness", () => {
 
     await expect(readiness.whenRouteReady("Demo")).resolves.toBe("Demo");
   });
+
+  it("isRouteReady: нет в дереве — не готов, открыт и в фокусе — готов", () => {
+    const source = createSource({
+      type: "stack",
+      index: 0,
+      routes: [{ key: "Home", name: "Home" }],
+    });
+    const readiness = createScreenReadiness(source);
+
+    expect(readiness.isRouteReady("Demo")).toBe(false);
+
+    source.setState(stackWith(1));
+    expect(readiness.isRouteReady("Demo")).toBe(false);
+
+    source.tracker.markOpened("Demo");
+    expect(readiness.isRouteReady("Demo")).toBe(true);
+    expect(readiness.isRouteReady("Home")).toBe(false);
+    expect(
+      readiness.isRouteReady("Home", {
+        waitForFocus: false,
+        waitForTransition: false,
+      }),
+    ).toBe(true);
+  });
 });
