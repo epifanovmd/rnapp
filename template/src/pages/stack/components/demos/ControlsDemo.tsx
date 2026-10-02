@@ -194,7 +194,7 @@ export const ControlsDemo: FC = memo(() => {
           "Типизированная навигационная ссылка (to + params из RootParamList)"
         }
       >
-        <NavLink to={"Charts"}>
+        <NavLink to={"ComponentsCharts"}>
           <Text color={"textLink"}>Открыть Charts →</Text>
         </NavLink>
         <NavLink

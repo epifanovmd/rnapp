@@ -7,7 +7,7 @@ import { LivePriceDemo } from "./LivePriceDemo";
 import { RevenueDemo } from "./RevenueDemo";
 
 /** Витрина графиков кита. */
-export const Charts: FC = () => {
+export const ChartsDemo: FC = () => {
   return (
     <Container edges={[]}>
       <ScrollView>

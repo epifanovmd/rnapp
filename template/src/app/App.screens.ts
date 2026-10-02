@@ -1,18 +1,21 @@
 /* eslint-disable check-file/filename-naming-convention -- часть неймспейса `App.*`, не обычный модуль */
 import { Audit } from "@pages/stack/audit";
-import { CalendarDemo, CalendarListDemo } from "@pages/stack/calendar-demo";
-import { Charts } from "@pages/stack/charts";
 import { Chat } from "@pages/stack/chat";
 import {
   ButtonsDemo,
+  CalendarDemo,
+  CalendarListDemo,
   CarouselDemo,
+  ChartsDemo,
   Components,
+  ContextMenuDemo,
   ControlsDemo,
   DataDemo,
   DialogsDemo,
   FeedbackDemo,
   FormsDemo,
   IconsDemo,
+  InputBarDemo,
   InputsDemo,
   LayoutDemo,
   ListsDemo,
@@ -29,9 +32,7 @@ import {
   TypographyDemo,
 } from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
-import { ContextMenu } from "@pages/stack/context-menu";
 import { Files } from "@pages/stack/files";
-import { InputBar } from "@pages/stack/input-bar";
 import { Jobs } from "@pages/stack/jobs";
 import { ObjectScanner } from "@pages/stack/object-scanner";
 import { PdfView } from "@pages/stack/pdf-view";
@@ -210,16 +211,30 @@ export const RootStack = createStackNavigator({
           options: { title: "Ticket" },
           linking: "components/ticket",
         },
-        Charts: { screen: Charts, linking: "charts" },
-        CalendarDemo: {
+        ComponentsCharts: {
+          screen: ChartsDemo,
+          options: { title: "Charts" },
+          linking: "components/charts",
+        },
+        ComponentsCalendar: {
           screen: CalendarDemo,
           options: { title: "Calendar" },
-          linking: "calendar",
+          linking: "components/calendar",
         },
-        CalendarListDemo: {
+        ComponentsCalendarList: {
           screen: CalendarListDemo,
           options: { title: "Calendar list" },
-          linking: "calendarlist",
+          linking: "components/calendar-list",
+        },
+        ComponentsContextMenu: {
+          screen: ContextMenuDemo,
+          options: { title: "Context menu" },
+          linking: "components/context-menu",
+        },
+        ComponentsInputBar: {
+          screen: InputBarDemo,
+          options: { title: "Input bar" },
+          linking: "components/input-bar",
         },
         Chat: { screen: Chat, linking: "chat" },
         Profile: {
@@ -247,8 +262,6 @@ export const RootStack = createStackNavigator({
           options: { title: "Фоновые задачи" },
           linking: "jobs",
         },
-        ContextMenu: { screen: ContextMenu, linking: "contextmenu" },
-        InputBar: { screen: InputBar, linking: "inputbar" },
         ContainerScanner: {
           screen: ContainerScanner,
           options: NO_HEADER,

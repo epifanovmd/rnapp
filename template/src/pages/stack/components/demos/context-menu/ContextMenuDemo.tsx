@@ -40,7 +40,7 @@ const LONG_TEXT =
   "канва становится выше экрана и прокручивается, а меню изначально " +
   "показывается прижатым к низу. ".repeat(4);
 
-export const ContextMenu: FC = observer(() => {
+export const ContextMenuDemo: FC = observer(() => {
   const { colors } = useTheme();
 
   const [lastEvent, setLastEvent] = useState("—");

@@ -22,9 +22,9 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 - `app/` — композиционный корень: App.tsx, App.navigator.tsx, App.screens.ts, app-tab-screens.tsx,
   App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
 - `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
-  `stack/` (sign-in, sign-up, recovery-password, charts, chat, components,
-  container-scanner, context-menu, input-bar, object-scanner, pdf-view, plate-scanner,
-  text-scanner, web-view)
+  `stack/` (sign-in, sign-up, recovery-password, chat, components — плейграунд кита:
+  демо-экраны компонентов, графиков, календаря, контекстного меню, input bar;
+  container-scanner, object-scanner, pdf-view, plate-scanner, text-scanner, web-view)
 - `widgets/` — app-shell, chat (ChatView: AnchorList + InputBar + контекстное меню)
 - `features/` — sign-in, sign-up, recovery-password, biometric, container-scan,
   message-actions, object-scan, plate-scan, text-scan

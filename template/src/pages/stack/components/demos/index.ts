@@ -1,5 +1,8 @@
 export * from "./ButtonsDemo";
+export * from "./calendar";
 export * from "./CarouselDemo";
+export * from "./charts";
+export * from "./context-menu";
 export * from "./ControlsDemo";
 export * from "./data";
 export * from "./DemoScreen";
@@ -7,6 +10,7 @@ export * from "./dialogs";
 export * from "./FeedbackDemo";
 export * from "./forms";
 export * from "./IconsDemo";
+export * from "./input-bar";
 export * from "./InputsDemo";
 export * from "./LayoutDemo";
 export * from "./ListsDemo";

@@ -42,7 +42,7 @@ export const CalendarDemo: FC = observer(() => {
               size={"small"}
               appearance={"outline"}
               title={"Список месяцев"}
-              onPress={() => navigation.navigate("CalendarListDemo")}
+              onPress={() => navigation.navigate("ComponentsCalendarList")}
             />
           </Row>
 

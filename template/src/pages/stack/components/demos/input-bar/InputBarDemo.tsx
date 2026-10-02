@@ -17,7 +17,7 @@ const now = () => {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 };
 
-export const InputBarPage: FC = observer(() => {
+export const InputBarDemo: FC = observer(() => {
   const [events, setEvents] = useState<EventEntry[]>([]);
   const [inputAction, setInputAction] = useState<InputBarInputAction | null>(
     null,
@@ -186,7 +186,7 @@ export const InputBarPage: FC = observer(() => {
   );
 });
 
-InputBarPage.displayName = "InputBarPage";
+InputBarDemo.displayName = "InputBarDemo";
 
 const ss = StyleSheet.create({
   scroll: { flex: 1 },

@@ -50,38 +50,8 @@ export const Playground: FC = observer(() => {
 
           <Button
             mt={8}
-            title={"Charts"}
-            onPress={() => navigation.navigate("Charts")}
-          />
-
-          <Button
-            mt={8}
-            title={"Calendar"}
-            onPress={() => navigation.navigate("CalendarDemo")}
-          />
-
-          <Button
-            mt={8}
-            title={"Calendar list"}
-            onPress={() => navigation.navigate("CalendarListDemo")}
-          />
-
-          <Button
-            mt={8}
             title={"Chat"}
             onPress={() => navigation.navigate("Chat")}
-          />
-
-          <Button
-            mt={8}
-            title={"Context menu"}
-            onPress={() => navigation.navigate("ContextMenu")}
-          />
-
-          <Button
-            mt={8}
-            title={"Input bar"}
-            onPress={() => navigation.navigate("InputBar")}
           />
 
           <Button

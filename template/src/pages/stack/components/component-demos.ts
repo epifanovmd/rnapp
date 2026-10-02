@@ -21,4 +21,9 @@ export const COMPONENT_DEMOS = [
   { route: "ComponentsDialogs", title: "Dialogs" },
   { route: "ComponentsPickers", title: "Pickers" },
   { route: "ComponentsTicket", title: "Ticket" },
+  { route: "ComponentsCharts", title: "Charts" },
+  { route: "ComponentsCalendar", title: "Calendar" },
+  { route: "ComponentsCalendarList", title: "Calendar list" },
+  { route: "ComponentsContextMenu", title: "Context menu" },
+  { route: "ComponentsInputBar", title: "Input bar" },
 ] as const;

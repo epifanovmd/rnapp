@@ -1,13 +1,18 @@
 export * from "./Components";
 export {
   ButtonsDemo,
+  CalendarDemo,
+  CalendarListDemo,
   CarouselDemo,
+  ChartsDemo,
+  ContextMenuDemo,
   ControlsDemo,
   DataDemo,
   DialogsDemo,
   FeedbackDemo,
   FormsDemo,
   IconsDemo,
+  InputBarDemo,
   InputsDemo,
   LayoutDemo,
   ListsDemo,

@@ -15,8 +15,10 @@ type: project
 - **Private — табы** (`Tabs`, `src/app/app-tab-screens.tsx` → `MainTabs`, `pages/tabs/`):
   Main, Playground, Settings.
 - **Private — стек** (`src/app/App.screens.ts`, `pages/stack/`): Tabs + Components/
-  Charts/Chat/ContainerScanner/ContextMenu/InputBar/ObjectScanner/PdfView/PlateScanner/
-  TextScanner/WebView.
+  Chat/ContainerScanner/ObjectScanner/PdfView/PlateScanner/TextScanner/WebView.
+- **Плейграунд кита** — `Components` (ссылки) + демо-экраны `Components<Name>`
+  (`pages/stack/components/demos/`): виды компонентов, Charts, Calendar, Calendar list,
+  Context menu, Input bar, Tabs, ScreenReady.
 - **Chat** (`pages/stack/chat`) — тонкая страница: моковые сообщения (`useChatMessages`)
   - `ChatView` из `widgets/chat`; позиция скролла живёт в MMKV по `chatId`.
 - Типизация: глобальный `ReactNavigation.RootParamList` выводится из static-конфига
