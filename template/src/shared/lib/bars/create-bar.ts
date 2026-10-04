@@ -1,5 +1,6 @@
 import { LayoutChangeEvent } from "react-native";
-import { makeMutable, runOnUI, withTiming } from "react-native-reanimated";
+import { makeMutable, withTiming } from "react-native-reanimated";
+import { scheduleOnUI } from "react-native-worklets";
 
 import {
   clampOffset,
@@ -103,7 +104,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     }
 
     measured = next;
-    runOnUI(remeasure)(next, measuredPinned);
+    scheduleOnUI(remeasure, next, measuredPinned);
     listeners.forEach(listener => listener());
   };
 
@@ -113,7 +114,7 @@ export const createBar = (options: IBarOptions = {}): IBar => {
     }
 
     measuredPinned = next;
-    runOnUI(remeasure)(measured, next);
+    scheduleOnUI(remeasure, measured, next);
   };
 
   const screenListeners = {

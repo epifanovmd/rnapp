@@ -13,12 +13,11 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   cancelAnimation,
   Easing,
-  runOnUI,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 import type { TCalendarMonthKey } from "../calendar.types";
 import {
@@ -133,7 +132,7 @@ export const CalendarMonthSlider: FC<ICalendarMonthSliderProps> = memo(
       if (swipeTargetRef.current === target) return;
       swipeTargetRef.current = null;
 
-      runOnUI(() => {
+      scheduleOnUI(() => {
         "worklet";
         if (animate && page.value !== target) {
           page.value = withTiming(target, timing, finished => {
@@ -143,7 +142,7 @@ export const CalendarMonthSlider: FC<ICalendarMonthSliderProps> = memo(
           page.value = target;
           scheduleOnRN(finishTransition);
         }
-      })();
+      });
     }, [shown, indexOf, timing, page, finishTransition]);
 
     const onContainerLayout = useCallback(
@@ -174,12 +173,12 @@ export const CalendarMonthSlider: FC<ICalendarMonthSliderProps> = memo(
           return;
         }
 
-        runOnUI(() => {
+        scheduleOnUI(() => {
           "worklet";
           page.value = withTiming(actual, timing, finished => {
             if (finished) scheduleOnRN(finishTransition);
           });
-        })();
+        });
       },
       [indexOf, monthRef, page, timing, finishTransition],
     );

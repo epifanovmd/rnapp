@@ -76,6 +76,7 @@ type: project
 `EEEEEE`, `d`).
 
 ## Производительность (аудит 2026-10-02)
+
 - Holder-ы: списки `observable.ref` (`items`, `pendingItems`) — массив только заменять, не мутировать
   (push/splice на месте не уведомит). Глубокий observable превращал каждый DTO в observable на
   каждое обновление по сокету.
@@ -99,3 +100,7 @@ type: project
   состояние (`sameLines`).
 - Списки: `extraData` — стабильный ключ, не объект VM (новый объект на рендер перерисовывает все
   ячейки AnchorList).
+- Потоки worklets: только `scheduleOnUI(fn, ...args)` и `scheduleOnRN(fn, ...args)` из
+  `react-native-worklets` (0.11). `runOnUI`/`runOnJS` из Reanimated — deprecated, заменены
+  2026-10-04 (calendar slider, pull-to-refresh controller, bars). `.runOnJS(true)` у жестов
+  RNGH — другое API, остаётся. В jest `react-native-worklets` — пустой стаб.

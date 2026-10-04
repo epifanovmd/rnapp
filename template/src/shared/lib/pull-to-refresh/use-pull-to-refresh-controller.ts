@@ -1,11 +1,10 @@
 import { useCallback, useMemo, useRef } from "react";
 import {
-  runOnUI,
   useDerivedValue,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { scheduleOnRN } from "react-native-worklets";
+import { scheduleOnRN, scheduleOnUI } from "react-native-worklets";
 
 import {
   IPullToRefreshConfig,
@@ -89,7 +88,7 @@ export const usePullToRefreshController = (
         const elapsed = Date.now() - refreshStartedAt.current;
         const delay = Math.max(0, minRefreshDuration - elapsed);
 
-        setTimeout(() => runOnUI(settle)(), delay);
+        setTimeout(() => scheduleOnUI(settle), delay);
       };
 
       result.then(complete, complete);
@@ -166,21 +165,21 @@ export const usePullToRefreshController = (
   }, [isDragging, settle, state, trigger]);
 
   const refresh = useCallback(() => {
-    runOnUI(() => {
+    scheduleOnUI(() => {
       "worklet";
       if (state.value === "idle") {
         trigger();
       }
-    })();
+    });
   }, [state, trigger]);
 
   const finish = useCallback(() => {
-    runOnUI(() => {
+    scheduleOnUI(() => {
       "worklet";
       if (state.value === "refreshing") {
         settle();
       }
-    })();
+    });
   }, [settle, state]);
 
   return useMemo(
