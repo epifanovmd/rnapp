@@ -57,3 +57,22 @@ export const isSheetClosing = (fromIndex: number, toIndex: number) =>
  */
 export const isSheetOpening = (fromIndex: number, toIndex: number) =>
   fromIndex === -1 && toIndex !== -1;
+
+/**
+ * Позиция шторки, от которой считается подъём над клавиатурой.
+ *
+ * Во время жеста — позиция на его начало (`gesturePosition`, −1 — жеста нет):
+ * иначе сдвиг шёл бы навстречу пальцу. Но не больше текущей позиции: шторка
+ * поднимается, пока она не упёрлась в верх контейнера. Снятая раньше позиция
+ * может оказаться ниже текущей — контент вырос (под полем появилась ошибка), и
+ * gorhom поднял шторку, — и подъём по ней увёл бы шторку под статус-бар ровно
+ * на прирост контента.
+ */
+export const getSheetRestPosition = (
+  gesturePosition: number,
+  position: number,
+) => {
+  "worklet";
+
+  return gesturePosition >= 0 ? Math.min(gesturePosition, position) : position;
+};

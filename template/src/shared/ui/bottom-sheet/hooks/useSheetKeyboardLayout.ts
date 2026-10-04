@@ -13,7 +13,10 @@ import {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import { computeSheetKeyboardLayout } from "../sheet-keyboard-layout";
+import {
+  computeSheetKeyboardLayout,
+  getSheetRestPosition,
+} from "../sheet-keyboard-layout";
 
 /** Сдвиг шторки жестом вниз, после которого клавиатура закрывается, px. */
 const DRAG_DISMISS_THRESHOLD = 8;
@@ -58,10 +61,10 @@ export const useSheetKeyboardLayout = (
 
       return computeSheetKeyboardLayout({
         keyboardHeight: keyboard,
-        restPosition:
-          gesturePosition.value >= 0
-            ? gesturePosition.value
-            : animatedPosition.value,
+        restPosition: getSheetRestPosition(
+          gesturePosition.value,
+          animatedPosition.value,
+        ),
         safeAreaBottom,
       });
     },

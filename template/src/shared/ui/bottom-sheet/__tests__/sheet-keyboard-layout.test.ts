@@ -1,5 +1,6 @@
 import {
   computeSheetKeyboardLayout,
+  getSheetRestPosition,
   isSheetClosing,
   isSheetOpening,
   SHEET_KEYBOARD_GAP,
@@ -101,5 +102,37 @@ describe("isSheetOpening", () => {
     expect(isSheetOpening(0, -1)).toBe(false);
     expect(isSheetOpening(0, 1)).toBe(false);
     expect(isSheetOpening(-1, -1)).toBe(false);
+  });
+});
+
+describe("getSheetRestPosition", () => {
+  it("без жеста — текущая позиция шторки", () => {
+    expect(getSheetRestPosition(-1, 120)).toBe(120);
+  });
+
+  it("при перетаскивании вниз — позиция на начало жеста: сдвиг не идёт навстречу пальцу", () => {
+    expect(getSheetRestPosition(120, 180)).toBe(120);
+  });
+
+  /**
+   * Жалоба: при смене фокуса и прыжке высоты клавиатуры шторка иногда
+   * залезает на safe area.
+   *
+   * Шторка упёрлась в верх: подъём ограничен её позицией. Контент вырос (под
+   * полем появилась ошибка), gorhom поднял шторку на эти 20 px, а предел
+   * подъёма остался по позиции, снятой раньше, — шторка ушла выше контейнера,
+   * под статус-бар, ровно на прирост контента.
+   */
+  it("никогда не больше текущей позиции: шторка не поднимается выше контейнера", () => {
+    expect(getSheetRestPosition(120, 100)).toBe(100);
+
+    const layout = computeSheetKeyboardLayout({
+      keyboardHeight: 380,
+      restPosition: getSheetRestPosition(120, 100),
+      safeAreaBottom: 34,
+    });
+
+    // Верх шторки в контейнере: позиция плюс сдвиг — не выше нуля.
+    expect(100 + layout.translateY).toBeGreaterThanOrEqual(0);
   });
 });

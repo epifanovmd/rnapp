@@ -365,6 +365,14 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   (gesture state gorhom ACTIVE/BEGAN), сдвиг вниз > 8px → `Keyboard.dismiss`. Сдвигаются все
   открытые шторки (и родитель вложенной). Откат: вернуть useSheetKeyboardTarget в TextField,
   keyboardBlurBehavior restore, убрать containerComponent/keyboardShift/useSheetKeyboardLayout.
+  Фикс 2026-10-04 (шторка залезала на safe area при смене фокуса/прыжке клавиатуры): по
+  скриншоту футер стоял верно (зазор 12), а верх шторки был выше safe area на ~20 pt — ровно
+  на строку ошибки валидации, выросшую под полем. Подъём упирался в позицию, снятую раньше
+  (`gesturePosition`), а gorhom уже поднял шторку на прирост контента. Теперь предел —
+  `getSheetRestPosition(gesture, position)` = min(позиция на начало жеста, текущая) — подъём
+  никогда не больше текущей позиции. Конкретный путь к устаревшей позиции на устройстве не
+  подтверждён логом (вывод по скриншоту и коду gorhom 5.2.14: target не ставится, позиция в
+  контексте — от контейнера с `top: topInset`).
 - Реестр: `KeyboardAwareContext` (тег TextInput → animated ref контейнера). `useKeyboardAwareField(inputRef)`
   в `TextField` — регистрация на mount (`findNodeHandle`; на focus — гонка
   с onStart), корень TextField стал `Animated.View collapsable={false}` с `onLayout`. Поле не из
