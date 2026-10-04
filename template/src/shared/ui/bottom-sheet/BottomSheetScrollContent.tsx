@@ -1,6 +1,7 @@
 import {
   BottomSheetScrollView,
   BottomSheetScrollViewMethods,
+  useBottomSheetInternal,
 } from "@gorhom/bottom-sheet";
 import { mergeRefs } from "@shared/lib/hooks/merge-refs";
 import {
@@ -8,9 +9,15 @@ import {
   useKeyboardAwareScroll,
 } from "@shared/lib/keyboard-aware";
 import React, { forwardRef } from "react";
-import Animated, { useAnimatedRef } from "react-native-reanimated";
+import Animated, {
+  useAnimatedRef,
+  useDerivedValue,
+} from "react-native-reanimated";
 
 import { TBottomSheetContentProps } from "./types";
+
+/** `SCROLLABLE_STATUS.LOCKED` gorhom — перечисление наружу не экспортируется. */
+const GORHOM_SCROLLABLE_LOCKED = 0;
 
 /**
  * Скролл контента шторки: шторку над клавиатурой двигает BottomSheetLayout
@@ -28,10 +35,18 @@ export const BottomSheetScrollContent = forwardRef<
     ref,
   ) => {
     const scrollRef = useAnimatedRef<Animated.ScrollView>();
+    const { animatedScrollableStatus } = useBottomSheetInternal();
+    // Пока шторка анимируется (рост контента меняет её высоту), gorhom держит
+    // скролл заблокированным и возвращает его на место — докрутка к полю
+    // ждёт конца анимации.
+    const scrollLocked = useDerivedValue(
+      () => animatedScrollableStatus.value === GORHOM_SCROLLABLE_LOCKED,
+    );
     const keyboardAware = useKeyboardAwareScroll(scrollRef, {
       spacer: false,
       restoreOnHide: restoreScrollOnKeyboardHide,
       containerShift,
+      scrollLocked,
     });
 
     return (

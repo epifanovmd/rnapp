@@ -13,6 +13,11 @@ export interface ISheetKeyboardLayoutInput {
   /** Нижний отступ раскладки в покое (home indicator). */
   safeAreaBottom: number;
   gap?: number;
+  /**
+   * На сколько низ шторки сейчас ниже контейнера — см. {@link getSheetOverhang}.
+   * Входит в отступ: футер стоит над клавиатурой, пока gorhom доводит шторку.
+   */
+  overhang?: number;
 }
 
 /**
@@ -27,6 +32,7 @@ export const computeSheetKeyboardLayout = ({
   restPosition,
   safeAreaBottom,
   gap: gapOption,
+  overhang = 0,
 }: ISheetKeyboardLayoutInput) => {
   "worklet";
   // Значение по умолчанию — в теле: плагин worklets не захватывает
@@ -38,7 +44,7 @@ export const computeSheetKeyboardLayout = ({
 
   return {
     translateY: 0 - lift,
-    paddingBottom: safeAreaBottom + rise - lift,
+    paddingBottom: Math.max(safeAreaBottom + rise - lift + overhang, 0),
   };
 };
 
@@ -76,3 +82,51 @@ export const getSheetRestPosition = (
 
   return gesturePosition >= 0 ? Math.min(gesturePosition, position) : position;
 };
+
+/** Геометрия шторки в gorhom для {@link getSheetOverhang}. */
+export interface ISheetOverhangInput {
+  keyboardHeight: number;
+  /** Позиция на начало жеста; −1 — жеста нет. */
+  gesturePosition: number;
+  position: number;
+  sheetHeight: number;
+  containerHeight: number;
+}
+
+/**
+ * На сколько низ шторки сейчас ниже низа контейнера, px.
+ *
+ * gorhom меняет высоту шторки сразу, а к новой точке ведёт её анимацией: всё
+ * это время низ шторки не совпадает с низом контейнера. Без поправки футер над
+ * клавиатурой ехал бы вместе с этой анимацией. Учитывается только при открытой
+ * клавиатуре и без жеста: в остальное время это обычное движение шторки.
+ */
+export const getSheetOverhang = ({
+  keyboardHeight,
+  gesturePosition,
+  position,
+  sheetHeight,
+  containerHeight,
+}: ISheetOverhangInput) => {
+  "worklet";
+
+  if (keyboardHeight <= 0 || gesturePosition >= 0) return 0;
+
+  return position + sheetHeight - containerHeight;
+};
+
+/**
+ * Отложить ли передачу высоты контента в gorhom.
+ *
+ * Новая высота запускает у gorhom анимацию к новой точке, а на её время он
+ * блокирует скролл контента — докрутка к полю ждёт. Пока клавиатура открыта,
+ * шторку раскладываем мы, и высота уходит gorhom, когда клавиатура закроется.
+ * Первая высота — сразу: без неё шторка не откроется.
+ */
+export const shouldDeferContentHeight = ({
+  keyboardOpen,
+  hasCommitted,
+}: {
+  keyboardOpen: boolean;
+  hasCommitted: boolean;
+}) => keyboardOpen && hasCommitted;

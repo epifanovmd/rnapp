@@ -15,6 +15,7 @@ import { scheduleOnRN } from "react-native-worklets";
 
 import {
   computeSheetKeyboardLayout,
+  getSheetOverhang,
   getSheetRestPosition,
 } from "../sheet-keyboard-layout";
 
@@ -48,6 +49,8 @@ export const useSheetKeyboardLayout = (
     animatedPosition,
     animatedContentGestureState,
     animatedHandleGestureState,
+    animatedSheetHeight,
+    animatedLayoutState,
   } = useBottomSheetInternal();
   const { height: keyboardHeight } = useKeyboardHeight();
 
@@ -84,7 +87,30 @@ export const useSheetKeyboardLayout = (
     [resolve, safeAreaBottom],
   );
 
-  const layout = useDerivedValue(() => resolve(keyboardHeight.value));
+  // Входы читаются прямо здесь, а не через `resolve`: зависимости derived
+  // value — shared values из его собственного замыкания. Позиция шторки,
+  // прочитанная во вложенном worklet, в них не попадает, и подъём не
+  // пересчитывался, когда gorhom поднимал шторку (контент вырос) при уже
+  // открытой клавиатуре, — шторка уходила под статус-бар.
+  const layout = useDerivedValue(() => {
+    const keyboard = keyboardHeight.value;
+
+    return computeSheetKeyboardLayout({
+      keyboardHeight: keyboard,
+      restPosition: getSheetRestPosition(
+        gesturePosition.value,
+        animatedPosition.value,
+      ),
+      safeAreaBottom,
+      overhang: getSheetOverhang({
+        keyboardHeight: keyboard,
+        gesturePosition: gesturePosition.value,
+        position: animatedPosition.value,
+        sheetHeight: animatedSheetHeight.value,
+        containerHeight: animatedLayoutState.value.containerHeight,
+      }),
+    });
+  });
 
   useAnimatedReaction(
     () => layout.value.translateY,

@@ -1,11 +1,17 @@
 import { useBottomSheetInternal } from "@gorhom/bottom-sheet";
+import { useKeyboardHeight } from "@shared/lib/keyboard";
 import React, { ReactNode, useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent } from "react-native";
-import Animated, { SharedValue } from "react-native-reanimated";
+import Animated, {
+  SharedValue,
+  useAnimatedReaction,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { scheduleOnRN } from "react-native-worklets";
 
 import { ResolvedSingleSlot } from "../../lib/slots";
 import { useSheetKeyboardLayout } from "./hooks/useSheetKeyboardLayout";
+import { shouldDeferContentHeight } from "./sheet-keyboard-layout";
 import { BottomSheetStyles } from "./styles";
 import {
   TBottomSheetContentProps,
@@ -35,7 +41,9 @@ export interface BottomSheetLayoutProps {
  * Клавиатура — без gorhom (`useSheetKeyboardLayout`): шторка сдвигается и
  * ужимает нижним отступом область формы; в замер высоты для dynamic sizing
  * идёт отступ закрытого состояния. Скроллу контента уходит `containerShift`
- * — по нему он считает свою видимую область на конец анимации.
+ * — по нему он считает свою видимую область на конец анимации. Пока
+ * клавиатура открыта, новая высота контента ждёт её закрытия: иначе gorhom
+ * повёл бы шторку анимацией и на это время заблокировал скролл к полю.
  */
 export const BottomSheetLayout = ({
   children,
@@ -51,6 +59,11 @@ export const BottomSheetLayout = ({
   const hasFooter = footer.present;
 
   const sizesRef = useRef({ header: 0, footer: 0, content: -1 });
+  const { height: keyboardHeight } = useKeyboardHeight();
+  /** Полная высота, отданная gorhom последней; -1 — ещё не отдавалась. */
+  const committedRef = useRef(-1);
+  /** Высота изменилась при открытой клавиатуре и ждёт её закрытия. */
+  const deferredRef = useRef(false);
   const { paddingStyle, containerShift } = useSheetKeyboardLayout(
     paddingBottom,
     keyboardShift,
@@ -69,11 +82,24 @@ export const BottomSheetLayout = ({
     }
 
     const gap = BottomSheetStyles.content.gap;
-    const fullHeight =
+    const measuredHeight =
       contentH +
       paddingBottom +
       (hasHeader ? headerH + gap : 0) +
       (hasFooter ? footerH + gap : 0);
+    const deferred = shouldDeferContentHeight({
+      keyboardOpen: keyboardHeight.value > 0,
+      hasCommitted: committedRef.current >= 0,
+    });
+
+    deferredRef.current = deferred;
+
+    // Отложенная высота — прежняя, но записывается всё равно: штатная запись
+    // BottomSheetScrollView (только контент) иначе осталась бы последней, и
+    // шторка сжалась бы.
+    const fullHeight = deferred ? committedRef.current : measuredHeight;
+
+    committedRef.current = fullHeight;
 
     animatedLayoutState.modify(state => {
       "worklet";
@@ -87,7 +113,20 @@ export const BottomSheetLayout = ({
     hasHeader,
     hasFooter,
     animatedLayoutState,
+    keyboardHeight,
   ]);
+
+  const flushDeferred = useCallback(() => {
+    if (deferredRef.current) commit();
+  }, [commit]);
+
+  // Клавиатура закрылась — отложенная высота уходит gorhom.
+  useAnimatedReaction(
+    () => keyboardHeight.value > 0,
+    (open, previous) => {
+      if (previous && !open) scheduleOnRN(flushDeferred);
+    },
+  );
 
   // Изменение insets/наличия слотов меняет формулу — перезаписать высоту.
   useEffect(() => {

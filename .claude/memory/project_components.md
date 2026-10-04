@@ -373,6 +373,22 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   никогда не больше текущей позиции. Конкретный путь к устаревшей позиции на устройстве не
   подтверждён логом (вывод по скриншоту и коду gorhom 5.2.14: target не ставится, позиция в
   контексте — от контейнера с `top: topInset`).
+  Доотладка по логу с устройства (2026-10-05), три причины:
+  1. `useDerivedValue(() => resolve(kb))` — Reanimated берёт зависимости derived только из его
+     собственного замыкания; `animatedPosition`, прочитанный во вложенном worklet `resolve`, не
+     отслеживался → подъём не пересчитывался, когда gorhom поднимал шторку при открытой
+     клавиатуре (pos 260→240, lift 260) → шторка под статус-бар. Теперь все входы читаются прямо
+     в derived. GOTCHA: shared values во вложенных worklet-функциях — не зависимости.
+  2. Рост контента (ошибка под полем) при открытой клавиатуре → gorhom анимирует к новой точке
+     (SNAP_POINT_CHANGE) и на это время LOCKED-скролл (возвращает y на 0) → футер «доезжает»,
+     скролл к полю с паузой. Теперь `BottomSheetLayout` при открытой клавиатуре пишет в
+     `contentHeight` прежнюю полную высоту (`shouldDeferContentHeight`; писать надо всё равно —
+     `BottomSheetScrollView` gorhom сам пишет «только контент» в том же такте), новая уходит по
+     закрытию клавиатуры. Первая высота — сразу.
+  3. Если анимация gorhom всё же идёт при клавиатуре (сценарий «Создать»), в `paddingBottom`
+     входит свес `getSheetOverhang` = pos + sheetH − containerH (только kb>0 и без жеста).
+     `useKeyboardAwareScroll` получил `scrollLocked` (шторка — `animatedScrollableStatus === 0`,
+     enum gorhom не экспортирован): в блокировке докрутка стоит, после снятия — заново.
 - Реестр: `KeyboardAwareContext` (тег TextInput → animated ref контейнера). `useKeyboardAwareField(inputRef)`
   в `TextField` — регистрация на mount (`findNodeHandle`; на focus — гонка
   с onStart), корень TextField стал `Animated.View collapsable={false}` с `onLayout`. Поле не из

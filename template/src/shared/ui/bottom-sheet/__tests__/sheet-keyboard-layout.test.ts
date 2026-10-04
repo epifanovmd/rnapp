@@ -1,9 +1,11 @@
 import {
   computeSheetKeyboardLayout,
+  getSheetOverhang,
   getSheetRestPosition,
   isSheetClosing,
   isSheetOpening,
   SHEET_KEYBOARD_GAP,
+  shouldDeferContentHeight,
 } from "../sheet-keyboard-layout";
 
 const GAP = SHEET_KEYBOARD_GAP;
@@ -134,5 +136,89 @@ describe("getSheetRestPosition", () => {
 
     // Верх шторки в контейнере: позиция плюс сдвиг — не выше нуля.
     expect(100 + layout.translateY).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("getSheetOverhang", () => {
+  const base = {
+    keyboardHeight: 335,
+    gesturePosition: -1,
+    sheetHeight: 553,
+    containerHeight: 793,
+  };
+
+  it("шторка стоит на точке — свеса нет", () => {
+    expect(getSheetOverhang({ ...base, position: 240 })).toBe(0);
+  });
+
+  /**
+   * Жалоба: после смены фокуса под полем появилась ошибка, и футер медленно
+   * доезжает до места над клавиатурой.
+   *
+   * gorhom сразу растит шторку, а к новой точке ведёт её анимацией: всё это
+   * время низ шторки ниже контейнера, и футер едет вместе с анимацией.
+   */
+  it("gorhom ещё ведёт выросшую шторку — низ ниже контейнера на свес", () => {
+    expect(getSheetOverhang({ ...base, position: 255 })).toBe(15);
+  });
+
+  it("клавиатура закрыта или идёт жест — свес не учитывается", () => {
+    expect(
+      getSheetOverhang({ ...base, keyboardHeight: 0, position: 255 }),
+    ).toBe(0);
+    expect(
+      getSheetOverhang({ ...base, gesturePosition: 240, position: 255 }),
+    ).toBe(0);
+  });
+});
+
+describe("computeSheetKeyboardLayout — свес", () => {
+  it("футер стоит над клавиатурой, пока gorhom доводит выросшую шторку", () => {
+    const atRest = computeSheetKeyboardLayout({
+      keyboardHeight: 335,
+      restPosition: 240,
+      safeAreaBottom: 34,
+    });
+    const moving = computeSheetKeyboardLayout({
+      keyboardHeight: 335,
+      restPosition: 255,
+      safeAreaBottom: 34,
+      overhang: 15,
+    });
+
+    // Низ контента на экране: верх шторки (позиция − подъём) + высота −
+    // отступ. Шторка та же — выросшая до 553.
+    const footerBottom = (position: number, layout: typeof atRest) =>
+      position + layout.translateY + 553 - layout.paddingBottom;
+
+    expect(footerBottom(255, moving)).toBe(footerBottom(240, atRest));
+  });
+});
+
+describe("shouldDeferContentHeight", () => {
+  /**
+   * Жалоба: после смены фокуса под полем появилась ошибка, футер медленно
+   * доезжает, а скролл к следующему полю приходит после паузы.
+   *
+   * Новая высота контента запускала у gorhom анимацию к новой точке, а на её
+   * время он блокирует скролл. Пока клавиатура открыта, шторку раскладываем
+   * мы — высоту отдаём gorhom, когда клавиатура закроется.
+   */
+  it("клавиатура открыта — высота ждёт её закрытия", () => {
+    expect(
+      shouldDeferContentHeight({ keyboardOpen: true, hasCommitted: true }),
+    ).toBe(true);
+  });
+
+  it("первая высота уходит сразу — иначе шторка не откроется", () => {
+    expect(
+      shouldDeferContentHeight({ keyboardOpen: true, hasCommitted: false }),
+    ).toBe(false);
+  });
+
+  it("клавиатура закрыта — сразу", () => {
+    expect(
+      shouldDeferContentHeight({ keyboardOpen: false, hasCommitted: true }),
+    ).toBe(false);
   });
 });

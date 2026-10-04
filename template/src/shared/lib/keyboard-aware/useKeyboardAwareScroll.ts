@@ -70,6 +70,12 @@ export interface IKeyboardAwareScrollOptions {
    * замера в покое (`predictShiftedViewport`).
    */
   containerShift?: (keyboardHeight: number) => IContainerKeyboardShift;
+  /**
+   * Скролл сейчас заблокирован снаружи (шторка gorhom во время своей
+   * анимации возвращает его на место): докрутка не запускается, идущая —
+   * останавливается, а после снятия блокировки поле докручивается заново.
+   */
+  scrollLocked?: SharedValue<boolean>;
 }
 
 export interface IKeyboardAwareScroll {
@@ -154,6 +160,7 @@ export const useKeyboardAwareScroll = (
     spacer = true,
     restoreOnHide = true,
     containerShift,
+    scrollLocked,
   }: IKeyboardAwareScrollOptions = {},
 ): IKeyboardAwareScroll => {
   const { height: screenHeight } = useWindowDimensions();
@@ -452,6 +459,7 @@ export const useKeyboardAwareScroll = (
     "worklet";
 
     if (!enabled || keyboardHeight.value <= 0 || !hasField.value) return;
+    if (scrollLocked?.value) return;
 
     // Рост поля во время анимации клавиатуры — учесть в её конце.
     if (isAnimating.value) {
@@ -718,6 +726,18 @@ export const useKeyboardAwareScroll = (
       topInset,
       containerShift,
     ],
+  );
+
+  // Блокировка снаружи: докрутка в это время уходила бы впустую — скролл
+  // возвращают на место каждый кадр. После снятия — докрутить к полю заново.
+  useAnimatedReaction(
+    () => scrollLocked?.value ?? false,
+    (locked, previous) => {
+      if (previous === null || locked === previous) return;
+
+      if (locked) stopDrive();
+      else ensureVisible(true, true);
+    },
   );
 
   useAnimatedReaction(
