@@ -5,8 +5,8 @@ import {
   BENCHMARK_DRAW_DISTANCE,
   BENCHMARK_JUMP_HOLD_MS,
   BENCHMARK_SETTLE_MS,
-  BLANK_COLOR,
   formatBenchmarkResult,
+  formatDrawDistance,
   IFeedBenchmarkResult,
   TFeedBenchmarkScenario,
 } from "./feed-benchmark";
@@ -34,8 +34,9 @@ export const useFeedBenchmark = (
   session?: IFeedBenchmarkSession,
 ) => {
   const tokenRef = useRef<IAutoScrollToken | null>(null);
-  const [showBlank, setShowBlank] = useState(false);
-  const [alignDrawDistance, setAlignDrawDistance] = useState(true);
+  const [drawDistance, setDrawDistance] = useState<number | undefined>(
+    BENCHMARK_DRAW_DISTANCE,
+  );
   const [running, setRunning] = useState<string | null>(null);
   const [result, setResult] = useState<IFeedBenchmarkResult | null>(null);
 
@@ -63,7 +64,7 @@ export const useFeedBenchmark = (
       const startedAt = Date.now();
 
       session?.start(
-        `${list} · ${scenario.label} · dd=${alignDrawDistance ? BENCHMARK_DRAW_DISTANCE : "default"}`,
+        `${list} · ${scenario.label} · dd=${formatDrawDistance(drawDistance)}`,
       );
       monitor.start();
 
@@ -88,7 +89,7 @@ export const useFeedBenchmark = (
       const next: IFeedBenchmarkResult = {
         list,
         scenario: scenario.label,
-        drawDistance: alignDrawDistance ? BENCHMARK_DRAW_DISTANCE : "default",
+        drawDistance,
         durationMs: Date.now() - startedAt,
         fps,
       };
@@ -97,17 +98,14 @@ export const useFeedBenchmark = (
       setResult(next);
       setRunning(null);
     },
-    [alignDrawDistance, getScrollView, list, running, session],
+    [drawDistance, getScrollView, list, running, session],
   );
 
   return {
-    drawDistance: alignDrawDistance ? BENCHMARK_DRAW_DISTANCE : undefined,
-    listBackground: showBlank ? BLANK_COLOR : undefined,
+    drawDistance,
     panel: {
-      showBlank,
-      onToggleBlank: () => setShowBlank(value => !value),
-      alignDrawDistance,
-      onToggleDrawDistance: () => setAlignDrawDistance(value => !value),
+      drawDistance,
+      onDrawDistanceChange: setDrawDistance,
       running,
       result,
       onRun: run,

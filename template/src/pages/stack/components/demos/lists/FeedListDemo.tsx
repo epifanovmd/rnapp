@@ -10,6 +10,7 @@ import { StyleSheet } from "react-native";
 import Animated, { useAnimatedRef } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BLANK_COLOR } from "./feed-benchmark";
 import { ESTIMATED_POST_HEIGHT, getFeed, IFeedPost } from "./feed-data";
 import { FeedBenchmarkPanel } from "./FeedBenchmarkPanel";
 import { FeedListHeader } from "./FeedListHeader";
@@ -45,7 +46,7 @@ export const FeedListDemo: FC = memo(() => {
     () => scrollViewRef.current,
     [scrollViewRef],
   );
-  const { drawDistance, listBackground, panel } = useFeedBenchmark(
+  const { drawDistance, panel } = useFeedBenchmark(
     "AnchorList",
     getScrollView,
     anchorPerfSession,
@@ -58,7 +59,7 @@ export const FeedListDemo: FC = memo(() => {
         refScrollView={
           scrollViewRef as unknown as IAnchorListProps<IFeedPost>["refScrollView"]
         }
-        style={[styles.list, { backgroundColor: listBackground }]}
+        style={styles.list}
         data={feed}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
@@ -73,5 +74,5 @@ export const FeedListDemo: FC = memo(() => {
 });
 
 const styles = StyleSheet.create({
-  list: { flex: 1 },
+  list: { flex: 1, backgroundColor: BLANK_COLOR },
 });

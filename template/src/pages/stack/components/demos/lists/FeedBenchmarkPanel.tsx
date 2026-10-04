@@ -2,44 +2,41 @@ import { Chip, Col, Row, Text } from "@shared/ui";
 import React, { FC, memo } from "react";
 
 import {
-  BENCHMARK_DRAW_DISTANCE,
+  BENCHMARK_DRAW_DISTANCES,
   FEED_BENCHMARK_SCENARIOS,
   formatBenchmarkResult,
+  formatDrawDistance,
   IFeedBenchmarkResult,
   TFeedBenchmarkScenario,
 } from "./feed-benchmark";
 
 interface IFeedBenchmarkPanelProps {
-  showBlank: boolean;
-  onToggleBlank: () => void;
-  alignDrawDistance: boolean;
-  onToggleDrawDistance: () => void;
+  /** Запас отрисовки; `undefined` — значение списка по умолчанию. */
+  drawDistance: number | undefined;
+  onDrawDistanceChange: (value: number | undefined) => void;
   /** id идущего сценария. */
   running: string | null;
   result: IFeedBenchmarkResult | null;
   onRun: (scenario: TFeedBenchmarkScenario) => void;
 }
 
-/** Панель бенчмарка ленты: режимы отображения, сценарии прогона, последний результат. */
+/** Панель бенчмарка ленты: запас отрисовки, сценарии прогона, последний результат. */
 export const FeedBenchmarkPanel: FC<IFeedBenchmarkPanelProps> = memo(
-  ({
-    showBlank,
-    onToggleBlank,
-    alignDrawDistance,
-    onToggleDrawDistance,
-    running,
-    result,
-    onRun,
-  }) => (
+  ({ drawDistance, onDrawDistanceChange, running, result, onRun }) => (
     <Col ph={16} pv={8} gap={8}>
-      <Row wrap gap={8}>
-        <Chip text={"Пустоты"} isActive={showBlank} onPress={onToggleBlank} />
-        <Chip
-          text={`drawDistance ${BENCHMARK_DRAW_DISTANCE}`}
-          isActive={alignDrawDistance}
-          onPress={onToggleDrawDistance}
-          disabled={!!running}
-        />
+      <Row wrap alignItems={"center"} gap={8}>
+        <Text textStyle={"Caption_M3"} color={"textSecondary"}>
+          {"drawDistance"}
+        </Text>
+        {BENCHMARK_DRAW_DISTANCES.map(value => (
+          <Chip
+            key={formatDrawDistance(value)}
+            text={formatDrawDistance(value)}
+            isActive={drawDistance === value}
+            onPress={() => onDrawDistanceChange(value)}
+            disabled={!!running}
+          />
+        ))}
       </Row>
       <Row wrap gap={8}>
         {FEED_BENCHMARK_SCENARIOS.map(scenario => (

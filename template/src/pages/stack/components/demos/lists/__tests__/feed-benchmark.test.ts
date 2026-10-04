@@ -1,10 +1,20 @@
 import {
+  BENCHMARK_DRAW_DISTANCES,
   FEED_BENCHMARK_SCENARIOS,
   formatBenchmarkResult,
+  formatDrawDistance,
   MAX_RUN_DISTANCE,
 } from "../feed-benchmark";
 
 describe("feed-benchmark", () => {
+  it("варианты запаса отрисовки различимы по подписи", () => {
+    const labels = BENCHMARK_DRAW_DISTANCES.map(formatDrawDistance);
+
+    expect(new Set(labels).size).toBe(labels.length);
+    expect(formatDrawDistance(undefined)).toBe("default");
+    expect(formatDrawDistance(0)).toBe("0");
+  });
+
   it("сценарии с уникальными id и положительной дистанцией", () => {
     const ids = FEED_BENCHMARK_SCENARIOS.map(scenario => scenario.id);
 

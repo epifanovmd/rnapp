@@ -1,9 +1,25 @@
 import type { IFpsResult } from "./fps-monitor";
 
-/** Фиксированный запас отрисовки для прогонов: без него — значение списка по умолчанию. */
+/** Запас отрисовки, с которым открывается стенд. */
 export const BENCHMARK_DRAW_DISTANCE = 250;
 
-/** Фон списка в режиме «Пустоты»: всё, что им окрашено на кадре, — незаполненная область. */
+/** Варианты запаса отрисовки, px; `undefined` — значение списка по умолчанию. */
+export const BENCHMARK_DRAW_DISTANCES: (number | undefined)[] = [
+  undefined,
+  0,
+  100,
+  250,
+  400,
+  600,
+  800,
+  1200,
+];
+
+/** Подпись запаса отрисовки: число или «default». */
+export const formatDrawDistance = (value: number | undefined) =>
+  value === undefined ? "default" : String(value);
+
+/** Фон списка: всё, что им окрашено на кадре, — незаполненная область. */
 export const BLANK_COLOR = "#FF00FF";
 
 /** Пауза после возврата к началу: список досчитывает раскладку до старта замера. */
@@ -44,7 +60,7 @@ const JUMP_DISTANCES = [10_000, 30_000, 100_000];
 
 const formatThousands = (value: number) => `${value / 1000}k`;
 
-export const FEED_BENCHMARK_SCENARIOS: readonly TFeedBenchmarkScenario[] = [
+export const FEED_BENCHMARK_SCENARIOS: TFeedBenchmarkScenario[] = [
   ...CONSTANT_SPEEDS.map((speed): TFeedBenchmarkScenario => ({
     id: `speed-${speed}`,
     label: `${formatThousands(speed)} px/s`,
@@ -63,7 +79,7 @@ export const FEED_BENCHMARK_SCENARIOS: readonly TFeedBenchmarkScenario[] = [
 export interface IFeedBenchmarkResult {
   list: string;
   scenario: string;
-  drawDistance: number | "default";
+  drawDistance: number | undefined;
   durationMs: number;
   fps: IFpsResult;
 }
@@ -76,5 +92,5 @@ export const formatBenchmarkResult = ({
   durationMs,
   fps,
 }: IFeedBenchmarkResult) =>
-  `[feed-bench] ${list} · ${scenario} · dd=${drawDistance} · ${durationMs} ms · ` +
+  `[feed-bench] ${list} · ${scenario} · dd=${formatDrawDistance(drawDistance)} · ${durationMs} ms · ` +
   `JS FPS avg ${fps.averageFPS.toFixed(1)} min ${fps.minFPS.toFixed(1)}`;

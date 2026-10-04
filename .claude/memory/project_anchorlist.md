@@ -20,8 +20,13 @@ type: project
    (2026-10-01): `useAnchorListPullToRefresh` транслирует обёртку ScrollView внутри
    `renderScrollView`, а `ListStickyOverlay` живёт снаружи. У верхней кромки копий
    обычно нет (offset 0), но при `sticky` с `edgeOffset` > 0 копия останется на месте.
-3. **Прочие пропы ScrollView не пробрасываются** — список прокидывает только свой
-   набор (индикатор прокрутки — исправлено, см. ниже).
+3. ~~Прочие пропы ScrollView не пробрасываются~~ — исправлено 2026-10-04: пропы `ScrollView`
+   задаются прямо на списке (`IAnchorListProps` = `IAnchorListOwnProps` + `AnchorListScrollViewProps`);
+   управляемые списком (`AnchorListManagedScrollViewProp`: обработчики скролла, снап, инсеты,
+   `contentOffset`, `stickyHeader*`, `refreshControl`, `removeClippedSubviews`, зум, одноимённые
+   пропы списка) отсекаются и типом, и на рантайме (`components/scroll-view-props.ts`,
+   исчерпывающие `Record` по ключам). `keyboardDismissMode` переопределяем. Docs: props.md
+   «Пропы ScrollView», migration.md.
 
 4. **`gap` не действует вокруг шапки и подвала** (2026-10-01): зазор только между
    строками данных; между `ListHeaderComponent`/`ListFooterComponent` и строками —
@@ -145,6 +150,20 @@ drawDistance + 1.5·scrollLength (у LegendList порог — экран, но 
 «держит полный запас на скачке, который запас вперёд покрывает». Ждём Release-лог.
 План: 1) стенд честный (`recycleItems`) + отчёт `anchorListPerf` — сделано; 2) применять замеры в layout effect `ListContainers` того же коммита; 3) не откладывать
 проход на быстром скролле; 4) visible-first на больших скачках; 5) подбор запаса вперёд.
+
+## Снап (2026-10-04, anchor-list, коммит 14631ed)
+
+Был: `snapToOffsets` считался в рендере `AnchorList` из `snapToIndices`, а замеры компонент не
+перерисовывают → нативный слой держал оценочные точки. Стало: проп `snap: IAnchorListSnap<TItem>`
+(`to: "item" | number[] | (item, index) => boolean`, `align` start/center/end, `offset`,
+`oneAtATime` → `disableIntervalMomentum`, `snapToStart/End`) + `decelerationRate`; `snapToIndices` —
+сокращение. Расчёт: `core/scroll/snap-offsets.ts` (`computeSnapOffsets` через `getItemScrollOffset`
+— та же формула, что `scrollToIndex`; зажим в maxScroll, слияние повторов; `haveSameSnapOffsets`).
+Рантайм: `publishSnapOffsets()` — сигнал `snapOffsets`, только при `atRest` (конец прохода) и в
+`onGestureBegin`; пересчёт по входам (layoutRevision, scrollLength, origin, maxScroll, data, to, align,
+offset). Компонент подписан через `useSyncExternalStore`. Тесты: snap-offsets.test.ts, describe
+«ListRuntime — снап». Docs: props, scrolling (#снап), state, architecture. Демо в rnapp было
+(`SnapListDemo`) и удалено по просьбе пользователя (2026-10-04).
 
 ## Исправлено
 
