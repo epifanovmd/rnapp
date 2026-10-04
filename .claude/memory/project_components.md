@@ -297,7 +297,8 @@ Form: `SelectFormField<TForm>` (clearable по умолчанию true), `MultiS
 
 ## Плейграунд компонентов
 
-- `pages/stack/components`: экран `Components` — ссылки `NavLink` на демо-экраны; список — `component-demos.ts`.
+- `pages/stack/components`: экран `Components` — ссылки `NavLink` на демо-экраны; список — `component-demos.ts` Формат: группы `{ title, demos: [{ route, title }] }`; группа из одного экрана — одиночная ссылка, из нескольких — заголовок + варианты; группы разложены в две колонки (деление пополам по числу строк, порядок сохраняется).
+- Лента 10 000 постов (`demos/lists`, маршрут `ComponentsLists`, `FeedListDemo`): AnchorList с `recycleItems`, данные `feed-data.getFeed`, карточка `FeedPostCard`. Бенчмарк: `useFeedBenchmark` + `FeedBenchmarkPanel` + чистые `feed-benchmark.ts` (сценарии 10k–200k px/s по 8 с, дистанция ≤ `MAX_RUN_DISTANCE` 1,2 млн px; прыжки animated), `auto-scroll.ts` (постоянная скорость по rAF, смещение от времени) и `fps-monitor.ts` (JS FPS: среднее и худшее секундное окно). Скролл — **нативный ScrollView** через `scroll-driver.ts` (`refScrollView` + `useAnimatedRef`), не `scrollToOffset`: тот помечает переезд программным и не растит запас по скорости. На время прогона — `anchorListPerf`, в лог только итог (`setSink`), плюс строка `[feed-bench] …`. Режим «Пустоты» — фон списка #FF00FF; поэтому `FeedPostCard`/`FeedListHeader` — непрозрачные ячейки с отступами внутри, у списка нет gap и горизонтальных паддингов. Тумблер `drawDistance` 250 против дефолта 400. FlashList и LegendList удалены вместе с пакетами (2026-10-04) после сравнения. Отдельно `ComponentsListsRefresh` — `PullToRefreshDemo`, 50 строк AnchorList с pull-to-refresh. Вкладка «Компоненты»: группы `{ title, demos }`, две колонки.
 - Каждое демо — отдельный экран корневого стека `Components<Name>` (`App.screens.ts`, linking `components/<name>`), файлы `demos/*Demo.tsx`, обёртка `DemoScreen` (без общей шапки/телеметрии).
 - `ComponentsTabs` (`demos/tabs`) — демо HiddenBar + закреплённые Tabs над top-tabs: общая телеметрия (`useScrollTelemetry` + `useNavbarScrollSync`), во вкладках `useFocusedScroll` и `NavbarInset`, `lazy`, на смене вкладки `navbar.show()`.
 - `Button` appearance: filled | outline | ghost | link (link — только текст, без отступов).
@@ -402,8 +403,9 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
 - Закрытие любой шторки закрывает клавиатуру (`isSheetClosing`).
 
 ## Переход содержимого в шапку (scroll reveal)
+
 - Контроллер `useScrollReveal({start=0.3, end=1, distance?})` → `{progress (SharedValue 0…1),
-  range, scrollToTop, bind}` — создаётся где угодно (страница с навбаром, экран с опциями
+range, scrollToTop, bind}` — создаётся где угодно (страница с навбаром, экран с опциями
   навигатора). Якорь — `ScrollRevealAnchor reveal={…}` (`shared/ui/reveal`, по умолчанию сам гаснет,
   `fadeOut`/`preset`) или хук `useScrollRevealAnchor(reveal)` → `{ref, onLayout}` — внутри контента
   `ScreenScroll`: привязывает контроллер к скроллу (`bind`), меряет якорь `measureLayout` от
@@ -424,12 +426,13 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   (карточка профиля по центру — якорь).
 
 ## Поиск
+
 - `shared/lib/search`: чистые `normalizeSearchText` (регистр, ё→е, длина сохраняется),
   `searchTokens`, `matchesQuery` (все слова в любом порядке), `findMatchRanges`/`splitByMatches`
   (подсветка), `filterByQuery(items, query, fields)`, `pushSearchHistory`, `planSearchBarOpen`/`shouldShowBarOnClose` — тесты. `useSearch({debounceMs=250, duration=280, closeOnBack=true, onActiveChange})` →
   `{query, debouncedQuery ("" сразу при очистке), active, activeValue (SV), progress (SV 0…1),
-  inputRef, setQuery, open (идемпотентно, без фокуса), close (свернуть, очистить, убрать
-  клавиатуру), clear}`; Android «назад» закрывает.
+inputRef, setQuery, open (идемпотентно, без фокуса), close (свернуть, очистить, убрать
+клавиатуру), clear}`; Android «назад» закрывает.
 - `SearchBar` (compound, `shared/ui/search`): поле с лупой/«очистить» + «Отмена»
   (`cancel`: active — выезжает по progress, ширина меряется absolute-содержимым | always | never),
   `autoFocus` — фокус через `focusDelay` (60 мс) после открытия извне (в нулевую ширину iOS фокус
@@ -439,7 +442,7 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   `children`; раскладка — `searchFieldLayout`). `Navbar.Overlay` — слой поверх строки ниже safe
   area (`BalancedRow overlay`).
 - Вариант «под шапкой»: `HiddenBar.StickyContent` со `SearchBar`; `useSearchBarSync(search, navbar,
-  {hideBar=true, restore: previous|show})` → `{contentShift (SV), shiftRange (ход шапки)}`:
+{hideBar=true, restore: previous|show})` → `{contentShift (SV), shiftRange (ход шапки)}`:
   открытие прячет видимую шапку (план `planSearchBarOpen`), скрытую не трогает, закрытие
   возвращает (`shouldShowBarOnClose`); сдвиг — своя `withTiming` на `IBar.duration`.
   Контент — в `SearchShiftView sync` (translateY в одном кадре с шапкой; продлён вниз
@@ -456,6 +459,7 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   стабильный renderItem по debouncedQuery, ленивый оверлей).
 
 ## Внешний вид навбаров
+
 - Все панели (`Navbar`, `HiddenBar`, `ImageBar`) — `IBarAppearanceProps`: `background` (токен темы
   или цвет; `resolveBarBackground`, по умолчанию фон экрана) и `bottomRadius` (`bottomRadiusStyle`
   — только нижние углы; у `ImageBar` по умолчанию 24). `HiddenBar` красит и safe-area-подложку, и
@@ -463,6 +467,7 @@ topInset (TAnimatedNumber, навбар), spacer=true, restoreOnHide=true, conta
   прозрачный по умолчанию (явные `transparent`/`background` — приоритетнее).
 
 ## Таб-бар (кит + app-shell)
+
 - `shared/ui/tab-bar`: `TabBar` не знает про навигатор (`items {key,title,renderIcon,badge}`,
   `activeIndex`, `onPress/onLongPress`, `bottomInset`, `style` — в т.ч. анимированный). Вид
   (`ITabBarAppearance`): `variant` floating|docked, `labels` always|active|never (`active` — вкладка

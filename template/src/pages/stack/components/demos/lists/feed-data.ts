@@ -11,6 +11,9 @@ export interface IFeedPost {
 
 export const FEED_SIZE = 10_000;
 
+/** Средняя высота ячейки: карточка (шапка, 1–5 строк текста, метки, счётчики) и отступ 12. */
+export const ESTIMATED_POST_HEIGHT = 182;
+
 const AUTHORS = [
   "Анна Смирнова",
   "Илья Кузнецов",

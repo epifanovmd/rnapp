@@ -3,12 +3,7 @@ import {
   IAnchorListRenderItemProps,
 } from "@epifanovmd/anchor-list";
 import { useAnchorListPullToRefresh } from "@shared/lib/pull-to-refresh";
-import {
-  Col,
-  ListItem,
-  RefreshIndicator,
-  Text,
-} from "@shared/ui";
+import { Col, ListItem, RefreshIndicator, Text } from "@shared/ui";
 import React, { FC, memo, useCallback, useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -37,8 +32,8 @@ const renderItem = ({ item }: IAnchorListRenderItemProps<IDemoRow>) => (
   <ListItem title={item.title} />
 );
 
-/** Простой список AnchorList с pull-to-refresh. */
-export const SimpleListDemo: FC = memo(() => {
+/** Экран: простой список AnchorList с pull-to-refresh. */
+export const PullToRefreshDemo: FC = memo(() => {
   const { bottom } = useSafeAreaInsets();
   const [generation, setGeneration] = useState(0);
   const rows = useMemo(() => createRows(generation), [generation]);
