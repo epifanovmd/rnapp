@@ -22,14 +22,37 @@ export const planSearchBarOpen = (
 };
 
 /**
+ * Сдвиг контента во время поиска (worklet): шапка не должна быть скрыта
+ * больше, чем прокручен контент, — иначе над ним пустота (фильтр укоротил
+ * список, скролл ушёл к началу, а скролл-синхронизация шапки в поиске на
+ * паузе). Прокрутка ограничена `maxOffsetY`: событие скролла после
+ * укорочения может прийти позже. Сдвиг только растёт.
+ */
+export const resolveSearchGapShift = (
+  shift: number,
+  hidden: number,
+  scrollY: number,
+  maxOffsetY: number,
+): number => {
+  "worklet";
+
+  const scrolled = Math.min(Math.max(scrollY, 0), Math.max(maxOffsetY, 0));
+
+  return Math.max(shift, hidden - scrolled);
+};
+
+/**
  * Показать ли шапку при закрытии поиска (worklet): `"show"` — всегда,
- * `"previous"` — если её спрятал сам поиск.
+ * `"previous"` — если её спрятал сам поиск или она скрыта больше, чем
+ * прокручен контент (`hidden > scrollY`).
  */
 export const shouldShowBarOnClose = (
   restore: "previous" | "show",
   plan: ISearchBarOpenPlan,
+  hidden = 0,
+  scrollY = Number.POSITIVE_INFINITY,
 ): boolean => {
   "worklet";
 
-  return restore === "show" || plan.hide;
+  return restore === "show" || plan.hide || hidden > Math.max(scrollY, 0) + 0.5;
 };

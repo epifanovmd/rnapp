@@ -62,7 +62,8 @@ export const splitByMatches = (
   let cursor = 0;
 
   for (const [start, end] of findMatchRanges(text, query)) {
-    if (start > cursor) parts.push({ text: text.slice(cursor, start), match: false });
+    if (start > cursor)
+      parts.push({ text: text.slice(cursor, start), match: false });
     parts.push({ text: text.slice(start, end), match: true });
     cursor = end;
   }
@@ -88,7 +89,9 @@ export const filterByQuery = <T>(
   if (tokens.length === 0) return [...items];
 
   return items.filter(item => {
-    const haystack = normalizeSearchText(fields(item).filter(Boolean).join(" "));
+    const haystack = normalizeSearchText(
+      fields(item).filter(Boolean).join(" "),
+    );
 
     return tokens.every(token => haystack.includes(token));
   });

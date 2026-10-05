@@ -8,9 +8,11 @@ import {
 } from "react-native-reanimated";
 
 import { IBar, resolveCollapseRange } from "../bars";
+import type { IScrollValues } from "../scroll";
 import {
   ISearchBarOpenPlan,
   planSearchBarOpen,
+  resolveSearchGapShift,
   shouldShowBarOnClose,
 } from "./search-bar-plan";
 import type { ISearchController } from "./use-search";
@@ -43,17 +45,29 @@ const IDLE_PLAN: ISearchBarOpenPlan = { hide: false, shift: 0 };
  * место, контент поднимается той же анимацией (длительность панели) через
  * трансформ `SearchShiftView`; уже скрытую шапку не трогает. Закрытие
  * возвращает шапку по `restore`. Скролл во время поиска шапку не двигает —
- * `useNavbarScrollSync({ paused })`.
+ * `useNavbarScrollSync({ paused })`; если прокрутка контента стала меньше
+ * скрытой части шапки (фильтр укоротил список), контент поднимается на
+ * разницу, а при закрытии шапка показывается.
  */
 export const useSearchBarSync = (
   search: ISearchController,
   bar: IBar,
+  scroll: IScrollValues,
   { hideBar = true, restore = "previous" }: ISearchBarSyncOptions = {},
 ): ISearchBarSync => {
   const { activeValue } = search;
   const { offset, height, pinned, duration } = bar;
+  const { offsetY, maxOffsetY } = scroll;
   const contentShift = useSharedValue(0);
+  /** Конечное значение `contentShift` — без чтения идущей анимации. */
+  const shiftTarget = useSharedValue(0);
   const plan = useSharedValue<ISearchBarOpenPlan>(IDLE_PLAN);
+
+  const animateShift = (next: number) => {
+    "worklet";
+    shiftTarget.value = next;
+    contentShift.value = withTiming(next, { duration });
+  };
 
   useAnimatedReaction(
     () => activeValue.value,
@@ -71,17 +85,54 @@ export const useSearchBarSync = (
         plan.value = next;
         if (next.hide) {
           bar.hide();
-          contentShift.value = withTiming(next.shift, { duration });
+          animateShift(next.shift);
         }
 
         return;
       }
 
-      if (shouldShowBarOnClose(restore, plan.value)) bar.show();
-      contentShift.value = withTiming(0, { duration });
+      const scrolled = Math.min(offsetY.value, maxOffsetY.value);
+
+      if (shouldShowBarOnClose(restore, plan.value, offset.value, scrolled)) {
+        bar.show();
+      }
+      animateShift(0);
       plan.value = IDLE_PLAN;
     },
-    [activeValue, offset, height, pinned, bar, duration, hideBar, restore],
+    [
+      activeValue,
+      offset,
+      height,
+      pinned,
+      bar,
+      duration,
+      hideBar,
+      restore,
+      offsetY,
+      maxOffsetY,
+    ],
+  );
+
+  useAnimatedReaction(
+    () => {
+      if (!activeValue.value) return null;
+
+      // Шапку, которую прячет сам поиск, считать уже доехавшей.
+      const hidden = plan.value.hide
+        ? resolveCollapseRange(height.value, pinned.value)
+        : offset.value;
+
+      return resolveSearchGapShift(
+        shiftTarget.value,
+        hidden,
+        offsetY.value,
+        maxOffsetY.value,
+      );
+    },
+    next => {
+      if (next !== null && next > shiftTarget.value + 0.5) animateShift(next);
+    },
+    [activeValue, plan, height, pinned, offset, offsetY, maxOffsetY],
   );
 
   const shiftRange = useDerivedValue(

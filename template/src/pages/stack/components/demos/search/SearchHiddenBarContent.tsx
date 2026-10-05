@@ -26,10 +26,7 @@ import { ListRenderItem, StyleSheet } from "react-native";
 import Animated, { useDerivedValue } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  ISearchDemoContact,
-  SEARCH_DEMO_CONTACTS,
-} from "./search-demo-data";
+import { ISearchDemoContact, SEARCH_DEMO_CONTACTS } from "./search-demo-data";
 import {
   DEFAULT_HIDDEN_BAR_OPTIONS,
   isOverlayVisible,
@@ -65,7 +62,7 @@ export const SearchHiddenBarContent: FC = () => {
 
   useNavbarScrollSync(telemetry, { paused: search.activeValue });
 
-  const sync = useSearchBarSync(search, navbar, {
+  const sync = useSearchBarSync(search, navbar, telemetry, {
     hideBar: options.hideBar,
     restore: options.restore,
   });
@@ -152,10 +149,7 @@ export const SearchHiddenBarContent: FC = () => {
           initialNumToRender={12}
           maxToRenderPerBatch={12}
           windowSize={7}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: bottom + 16 },
-          ]}
+          contentContainerStyle={[styles.list, { paddingBottom: bottom + 16 }]}
           ListHeaderComponent={header}
           ListFooterComponent={<SearchShiftSpacer sync={sync} />}
           ListEmptyComponent={
