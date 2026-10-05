@@ -1,7 +1,11 @@
 /**
  * Закрыть ли поиск, когда поле потеряло фокус: если ничего не введено —
  * «Отмена» уходит, шапка возвращается; с запросом поиск остаётся (на экране
- * результаты, клавиатуру убрали, чтобы их листать).
+ * результаты, клавиатуру убрали, чтобы их листать). Клавиатуру убрал скролл
+ * (`scrolling`) — поиск тоже остаётся: иначе возврат шапки спорит с жестом.
  */
-export const shouldCloseOnBlur = (query: string, enabled: boolean): boolean =>
-  enabled && query.trim() === "";
+export const shouldCloseOnBlur = (
+  query: string,
+  enabled: boolean,
+  scrolling = false,
+): boolean => enabled && !scrolling && query.trim() === "";

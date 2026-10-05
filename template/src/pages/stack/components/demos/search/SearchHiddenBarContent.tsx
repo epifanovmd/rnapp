@@ -58,7 +58,7 @@ export const SearchHiddenBarContent: FC = () => {
   const telemetry = useScrollTelemetry();
   const [options, setOptions] = useState(DEFAULT_HIDDEN_BAR_OPTIONS);
   const [history, setHistory] = useState<string[]>(["Москва", "Анна"]);
-  const search = useSearch();
+  const search = useSearch({ scroll: telemetry });
 
   useNavbarScrollSync(telemetry, { paused: search.activeValue });
 

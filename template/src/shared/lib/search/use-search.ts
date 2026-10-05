@@ -15,6 +15,7 @@ import {
 } from "react-native-reanimated";
 
 import { useDebouncedValue } from "../hooks/use-debounced-value";
+import type { IScrollValues } from "../scroll";
 import { shouldCloseOnBlur } from "./search-blur";
 
 export interface IUseSearchOptions {
@@ -28,6 +29,11 @@ export interface IUseSearchOptions {
   closeOnEmptyBlur?: boolean;
   /** Поиск открыт / закрыт. */
   onActiveChange?: (active: boolean) => void;
+  /**
+   * Скролл экрана: если клавиатуру убрал скролл (`keyboardDismissMode`),
+   * поиск без запроса не закрывается — закрытие «Отменой» или «назад».
+   */
+  scroll?: IScrollValues;
 }
 
 /**
@@ -67,6 +73,7 @@ export const useSearch = ({
   closeOnBack = true,
   closeOnEmptyBlur = true,
   onActiveChange,
+  scroll,
 }: IUseSearchOptions = {}): ISearchController => {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(false);
@@ -97,11 +104,16 @@ export const useSearch = ({
     [activeValue, animate],
   );
 
+  /** Фокус ушёл из-за скролла — следующее скрытие клавиатуры поиск не закрывает. */
+  const keptByScrollRef = useRef(false);
+
   const open = useCallback(() => {
+    keptByScrollRef.current = false;
     if (!activeRef.current) setActiveState(true);
   }, [setActiveState]);
 
   const close = useCallback(() => {
+    keptByScrollRef.current = false;
     inputRef.current?.blur();
     Keyboard.dismiss();
     setQuery("");
@@ -113,13 +125,18 @@ export const useSearch = ({
   queryRef.current = query;
 
   const blur = useCallback(() => {
-    if (
-      activeRef.current &&
-      shouldCloseOnBlur(queryRef.current, closeOnEmptyBlur)
-    ) {
+    if (!activeRef.current) return;
+
+    const scrolling =
+      keptByScrollRef.current ||
+      (!!scroll && (scroll.isDragging.value || scroll.isMomentum.value));
+
+    if (shouldCloseOnBlur(queryRef.current, closeOnEmptyBlur, scrolling)) {
       close();
+    } else if (scrolling) {
+      keptByScrollRef.current = true;
     }
-  }, [closeOnEmptyBlur, close]);
+  }, [closeOnEmptyBlur, close, scroll]);
 
   const clear = useCallback(() => {
     setQuery("");
