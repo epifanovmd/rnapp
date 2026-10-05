@@ -60,11 +60,14 @@ export const SearchHiddenBarContent: FC = () => {
   const [history, setHistory] = useState<string[]>(["Москва", "Анна"]);
   const search = useSearch();
 
-  useNavbarScrollSync(telemetry, { paused: search.activeValue });
-
   const sync = useSearchBarSync(search, navbar, telemetry, {
     hideBar: options.hideBar,
     restore: options.restore,
+  });
+
+  useNavbarScrollSync(telemetry, {
+    paused: search.activeValue,
+    contentShift: sync.contentShift,
   });
 
   // Оверлей — под видимой частью шапки (она в безопасной зоне).

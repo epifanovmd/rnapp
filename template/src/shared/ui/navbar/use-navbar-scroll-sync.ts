@@ -27,11 +27,17 @@ const MAX_FOLLOW_JUMP = 200;
 export interface INavbarScrollSyncOptions {
   /** Пока `true`, скролл панель не двигает (например, открыт поиск). */
   paused?: SharedValue<boolean>;
+  /**
+   * Сдвиг контента трансформом поверх скролла (`useSearchBarSync`), px:
+   * считается частью прокрутки — у верха списка поднятый контент не
+   * выдёргивает шапку.
+   */
+  contentShift?: SharedValue<number>;
 }
 
 export const useNavbarScrollSync = (
   scroll: IScrollValues,
-  { paused }: INavbarScrollSyncOptions = {},
+  { paused, contentShift }: INavbarScrollSyncOptions = {},
 ) => {
   const navbar = useNavbar();
   // по одному значению: захват объекта целиком клонировал бы его на UI-поток
@@ -54,8 +60,10 @@ export const useNavbarScrollSync = (
         return;
       }
 
+      // Видимая прокрутка: скролл плюс сдвиг контента трансформом.
+      const scrolled = offset + (contentShift?.value ?? 0);
       const edge = resolveScrollEdge(
-        offset,
+        scrolled,
         overscrollTop.value,
         overscrollBottom.value,
         maxOffsetY.value,
@@ -71,11 +79,11 @@ export const useNavbarScrollSync = (
         navbar.shift(
           step === 0
             ? 0
-            : resolveFollowShift(navbar.offset.value, step, offset),
+            : resolveFollowShift(navbar.offset.value, step, scrolled),
         );
       }
     },
-    [navbar, paused],
+    [navbar, paused, contentShift],
   );
 
   useAnimatedReaction(
@@ -93,7 +101,7 @@ export const useNavbarScrollSync = (
         navbar.offset.value,
         resolveCollapseRange(navbar.height.value, navbar.pinned.value),
         direction.value,
-        offsetY.value,
+        offsetY.value + (contentShift?.value ?? 0),
       );
 
       if (target === "follow") return;
@@ -106,7 +114,7 @@ export const useNavbarScrollSync = (
         navbar.show();
       }
     },
-    [navbar, paused],
+    [navbar, paused, contentShift],
   );
 
   useAnimatedReaction(
