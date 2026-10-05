@@ -58,8 +58,7 @@ const NavbarRoot = ({
   const [isCanGoBack, setIsCanGoBack] = useState(false);
   const { top } = useSafeAreaInsets();
 
-  const { left, backButton, content, title, subtitle, right, overlay } =
-    slots;
+  const { left, backButton, content, title, subtitle, right, overlay } = slots;
 
   const { canGoBack, goBack } = useNavigation();
 
@@ -93,10 +92,10 @@ const NavbarRoot = ({
         <>
           {showBackButton &&
             backButton.render({ inject: { onPress: onBackPress } })}
-          {left.render()}
+          {left.render({ defaults: { style: SS.actions } })}
         </>
       }
-      rightContent={right.render()}
+      rightContent={right.render({ defaults: { style: SS.actions } })}
       overlay={
         overlay.present
           ? overlay.render({
@@ -136,6 +135,11 @@ const SS = StyleSheet.create({
     padding: 4,
     minHeight: 56,
     zIndex: 9999,
+  },
+  /** Слоты Left/Right: кнопки в ряд. */
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   overlay: {
     position: "absolute",
