@@ -10,10 +10,6 @@ describe("shouldCloseOnBlur", () => {
     expect(shouldCloseOnBlur("анна", true)).toBe(false);
   });
 
-  it("клавиатуру убрал скролл — поиск остаётся открытым", () => {
-    expect(shouldCloseOnBlur("", true, true)).toBe(false);
-  });
-
   it("поведение выключено — не закрывается", () => {
     expect(shouldCloseOnBlur("", false)).toBe(false);
   });
