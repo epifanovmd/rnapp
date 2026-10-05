@@ -104,8 +104,9 @@ export const resolveFollowShift = (
  * движения (вниз — спрятать, вверх — показать), без движения — к ближайшему
  * состоянию. Решение принимается сразу, а не после инерции: иначе панель
  * доезжает уже по остановившемуся контенту, и конец прокрутки дёргается.
- * Контент прокручен меньше хода (`scrollY < range`) — `follow`: панель не
- * прячется целиком, а продолжает следовать за контентом и на инерции.
+ * Контент прокручен меньше хода (`scrollY < range`) — `follow` при любом
+ * направлении: панель не прячется и не выезжает анимацией, а едет вместе с
+ * контентом, в том числе на инерции.
  */
 export const resolveReleaseTarget = (
   offset: number,
@@ -116,8 +117,8 @@ export const resolveReleaseTarget = (
   "worklet";
 
   if (range <= 0) return "show";
-  if (direction === "up") return "show";
   if (scrollY < range) return "follow";
+  if (direction === "up") return "show";
   if (direction === "down") return "hide";
 
   return snapOffset(offset, range) > 0 ? "hide" : "show";

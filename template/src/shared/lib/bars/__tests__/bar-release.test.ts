@@ -25,8 +25,12 @@ describe("resolveReleaseTarget: контент прокручен меньше �
     expect(resolveReleaseTarget(300, 400, null, 300)).toBe("follow");
   });
 
-  it("вверх — показать", () => {
-    expect(resolveReleaseTarget(50, 400, "up", 50)).toBe("show");
+  it("вверх — не выезжает, а тоже следует за контентом", () => {
+    expect(resolveReleaseTarget(50, 400, "up", 50)).toBe("follow");
+  });
+
+  it("за порогом вверх — показать", () => {
+    expect(resolveReleaseTarget(400, 400, "up", 800)).toBe("show");
   });
 
   it("прокручен на весь ход — прячется как обычно", () => {
