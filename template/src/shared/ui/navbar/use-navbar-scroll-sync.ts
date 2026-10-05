@@ -1,6 +1,7 @@
 import {
   resolveCollapseRange,
   resolveFollowDelta,
+  resolveFollowShift,
   resolveReleaseTarget,
   resolveScrollEdge,
 } from "@shared/lib/bars";
@@ -18,9 +19,10 @@ const MAX_FOLLOW_JUMP = 200;
 
 /**
  * Поведение навигационной панели: под пальцем следует за скроллом
- * попиксельно; на отпускании сразу доезжает до состояния по направлению
- * жеста и на инерции за пикселями не следует — анимация не спорит со сдвигом,
- * и после остановки контента панели доезжать нечего.
+ * попиксельно, но не дальше прокрутки контента; на отпускании сразу доезжает
+ * до состояния по направлению жеста и на инерции за пикселями не следует —
+ * анимация не спорит со сдвигом. Пока контент прокручен меньше хода скрытия,
+ * панель не доводится, а следует за ним и на инерции — без пустоты сверху.
  */
 export interface INavbarScrollSyncOptions {
   /** Пока `true`, скролл панель не двигает (например, открыт поиск). */
@@ -64,9 +66,13 @@ export const useNavbarScrollSync = (
       } else if (edge === "bottom") {
         navbar.hide();
       } else if (!settling.value) {
-        const delta = offset - prevOffset;
+        const step = resolveFollowDelta(offset - prevOffset, MAX_FOLLOW_JUMP);
 
-        navbar.shift(resolveFollowDelta(delta, MAX_FOLLOW_JUMP));
+        navbar.shift(
+          step === 0
+            ? 0
+            : resolveFollowShift(navbar.offset.value, step, offset),
+        );
       }
     },
     [navbar, paused],
@@ -83,13 +89,16 @@ export const useNavbarScrollSync = (
       }
       if (!wasDragging) return;
 
-      settling.value = true;
-
       const target = resolveReleaseTarget(
         navbar.offset.value,
         resolveCollapseRange(navbar.height.value, navbar.pinned.value),
         direction.value,
+        offsetY.value,
       );
+
+      if (target === "follow") return;
+
+      settling.value = true;
 
       if (target === "hide") {
         navbar.hide();

@@ -65,7 +65,10 @@ export const rebaseOffset = (
  * Переизмерение, а не первое измерение: отступ контента анимируется к новой
  * высоте; первое измерение (или исчезновение панели) применяется сразу.
  */
-export const isRemeasure = (prevHeight: number, nextHeight: number): boolean => {
+export const isRemeasure = (
+  prevHeight: number,
+  nextHeight: number,
+): boolean => {
   "worklet";
 
   return prevHeight > 0 && nextHeight > 0;
@@ -83,21 +86,39 @@ export const resolveFollowDelta = (delta: number, maxJump: number): number => {
 };
 
 /**
+ * Сдвиг панели вслед за скроллом: `delta` 1:1, но панель не уезжает дальше
+ * прокрутки контента (`scrollY`) — иначе между ней и контентом пустота.
+ */
+export const resolveFollowShift = (
+  offset: number,
+  delta: number,
+  scrollY: number,
+): number => {
+  "worklet";
+
+  return Math.min(offset + delta, Math.max(scrollY, 0)) - offset;
+};
+
+/**
  * Куда доехать панели, когда палец отпущен: по направлению последнего
  * движения (вниз — спрятать, вверх — показать), без движения — к ближайшему
  * состоянию. Решение принимается сразу, а не после инерции: иначе панель
  * доезжает уже по остановившемуся контенту, и конец прокрутки дёргается.
+ * Контент прокручен меньше хода (`scrollY < range`) — `follow`: панель не
+ * прячется целиком, а продолжает следовать за контентом и на инерции.
  */
 export const resolveReleaseTarget = (
   offset: number,
   range: number,
   direction: "up" | "down" | "left" | "right" | null,
-): "show" | "hide" => {
+  scrollY = Number.POSITIVE_INFINITY,
+): "show" | "hide" | "follow" => {
   "worklet";
 
   if (range <= 0) return "show";
-  if (direction === "down") return "hide";
   if (direction === "up") return "show";
+  if (scrollY < range) return "follow";
+  if (direction === "down") return "hide";
 
   return snapOffset(offset, range) > 0 ? "hide" : "show";
 };
