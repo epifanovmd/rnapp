@@ -12,6 +12,7 @@ import type { IScrollValues } from "../scroll";
 import {
   ISearchBarOpenPlan,
   planSearchBarOpen,
+  resolveReleasedShift,
   resolveSearchGapShift,
   shouldShowBarOnClose,
 } from "./search-bar-plan";
@@ -47,7 +48,9 @@ const IDLE_PLAN: ISearchBarOpenPlan = { hide: false, shift: 0 };
  * возвращает шапку по `restore`. Скролл во время поиска шапку не двигает —
  * `useNavbarScrollSync({ paused })`; если прокрутка контента стала меньше
  * скрытой части шапки (фильтр укоротил список), контент поднимается на
- * разницу, а при закрытии шапка показывается.
+ * разницу, а при закрытии шапка показывается. Закрытие во время скролла
+ * (фокус ушёл из-за жеста) шапку не трогает — ею управляет скролл, а сдвиг
+ * контента уходит вместе с её появлением.
  */
 export const useSearchBarSync = (
   search: ISearchController,
@@ -57,11 +60,13 @@ export const useSearchBarSync = (
 ): ISearchBarSync => {
   const { activeValue } = search;
   const { offset, height, pinned, duration } = bar;
-  const { offsetY, maxOffsetY } = scroll;
+  const { offsetY, maxOffsetY, isDragging, isMomentum } = scroll;
   const contentShift = useSharedValue(0);
   /** Конечное значение `contentShift` — без чтения идущей анимации. */
   const shiftTarget = useSharedValue(0);
   const plan = useSharedValue<ISearchBarOpenPlan>(IDLE_PLAN);
+  /** Сдвиг, оставленный закрытием во время скролла: уходит с появлением шапки. */
+  const pending = useSharedValue(0);
 
   const animateShift = (next: number) => {
     "worklet";
@@ -83,21 +88,35 @@ export const useSearchBarSync = (
         );
 
         plan.value = next;
+        pending.value = 0;
         if (next.hide) {
           bar.hide();
-          animateShift(next.shift);
+          animateShift(shiftTarget.value + next.shift);
         }
 
         return;
       }
 
       const scrolled = Math.min(offsetY.value, maxOffsetY.value);
+      const scrolling = isDragging.value || isMomentum.value;
 
-      if (shouldShowBarOnClose(restore, plan.value, offset.value, scrolled)) {
-        bar.show();
+      const show = shouldShowBarOnClose(
+        restore,
+        plan.value,
+        offset.value,
+        scrolled,
+        scrolling,
+      );
+
+      plan.value = IDLE_PLAN;
+      if (show) bar.show();
+      if (scrolling) {
+        // Шапку не трогать — сдвиг уйдёт вместе с её появлением.
+        pending.value = shiftTarget.value;
+
+        return;
       }
       animateShift(0);
-      plan.value = IDLE_PLAN;
     },
     [
       activeValue,
@@ -110,7 +129,24 @@ export const useSearchBarSync = (
       restore,
       offsetY,
       maxOffsetY,
+      isDragging,
+      isMomentum,
     ],
+  );
+
+  useAnimatedReaction(
+    () =>
+      activeValue.value || pending.value <= 0
+        ? null
+        : resolveReleasedShift(pending.value, offset.value),
+    next => {
+      if (next === null || next >= pending.value) return;
+
+      pending.value = next;
+      shiftTarget.value = next;
+      contentShift.value = next;
+    },
+    [activeValue, offset],
   );
 
   useAnimatedReaction(

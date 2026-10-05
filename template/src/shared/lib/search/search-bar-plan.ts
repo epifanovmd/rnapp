@@ -44,15 +44,34 @@ export const resolveSearchGapShift = (
 /**
  * Показать ли шапку при закрытии поиска (worklet): `"show"` — всегда,
  * `"previous"` — если её спрятал сам поиск или она скрыта больше, чем
- * прокручен контент (`hidden > scrollY`).
+ * прокручен контент (`hidden > scrollY`). Во время скролла (`scrolling`:
+ * фокус ушёл из-за жеста) — никогда: шапкой управляет скролл, иначе она
+ * выезжает и тут же прячется обратно.
  */
 export const shouldShowBarOnClose = (
   restore: "previous" | "show",
   plan: ISearchBarOpenPlan,
   hidden = 0,
   scrollY = Number.POSITIVE_INFINITY,
+  scrolling = false,
 ): boolean => {
   "worklet";
 
+  if (scrolling) return false;
+
   return restore === "show" || plan.hide || hidden > Math.max(scrollY, 0) + 0.5;
+};
+
+/**
+ * Сдвиг контента, оставшийся после закрытия поиска во время скролла
+ * (worklet): уходит вместе с появлением шапки — выехала на X, контент
+ * опустился на X. Не растёт, если шапка снова прячется.
+ */
+export const resolveReleasedShift = (
+  pending: number,
+  hidden: number,
+): number => {
+  "worklet";
+
+  return Math.min(pending, Math.max(hidden, 0));
 };

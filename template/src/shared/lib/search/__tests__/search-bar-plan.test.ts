@@ -1,5 +1,6 @@
 import {
   planSearchBarOpen,
+  resolveReleasedShift,
   resolveSearchGapShift,
   shouldShowBarOnClose,
 } from "../search-bar-plan";
@@ -41,10 +42,20 @@ describe("shouldShowBarOnClose", () => {
     ).toBe(false);
   });
 
+  it("закрытие во время скролла — шапку не показывать, ею управляет скролл", () => {
+    expect(
+      shouldShowBarOnClose("previous", { hide: true, shift: 56 }, 56, 0, true),
+    ).toBe(false);
+    expect(
+      shouldShowBarOnClose("show", { hide: false, shift: 0 }, 56, 0, true),
+    ).toBe(false);
+  });
+
   it("объявлены как worklet", () => {
     expect(planSearchBarOpen.toString()).toMatch(/["']worklet["']/);
     expect(shouldShowBarOnClose.toString()).toMatch(/["']worklet["']/);
     expect(resolveSearchGapShift.toString()).toMatch(/["']worklet["']/);
+    expect(resolveReleasedShift.toString()).toMatch(/["']worklet["']/);
   });
 });
 
@@ -64,5 +75,20 @@ describe("resolveSearchGapShift", () => {
 
   it("сдвиг не уменьшается — контент не дёргается обратно", () => {
     expect(resolveSearchGapShift(56, 56, 300, 2000)).toBe(56);
+  });
+});
+
+describe("resolveReleasedShift", () => {
+  it("шапка скрыта — сдвиг остаётся", () => {
+    expect(resolveReleasedShift(56, 56)).toBe(56);
+  });
+
+  it("шапка выезжает — контент опускается на столько же", () => {
+    expect(resolveReleasedShift(56, 20)).toBe(20);
+    expect(resolveReleasedShift(56, 0)).toBe(0);
+  });
+
+  it("сдвиг меньше скрытой части — не растёт", () => {
+    expect(resolveReleasedShift(30, 56)).toBe(30);
   });
 });
