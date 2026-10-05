@@ -1,4 +1,4 @@
-import { IconButton, Navbar, ScreenScroll } from "@shared/ui";
+import { Col, IconButton, Navbar, ScreenScroll, Text } from "@shared/ui";
 import React, { FC, memo } from "react";
 
 import { DemoSection } from "../DemoSection";
@@ -39,13 +39,21 @@ export const NavbarStaticDemo: FC = memo(() => (
 
     <DemoSection
       title={"Произвольный контент"}
-      description={"Navbar.Content вместо заголовка"}
+      description={
+        "Navbar.Content — свой контент вместо заголовка (слоты Title/Subtitle — только прямые дети Navbar)"
+      }
     >
       <Navbar background={"surface"} bottomRadius={16}>
         <Navbar.BackButton />
         <Navbar.Content>
-          <Navbar.Title>{"wg0 · Альфа"}</Navbar.Title>
-          <Navbar.Subtitle color={"success"}>{"работает"}</Navbar.Subtitle>
+          <Col alignItems={"center"} flexShrink={1}>
+            <Text textStyle={"Title_S1"} numberOfLines={1}>
+              {"wg0 · Альфа"}
+            </Text>
+            <Text textStyle={"Caption_M3"} color={"success"} numberOfLines={1}>
+              {"работает"}
+            </Text>
+          </Col>
         </Navbar.Content>
       </Navbar>
     </DemoSection>
