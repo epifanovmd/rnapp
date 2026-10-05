@@ -24,6 +24,10 @@ import {
   LayoutDemo,
   MediaDemo,
   ModalsDemo,
+  NavbarHiddenDemo,
+  NavbarImageDemo,
+  NavbarStaticDemo,
+  NavbarTallDemo,
   NotificationsDemo,
   PickersDemo,
   PullToRefreshDemo,
@@ -188,6 +192,26 @@ export const RootStack = createStackNavigator({
           screen: ScreenReadyDemo,
           options: { title: "ScreenReady" },
           linking: "components/screen-ready",
+        },
+        ComponentsNavbar: {
+          screen: NavbarStaticDemo,
+          options: { title: "Navbar" },
+          linking: "components/navbar",
+        },
+        ComponentsNavbarHidden: {
+          screen: NavbarHiddenDemo,
+          options: NO_HEADER,
+          linking: "components/navbar/hidden",
+        },
+        ComponentsNavbarTall: {
+          screen: NavbarTallDemo,
+          options: NO_HEADER,
+          linking: "components/navbar/tall",
+        },
+        ComponentsNavbarImage: {
+          screen: NavbarImageDemo,
+          options: NO_HEADER,
+          linking: "components/navbar/image",
         },
         ComponentsScrollReveal: {
           screen: ScrollRevealDemo,

@@ -45,6 +45,15 @@ export const COMPONENT_DEMOS = [
     ],
   },
   {
+    title: "Navbar",
+    demos: [
+      { route: "ComponentsNavbar", title: "Navbar" },
+      { route: "ComponentsNavbarHidden", title: "Hidden bar" },
+      { route: "ComponentsNavbarTall", title: "Tall header" },
+      { route: "ComponentsNavbarImage", title: "Image bar" },
+    ],
+  },
+  {
     title: "Search",
     demos: [
       { route: "ComponentsSearch", title: "Navbar" },

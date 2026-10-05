@@ -18,6 +18,7 @@ export * from "./LayoutDemo";
 export * from "./lists";
 export * from "./MediaDemo";
 export * from "./modals";
+export * from "./navbar";
 export * from "./NotificationsDemo";
 export * from "./PickersDemo";
 export * from "./screen-ready";
