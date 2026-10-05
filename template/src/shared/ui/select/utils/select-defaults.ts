@@ -17,6 +17,20 @@ const DEFAULT_VIRTUAL: Required<SelectVirtualConfig> = {
 export const defaultCreateLabel = (query: string): ReactNode =>
   `Создать «${query}»`;
 
+/** С какого числа вариантов в шторке сама появляется строка поиска (без `search`). */
+export const AUTO_SEARCH_THRESHOLD = 10;
+
+/**
+ * Показывать ли строку поиска. Без `search` — только у длинного списка
+ * (больше `AUTO_SEARCH_THRESHOLD`) или при серверном поиске; явное значение
+ * включает или отключает принудительно.
+ */
+export const resolveSearch = (
+  search: boolean | undefined,
+  optionCount: number,
+  serverSearch = false,
+): boolean => search ?? (serverSearch || optionCount > AUTO_SEARCH_THRESHOLD);
+
 /** С какого числа вариантов список виртуализируется сам (без `virtual`). */
 export const AUTO_VIRTUAL_THRESHOLD = 50;
 

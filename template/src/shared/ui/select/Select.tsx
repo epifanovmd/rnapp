@@ -16,6 +16,7 @@ import {
   buildOptionRows,
   defaultCreateLabel,
   type RawSelectValue,
+  resolveSearch,
   resolveVirtualConfig,
   SELECT_DEFAULT_MAX_HEIGHT,
   SELECT_DEFAULT_PLACEHOLDER,
@@ -43,7 +44,7 @@ export const Select = <V extends SelectValue = string>(
     loadingMore,
     hasMore,
     error,
-    search = false,
+    search: searchProp,
     searchValue,
     onSearch,
     onScrollEnd,
@@ -80,6 +81,8 @@ export const Select = <V extends SelectValue = string>(
   const maxTagCount = multi ? display.maxTagCount : undefined;
   const rawValue = props.value as RawSelectValue<V>;
   const rawOnChange = props.onChange as ((value: unknown) => void) | undefined;
+
+  const search = resolveSearch(searchProp, options.length, !!onSearch);
 
   const [query, setQuery] = useControllableState({
     value: searchValue,

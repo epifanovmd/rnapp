@@ -29,7 +29,10 @@ export interface SelectDataProps<V extends SelectValue = string> {
   hasMore?: boolean;
   /** Ошибка последней загрузки. */
   error?: unknown;
-  /** Строка поиска в шторке. */
+  /**
+   * Строка поиска в шторке: `true` / `false` — принудительно; без значения —
+   * только у длинного списка или при серверном поиске (`onSearch`).
+   */
   search?: boolean;
   searchValue?: string;
   onSearch?: (query: string) => void;

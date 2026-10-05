@@ -1,4 +1,9 @@
-import { AUTO_VIRTUAL_THRESHOLD, resolveVirtualConfig } from "../select-defaults";
+import {
+  AUTO_SEARCH_THRESHOLD,
+  AUTO_VIRTUAL_THRESHOLD,
+  resolveSearch,
+  resolveVirtualConfig,
+} from "../select-defaults";
 
 describe("resolveVirtualConfig", () => {
   it("без настройки — виртуализация только для длинных списков", () => {
@@ -21,5 +26,21 @@ describe("resolveVirtualConfig", () => {
       estimateSize: 60,
       overscan: 8,
     });
+  });
+});
+
+describe("resolveSearch", () => {
+  it("без настройки — поиск только у длинных списков", () => {
+    expect(resolveSearch(undefined, AUTO_SEARCH_THRESHOLD)).toBe(false);
+    expect(resolveSearch(undefined, AUTO_SEARCH_THRESHOLD + 1)).toBe(true);
+  });
+
+  it("без настройки с серверным поиском — всегда", () => {
+    expect(resolveSearch(undefined, 0, true)).toBe(true);
+  });
+
+  it("явное значение — принудительно", () => {
+    expect(resolveSearch(true, 1)).toBe(true);
+    expect(resolveSearch(false, 1000, true)).toBe(false);
   });
 });
