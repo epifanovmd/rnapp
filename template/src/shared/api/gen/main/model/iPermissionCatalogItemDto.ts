@@ -6,4 +6,9 @@ import type { TPermission } from "./tPermission";
 export interface IPermissionCatalogItemDto {
   name: TPermission;
   label: string;
+  /**
+   * Право «только на свои» (владелец или создатель) для этого действия;
+   * нет — действие без области.
+   */
+  own?: TPermission;
 }

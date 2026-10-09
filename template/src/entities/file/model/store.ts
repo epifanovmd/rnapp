@@ -21,8 +21,14 @@ export class FileStore implements IFileStore {
     keyExtractor: file => file.id,
     pageSize: PAGE_SIZE,
     onFetch: ({ offset, limit }) =>
-      mapCancelable(this._api.getMyFiles({ offset, limit }), toHolderPage),
+      mapCancelable(
+        this._api.getMyFiles({ mine: this.mine, offset, limit }),
+        toHolderPage,
+      ),
   });
+
+  /** Список только своих файлов; `false` — все, если есть право `file:view`. */
+  public mine = true;
 
   /** Доля отправленного файла 0..1; `null` — загрузки нет. */
   public uploadProgress: number | null = null;
@@ -42,7 +48,17 @@ export class FileStore implements IFileStore {
   }
 
   get images() {
+    if (!this.mine) return [];
+
     return this.files.filter(file => file.type.startsWith("image/"));
+  }
+
+  async setMine(mine: boolean) {
+    if (this.mine === mine) return;
+
+    this.mine = mine;
+    this.filesHolder.reset();
+    await this.filesHolder.load();
   }
 
   async load() {
@@ -128,6 +144,7 @@ export class FileStore implements IFileStore {
 
   reset() {
     this.filesHolder.reset();
+    this.mine = true;
     this.uploadProgress = null;
     this.uploadQueue = null;
   }

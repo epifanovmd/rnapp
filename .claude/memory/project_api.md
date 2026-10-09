@@ -229,7 +229,7 @@ auth-API (обновление токенов) → сессия → HTTP-кли�
 - `getErrorBody<TBody>(error)` достаёт тело ошибки у `HttpError`; у сетевых
   ошибок, таймаутов и отмены вернёт `undefined` — ветвиться на `kind` не нужно.
 
-## Основной бэкенд = rest-api-template-app (master)
+## Основной бэкенд = rest-api-template-app (main)
 
 - Спека: `orval.config.ts` по умолчанию берёт `../../rest-api-template-app/src/routing/swagger.json`
   (относительно `template/`), с сервера — `MAIN_SWAGGER=http://.../api-docs/swagger.json`.
@@ -243,6 +243,11 @@ auth-API (обновление токенов) → сессия → HTTP-кли�
 - Загрузка файла: `uploadFile({ file: toFormFile({ uri, name, type }) })` (`shared/lib/files`);
   сервер сверяет расширение, mime и сигнатуру (jpg/png/…/pdf/txt/csv …).
 - Сокет-события: `job:updated` (JobRunDto, владельцу), `file:processed` (IFileDto), `user:email-changed`.
+- Файлы: `getMyFiles({ mine, offset, limit })` — `mine=false` при праве `file:view` отдаёт все файлы.
+- Задачи: внешние задачи выполняют воркеры агентов; у `JobRunDto` есть `agentId`, `worker`, `jobType`,
+  `outputs` (подписанные ссылки на файлы итога), `deadlineAt`. Демо `demoEchoJob(IDemoEchoData)`:
+  быстрая `echo.quick` или долгая (`long`, `steps`, `delayMs`, `fail`, `withOutput`).
+- Эндпоинты агентов и узлов (`/agents`, `/nodes`, …) в клиенте есть, экранов для них в шаблоне нет.
 
 ## Ошибки API на экранах (2026-09-26)
 

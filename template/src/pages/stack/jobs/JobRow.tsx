@@ -3,13 +3,14 @@ import type { JobRunDto } from "@shared/api/gen/main/model";
 import { formatter } from "@shared/lib/utils";
 import { Button, Col, ProgressBar, Row, Text } from "@shared/ui";
 import React, { FC, memo } from "react";
+import { Linking } from "react-native";
 
 export interface IJobRowProps {
   job: JobRunDto;
   onCancel: (id: string) => void;
 }
 
-/** Карточка задачи: статус, прогресс, последняя строка лога, отмена. */
+/** Карточка задачи: статус, прогресс, последняя строка лога, файлы итога, отмена. */
 export const JobRow: FC<IJobRowProps> = memo(({ job, onCancel }) => {
   const active = isJobActive(job.status);
   const lastLog = job.progressText ?? job.logTail[job.logTail.length - 1];
@@ -24,7 +25,7 @@ export const JobRow: FC<IJobRowProps> = memo(({ job, onCancel }) => {
           <Text textStyle={"Caption_M1"} color={"textSecondary"}>
             {[
               JOB_STATUS_LABEL[job.status],
-              job.queue,
+              job.jobType ?? job.queue,
               formatter.date.format(job.createdAt),
             ].join(" · ")}
           </Text>
@@ -49,6 +50,18 @@ export const JobRow: FC<IJobRowProps> = memo(({ job, onCancel }) => {
           {lastLog}
         </Text>
       )}
+      {job.outputs?.map(output => (
+        <Button
+          key={output.name}
+          size={"small"}
+          appearance={"ghost"}
+          onPress={() => Linking.openURL(output.url)}
+        >
+          {output.size === undefined
+            ? output.name
+            : `${output.name} · ${formatter.bytes(output.size)}`}
+        </Button>
+      ))}
       {!!job.error && (
         <Text textStyle={"Caption_M1"} color={"danger"}>
           {job.error.message}

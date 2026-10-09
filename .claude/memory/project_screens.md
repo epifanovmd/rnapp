@@ -80,3 +80,34 @@ type: project
 
 Realtime-подписки file/job стартуют и сторы file/job/audit сбрасываются в `AppDataStore`
 по `isAuthenticated`.
+
+## Узлы и агенты (бэкенд rest-api-template-app, модули node и agent)
+
+Вход — группа «Инфраструктура» в `widgets/app-menu` (пункты с `permission`: «Узлы» —
+`node:view:own`, «Агенты» — `agent:view`; без права пункта нет).
+
+- `entities/agent` — `IAgentsStore` (`AgentsStore`: список, проблемы, выпуск, отложенные замены
+  воркеров), `useAgentsRealtime` (комната `agents`, `agent:updated/deleted/alert`, `agent:release` →
+  перечитать выпуск + тост с `key` по версии), `useAgentLog` (`agent:log`, уровень — `agent:log-level`),
+  `useAgentLiveMetrics`/`useAgentMetricsHistory`, `useAgentEventFeed`; чистые `lib/` (release, metrics,
+  schema, status, format, log) — с тестами.
+- `entities/node` — `INodesStore` (список, `fetch(id)`, нагрузка `node:load`), `useNodesRealtime`
+  (комната `nodes` при области «все», события — при любой), статус/фильтр/адрес, `NodeStatusTag`.
+- features: `manage-node` (форма, удаление), `assign-node-owner`, `provision-node-agent` (команда установки
+  или SSH; воркеры из выпуска, по умолчанию все; удаление по SSH), `enroll-agent` (токены регистрации,
+  секрет один раз, команда установки с параметрами), `manage-agent` (`useAgentActions`, `useWorkerActions`
+  с отложенной заменой и «заменить сейчас», `useWorkerActionResults` по `agent:action`,
+  `agentActionItems`), `edit-worker-config` (только с правом на настройки: значение сервер отдаёт лишь с
+  `agent:config`/`node:agent`), `fetch-agent-worker` (простой запрос к воркеру, `responseType: "text"`,
+  статус воркера — заголовок `X-Agent-Worker-Status` у `HttpError`).
+- `widgets/agent-tabs` — `AgentTabsNavigator` (material top tabs под `HiddenBar`): «Обзор» (контент экрана
+  - метрики агента), «Воркеры», «Настройки», «Запрос» (`canFetch`), «События», «Журнал»; без агента —
+    только «Обзор». Права вкладок `IAgentTabsAccess` считает экран.
+- Экраны стека: `Nodes` (список, связность `node:mesh`, поиск, «Все/Мои»), `NodeDetail` (`nodes/:nodeId`,
+  без шапки стека; права — `nodeAccess`: право узла на свой/все узлы или право раздела агентов; агент
+  показывается, только пока он агент этого узла), `Agents` (отбор, поиск, проблемы, установка),
+  `AgentDetail` (`agents/:agentId`).
+- Журнал действий (`pages/stack/audit`) — `agentAuditTitle` делает читаемыми `agent.action` и
+  `agent.action-result`.
+- В тестах барели `@entities/agent|node` подменяются `jest.requireActual` чистых модулей (барель тянет UI и
+  нативные модули).

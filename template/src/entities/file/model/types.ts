@@ -17,11 +17,16 @@ export interface IUploadManyResult {
   errors: ApiError[];
 }
 
-/** Файлы текущего пользователя: список страницами, загрузка, удаление. */
+/**
+ * Файлы: список страницами (свои или, с правом `file:view`, все), загрузка,
+ * удаление.
+ */
 export interface IFileStore {
   readonly filesHolder: InfiniteHolder<IFileDto>;
   readonly files: IFileDto[];
-  /** Мои изображения из загруженного списка — кандидаты в аватар. */
+  /** Список только своих файлов; `false` — все файлы. */
+  readonly mine: boolean;
+  /** Мои изображения из загруженного списка — кандидаты в аватар; в списке всех файлов пусто. */
   readonly images: IFileDto[];
   readonly isUploading: boolean;
   /** Доля отправленного файла 0..1; `null` — загрузки нет. */
@@ -31,6 +36,8 @@ export interface IFileStore {
   load(): Promise<void>;
   refresh(): Promise<void>;
   loadMore(): Promise<void>;
+  /** Переключить список «свои / все» и загрузить его заново. */
+  setMine(mine: boolean): Promise<void>;
   /** Загрузить файл; загруженный встаёт в начало списка. */
   upload(file: ILocalFile): Promise<ApiResponse<IFileDto, ApiError>>;
   /** Загрузить пачку по одному; ошибка файла не останавливает остальные. */

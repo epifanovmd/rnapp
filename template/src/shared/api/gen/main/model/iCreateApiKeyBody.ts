@@ -4,7 +4,7 @@ export interface ICreateApiKeyBody {
    * @maxLength 100
    */
   name: string;
-  /** Разрешения: `worker:demo.echo`, `worker:*`. */
+  /** Разрешения: `reports:export`, `reports:*`. */
   scopes: string[];
   /** Срок действия; без него ключ бессрочный. */
   expiresAt?: string;

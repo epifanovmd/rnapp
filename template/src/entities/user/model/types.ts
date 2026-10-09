@@ -10,7 +10,7 @@ import { createInjectDecorator, SupportInitialize } from "@shared/lib/di";
 import { IEntityHolderResult, IHolderError } from "@shared/lib/holders";
 import { ApiError, ApiResponse } from "@shared/lib/http";
 
-import type { Permission } from "../lib/permissions";
+import type { AccessScope, Permission } from "../lib/permissions";
 import { ProfileModel } from "./profile-model";
 import { UserModel } from "./user-model";
 
@@ -39,6 +39,19 @@ export interface IUserStore {
 
   /** Есть ли у пользователя указанный permission (через роль, напрямую, или wildcard-иерархия). */
   can(permission: Permission): boolean;
+  /**
+   * Область права на действие: `all` — над всеми сущностями, `own` — только
+   * над своими (`<право>:own`), `null` — права нет.
+   */
+  scope(permission: Permission): AccessScope | null;
+  /**
+   * Можно ли действие над сущностью: право на все или право на свои, если
+   * пользователь среди `owners` (владелец, создатель).
+   */
+  canOn(
+    permission: Permission,
+    owners: ReadonlyArray<string | null | undefined>,
+  ): boolean;
   /** Есть ли у пользователя указанная роль. */
   hasRole(role: KnownRole): boolean;
 

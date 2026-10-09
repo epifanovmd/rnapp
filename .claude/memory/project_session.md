@@ -88,6 +88,10 @@ DI-модули импортируют контракты напрямую (`not
 - Выход сбрасывает `userStore` (и файлы, задачи, журнал) в `AppDataStore`.
 - Права — строки (`Permission` в entities/user), `KnownPermission` в спеке нет;
   демо-задача — по праву `jobs:demo` (`JOB_PERMISSIONS`).
+- Область права «все / свои»: `x:delete` покрывает `x:delete:own`. `IUserStore.scope(право)` →
+  `all | own | null`, `canOn(право, [ownerId])` — можно ли действие над сущностью. Файлы
+  (`FILE_PERMISSIONS`): переключатель «Мои / Все» — только при `scope("file:view") === "all"`,
+  кнопка удаления — по `canOn("file:delete", [ownerId])`.
 - «Мой журнал» живой: `audit:created` → `IAuditRealtime` → `AuditStore.prepend`.
 
 ## Вход по биометрии (`features/biometric`)

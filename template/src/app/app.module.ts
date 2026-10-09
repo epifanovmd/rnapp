@@ -1,7 +1,9 @@
+import { agentModule } from "@entities/agent";
 import { auditModule } from "@entities/audit";
 import { authModule } from "@entities/auth";
 import { fileModule } from "@entities/file";
 import { jobModule } from "@entities/job";
+import { nodeModule } from "@entities/node";
 import { userModule } from "@entities/user";
 import { biometricModule } from "@features/biometric";
 import { apiModule } from "@shared/api";
@@ -28,6 +30,8 @@ export const registerContainerModules = (): void => {
     fileModule,
     jobModule,
     auditModule,
+    agentModule,
+    nodeModule,
     appStateModule,
     mediaModule,
     navigationModule,

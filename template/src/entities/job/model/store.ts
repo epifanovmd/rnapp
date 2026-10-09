@@ -1,5 +1,5 @@
 import { IMainApi, toHolderPage } from "@shared/api";
-import type { JobRunDto } from "@shared/api/gen/main/model";
+import type { IDemoEchoData, JobRunDto } from "@shared/api/gen/main/model";
 import { InfiniteHolder } from "@shared/lib/holders";
 import { ApiError, ApiResponse, mapCancelable } from "@shared/lib/http";
 import { injectable } from "inversify";
@@ -42,8 +42,10 @@ export class JobStore implements IJobStore {
     return this._api.cancelJob(id);
   }
 
-  async startDemoEcho(text: string): Promise<ApiResponse<JobRunDto, ApiError>> {
-    const started = await this._api.demoEchoJob({ text });
+  async startDemoEcho(
+    data: IDemoEchoData,
+  ): Promise<ApiResponse<JobRunDto, ApiError>> {
+    const started = await this._api.demoEchoJob(data);
 
     if (started.error) return { error: started.error };
 

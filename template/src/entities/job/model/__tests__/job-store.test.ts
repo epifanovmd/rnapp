@@ -20,7 +20,11 @@ const job = (id: string, status: EJobRunStatus = EJobRunStatus.queued) =>
     scopeId: null,
     attempt: 0,
     cancelRequested: false,
-    stopRequested: false,
+    agentId: null,
+    worker: null,
+    jobType: null,
+    outputs: null,
+    deadlineAt: null,
     startedAt: null,
     finishedAt: null,
     createdAt: "2026-01-01T00:00:00.000Z",
@@ -69,13 +73,15 @@ describe("JobStore", () => {
   });
 
   it("демо-задача после запуска появляется в списке", async () => {
+    const demoEchoJob = jest.fn(async () => ({ data: { jobId: "j9" } }));
     const store = createStore({
-      demoEchoJob: jest.fn(async () => ({ data: { jobId: "j9" } })) as never,
+      demoEchoJob: demoEchoJob as never,
       getJob: jest.fn(async () => ({ data: job("j9") })) as never,
     });
 
-    const res = await store.startDemoEcho("hi");
+    const res = await store.startDemoEcho({ text: "hi", long: true });
 
+    expect(demoEchoJob).toHaveBeenCalledWith({ text: "hi", long: true });
     expect(res.data?.id).toBe("j9");
     expect(store.jobs.map(j => j.id)).toEqual(["j9"]);
   });

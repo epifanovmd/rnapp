@@ -164,4 +164,36 @@ describe("FileStore", () => {
 
     expect(store.images.map(f => f.id)).toEqual(["f1"]);
   });
+  it("список «все файлы» грузится заново с mine=false, без кандидатов в аватар", async () => {
+    const page = (items: IFileDto[]) =>
+      Object.assign(
+        Promise.resolve({
+          data: { items, total: items.length, offset: 0, limit: 20 },
+        }),
+        { cancel: jest.fn() },
+      );
+    const getMyFiles = jest.fn(({ mine }: { mine: boolean }) =>
+      page(mine ? [file("f1")] : [file("f1"), file("f2")]),
+    );
+    const store = new FileStore({ getMyFiles } as unknown as IMainApi);
+
+    await store.load();
+    expect(getMyFiles).toHaveBeenLastCalledWith({
+      mine: true,
+      offset: 0,
+      limit: 20,
+    });
+
+    await store.setMine(false);
+    expect(getMyFiles).toHaveBeenLastCalledWith({
+      mine: false,
+      offset: 0,
+      limit: 20,
+    });
+    expect(store.files.map(f => f.id)).toEqual(["f1", "f2"]);
+    expect(store.images).toEqual([]);
+
+    store.reset();
+    expect(store.mine).toBe(true);
+  });
 });

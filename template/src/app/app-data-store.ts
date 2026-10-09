@@ -1,7 +1,9 @@
+import { IAgentsStore } from "@entities/agent";
 import { IAuditRealtime, IAuditStore } from "@entities/audit";
 import { IAuthStore } from "@entities/auth";
 import { IFileRealtime, IFileStore } from "@entities/file";
 import { IJobRealtime, IJobStore } from "@entities/job";
+import { INodesStore } from "@entities/node";
 import { IUserRealtime, IUserStore } from "@entities/user";
 import { ISocketTransport } from "@shared/lib/socket";
 import { disposer, InitializeDispose } from "@shared/lib/utils";
@@ -23,6 +25,8 @@ export class AppDataStore implements IAppDataStore {
     @IJobRealtime() private _jobRealtime: IJobRealtime,
     @IAuditStore() private _auditStore: IAuditStore,
     @IAuditRealtime() private _auditRealtime: IAuditRealtime,
+    @IAgentsStore() private _agentsStore: IAgentsStore,
+    @INodesStore() private _nodesStore: INodesStore,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -50,6 +54,8 @@ export class AppDataStore implements IAppDataStore {
             this._fileStore.reset();
             this._jobStore.reset();
             this._auditStore.reset();
+            this._agentsStore.reset();
+            this._nodesStore.reset();
           }
         },
       ),

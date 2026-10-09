@@ -1,4 +1,4 @@
-import type { JobRunDto } from "@shared/api/gen/main/model";
+import type { IDemoEchoData, JobRunDto } from "@shared/api/gen/main/model";
 import { createInjectDecorator, SupportInitialize } from "@shared/lib/di";
 import type { InfiniteHolder } from "@shared/lib/holders";
 import type { ApiError, ApiResponse } from "@shared/lib/http";
@@ -15,8 +15,11 @@ export interface IJobStore {
   loadMore(): Promise<void>;
   /** Отменить задачу; новый статус придёт событием `job:updated`. */
   cancel(id: string): Promise<ApiResponse<void, ApiError>>;
-  /** Поставить демо-задачу `demo.echo` (право `jobs:demo`). */
-  startDemoEcho(text: string): Promise<ApiResponse<JobRunDto, ApiError>>;
+  /**
+   * Поставить демо-задачу `demo.echo` воркеру `echo` агента (право `jobs:demo`):
+   * быстрая `echo.quick` или долгая `echo.long` (`long: true`) с шагами и файлом итога.
+   */
+  startDemoEcho(data: IDemoEchoData): Promise<ApiResponse<JobRunDto, ApiError>>;
   /** Новое состояние задачи: заменить в списке или добавить в начало. */
   handleJobUpdated(job: JobRunDto): void;
   reset(): void;

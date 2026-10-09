@@ -1,3 +1,4 @@
+import { IUserStore } from "@entities/user";
 import { BiometricMenuItem } from "@features/biometric";
 import { SignOutButton } from "@features/sign-out";
 import { APP_VERSION } from "@shared/config/app-info";
@@ -21,7 +22,14 @@ interface IAppMenuProps {
 /** Меню настроек: профиль, разделы аккаунта, тема, биометрия, выход и версия. */
 export const AppMenu: FC<IAppMenuProps> = observer(({ reveal }) => {
   const navigation = useNavigation();
+  const userStore = IUserStore.useInstance();
   const profile = useMenuProfile();
+  const groups = APP_MENU_GROUPS.map(group => ({
+    ...group,
+    items: group.items.filter(
+      item => !item.permission || userStore.can(item.permission),
+    ),
+  })).filter(group => group.items.length > 0);
   const profileCard = (
     <AppMenuProfile
       {...profile}
@@ -37,7 +45,7 @@ export const AppMenu: FC<IAppMenuProps> = observer(({ reveal }) => {
         profileCard
       )}
 
-      {APP_MENU_GROUPS.map(group => (
+      {groups.map(group => (
         <AppMenuGroup key={group.label} label={group.label}>
           {group.items.map(item => (
             <ListItem

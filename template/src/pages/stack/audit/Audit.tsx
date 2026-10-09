@@ -1,4 +1,4 @@
-import { IAuditStore } from "@entities/audit";
+import { agentAuditTitle, IAuditStore } from "@entities/audit";
 import type { AuditEventDto } from "@shared/api/gen/main/model";
 import { formatter } from "@shared/lib/utils";
 import { Col, Container, Spinner, Text } from "@shared/ui";
@@ -8,7 +8,7 @@ import { FlatList, ListRenderItem, StyleSheet } from "react-native";
 
 const renderEvent: ListRenderItem<AuditEventDto> = ({ item }) => (
   <Col bg={"surface"} radius={12} pa={12} gap={4}>
-    <Text textStyle={"Body_M1"}>{item.type}</Text>
+    <Text textStyle={"Body_M1"}>{agentAuditTitle(item) ?? item.type}</Text>
     <Text textStyle={"Caption_M1"} color={"textSecondary"}>
       {[formatter.date.format(item.createdAt), item.ip]
         .filter(Boolean)

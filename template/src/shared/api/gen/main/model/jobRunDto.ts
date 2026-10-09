@@ -1,5 +1,6 @@
 import type { EJobRunStatus } from "./eJobRunStatus";
 import type { IJobRunError } from "./iJobRunError";
+import type { IJobRunOutputDto } from "./iJobRunOutputDto";
 
 export interface JobRunDto {
   /** Id задачи (совпадает с id pg-boss). */
@@ -24,8 +25,31 @@ export interface JobRunDto {
   /** Номер попытки, с 0. */
   attempt: number;
   cancelRequested: boolean;
-  /** Запрошена штатная досрочная остановка. */
-  stopRequested: boolean;
+  /**
+   * Агент, у воркера которого выполняется внешняя задача.
+   * @nullable
+   */
+  agentId: string | null;
+  /**
+   * Воркер агента, выполняющий внешнюю задачу.
+   * @nullable
+   */
+  worker: string | null;
+  /**
+   * Тип задачи воркера внешней задачи (`echo.long`).
+   * @nullable
+   */
+  jobType: string | null;
+  /**
+   * Файлы итога внешней задачи — ссылки на скачивание; нет файлов — `null`.
+   * @nullable
+   */
+  outputs: IJobRunOutputDto[] | null;
+  /**
+   * Срок внешней задачи.
+   * @nullable
+   */
+  deadlineAt: string | null;
   /** @nullable */
   startedAt: string | null;
   /** @nullable */

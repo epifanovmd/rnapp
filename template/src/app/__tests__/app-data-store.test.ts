@@ -3,6 +3,9 @@ import { observable, runInAction } from "mobx";
 import { AppDataStore } from "../app-data-store";
 
 // Декораторы DI из барелей — без нативных модулей RN.
+jest.mock("@entities/agent", () => ({
+  IAgentsStore: () => () => undefined,
+}));
 jest.mock("@entities/audit", () => ({
   IAuditRealtime: () => () => undefined,
   IAuditStore: () => () => undefined,
@@ -15,6 +18,9 @@ jest.mock("@entities/file", () => ({
 jest.mock("@entities/job", () => ({
   IJobRealtime: () => () => undefined,
   IJobStore: () => () => undefined,
+}));
+jest.mock("@entities/node", () => ({
+  INodesStore: () => () => undefined,
 }));
 jest.mock("@entities/user", () => ({
   IUserRealtime: () => () => undefined,
@@ -40,12 +46,14 @@ const setup = () => {
     realtime as any,
     stores as any,
     realtime as any,
+    stores as any,
+    stores as any,
   );
 
   store.initialize();
   runInAction(() => (auth.isAuthenticated = true));
 
-  return { auth, realtime, userStore };
+  return { auth, realtime, userStore, stores };
 };
 
 describe("AppDataStore", () => {
@@ -56,10 +64,12 @@ describe("AppDataStore", () => {
   });
 
   it("выход сбрасывает пользователя: следующий вход не видит прежних данных", () => {
-    const { auth, userStore } = setup();
+    const { auth, userStore, stores } = setup();
 
     runInAction(() => (auth.isAuthenticated = false));
 
     expect(userStore.reset).toHaveBeenCalledTimes(1);
+    // Файлы, задачи, журнал, агенты и узлы.
+    expect(stores.reset).toHaveBeenCalledTimes(5);
   });
 });
