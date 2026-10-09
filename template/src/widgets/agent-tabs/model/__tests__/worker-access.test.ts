@@ -8,7 +8,7 @@ const options = {
 };
 
 describe("workerRowAccess", () => {
-  it("с правом и на связи — перезапуск и обновление из выпуска", () => {
+  it("с правом и на связи — перезапуск и обновление сборкой с сервера", () => {
     expect(workerRowAccess({ release: true }, options)).toEqual({
       canRestart: true,
       updateTo: "1.2.0",
@@ -16,7 +16,7 @@ describe("workerRowAccess", () => {
     });
   });
 
-  it("не из выпуска — без обновления; занят или ждёт — заменить сейчас", () => {
+  it("без сборки с сервера — без обновления; занят или ждёт — заменить сейчас", () => {
     expect(
       workerRowAccess({ health: { ok: true, busy: true } }, options),
     ).toEqual({ canRestart: true, updateTo: null, canReplaceNow: true });

@@ -101,7 +101,7 @@ export const useAgentActions = ({
     if (res.ok) toast.success(`Ключ агента «${agent.name}» сменён`);
   };
 
-  /** `target` — версия выпуска; неизвестна (нет права на выпуск) — `null`. */
+  /** `target` — новая версия; неизвестна (нет права видеть сборки) — `null`. */
   const update = async (
     agent: Pick<AgentDto, "id" | "name" | "version">,
     target: string | null,

@@ -5,7 +5,7 @@ import React, { FC, memo } from "react";
 
 interface IAgentCardProps {
   agent: AgentDto;
-  /** Версия выпуска для обновления; нет — `null`. */
+  /** Новая версия для обновления; нет — `null`. */
   updateTarget: string | null;
   alertsCount: number;
   onPress: (agent: AgentDto) => void;

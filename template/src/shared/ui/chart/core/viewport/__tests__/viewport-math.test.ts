@@ -19,7 +19,7 @@ const limits: ViewLimits = { min: 0, max: 1000, minSpan: 10 };
 const NONE: ViewLimits = { min: NaN, max: NaN, minSpan: 10 };
 
 describe("clampRange", () => {
-  it("не выпускает окно за данные", () => {
+  it("не уводит окно за пределы данных", () => {
     expect(clampRange({ start: -50, end: 50 }, limits)).toEqual({
       start: 0,
       end: 100,

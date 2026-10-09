@@ -14,7 +14,7 @@ export default [
     },
     rules: {
       "react/no-multi-comp": ["error", { ignoreStateless: false }],
-      // react-hooks: те же доп. правила, что в react-vite
+      // react-hooks: дополнительные правила
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": [
         "error",

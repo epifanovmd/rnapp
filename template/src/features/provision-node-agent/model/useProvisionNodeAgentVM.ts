@@ -34,7 +34,7 @@ interface IUseProvisionNodeAgentOptions {
 /**
  * Установка и удаление агента узла. Установка — командой на узле
  * (одноразовый токен с меткой узла) или сервером по SSH; удаление — по SSH.
- * Воркеры — из выпуска сервера, по умолчанию отмечены все. SSH-данные
+ * Воркеры — с сервера, по умолчанию отмечены все. SSH-данные
  * уходят в задачу один раз и в открытом виде не хранятся.
  */
 export const useProvisionNodeAgentVM = ({
@@ -60,11 +60,11 @@ export const useProvisionNodeAgentVM = ({
     defaultValues: sshDefaults(null, []),
   });
 
-  /** Воркеры из выпуска сервера — их можно поставить вместе с агентом. */
+  /** Воркеры с сервера — их можно поставить вместе с агентом. */
   const releaseWorkers = releaseWorkerNames(agents.release);
   const releaseKey = releaseWorkers.join(",");
 
-  // Выпуск пришёл после открытия — отметить его воркеры, пока выбор не трогали.
+  // Сборки пришли после открытия — отметить их воркеры, пока выбор не трогали.
   useEffect(() => {
     if (!open || !releaseKey) return;
 

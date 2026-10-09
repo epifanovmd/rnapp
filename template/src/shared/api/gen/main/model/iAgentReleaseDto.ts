@@ -3,10 +3,10 @@ import type { IAgentUpdateCandidateDto } from "./iAgentUpdateCandidateDto";
 import type { IAgentWorkerUpdateCandidateDto } from "./iAgentWorkerUpdateCandidateDto";
 
 /**
- * Выпуск агента и кого можно обновить.
+ * Сборки агента и кого можно обновить.
  */
 export interface IAgentReleaseDto {
-  /** `null` — нет ни источника выпусков агента, ни каталога выпуска. */
+  /** `null` — нет ни источника сборок агента, ни каталога сборок воркеров. */
   manifest: IAgentReleaseManifestDto | null;
   candidates: IAgentUpdateCandidateDto[];
   workerCandidates: IAgentWorkerUpdateCandidateDto[];

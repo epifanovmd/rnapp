@@ -51,7 +51,7 @@ type: project
 - Deep linking — пути в static-конфиге (`linking:` у экранов), `app/App.linking.ts` —
   prefixes + `enabled: "auto"`.
 
-## Аккаунт (покрытие API шаблона бэкенда)
+## Аккаунт (API бэкенда)
 
 Вход — вкладка Settings (`widgets/app-menu`, см. выше).
 Экраны стека (`App.screens.ts`, заголовок из `options.title`):
@@ -81,20 +81,20 @@ type: project
 Realtime-подписки file/job стартуют и сторы file/job/audit сбрасываются в `AppDataStore`
 по `isAuthenticated`.
 
-## Узлы и агенты (бэкенд rest-api-template-app, модули node и agent)
+## Узлы и агенты (модули бэкенда node и agent)
 
 Вход — группа «Инфраструктура» в `widgets/app-menu` (пункты с `permission`: «Узлы» —
 `node:view:own`, «Агенты» — `agent:view`; без права пункта нет).
 
-- `entities/agent` — `IAgentsStore` (`AgentsStore`: список, проблемы, выпуск, отложенные замены
+- `entities/agent` — `IAgentsStore` (`AgentsStore`: список, проблемы, сборки, отложенные замены
   воркеров), `useAgentsRealtime` (комната `agents`, `agent:updated/deleted/alert`, `agent:release` →
-  перечитать выпуск + тост с `key` по версии), `useAgentLog` (`agent:log`, уровень — `agent:log-level`),
+  перечитать сборки + тост с `key` по версии), `useAgentLog` (`agent:log`, уровень — `agent:log-level`),
   `useAgentLiveMetrics`/`useAgentMetricsHistory`, `useAgentEventFeed`; чистые `lib/` (release, metrics,
   schema, status, format, log) — с тестами.
 - `entities/node` — `INodesStore` (список, `fetch(id)`, нагрузка `node:load`), `useNodesRealtime`
   (комната `nodes` при области «все», события — при любой), статус/фильтр/адрес, `NodeStatusTag`.
 - features: `manage-node` (форма, удаление), `assign-node-owner`, `provision-node-agent` (команда установки
-  или SSH; воркеры из выпуска, по умолчанию все; удаление по SSH), `enroll-agent` (токены регистрации,
+  или SSH; воркеры с сервера, по умолчанию все; удаление по SSH), `enroll-agent` (токены регистрации,
   секрет один раз, команда установки с параметрами), `manage-agent` (`useAgentActions`, `useWorkerActions`
   с отложенной заменой и «заменить сейчас», `useWorkerActionResults` по `agent:action`,
   `agentActionItems`), `edit-worker-config` (только с правом на настройки: значение сервер отдаёт лишь с

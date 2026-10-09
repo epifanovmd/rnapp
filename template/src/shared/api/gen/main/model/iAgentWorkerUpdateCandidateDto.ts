@@ -1,5 +1,5 @@
 /**
- * Воркер из выпуска, которого можно обновить.
+ * Воркер со сборкой с сервера, которого можно обновить.
  */
 export interface IAgentWorkerUpdateCandidateDto {
   agentId: string;

@@ -28,7 +28,7 @@ export const WorkerRow: FC<IWorkerRowProps> = observer(({ row, vm }) => {
   const { updateTo } = access;
   const meta = [
     worker.manifest?.version ?? worker.version ?? "версия не сообщена",
-    worker.release && "из выпуска",
+    worker.release && "сборка с сервера",
     !!worker.restarts && `перезапусков: ${worker.restarts}`,
   ]
     .filter(Boolean)

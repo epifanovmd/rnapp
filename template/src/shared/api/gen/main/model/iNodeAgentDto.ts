@@ -25,7 +25,7 @@ export interface INodeAgentDto {
    */
   lastSeenAt: number | null;
   host: INodeAgentHostDto | null;
-  /** В выпуске есть другая версия под этот узел. */
+  /** Есть другая версия агента под этот узел. */
   updateAvailable: boolean;
   /** Воркеры: имя, состояние, версия, самочувствие. */
   workers: INodeAgentWorkerDto[];

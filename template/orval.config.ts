@@ -33,7 +33,7 @@ const defineApi = (name: string, input: Options["input"]): Options => ({
 });
 
 /**
- * Спека — из соседнего репозитория шаблона бэкенда (`yarn generate` там обновляет
+ * Спека — из соседнего репозитория бэкенда (`yarn generate` там обновляет
  * `src/routing/swagger.json`). С запущенного сервера:
  * `MAIN_SWAGGER=http://localhost:8191/api-docs/swagger.json npm run generate:orval`.
  */

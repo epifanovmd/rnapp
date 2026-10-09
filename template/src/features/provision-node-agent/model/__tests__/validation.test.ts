@@ -7,7 +7,7 @@ import {
 } from "../validation";
 
 describe("provision validation", () => {
-  it("по умолчанию — адрес узла, root, пароль и все воркеры выпуска", () => {
+  it("по умолчанию — адрес узла, root, пароль и все воркеры с сервера", () => {
     expect(sshDefaults("203.0.113.10", ["echo", "netprobe"])).toMatchObject({
       host: "203.0.113.10",
       port: 22,

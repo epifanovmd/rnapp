@@ -32,7 +32,7 @@ const STATE: Record<
   used: { label: "использован", variant: "muted" },
 };
 
-/** Выпущенные токены: состояние, использования, срок; действующие можно отозвать. */
+/** Созданные токены: состояние, использования, срок; действующие можно отозвать. */
 export const EnrollmentTokenList: FC<IEnrollmentTokenListProps> = observer(
   ({ vm }) => {
     if (vm.isTokensLoading && vm.tokens.length === 0) {
@@ -41,7 +41,7 @@ export const EnrollmentTokenList: FC<IEnrollmentTokenListProps> = observer(
     if (vm.tokens.length === 0) {
       return (
         <Text textStyle={"Body_S2"} color={"textSecondary"}>
-          {"Токенов пока нет — выпустите первый."}
+          {"Токенов пока нет — создайте первый."}
         </Text>
       );
     }

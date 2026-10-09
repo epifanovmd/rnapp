@@ -5,7 +5,7 @@ export type TAgentMenuAction = "update" | "rotate" | "revoke" | "delete";
 
 /** Что можно сделать с агентом: считает экран по правам и состоянию агента. */
 export interface IAgentMenuAccess {
-  /** Версия выпуска, до которой можно обновить; нельзя — `null`. */
+  /** Новая версия, до которой можно обновить; нельзя — `null`. */
   updateTo: string | null;
   canRotate: boolean;
   canRevoke: boolean;

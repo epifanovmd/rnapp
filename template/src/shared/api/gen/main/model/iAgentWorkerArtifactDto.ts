@@ -1,7 +1,7 @@
 import type { TAgentReleaseSource } from "./tAgentReleaseSource";
 
 /**
- * Сборка воркера в выпуске.
+ * Сборка воркера.
  */
 export interface IAgentWorkerArtifactDto {
   os: string;

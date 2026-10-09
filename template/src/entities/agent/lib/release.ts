@@ -6,7 +6,7 @@ import type {
 } from "@shared/api/gen/main/model";
 
 /**
- * Кандидат на обновление агента до версии выпуска. Выпуск мог устареть:
+ * Кандидат на обновление агента до новой версии. Сборки могли устареть:
  * агент уже на этой версии — кандидата нет.
  */
 export const agentUpdateCandidate = (
@@ -21,7 +21,7 @@ export const agentUpdateCandidate = (
   return candidate;
 };
 
-/** Кандидат на обновление воркера из выпуска; воркер уже на этой версии — нет. */
+/** Кандидат на обновление воркера сборкой с сервера; воркер уже на этой версии — нет. */
 export const workerUpdateCandidate = (
   release: IAgentReleaseDto | null,
   agentId: string,
@@ -37,7 +37,7 @@ export const workerUpdateCandidate = (
   return candidate;
 };
 
-/** Воркеры выпуска по имени без повторов (сборки под разные платформы). */
+/** Воркеры с сервера по имени без повторов (сборки под разные платформы). */
 export const releaseWorkerNames = (
   release: IAgentReleaseDto | null,
 ): string[] =>
@@ -45,17 +45,17 @@ export const releaseWorkerNames = (
     ...new Set(release?.manifest?.workers?.map(worker => worker.name) ?? []),
   ].sort();
 
-/** Событие `agent:release`: в источнике выпусков другая версия агента. */
+/** Событие `agent:release`: там, откуда берутся сборки, другая версия агента. */
 export interface IAgentReleaseNotice {
   version: string;
-  /** Прежняя версия; нет — выпуск получен впервые после запуска сервера. */
+  /** Прежняя версия; нет — сборки получены впервые после запуска сервера. */
   previous?: string;
-  /** `github:owner/repo` или ссылка на каталог выпуска. */
+  /** Откуда берутся сборки: `github:owner/repo` (GitHub Releases) или ссылка на каталог. */
   from: string;
 }
 
 /**
- * Текст уведомления о новой версии агента; первое получение выпуска после
+ * Текст уведомления о новой версии агента; первое получение сборок после
  * запуска сервера (без прежней версии) — без уведомления.
  */
 export const agentReleaseMessage = (

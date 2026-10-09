@@ -1,5 +1,5 @@
 /**
- * Агент, которого можно обновить до версии выпуска.
+ * Агент, которого можно обновить до новой версии.
  */
 export interface IAgentUpdateCandidateDto {
   agentId: string;

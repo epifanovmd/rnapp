@@ -21,6 +21,6 @@ export interface IInstallNodeAgentBody {
    * `AGENT_PUBLIC_URL` / `APP_PUBLIC_URL`.
    */
   backendUrl?: string;
-  /** Воркеры из выпуска агента (по умолчанию — проверка сети `netprobe`). */
+  /** Воркеры из сборок агента (по умолчанию — проверка сети `netprobe`). */
   workers?: string[];
 }

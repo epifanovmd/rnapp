@@ -16,7 +16,7 @@ export const AGENT_FILTER_LABELS: Record<TAgentFilter, string> = {
 export interface IAgentFilterContext {
   /** Есть активные проблемы. */
   hasAlerts: (agentId: string) => boolean;
-  /** Есть версия выпуска для обновления. */
+  /** Есть новая версия для обновления. */
   hasUpdate: (agentId: string) => boolean;
 }
 

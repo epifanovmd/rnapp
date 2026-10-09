@@ -132,7 +132,7 @@ export const useNodesVM = () => {
     provision.close,
   );
 
-  /** Pull-to-refresh: список, связность, агенты и выпуск. */
+  /** Pull-to-refresh: список, связность, агенты и сборки агента. */
   const reload = async () => {
     if (!canView) return;
     setRefreshing(true);

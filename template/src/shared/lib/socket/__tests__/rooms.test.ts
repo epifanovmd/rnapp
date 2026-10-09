@@ -5,12 +5,7 @@ describe("subscribeSocketRoom", () => {
   it("после переподключения — снова вход в комнату и onRejoin; после отписки — нет", () => {
     const socket = createFakeSocket();
     const onRejoin = jest.fn();
-    const unsubscribe = subscribeSocketRoom(
-      socket,
-      "wg-forwards",
-      "all",
-      onRejoin,
-    );
+    const unsubscribe = subscribeSocketRoom(socket, "agents", "all", onRejoin);
 
     expect(onRejoin).not.toHaveBeenCalled();
 
@@ -25,7 +20,7 @@ describe("subscribeSocketRoom", () => {
     expect(onRejoin).toHaveBeenCalledTimes(1);
     expect(socket.emitted.at(-1)?.event).toBe("room:unsubscribe");
     expect(socket.emitted.at(-1)?.args[0]).toEqual({
-      type: "wg-forwards",
+      type: "agents",
       id: "all",
     });
   });
@@ -40,7 +35,7 @@ describe("subscribeSocketRoom", () => {
 
       if (typeof ack === "function") ack({ ok: false });
     };
-    subscribeSocketRoom(socket, "wg-socks", "all", onRejoin);
+    subscribeSocketRoom(socket, "nodes", "all", onRejoin);
     socket.reconnect();
 
     expect(onRejoin).not.toHaveBeenCalled();
@@ -53,9 +48,9 @@ describe("subscribeSocketRoom", () => {
     const socket = createFakeSocket();
     const onRejoin = jest.fn();
 
-    subscribeSocketRoom(socket, "wg-socks", "all", onRejoin);
-    subscribeSocketRoom(socket, "wg-forwards", "all");
-    socket.fire("room:revoked", { type: "wg-socks", id: "all" });
+    subscribeSocketRoom(socket, "nodes", "all", onRejoin);
+    subscribeSocketRoom(socket, "agents", "all");
+    socket.fire("room:revoked", { type: "nodes", id: "all" });
     socket.reconnect();
 
     expect(onRejoin).not.toHaveBeenCalled();
@@ -63,7 +58,7 @@ describe("subscribeSocketRoom", () => {
       socket.emitted
         .filter(e => e.event === "room:subscribe")
         .map(e => (e.args[0] as { type: string }).type),
-    ).toEqual(["wg-socks", "wg-forwards", "wg-forwards"]);
+    ).toEqual(["nodes", "agents", "agents"]);
   });
 
   it("подписка до подключения — один вход после connect, без onRejoin", () => {
@@ -74,7 +69,7 @@ describe("subscribeSocketRoom", () => {
       status: "connecting",
       error: null,
     };
-    subscribeSocketRoom(socket, "wg-socks", "all", onRejoin);
+    subscribeSocketRoom(socket, "nodes", "all", onRejoin);
     expect(socket.emitted).toHaveLength(0);
 
     (socket as { state: unknown }).state = {

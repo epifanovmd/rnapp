@@ -96,7 +96,7 @@ export const useNodeDetailVM = (nodeId: string) => {
   useEffect(() => {
     if (!agentId) return;
     agents.loadAlerts();
-    // Выпуск — только с правом на агентов: из него версия обновления.
+    // Сборки — только с правом на агентов: из них версия обновления.
     if (canViewAgents) agents.loadRelease();
   }, [agentId, agents, canViewAgents]);
 
@@ -168,7 +168,7 @@ export const useNodeDetailVM = (nodeId: string) => {
   useCloseWhenForbidden(owner.open, access.canAssign, owner.close);
   useCloseWhenForbidden(provision.open, access.canProvision, provision.close);
 
-  /** Pull-to-refresh: узел, агент, задача и выпуск. */
+  /** Pull-to-refresh: узел, агент, задача и сборки агента. */
   const reload = async (): Promise<void> => {
     if (!canView) return;
     await Promise.all([
@@ -200,9 +200,9 @@ export const useNodeDetailVM = (nodeId: string) => {
     /** Последняя задача установки или удаления целиком, если загружена. */
     job: job.data?.id === jobId ? job.data : null,
     addressMismatch: node ? nodeAddressMismatch(node) : false,
-    /** Есть новая версия агента для узла (сервер считает по выпуску). */
+    /** Есть новая версия агента для узла (сервер считает по сборкам). */
     updateAvailable: !!node?.agent?.updateAvailable,
-    /** Версия выпуска для обновления; без права на выпуск — неизвестна. */
+    /** Новая версия для обновления; без права видеть сборки — неизвестна. */
     updateTarget: agentId
       ? (agents.updateCandidate(agentId)?.target ?? null)
       : null,

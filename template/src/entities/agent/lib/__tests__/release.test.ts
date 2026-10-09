@@ -54,7 +54,7 @@ const release: IAgentReleaseDto = {
 };
 
 describe("agent release", () => {
-  it("кандидат агента; агент уже на версии выпуска — нет кандидата", () => {
+  it("кандидат агента; агент уже на новой версии — нет кандидата", () => {
     expect(agentUpdateCandidate(release, "a1")?.target).toBe("1.1.0");
     expect(
       agentUpdateCandidate(release, "a1", { version: "1.1.0" }),
@@ -69,12 +69,12 @@ describe("agent release", () => {
     expect(workerUpdateCandidate(release, "a1", "backup")).toBeNull();
   });
 
-  it("воркеры выпуска — по имени без повторов, по алфавиту", () => {
+  it("воркеры с сервера — по имени без повторов, по алфавиту", () => {
     expect(releaseWorkerNames(release)).toEqual(["backup", "echo"]);
     expect(releaseWorkerNames(null)).toEqual([]);
   });
 
-  it("новая версия — уведомление; первое получение выпуска — без него", () => {
+  it("новая версия — уведомление; первое получение сборок — без него", () => {
     expect(
       agentReleaseMessage({
         version: "1.2.0",

@@ -177,7 +177,7 @@ export const useRecordingController = (
   const finishRecording = useCallback(() => {
     const wasLocked = recordingStateRef.current === "locked";
     // Из обычной записи под сперва возвращает микрофон пружиной и только потом
-    // выпускает левую кнопку; из закреплённой — сразу, микрофон уже на месте.
+    // показывает левую кнопку; из закреплённой — сразу, микрофон уже на месте.
     const delay = wasLocked ? 0 : MIC_RESTORE_DURATION;
 
     setRecordingState("idle");

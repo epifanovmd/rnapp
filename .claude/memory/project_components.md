@@ -183,14 +183,14 @@ Gotcha gorhom 5.2.x, из-за которой стек ломался при б�
 
 ## Select / GroupedSelect / Autocomplete (`shared/ui/select`, 2026-10-02)
 
-Порт веб-Select под мобильный UX: поле-триггер в стиле TextField +
-`nested` BottomSheet со списком. API как в вебе: дискриминированные режимы
+Выбор значения под мобильный UX: поле-триггер в стиле TextField +
+`nested` BottomSheet со списком. Дискриминированные режимы
 (single / clearable / labelInValue / multi / multi labelInValue / `multi: boolean`),
 `SelectDataProps` от стратегий (`useStatic/Async/Eager/Infinite/Dependent/ControlledOptions`,
-ядро `useOptionsRequest` с AbortController — как в вебе, без холдеров),
+ядро `useOptionsRequest` с AbortController, без холдеров),
 `groups`, `creatable`+`onCreate`, `optionRender/renderValue/tagRender`, `hideEmpty`,
 `closeOnClear`, `virtual`, ref `{ open, scrollTo }`.
-Отличия от веба: сообщение валидации — `errorMessage` (`error` = ошибка загрузки
+Особенности: сообщение валидации — `errorMessage` (`error` = ошибка загрузки
 стратегии); `filterOption` у Select (клиентский фильтр, пока нет `onSearch`);
 multi — выбор мгновенный, «Готово»/«Очистить» в футере; single clearable —
 крестик в поле + строка «Не выбрано»; поиск/ввод — над списком в шторке;

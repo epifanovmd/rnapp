@@ -28,7 +28,7 @@ const createStore = () => {
 };
 
 describe("AgentsStore", () => {
-  it("кандидат на обновление пропадает, когда агент уже на версии выпуска", async () => {
+  it("кандидат на обновление пропадает, когда агент уже на новой версии", async () => {
     const { store, getAgentRelease } = createStore();
 
     store.upsert(makeAgent({ id: "a1", version: "1.0.0" }));
@@ -37,7 +37,7 @@ describe("AgentsStore", () => {
 
     store.upsert(makeAgent({ id: "a1", version: "1.1.0" }));
     expect(store.updateCandidate("a1")).toBeNull();
-    // Версия сменилась — выпуск перечитывается.
+    // Версия сменилась — сборки перечитываются.
     expect(getAgentRelease).toHaveBeenCalledTimes(2);
   });
 

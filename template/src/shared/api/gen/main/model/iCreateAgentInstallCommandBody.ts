@@ -23,7 +23,7 @@ export interface ICreateAgentInstallCommandBody {
   sysctl?: RecordStringString;
   rwPaths?: string[];
   caFile?: string;
-  /** Воркеры из выпуска. */
+  /** Воркеры с сервера. */
   workers?: string[];
   /** Например `30s`. */
   stopTimeout?: string;
