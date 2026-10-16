@@ -34,6 +34,6 @@ describe("resolveScope", () => {
   });
 
   it("null — права нет", () => {
-    expect(resolveScope([], ["jobs:demo"], "file:view")).toBeNull();
+    expect(resolveScope([], ["report:export"], "file:view")).toBeNull();
   });
 });

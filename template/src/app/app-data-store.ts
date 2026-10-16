@@ -1,9 +1,6 @@
-import { IAgentsStore } from "@entities/agent";
 import { IAuditRealtime, IAuditStore } from "@entities/audit";
 import { IAuthStore } from "@entities/auth";
 import { IFileRealtime, IFileStore } from "@entities/file";
-import { IJobRealtime, IJobStore } from "@entities/job";
-import { INodesStore } from "@entities/node";
 import { ISessionStore, IUserRealtime, IUserStore } from "@entities/user";
 import { ISocketTransport } from "@shared/lib/socket";
 import { disposer, InitializeDispose } from "@shared/lib/utils";
@@ -21,12 +18,8 @@ export class AppDataStore implements IAppDataStore {
     @IUserRealtime() private _userRealtime: IUserRealtime,
     @IFileStore() private _fileStore: IFileStore,
     @IFileRealtime() private _fileRealtime: IFileRealtime,
-    @IJobStore() private _jobStore: IJobStore,
-    @IJobRealtime() private _jobRealtime: IJobRealtime,
     @IAuditStore() private _auditStore: IAuditStore,
     @IAuditRealtime() private _auditRealtime: IAuditRealtime,
-    @IAgentsStore() private _agentsStore: IAgentsStore,
-    @INodesStore() private _nodesStore: INodesStore,
     @ISessionStore() private _sessionStore: ISessionStore,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -58,7 +51,6 @@ export class AppDataStore implements IAppDataStore {
     socketDisposers.add(this._socketTransport.initialize());
     socketDisposers.add(this._userRealtime.initialize());
     socketDisposers.add(this._fileRealtime.initialize());
-    socketDisposers.add(this._jobRealtime.initialize());
     socketDisposers.add(this._auditRealtime.initialize());
   }
 
@@ -68,10 +60,7 @@ export class AppDataStore implements IAppDataStore {
     this._userStore.reset();
     this._sessionStore.reset();
     this._fileStore.reset();
-    this._jobStore.reset();
     this._auditStore.reset();
-    this._agentsStore.reset();
-    this._nodesStore.reset();
   }
 
   private _stopRealtime(socketDisposers: Set<InitializeDispose>) {

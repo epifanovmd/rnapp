@@ -1,6 +1,4 @@
 /* eslint-disable check-file/filename-naming-convention -- часть неймспейса `App.*`, не обычный модуль */
-import { AgentDetail } from "@pages/stack/agent-detail";
-import { Agents } from "@pages/stack/agents";
 import { Audit } from "@pages/stack/audit";
 import { Chat } from "@pages/stack/chat";
 import {
@@ -47,9 +45,6 @@ import {
 } from "@pages/stack/components";
 import { ContainerScanner } from "@pages/stack/container-scanner";
 import { Files } from "@pages/stack/files";
-import { Jobs } from "@pages/stack/jobs";
-import { NodeDetail } from "@pages/stack/node-detail";
-import { Nodes } from "@pages/stack/nodes";
 import { ObjectScanner } from "@pages/stack/object-scanner";
 import { PdfView } from "@pages/stack/pdf-view";
 import { PlateScanner } from "@pages/stack/plate-scanner";
@@ -332,31 +327,6 @@ export const RootStack = createStackNavigator({
           screen: Files,
           options: { title: "Мои файлы" },
           linking: "files",
-        },
-        Jobs: {
-          screen: Jobs,
-          options: { title: "Фоновые задачи" },
-          linking: "jobs",
-        },
-        Nodes: {
-          screen: Nodes,
-          options: { title: "Узлы" },
-          linking: "nodes",
-        },
-        NodeDetail: {
-          screen: NodeDetail,
-          options: NO_HEADER,
-          linking: "nodes/:nodeId",
-        },
-        Agents: {
-          screen: Agents,
-          options: { title: "Агенты" },
-          linking: "agents",
-        },
-        AgentDetail: {
-          screen: AgentDetail,
-          options: NO_HEADER,
-          linking: "agents/:agentId",
         },
         ContainerScanner: {
           screen: ContainerScanner,

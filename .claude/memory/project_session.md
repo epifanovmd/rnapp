@@ -91,9 +91,8 @@ DI-модули импортируют контракты напрямую (`not
   `user:privileges-changed` → `userStore.refresh()`.
 - `session:terminated { sessionId: "all" }` (аккаунт удалён) → выход
   (`SessionStore.handleSessionTerminated`).
-- Выход сбрасывает `userStore` (и файлы, задачи, журнал) в `AppDataStore`.
-- Права — строки (`Permission` в entities/user), `KnownPermission` в спеке нет;
-  демо-задача — по праву `jobs:demo` (`JOB_PERMISSIONS`).
+- Выход сбрасывает `userStore` (и сессии, файлы, журнал) в `AppDataStore`.
+- Права — строки (`Permission` в entities/user), `KnownPermission` в спеке нет.
 - Область права «все / свои»: `x:delete` покрывает `x:delete:own`. `IUserStore.scope(право)` →
   `all | own | null`, `canOn(право, [ownerId])` — можно ли действие над сущностью. Файлы
   (`FILE_PERMISSIONS`): переключатель «Мои / Все» — только при `scope("file:view") === "all"`,

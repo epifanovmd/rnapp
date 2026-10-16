@@ -4,9 +4,6 @@ import { observable, runInAction } from "mobx";
 import { AppDataStore } from "../app-data-store";
 
 // Декораторы DI из барелей — без нативных модулей RN.
-jest.mock("@entities/agent", () => ({
-  IAgentsStore: () => () => undefined,
-}));
 jest.mock("@entities/audit", () => ({
   IAuditRealtime: () => () => undefined,
   IAuditStore: () => () => undefined,
@@ -15,13 +12,6 @@ jest.mock("@entities/auth", () => ({ IAuthStore: () => () => undefined }));
 jest.mock("@entities/file", () => ({
   IFileRealtime: () => () => undefined,
   IFileStore: () => () => undefined,
-}));
-jest.mock("@entities/job", () => ({
-  IJobRealtime: () => () => undefined,
-  IJobStore: () => () => undefined,
-}));
-jest.mock("@entities/node", () => ({
-  INodesStore: () => () => undefined,
 }));
 jest.mock("@entities/user", () => ({
   ISessionStore: () => () => undefined,
@@ -47,10 +37,6 @@ const create = (isAuthenticated = false) => {
     realtime as any,
     stores as any,
     realtime as any,
-    stores as any,
-    realtime as any,
-    stores as any,
-    stores as any,
     sessionStore as any,
   );
 
@@ -70,7 +56,7 @@ describe("AppDataStore", () => {
   it("вход подписывает realtime, включая свой журнал", () => {
     const { realtime } = setup();
 
-    expect(realtime.initialize).toHaveBeenCalledTimes(5);
+    expect(realtime.initialize).toHaveBeenCalledTimes(4);
   });
 
   it("выход сбрасывает пользователя: следующий вход не видит прежних данных", () => {
@@ -79,8 +65,8 @@ describe("AppDataStore", () => {
     runInAction(() => (auth.isAuthenticated = false));
 
     expect(userStore.reset).toHaveBeenCalledTimes(1);
-    // Файлы, задачи, журнал, агенты и узлы.
-    expect(stores.reset).toHaveBeenCalledTimes(5);
+    // Файлы и журнал.
+    expect(stores.reset).toHaveBeenCalledTimes(2);
   });
 
   it("выход сбрасывает список сессий прежнего пользователя", () => {
@@ -98,7 +84,7 @@ describe("AppDataStore — повторная инициализация", () =>
 
     store.initialize();
 
-    expect(realtime.initialize).toHaveBeenCalledTimes(5);
+    expect(realtime.initialize).toHaveBeenCalledTimes(4);
     expect(userStore.load).toHaveBeenCalledTimes(1);
   });
 
@@ -113,7 +99,7 @@ describe("AppDataStore — повторная инициализация", () =>
 
     store.initialize();
 
-    expect(realtime.initialize).toHaveBeenCalledTimes(10);
+    expect(realtime.initialize).toHaveBeenCalledTimes(8);
   });
 
   it("не авторизован при initialize — данные не сбрасывает", () => {

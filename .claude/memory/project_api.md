@@ -242,12 +242,8 @@ auth-API (обновление токенов) → сессия → HTTP-кли�
   — публичные, без bearerAuth (иначе 401 verify ушёл бы в refresh); `deleteDevice`/`getDevices` — с `{ notifyErrors: false }`.
 - Загрузка файла: `uploadFile({ file: toFormFile({ uri, name, type }) })` (`shared/lib/files`);
   сервер сверяет расширение, mime и сигнатуру (jpg/png/…/pdf/txt/csv …).
-- Сокет-события: `job:updated` (JobRunDto, владельцу), `file:processed` (IFileDto), `user:email-changed`.
+- Сокет-события: `file:processed` (IFileDto), `user:email-changed`.
 - Файлы: `getMyFiles({ mine, offset, limit })` — `mine=false` при праве `file:view` отдаёт все файлы.
-- Задачи: внешние задачи выполняют воркеры агентов; у `JobRunDto` есть `agentId`, `worker`, `jobType`,
-  `outputs` (подписанные ссылки на файлы итога), `deadlineAt`. Демо `demoEchoJob(IDemoEchoData)`:
-  быстрая `echo.quick` или долгая (`long`, `steps`, `delayMs`, `fail`, `withOutput`).
-- Эндпоинты агентов и узлов (`/agents`, `/nodes`, …) — экраны в `project_screens.md`, раздел «Узлы и агенты».
 
 ## Ошибки API на экранах (2026-09-26)
 

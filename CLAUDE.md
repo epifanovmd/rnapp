@@ -29,10 +29,8 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
   настроек), chat (ChatView: AnchorList + InputBar + контекстное меню)
 - `features/` — вход и аккаунт (sign-in, sign-up, sign-out, recovery-password, biometric,
   edit-profile, profile-settings, account-security), сканеры (container-, object-, plate-,
-  text-scan), чат (message-actions), файлы и задачи (file-upload, delete-file, cancel-job,
-  start-demo-job), узлы и агенты (manage-node, assign-node-owner, provision-node-agent,
-  enroll-agent, manage-agent, edit-worker-config, fetch-agent-worker)
-- `entities/` — auth, user, message, file, job, node, agent, audit
+  text-scan), чат (message-actions), файлы (file-upload, delete-file)
+- `entities/` — auth, user, message, file, audit
 - `shared/` — ui | api (только конкретные бэкенды) | config | lib (http, session, di, holders,
   navigation, theme, socket, keyboard, ...)
 
