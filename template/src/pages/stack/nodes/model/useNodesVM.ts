@@ -24,7 +24,7 @@ import type {
 } from "@shared/api/gen/main/model";
 import { useEntity } from "@shared/lib/holders";
 import { useCloseWhenForbidden } from "@shared/lib/hooks";
-import { useSocketEvent } from "@shared/lib/socket";
+import { useIsSocketConnected, useSocketEvent } from "@shared/lib/socket";
 import { useEffect, useRef, useState } from "react";
 
 import { meshKey } from "./mesh";
@@ -91,6 +91,17 @@ export const useNodesVM = () => {
   const nodesKey = meshKey(store.nodes);
   const shownKey = useRef<string | null>(null);
   const meshHolder = mesh.holder;
+
+  // После переподключения `node:mesh` за время обрыва потеряны — снимок заново.
+  const isConnected = useIsSocketConnected();
+  const connection = useRef({ was: isConnected, seen: isConnected });
+
+  useEffect(() => {
+    const { was, seen } = connection.current;
+
+    connection.current = { was: isConnected, seen: seen || isConnected };
+    if (canView && isConnected && !was && seen) meshHolder.refresh();
+  }, [canView, isConnected, meshHolder]);
 
   useEffect(() => {
     if (!canView || !store.isLoaded) return;

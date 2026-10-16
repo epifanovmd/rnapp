@@ -8,12 +8,12 @@ import {
   HttpTransport,
   IHttpClient,
 } from "@shared/lib/http";
-import type { TokenPair } from "@shared/lib/session";
+import type { TokenGrant } from "@shared/lib/session";
 
 export const IMainAuthApi = createInjectDecorator<IMainAuthApi>("IMainAuthApi");
 
 export interface IMainAuthApi {
-  refresh(refreshToken: string): CancelablePromise<ApiResponse<TokenPair>>;
+  refresh(refreshToken: string): CancelablePromise<ApiResponse<TokenGrant>>;
 }
 
 const REFRESH_TIMEOUT = 10_000;
@@ -29,7 +29,7 @@ export class MainAuthApi extends BaseApi implements IMainAuthApi {
   }
 
   refresh(refreshToken: string) {
-    return this.post<TokenPair, { refreshToken: string }>(
+    return this.post<TokenGrant, { refreshToken: string }>(
       "/api/v1/auth/refresh",
       {
         refreshToken,

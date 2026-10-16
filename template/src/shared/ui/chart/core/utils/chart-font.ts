@@ -21,7 +21,10 @@ export const resolveChartFontFamily = (
     : fontFamily;
 
 /** Шрифт подписей графика с семейством, понятным Skia на текущей платформе. */
-export const matchChartFont = (fontFamily: string | undefined, fontSize: number) =>
+export const matchChartFont = (
+  fontFamily: string | undefined,
+  fontSize: number,
+) =>
   matchFont({
     fontFamily: resolveChartFontFamily(fontFamily, Platform.OS),
     fontSize,

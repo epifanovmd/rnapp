@@ -26,6 +26,8 @@ export interface IMutationHolderResult<
 > {
   data: TData | null;
   error: TError | null;
+  /** Мутация отменена: ни успех, ни ошибка. */
+  isCanceled?: boolean;
 }
 
 export class MutationHolder<
@@ -38,6 +40,9 @@ export class MutationHolder<
   error: TError | null = null;
 
   private readonly _onMutate?: MutationFn<TArgs, TData>;
+
+  /** Номер последнего вызова: состояние меняет только его результат. */
+  private _requestId = 0;
 
   constructor(options?: IMutationHolderOptions<TArgs, TData>) {
     makeObservable(this, {
@@ -95,49 +100,41 @@ export class MutationHolder<
       return { data: null, error: null };
     }
 
-    runInAction(() => {
-      this.status = MutationStatus.Loading;
-      this.error = null;
-    });
-
-    try {
-      const res = await fn(args);
-
-      if (isCancelResponse(res)) return { data: null, error: null };
-
-      if (res.error) {
-        runInAction(() => {
-          this.status = MutationStatus.Error;
-          this.error = res.error as unknown as TError;
-        });
-
-        return { data: null, error: res.error as unknown as TError };
-      }
-
-      runInAction(() => {
-        this.data = (res.data ?? null) as TData | null;
-        this.status = MutationStatus.Success;
-        this.error = null;
-      });
-
-      return { data: (res.data ?? null) as TData | null, error: null };
-    } catch (e) {
-      if (isCancelError(e)) return { data: null, error: null };
-
-      const err = toHolderError(e) as TError;
-
-      runInAction(() => {
-        this.status = MutationStatus.Error;
-        this.error = err;
-      });
-
-      return { data: null, error: err };
-    }
+    return this._mutate(() => fn(args));
   }
 
   async run(
     fn: () => Promise<IApiResponse<TData>>,
   ): Promise<IMutationHolderResult<TData, TError>> {
+    return this._mutate(fn);
+  }
+
+  private async _mutate(
+    fn: () => Promise<IApiResponse<TData>>,
+  ): Promise<IMutationHolderResult<TData, TError>> {
+    const id = ++this._requestId;
+    const isLatest = () => id === this._requestId;
+    const canceled = () => {
+      if (isLatest()) {
+        runInAction(() => {
+          this.status =
+            this.data !== null ? MutationStatus.Success : MutationStatus.Idle;
+        });
+      }
+
+      return { data: null, error: null, isCanceled: true };
+    };
+    const failed = (error: TError) => {
+      if (isLatest()) {
+        runInAction(() => {
+          this.status = MutationStatus.Error;
+          this.error = error;
+        });
+      }
+
+      return { data: null, error };
+    };
+
     runInAction(() => {
       this.status = MutationStatus.Loading;
       this.error = null;
@@ -146,34 +143,25 @@ export class MutationHolder<
     try {
       const res = await fn();
 
-      if (isCancelResponse(res)) return { data: null, error: null };
+      if (isCancelResponse(res)) return canceled();
 
-      if (res.error) {
+      if (res.error) return failed(res.error as unknown as TError);
+
+      const data = (res.data ?? null) as TData | null;
+
+      if (isLatest()) {
         runInAction(() => {
-          this.status = MutationStatus.Error;
-          this.error = res.error as unknown as TError;
+          this.data = data;
+          this.status = MutationStatus.Success;
+          this.error = null;
         });
-
-        return { data: null, error: res.error as unknown as TError };
       }
 
-      runInAction(() => {
-        this.data = (res.data ?? null) as TData | null;
-        this.status = MutationStatus.Success;
-      });
-
-      return { data: (res.data ?? null) as TData | null, error: null };
+      return { data, error: null };
     } catch (e) {
-      if (isCancelError(e)) return { data: null, error: null };
+      if (isCancelError(e)) return canceled();
 
-      const err = toHolderError(e) as TError;
-
-      runInAction(() => {
-        this.status = MutationStatus.Error;
-        this.error = err;
-      });
-
-      return { data: null, error: err };
+      return failed(toHolderError(e) as TError);
     }
   }
 }

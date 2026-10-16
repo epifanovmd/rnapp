@@ -1,9 +1,4 @@
-import {
-  BottomSheet,
-  Button,
-  Text,
-  useBottomSheetStack,
-} from "@shared/ui";
+import { BottomSheet, Button, Text, useBottomSheetStack } from "@shared/ui";
 import React, { memo, useRef } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -67,10 +62,7 @@ export const ModalsDemo = memo(() => {
   return (
     <>
       <Animated.ScrollView
-        contentContainerStyle={[
-          SS.container,
-          { paddingBottom: bottom + 16 },
-        ]}
+        contentContainerStyle={[SS.container, { paddingBottom: bottom + 16 }]}
       >
         <Text textStyle={"Title_S1"}>{"Настройки листа"}</Text>
         {SHEET_VARIANTS.map(variant => (

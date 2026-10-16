@@ -1,3 +1,4 @@
+import { disposer } from "@shared/lib/utils";
 import { observable, runInAction } from "mobx";
 
 import { AppDataStore } from "../app-data-store";
@@ -23,6 +24,7 @@ jest.mock("@entities/node", () => ({
   INodesStore: () => () => undefined,
 }));
 jest.mock("@entities/user", () => ({
+  ISessionStore: () => () => undefined,
   IUserRealtime: () => () => undefined,
   IUserStore: () => () => undefined,
 }));
@@ -30,10 +32,11 @@ jest.mock("@shared/lib/socket", () => ({
   ISocketTransport: () => () => undefined,
 }));
 
-const setup = () => {
-  const auth = observable({ isAuthenticated: false });
+const create = (isAuthenticated = false) => {
+  const auth = observable({ isAuthenticated });
   const realtime = { initialize: jest.fn(() => jest.fn()) };
   const userStore = { load: jest.fn(), reset: jest.fn() };
+  const sessionStore = { reset: jest.fn() };
   const stores = { reset: jest.fn() };
   const store = new AppDataStore(
     auth as any,
@@ -48,12 +51,19 @@ const setup = () => {
     realtime as any,
     stores as any,
     stores as any,
+    sessionStore as any,
   );
 
-  store.initialize();
-  runInAction(() => (auth.isAuthenticated = true));
+  return { auth, realtime, userStore, sessionStore, stores, store };
+};
 
-  return { auth, realtime, userStore, stores };
+const setup = () => {
+  const created = create();
+
+  created.store.initialize();
+  runInAction(() => (created.auth.isAuthenticated = true));
+
+  return created;
 };
 
 describe("AppDataStore", () => {
@@ -71,5 +81,46 @@ describe("AppDataStore", () => {
     expect(userStore.reset).toHaveBeenCalledTimes(1);
     // Файлы, задачи, журнал, агенты и узлы.
     expect(stores.reset).toHaveBeenCalledTimes(5);
+  });
+
+  it("выход сбрасывает список сессий прежнего пользователя", () => {
+    const { auth, sessionStore } = setup();
+
+    runInAction(() => (auth.isAuthenticated = false));
+
+    expect(sessionStore.reset).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AppDataStore — повторная инициализация", () => {
+  it("уже авторизован при initialize — сокет и realtime стартуют сразу", () => {
+    const { realtime, userStore, store } = create(true);
+
+    store.initialize();
+
+    expect(realtime.initialize).toHaveBeenCalledTimes(5);
+    expect(userStore.load).toHaveBeenCalledTimes(1);
+  });
+
+  it("dispose и повторный initialize (Fast Refresh) — сессия стартует заново", () => {
+    const { realtime, store } = create(true);
+    const stop = jest.fn();
+
+    realtime.initialize.mockReturnValueOnce(stop);
+    disposer(store.initialize());
+
+    expect(stop).toHaveBeenCalledTimes(1);
+
+    store.initialize();
+
+    expect(realtime.initialize).toHaveBeenCalledTimes(10);
+  });
+
+  it("не авторизован при initialize — данные не сбрасывает", () => {
+    const { userStore, store } = create(false);
+
+    store.initialize();
+
+    expect(userStore.reset).not.toHaveBeenCalled();
   });
 });

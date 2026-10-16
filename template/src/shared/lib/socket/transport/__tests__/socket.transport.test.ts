@@ -1,7 +1,7 @@
+import type { IAppStateService } from "@shared/lib/app-state";
+import type { INetworkStatusService } from "@shared/lib/network";
 import { connect as ioConnect } from "socket.io-client";
 
-import type { IAppStateService } from "../../../app-state";
-import type { INetworkStatusService } from "../../../network";
 import type { ITokenProvider } from "../../contract";
 import { SocketTransport } from "../socket.transport";
 
@@ -361,6 +361,45 @@ describe("SocketTransport", () => {
     expect(connectMock).toHaveBeenCalledTimes(2);
   });
 
+  it("подписки on/onConnect переживают disconnect → connect", async () => {
+    const transport = createTransport();
+    const onEvent = jest.fn();
+    const onConnect = jest.fn();
+
+    transport.initialize();
+    transport.on("job:updated", onEvent);
+    transport.onConnect(onConnect);
+    transport.disconnect();
+
+    const connecting = transport.connect();
+
+    io.accept();
+    await connecting;
+    io.fire("job:updated", { id: 1 });
+
+    expect(onConnect).toHaveBeenCalledTimes(1);
+    expect(onEvent).toHaveBeenCalledWith({ id: 1 });
+  });
+
+  it("отписка владельца снимает обработчик и с будущего сокета", async () => {
+    const transport = createTransport();
+    const onEvent = jest.fn();
+
+    transport.initialize();
+    const off = transport.on("job:updated", onEvent);
+
+    transport.disconnect();
+    off();
+
+    const connecting = transport.connect();
+
+    io.accept();
+    await connecting;
+    io.fire("job:updated", { id: 1 });
+
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
   it("очередь emit отправляется после подключения", () => {
     const transport = createTransport();
 
@@ -434,6 +473,22 @@ describe("SocketTransport", () => {
       io.accept();
       io.fire("ping:any");
       expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it("отключение в фоне посреди подключения: по возвращении подключается заново", async () => {
+      const transport = createTransport();
+
+      transport.initialize();
+      setAppActive(false);
+      await jest.advanceTimersByTimeAsync(30_000);
+      expect(transport.state.status).toBe("disconnected");
+
+      setAppActive(true);
+      await flush();
+      expect(io.connectCalls).toBe(2);
+
+      io.accept();
+      expect(transport.state.status).toBe("connected");
     });
 
     it("короткий уход в фон — без отключения", async () => {

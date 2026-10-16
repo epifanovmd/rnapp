@@ -31,3 +31,15 @@ describe("DateFormatter.formatDiff", () => {
     ).toBe("2 дня назад");
   });
 });
+
+describe("DateFormatter: невалидная дата", () => {
+  it("не бросает исключение, а возвращает пустую строку", () => {
+    expect(formatter.format("not-a-date")).toBe("");
+    expect(formatter.formatDate("not-a-date")).toBe("");
+    expect(formatter.formatTime("not-a-date")).toBe("");
+    expect(formatter.formatChartTime("not-a-date")).toBe("");
+    expect(formatter.formatInputDate("not-a-date")).toBe("");
+    expect(formatter.formatDiff("not-a-date")).toBe("");
+    expect(formatter.isExpired("not-a-date")).toBe(false);
+  });
+});

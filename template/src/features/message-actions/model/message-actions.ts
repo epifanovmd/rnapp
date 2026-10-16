@@ -4,6 +4,16 @@ import { ContextMenuAction } from "@shared/ui";
 /** Действие над сообщением. */
 export type MessageActionId = "reply" | "edit" | "delete";
 
+const MESSAGE_ACTION_IDS: readonly string[] = [
+  "reply",
+  "edit",
+  "delete",
+] satisfies MessageActionId[];
+
+/** Id пункта меню — действие над сообщением. */
+export const isMessageActionId = (id: string): id is MessageActionId =>
+  MESSAGE_ACTION_IDS.includes(id);
+
 /**
  * Набор пунктов меню для сообщения.
  *

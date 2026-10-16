@@ -114,7 +114,9 @@ const ImageBarRoot = ({
           })}
         </Animated.View>
       )}
-      <BarSurfaceContext.Provider value={true}>{content}</BarSurfaceContext.Provider>
+      <BarSurfaceContext.Provider value={true}>
+        {content}
+      </BarSurfaceContext.Provider>
     </Animated.View>
   );
 };

@@ -3,9 +3,10 @@ import { IAnchorListRef } from "@epifanovmd/anchor-list";
 import { MessageActionId } from "@features/message-actions";
 import { Col } from "@shared/ui";
 import { InputBar, KeyboardInputBar } from "@shared/ui/input-bar";
-import React, { FC, useCallback, useMemo, useRef } from "react";
+import React, { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
+import { isInputActionOrphaned } from "../model/chat-input-action";
 import { buildChatRows, indexMessagesById } from "../model/chat-rows";
 import { useChatComposer } from "../model/useChatComposer";
 import { useChatListInset } from "../model/useChatListInset";
@@ -57,7 +58,12 @@ export const ChatView: FC<IChatViewProps> = ({
   const quote = useChatQuoteNavigation({ listRef });
   const scroll = useChatScrollRestore({ chatId, rows, listRef });
 
-  const { reply, edit } = composer;
+  const { reply, edit, cancel, inputAction } = composer;
+
+  // Сообщение под ответом или правкой удалили — действие панели снимается.
+  useEffect(() => {
+    if (isInputActionOrphaned(inputAction, messagesById)) cancel();
+  }, [inputAction, messagesById, cancel]);
 
   const handleAction = useCallback(
     (action: MessageActionId, message: IChatMessage) => {

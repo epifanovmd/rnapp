@@ -5,7 +5,7 @@ import { useCollection } from "@shared/lib/holders";
 import { notifyApiError } from "@shared/lib/http";
 import { INotificationService } from "@shared/lib/notifications";
 import { useConfirm, useZodForm } from "@shared/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   enrollmentTokenSchema,
@@ -31,7 +31,10 @@ export const useEnrollAgentVM = () => {
   const toast = INotificationService.useInstance();
   const agents = IAgentsStore.useInstance();
   const confirm = useConfirm();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const [isCreatingToken, setCreatingToken] = useState(false);
+  const openRef = useRef(false);
+  const creatingRef = useRef(false);
   const [issued, setIssued] = useState<string | null>(null);
   const [command, setCommand] = useState<string | null>(null);
 
@@ -55,6 +58,11 @@ export const useEnrollAgentVM = () => {
     defaultValues: INSTALL_DEFAULTS,
   });
 
+  const setOpen = (next: boolean) => {
+    openRef.current = next;
+    setOpenState(next);
+  };
+
   const openDialog = () => {
     tokenForm.reset(TOKEN_DEFAULTS);
     installForm.reset(INSTALL_DEFAULTS);
@@ -71,13 +79,27 @@ export const useEnrollAgentVM = () => {
     installForm.reset(INSTALL_DEFAULTS);
   };
 
+  /**
+   * Создание токена — по одному за раз. Шторку смахнули, пока он создавался, —
+   * она открывается снова: полный токен показывается только сейчас.
+   */
   const createToken = async (values: TEnrollmentTokenValues) => {
-    const res = await api.createAgentEnrollmentToken({
-      name: values.name,
-      labels: values.labels,
-      maxUses: values.singleUse ? 1 : undefined,
-      expiresAt: tokenExpiresAt(values.expiry),
-    });
+    if (creatingRef.current) return;
+
+    creatingRef.current = true;
+    setCreatingToken(true);
+
+    const res = await api
+      .createAgentEnrollmentToken({
+        name: values.name,
+        labels: values.labels,
+        maxUses: values.singleUse ? 1 : undefined,
+        expiresAt: tokenExpiresAt(values.expiry),
+      })
+      .finally(() => {
+        creatingRef.current = false;
+        setCreatingToken(false);
+      });
 
     if (res.error) {
       notifyApiError(toast, res.error);
@@ -90,6 +112,7 @@ export const useEnrollAgentVM = () => {
     installForm.setValue("token", res.data.token);
     installForm.setValue("tokenFile", "");
     tokenForm.reset(TOKEN_DEFAULTS);
+    if (!openRef.current) setOpen(true);
   };
 
   const revokeToken = async (token: AgentEnrollmentTokenDto) => {
@@ -137,6 +160,8 @@ export const useEnrollAgentVM = () => {
     tokens: tokens.items,
     isTokensLoading: tokens.isLoading,
     tokenForm,
+    /** Идёт создание токена: закрывать шторку кнопкой нельзя. */
+    isCreatingToken,
     createToken,
     revokeToken,
     /** Созданный токен: показывается один раз, до закрытия шторки. */

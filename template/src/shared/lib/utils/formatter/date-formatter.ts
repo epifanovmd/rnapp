@@ -5,6 +5,7 @@ import {
   format,
   isAfter,
   isToday,
+  isValid,
   isYesterday,
   parseISO,
 } from "date-fns";
@@ -13,49 +14,59 @@ import { pluralizeDay, pluralizeHour, pluralizeMinute } from "../pluralize";
 
 type MaybeString = string | null | undefined;
 
+/** Дата из ISO-строки; пустая или невалидная строка — `null`. */
+const parseDate = (isoString: MaybeString): Date | null => {
+  if (!isoString) return null;
+
+  const date = parseISO(isoString);
+
+  return isValid(date) ? date : null;
+};
+
 export class DateFormatter {
   /** "d MMMM yyyy, HH:mm" */
   format = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    return format(parseISO(isoString), "d MMMM yyyy, HH:mm");
+    return date ? format(date, "d MMMM yyyy, HH:mm") : "";
   };
 
   /** "d MMMM yyyy" */
   formatDate = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    return format(parseISO(isoString), "d MMMM yyyy");
+    return date ? format(date, "d MMMM yyyy") : "";
   };
 
   /** "HH:mm:ss" */
   formatTime = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    return format(parseISO(isoString), "HH:mm:ss");
+    return date ? format(date, "HH:mm:ss") : "";
   };
 
   /** "HH:mm:ss" если сегодня, иначе "d MMM, HH:mm:ss" */
   formatChartTime = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    const date = parseISO(isoString);
+    if (!date) return "";
 
     return format(date, isToday(date) ? "HH:mm:ss" : "d MMM, HH:mm:ss");
   };
 
   /** "yyyy-MM-dd" (для HTML date input) */
   formatInputDate = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    return format(parseISO(isoString), "yyyy-MM-dd");
+    return date ? format(date, "yyyy-MM-dd") : "";
   };
 
   /** Относительное время: "3 минуты назад", "вчера", "2 дня назад" */
   formatDiff = (isoString: MaybeString): string => {
-    if (!isoString) return "";
+    const date = parseDate(isoString);
 
-    const date = parseISO(isoString);
+    if (!date) return "";
+
     const now = new Date();
 
     if (isToday(date)) {
@@ -80,8 +91,8 @@ export class DateFormatter {
 
   /** true если дата уже прошла */
   isExpired = (isoString: MaybeString): boolean => {
-    if (!isoString) return false;
+    const date = parseDate(isoString);
 
-    return isAfter(new Date(), parseISO(isoString));
+    return date ? isAfter(new Date(), date) : false;
   };
 }

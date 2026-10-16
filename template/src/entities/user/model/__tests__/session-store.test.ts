@@ -59,4 +59,52 @@ describe("SessionStore", () => {
 
     expect(guard.signOut).not.toHaveBeenCalled();
   });
+
+  it("reset очищает список: следующий пользователь не видит чужих сессий", async () => {
+    const store = createStore({
+      getSessions: jest.fn(async () => ({
+        data: { items: [session("s1")], total: 1, offset: 0, limit: 100 },
+      })) as never,
+    });
+
+    await store.load();
+    store.reset();
+
+    expect(store.sessions).toEqual([]);
+    expect(store.sessionsHolder.isIdle).toBe(true);
+  });
+});
+
+describe("SessionStore.terminateOtherSessions", () => {
+  it("отдаёт ошибку API потребителю", async () => {
+    const error = { message: "Нет прав", status: 403 };
+    const store = createStore({
+      terminateOtherSessions: jest.fn(async () => ({ error })) as never,
+      getSessions: jest.fn(async () => ({
+        data: { items: [], total: 0, offset: 0, limit: 100 },
+      })) as never,
+    });
+
+    const res = await store.terminateOtherSessions();
+
+    expect(res.error).toBe(error);
+  });
+
+  it("при успехе перечитывает сессии", async () => {
+    const getSessions = jest.fn(async () => ({
+      data: { items: [session("s1")], total: 1, offset: 0, limit: 100 },
+    }));
+    const store = createStore({
+      terminateOtherSessions: jest.fn(async () => ({
+        data: undefined,
+      })) as never,
+      getSessions: getSessions as never,
+    });
+
+    const res = await store.terminateOtherSessions();
+
+    expect(res.error).toBeUndefined();
+    expect(getSessions).toHaveBeenCalledTimes(1);
+    expect(store.sessions.map(s => s.id)).toEqual(["s1"]);
+  });
 });

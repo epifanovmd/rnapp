@@ -70,12 +70,20 @@ export class SessionStore implements ISessionStore {
   }
 
   async terminateOtherSessions() {
-    await this._api.terminateOtherSessions();
-    await this.load();
+    const res = await this._api.terminateOtherSessions();
+
+    if (!res.error) await this.load();
+
+    return res;
   }
 
   handleNewSession(session: SessionDto) {
     this.sessionsHolder.appendIfNotExists(session.id, session);
+  }
+
+  reset() {
+    this.sessionsHolder.reset();
+    this.terminateMutation.reset();
   }
 
   handleSessionTerminated(sessionId: string) {

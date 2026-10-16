@@ -6,10 +6,16 @@ import React, {
   useRef,
 } from "react";
 
-import { BottomSheet, useBottomSheetRef } from "../bottom-sheet";
+import {
+  BottomSheet,
+  BottomSheetBackdrop,
+  useBottomSheetRef,
+} from "../bottom-sheet";
 import { TButtonVariant } from "../button";
 import { Col } from "../flex-view";
 import { Text } from "../text";
+import { canDismissModalSheet } from "./modal-sheet-dismiss";
+import { ModalSheetLockedBackdrop } from "./ModalSheetLockedBackdrop";
 
 export interface IModalSheetAction {
   title: string;
@@ -44,10 +50,13 @@ export interface IModalSheetProps {
   dismissKeyboardOnOpen?: boolean;
 }
 
+const NOOP = () => undefined;
+
 /**
  * Управляемая шторка с API модалки: `open`/`onOpenChange`, заголовок,
  * описание и футер «Отмена / действие». Закрытие жестом или фоном
- * сообщает `onOpenChange(false)`.
+ * сообщает `onOpenChange(false)`. Пока `primaryAction.loading`, закрыть
+ * шторку нельзя.
  */
 export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   open,
@@ -78,11 +87,16 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
   }, [open, sheetRef]);
 
   const hasFooter = !!primaryAction || cancelLabel !== null;
+  const dismissible = canDismissModalSheet(primaryAction);
 
   return (
     <BottomSheet
       ref={sheetRef}
       maxDynamicContentSize={maxHeight}
+      enablePanDownToClose={dismissible}
+      backdropComponent={
+        dismissible ? BottomSheetBackdrop : ModalSheetLockedBackdrop
+      }
       dismissKeyboardOnOpen={dismissKeyboardOnOpen}
       onDismiss={() => {
         presentedRef.current = false;
@@ -90,7 +104,12 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
         onClosed?.();
       }}
     >
-      {!!title && <BottomSheet.Header label={title} />}
+      {!!title && (
+        <BottomSheet.Header
+          label={title}
+          onClose={dismissible ? undefined : NOOP}
+        />
+      )}
       <BottomSheet.Content
         restoreScrollOnKeyboardHide={restoreScrollOnKeyboardHide}
       >
@@ -110,6 +129,7 @@ export const ModalSheet: FC<PropsWithChildren<IModalSheetProps>> = ({
           {cancelLabel !== null && (
             <BottomSheet.Footer.SecondaryButton
               title={cancelLabel}
+              disabled={!dismissible}
               onPress={() => onOpenChange(false)}
             />
           )}

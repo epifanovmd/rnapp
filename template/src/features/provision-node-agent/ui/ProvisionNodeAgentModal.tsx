@@ -61,13 +61,13 @@ export const ProvisionNodeAgentModal: FC<IProvisionNodeAgentModalProps> =
         ? {
             title: text.submit,
             onPress: vm.sshForm.handleSubmit(vm.submitSsh),
-            loading: vm.sshForm.formState.isSubmitting,
+            loading: vm.isBusy,
             variant: vm.mode === "uninstall" ? ("danger" as const) : undefined,
           }
         : {
             title: vm.command ? "Получить новую команду" : "Получить команду",
             onPress: vm.commandForm.handleSubmit(vm.createCommand),
-            loading: vm.commandForm.formState.isSubmitting,
+            loading: vm.isBusy,
           };
 
     return (
@@ -77,7 +77,9 @@ export const ProvisionNodeAgentModal: FC<IProvisionNodeAgentModalProps> =
         onClosed={vm.onClosed}
         title={`${text.title}: ${vm.node?.name ?? ""}`}
         description={text.description}
-        cancelLabel={vm.jobId || vm.command ? "Закрыть" : "Отмена"}
+        cancelLabel={
+          vm.isBusy ? null : vm.jobId || vm.command ? "Закрыть" : "Отмена"
+        }
         primaryAction={primaryAction}
       >
         {vm.jobId ? (
@@ -86,6 +88,7 @@ export const ProvisionNodeAgentModal: FC<IProvisionNodeAgentModalProps> =
           <Col gap={12}>
             {vm.mode === "install" && (
               <Segmented
+                disabled={vm.isBusy}
                 options={WAY_OPTIONS}
                 value={vm.way}
                 onValueChange={vm.setWay}

@@ -125,6 +125,16 @@ type: project
   `jest/stubs/react-native-vision-engine.js` — только `VISION_ENGINE_DEFAULTS`): iso6346,
   candidates, attributes, pipeline-config, region-selection, frame, ocr-pipeline (фейковая
   сессия), select-objects, orientation, cover-маппинг, сглаживание.
+  Инварианты, закреплённые тестами: склейка кода контейнера берёт фрагменты 1–10 символов
+  («MSKU 907032» + контрольная цифра в рамке); веса по подписям и вычитаемое нетто — только в
+  диапазоне 500–80000 кг (иначе поле непрочитано); `smoothBoxes` не «сходится», пока подпись
+  рамки отличается от цели (иначе хост оверлея оставляет старую подпись); порядок строк
+  text-scan — чистый `features/text-scan/model/reading-order.ts` (группировка в строки от
+  верхней области, не нетранзитивный компаратор).
+  Gotcha: в `ContainerScanner`/`useContainerScanVM` закомментированы `dismiss()`/`setResult` —
+  лист после подтверждения не закрывается, сканирование продолжается (оверлей живой).
+  Нативные комментарии `CoreMLObjectDetector.swift`/`DetectorSlot.kt` ссылаются на устаревшее
+  имя `DETECTOR_DEFAULTS` (актуально — `VISION_ENGINE_DEFAULTS`).
   Важно worklet'ам: worklet захватывает в замыкание только функции, объявленные ВЫШЕ по
   модулю — вызов объявленной ниже падает в рантайме камеры как «undefined is not a function»;
   module-scope RegExp не сериализуется в worklet-рантайм — литералы только внутри тел функций.

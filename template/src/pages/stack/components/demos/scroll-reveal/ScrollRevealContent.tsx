@@ -59,7 +59,11 @@ export const ScrollRevealContent: FC<IScrollRevealContentProps> = ({
         "Карточка уходит под шапку — её компактная версия выезжает в шапке. Тап по шапке — наверх."
       }
     />
-    <Segmented options={PRESETS} value={preset} onValueChange={onPresetChange} />
+    <Segmented
+      options={PRESETS}
+      value={preset}
+      onValueChange={onPresetChange}
+    />
 
     {ROWS.map(row => (
       <ListItem key={row} title={`Строка ${row}`} subtitle={"Содержимое"} />

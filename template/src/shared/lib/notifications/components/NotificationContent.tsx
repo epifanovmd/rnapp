@@ -1,8 +1,8 @@
+import { TColorTheme, useTheme } from "@shared/lib/theme";
 import { Spinner } from "@shared/ui/spinner";
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { TColorTheme, useTheme } from "../../theme";
 import {
   NotificationInstance,
   NotificationVariant,

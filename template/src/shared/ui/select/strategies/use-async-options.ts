@@ -93,6 +93,7 @@ export const useAsyncOptions = <TData, V extends SelectValue>({
     enabled,
     open,
     query,
+    fetchKey,
     debounce,
     minQueryLength,
     load,

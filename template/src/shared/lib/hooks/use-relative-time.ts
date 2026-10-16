@@ -25,11 +25,11 @@ export const useRelativeTime = (
       let intervalMs: number;
 
       if (diffMs < 60 * 60 * 1000) {
-        intervalMs = 30_000; // < 1 часа → 30с
+        intervalMs = 30_000;
       } else if (diffMs < 24 * 60 * 60 * 1000) {
-        intervalMs = 5 * 60_000; // < 1 дня → 5 мин
+        intervalMs = 5 * 60_000;
       } else {
-        intervalMs = 60 * 60_000; // >= 1 дня → 1 час
+        intervalMs = 60 * 60_000;
       }
 
       timerRef.current = setTimeout(() => {

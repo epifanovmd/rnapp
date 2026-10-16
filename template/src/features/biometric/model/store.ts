@@ -73,8 +73,13 @@ export class BiometricStore implements IBiometricStore {
     return this.isSupported && !!this.enrollment;
   }
 
+  /** Сбой загрузки не кешируется и не пробрасывается: следующий вызов повторит. */
   load() {
-    if (!this._loading) this._loading = this._load();
+    if (!this._loading) {
+      this._loading = this._load().catch(() => {
+        this._loading = null;
+      });
+    }
 
     return this._loading;
   }
@@ -84,7 +89,8 @@ export class BiometricStore implements IBiometricStore {
 
     const current = this.enrollment;
 
-    if (!current || this.isBusy) return;
+    // Параллельный вход паролем выпустил бы вторую пару токенов.
+    if (!current || this.isBusy || this._authStore.isLoading) return;
 
     this._setBusy(true);
 
@@ -200,8 +206,14 @@ export class BiometricStore implements IBiometricStore {
 
     const nonceRes = await this._api.generateNonce(current, { auth: false });
 
-    if (nonceRes.error || !nonceRes.data) {
+    if (nonceRes.error) {
       notifyApiError(this._notifications, nonceRes.error);
+
+      return;
+    }
+
+    if (!nonceRes.data) {
+      this._notifications.error(`Не удалось подтвердить вход по ${label}`);
 
       return;
     }
@@ -229,9 +241,13 @@ export class BiometricStore implements IBiometricStore {
       return;
     }
 
-    if (verifyRes.data?.verified) {
-      await this._authStore.restore(verifyRes.data.tokens);
+    if (!verifyRes.data?.verified) {
+      this._notifications.error(`Не удалось подтвердить вход по ${label}`);
+
+      return;
     }
+
+    await this._authStore.restore(verifyRes.data.tokens);
   }
 
   private async _enable(userId: string) {

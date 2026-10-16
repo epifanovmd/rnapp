@@ -1,4 +1,4 @@
-import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { mergeRefs } from "@shared/lib/hooks";
 import React, { ForwardedRef, forwardRef, useRef } from "react";
 import {
   TextInput as RNTextInput,

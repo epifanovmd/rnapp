@@ -8,14 +8,10 @@ import {
 
 import { BaseHolder } from "../base/base-holder";
 import {
-  CancellablePromise,
   EntityFetchFn,
   HolderStatus,
   IApiResponse,
   IHolderError,
-  isCancelError,
-  isCancelResponse,
-  toHolderError,
 } from "../holder.types";
 
 export interface IEntityHolderOptions<TData, TArgs = void> {
@@ -87,54 +83,7 @@ export class EntityHolder<
     fn: () => Promise<IApiResponse<TData, TApiError>>,
     options?: { refresh?: boolean },
   ): Promise<IEntityHolderResult<TData, TApiError>> {
-    this._pendingFetch?.cancel?.();
-
-    if (options?.refresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
-
-    const promise = fn();
-
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res)) return { data: null, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
-
-        return { data: null, error: res.error };
-      }
-
-      if (res.data != null) {
-        this.setData(res.data);
-
-        return { data: res.data, error: null };
-      }
-
-      runInAction(() => {
-        this.data = null;
-        this.status = HolderStatus.Success;
-      });
-
-      return { data: null, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, error: null };
-
-      const err = toHolderError(e) as unknown as TApiError;
-
-      this.setError(err as unknown as TError);
-
-      return { data: null, error: err };
-    }
+    return this._fetch(fn, options?.refresh ?? false);
   }
 
   async load(
@@ -165,53 +114,45 @@ export class EntityHolder<
       return { data: null, error: null };
     }
 
-    this._pendingFetch?.cancel?.();
+    const onFetch = this._onFetch;
 
-    if (isRefresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
+    return this._fetch(
+      () => onFetch(args) as Promise<IApiResponse<TData, TError>>,
+      isRefresh,
+    );
+  }
 
-    const promise = this._onFetch(args);
+  private _fetch<TApiError extends IHolderError>(
+    fn: () => Promise<IApiResponse<TData, TApiError>>,
+    isRefresh: boolean,
+  ): Promise<IEntityHolderResult<TData, TApiError>> {
+    return this._request<
+      TData,
+      TApiError,
+      IEntityHolderResult<TData, TApiError>
+    >(fn, {
+      onStart: () => (isRefresh ? this.setRefreshing() : this.setLoading()),
+      onSuccess: data => {
+        if (data != null) {
+          this.setData(data);
 
-    this._pendingFetch = promise as CancellablePromise;
+          return { data, error: null };
+        }
 
-    try {
-      const res = await promise;
+        runInAction(() => {
+          this.data = null;
+          this.status = HolderStatus.Success;
+        });
 
-      this._pendingFetch = null;
+        return { data: null, error: null };
+      },
+      onError: error => {
+        this.setError(error as unknown as TError);
 
-      if (isCancelResponse(res)) return { data: null, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
-
-        return { data: null, error: res.error as unknown as TError };
-      }
-
-      if (res.data != null) {
-        this.setData(res.data);
-
-        return { data: res.data, error: null };
-      }
-
-      runInAction(() => {
-        this.data = null;
-        this.status = HolderStatus.Success;
-      });
-
-      return { data: null, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, error: null };
-
-      const err = toHolderError(e) as TError;
-
-      this.setError(err);
-
-      return { data: null, error: err };
-    }
+        return { data: null, error };
+      },
+      onCancel: () => this._restoreStatus(this.data !== null),
+      skipped: () => ({ data: null, error: null }),
+    });
   }
 }

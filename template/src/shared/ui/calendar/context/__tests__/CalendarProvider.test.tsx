@@ -207,6 +207,63 @@ describe("CalendarProvider: controlled-выбор", () => {
   });
 });
 
+describe("CalendarProvider: месяц за внешним выбором", () => {
+  it("value сменили снаружи на дату другого месяца — календарь переходит на него", () => {
+    const navigator = navigatorMock();
+    const c = mount({ ...BASE, mode: "single", value: "2026-09-10" });
+
+    act(() => c.actions.registerNavigator(navigator));
+    c.rerender({ ...BASE, mode: "single", value: "2020-03-15" });
+
+    expect(c.state.monthKey).toBe("2020-03");
+    expect(navigator.goToMonth).toHaveBeenCalledWith("2020-03", true);
+  });
+
+  it("дата в текущем месяце — месяц не меняется", () => {
+    const navigator = navigatorMock();
+    const c = mount({ ...BASE, mode: "single", value: "2026-09-10" });
+
+    act(() => c.actions.registerNavigator(navigator));
+    c.rerender({ ...BASE, mode: "single", value: "2026-09-20" });
+
+    expect(c.state.monthKey).toBe("2026-09");
+    expect(navigator.goToMonth).not.toHaveBeenCalled();
+  });
+
+  it("тап по хвосту без navigateOnOutsideDayPress не уводит месяц", () => {
+    const props: TProps = {
+      ...BASE,
+      mode: "single",
+      value: null,
+      onChange: jest.fn(),
+      navigateOnOutsideDayPress: false,
+    };
+    const c = mount(props);
+
+    act(() => c.actions.pressDay("2026-10-01", "2026-09"));
+    c.rerender({ ...props, value: "2026-10-01" });
+
+    expect(c.state.monthKey).toBe("2026-09");
+  });
+
+  it("controlled month: внешний выбор месяц не трогает", () => {
+    const onMonthChange = jest.fn();
+    const props: TProps = {
+      ...BASE,
+      month: "2026-09",
+      onMonthChange,
+      mode: "single",
+      value: "2026-09-10",
+    };
+    const c = mount(props);
+
+    c.rerender({ ...props, value: "2020-03-15" });
+
+    expect(c.state.monthKey).toBe("2026-09");
+    expect(onMonthChange).not.toHaveBeenCalled();
+  });
+});
+
 describe("CalendarProvider: границы списка", () => {
   it("pastMonths/futureMonths ограничивают навигацию и canGoPrev/canGoNext", () => {
     const c = mount({ ...BASE, pastMonths: 1, futureMonths: 1 });

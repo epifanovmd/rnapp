@@ -16,8 +16,10 @@ export interface ILiveLoadResult<T> {
 }
 
 /** Скользящее окно точек, которое модель копит из снимков. */
-export interface ILiveWindowOptions<TSnapshot, TPoint extends ILivePoint>
-  extends ILiveWindowLimits {
+export interface ILiveWindowOptions<
+  TSnapshot,
+  TPoint extends ILivePoint,
+> extends ILiveWindowLimits {
   /** Точка окна из снимка сокета. */
   toPoint: (snapshot: TSnapshot) => TPoint;
   /** История окна с сервера — при открытии и по `reload`. */
@@ -117,6 +119,7 @@ export const useLiveModel = <
   );
   const loadRef = useLatestRef(load);
   const windowRef = useLatestRef(window);
+  const idRef = useLatestRef(id);
 
   const reload = useCallback(async () => {
     if (!id) return;
@@ -128,6 +131,8 @@ export const useLiveModel = <
     ]);
     const historyPoints = history?.data;
 
+    // Пока шла загрузка, `id` сменился: ответ относится к прежнему.
+    if (idRef.current !== id) return;
     if (!data && !historyPoints) return;
 
     runInAction(() => {
@@ -140,7 +145,7 @@ export const useLiveModel = <
         : points;
       state.id = id;
     });
-  }, [id, loadRef, windowRef, state]);
+  }, [id, loadRef, windowRef, idRef, state]);
 
   // Открытие и возвращение к слушанию: события за паузу потеряны.
   useEffect(() => {
@@ -160,7 +165,11 @@ export const useLiveModel = <
         const points = state.id === id ? state.points : [];
 
         state.points = windowOptions
-          ? pushLivePoint(points, windowOptions.toPoint(snapshot), windowOptions)
+          ? pushLivePoint(
+              points,
+              windowOptions.toPoint(snapshot),
+              windowOptions,
+            )
           : points;
         state.live = snapshot;
         state.id = id;

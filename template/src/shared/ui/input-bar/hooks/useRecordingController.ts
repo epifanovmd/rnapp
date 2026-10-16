@@ -15,10 +15,9 @@ import { IInputBarViewDelegate } from "../model";
 import { RecordingState } from "../model";
 import { createVoiceRecorder, VoiceRecorder } from "../services";
 
-// ─── Тайминги возврата панели ─────────────
 // Возврат разыгрывается последовательно, и именно из-за этого он выглядит
 // плавным: строка записи гаснет → микрофон возвращается пружиной → и только
-// потом слева появляется кнопка. Значения — 1:1 из реализации.
+// потом слева появляется кнопка.
 
 /** `recordingRow.fadeOut` — гашение строки записи. */
 const ROW_FADE_DURATION = 150;
@@ -38,7 +37,6 @@ const CLIP_SQUEEZE_SCALE = 0.6;
 /**
  * Машина состояний записи голоса: жизненный цикл рекордера, переходы
  * idle→recording→locked→idle, хаптика, анимация левой кнопки.
- * Логика записи панели ввода.
  */
 export const useRecordingController = (
   delegateRef: React.RefObject<IInputBarViewDelegate>,
@@ -74,8 +72,6 @@ export const useRecordingController = (
 
   recordingStateRef.current = recordingState;
 
-  // ─── Рекордер ────────────────────────────────────────────────────────────
-
   const recorderRef = useRef<VoiceRecorder | null>(null);
 
   if (!recorderRef.current) {
@@ -95,13 +91,9 @@ export const useRecordingController = (
     };
   }, [delegateRef]);
 
-  // ─── Анимация левой кнопки ───────────────────────────────────────────────
-
   const leftButtonScale = useSharedValue(1);
   const leftButtonOpacity = useSharedValue(1);
   const leftButtonWidth = useSharedValue(1);
-
-  // ─── Действия ────────────────────────────────────────────────────────────
 
   const startRecording = useCallback(() => {
     setRecordingState("recording");

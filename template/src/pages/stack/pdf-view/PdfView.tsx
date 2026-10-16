@@ -1,6 +1,6 @@
 import { ScreenProps } from "@shared/lib/navigation";
-import { Container, Navbar } from "@shared/ui";
-import React, { FC, memo, useEffect } from "react";
+import { Button, Container, EmptyState, Navbar } from "@shared/ui";
+import React, { FC, memo, useEffect, useState } from "react";
 import { StyleSheet } from "react-native";
 import Pdf from "react-native-pdf";
 import Animated, {
@@ -21,10 +21,16 @@ export const PdfView: FC<ScreenProps<TPdfViewParams>> = memo(({ route }) => {
   const { bottom } = useSafeAreaInsets();
   const percentage = useSharedValue(0);
 
+  /** Ошибка загрузки документа; `attempt` — ключ повторной загрузки. */
+  const [failed, setFailed] = useState<{ url: string; attempt: number }>({
+    url: "",
+    attempt: 0,
+  });
+  const isFailed = failed.url === params.url;
+
   useEffect(() => {
     percentage.value = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.url]);
+  }, [params.url, percentage]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: `${percentage.value * 100}%`,
@@ -39,21 +45,45 @@ export const PdfView: FC<ScreenProps<TPdfViewParams>> = memo(({ route }) => {
 
       <Animated.View style={[styles.progressBar, animatedStyle]} />
 
-      <Pdf
-        source={{
-          uri: params.url,
-        }}
-        enableDoubleTapZoom={false}
-        onLoadComplete={() => {
-          percentage.value = 1;
-        }}
-        enableAnnotationRendering={true}
-        renderActivityIndicator={() => <></>}
-        onLoadProgress={progress => {
-          percentage.value = progress;
-        }}
-        style={[styles.pdf, styles.background, { paddingBottom: bottom }]}
-      />
+      {isFailed ? (
+        <EmptyState
+          flex={1}
+          icon={"circleAlert"}
+          title={"Не удалось открыть документ"}
+          action={
+            <Button
+              size={"small"}
+              appearance={"outline"}
+              title={"Повторить"}
+              onPress={() => {
+                percentage.value = 0;
+                setFailed(prev => ({ url: "", attempt: prev.attempt + 1 }));
+              }}
+            />
+          }
+        />
+      ) : (
+        <Pdf
+          key={failed.attempt}
+          source={{
+            uri: params.url,
+          }}
+          enableDoubleTapZoom={false}
+          onLoadComplete={() => {
+            percentage.value = 1;
+          }}
+          enableAnnotationRendering={true}
+          renderActivityIndicator={() => <></>}
+          onError={() => {
+            percentage.value = 1;
+            setFailed(prev => ({ ...prev, url: params.url }));
+          }}
+          onLoadProgress={progress => {
+            percentage.value = progress;
+          }}
+          style={[styles.pdf, styles.background, { paddingBottom: bottom }]}
+        />
+      )}
     </Container>
   );
 });

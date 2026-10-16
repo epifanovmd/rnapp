@@ -1,7 +1,7 @@
 import { agentAuditTitle, IAuditStore } from "@entities/audit";
 import type { AuditEventDto } from "@shared/api/gen/main/model";
 import { formatter } from "@shared/lib/utils";
-import { Col, Container, Spinner, Text } from "@shared/ui";
+import { Button, Col, Container, Spinner, Text } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC, useCallback, useEffect } from "react";
 import { FlatList, ListRenderItem, StyleSheet } from "react-native";
@@ -40,7 +40,7 @@ export const Audit: FC = observer(() => {
         keyExtractor={item => item.id}
         renderItem={renderEvent}
         contentContainerStyle={styles.content}
-        refreshing={false}
+        refreshing={holder.isLoading && auditStore.events.length > 0}
         onRefresh={auditStore.load}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.5}
@@ -54,7 +54,13 @@ export const Audit: FC = observer(() => {
           )
         }
         ListFooterComponent={
-          holder.isLoadingMore ? <Spinner size={24} /> : null
+          holder.isLoadingMore ? (
+            <Spinner size={24} />
+          ) : holder.isLoadMoreError ? (
+            <Button size={"small"} appearance={"ghost"} onPress={onEndReached}>
+              {"Не удалось загрузить — повторить"}
+            </Button>
+          ) : null
         }
       />
     </Container>

@@ -23,8 +23,7 @@ export const WebView: FC<ScreenProps<TWebViewParams>> = memo(({ route }) => {
 
   useEffect(() => {
     percentage.value = 0;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.url]);
+  }, [params.url, percentage]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     width: `${percentage.value * 100}%`,

@@ -8,16 +8,12 @@ import {
 
 import { BaseListHolder } from "../base/base-list-holder";
 import {
-  CancellablePromise,
   HolderStatus,
   IApiResponse,
   IHolderError,
   InfiniteFetchFn,
   IPagedResponse,
-  isCancelError,
-  isCancelResponse,
   MutationStatus,
-  toHolderError,
 } from "../holder.types";
 
 export interface IInfiniteHolderOptions<TItem, TArgs = void> {
@@ -123,8 +119,13 @@ export class InfiniteHolder<
   removeItem(predicate: ((item: TItem) => boolean) | string | number) {
     const fn = this._normalizePredicate(predicate);
 
-    this.items = this.items.filter(item => !fn(item));
-    this._currentOffset = Math.max(0, this._currentOffset - 1);
+    const items = this.items.filter(item => !fn(item));
+
+    this._currentOffset = Math.max(
+      0,
+      this._currentOffset - (this.items.length - items.length),
+    );
+    this.items = items;
   }
 
   async load(
@@ -174,94 +175,13 @@ export class InfiniteHolder<
     ) => { items: TItem[]; hasMore: boolean },
     options?: { append?: boolean; refresh?: boolean },
   ): Promise<IInfiniteHolderResult<TItem, TApiError>> {
-    this._pendingFetch?.cancel?.();
+    const mode = options?.append
+      ? "loadMore"
+      : options?.refresh
+        ? "refreshing"
+        : "loading";
 
-    if (options?.append) {
-      runInAction(() => {
-        this.loadMoreStatus = MutationStatus.Loading;
-        this.loadMoreError = null;
-      });
-    } else {
-      if (options?.refresh) {
-        this.setRefreshing();
-      } else {
-        this.setLoading();
-        this._currentOffset = 0;
-      }
-    }
-
-    const promise = fn();
-
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res))
-        return { data: null, hasMore: this.hasMore, error: null };
-
-      if (res.error) {
-        if (options?.append) {
-          runInAction(() => {
-            this.loadMoreStatus = MutationStatus.Error;
-            this.loadMoreError = res.error as unknown as TError;
-          });
-        } else {
-          this.setError(res.error as unknown as TError);
-        }
-
-        return { data: null, hasMore: this.hasMore, error: res.error };
-      }
-
-      if (res.data != null) {
-        const { items, hasMore } = extractor(
-          res.data as TResponse,
-          this._currentOffset,
-          this._pageSize,
-        );
-
-        if (options?.append) {
-          runInAction(() => {
-            this.appendItems(items, hasMore);
-          });
-        } else {
-          this.setItems(items, hasMore);
-        }
-
-        return { data: items, hasMore, error: null };
-      }
-
-      if (options?.append) {
-        runInAction(() => {
-          this.hasMore = false;
-          this.loadMoreStatus = MutationStatus.Success;
-        });
-      } else {
-        this.setItems([], false);
-      }
-
-      return { data: [], hasMore: false, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e))
-        return { data: null, hasMore: this.hasMore, error: null };
-
-      const err = toHolderError(e) as unknown as TApiError;
-
-      if (options?.append) {
-        runInAction(() => {
-          this.loadMoreStatus = MutationStatus.Error;
-          this.loadMoreError = err as unknown as TError;
-        });
-      } else {
-        this.setError(err as unknown as TError);
-      }
-
-      return { data: null, hasMore: this.hasMore, error: err };
-    }
+    return this._fetch(fn, extractor, mode);
   }
 
   private async _runFetch(
@@ -276,95 +196,109 @@ export class InfiniteHolder<
       return { data: null, hasMore: false, error: null };
     }
 
+    const onFetch = this._onFetch;
+    const offset = mode === "loadMore" ? this._currentOffset : 0;
+
+    return this._fetch(
+      () =>
+        onFetch({ offset, limit: this._pageSize }, args) as Promise<
+          IApiResponse<IPagedResponse<TItem>, TError>
+        >,
+      pagedRes => {
+        const items = pagedRes.data ?? [];
+
+        return { items, hasMore: items.length >= this._pageSize };
+      },
+      mode,
+    );
+  }
+
+  private _fetch<TResponse, TApiError extends IHolderError>(
+    fn: () => Promise<IApiResponse<TResponse, TApiError>>,
+    extractor: (
+      response: TResponse,
+      offset: number,
+      limit: number,
+    ) => { items: TItem[]; hasMore: boolean },
+    mode: "loading" | "refreshing" | "loadMore",
+  ): Promise<IInfiniteHolderResult<TItem, TApiError>> {
     const isAppend = mode === "loadMore";
 
-    this._pendingFetch?.cancel?.();
+    return this._request<
+      TResponse,
+      TApiError,
+      IInfiniteHolderResult<TItem, TApiError>
+    >(fn, {
+      onStart: () =>
+        runInAction(() => {
+          if (isAppend) {
+            this.loadMoreStatus = MutationStatus.Loading;
+            this.loadMoreError = null;
 
-    if (isAppend) {
-      runInAction(() => {
-        this.loadMoreStatus = MutationStatus.Loading;
-        this.loadMoreError = null;
-      });
-    } else if (mode === "refreshing") {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
+            return;
+          }
 
-    const offset = isAppend ? this._currentOffset : 0;
-    const promise = this._onFetch({ offset, limit: this._pageSize }, args);
+          if (this.loadMoreStatus === MutationStatus.Loading) {
+            this.loadMoreStatus = MutationStatus.Idle;
+          }
 
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res))
-        return { data: null, hasMore: this.hasMore, error: null };
-
-      if (res.error) {
-        if (isAppend) {
+          if (mode === "refreshing") {
+            this.setRefreshing();
+          } else {
+            this.setLoading();
+            this._currentOffset = 0;
+          }
+        }),
+      onSuccess: data => {
+        if (data == null) {
           runInAction(() => {
-            this.loadMoreStatus = MutationStatus.Error;
-            this.loadMoreError = res.error as unknown as TError;
+            if (isAppend) {
+              this.hasMore = false;
+              this.loadMoreStatus = MutationStatus.Success;
+            } else {
+              this.setItems([], false);
+            }
           });
-        } else {
-          this.setError(res.error as unknown as TError);
+
+          return { data: [], hasMore: false, error: null };
         }
 
-        return {
-          data: null,
-          hasMore: this.hasMore,
-          error: res.error as unknown as TError,
-        };
-      }
+        const { items, hasMore } = extractor(
+          data,
+          this._currentOffset,
+          this._pageSize,
+        );
 
-      if (res.data != null) {
-        const pagedRes = res.data as IPagedResponse<TItem>;
-        const items = pagedRes.data ?? [];
-        const hasMore = items.length >= this._pageSize;
-
-        if (isAppend) {
-          runInAction(() => {
-            this.appendItems(items, hasMore);
-          });
-        } else {
-          this.setItems(items, hasMore);
-        }
+        runInAction(() =>
+          isAppend
+            ? this.appendItems(items, hasMore)
+            : this.setItems(items, hasMore),
+        );
 
         return { data: items, hasMore, error: null };
-      }
-
-      if (isAppend) {
+      },
+      onError: error => {
         runInAction(() => {
-          this.hasMore = false;
-          this.loadMoreStatus = MutationStatus.Success;
+          if (isAppend) {
+            this.loadMoreStatus = MutationStatus.Error;
+            this.loadMoreError = error as unknown as TError;
+          } else {
+            this.setError(error as unknown as TError);
+          }
         });
-      } else {
-        this.setItems([], false);
-      }
 
-      return { data: [], hasMore: false, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e))
-        return { data: null, hasMore: this.hasMore, error: null };
-
-      const err = toHolderError(e) as TError;
-
-      if (isAppend) {
-        runInAction(() => {
-          this.loadMoreStatus = MutationStatus.Error;
-          this.loadMoreError = err;
-        });
-      } else {
-        this.setError(err);
-      }
-
-      return { data: null, hasMore: this.hasMore, error: err };
-    }
+        return { data: null, hasMore: this.hasMore, error };
+      },
+      onCancel: () => {
+        if (isAppend) {
+          runInAction(() => {
+            this.loadMoreStatus = MutationStatus.Idle;
+          });
+        } else {
+          this._restoreStatus(this.items.length > 0);
+        }
+      },
+      skipped: () => ({ data: null, hasMore: this.hasMore, error: null }),
+    });
   }
 }

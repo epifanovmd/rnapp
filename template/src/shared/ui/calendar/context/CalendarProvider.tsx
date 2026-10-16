@@ -5,8 +5,10 @@ import React, {
   ReactElement,
   Ref,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
 } from "react";
 
 import type {
@@ -129,6 +131,25 @@ const CalendarProviderImpl = <TExtra,>(
 
   const { monthKey, canGoPrev, canGoNext, goToMonth } = navigation;
   const monthRef = useLatestRef(monthKey);
+  /** День последнего тапа: выбор из сетки сам решает, куда ехать (`navigateOnOutsideDayPress`). */
+  const pressedKeyRef = useRef<TCalendarDateKey | null>(null);
+  const selectedKey = firstSelectedKey(selection);
+  const prevSelectedKeyRef = useRef(selectedKey);
+  const isMonthControlled = toMonthKey(month) !== null;
+
+  // Выбор поменяли снаружи — показываем месяц выбранной даты.
+  useEffect(() => {
+    const prev = prevSelectedKeyRef.current;
+    const pressed = pressedKeyRef.current;
+
+    prevSelectedKeyRef.current = selectedKey;
+    pressedKeyRef.current = null;
+    if (!selectedKey || selectedKey === prev || selectedKey === pressed) return;
+    if (isMonthControlled) return;
+    if (dateKeyToMonthKey(selectedKey) !== monthRef.current) {
+      goToMonth(selectedKey);
+    }
+  }, [selectedKey, isMonthControlled, goToMonth, monthRef]);
 
   /** Полное состояние дня в сетке `monthKey` — для колбэков и проверки доступности. Считается только по факту тапа. */
   const dayStateFor = useCallback(
@@ -160,6 +181,7 @@ const CalendarProviderImpl = <TExtra,>(
 
       if (day.isDisabled) return;
 
+      pressedKeyRef.current = key;
       selectKey(key);
       onDayPressRef.current?.(day);
 

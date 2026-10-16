@@ -1,5 +1,7 @@
 import { InitializeDispose } from "./types";
 
+const noop = () => {};
+
 export const disposer = (dispose: InitializeDispose | InitializeDispose[]) => {
   if (dispose instanceof Promise) {
     dispose
@@ -11,7 +13,7 @@ export const disposer = (dispose: InitializeDispose | InitializeDispose[]) => {
           disposable.forEach(disposer);
         }
       })
-      .catch();
+      .catch(noop);
   }
 
   if (Array.isArray(dispose)) {

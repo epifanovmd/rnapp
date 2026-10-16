@@ -49,7 +49,11 @@ export const InstallAgentModal: FC<IInstallAgentModalProps> = observer(
         "Агент регистрируется по токену и сам выходит на связь с сервером"
       }
       cancelLabel={null}
-      primaryAction={{ title: "Готово", onPress: () => vm.setOpen(false) }}
+      primaryAction={{
+        title: "Готово",
+        disabled: vm.isCreatingToken,
+        onPress: () => vm.setOpen(false),
+      }}
     >
       <Col gap={20}>
         <Step

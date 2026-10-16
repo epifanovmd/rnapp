@@ -9,10 +9,7 @@ import {
 import React, { FC, useCallback, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 
-import {
-  ISearchDemoContact,
-  SEARCH_DEMO_CONTACTS,
-} from "./search-demo-data";
+import { ISearchDemoContact, SEARCH_DEMO_CONTACTS } from "./search-demo-data";
 import { SearchDemoPanel } from "./SearchDemoPanel";
 import { SearchDemoRow } from "./SearchDemoRow";
 

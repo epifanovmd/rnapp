@@ -1,5 +1,5 @@
 import { TAnimatedNumber } from "@shared/lib/animation";
-import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { mergeRefs } from "@shared/lib/hooks";
 import {
   KeyboardAwareContent,
   useKeyboardAwareScroll,

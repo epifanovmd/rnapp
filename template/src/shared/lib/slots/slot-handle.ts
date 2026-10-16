@@ -16,7 +16,8 @@ const EMPTY_ITEMS: readonly SlotValue[] = Object.freeze([]);
 /**
  * Свёртка props слота политикой слияния: `defaultProps` схемы → `defaults`
  * вызова → props потребителя → `inject` владельца. Каждый следующий слой
- * приоритетнее предыдущего, `style` и `on*` при этом не теряются.
+ * приоритетнее предыдущего, `style` и `on*` при этом не теряются. Ключ
+ * элемента сохраняется и у содержимого без компонента.
  */
 const renderValue = (
   entry: SlotEntry,
@@ -42,23 +43,22 @@ const renderValue = (
   }
 
   const { children } = props;
+  const key = value.key ?? fallbackKey;
+  const hasKey = key !== null && key !== undefined;
+  const withKey = (node: ReactNode) =>
+    hasKey ? React.createElement(React.Fragment, { key }, node) : node;
 
   if (typeof children === "function") {
     const { children: _render, ...rest } = props;
 
-    return children(rest);
+    return withKey(children(rest));
   }
 
   if (!component) {
-    return (children as ReactNode) ?? null;
+    return withKey((children as ReactNode) ?? null);
   }
 
-  const key = value.key ?? fallbackKey;
-
-  return React.createElement(
-    component,
-    key === null || key === undefined ? props : { ...props, key },
-  );
+  return React.createElement(component, hasKey ? { ...props, key } : props);
 };
 
 class SingleSlot implements ResolvedSingleSlot<any> {

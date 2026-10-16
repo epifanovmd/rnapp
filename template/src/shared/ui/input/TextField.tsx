@@ -1,5 +1,5 @@
 import { useMergedCallback } from "@shared/lib/hooks";
-import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { mergeRefs } from "@shared/lib/hooks";
 import { useKeyboardAwareField } from "@shared/lib/keyboard-aware";
 import { useTheme } from "@shared/lib/theme";
 import React, { forwardRef, useCallback, useRef, useState } from "react";

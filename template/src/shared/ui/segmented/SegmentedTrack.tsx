@@ -39,7 +39,7 @@ export interface ISegmentedTrackProps<V extends string> {
  * автоцентрирование активного. Индикатор и подписи — у владельца
  * (Reanimated в Segmented, RN Animated в SegmentedTabBar).
  */
-export const SegmentedTrack = <V extends string,>({
+export const SegmentedTrack = <V extends string>({
   options,
   selectedIndex,
   disabled,
@@ -71,10 +71,15 @@ export const SegmentedTrack = <V extends string,>({
   const handleItemLayout = useCallback(
     (index: number, event: LayoutChangeEvent) => {
       const { x, width } = event.nativeEvent.layout;
-      const next = mergeSegmentLayout(layoutsRef.current, options.length, index, {
-        x,
-        width,
-      });
+      const next = mergeSegmentLayout(
+        layoutsRef.current,
+        options.length,
+        index,
+        {
+          x,
+          width,
+        },
+      );
 
       layoutsRef.current = next;
       onLayoutsChange(next);

@@ -8,15 +8,11 @@ import {
 
 import { BaseListHolder } from "../base/base-list-holder";
 import {
-  CancellablePromise,
   HolderStatus,
   IApiResponse,
   IHolderError,
   IPagedResponse,
-  isCancelError,
-  isCancelResponse,
   PagedFetchFn,
-  toHolderError,
 } from "../holder.types";
 
 export interface IPagedHolderPagination {
@@ -145,10 +141,13 @@ export class PagedHolder<
   removeItem(predicate: ((item: TItem) => boolean) | string | number) {
     const fn = this._normalizePredicate(predicate);
 
-    this.items = this.items.filter(item => !fn(item));
+    const items = this.items.filter(item => !fn(item));
+    const removed = this.items.length - items.length;
+
+    this.items = items;
     this.pagination = {
       ...this.pagination,
-      totalCount: Math.max(0, this.pagination.totalCount - 1),
+      totalCount: Math.max(0, this.pagination.totalCount - removed),
     };
   }
 
@@ -157,54 +156,7 @@ export class PagedHolder<
     extractor: (response: TResponse) => { items: TItem[]; totalCount: number },
     options?: { refresh?: boolean },
   ): Promise<IPagedHolderResult<TItem, TApiError>> {
-    this._pendingFetch?.cancel?.();
-
-    if (options?.refresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
-
-    const promise = fn();
-
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res))
-        return { data: null, totalCount: 0, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
-
-        return { data: null, totalCount: 0, error: res.error };
-      }
-
-      if (res.data != null) {
-        const { items, totalCount } = extractor(res.data as TResponse);
-
-        this.setItems(items, totalCount);
-
-        return { data: items, totalCount, error: null };
-      }
-
-      this.setItems([], 0);
-
-      return { data: [], totalCount: 0, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, totalCount: 0, error: null };
-
-      const err = toHolderError(e) as unknown as TApiError;
-
-      this.setError(err as unknown as TError);
-
-      return { data: null, totalCount: 0, error: err };
-    }
+    return this._fetch(fn, extractor, options?.refresh ?? false);
   }
 
   async load(
@@ -274,62 +226,53 @@ export class PagedHolder<
       return { data: null, totalCount: 0, error: null };
     }
 
-    this._pendingFetch?.cancel?.();
-
-    if (isRefresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
-
+    const onFetch = this._onFetch;
     const { page, pageSize } = this.pagination;
     const offset = (page - 1) * pageSize;
-    const promise = this._onFetch({ offset, limit: pageSize }, args);
 
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res))
-        return { data: null, totalCount: 0, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
+    return this._fetch(
+      () =>
+        onFetch({ offset, limit: pageSize }, args) as Promise<
+          IApiResponse<IPagedResponse<TItem>, TError>
+        >,
+      pagedRes => {
+        const items = pagedRes.data ?? [];
 
         return {
-          data: null,
-          totalCount: 0,
-          error: res.error as unknown as TError,
+          items,
+          totalCount: pagedRes.totalCount ?? pagedRes.count ?? items.length,
         };
-      }
+      },
+      isRefresh,
+    );
+  }
 
-      if (res.data != null) {
-        const pagedRes = res.data as IPagedResponse<TItem>;
-        const items = pagedRes.data ?? [];
-        const totalCount =
-          pagedRes.totalCount ?? pagedRes.count ?? items.length;
+  private _fetch<TResponse, TApiError extends IHolderError>(
+    fn: () => Promise<IApiResponse<TResponse, TApiError>>,
+    extractor: (response: TResponse) => { items: TItem[]; totalCount: number },
+    isRefresh: boolean,
+  ): Promise<IPagedHolderResult<TItem, TApiError>> {
+    return this._request<
+      TResponse,
+      TApiError,
+      IPagedHolderResult<TItem, TApiError>
+    >(fn, {
+      onStart: () => (isRefresh ? this.setRefreshing() : this.setLoading()),
+      onSuccess: data => {
+        const { items, totalCount } =
+          data == null ? { items: [], totalCount: 0 } : extractor(data);
 
         this.setItems(items, totalCount);
 
         return { data: items, totalCount, error: null };
-      }
+      },
+      onError: error => {
+        this.setError(error as unknown as TError);
 
-      this.setItems([], 0);
-
-      return { data: [], totalCount: 0, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, totalCount: 0, error: null };
-
-      const err = toHolderError(e) as TError;
-
-      this.setError(err);
-
-      return { data: null, totalCount: 0, error: err };
-    }
+        return { data: null, totalCount: 0, error };
+      },
+      onCancel: () => this._restoreStatus(this.items.length > 0),
+      skipped: () => ({ data: null, totalCount: 0, error: null }),
+    });
   }
 }

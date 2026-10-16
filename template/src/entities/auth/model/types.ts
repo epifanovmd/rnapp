@@ -38,6 +38,9 @@ export interface IAuthStore {
   /** Регистрация; ошибка сервера — для показа на экране, `null` — успех. */
   signUp(params: TSignUpRequestDto): Promise<ApiError | null>;
   restore(tokens?: ITokensDto): Promise<void>;
+  /** Выход пользователя: серверный signOut, затем локальный. */
+  logout(): Promise<void>;
+  /** Локальный выход без запроса к серверу. */
   signOut(): void;
   /** Завершить все сессии на сервере, включая текущую, и выйти. */
   signOutAll(): Promise<ApiResponse<void, ApiError>>;

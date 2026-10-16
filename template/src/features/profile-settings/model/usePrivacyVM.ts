@@ -1,5 +1,6 @@
 import { IUserStore } from "@entities/user";
 import { EPrivacyLevel, PrivacySettingsDto } from "@shared/api/gen/main/model";
+import { notifyApiError } from "@shared/lib/http";
 import { useNotifications } from "@shared/lib/notifications";
 import { useCallback, useEffect } from "react";
 
@@ -29,16 +30,21 @@ export const usePrivacyVM = () => {
 
   const change = useCallback(
     async (key: keyof PrivacySettingsDto, value: EPrivacyLevel) => {
-      const updated = await userStore.updatePrivacy({ [key]: value });
+      const res = await userStore.updatePrivacy({ [key]: value });
 
-      if (!updated) notifications.error("Не удалось сохранить настройку.");
+      if (res.error) notifyApiError(notifications, res.error);
     },
     [notifications, userStore],
   );
 
+  const error = userStore.privacy ? undefined : userStore.privacyError?.message;
+
   return {
     privacy: userStore.privacy,
-    isLoading: !userStore.privacy,
+    isLoading: !userStore.privacy && !error,
+    /** Ошибка загрузки настроек (пока их нет). */
+    error,
+    retry: userStore.loadPrivacy,
     change,
   };
 };

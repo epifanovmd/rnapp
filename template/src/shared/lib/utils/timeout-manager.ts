@@ -14,18 +14,15 @@ export class TimeoutManager {
   }
 
   /**
-   * Добавляет или обновляет таймаут по ID
+   * Добавляет таймаут по ID на время из конструктора; прежний таймаут с тем же
+   * ID сбрасывается.
    * @param id Уникальный идентификатор таймаута
    * @param callback Функция, вызываемая по истечении таймаута
-   * @param ms Время в миллисекундах
    */
   addTimeout(id: string, callback: () => void): void {
-    // Если уже есть таймаут с таким ID - очищаем его
     if (this.timeouts.has(id)) {
       this.clearTimeout(id);
     }
-
-    const startTime = Date.now();
 
     const timeoutId = setTimeout(() => {
       this.executeAndCleanup(id);

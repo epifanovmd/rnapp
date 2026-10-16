@@ -1,4 +1,4 @@
-import { isString } from "@shared/lib/utils/type-guards";
+import { isString } from "@shared/lib/utils";
 import React, { memo } from "react";
 
 import { Icon } from "../icon";

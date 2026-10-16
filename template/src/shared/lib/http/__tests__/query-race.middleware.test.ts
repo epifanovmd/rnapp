@@ -70,6 +70,49 @@ describe("queryRace", () => {
     expect((await second).data).toBe("second");
   });
 
+  it("по умолчанию гонка только для чтения: изменяющие запросы не отменяются", async () => {
+    const { transport, resolve } = createManualTransport();
+    const client = createTestClient(transport, { middlewares: [queryRace()] });
+    const first = client.request({ url: "/items", method: "POST" });
+    const second = client.request({ url: "/items", method: "POST" });
+
+    resolve(0, "first");
+    resolve(1, "second");
+
+    expect((await first).data).toBe("first");
+    expect((await second).data).toBe("second");
+  });
+
+  it("HEAD тоже участвует в гонке", async () => {
+    const { transport, resolve } = createManualTransport();
+    const client = createTestClient(transport, { middlewares: [queryRace()] });
+    const first = client.request({ url: "/list", method: "HEAD" });
+    const second = client.request({ url: "/list", method: "HEAD" });
+
+    resolve(1, "second");
+
+    expect((await first).error?.message).toBe(QUERY_RACE_CANCEL_REASON);
+    expect((await second).data).toBe("second");
+  });
+
+  it("queryRace: true включает гонку и для изменяющего запроса", async () => {
+    const { transport, resolve } = createManualTransport();
+    const client = createTestClient(transport, { middlewares: [queryRace()] });
+    const first = client.request(
+      { url: "/items", method: "PUT" },
+      { queryRace: true },
+    );
+    const second = client.request(
+      { url: "/items", method: "PUT" },
+      { queryRace: true },
+    );
+
+    resolve(1, "second");
+
+    expect((await first).error?.message).toBe(QUERY_RACE_CANCEL_REASON);
+    expect((await second).data).toBe("second");
+  });
+
   it("завершённый запрос не отменяется задним числом", async () => {
     const { transport, resolve } = createManualTransport();
     const client = createTestClient(transport, { middlewares: [queryRace()] });

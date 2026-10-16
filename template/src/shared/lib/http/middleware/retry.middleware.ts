@@ -69,17 +69,17 @@ const resolveLimit = (
   return fallback;
 };
 
-/** Пауза, которую прерывает отмена запроса. */
+/** Пауза, которую прерывает отмена запроса; слушатель отмены снимается по таймеру. */
 const wait = (ms: number, signal: AbortSignal): Promise<void> =>
   new Promise(resolve => {
-    const timer = setTimeout(resolve, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
 
-    signal.addEventListener(
-      "abort",
-      () => {
-        clearTimeout(timer);
-        resolve();
-      },
-      { once: true },
-    );
+    signal.addEventListener("abort", onAbort, { once: true });
   });

@@ -9,7 +9,7 @@ const MATCH_DISTANCE_FACTOR = 1.5;
 
 export interface ISmoothingResult {
   boxes: IScanOverlayBox[];
-  /** Анимация сошлась — перезаписывать shared value не нужно */
+  /** Рамки и подписи совпали с целями — перезаписывать shared value не нужно */
   settled: boolean;
 }
 
@@ -83,7 +83,8 @@ export const smoothBoxes = (
       next.x !== target.rect.x ||
       next.y !== target.rect.y ||
       next.width !== target.rect.width ||
-      next.height !== target.rect.height
+      next.height !== target.rect.height ||
+      displayed[matchIndex].label !== target.label
     ) {
       settled = false;
     }

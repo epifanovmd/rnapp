@@ -1,8 +1,4 @@
-import {
-  mergeLivePoints,
-  pushLivePoint,
-  trimLivePoints,
-} from "../live-window";
+import { mergeLivePoints, pushLivePoint, trimLivePoints } from "../live-window";
 
 const point = (ts: number, value = ts) => ({ ts, value });
 

@@ -38,7 +38,9 @@ export class CachedCursorHolder<
     return this._cache != null;
   }
 
+  /** Привязка к ключу кэша; состояние прежнего ключа сохраняется до переключения. */
   bind(key: string): void {
+    if (this._boundKey && this._boundKey !== key) this.unbind();
     this._boundKey = key;
   }
 

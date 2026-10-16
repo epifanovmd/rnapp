@@ -1,3 +1,4 @@
+import { useLatestRef } from "@shared/lib/hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSharedValue } from "react-native-reanimated";
 
@@ -59,6 +60,7 @@ export const useCarouselAutoplay = ({
   const programmaticScrollPending = useRef(false);
   /** onReachEnd уже отправлен для текущего пребывания на последнем слайде. */
   const reachEndReported = useRef(false);
+  const onReachEndRef = useLatestRef(onReachEnd);
 
   const effectiveAutoplay =
     enabled && !(stopOnInteraction && interacted) && !ended;
@@ -91,8 +93,8 @@ export const useCarouselAutoplay = ({
     }
 
     reachEndReported.current = true;
-    onReachEnd?.();
-  }, [onReachEnd]);
+    onReachEndRef.current?.();
+  }, [onReachEndRef]);
 
   const startWait = useCallback(() => {
     clearWait();

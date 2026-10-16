@@ -126,4 +126,28 @@ describe("retry", () => {
     expect(res.data).toBe("ok");
     expect(delays).toEqual([0, 1]);
   });
+
+  it("пауза перед повтором снимает слушатель отмены после таймера", async () => {
+    let add: jest.SpyInstance | undefined;
+    let remove: jest.SpyInstance | undefined;
+    let calls = 0;
+    const transport = createFakeTransport((_, signal) => {
+      calls += 1;
+      if (calls === 1) {
+        add = jest.spyOn(signal, "addEventListener");
+        remove = jest.spyOn(signal, "removeEventListener");
+        throw new NetworkError();
+      }
+
+      return ok("ok");
+    });
+    const res = await createTestClient(transport, {
+      middlewares: [retry(noDelay)],
+    }).request({ url: "/a" });
+
+    expect(res.data).toBe("ok");
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(remove?.mock.calls[0][1]).toBe(add?.mock.calls[0][1]);
+  });
 });

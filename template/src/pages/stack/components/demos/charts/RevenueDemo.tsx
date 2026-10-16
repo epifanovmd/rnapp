@@ -156,7 +156,6 @@ export const RevenueDemo: FC = memo(() => {
           xLabelPosition={"top"}
           xLabelFormatter={formatTimeTick}
           showYLabels
-          // yLabelPosition={"right"}
           secondLineColor={colors.orange500}
         />
         <RangeLayer />

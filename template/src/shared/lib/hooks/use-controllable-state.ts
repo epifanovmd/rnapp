@@ -33,6 +33,8 @@ export const useControllableState = <T>({
     (updater: StateUpdater<T>) => {
       const next = resolveUpdater(updater, currentRef.current);
 
+      currentRef.current = next;
+
       if (!isControlled) {
         setInternal(next);
       }

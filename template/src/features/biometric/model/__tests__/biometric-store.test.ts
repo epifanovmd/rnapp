@@ -67,6 +67,8 @@ interface ISetup {
   device?: Partial<IBiometricDevice>;
   userId?: string | null;
   enrolled?: boolean;
+  /** Идёт вход паролем или восстановление сессии. */
+  authLoading?: boolean;
 }
 
 const setup = ({
@@ -74,6 +76,7 @@ const setup = ({
   device,
   userId = "u1",
   enrolled = true,
+  authLoading = false,
 }: ISetup = {}) => {
   const storage = createStorage();
 
@@ -81,7 +84,10 @@ const setup = ({
     storage.setItem(BIOMETRIC_STORAGE_KEY, JSON.stringify(ENROLLMENT));
   }
 
-  const authStore = { restore: jest.fn().mockResolvedValue(undefined) };
+  const authStore = {
+    isLoading: authLoading,
+    restore: jest.fn().mockResolvedValue(undefined),
+  };
   const notifications = createNotifications();
   const nativeDevice = createDevice(device);
   const mainApi = {
@@ -127,6 +133,31 @@ describe("BiometricStore.load", () => {
     expect(store.label).toBe("Face ID");
     expect(store.canSignIn).toBe(true);
     expect(store.isEnabled).toBe(true);
+  });
+
+  it("сбой загрузки не кешируется и не уходит наружу: следующий load() повторяет", async () => {
+    const getSensor = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("sensor"))
+      .mockResolvedValue({ available: true, biometryType: "FaceID" });
+    const { store } = setup({ device: { getSensor } });
+
+    await expect(store.load()).resolves.toBeUndefined();
+    expect(store.isLoaded).toBe(false);
+
+    await store.load();
+
+    expect(getSensor).toHaveBeenCalledTimes(2);
+    expect(store.isSupported).toBe(true);
+  });
+
+  it("сбой загрузки — автовход молча завершается без ошибки", async () => {
+    const { store, api } = setup({
+      device: { getSensor: jest.fn().mockRejectedValue(new Error("sensor")) },
+    });
+
+    await expect(store.signIn({ auto: true })).resolves.toBeUndefined();
+    expect(api.generateNonce).not.toHaveBeenCalled();
   });
 
   it("переносит регистрацию из AsyncStorage (biometricUserId) в хранилище", async () => {
@@ -204,6 +235,45 @@ describe("BiometricStore.signIn", () => {
     expect(device.deleteKey).toHaveBeenCalled();
     expect(notifications.error).toHaveBeenCalled();
     expect(store.canSignIn).toBe(false);
+  });
+
+  it("сервер не подтвердил подпись (verified: false) — тост об ошибке, без входа", async () => {
+    const { store, authStore, notifications } = setup({
+      api: {
+        verifySignature: jest
+          .fn()
+          .mockResolvedValue({ data: { verified: false } }),
+      },
+    });
+
+    await store.signIn();
+
+    expect(authStore.restore).not.toHaveBeenCalled();
+    expect(notifications.error).toHaveBeenCalledWith(
+      "Не удалось подтвердить вход по Face ID",
+    );
+  });
+
+  it("пустой ответ nonce — тост об ошибке, подпись не запрашивается", async () => {
+    const { store, device, notifications } = setup({
+      api: { generateNonce: jest.fn().mockResolvedValue({ data: undefined }) },
+    });
+
+    await store.signIn();
+
+    expect(device.sign).not.toHaveBeenCalled();
+    expect(notifications.error).toHaveBeenCalledWith(
+      "Не удалось подтвердить вход по Face ID",
+    );
+  });
+
+  it("идёт вход паролем — биометрический вход не начинается", async () => {
+    const { store, api, device } = setup({ authLoading: true });
+
+    await store.signIn();
+
+    expect(device.sign).not.toHaveBeenCalled();
+    expect(api.generateNonce).not.toHaveBeenCalled();
   });
 
   it("повторный вызов во время входа игнорируется — один nonce", async () => {

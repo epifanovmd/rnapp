@@ -1,7 +1,7 @@
+import { IStorageService } from "@shared/lib/storage";
 import { injectable } from "inversify";
 import { makeAutoObservable } from "mobx";
 
-import { IStorageService } from "../storage";
 import { IColorSchemeProvider } from "./color-scheme.types";
 import { ITheme, IThemeStore, TThemeName, TThemePreference } from "./types";
 import { DARK_THEME, DEFAULT_LIGHT_THEME } from "./variants";

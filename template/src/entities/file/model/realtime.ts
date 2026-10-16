@@ -11,8 +11,16 @@ export class FileRealtime implements IFileRealtime {
     @IFileStore() private _store: IFileStore,
   ) {}
 
+  /** События файлов в стор; после переподключения (обрыв, фон) загруженный список перечитывается. */
   initialize() {
+    let connected = this._transport.state.status === "connected";
     const unsubscribe = [
+      this._transport.onConnect(() => {
+        if (connected && !this._store.filesHolder.isIdle) {
+          this._store.refresh();
+        }
+        connected = true;
+      }),
       this._transport.on<[IFileDto]>("file:uploaded", file =>
         this._store.handleFileUploaded(file),
       ),

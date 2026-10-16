@@ -1,4 +1,5 @@
 export * from "./BottomSheet";
+export * from "./BottomSheetBackdrop";
 export * from "./BottomSheetFooter";
 export * from "./BottomSheetHeader";
 export * from "./BottomSheetLayout";

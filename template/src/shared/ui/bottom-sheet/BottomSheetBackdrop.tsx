@@ -14,8 +14,18 @@ import Animated, {
 
 const BACKDROP_OPACITY = 0.6;
 
+export interface IBottomSheetBackdropProps extends BottomSheetBackdropProps {
+  /** Тап по фону закрывает шторку. По умолчанию `true`. */
+  closeOnPress?: boolean;
+}
+
+/** Фон шторки: затемнение по позиции, свайп двигает шторку, тап закрывает. */
 export const BottomSheetBackdrop = memo(
-  ({ animatedIndex, style }: BottomSheetBackdropProps) => {
+  ({
+    animatedIndex,
+    style,
+    closeOnPress = true,
+  }: IBottomSheetBackdropProps) => {
     const { handlePanGestureHandler } = useBottomSheetGestureHandlers();
     const { close } = useBottomSheet();
 
@@ -28,7 +38,6 @@ export const BottomSheetBackdrop = memo(
       simultaneousHandlers,
     } = useBottomSheetInternal();
 
-    // Пан-жест (свайп)
     const panGesture = useMemo(() => {
       let gesture = Gesture.Pan()
         .enabled(true)
@@ -78,21 +87,19 @@ export const BottomSheetBackdrop = memo(
       handlePanGestureHandler.handleOnStart,
     ]);
 
-    // Тап-жест (для закрытия)
     const tapGesture = useMemo(() => {
       return Gesture.Tap()
+        .enabled(closeOnPress)
         .runOnJS(true)
         .onEnd(() => {
-          close(); // закрываем модалку
+          close();
         });
-    }, [close]);
+    }, [close, closeOnPress]);
 
-    // Объединённый жест: если был свайп — пускай свайп, если тап — закрываем
     const combinedGesture = useMemo(() => {
       return Gesture.Race(panGesture, tapGesture);
     }, [panGesture, tapGesture]);
 
-    // Анимация прозрачности
     const containerAnimatedStyle = useAnimatedStyle(() => ({
       backgroundColor: "#000000",
       opacity: interpolate(

@@ -34,7 +34,6 @@ export const resolveTextFieldMode = ({
     isTrigger,
     disabled,
     inputEditable: !isTrigger && !disabled,
-    showClear:
-      !!clearable && hasValue && !disabled && (isTrigger || !hasError),
+    showClear: !!clearable && hasValue && !disabled && (isTrigger || !hasError),
   };
 };

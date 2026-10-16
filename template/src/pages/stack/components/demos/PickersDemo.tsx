@@ -8,9 +8,7 @@ import {
 } from "@shared/ui";
 import React, { FC, memo } from "react";
 
-
 export const PickersDemo: FC = memo(() => {
-
   return (
     <Col ph={16} gap={8} pt={16}>
       <RangePicker items={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]}>

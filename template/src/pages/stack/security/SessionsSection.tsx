@@ -1,5 +1,7 @@
 import { ISessionStore, SessionModel } from "@entities/user";
 import { IAuthSessionGuard } from "@shared/lib/contracts";
+import { notifyApiError } from "@shared/lib/http";
+import { useNotifications } from "@shared/lib/notifications";
 import { Button, Col, Row, Section, Spinner, Text } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC, useEffect } from "react";
@@ -8,6 +10,8 @@ import React, { FC, useEffect } from "react";
 export const SessionsSection: FC = observer(() => {
   const sessionStore = ISessionStore.useInstance();
   const sessionGuard = IAuthSessionGuard.useInstance();
+  const notifications = useNotifications();
+  const holder = sessionStore.sessionsHolder;
 
   useEffect(() => {
     sessionStore.load();
@@ -16,6 +20,20 @@ export const SessionsSection: FC = observer(() => {
   return (
     <Section title={"Сессии"} description={"Устройства, где выполнен вход."}>
       {sessionStore.isLoading && <Spinner size={24} />}
+      {holder.isError && !sessionStore.sessions.length && (
+        <Row gap={8} alignItems={"center"}>
+          <Text textStyle={"Caption_M1"} color={"danger"} flex={1}>
+            {holder.error?.message ?? "Не удалось загрузить сессии"}
+          </Text>
+          <Button
+            size={"small"}
+            appearance={"ghost"}
+            onPress={() => sessionStore.load()}
+          >
+            {"Повторить"}
+          </Button>
+        </Row>
+      )}
 
       {sessionStore.sessions.map(session => {
         const model = new SessionModel(session);
@@ -54,7 +72,11 @@ export const SessionsSection: FC = observer(() => {
       <Button
         size={"small"}
         appearance={"outline"}
-        onPress={() => sessionStore.terminateOtherSessions()}
+        onPress={async () => {
+          const res = await sessionStore.terminateOtherSessions();
+
+          notifyApiError(notifications, res.error);
+        }}
       >
         {"Завершить остальные сессии"}
       </Button>

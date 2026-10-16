@@ -6,6 +6,7 @@ module.exports = {
     getString: () => undefined,
     set: noop,
     delete: noop,
+    remove: noop,
     getAllKeys: () => [],
   }),
 };

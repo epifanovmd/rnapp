@@ -1,4 +1,4 @@
-import { LambdaValue } from "@shared/lib/utils/lambda-value";
+import { LambdaValue } from "@shared/lib/utils";
 
 export interface IFilterOption<V> {
   readonly label: string;

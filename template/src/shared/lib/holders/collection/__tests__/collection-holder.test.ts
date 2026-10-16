@@ -1,6 +1,7 @@
 import {
   cancelError,
   cancelResponse,
+  deferred,
   item,
   type TestItem as Item,
 } from "../../__tests__/holder-test-utils";
@@ -151,5 +152,29 @@ describe("CollectionHolder", () => {
     expect(holder.items).not.toBe(before);
     expect(holder.items[0]).toBe(before[0]);
     expect(holder.items[1].name).toBe("two");
+  });
+
+  it("applies only the latest response and restores status after cancel", async () => {
+    const responses = [1, 2, 3].map(() => deferred<{ data: Item[] }>());
+    const holder = new CollectionHolder<Item, number>({
+      onFetch: async id => await responses[id - 1].promise,
+    });
+    const calls = [holder.load(1), holder.load(2), holder.load(3)];
+
+    responses[2].resolve({ data: [item(3)] });
+    await calls[2];
+    responses[1].resolve({ data: [item(2)] });
+    responses[0].resolve({ data: [item(1)] });
+    await expect(calls[1]).resolves.toEqual({ data: null, error: null });
+    await calls[0];
+    expect(holder.items).toEqual([item(3)]);
+
+    await holder.fromApi(async () => cancelResponse, undefined, {
+      refresh: true,
+    });
+    expect(holder.isSuccess).toBe(true);
+    holder.reset();
+    await holder.fromApi(async () => cancelResponse);
+    expect(holder.isIdle).toBe(true);
   });
 });

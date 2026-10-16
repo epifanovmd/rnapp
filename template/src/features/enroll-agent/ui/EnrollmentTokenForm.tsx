@@ -62,7 +62,7 @@ export const EnrollmentTokenForm: FC<IEnrollmentTokenFormProps> = observer(
           size={"small"}
           leftIcon={"key"}
           alignSelf={"flex-start"}
-          loading={vm.tokenForm.formState.isSubmitting}
+          loading={vm.isCreatingToken}
           onPress={vm.tokenForm.handleSubmit(vm.createToken)}
         />
       </Col>

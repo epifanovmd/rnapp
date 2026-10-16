@@ -1,20 +1,10 @@
-import {
-  Button,
-  Row,
-  TButtonAppearance,
-  TButtonVariant,
-} from "@shared/ui";
+import { Button, Row, TButtonAppearance, TButtonVariant } from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 
 import { DemoScreen, DemoSection } from "./DemoScreen";
 
 const VARIANTS: TButtonVariant[] = ["primary", "secondary", "danger"];
-const APPEARANCES: TButtonAppearance[] = [
-  "filled",
-  "outline",
-  "ghost",
-  "link",
-];
+const APPEARANCES: TButtonAppearance[] = ["filled", "outline", "ghost", "link"];
 
 export const ButtonsDemo: FC = memo(() => {
   const [loading, setLoading] = useState(false);

@@ -3,7 +3,11 @@ import { ContextMenuView } from "@shared/ui";
 import React, { FC, memo, ReactNode, useCallback, useMemo } from "react";
 import { StyleProp, ViewStyle } from "react-native";
 
-import { buildMessageActions, MessageActionId } from "../model/message-actions";
+import {
+  buildMessageActions,
+  isMessageActionId,
+  MessageActionId,
+} from "../model/message-actions";
 
 export interface IMessageActionsMenuProps {
   message: IChatMessage;
@@ -31,7 +35,7 @@ export const MessageActionsMenu: FC<IMessageActionsMenuProps> = memo(
     const handleActionSelect = useCallback(
       (actionId: string) => {
         onClose?.();
-        onAction(actionId as MessageActionId, message);
+        if (isMessageActionId(actionId)) onAction(actionId, message);
       },
       [message, onAction, onClose],
     );

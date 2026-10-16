@@ -193,6 +193,15 @@ const matchKg = (text: string): number | null => {
   return match === null ? null : parseWeightNumber(match[1]);
 };
 
+/** Вес с единицей кг из строки, если он в диапазоне весов контейнера */
+const matchPlausibleKg = (text: string): number | null => {
+  "worklet";
+
+  const kg = matchKg(text);
+
+  return kg !== null && kg >= MIN_WEIGHT_KG && kg <= MAX_WEIGHT_KG ? kg : null;
+};
+
 /** Первый объём в м³ из строки, например "76.4 CU.M" → 76.4 */
 const matchM3 = (text: string): number | null => {
   "worklet";
@@ -238,7 +247,10 @@ const extractSizeType = (text: string): string | null => {
   return null;
 };
 
-/** Веса по меткам таблички (MAX GROSS / TARE / NET / CU CAP) */
+/**
+ * Веса по меткам таблички (MAX GROSS / TARE / NET / CU CAP); вес вне
+ * диапазона весов контейнера считается непрочитанным.
+ */
 const extractLabelledWeights = (lines: ILine[]): IContainerWeights => {
   "worklet";
 
@@ -253,11 +265,11 @@ const extractLabelledWeights = (lines: ILine[]): IContainerWeights => {
     const text = lines[i].text;
 
     if (/MAX[\s.]*(GROSS|WT|WEIGHT)|GROSS/.test(text)) {
-      weights.maxGrossKg = matchKg(text) ?? weights.maxGrossKg;
+      weights.maxGrossKg = matchPlausibleKg(text) ?? weights.maxGrossKg;
     } else if (/\bTARE\b/.test(text)) {
-      weights.tareKg = matchKg(text) ?? weights.tareKg;
+      weights.tareKg = matchPlausibleKg(text) ?? weights.tareKg;
     } else if (/\bNET\b|PAYLOAD/.test(text)) {
-      weights.netKg = matchKg(text) ?? weights.netKg;
+      weights.netKg = matchPlausibleKg(text) ?? weights.netKg;
     } else if (/CU[\s.]*CAP|CAPACITY|\bCUBE\b/.test(text)) {
       weights.cubicCapacityM3 = matchM3(text) ?? weights.cubicCapacityM3;
     }
@@ -380,9 +392,9 @@ const extractFieldKg = (observations: OcrObservation[]): number | null => {
   const lines = joinLines(observations);
 
   for (let i = 0; i < lines.length; i++) {
-    const kg = matchKg(lines[i].text);
+    const kg = matchPlausibleKg(lines[i].text);
 
-    if (kg !== null && kg >= MIN_WEIGHT_KG && kg <= MAX_WEIGHT_KG) {
+    if (kg !== null) {
       return kg;
     }
   }
@@ -400,7 +412,8 @@ const extractFieldKg = (observations: OcrObservation[]): number | null => {
 
 /**
  * Веса кадра: поле из своего региона приоритетнее разбора таблички
- * целиком; нетто, если не прочитано, добирается вычитанием.
+ * целиком; нетто, если не прочитано, добирается вычитанием, когда
+ * разность — правдоподобный вес.
  */
 const extractWeights = (
   sources: IContainerAttributeSources,
@@ -418,7 +431,8 @@ const extractWeights = (
   if (
     weights.netKg === null &&
     weights.maxGrossKg !== null &&
-    weights.tareKg !== null
+    weights.tareKg !== null &&
+    weights.maxGrossKg - weights.tareKg >= MIN_WEIGHT_KG
   ) {
     weights.netKg = weights.maxGrossKg - weights.tareKg;
   }

@@ -11,9 +11,19 @@ export class AuditRealtime implements IAuditRealtime {
     @IAuditStore() private _store: IAuditStore,
   ) {}
 
+  /** `audit:created` в ленту; после переподключения (обрыв, фон) загруженная лента перечитывается. */
   initialize() {
-    return this._transport.on<[AuditEventDto]>("audit:created", event =>
-      this._store.prepend(event),
-    );
+    let connected = this._transport.state.status === "connected";
+    const unsubscribe = [
+      this._transport.onConnect(() => {
+        if (connected && this._store.eventsHolder.isSuccess) this._store.load();
+        connected = true;
+      }),
+      this._transport.on<[AuditEventDto]>("audit:created", event =>
+        this._store.prepend(event),
+      ),
+    ];
+
+    return () => unsubscribe.forEach(off => off());
   }
 }

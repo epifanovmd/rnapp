@@ -1,4 +1,4 @@
-import { Col, RadioGroup, Spinner, Text } from "@shared/ui";
+import { Col, RadioGroup, ScreenState, Spinner, Text } from "@shared/ui";
 import { observer } from "mobx-react-lite";
 import React, { FC } from "react";
 
@@ -9,8 +9,9 @@ import {
 } from "../model/usePrivacyVM";
 
 export const PrivacySettingsForm: FC = observer(() => {
-  const { privacy, isLoading, change } = usePrivacyVM();
+  const { privacy, isLoading, error, retry, change } = usePrivacyVM();
 
+  if (error) return <ScreenState error={error} onRetry={retry} />;
   if (isLoading || !privacy) return <Spinner size={24} />;
 
   return (

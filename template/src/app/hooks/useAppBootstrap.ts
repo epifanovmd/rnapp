@@ -9,13 +9,14 @@ const SPLASH_HIDE_DELAY = 500;
 /**
  * Бутстрап по готовности навигации: restore-сессии, скрытие splash и, если
  * сессии нет, а на устройстве включён вход по биометрии, — его автозапрос.
+ * Splash скрывается и при сбое любого из шагов.
  */
 export const useAppBootstrap = () => {
   const authStore = IAuthStore.useInstance();
   const biometricStore = IBiometricStore.useInstance();
 
   return useCallback(async () => {
-    await Promise.all([authStore.restore(), biometricStore.load()]);
+    await Promise.allSettled([authStore.restore(), biometricStore.load()]);
 
     setTimeout(() => {
       trigger(HapticFeedbackTypes.impactLight);

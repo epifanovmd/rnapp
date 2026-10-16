@@ -22,5 +22,4 @@ export const isOverlayVisible = (
   mode: TSearchOverlayMode,
   active: boolean,
   query: string,
-): boolean =>
-  active && (mode === "active" || (mode === "empty" && !query));
+): boolean => active && (mode === "active" || (mode === "empty" && !query));

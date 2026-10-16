@@ -1,9 +1,9 @@
+import { SOCKET_BASE_URL } from "@shared/config/env";
+import { IAppStateService } from "@shared/lib/app-state";
+import { INetworkStatusService } from "@shared/lib/network";
 import { injectable } from "inversify";
 import { connect } from "socket.io-client";
 
-import { SOCKET_BASE_URL } from "../../../config/env";
-import { IAppStateService } from "../../app-state";
-import { INetworkStatusService } from "../../network";
 import { ITokenProvider } from "../contract";
 import { EmitQueue } from "./emit-queue";
 import { PersistentListeners } from "./persistent-listeners";
@@ -144,11 +144,11 @@ export class SocketTransport implements ISocketTransport {
     return pending.promise;
   }
 
+  /** Подписки `on`/`onConnect` сохраняются до отписки владельцем и переходят на следующий сокет. */
   disconnect(): void {
     this._isManualDisconnect = true;
     this._reconnect.reset();
     this._emitQueue.clear();
-    this._persistentListeners.clear();
     this._pending?.reject(new Error("Socket disconnected"));
     this._teardown();
     this._setState({ status: "disconnected", error: null });
@@ -342,6 +342,8 @@ export class SocketTransport implements ISocketTransport {
     this._isSuspended = true;
     this._reconnect.reset();
     this._stopHeartbeat();
+    // Незавершённое подключение больше не завершится: иначе connect() по возвращении вернул бы его.
+    this._pending?.reject(new Error("Socket suspended"));
     this._socket.disconnect();
     this._setState({ status: "disconnected", error: null });
   }

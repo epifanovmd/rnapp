@@ -148,7 +148,7 @@ export const Chart: FC<ChartProps> = ({
   const inspecting = interaction.isActive;
 
   // С зумом, пока идёт жест (вкл. инерцию и перекрестие), окно не едет за
-  // live-данными; без зума окно всегда на всех данных, как раньше.
+  // live-данными; без зума окно всегда на всех данных.
   useAnimatedReaction(
     () =>
       zoomEnabled && (inspecting.value || panActive.value || pinchActive.value),

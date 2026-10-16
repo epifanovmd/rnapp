@@ -3,7 +3,7 @@ import {
   BottomSheetScrollViewMethods,
   useBottomSheetInternal,
 } from "@gorhom/bottom-sheet";
-import { mergeRefs } from "@shared/lib/hooks/merge-refs";
+import { mergeRefs } from "@shared/lib/hooks";
 import {
   KeyboardAwareContent,
   useKeyboardAwareScroll,

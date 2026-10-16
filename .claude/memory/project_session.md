@@ -56,6 +56,12 @@ type-only контракты соседей → `shared/api/*` соединяе�
 TokenSession`: память, реактивная стратегия, сверху только `login`.
 
 `entities/auth` — только домен: статус, 2FA, guard; он потребляет `IMainSession`.
+`AuthStore` подписан на `session.onTokenChange`: непустой токен при `Unauthenticated` без 2FA →
+`Authenticated` (временная ошибка `restoreSession` → повтор refresh через 10 с впускает без ложного
+входа; во время `Loading` статус выставляет сам вызов). Выход пользователя — `logout()`: серверный
+`signOut({ notifyErrors: false })`, ошибка игнорируется, затем локальный `signOut()` (его же зовут
+принудительные пути: истечение сессии, guard, удаление аккаунта). Кнопка выхода (`features/sign-out`
+`useSignOut`) — через `logout()`. `signUp` в RN возвращает ошибку вызывающему (`verifyError` нет).
 Сокетный `ITokenProvider` связан с сессией основного бэкенда в `api.module.ts`
 через `toService`. Покрыто `shared/api/__tests__/api-module-wiring.test.ts`.
 
@@ -113,3 +119,36 @@ DI-модули импортируют контракты напрямую (`not
   `invalidated` — сброс; lockout — «Датчик заблокирован…».
 - Выключение — `DELETE /biometric/{deviceId}` (404 = успех) + удаление ключа всегда.
   Сверка `sync()` при показе строки меню: ключа нет → отзыв + сброс; устройства нет в `GET /devices` → сброс.
+
+## Поколения сессии (2026-10-15)
+
+`TokenSession._generation` растёт на `clear()` и на внешнем удалении токенов
+(`_adoptExternal(null)`). `_doRefresh` запоминает поколение до запроса: если за время
+запроса сессию закрыли (выход, удаление извне), ответ refresh отбрасывается и токены не
+воскресают; ошибка такого refresh не вызывает повторный `clear`/`onSessionExpired`.
+Тесты — `token-session.test.ts` («выход во время refresh…», «сессию завершили снаружи…»).
+
+## Сокет (2026-10-15)
+
+- `SocketTransport.disconnect()` не очищает persistent listeners: подписки `on`/`onConnect`
+  (в т.ч. комнаты `subscribeSocketRoom`) живут до отписки владельцем и переходят на новый
+  сокет после `connect()`. `PersistentListeners` удаляет пустые множества событий.
+- Отключение в фоне (`_suspend`) реджектит незавершённый `connect()`: иначе по возвращении
+  `connect()` вернул бы зависший промис и не вызвал `socket.connect()`.
+- `useSocketStatus` — на `useSyncExternalStore` (смена статуса между рендером и подпиской
+  не теряется). Тест — `socket/__tests__/use-socket-status.test.ts`.
+- Импорты config/app-state/network в транспорте — через алиасы `@shared/...`.
+
+## DI и прочее (2026-10-15)
+
+- `IXxx.useInstance()` берёт экземпляр из контейнера один раз (ленивый ref), а не на
+  каждом рендере. `disposer` глотает отказ промиса (`.catch(noop)`; `.catch()` без аргумента
+  не ловил ничего). Тесты — `di/__tests__/`.
+- `useLiveModel`: ответ `reload` для прежнего `id` (id сменился во время загрузки)
+  отбрасывается — не перетирает данные текущего. Тест — `live/__tests__/use-live-model.test.ts`.
+- Хранилище — MMKV (синхронный JSI): try/catch вокруг get/set не нужен, JSON в зоне
+  `lib/storage`/`session` не парсится. В `jest/stubs/react-native-mmkv.js` есть `remove`
+  (его вызывает `MmkvStorageService.removeItem`).
+- Hook-тесты в node-окружении: `react-test-renderer` (`create` + `act`), console.error
+  глушится (renderer пишет о своей устарелости); модулям с сокетом нужны
+  `jest.mock("@react-native-community/netinfo")` и `jest.mock("socket.io-client")`.

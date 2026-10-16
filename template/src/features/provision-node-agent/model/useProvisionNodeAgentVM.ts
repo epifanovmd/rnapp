@@ -7,7 +7,7 @@ import type {
 import { notifyApiError } from "@shared/lib/http";
 import { INotificationService } from "@shared/lib/notifications";
 import { useZodForm } from "@shared/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   DEFAULT_EXPIRES_MINUTES,
@@ -43,7 +43,10 @@ export const useProvisionNodeAgentVM = ({
   const api = IMainApi.useInstance();
   const toast = INotificationService.useInstance();
   const agents = IAgentsStore.useInstance();
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const [isBusy, setBusy] = useState(false);
+  const openRef = useRef(false);
+  const busyRef = useRef(false);
   const [node, setNode] = useState<NodeDto | null>(null);
   const [mode, setMode] = useState<TProvisionMode>("install");
   const [way, setWay] = useState<TInstallWay>("command");
@@ -59,6 +62,25 @@ export const useProvisionNodeAgentVM = ({
   const sshForm = useZodForm(sshSchema, {
     defaultValues: sshDefaults(null, []),
   });
+
+  const setOpen = (next: boolean) => {
+    openRef.current = next;
+    setOpenState(next);
+  };
+
+  /** Одна операция за раз: команда с токеном или задача по SSH. */
+  const exclusive = async (operation: () => Promise<void>) => {
+    if (busyRef.current) return;
+
+    busyRef.current = true;
+    setBusy(true);
+    try {
+      await operation();
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  };
 
   /** Воркеры с сервера — их можно поставить вместе с агентом. */
   const releaseWorkers = releaseWorkerNames(agents.release);
@@ -111,50 +133,62 @@ export const useProvisionNodeAgentVM = ({
     sshForm.reset(sshDefaults(null, []));
   };
 
-  const createCommand = async (data: TInstallCommandValues) => {
-    if (!node) return;
+  /**
+   * Команда с одноразовым токеном. Шторку смахнули, пока она выпускалась, —
+   * шторка открывается снова: токен показывается только сейчас.
+   */
+  const createCommand = (data: TInstallCommandValues) =>
+    exclusive(async () => {
+      if (!node) return;
 
-    const res = await api.createNodeInstallCommand(node.id, {
-      expiresInMinutes: data.expiresInMinutes,
-      baseUrl: data.baseUrl || undefined,
-      workers: workersBody(data.workers),
+      const target = node;
+      const res = await api.createNodeInstallCommand(target.id, {
+        expiresInMinutes: data.expiresInMinutes,
+        baseUrl: data.baseUrl || undefined,
+        workers: workersBody(data.workers),
+      });
+
+      if (res.error) {
+        notifyApiError(toast, res.error);
+
+        return;
+      }
+
+      setCommand(res.data);
+      if (!openRef.current) {
+        setNode(target);
+        setOpen(true);
+      }
     });
 
-    if (res.error) {
-      notifyApiError(toast, res.error);
+  const submitSsh = (data: TSshValues) =>
+    exclusive(async () => {
+      if (!node) return;
 
-      return;
-    }
+      const res =
+        mode === "uninstall"
+          ? await api.uninstallNodeAgent(node.id, {
+              ...sshBody(data),
+              purge: data.purge,
+            })
+          : await api.installNodeAgent(node.id, {
+              ...sshBody(data),
+              workers: workersBody(data.workers),
+            });
 
-    setCommand(res.data);
-  };
+      if (res.error) {
+        notifyApiError(toast, res.error);
 
-  const submitSsh = async (data: TSshValues) => {
-    if (!node) return;
+        return;
+      }
 
-    const res =
-      mode === "uninstall"
-        ? await api.uninstallNodeAgent(node.id, {
-            ...sshBody(data),
-            purge: data.purge,
-          })
-        : await api.installNodeAgent(node.id, {
-            ...sshBody(data),
-            workers: workersBody(data.workers),
-          });
-
-    if (res.error) {
-      notifyApiError(toast, res.error);
-
-      return;
-    }
-
-    setJobId(res.data.jobId);
-    toast.success("Ход виден на экране узла и в задачах", {
-      title: mode === "uninstall" ? "Удаление запущено" : "Установка запущена",
+      setJobId(res.data.jobId);
+      toast.success("Ход виден на экране узла и в задачах", {
+        title:
+          mode === "uninstall" ? "Удаление запущено" : "Установка запущена",
+      });
+      onStarted?.(res.data.jobId);
     });
-    onStarted?.(res.data.jobId);
-  };
 
   return {
     open,
@@ -171,6 +205,8 @@ export const useProvisionNodeAgentVM = ({
     onClosed,
     createCommand,
     submitSsh,
+    /** Идёт выпуск команды или запуск задачи по SSH. */
+    isBusy,
     releaseWorkers,
   };
 };

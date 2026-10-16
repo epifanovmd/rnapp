@@ -26,7 +26,7 @@ export type DetectorAccelerator = "cpu" | "gpu" | "nnapi";
 /**
  * Модель детекции и способ её прогона. Модель кладётся в приложение:
  * iOS — бандл `<name>.mlmodelc`/`<name>.mlpackage`, Android — assets
- * `<name>.tflite`. Не заданные поля берутся из `DETECTOR_DEFAULTS`.
+ * `<name>.tflite`. Не заданные поля берутся из `VISION_ENGINE_DEFAULTS`.
  */
 export interface DetectorModelConfig {
   /** Имя файла модели без расширения */

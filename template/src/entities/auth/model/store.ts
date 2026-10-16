@@ -34,6 +34,7 @@ class AuthStore implements IAuthStore {
 
     // При форсированном завершении сессии (refresh не удался) — signOut
     this._session.onSessionExpired(() => this.signOut());
+    this._session.onTokenChange(this._onTokenChange);
   }
 
   get isTwoFactorRequired() {
@@ -145,6 +146,13 @@ class AuthStore implements IAuthStore {
     this._setStatus(ok ? AuthStatus.Authenticated : AuthStatus.Unauthenticated);
   }
 
+  /** Выход пользователя: закрыть сессию на сервере (ошибка не мешает), затем локально. */
+  async logout() {
+    await this._api.signOut({ notifyErrors: false });
+    this.signOut();
+  }
+
+  /** Локальный выход без запроса к серверу — для принудительных путей. */
   signOut() {
     this._session.clear();
     this.twoFactorToken = null;
@@ -168,6 +176,17 @@ class AuthStore implements IAuthStore {
 
   disable2FA(data: IDisable2FARequestDto) {
     return this._api.disable2FA(data);
+  }
+
+  /** Токен пришёл вне вызовов стора (повтор refresh после временной ошибки) — сессия есть. */
+  private _onTokenChange(accessToken: string) {
+    if (
+      accessToken &&
+      this.status === AuthStatus.Unauthenticated &&
+      !this.isTwoFactorRequired
+    ) {
+      this._setStatus(AuthStatus.Authenticated);
+    }
   }
 
   private _setStatus(status: AuthStatus) {

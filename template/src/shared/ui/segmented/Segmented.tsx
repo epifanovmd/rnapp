@@ -20,7 +20,7 @@ export interface ISegmentedProps<V extends string = string> extends FlexProps {
 }
 
 /** Сегментированный переключатель с анимированным индикатором выбранного варианта. */
-export const Segmented = <V extends string = string,>({
+export const Segmented = <V extends string = string>({
   options,
   value,
   onValueChange,

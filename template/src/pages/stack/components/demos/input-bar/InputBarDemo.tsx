@@ -28,13 +28,9 @@ export const InputBarDemo: FC = observer(() => {
     setEvents(prev => [{ time: now(), text }, ...prev].slice(0, 50));
   }, []);
 
-  // ─── Компенсация клавиатуры ────────────────────────────────────────────
   // Перекрытие снизу считает `useInputBarInset`, распорку и подъём скролла —
   // сам `KeyboardScrollView`. Подписка на клавиатуру одна.
-
   const inset = useInputBarInset();
-
-  // ─── Режимы ────────────────────────────────────────────────────────────
 
   const setNormal = () => {
     setInputAction(null);
@@ -75,7 +71,6 @@ export const InputBarDemo: FC = observer(() => {
         {/* Тап по контенту снимает фокус с поля ввода. */}
         <Pressable onPress={Keyboard.dismiss}>
           <Content>
-            {/* Режимы */}
             <Text textStyle={"Title_S1"} mt={16}>
               {"Режимы"}
             </Text>
@@ -119,7 +114,6 @@ export const InputBarDemo: FC = observer(() => {
               </Row>
             )}
 
-            {/* События */}
             <Text textStyle={"Title_S1"} mt={16}>
               {"События"}
             </Text>

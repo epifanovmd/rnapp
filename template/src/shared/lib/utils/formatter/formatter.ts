@@ -1,5 +1,12 @@
 import { DateFormatter } from "./date-formatter";
 
+/** Индекс единицы измерения в пределах таблицы `units`. */
+const unitIndex = (value: number, base: number, units: string[]) =>
+  Math.min(
+    units.length - 1,
+    Math.max(0, Math.floor(Math.log(value) / Math.log(base))),
+  );
+
 class Formatter {
   readonly date = new DateFormatter();
 
@@ -10,7 +17,7 @@ class Formatter {
       mode === "bits"
         ? ["B", "KiB", "MiB", "GiB", "TiB"]
         : ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(base));
+    const i = unitIndex(bytes, base, units);
 
     return `${(bytes / Math.pow(base, i)).toFixed(1)} ${units[i]}`;
   };
@@ -20,7 +27,7 @@ class Formatter {
 
     if (mode === "bytes") {
       const units = ["B/s", "KB/s", "MB/s", "GB/s"];
-      const i = Math.floor(Math.log(bytes) / Math.log(1000));
+      const i = unitIndex(bytes, 1000, units);
 
       return `${(bytes / Math.pow(1000, i)).toFixed(1)} ${units[i]}`;
     }

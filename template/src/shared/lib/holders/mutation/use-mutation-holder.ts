@@ -12,6 +12,7 @@ export interface UseMutationOptions<
 > {
   mutationFn?: MutationFn<TArgs, TData>;
 
+  /** Ответ без ошибки, в том числе пустой (`null`, `false`); при отмене не вызывается. */
   onSuccess?: (data: TData) => void;
 
   onError?: (error: TError) => void;
@@ -35,6 +36,7 @@ export interface UseMutationResult<
     ? (args?: never) => Promise<TData | undefined>
     : (args: TArgs) => Promise<TData | undefined>;
 
+  /** Бросает ошибку мутации; при отмене возвращает `null` без `onSuccess`. */
   mutateAsync: TArgs extends void
     ? (args?: never) => Promise<TData>
     : (args: TArgs) => Promise<TData>;
@@ -77,10 +79,10 @@ export const useMutation = <
       const result = await executeWrapper(...params);
       const callbacks = callbacksRef.current;
 
-      if (result.data) {
-        callbacks?.onSuccess?.(result.data);
-      } else if (result.error) {
+      if (result.error) {
         callbacks?.onError?.(result.error as TError);
+      } else if (!result.isCanceled) {
+        callbacks?.onSuccess?.(result.data as TData);
       }
       callbacks?.onSettled?.();
 
@@ -100,10 +102,10 @@ export const useMutation = <
         throw result.error;
       }
 
-      callbacks?.onSuccess?.(result.data!);
+      if (!result.isCanceled) callbacks?.onSuccess?.(result.data as TData);
       callbacks?.onSettled?.();
 
-      return result.data!;
+      return result.data as TData;
     },
     [executeWrapper],
   ) as UseMutationResult<TArgs, TData, TError>["mutateAsync"];

@@ -15,7 +15,11 @@ describe("revealStyle", () => {
       translateY: 10,
       scale: 1,
     });
-    expect(revealStyle(1, base)).toEqual({ opacity: 1, translateY: 0, scale: 1 });
+    expect(revealStyle(1, base)).toEqual({
+      opacity: 1,
+      translateY: 0,
+      scale: 1,
+    });
   });
 
   it("inverse — исчезает", () => {
@@ -24,7 +28,11 @@ describe("revealStyle", () => {
   });
 
   it("участок прогресса", () => {
-    const style = { ...base, preset: "fade" as const, range: [0.5, 1] as const };
+    const style = {
+      ...base,
+      preset: "fade" as const,
+      range: [0.5, 1] as const,
+    };
 
     expect(revealStyle(0.4, style).opacity).toBe(0);
     expect(revealStyle(0.75, style).opacity).toBe(0.5);

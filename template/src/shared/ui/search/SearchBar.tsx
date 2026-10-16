@@ -126,15 +126,21 @@ const SearchBarRoot = ({
   );
   const accessoryStyle = useAnimatedStyle(
     () => ({
-      opacity: searchTrailingLayout(progress.value, accessoryOffset, cancelWidth)
-        .accessoryOpacity,
+      opacity: searchTrailingLayout(
+        progress.value,
+        accessoryOffset,
+        cancelWidth,
+      ).accessoryOpacity,
     }),
     [accessoryOffset, cancelWidth, progress],
   );
   const cancelStyle = useAnimatedStyle(
     () => ({
-      opacity: searchTrailingLayout(progress.value, accessoryOffset, cancelWidth)
-        .cancelOpacity,
+      opacity: searchTrailingLayout(
+        progress.value,
+        accessoryOffset,
+        cancelWidth,
+      ).cancelOpacity,
     }),
     [accessoryOffset, cancelWidth, progress],
   );
@@ -171,7 +177,11 @@ const SearchBarRoot = ({
           keyboardType={keyboardType}
           returnKeyType={returnKeyType}
           onSubmitEditing={() => onSubmit?.(query)}
-          style={[styles.input, INPUT_TEXT_STYLE, { color: colors.textPrimary }]}
+          style={[
+            styles.input,
+            INPUT_TEXT_STYLE,
+            { color: colors.textPrimary },
+          ]}
         />
         {trailing.present
           ? trailing.render()

@@ -11,7 +11,7 @@ export const disposer = (dispose: InitializeDispose | InitializeDispose[]) => {
           disposable.forEach(disposer);
         }
       })
-      .catch();
+      .catch(() => undefined);
   }
 
   if (Array.isArray(dispose)) {

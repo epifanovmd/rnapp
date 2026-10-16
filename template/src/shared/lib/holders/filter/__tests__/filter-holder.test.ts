@@ -1,4 +1,8 @@
+import { observable, runInAction } from "mobx";
+
+import { deferred } from "../../__tests__/holder-test-utils";
 import { FilterHolder } from "../filter.holder";
+import type { IFilterOption } from "../filter.types";
 import { filterOptions as options, flush } from "./filter-test-utils";
 
 describe("FilterHolder", () => {
@@ -149,5 +153,66 @@ describe("FilterHolder", () => {
     await flush();
     unset.cancel();
     expect(unset.value).toBeUndefined();
+  });
+
+  it("applies only the latest reactive options and stops reacting after dispose", async () => {
+    const source = observable.box(0);
+    const requests = [0, 1, 2].map(() => deferred<IFilterOption<number>[]>());
+    const holder = new FilterHolder<number>({
+      title: "Reactive",
+      options: () => requests[source.get()].promise,
+    });
+
+    runInAction(() => source.set(1));
+    requests[1].resolve([{ label: "New", value: 2 }]);
+    await flush();
+    requests[0].resolve([{ label: "Old", value: 1 }]);
+    await flush();
+    expect(holder.options.map(option => option.label)).toEqual(["New"]);
+    expect(holder.isLoading).toBe(false);
+
+    const stale = deferred<IFilterOption<number>[]>();
+    const latest = deferred<IFilterOption<number>[]>();
+    const lazy = observable.box(stale.promise);
+    const pending = new FilterHolder<number>({
+      title: "Pending",
+      options: () => lazy.get(),
+    });
+
+    runInAction(() => lazy.set(latest.promise));
+    stale.reject(new Error("stale"));
+    await flush();
+    expect(pending.isLoading).toBe(true);
+    latest.resolve([{ label: "Latest", value: 1 }]);
+    await flush();
+    expect(pending.options).toHaveLength(1);
+
+    holder.dispose();
+    runInAction(() => source.set(2));
+    requests[2].resolve([]);
+    await flush();
+    expect(holder.options.map(option => option.label)).toEqual(["New"]);
+  });
+
+  it("compares selected values structurally in checkActive and setValue", async () => {
+    const holder = new FilterHolder<{ id: number }, undefined, true>({
+      title: "Objects",
+      options: [{ label: "One", value: { id: 1 } }],
+      multiple: true,
+      value: [{ id: 1 }],
+    });
+
+    await flush();
+    expect(holder.options[0].isActive).toBe(true);
+    holder.setValue({ id: 1 });
+    expect(holder.value).toEqual([]);
+
+    const single = new FilterHolder<{ id: number }>({
+      title: "Single",
+      options: [{ label: "One", value: { id: 1 } }],
+      value: { id: 1 },
+    });
+
+    expect(single.checkActive({ id: 1 })).toBe(true);
   });
 });

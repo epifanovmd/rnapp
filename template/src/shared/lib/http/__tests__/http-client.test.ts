@@ -192,6 +192,22 @@ describe("HttpClient", () => {
     expect(res.error).toBeInstanceOf(CanceledError);
   });
 
+  it("после завершения запроса слушатель внешнего AbortSignal снимается", async () => {
+    const controller = new AbortController();
+    const add = jest.spyOn(controller.signal, "addEventListener");
+    const remove = jest.spyOn(controller.signal, "removeEventListener");
+    const client = createTestClient(createFakeTransport(() => ok("a")));
+
+    await client.request({ url: "/a" }, { signal: controller.signal });
+    await client.request({ url: "/b" }, { signal: controller.signal });
+
+    expect(add).toHaveBeenCalledTimes(2);
+    expect(remove).toHaveBeenCalledTimes(2);
+    expect(remove.mock.calls.map(([, listener]) => listener)).toEqual(
+      add.mock.calls.map(([, listener]) => listener),
+    );
+  });
+
   it("middleware выполняются как луковица: первый — самый внешний", async () => {
     const order: string[] = [];
     const mw =

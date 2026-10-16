@@ -58,7 +58,6 @@ export const CrosshairSeriesIndicator = React.memo(
       [point, right],
     );
 
-
     const labelText =
       showLabel && jsIndex >= 0 && series.data[jsIndex]
         ? labelFormatter(series.data[jsIndex].y, series)

@@ -67,7 +67,7 @@ export class HttpClient implements IHttpClient {
       controller.abort(cancelReason);
     };
 
-    linkExternalSignal(options.signal, cancel);
+    const unlinkSignal = linkExternalSignal(options.signal, cancel);
 
     const ctx: RequestContext<TBody> = {
       request: this._normalizeRequest(request, options),
@@ -77,21 +77,23 @@ export class HttpClient implements IHttpClient {
       cancel,
     };
 
-    const promise = this._handler(ctx as RequestContext).then(
-      response => response as HttpResponse<TData>,
-      (error: unknown) => {
-        const info = toRequestInfo(ctx.request);
+    const promise = this._handler(ctx as RequestContext)
+      .then(
+        response => response as HttpResponse<TData>,
+        (error: unknown) => {
+          const info = toRequestInfo(ctx.request);
 
-        if (controller.signal.aborted) {
-          throw new CanceledError(cancelReason, {
-            request: info,
-            cause: error,
-          });
-        }
+          if (controller.signal.aborted) {
+            throw new CanceledError(cancelReason, {
+              request: info,
+              cause: error,
+            });
+          }
 
-        throw toApiError(error, info);
-      },
-    );
+          throw toApiError(error, info);
+        },
+      )
+      .finally(unlinkSignal);
 
     return toCancelable(promise, cancel);
   }
@@ -182,19 +184,25 @@ const mergeHeaders = (
   return Object.fromEntries(merged.values());
 };
 
-/** Связывает внешний `AbortSignal` с отменой запроса. */
+const noop = () => {};
+
+/** Связывает внешний `AbortSignal` с отменой запроса; возвращает отвязку. */
 const linkExternalSignal = (
   signal: AbortSignal | undefined,
   cancel: (reason?: string) => void,
-): void => {
-  if (!signal) return;
+): (() => void) => {
+  if (!signal) return noop;
 
   const forward = () =>
     cancel(typeof signal.reason === "string" ? signal.reason : undefined);
 
   if (signal.aborted) {
     forward();
-  } else {
-    signal.addEventListener("abort", forward, { once: true });
+
+    return noop;
   }
+
+  signal.addEventListener("abort", forward, { once: true });
+
+  return () => signal.removeEventListener("abort", forward);
 };

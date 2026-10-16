@@ -19,7 +19,8 @@ export interface BearerAuthOptions {
 
 /**
  * Подставляет access-токен, а на 401 обновляет его и повторяет запрос один раз.
- * Параллельные 401 ждут одно обновление. Ставится ниже `queryRace`, иначе
+ * Параллельные 401 ждут одно обновление; запоздавший 401 со старым токеном
+ * повторяется с текущим без обновления. Ставится ниже `queryRace`, иначе
  * повтор считался бы новым участником гонки.
  */
 export const bearerAuth = (
@@ -51,16 +52,18 @@ export const bearerAuth = (
     return refreshing;
   };
 
-  /** Пишет заголовок авторизации, если токен есть. */
-  const applyToken = (ctx: RequestContext): void => {
+  /** Пишет заголовок авторизации, если токен есть; возвращает подставленный токен. */
+  const applyToken = (ctx: RequestContext): string => {
     const token = tokenSource.accessToken;
 
-    if (!token) return;
+    if (!token) return token;
 
     ctx.request.headers = {
       ...ctx.request.headers,
       [header]: `${scheme} ${token}`,
     };
+
+    return token;
   };
 
   return async (ctx, next) => {
@@ -72,7 +75,7 @@ export const bearerAuth = (
       // Упреждающее обновление не удалось: пробуем с текущим токеном, 401 разберётся.
     }
 
-    applyToken(ctx);
+    const sentToken = applyToken(ctx);
 
     try {
       return await next();
@@ -83,7 +86,13 @@ export const bearerAuth = (
         error.status === 401 &&
         !ctx.signal.aborted;
 
-      if (!shouldRetry || !(await refreshOnce())) throw error;
+      if (!shouldRetry) throw error;
+
+      // Запрос ушёл со старым токеном, а его уже обновили: повторить без refresh.
+      const current = tokenSource.accessToken;
+      const isStale = !!sentToken && !!current && current !== sentToken;
+
+      if (!isStale && !(await refreshOnce())) throw error;
 
       applyToken(ctx);
 

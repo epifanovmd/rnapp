@@ -1,9 +1,8 @@
 import { createInjectDecorator } from "@shared/lib/di";
 
 /**
- * Узкий контракт для доменов, которым нужно знать про текущую auth-сессию,
- * не завися от домена auth напрямую (Домен→Домен запрещён). Реализуется
- * тонким адаптером `AuthSessionGuard.service.ts` в domains/auth/services/.
+ * Узкий контракт текущей auth-сессии для слайсов, которым нельзя зависеть от
+ * слайса авторизации напрямую. Реализацию биндит владелец сессии.
  */
 export interface IAuthSessionGuard {
   isCurrentSession(sessionId: string): boolean;

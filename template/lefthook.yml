@@ -18,4 +18,5 @@ pre-commit:
 
     - name: test
       root: template/
-      run: node_modules/.bin/jest --no-watchman --runInBand
+      # С покрытием: пороги jest.config.js проверяются только при --coverage.
+      run: node_modules/.bin/jest --no-watchman --runInBand --coverage

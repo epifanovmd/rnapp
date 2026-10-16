@@ -235,11 +235,11 @@ export const DatePicker: FC<PropsWithChildren<DatePickerProps>> = memo(
 
     const sheet = (
       <BottomSheet
-          ref={modalRef}
-          nested
-          dismissKeyboardOnOpen
-          {...bottomSheetProps}
-        >
+        ref={modalRef}
+        nested
+        dismissKeyboardOnOpen
+        {...bottomSheetProps}
+      >
         <BottomSheet.Header centered={true} label={title} {...headerProps} />
 
         <BottomSheet.Content {...containerProps}>

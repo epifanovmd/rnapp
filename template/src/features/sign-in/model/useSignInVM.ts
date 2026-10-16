@@ -15,8 +15,8 @@ export const useSignInVM = () => {
 
   const form = useZodForm(signInFormValidationSchema, {
     defaultValues: {
-      login: "epifanovmd@gmail.com",
-      password: "Epifan123",
+      login: "",
+      password: "",
     },
   });
 

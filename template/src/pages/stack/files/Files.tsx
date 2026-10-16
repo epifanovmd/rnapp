@@ -1,24 +1,22 @@
 import { FILE_PERMISSIONS, IFileStore } from "@entities/file";
 import { IUserStore } from "@entities/user";
+import { useDeleteFile } from "@features/delete-file";
 import { FileUploadActions } from "@features/file-upload";
 import type { IFileDto } from "@shared/api/gen/main/model";
-import { notifyApiError } from "@shared/lib/http";
-import { useNotifications } from "@shared/lib/notifications";
-import { formatter } from "@shared/lib/utils";
 import {
-  Avatar,
   Button,
   Col,
   Container,
-  Row,
   Segmented,
   SegmentedOption,
   Spinner,
   Text,
 } from "@shared/ui";
 import { observer } from "mobx-react-lite";
-import React, { FC, memo, useCallback, useEffect } from "react";
-import { Alert, FlatList, ListRenderItem, StyleSheet } from "react-native";
+import React, { FC, useCallback, useEffect } from "react";
+import { FlatList, ListRenderItem, StyleSheet } from "react-native";
+
+import { FileRow } from "./FileRow";
 
 const keyExtractor = (file: IFileDto) => file.id;
 
@@ -29,38 +27,6 @@ const SCOPE_OPTIONS: SegmentedOption<TFilesScope>[] = [
   { value: "all", label: "Все" },
 ];
 
-const FileRow: FC<{
-  file: IFileDto;
-  onDelete?: (file: IFileDto) => void;
-}> = memo(({ file, onDelete }) => (
-  <Row bg={"surface"} radius={12} pa={12} gap={12} alignItems={"center"}>
-    <Avatar
-      size={48}
-      borderRadius={8}
-      url={file.thumbnailUrl ?? undefined}
-      name={file.name}
-    />
-    <Col flex={1} gap={2}>
-      <Text textStyle={"Body_M1"} numberOfLines={1}>
-        {file.name}
-      </Text>
-      <Text textStyle={"Caption_M1"} color={"textSecondary"}>
-        {[file.type, formatter.bytes(file.size), file.status].join(" · ")}
-      </Text>
-    </Col>
-    {onDelete && (
-      <Button
-        size={"small"}
-        variant={"danger"}
-        appearance={"ghost"}
-        onPress={() => onDelete(file)}
-      >
-        {"Удалить"}
-      </Button>
-    )}
-  </Row>
-));
-
 /**
  * Файлы: свои или (с правом `file:view` на все) все, загрузка и удаление.
  * Кнопка удаления — только у файлов, которые право `file:delete` позволяет удалить.
@@ -68,7 +34,7 @@ const FileRow: FC<{
 export const Files: FC = observer(() => {
   const fileStore = IFileStore.useInstance();
   const userStore = IUserStore.useInstance();
-  const notifications = useNotifications();
+  const deleteFile = useDeleteFile();
   const holder = fileStore.filesHolder;
   const canViewAll = userStore.scope(FILE_PERMISSIONS.VIEW) === "all";
 
@@ -86,26 +52,11 @@ export const Files: FC = observer(() => {
     [fileStore],
   );
 
-  const remove = useCallback(
-    async (file: IFileDto) => {
-      const res = await fileStore.remove(file.id);
-
-      if (res.error) notifyApiError(notifications, res.error);
-    },
-    [fileStore, notifications],
-  );
-
   const onDelete = useCallback(
-    (file: IFileDto) =>
-      Alert.alert("Удалить файл?", file.name, [
-        { text: "Отмена", style: "cancel" },
-        {
-          text: "Удалить",
-          style: "destructive",
-          onPress: () => remove(file),
-        },
-      ]),
-    [remove],
+    (file: IFileDto) => {
+      deleteFile(file);
+    },
+    [deleteFile],
   );
 
   const renderItem = useCallback<ListRenderItem<IFileDto>>(
@@ -156,7 +107,17 @@ export const Files: FC = observer(() => {
           )
         }
         ListFooterComponent={
-          holder.isLoadingMore ? <Spinner size={24} /> : null
+          holder.isLoadingMore ? (
+            <Spinner size={24} />
+          ) : holder.isLoadMoreError ? (
+            <Button
+              size={"small"}
+              appearance={"ghost"}
+              onPress={fileStore.loadMore}
+            >
+              {"Не удалось загрузить — повторить"}
+            </Button>
+          ) : null
         }
       />
     </Container>

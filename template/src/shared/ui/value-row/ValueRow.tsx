@@ -1,7 +1,7 @@
 import { useTheme } from "@shared/lib/theme";
 import React, { FC, memo, ReactNode } from "react";
 
-import { DisclosureRow,IDisclosureRowProps } from "../disclosure-row";
+import { DisclosureRow, IDisclosureRowProps } from "../disclosure-row";
 import { Col, Row } from "../flex-view";
 import { Icon, TIconName } from "../icon";
 import { Text } from "../text";

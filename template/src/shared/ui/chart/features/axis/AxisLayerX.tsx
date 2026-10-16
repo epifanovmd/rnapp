@@ -1,11 +1,4 @@
-import {
-  Group,
-  Line,
-  Path,
-  Rect,
-  Skia,
-  vec,
-} from "@shopify/react-native-skia";
+import { Group, Line, Path, Rect, Skia, vec } from "@shopify/react-native-skia";
 import React, { useCallback, useMemo } from "react";
 import { useDerivedValue } from "react-native-reanimated";
 

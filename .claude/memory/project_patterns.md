@@ -104,3 +104,42 @@ type: project
   `react-native-worklets` (0.11). `runOnUI`/`runOnJS` из Reanimated — deprecated, заменены
   2026-10-04 (calendar slider, pull-to-refresh controller, bars). `.runOnJS(true)` у жестов
   RNGH — другое API, остаётся. В jest `react-native-worklets` — пустой стаб.
+
+## Ленты по курсору и хуки агента (аудит 2026-10-15)
+
+- `AuditStore` и `AgentEventFeed`: счётчик поколений — `load()` (и `reset()` у AuditStore) начинает
+  новое поколение и сбрасывает курсор; ответы прежних `load`/`loadMore` (в т.ч. пришедшие после
+  выхода) не применяются; `loadMore` не уходит во время `load`.
+- `useAgentLiveMetrics` хранит окно вместе с `agentId` (`pointsOf`): при смене агента без ремаунта
+  точки прежнего не показываются и не сливаются в окно нового. `useAgentLog` при смене агента
+  сбрасывает записи и источник (setState в render по `entriesOf`).
+- Тест хуков entities без RN: `react-test-renderer` + `observer` (mobx-react-lite требует `react-dom` —
+  `jest.mock("react-dom", …, { virtual: true })`), DI — `iocContainer.bind("IMainApi"|"ISocketTransport")`,
+  барели `@shared/api`/`@shared/lib/network`/`@shared/lib/app-state` мокаются
+  (`entities/agent/model/__tests__/agent-hooks.test.ts`). Тесты с JSX требуют PascalCase имени —
+  хуки тестируются в `.ts` через `createElement`.
+
+## Проверенные решения (pages)
+
+- **Своё удаление vs событие `*:deleted`.** Сервер шлёт `agent:deleted`/`node:deleted` раньше
+  HTTP-ответа. VM экрана (`useAgentDetailVM`, `useNodeDetailVM`) оборачивает удаление фичи:
+  на время запроса `deletingRef` откладывает реакцию на событие; успех — один уход без
+  предупреждения, провал при пришедшем событии — предупреждение и уход. `leave()` идемпотентен
+  (`leftRef`). Контракт VM сохранён (`actions.remove`, `removeNode → Promise<boolean>`).
+- **Пересинхронизация после переподключения.** Комнаты — `useSocketRoom(type, id, onRejoin)`
+  (на экране узла в `onRejoin` перечитываются узел и задача установки). Данные без комнаты
+  (связность узлов `node:mesh` при любой области) — по переходу `useIsSocketConnected()`
+  false → true после первого подключения (`useNodesVM`). Список узлов (`useNodesRealtime`):
+  область `all` — `onRejoin` комнаты `nodes`; область `own` (комнаты нет) — `socket.onConnect`
+  с флагом `connected` (первое подключение не считается). Тест — `nodes-realtime.test.ts`
+  (фейковый сокет через `iocContainer`, моки `@shared/lib/network`/`app-state`).
+- **Сценарии действий — в features**, страница их только вызывает: `delete-file`
+  (`useDeleteFile`: confirm → `IFileStore.remove` → `notifyApiError`, возвращает удалён ли),
+  `cancel-job` (`useCancelJob`), `start-demo-job` (`DemoJobLauncher`).
+- **Ошибка подгрузки списка** (`isLoadMoreError` у Infinite/Cursor холдеров) — в
+  `ListFooterComponent` кнопка «повторить» (`onEndReached` сам повторно не сработает).
+- **Тест VM-хука страницы**: `jest.mock` барелей (`@entities/*`, `@features/*`, `@shared/lib/socket`
+  с фейковыми `useSocketEvent`/`useSocketRoom`, `@shared/lib/holders`) + `react-test-renderer`
+  (`act` + Probe-компонент). Переменные внутри фабрик `jest.mock` — только с префиксом `mock`.
+  react-test-renderer пишет предупреждение об устаревании в `console.error` — глушить
+  `jest.spyOn(console, "error")` в `beforeEach`. Примеры: `pages/stack/*/model/__tests__/use*VM.test.ts`.

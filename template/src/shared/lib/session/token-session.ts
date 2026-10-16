@@ -43,6 +43,8 @@ export class TokenSession implements ITokenSession {
   private _tokens: TokenPair = EMPTY_TOKENS;
   private _refreshing: Promise<void> | null = null;
   private _timer: ReturnType<typeof setTimeout> | undefined;
+  /** Растёт при каждом завершении сессии: устаревший ответ refresh отбрасывается. */
+  private _generation = 0;
 
   private readonly _storage: ITokenStorage;
   private readonly _bufferSeconds: number;
@@ -91,6 +93,7 @@ export class TokenSession implements ITokenSession {
   }
 
   clear(): void {
+    this._generation++;
     this._storage.clear();
     this._applyTokens(EMPTY_TOKENS);
   }
@@ -201,6 +204,7 @@ export class TokenSession implements ITokenSession {
     const next = tokens ?? EMPTY_TOKENS;
     const had = hasSession(this._tokens);
 
+    if (!hasSession(next)) this._generation++;
     this._applyTokens(next);
 
     if (had && !hasSession(next)) this._notifyExpired();
@@ -263,9 +267,18 @@ export class TokenSession implements ITokenSession {
       throw new Error("No refresh token available");
     }
 
+    const generation = this._generation;
+
     try {
-      this.setTokens(await this._config.refresh(refreshToken));
+      const grant = await this._config.refresh(refreshToken);
+
+      // Пока шёл запрос, сессию закрыли: ответ уже не нужен.
+      if (generation !== this._generation) return;
+
+      this.setTokens(grant);
     } catch (error) {
+      if (generation !== this._generation) throw error;
+
       if ((this._config.isSessionRejected ?? rejectAll)(error)) {
         this.clear();
         this._notifyExpired();

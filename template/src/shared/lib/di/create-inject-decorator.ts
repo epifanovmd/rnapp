@@ -25,13 +25,9 @@ export interface IInjectDecorator<T> {
 const { lazyInject } = decorators(iocContainer);
 
 /**
- * `name` — стабильный строковый идентификатор сервиса для Inversify-контейнера
- * (обычно совпадает с именем интерфейса/константы, например `"IAuthStore"`).
- * Раньше генерировался случайно (`shortid()`) при каждом вызове — из-за этого
- * при hot reload модуль переисполнялся, идентификатор менялся, и уже
- * забинженные в контейнере инстансы переставали совпадать с тем, что просят
- * потребители. Явный литерал в коде такой проблемы не имеет — при hot reload
- * он остаётся тем же самым.
+ * Декоратор-токен сервиса. `name` — стабильный строковый идентификатор в
+ * Inversify-контейнере (обычно имя интерфейса, например `"IAuthStore"`):
+ * литерал не меняется при hot reload, поэтому биндинги остаются валидными.
  */
 const createInjectDecorator = <TInterface>(
   name: string,
@@ -71,8 +67,15 @@ const createInjectDecorator = <TInterface>(
     ) as TInterface;
   };
 
-  const useInstance = () => {
-    return useRef(injectDecoratorFactory.getInstance()).current;
+  /** Экземпляр берётся из контейнера один раз на жизнь компонента. */
+  const useInstance = (): TInterface => {
+    const ref = useRef<{ instance: TInterface } | null>(null);
+
+    if (!ref.current) {
+      ref.current = { instance: injectDecoratorFactory.getInstance() };
+    }
+
+    return ref.current.instance;
   };
 
   injectDecoratorFactory.useInstance = useInstance;

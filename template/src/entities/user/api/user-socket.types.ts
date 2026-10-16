@@ -42,6 +42,8 @@ export interface UserSocketHandlers {
   onNewSession?: (data: SessionDto) => void;
   onSessionTerminated?: (data: SessionTerminatedPayload) => void;
   onPasswordChanged?: (data: UserPasswordChangedPayload) => void;
+  /** Сокет переподключился после обрыва или фона (не первое подключение): события за обрыв потеряны. */
+  onReconnect?: () => void;
 }
 
 export const IUserSocketService =

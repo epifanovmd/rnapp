@@ -18,5 +18,5 @@ export const formatInitials = (
         .map(s => s[0])
         .join("")
         .toUpperCase()
-    : fallback[0].toUpperCase();
+    : fallback.slice(0, 1).toUpperCase();
 };

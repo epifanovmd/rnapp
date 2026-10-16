@@ -40,8 +40,6 @@ export const useRecordingGesture = (
 
   recordingStateRef.current = recordingState;
 
-  // ─── Shared values жеста ─────────────────────────────────────────────────
-
   const micTranslateX = useSharedValue(0);
   const micTranslateY = useSharedValue(0);
   const micGestureScale = useSharedValue(1);
@@ -73,7 +71,6 @@ export const useRecordingGesture = (
     lockRecording();
   }, [resetGestureValues, lockRecording]);
 
-  // ─── Пульсация ───────────────────────────────────────────────────────────
   // Пульсация привязана к состоянию locked: стартует при входе,
   // останавливается при выходе. Запись могут остановить не только через жест
   // (корзина, крестик, отправка) — поэтому анимация управляется флагом,
@@ -99,8 +96,6 @@ export const useRecordingGesture = (
     cancelAnimation(pulseScale);
     pulseScale.value = withTiming(1, { duration: 150 });
   }, [isLocked, pulseScale]);
-
-  // ─── Drag ────────────────────────────────────────────────────────────────
 
   const handleDrag = useCallback(
     (dx: number, dy: number) => {

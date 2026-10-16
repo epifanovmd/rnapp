@@ -109,6 +109,17 @@ describe("extractContainerAttributes: табличка весов целиком
     expect(attributes.weights.netKg).toBe(26780);
   });
 
+  it("не принимает подписанный вес вне диапазона весов контейнера", () => {
+    const attributes = extractContainerAttributes(
+      sources({
+        weightPlate: [line("MAX GROSS 30.480 KG"), line("TARE 3.70 KG")],
+      }),
+    );
+
+    expect(attributes.weights.tareKg).toBeNull();
+    expect(attributes.weights.netKg).toBeNull();
+  });
+
   it("не принимает числа вне диапазона весов контейнера", () => {
     const attributes = extractContainerAttributes(
       sources({
@@ -173,6 +184,17 @@ describe("extractContainerAttributes: регионы отдельных весо
     );
 
     expect(attributes.weights.netKg).toBe(26780);
+  });
+
+  it("не добирает нетто, когда тара не меньше брутто", () => {
+    const attributes = extractContainerAttributes(
+      sources({
+        maxGross: [line("30480 KG")],
+        tare: [line("38000 KG")],
+      }),
+    );
+
+    expect(attributes.weights.netKg).toBeNull();
   });
 
   it("поле региона приоритетнее разбора таблички, пропуски добирает табличка", () => {

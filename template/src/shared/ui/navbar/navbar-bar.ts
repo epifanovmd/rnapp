@@ -37,7 +37,10 @@ export const useNavbarVisibleHeight = (): DerivedValue<number> => {
   return useDerivedValue(
     () =>
       height.value -
-      clampOffset(offset.value, resolveCollapseRange(height.value, pinned.value)),
+      clampOffset(
+        offset.value,
+        resolveCollapseRange(height.value, pinned.value),
+      ),
     [height, pinned, offset],
   );
 };

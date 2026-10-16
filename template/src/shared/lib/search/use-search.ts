@@ -14,7 +14,7 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { useDebouncedValue } from "../hooks/use-debounced-value";
+import { useDebouncedValue } from "../hooks";
 import { shouldCloseOnBlur } from "./search-blur";
 
 export interface IUseSearchOptions {

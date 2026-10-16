@@ -2,14 +2,10 @@ import { action, makeObservable } from "mobx";
 
 import { BaseListHolder } from "../base/base-list-holder";
 import {
-  CancellablePromise,
   CollectionFetchFn,
   HolderStatus,
   IApiResponse,
   IHolderError,
-  isCancelError,
-  isCancelResponse,
-  toHolderError,
 } from "../holder.types";
 
 export interface ICollectionHolderOptions<TItem, TArgs = void> {
@@ -71,55 +67,7 @@ export class CollectionHolder<
     extractor?: (response: TResponse) => TItem[],
     options?: { refresh?: boolean },
   ): Promise<ICollectionHolderResult<TItem, TApiError>> {
-    this._pendingFetch?.cancel?.();
-
-    if (options?.refresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
-
-    const promise = fn();
-
-    this._pendingFetch = promise as CancellablePromise;
-
-    try {
-      const res = await promise;
-
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res)) return { data: null, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
-
-        return { data: null, error: res.error };
-      }
-
-      if (res.data != null) {
-        const items = extractor
-          ? extractor(res.data as TResponse)
-          : (res.data as unknown as TItem[]);
-
-        this.setItems(items);
-
-        return { data: items, error: null };
-      }
-
-      this.setItems([]);
-
-      return { data: [], error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, error: null };
-
-      const err = toHolderError(e) as unknown as TApiError;
-
-      this.setError(err as unknown as TError);
-
-      return { data: null, error: err };
-    }
+    return this._fetch(fn, extractor, options?.refresh ?? false);
   }
 
   async load(
@@ -146,46 +94,45 @@ export class CollectionHolder<
       return { data: null, error: null };
     }
 
-    this._pendingFetch?.cancel?.();
+    const onFetch = this._onFetch;
 
-    if (isRefresh) {
-      this.setRefreshing();
-    } else {
-      this.setLoading();
-    }
+    return this._fetch(
+      () => onFetch(args) as Promise<IApiResponse<TItem[], TError>>,
+      undefined,
+      isRefresh,
+    );
+  }
 
-    const promise = this._onFetch(args);
+  private _fetch<TResponse, TApiError extends IHolderError>(
+    fn: () => Promise<IApiResponse<TResponse, TApiError>>,
+    extractor: ((response: TResponse) => TItem[]) | undefined,
+    isRefresh: boolean,
+  ): Promise<ICollectionHolderResult<TItem, TApiError>> {
+    return this._request<
+      TResponse,
+      TApiError,
+      ICollectionHolderResult<TItem, TApiError>
+    >(fn, {
+      onStart: () => (isRefresh ? this.setRefreshing() : this.setLoading()),
+      onSuccess: data => {
+        const items =
+          data == null
+            ? []
+            : extractor
+              ? extractor(data)
+              : (data as unknown as TItem[]);
 
-    this._pendingFetch = promise as CancellablePromise;
+        this.setItems(items);
 
-    try {
-      const res = await promise;
+        return { data: items, error: null };
+      },
+      onError: error => {
+        this.setError(error as unknown as TError);
 
-      this._pendingFetch = null;
-
-      if (isCancelResponse(res)) return { data: null, error: null };
-
-      if (res.error) {
-        this.setError(res.error as unknown as TError);
-
-        return { data: null, error: res.error as unknown as TError };
-      }
-
-      const items = (res.data ?? []) as TItem[];
-
-      this.setItems(items);
-
-      return { data: items, error: null };
-    } catch (e) {
-      this._pendingFetch = null;
-
-      if (isCancelError(e)) return { data: null, error: null };
-
-      const err = toHolderError(e) as TError;
-
-      this.setError(err);
-
-      return { data: null, error: err };
-    }
+        return { data: null, error };
+      },
+      onCancel: () => this._restoreStatus(this.items.length > 0),
+      skipped: () => ({ data: null, error: null }),
+    });
   }
 }

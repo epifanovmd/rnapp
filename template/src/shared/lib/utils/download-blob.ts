@@ -4,7 +4,7 @@ export const downloadBlob = (blob: Blob, name: string) => {
   const link = document.createElement("a");
 
   link.href = href;
-  link.setAttribute("download", name); // or any other extension
+  link.setAttribute("download", name);
   document.body.appendChild(link);
   link.click();
 

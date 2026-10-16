@@ -57,7 +57,12 @@ describe("monotoneSegments", () => {
   });
 
   it("меньше трёх точек — без сегментов кривой", () => {
-    expect(monotoneSegments([{ x: 0, y: 0 }, { x: 1, y: 1 }])).toEqual([]);
+    expect(
+      monotoneSegments([
+        { x: 0, y: 0 },
+        { x: 1, y: 1 },
+      ]),
+    ).toEqual([]);
   });
 
   it("объявлен как worklet", () => {

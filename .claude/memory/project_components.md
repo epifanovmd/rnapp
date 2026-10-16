@@ -515,3 +515,27 @@ inputRef, setQuery, open (идемпотентно, без фокуса), close 
   потоке (сам отодвигает контент), после — absolute под safe area (`hiddenBarLayout(height, top)`
   в том же анимированном стиле, что translateY; переход в одном кадре с `inset`, оба от `height`).
   У `ImageBar` та же схема absolute + onLayout — при жалобах лечить так же.
+
+## Аудит кита (2026-10-15): проверенные факты
+
+- `ModalSheet`: пока `primaryAction.loading`, закрыть нельзя — «Отмена» disabled, крестик шапки
+  no-op, `enablePanDownToClose=false`, фон `ModalSheetLockedBackdrop` (тап не закрывает). Правило —
+  чистый `modal-sheet-dismiss.ts` `canDismissModalSheet` (тест). `BottomSheetBackdrop` экспортирован
+  из `bottom-sheet`, проп `closeOnPress` (def true).
+- `VoiceRecorder` (`input-bar/services`): `start` бэкенда асинхронный (у AudioApi — запрос доступа к
+  микрофону); stop/cancel до его завершения запоминаются (`_pendingFinish`) и применяются после
+  старта, повторный start во время запуска игнорируется. Тест — `services/__tests__/voice-recorder.test.ts`.
+- `useAsyncOptions`: смена `fetchKey` при открытом списке перезагружает опции (тест на
+  react-test-renderer).
+- `useCarouselAutoplay`: `onReachEnd` — через latest-ref; иначе инлайн-колбэк родителя на каждом
+  ре-рендере пересоздавал `startWait` и эффект перезапускал отсчёт (и снимал паузу касания).
+  Тест мокает `react-native-reanimated` (`useSharedValue` на useState).
+- Хук-тесты в node: `react-test-renderer` + `act`, глушить warning устаревания (шаблон —
+  `calendar/context/__tests__/CalendarProvider.test.tsx`); reanimated в jest — пустой стаб,
+  нужные хуки мокать `jest.mock` фабрикой.
+- `CalendarProvider`: внешняя смена выбора (`value`, `ref.select/setSelection`) переводит
+  uncontrolled-месяц на месяц первой выбранной даты; тап по дню не считается внешним
+  (`pressedKeyRef`, решает `navigateOnOutsideDayPress`), при controlled `month` не трогает.
+  Тесты — «месяц за внешним выбором» в `CalendarProvider.test.tsx`.
+- Не исправлено (известно): `ImageViewing.changeIndex` зовёт `onIndexChange`
+  внутри updater `setState` (StrictMode в приложении не включён); rAF в `Tabs` без отмены.

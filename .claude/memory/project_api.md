@@ -252,5 +252,27 @@ auth-API (обновление токенов) → сессия → HTTP-кли�
 ## Ошибки API на экранах (2026-09-26)
 
 - Глобально `notifyErrors` тостит только сеть, таймаут и 5xx. Ошибки 4xx экран показывает сам: `notifyApiError(notifications, res.error)` из `@shared/lib/http` — пропускает уже показанное `notifyErrors` и отменённые запросы (без дублей).
+- `IUserStore.updatePrivacy` и `ISessionStore.terminateOtherSessions` возвращают `ApiResponse` —
+  потребитель показывает `res.error` через `notifyApiError` (не свой тост на любой провал).
+  Ошибка загрузки приватности — `IUserStore.privacyError`; `PrivacySettingsForm` показывает
+  `ScreenState` с «Повторить» вместо вечного спиннера.
 - Ошибки — только тостами, не текстом на форме. `signIn`/`verify2FA`/`signUp` в `IAuthStore` возвращают `ApiError | null`, VM входа/регистрации показывает их через `notifyApiError`.
 - Молчаливое `if (res.error) return` — баг.
+
+## Поведение middleware и клиента (аудит 2026-10-15)
+
+- `queryRace` по умолчанию гасит только GET/HEAD; POST/PUT/PATCH/DELETE участвуют лишь с
+  `queryRace: true` (два параллельных POST на один URL больше не отменяют друг друга).
+  `queryRace: false` по-прежнему выключает гонку для любого метода.
+- `bearerAuth` запоминает токен, с которым ушёл запрос: если на 401 текущий токен уже другой
+  (refresh сделал параллельный запрос), повтор идёт с текущим без нового refresh.
+- `HttpClient.send` снимает слушатель внешнего `options.signal` после завершения запроса
+  (`linkExternalSignal` возвращает отвязку) — долгоживущий AbortController не копит слушатели.
+- `retry`: пауза снимает слушатель `abort` по таймеру.
+- `IMainAuthApi.refresh` типизирован `TokenGrant` (ответ с `expiresIn`/`sessionId`), не `TokenPair`.
+- `api.module.ts` импортирует `notifications/notification.types` и `socket/contract` в обход
+  бочек намеренно: бочка уведомлений экспортирует RN-компоненты, бочка сокета — транспорт
+  (socket.io, NetInfo). Это не нарушение, а защита DI-модуля и его теста от UI/натива.
+- Уведомления: `NotificationStore.promise` — сбой в `messages.success/error` снимает
+  уведомление загрузки (`dismiss`), наружу уходит исходное значение/ошибка
+  (`notifications/__tests__/notification-store.test.ts`, мок `react-native-haptic-feedback`).

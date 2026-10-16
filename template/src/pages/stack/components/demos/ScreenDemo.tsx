@@ -1,10 +1,4 @@
-import {
-  ListItem,
-  Notice,
-  ScreenScroll,
-  Text,
-  TextField,
-} from "@shared/ui";
+import { ListItem, Notice, ScreenScroll, Text, TextField } from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 
 const ROWS = Array.from({ length: 8 }, (_, index) => index + 1);
@@ -27,9 +21,7 @@ export const ScreenDemo: FC = memo(() => {
   );
 
   return (
-    <ScreenScroll
-      onRefresh={onRefresh}
-    >
+    <ScreenScroll onRefresh={onRefresh}>
       <Text textStyle={"Body_M1"} color={"textSecondary"}>
         {"ScreenScroll · потяните вниз для обновления"}
       </Text>

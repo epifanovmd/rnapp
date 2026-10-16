@@ -32,8 +32,7 @@ export const App: FC = observer(() => {
     return () => {
       disposer(dispose);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialize]);
 
   return (
     <GestureHandlerRootView style={ss.container}>

@@ -10,12 +10,22 @@ type: project
 npm run start                  # Metro bundler, --reset-cache
 npm run reinstall              # watchman clean + node_modules + pod install
 npm run lint | lint:fix        # ESLint src/**/*.ts,tsx
-npm run prettier:fix           # Prettier src/**/*.ts,tsx
+npm run prettier:fix           # Prettier --write src/**/*.ts,tsx (глоб в кавычках — иначе sh раскрывает `**` на один уровень)
+npm run format:check           # Prettier --check src/**/*.ts,tsx
+npm run typecheck              # tsc --noEmit
+npm run test | test:coverage   # jest; test:coverage — с порогами покрытия
+npm run check                  # lint + format:check + typecheck + test:coverage
 npm run generate:orval         # orval → shared/api/gen/
 npm run check-packages-updates # yarn outdated
 npm run clean:android          # cd android && ./gradlew clean
 npm run restore:native         # перезалить бинарники Skia и AudioAPI (--force)
 ```
+
+- Gotcha: `yarn check` в yarn v1 — встроенная команда (сверка `node_modules` с lockfile), а не
+  скрипт; скрипт запускать `yarn run check` / `npm run check`.
+- Порог покрытия `jest.config.js` (100% на `shared/lib/holders`) проверяется только с
+  `--coverage`: поэтому `check` и pre-commit `test` идут с покрытием.
+- CI (`.github/workflows`) в репозитории нет — проверки только локально (`check`, lefthook).
 
 ### Предсобранные бинарники (`scripts/restore-native-libs.mjs`)
 
@@ -128,8 +138,9 @@ export const DEEPLINK_BASE_URL = Config.DEEPLINK_BASE_URL;
 - `mode: "single"` → `api.ts` (все эндпоинты в одном файле)
 - `client: "axios"`, mutator — `shared/api/<name>/<name>.mutator.ts` (`<name>Mutator`)
 - `clean: ["./src/shared/api/gen/<name>"]` — очистка только своей папки
-- Спецификация основного бэкенда: `http://147.45.245.104:8181/api-docs/swagger.json`,
-  переопределяется переменной `MAIN_SWAGGER` (генерация из локального файла без сети)
+- Спецификация основного бэкенда по умолчанию — файл соседнего репозитория
+  `../../rest-api-template-app/src/routing/swagger.json`; переопределяется переменной
+  `MAIN_SWAGGER` (URL запущенного сервера или другой файл)
 - `transformer`: переименовывает дублирующийся `operationId` `SearchMessages` → `SearchChatMessages` (конфликт между `/api/chat/{chatId}/message/search` и `/api/message/search`)
 - `afterAllFilesWrite`: `prettier --parser typescript --write`
 
@@ -159,7 +170,7 @@ Jobs `pre-commit` (`piped: true`, последовательно, стоп на 
 - `lint` (`root: template/`, `*.{ts,tsx}`) → `eslint --fix` + `prettier --write` по staged, `stage_fixed`
 - `format` (`*.{js,jsx,mjs,cjs,json,css,md,html,yml,yaml}`) → `prettier --write` по staged, `stage_fixed`
 - `typecheck` (`root: template/`) → `tsc --noEmit`
-- `test` (`root: template/`) → `jest --no-watchman --runInBand`
+- `test` (`root: template/`) → `jest --no-watchman --runInBand --coverage` (пороги покрытия)
 
 Пропустить хук: `LEFTHOOK=0 git commit` или `git commit --no-verify`.
 
@@ -171,7 +182,7 @@ Jobs `pre-commit` (`piped: true`, последовательно, стоп на 
   `Pods/React-Core-prebuilt/.last_build_configuration`.
 - Gotcha: `pod install` стирает маркер; без маркера Debug-сборка считает, что на месте debug, и
   ничего не меняет. Если остался release — линковка падает: `Undefined symbols … facebook::react::
-  Sealable`, `ShadowNode::getDebugName` в NitroImage/RNGestureHandler/RNSVG.
+Sealable`, `ShadowNode::getDebugName` в NitroImage/RNGestureHandler/RNSVG.
 - Починка: в `template/ios/Pods`: `printf Release > React-Core-prebuilt/.last_build_configuration &&
-  node ../../node_modules/react-native/scripts/replace-rncore-version.js -c Debug -r 0.86.0 -p "$PWD"`,
+node ../../node_modules/react-native/scripts/replace-rncore-version.js -c Debug -r 0.86.0 -p "$PWD"`,
   затем пересборка (при необходимости Clean Build Folder).

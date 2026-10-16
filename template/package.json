@@ -13,7 +13,7 @@
     "test": "jest --no-watchman",
     "test:coverage": "jest --no-watchman --coverage --runInBand",
     "typecheck": "tsc --noEmit",
-    "check": "yarn lint && yarn typecheck && yarn test --runInBand",
+    "check": "yarn lint && yarn format:check && yarn typecheck && yarn test:coverage",
     "android:Dev-Debug": "react-native run-android --mode=developmentDebug",
     "android:Dev-Release": "react-native run-android --mode=developmentRelease",
     "android:Stg-Debug": "react-native run-android --mode=stagingDebug",
@@ -31,7 +31,8 @@
     "prepare": "git config --local core.hooksPath template/.lefthook",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
-    "prettier:fix": "prettier --parser typescript --write src/**/*.{ts,tsx}",
+    "prettier:fix": "prettier --parser typescript --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {

@@ -49,10 +49,7 @@ export const FormSheetDemo: FC = memo(() => {
   });
   const { isSubmitting } = form.formState;
 
-  const resetForm = useCallback(
-    () => form.reset(DEMO_FORM_DEFAULTS),
-    [form],
-  );
+  const resetForm = useCallback(() => form.reset(DEMO_FORM_DEFAULTS), [form]);
 
   const onSubmit = useCallback(
     async (data: TDemoFormResult) => {

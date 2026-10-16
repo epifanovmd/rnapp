@@ -25,6 +25,7 @@ export class SyncCursorHolder<
   private _initialLimit: number;
   private _pageLimit: number;
   private _fetchGeneration = 0;
+  private _directionalRequest = { older: 0, newer: 0 };
 
   isFetching = false;
   pendingItems: TItem[] = [];
@@ -42,6 +43,7 @@ export class SyncCursorHolder<
     makeObservable(this, {
       isFetching: observable,
       pendingItems: observable.ref,
+      bufferPendingItem: action,
       fetchInitial: action,
       loadOlder: action,
       loadNewer: action,
@@ -96,19 +98,13 @@ export class SyncCursorHolder<
 
       const result = await this._api.fetch(params);
 
+      if (gen !== this._fetchGeneration) return;
+
       runInAction(() => {
         this.isFetching = false;
       });
 
-      if (gen !== this._fetchGeneration || currentKey !== key) {
-        runInAction(() => {
-          this.pendingItems = [];
-        });
-
-        return;
-      }
-
-      if (!result) {
+      if (!result || currentKey !== key || this._boundKey !== key) {
         runInAction(() => {
           this.pendingItems = [];
         });
@@ -133,6 +129,8 @@ export class SyncCursorHolder<
         this.pendingItems = [];
       });
     } catch (e) {
+      if (gen !== this._fetchGeneration) return;
+
       runInAction(() => {
         this.isFetching = false;
         this.pendingItems = [];
@@ -170,12 +168,17 @@ export class SyncCursorHolder<
 
     this.setLoadingOlder();
 
+    const isStale = this._staleCheck(key);
+    const request = ++this._directionalRequest.older;
+
     try {
       const result = await this._api.fetch({
         key,
         before: cursor,
         limit: this._pageLimit,
       });
+
+      if (isStale()) return this._discardDirectional("older", request);
 
       if (!result) {
         this.appendItems([], false);
@@ -191,6 +194,8 @@ export class SyncCursorHolder<
         this.appendItems(apiNorm, result.hasMore);
       }
     } catch (e) {
+      if (isStale()) return this._discardDirectional("older", request);
+
       this.setOlderError(toHolderError(e) as TError);
     }
   }
@@ -218,12 +223,17 @@ export class SyncCursorHolder<
 
     this.setLoadingNewer();
 
+    const isStale = this._staleCheck(key);
+    const request = ++this._directionalRequest.newer;
+
     try {
       const result = await this._api.fetch({
         key,
         after: cursor,
         limit: this._pageLimit,
       });
+
+      if (isStale()) return this._discardDirectional("newer", request);
 
       if (!result || result.data.length === 0) {
         this.prependItems([], false);
@@ -239,6 +249,8 @@ export class SyncCursorHolder<
         this.prependItems(apiNorm, result.hasNewer);
       }
     } catch (e) {
+      if (isStale()) return this._discardDirectional("newer", request);
+
       this.setNewerError(toHolderError(e) as TError);
     }
   }
@@ -269,6 +281,12 @@ export class SyncCursorHolder<
 
     const gen = ++this._fetchGeneration;
 
+    if (this.isFetching) {
+      this.isFetching = false;
+      this.pendingItems = [];
+      this._restoreStatus(this.items.length > 0);
+    }
+
     try {
       const result = await this._api.fetch({
         key,
@@ -277,7 +295,13 @@ export class SyncCursorHolder<
       });
 
       if (!result || result.data.length === 0) return false;
-      if (gen !== this._fetchGeneration || currentKey !== key) return false;
+      if (
+        gen !== this._fetchGeneration ||
+        currentKey !== key ||
+        this._boundKey !== key
+      ) {
+        return false;
+      }
       if (!result.data.some(m => this._idExtractor(m) === itemId)) return false;
 
       this.setItems(
@@ -287,9 +311,32 @@ export class SyncCursorHolder<
       );
 
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
+  }
+
+  /** Проверка устаревания запроса: сменился ключ или запущена новая загрузка. */
+  private _staleCheck(key: string): () => boolean {
+    const gen = this._fetchGeneration;
+
+    return () => gen !== this._fetchGeneration || this._boundKey !== key;
+  }
+
+  /** Сброс статуса отброшенной подгрузки, если после неё не запущена новая. */
+  private _discardDirectional(
+    direction: "older" | "newer",
+    request: number,
+  ): void {
+    if (request !== this._directionalRequest[direction]) return;
+
+    runInAction(() => {
+      if (direction === "older") {
+        this.loadMoreStatus = MutationStatus.Idle;
+      } else {
+        this.loadNewerStatus = MutationStatus.Idle;
+      }
+    });
   }
 
   private _mergeInitial(

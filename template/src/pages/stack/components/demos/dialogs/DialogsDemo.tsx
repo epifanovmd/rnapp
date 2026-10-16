@@ -1,10 +1,4 @@
-import {
-  Button,
-  Dialog,
-  IDialogProps,
-  Text,
-  useDialogRef,
-} from "@shared/ui";
+import { Button, Dialog, IDialogProps, Text, useDialogRef } from "@shared/ui";
 import React, { FC, memo, useCallback, useState } from "react";
 import { StyleSheet } from "react-native";
 import Animated from "react-native-reanimated";
@@ -90,10 +84,7 @@ export const DialogsDemo = memo(() => {
   return (
     <>
       <Animated.ScrollView
-        contentContainerStyle={[
-          SS.container,
-          { paddingBottom: bottom + 16 },
-        ]}
+        contentContainerStyle={[SS.container, { paddingBottom: bottom + 16 }]}
       >
         <Text textStyle={"Title_S1"}>{"Настройки диалога"}</Text>
         {DIALOG_VARIANTS.map(item => (

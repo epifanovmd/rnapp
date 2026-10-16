@@ -27,9 +27,12 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
   container-scanner, object-scanner, pdf-view, plate-scanner, text-scanner, web-view)
 - `widgets/` — app-shell, auth-layout (оформление входа и регистрации), app-menu (вкладка
   настроек), chat (ChatView: AnchorList + InputBar + контекстное меню)
-- `features/` — sign-in, sign-up, recovery-password, edit-profile, biometric, container-scan,
-  message-actions, object-scan, plate-scan, text-scan
-- `entities/` — auth, message, user
+- `features/` — вход и аккаунт (sign-in, sign-up, sign-out, recovery-password, biometric,
+  edit-profile, profile-settings, account-security), сканеры (container-, object-, plate-,
+  text-scan), чат (message-actions), файлы и задачи (file-upload, delete-file, cancel-job,
+  start-demo-job), узлы и агенты (manage-node, assign-node-owner, provision-node-agent,
+  enroll-agent, manage-agent, edit-worker-config, fetch-agent-worker)
+- `entities/` — auth, user, message, file, job, node, agent, audit
 - `shared/` — ui | api (только конкретные бэкенды) | config | lib (http, session, di, holders,
   navigation, theme, socket, keyboard, ...)
 
@@ -63,7 +66,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
    (каждая — рабочее состояние). Показать пользователю, дождаться подтверждения.
 3. **Выполнение** — по одной итерации; после каждой — lint и typecheck; не переходить
    дальше, пока текущая не стабильна. Сообщать прогресс.
-4. **Проверка** — `yarn run check` из `template/` (lint + typecheck + test); краткое резюме.
+4. **Проверка** — `yarn run check` из `template/` (lint + format:check + typecheck + test:coverage); краткое резюме.
 
 ## Комментарии в коде
 

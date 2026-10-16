@@ -1,3 +1,6 @@
+import { autorun } from "mobx";
+
+import { deferred } from "../../__tests__/holder-test-utils";
 import { testRuntime } from "../../__tests__/test-runtime";
 import { HolderStatus, MutationStatus } from "../../holder.types";
 import { type IFetchProvider } from "../cached-cursor-holder.types";
@@ -301,5 +304,194 @@ describe("SyncCursorHolder", () => {
     holder.bind("feed");
     await holder.fetchInitial(null, "feed");
     expect(holder.hasMore).toBe(true);
+  });
+
+  it("keeps the newer initial request state when a superseded one settles", async () => {
+    type Page = { data: Item[]; hasMore: boolean; hasNewer: boolean };
+    const requests = [0, 1, 2, 3].map(() => deferred<Page>());
+    const queue = [...requests];
+    const holder = new SyncCursorHolder(
+      { fetch: () => queue.shift()!.promise },
+      options,
+    );
+
+    holder.bind("feed");
+    const first = holder.fetchInitial(null, "feed");
+    const second = holder.fetchInitial(null, "feed");
+
+    holder.bufferPendingItem(item(0));
+    requests[0].resolve({ data: [item(5)], hasMore: false, hasNewer: false });
+    await first;
+    expect(holder.isFetching).toBe(true);
+    expect(holder.pendingItems).toEqual([item(0)]);
+
+    requests[1].resolve({ data: [item(1)], hasMore: false, hasNewer: false });
+    await second;
+    expect(holder.items.map(value => value.id)).toEqual(["0", "1"]);
+
+    const third = holder.fetchInitial(null, "feed");
+    const fourth = holder.fetchInitial(null, "feed");
+
+    requests[2].reject(new Error("stale"));
+    await third;
+    expect(holder.isError).toBe(false);
+    expect(holder.isFetching).toBe(true);
+    requests[3].resolve({ data: [item(2)], hasMore: false, hasNewer: false });
+    await fourth;
+    expect(holder.isFetching).toBe(false);
+  });
+
+  it("discards directional pages loaded for a previously bound key", async () => {
+    type Page = { data: Item[]; hasMore: boolean; hasNewer: boolean };
+    const requests = [0, 1, 2, 3].map(() => deferred<Page>());
+    const queue = [...requests];
+    const holder = new SyncCursorHolder(
+      { fetch: () => queue.shift()!.promise },
+      options,
+    );
+    const rebind = (key: string) => {
+      holder.bind(key);
+      holder.setItems([item(1), item(2)], true, true);
+    };
+
+    rebind("a");
+    const older = holder.loadOlder();
+
+    rebind("b");
+    requests[0].resolve({ data: [item(9)], hasMore: false, hasNewer: false });
+    await older;
+    rebind("a");
+    const newer = holder.loadNewer();
+
+    rebind("b");
+    requests[1].resolve({ data: [item(-9)], hasMore: false, hasNewer: false });
+    await newer;
+    expect(holder.items.map(value => value.id)).toEqual(["1", "2"]);
+    expect(holder.loadMoreStatus).toBe(MutationStatus.Idle);
+    expect(holder.loadNewerStatus).toBe(MutationStatus.Idle);
+
+    const olderFailed = holder.loadOlder();
+
+    holder.invalidate();
+    requests[2].reject(new Error("older"));
+    await olderFailed;
+    const newerFailed = holder.loadNewer();
+
+    holder.invalidate();
+    requests[3].reject(new Error("newer"));
+    await newerFailed;
+    expect(holder.isLoadMoreError).toBe(false);
+    expect(holder.isLoadNewerError).toBe(false);
+    expect(holder.isLoadingMore).toBe(false);
+    expect(holder.isLoadingNewer).toBe(false);
+  });
+
+  it("persists the previous key before binding another one", () => {
+    const cache = new MemoryCache<Item>();
+    const holder = new SyncCursorHolder(
+      { fetch: async () => null },
+      options,
+      cache,
+    );
+
+    holder.bind("a");
+    holder.setItems([item(1)], false);
+    holder.bind("a");
+    expect(cache.cancelCount).toBe(0);
+    holder.bind("b");
+    expect(cache.read("a")?.items).toEqual([item(1)]);
+    expect(cache.cancelCount).toBe(1);
+  });
+
+  it("keeps a newer directional load pending when a stale one settles", async () => {
+    type Page = { data: Item[]; hasMore: boolean; hasNewer: boolean };
+    const requests = [0, 1, 2, 3].map(() => deferred<Page>());
+    const queue = [...requests];
+    const holder = new SyncCursorHolder(
+      { fetch: () => queue.shift()!.promise },
+      options,
+    );
+    const rebind = (key: string) => {
+      holder.bind(key);
+      holder.setItems([item(1), item(2)], true, true);
+    };
+
+    rebind("a");
+    const staleOlder = holder.loadOlder();
+    const staleNewer = holder.loadNewer();
+
+    rebind("b");
+    const older = holder.loadOlder();
+    const newer = holder.loadNewer();
+
+    requests[0].resolve({ data: [item(9)], hasMore: false, hasNewer: false });
+    requests[1].resolve({ data: [item(-9)], hasMore: false, hasNewer: false });
+    await Promise.all([staleOlder, staleNewer]);
+    expect(holder.isLoadingMore).toBe(true);
+    expect(holder.isLoadingNewer).toBe(true);
+    requests[2].resolve({ data: [item(3)], hasMore: false, hasNewer: false });
+    requests[3].resolve({ data: [item(0)], hasMore: false, hasNewer: false });
+    await Promise.all([older, newer]);
+    expect(holder.items.map(value => value.id)).toEqual(["0", "1", "2", "3"]);
+  });
+
+  it("ignores a navigation result after the key is rebound", async () => {
+    const request = deferred<{
+      data: Item[];
+      hasMore: boolean;
+      hasNewer: boolean;
+    }>();
+    const holder = new SyncCursorHolder(
+      { fetch: () => request.promise },
+      options,
+    );
+
+    holder.bind("a");
+    const navigation = holder.navigateToItem("7", "a");
+
+    holder.bind("b");
+    request.resolve({ data: [item(7)], hasMore: false, hasNewer: false });
+    await expect(navigation).resolves.toBe(false);
+    expect(holder.items).toEqual([]);
+  });
+
+  it("buffers pending items inside an action", () => {
+    const holder = new SyncCursorHolder({ fetch: async () => null }, options);
+    const warn = testRuntime
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
+    const dispose = autorun(() => holder.pendingItems.length);
+
+    holder.bufferPendingItem(item(1));
+    dispose();
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+    expect(holder.pendingItems).toEqual([item(1)]);
+  });
+
+  it("finishes a superseded initial load when navigation takes over", async () => {
+    type Page = { data: Item[]; hasMore: boolean; hasNewer: boolean };
+    const requests = [0, 1].map(() => deferred<Page>());
+    const queue = [...requests];
+    const holder = new SyncCursorHolder(
+      { fetch: () => queue.shift()!.promise },
+      options,
+    );
+
+    holder.bind("feed");
+    const initial = holder.fetchInitial(null, "feed");
+
+    holder.bufferPendingItem(item(0));
+    const navigation = holder.navigateToItem("7", "feed");
+
+    expect(holder.isFetching).toBe(false);
+    expect(holder.pendingItems).toEqual([]);
+    expect(holder.isLoading).toBe(false);
+    requests[0].resolve({ data: [item(1)], hasMore: true, hasNewer: false });
+    await initial;
+    requests[1].resolve({ data: [], hasMore: false, hasNewer: false });
+    await expect(navigation).resolves.toBe(false);
+    expect(holder.isFetching).toBe(false);
+    expect(holder.isIdle).toBe(true);
   });
 });

@@ -78,6 +78,9 @@ export class VoiceRecorder {
   private _durationTimer: ReturnType<typeof setInterval> | null = null;
   private _startedAt = 0;
   private _isRecording = false;
+  private _isStarting = false;
+  /** Остановка или отмена, запрошенная до завершения асинхронного `start` бэкенда. */
+  private _pendingFinish: "stop" | "cancel" | null = null;
 
   get isRecording(): boolean {
     return this._isRecording;
@@ -88,9 +91,23 @@ export class VoiceRecorder {
   }
 
   startRecording() {
+    if (this._isRecording || this._isStarting) return;
+    this._isStarting = true;
+    this._pendingFinish = null;
     this._backend
       .start(level => this.delegate.onUpdateLevel?.(level))
       .then(() => {
+        const pending = this._pendingFinish;
+
+        this._isStarting = false;
+        this._pendingFinish = null;
+
+        if (pending === "cancel") {
+          this._backend.cancel();
+
+          return;
+        }
+
         this._isRecording = true;
         this._startedAt = Date.now();
         this._durationTimer = setInterval(() => {
@@ -99,11 +116,22 @@ export class VoiceRecorder {
           );
         }, 33);
         this.delegate.onStart?.();
+
+        if (pending === "stop") this.stopRecording();
       })
-      .catch((error: Error) => this.delegate.onFail?.(error));
+      .catch((error: Error) => {
+        this._isStarting = false;
+        this._pendingFinish = null;
+        this.delegate.onFail?.(error);
+      });
   }
 
   stopRecording() {
+    if (this._isStarting) {
+      this._pendingFinish ??= "stop";
+
+      return;
+    }
     if (!this._isRecording) return;
     this._isRecording = false;
     this.stopTimer();
@@ -114,6 +142,14 @@ export class VoiceRecorder {
   }
 
   cancelRecording() {
+    if (this._isStarting) {
+      if (this._pendingFinish !== "cancel") {
+        this._pendingFinish = "cancel";
+        this.delegate.onCancel?.();
+      }
+
+      return;
+    }
     if (!this._isRecording) return;
     this._isRecording = false;
     this.stopTimer();

@@ -6,8 +6,9 @@ const item = (key: string) => createElement("item", { key });
 
 describe("flattenChildren", () => {
   it("отбрасывает пустые узлы", () => {
-    expect(flattenChildren([item("a"), null, false, undefined, item("b")]))
-      .toHaveLength(2);
+    expect(
+      flattenChildren([item("a"), null, false, undefined, item("b")]),
+    ).toHaveLength(2);
   });
 
   it("раскрывает вложенные фрагменты", () => {

@@ -1,6 +1,7 @@
 import {
   cancelError,
   cancelResponse,
+  deferred,
   item,
   type TestItem as Item,
 } from "../../__tests__/holder-test-utils";
@@ -182,5 +183,73 @@ describe("InfiniteHolder", () => {
 
     await missingItems.load();
     expect(missingItems.items).toEqual([]);
+  });
+
+  it("applies only the latest page and restores statuses after cancel", async () => {
+    const responses = [1, 2].map(() => deferred<{ data: { data: Item[] } }>());
+    const holder = new InfiniteHolder<Item, number>({
+      onFetch: async (_page, id) => await responses[id - 1].promise,
+      pageSize: 1,
+    });
+    const first = holder.load(1);
+    const second = holder.load(2);
+
+    responses[1].resolve({ data: { data: [item(2)] } });
+    await second;
+    responses[0].resolve({ data: { data: [item(1)] } });
+    await expect(first).resolves.toMatchObject({ data: null, error: null });
+    expect(holder.items).toEqual([item(2)]);
+
+    const extract = () => ({ items: [] as Item[], hasMore: false });
+
+    await holder.fromApi(async () => cancelResponse, extract, { append: true });
+    expect(holder.loadMoreStatus).toBe(MutationStatus.Idle);
+    await holder.fromApi(async () => cancelResponse, extract, {
+      refresh: true,
+    });
+    expect(holder.isSuccess).toBe(true);
+    holder.reset();
+    await holder.fromApi(async () => cancelResponse, extract);
+    expect(holder.isIdle).toBe(true);
+  });
+
+  it("does not leave loadMore pending when a reload supersedes it", async () => {
+    const more = deferred<{ data: { data: Item[] } }>();
+    const responses: Array<
+      Promise<{ data?: { data: Item[] }; error?: { message: string } }>
+    > = [more.promise, Promise.resolve({ error: { message: "reload" } })];
+    const holder = new InfiniteHolder<Item>({
+      onFetch: async () => await responses.shift()!,
+    });
+
+    holder.setItems([item(1)], true);
+    const loadMore = holder.loadMore();
+
+    await holder.load();
+    expect(holder.isError).toBe(true);
+    expect(holder.isLoadingMore).toBe(false);
+    more.resolve({ data: { data: [item(2)] } });
+    await loadMore;
+    expect(holder.items).toEqual([item(1)]);
+  });
+
+  it("shifts the offset by the number of removed items", async () => {
+    const fetch = testRuntime.fn(async () => ({
+      data: { data: [] as Item[] },
+    }));
+    const holder = new InfiniteHolder<Item>({
+      onFetch: fetch,
+      keyExtractor: value => value.id,
+    });
+
+    holder.setItems([item(1), item(2), item(3)], true);
+    holder.removeItem(value => value.id > 1);
+    await holder.loadMore();
+    expect(fetch).toHaveBeenLastCalledWith({ offset: 1, limit: 20 }, null);
+
+    holder.setItems([item(1), item(2)], true);
+    holder.removeItem(42);
+    await holder.loadMore();
+    expect(fetch).toHaveBeenLastCalledWith({ offset: 2, limit: 20 }, null);
   });
 });

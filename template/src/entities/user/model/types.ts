@@ -33,6 +33,8 @@ export interface IUserStore {
   /** superadmin bypass (роль KnownRole.admin) */
   readonly isAdmin: boolean;
   readonly privacy: PrivacySettingsDto | null;
+  /** Ошибка последней загрузки настроек приватности. */
+  readonly privacyError: IHolderError | null;
   readonly error: string | undefined;
   readonly isLoading: boolean;
   readonly isReady: boolean;
@@ -76,9 +78,10 @@ export interface IUserStore {
   ): Promise<ApiResponse<ProfileDto, ApiError>>;
 
   loadPrivacy(): Promise<void>;
+  /** Сохранить настройки приватности; ошибку показывает потребитель (`notifyApiError`). */
   updatePrivacy(
     data: UpdatePrivacySettingsBody,
-  ): Promise<PrivacySettingsDto | undefined>;
+  ): Promise<ApiResponse<PrivacySettingsDto, ApiError>>;
   setUsername(username: string): Promise<ApiResponse<UserDto, ApiError>>;
   /** Смена пароля; остальные сессии сервер завершает. */
   changePassword(

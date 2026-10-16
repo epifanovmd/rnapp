@@ -51,9 +51,7 @@ describe("resolveStackRouteKey", () => {
   });
 
   it("экран прямо в стеке — его ключ", () => {
-    expect(resolveStackRouteKey(findRoutePath(ROOT, "Demo-1")!)).toBe(
-      "Demo-1",
-    );
+    expect(resolveStackRouteKey(findRoutePath(ROOT, "Demo-1")!)).toBe("Demo-1");
   });
 
   it("без стека на пути — null", () => {

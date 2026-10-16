@@ -2,6 +2,7 @@ import { IOcrScanObservation } from "@shared/lib/ocr-scan";
 import { useCallback, useMemo, useState } from "react";
 import { useCameraPermission } from "react-native-vision-camera";
 
+import { toReadingOrder } from "./reading-order";
 import { sameLines } from "./same-lines";
 
 /** Всё, что нужно камере: не меняется от результатов скана. */
@@ -35,15 +36,7 @@ export const useTextScanVM = (): ITextScanVM => {
       if (observations.length === 0) {
         return;
       }
-      const sorted = observations
-        .slice()
-        .sort((a, b) =>
-          Math.abs(a.rect.y - b.rect.y) < 0.02
-            ? a.rect.x - b.rect.x
-            : a.rect.y - b.rect.y,
-        );
-
-      const next = sorted.map(observation => observation.text);
+      const next = toReadingOrder(observations);
 
       setLines(current => (sameLines(current, next) ? current : next));
     },

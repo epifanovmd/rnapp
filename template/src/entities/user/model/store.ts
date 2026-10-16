@@ -74,6 +74,10 @@ class UserStore implements IUserStore {
     return this.privacyHolder.data;
   }
 
+  get privacyError() {
+    return this.privacyHolder.error;
+  }
+
   get error() {
     return this._holder.error?.message;
   }
@@ -172,7 +176,7 @@ class UserStore implements IUserStore {
       this.privacyHolder.setData(res.data);
     }
 
-    return res.data;
+    return res;
   }
 
   async setUsername(username: string) {
@@ -229,6 +233,7 @@ class UserStore implements IUserStore {
 
   reset() {
     this._holder.reset();
+    this.privacyHolder.reset();
   }
 }
 

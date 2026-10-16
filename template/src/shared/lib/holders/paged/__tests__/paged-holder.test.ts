@@ -1,6 +1,7 @@
 import {
   cancelError,
   cancelResponse,
+  deferred,
   item,
   type TestItem as Item,
 } from "../../__tests__/holder-test-utils";
@@ -156,5 +157,55 @@ describe("PagedHolder", () => {
       totalCount: 0,
       error: null,
     });
+  });
+
+  it("applies only the latest page and restores status after cancel", async () => {
+    const responses = [1, 2].map(() =>
+      deferred<{ data: { data: Item[]; totalCount: number } }>(),
+    );
+    const holder = new PagedHolder<Item, number>({
+      onFetch: async (_page, id) => await responses[id - 1].promise,
+    });
+    const first = holder.load(1);
+    const second = holder.load(2);
+
+    responses[1].resolve({ data: { data: [item(2)], totalCount: 1 } });
+    await second;
+    responses[0].resolve({ data: { data: [item(1)], totalCount: 9 } });
+    await expect(first).resolves.toEqual({
+      data: null,
+      totalCount: 0,
+      error: null,
+    });
+    expect(holder.items).toEqual([item(2)]);
+    expect(holder.pagination.totalCount).toBe(1);
+
+    await holder.fromApi(
+      async () => cancelResponse,
+      () => ({
+        items: [],
+        totalCount: 0,
+      }),
+    );
+    expect(holder.isSuccess).toBe(true);
+    holder.reset();
+    await holder.fromApi(
+      async () => cancelResponse,
+      () => ({
+        items: [],
+        totalCount: 0,
+      }),
+    );
+    expect(holder.isIdle).toBe(true);
+  });
+
+  it("decreases totalCount by the number of removed items", () => {
+    const holder = new PagedHolder<Item>({ keyExtractor: value => value.id });
+
+    holder.setItems([item(1), item(2), item(3)], 10);
+    holder.removeItem(value => value.id > 1);
+    expect(holder.pagination.totalCount).toBe(8);
+    holder.removeItem(42);
+    expect(holder.pagination.totalCount).toBe(8);
   });
 });

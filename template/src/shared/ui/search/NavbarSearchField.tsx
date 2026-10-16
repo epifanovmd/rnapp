@@ -7,8 +7,10 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import { searchFieldLayout } from "./search-field-layout";
 import { ISearchBarProps, SearchBar } from "./SearchBar";
 
-export interface INavbarSearchFieldProps
-  extends Omit<ISearchBarProps, "search" | "cancel" | "style"> {
+export interface INavbarSearchFieldProps extends Omit<
+  ISearchBarProps,
+  "search" | "cancel" | "style"
+> {
   search: ISearchController;
   /** Ширина кнопки поиска, от которой растёт поле, px. По умолчанию 48. */
   collapsedWidth?: number;

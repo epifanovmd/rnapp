@@ -57,7 +57,7 @@ $ yarn ios:Dev-Debug
 
 ### Checks
 
-Обязательный минимум перед merge — линтер, проверка типов и тесты.
+Обязательный минимум перед merge — линтер, формат, проверка типов и тесты с порогом покрытия.
 
 Из корня репозитория:
 
@@ -68,7 +68,7 @@ $ make check
 Или из `template/`:
 
 ```sh
-$ yarn run check      # lint + typecheck + test
+$ yarn run check      # lint + format:check + typecheck + test:coverage
 $ yarn lint:fix
 $ yarn prettier:fix
 ```

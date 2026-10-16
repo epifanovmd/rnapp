@@ -110,7 +110,11 @@ export const createScreenReadiness = <TName extends string = string>(
   const waitFor = (
     resolveKey: () => string | null,
     callback: (routeKey: string) => void,
-    { delay = 0, timeout = DEFAULT_TIMEOUT, ...conditions }: IScreenReadyOptions,
+    {
+      delay = 0,
+      timeout = DEFAULT_TIMEOUT,
+      ...conditions
+    }: IScreenReadyOptions,
   ) => {
     let done = false;
     let timedOut = false;
@@ -163,7 +167,12 @@ export const createScreenReadiness = <TName extends string = string>(
     routeKey,
     callback,
     options = {},
-  ) => waitFor(() => routeKey, () => callback(), options);
+  ) =>
+    waitFor(
+      () => routeKey,
+      () => callback(),
+      options,
+    );
 
   const onRouteReady: IScreenReadiness<TName>["onRouteReady"] = (
     name,

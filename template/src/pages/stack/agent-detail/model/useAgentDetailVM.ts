@@ -6,7 +6,12 @@ import {
 } from "@entities/agent";
 import { INodesStore, NODE_PERMISSIONS } from "@entities/node";
 import { IUserStore } from "@entities/user";
-import { type IAgentMenuAccess, useAgentActions } from "@features/manage-agent";
+import {
+  type AgentActions,
+  type IAgentMenuAccess,
+  useAgentActions,
+} from "@features/manage-agent";
+import type { AgentDto } from "@shared/api/gen/main/model";
 import { ownPermission } from "@shared/lib/access";
 import { useEntity } from "@shared/lib/holders";
 import { useNavigation } from "@shared/lib/navigation";
@@ -60,17 +65,46 @@ export const useAgentDetailVM = (agentId: string) => {
 
   useAgentsRealtime(canView);
   useSocketRoom("agent", canView ? agentId : null, () => card.refresh(agentId));
+
+  const leaveDeleted = () => {
+    if (leftRef.current) return;
+    toast.warning("Агент удалён");
+    leave();
+  };
+  /** Своё удаление в процессе: событие «удалён» ждёт ответа на запрос. */
+  const deletingRef = useRef<{ id: string; deletedMeanwhile: boolean } | null>(
+    null,
+  );
+
   useSocketEvent<[{ id: string }]>(
     "agent:deleted",
     ({ id }) => {
       if (id !== agentId) return;
-      toast.warning("Агент удалён");
-      leave();
+      if (deletingRef.current?.id === id) {
+        deletingRef.current.deletedMeanwhile = true;
+
+        return;
+      }
+      leaveDeleted();
     },
     canView,
   );
 
-  const actions = useAgentActions({ onDeleted: leave });
+  const agentActions = useAgentActions({ onDeleted: leave });
+
+  /** Удаление агента: событие `agent:deleted` до ответа не даёт второй реакции. */
+  const remove = async (target: AgentDto) => {
+    const current = { id: target.id, deletedMeanwhile: false };
+
+    deletingRef.current = current;
+    try {
+      await agentActions.remove(target);
+      if (current.deletedMeanwhile) leaveDeleted();
+    } finally {
+      if (deletingRef.current === current) deletingRef.current = null;
+    }
+  };
+  const actions: AgentActions = { ...agentActions, remove };
 
   const agent = canView ? (store.byId(agentId) ?? null) : null;
   const candidate = store.updateCandidate(agentId);

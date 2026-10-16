@@ -60,7 +60,10 @@ export const tickDecimals = (step: number, magnitude: number): number => {
 
   while (
     decimals < 6 &&
-    Math.abs(value * Math.pow(10, decimals) - Math.round(value * Math.pow(10, decimals))) > 1e-6
+    Math.abs(
+      value * Math.pow(10, decimals) -
+        Math.round(value * Math.pow(10, decimals)),
+    ) > 1e-6
   ) {
     decimals++;
   }

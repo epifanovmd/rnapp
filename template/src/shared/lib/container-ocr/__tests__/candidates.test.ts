@@ -91,4 +91,15 @@ describe("extractContainerCandidates", () => {
     expect(candidates[0].isValid).toBe(true);
     expect(candidates[0].code).toBe("MSKU9070323");
   });
+
+  it("доклеивает контрольную цифру в рамке к владельцу с серийником", () => {
+    const candidates = extractContainerCandidates([
+      observation("MSKU 907032", { x: 0.1, y: 0.5, width: 0.3, height: 0.05 }),
+      observation("3", { x: 0.42, y: 0.5, width: 0.03, height: 0.05 }),
+    ]);
+
+    expect(candidates.some(c => c.code === "MSKU9070323" && c.isValid)).toBe(
+      true,
+    );
+  });
 });

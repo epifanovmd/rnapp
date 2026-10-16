@@ -1,5 +1,10 @@
 import { isEqual } from "lodash";
-import { makeAutoObservable, reaction, runInAction } from "mobx";
+import {
+  type IReactionDisposer,
+  makeAutoObservable,
+  reaction,
+  runInAction,
+} from "mobx";
 
 import {
   IFilterItemHolder,
@@ -32,6 +37,8 @@ export class FilterHolder<
   private readonly _optionsDataHolder = new ValueHolder<IFilterOption<Value>[]>(
     [],
   );
+  private _optionsRequest = 0;
+  private readonly _disposeOptionsReaction: IReactionDisposer;
 
   constructor(data: IFilterItemHolder<Value, Default, Multiple>) {
     this.title = data.title;
@@ -46,9 +53,13 @@ export class FilterHolder<
 
     this._optionsHolder.setValue(data.options);
 
-    makeAutoObservable(this, {}, { autoBind: true });
+    makeAutoObservable<this, "_optionsRequest" | "_disposeOptionsReaction">(
+      this,
+      { _optionsRequest: false, _disposeOptionsReaction: false },
+      { autoBind: true },
+    );
 
-    reaction(
+    this._disposeOptionsReaction = reaction(
       () => this._optionsHolder.value,
       opts => this._loadOptions(opts),
       { fireImmediately: true },
@@ -86,9 +97,9 @@ export class FilterHolder<
 
   public checkActive(value: Value) {
     if (this.multiple && Array.isArray(this.value)) {
-      return this.value.includes(value);
+      return this.value.some(item => isEqual(item, value));
     } else {
-      return this.value === value;
+      return isEqual(this.value, value);
     }
   }
 
@@ -96,7 +107,7 @@ export class FilterHolder<
     if (value !== undefined) {
       if (this.multiple) {
         if (Array.isArray(this.value)) {
-          if (this.value.includes(value)) {
+          if (this.checkActive(value)) {
             this.value = this.value.filter(
               item => !isEqual(item, value),
             ) as typeof this.value;
@@ -165,25 +176,42 @@ export class FilterHolder<
     }
   }
 
+  /** Останавливает отслеживание источника опций. */
+  public dispose() {
+    this._disposeOptionsReaction();
+  }
+
   private get _options() {
     return this._optionsDataHolder.value;
   }
 
   private async _loadOptions(options: TFilterOptions<Value>) {
-    try {
-      if (options instanceof Promise) {
-        this.isLoading = true;
-        this._optionsDataHolder.setValue([]);
-        this._optionsDataHolder.setValue(await options);
-      } else {
-        this._optionsDataHolder.setValue(options);
-      }
-    } catch {
-      this._optionsDataHolder.setValue([]);
-    } finally {
-      runInAction(() => {
-        this.isLoading = false;
-      });
+    const request = ++this._optionsRequest;
+    const isLatest = () => request === this._optionsRequest;
+
+    if (!(options instanceof Promise)) {
+      this._optionsDataHolder.setValue(options);
+      this.isLoading = false;
+
+      return;
     }
+
+    this.isLoading = true;
+    this._optionsDataHolder.setValue([]);
+
+    let loaded: IFilterOption<Value>[];
+
+    try {
+      loaded = await options;
+    } catch {
+      loaded = [];
+    }
+
+    if (!isLatest()) return;
+
+    runInAction(() => {
+      this._optionsDataHolder.setValue(loaded);
+      this.isLoading = false;
+    });
   }
 }

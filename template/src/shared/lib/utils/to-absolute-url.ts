@@ -11,5 +11,5 @@ export const toAbsoluteUrl = (url?: string) => {
     return url;
   }
 
-  return `${BASE_URL}${url}`.replace("///", "//");
+  return `${(BASE_URL ?? "").replace(/\/+$/, "")}/${url.replace(/^\/+/, "")}`;
 };

@@ -111,7 +111,10 @@ export const SettingsDemo: FC = memo(() => {
         <Section
           title={"Объектный режим"}
           slots={{
-            action: { title: "Изменить", onPress: () => toast.info("Изменить") },
+            action: {
+              title: "Изменить",
+              onPress: () => toast.info("Изменить"),
+            },
           }}
         >
           <Text color={"textSecondary"}>{"slots={{ action: {...} }}"}</Text>

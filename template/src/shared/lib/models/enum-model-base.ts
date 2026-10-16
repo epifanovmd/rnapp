@@ -1,7 +1,9 @@
-import { Maybe } from "@shared/lib/utils";
-import { getEnumNamesAndValues } from "@shared/lib/utils/enum-values";
-import { LambdaValue } from "@shared/lib/utils/lambda-value";
-import { stringCapitalize } from "@shared/lib/utils/string";
+import {
+  getEnumNamesAndValues,
+  LambdaValue,
+  Maybe,
+  stringCapitalize,
+} from "@shared/lib/utils";
 
 import { DataModelBase } from "./data-model-base";
 

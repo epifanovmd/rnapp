@@ -2,7 +2,6 @@ import { Col, ScrollView, Ticket } from "@shared/ui";
 import React, { FC, memo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-
 const data = {
   eventTitle: "Футбольный матч",
   artist: "Спартак vs Зенит",

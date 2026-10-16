@@ -21,8 +21,7 @@ export interface IRoutePathEntry {
 }
 
 const focusedIndex = (state: Partial<INavigationStateLike>) =>
-  state.index ??
-  (state.type === "stack" ? (state.routes?.length ?? 1) - 1 : 0);
+  state.index ?? (state.type === "stack" ? (state.routes?.length ?? 1) - 1 : 0);
 
 /**
  * Путь от корня дерева навигации до экрана `routeKey`; `null` — экрана в

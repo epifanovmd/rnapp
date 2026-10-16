@@ -1,5 +1,6 @@
 import "../../__tests__/react-test-setup";
 
+import { cancelResponse } from "../../__tests__/holder-test-utils";
 import { renderHook } from "../../__tests__/hook-probe";
 import { testRuntime } from "../../__tests__/test-runtime";
 import { useMutation } from "../use-mutation-holder";
@@ -72,6 +73,48 @@ describe("Mutation React integration", () => {
       }),
     );
     await expect(hook.current.mutate()).resolves.toBe("second");
+    await hook.unmount();
+  });
+
+  it("treats an empty result without error as success", async () => {
+    const onSuccess = testRuntime.fn();
+    const onError = testRuntime.fn();
+    const results = [{ data: null }, { data: false }, {}];
+    const hook = await renderHook(() =>
+      useMutation<void, boolean | null>({
+        mutationFn: async () => results.shift()!,
+        onSuccess,
+        onError,
+      }),
+    );
+
+    await hook.current.mutate();
+    await hook.current.mutate();
+    await hook.current.mutateAsync();
+    expect(onSuccess.mock.calls).toEqual([[null], [false], [null]]);
+    expect(onError).not.toHaveBeenCalled();
+    await hook.unmount();
+  });
+
+  it("calls neither onSuccess nor onError when the mutation is canceled", async () => {
+    const onSuccess = testRuntime.fn();
+    const onError = testRuntime.fn();
+    const onSettled = testRuntime.fn();
+    const hook = await renderHook(() =>
+      useMutation<void, string>({
+        mutationFn: async () => cancelResponse,
+        onSuccess,
+        onError,
+        onSettled,
+      }),
+    );
+
+    await expect(hook.current.mutate()).resolves.toBeUndefined();
+    await expect(hook.current.mutateAsync()).resolves.toBeNull();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+    expect(onSettled).toHaveBeenCalledTimes(2);
+    expect(hook.current.isIdle).toBe(true);
     await hook.unmount();
   });
 });

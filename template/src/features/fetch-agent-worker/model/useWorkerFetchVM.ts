@@ -5,7 +5,7 @@ import type {
   IAgentManifestRouteDto,
 } from "@shared/api/gen/main/model";
 import { isHttpError } from "@shared/lib/http";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   fetchFailure,
@@ -35,6 +35,7 @@ export const useWorkerFetchVM = (agent: AgentDto) => {
   const [path, setPath] = useState("/");
   const [body, setBody] = useState("");
   const [isSending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const [result, setResult] = useState<IWorkerFetchResult | null>(null);
 
   const routes = workerRoutes(workers.find(item => item.name === worker));
@@ -58,10 +59,11 @@ export const useWorkerFetchVM = (agent: AgentDto) => {
   };
 
   const send = async () => {
-    if (!worker || isSending) return;
+    if (!worker || sendingRef.current) return;
 
     const withBody = methodHasBody(method) && body.trim() !== "";
 
+    sendingRef.current = true;
     setSending(true);
 
     const res = await api.fetchAgentWorker(
@@ -79,6 +81,7 @@ export const useWorkerFetchVM = (agent: AgentDto) => {
       { responseType: "text", notifyErrors: false },
     );
 
+    sendingRef.current = false;
     setSending(false);
 
     if (res.error) {

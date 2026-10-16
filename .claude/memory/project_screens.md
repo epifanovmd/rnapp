@@ -47,6 +47,8 @@ type: project
   (императивная навигация вне React, MobX `currentRouteName`/`activePath`),
   `useNavigation()`/`useRoute<Name>()`.
 - Бутстрап — `app/hooks/useAppBootstrap.ts` (onReady): `authStore.restore()` + `IBiometricStore.load()`
+  через `Promise.allSettled` (сбой любого шага не оставляет приложение под splash; тест
+  `app/hooks/__tests__/use-app-bootstrap.test.ts`)
   параллельно, скрытие splash, затем (нет сессии) `biometricStore.signIn({ auto: true })` — тихая отмена.
 - Deep linking — пути в static-конфиге (`linking:` у экранов), `app/App.linking.ts` —
   prefixes + `enabled: "auto"`.
@@ -73,12 +75,21 @@ type: project
   `SessionsSection` (ISessionStore) и `SignOutAllButton` (`features/sign-out`).
 - **Audit** (`pages/stack/audit`) — `entities/audit` `AuditStore`: `CursorHolder` +
   приватный `nextCursor` сервера (курсор непрозрачный, keyExtractor-курсоры холдера не используются).
-- **Files** (`pages/stack/files`) — `entities/file` `FileStore` (InfiniteHolder, `file:processed`
-  через `FileRealtime`) + `features/file-upload` (фото/текстовый файл; пикера галереи в проекте нет).
+- **Files** (`pages/stack/files`, строка — `FileRow.tsx`) — `entities/file` `FileStore` (InfiniteHolder,
+  `file:processed` через `FileRealtime`) + `features/file-upload` (фото/текстовый файл; пикера галереи
+  в проекте нет) + `features/delete-file` (удаление с подтверждением).
 - **Jobs** (`pages/stack/jobs`) — `entities/job` `JobStore` (InfiniteHolder, `handleJobUpdated`
-  upsert/prepend по `job:updated` через `JobRealtime`); демо `demo.echo` показывается только админам.
+  upsert/prepend по `job:updated` через `JobRealtime`); отмена — `features/cancel-job`; демо
+  `demo.echo` — `features/start-demo-job` `DemoJobLauncher`, только с правом `jobs:demo`.
 
-Realtime-подписки file/job стартуют и сторы file/job/audit сбрасываются в `AppDataStore`
+Realtime-подписки user/file/job/audit стартуют в `AppDataStore` (`_startSession`; `initialize()`
+идемпотентен — уже авторизован → старт сразу, dispose/повтор при Fast Refresh перезапускает), при
+выходе (`_endSession`) сбрасываются user (вместе с privacy), sessions, file, job, audit, agents, nodes.
+Каждый realtime после **переподключения** сокета (обрыв или пробуждение после 30 с фона; не первое
+подключение — флаг `connected` по `state.status` на момент initialize) перечитывает уже загруженное:
+user → `refresh()` (`onReconnect` в `UserSocketHandlers`), job/file → `refresh()` если холдер не idle,
+audit → `load()` если `isSuccess`. Тесты — `*-realtime.test.ts` на `createFakeSocket`
+(в тестах барель `@shared/lib/socket` мокается: тянет netinfo).
 по `isAuthenticated`.
 
 ## Узлы и агенты (модули бэкенда node и agent)

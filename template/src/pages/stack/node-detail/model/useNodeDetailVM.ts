@@ -100,7 +100,11 @@ export const useNodeDetailVM = (nodeId: string) => {
     if (canViewAgents) agents.loadRelease();
   }, [agentId, agents, canViewAgents]);
 
-  useSocketRoom("node", canView ? nodeId : null, () => card.refresh(nodeId));
+  // События за время обрыва потеряны: узел и задача установки перечитываются.
+  useSocketRoom("node", canView ? nodeId : null, () => {
+    card.refresh(nodeId);
+    if (jobId) job.refresh(jobId);
+  });
   // Комната агента: сервер держит наблюдателя — частые метрики и журнал.
   useSocketRoom("agent", agentId, () => {
     if (agentId) agentCard.refresh(agentId);
@@ -114,13 +118,27 @@ export const useNodeDetailVM = (nodeId: string) => {
     },
     canView,
   );
+  const leaveDeleted = () => {
+    if (leftRef.current) return;
+    toast.warning("Узел удалён или больше недоступен");
+    leave();
+  };
+  /** Своё удаление в процессе: событие «удалён» ждёт ответа на запрос. */
+  const deletingRef = useRef<{ id: string; deletedMeanwhile: boolean } | null>(
+    null,
+  );
+
   useSocketEvent<[{ id: string }]>(
     "node:deleted",
     ({ id }) => {
       if (id !== nodeId) return;
       store.remove(id);
-      toast.warning("Узел удалён или больше недоступен");
-      leave();
+      if (deletingRef.current?.id === id) {
+        deletingRef.current.deletedMeanwhile = true;
+
+        return;
+      }
+      leaveDeleted();
     },
     canView,
   );
@@ -151,12 +169,28 @@ export const useNodeDetailVM = (nodeId: string) => {
   const provision = useProvisionNodeAgentVM({
     onStarted: () => card.refresh(nodeId),
   });
-  const removeNode = useDeleteNode({
+  const deleteNode = useDeleteNode({
     onDeleted: deleted => {
       store.remove(deleted.id);
       leave();
     },
   });
+
+  /** Удаление узла: событие `node:deleted` до ответа не даёт второй реакции. */
+  const removeNode = async (target: NodeDto): Promise<boolean> => {
+    const current = { id: target.id, deletedMeanwhile: false };
+
+    deletingRef.current = current;
+    try {
+      const deleted = await deleteNode(target);
+
+      if (!deleted && current.deletedMeanwhile) leaveDeleted();
+
+      return deleted;
+    } finally {
+      if (deletingRef.current === current) deletingRef.current = null;
+    }
+  };
   const agentActions = useAgentActions();
 
   // Агент из стора — только агент этого узла.

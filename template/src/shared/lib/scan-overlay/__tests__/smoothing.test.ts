@@ -61,4 +61,13 @@ describe("smoothBoxes", () => {
 
     expect(result.boxes).toEqual([target]);
   });
+
+  it("смена подписи на месте рамки не считается сошедшейся", () => {
+    const displayed = { ...box(0.4), label: "MSKU 9O7" };
+    const target = { ...box(0.4), label: "MSKU 907" };
+    const result = smoothBoxes([displayed], [target]);
+
+    expect(result.boxes[0].label).toBe("MSKU 907");
+    expect(result.settled).toBe(false);
+  });
 });

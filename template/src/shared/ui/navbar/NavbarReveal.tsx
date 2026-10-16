@@ -83,7 +83,9 @@ export const NavbarReveal: FC<INavbarRevealProps> = ({
           <>
             {!!title && <NavbarTitle>{title}</NavbarTitle>}
             {!!subtitle && (
-              <NavbarSubTitle color={"textSecondary"}>{subtitle}</NavbarSubTitle>
+              <NavbarSubTitle color={"textSecondary"}>
+                {subtitle}
+              </NavbarSubTitle>
             )}
           </>
         )}

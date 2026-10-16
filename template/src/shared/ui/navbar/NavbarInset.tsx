@@ -18,5 +18,7 @@ export const NavbarInset = ({ style }: INavbarInsetProps) => {
 
   const animatedStyle = useAnimatedStyle(() => ({ height: inset.value }));
 
-  return <Animated.View pointerEvents={"none"} style={[style, animatedStyle]} />;
+  return (
+    <Animated.View pointerEvents={"none"} style={[style, animatedStyle]} />
+  );
 };

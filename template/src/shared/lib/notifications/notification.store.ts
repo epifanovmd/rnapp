@@ -126,6 +126,7 @@ export class NotificationStore implements INotificationStore {
     return this.show(message, { ...options, variant: "loading" });
   }
 
+  /** Загрузка, затем успех или ошибка; сбой в `messages` снимает уведомление загрузки, а не подменяет результат. */
   async promise<T>(
     promise: Promise<T>,
     messages: NotificationPromiseMessages<T>,
@@ -135,21 +136,28 @@ export class NotificationStore implements INotificationStore {
 
     try {
       const value = await promise;
-      const message =
-        typeof messages.success === "function"
-          ? messages.success(value)
-          : messages.success;
 
-      this._settlePromise(id, "success", message, options);
+      this._settlePromise(
+        id,
+        "success",
+        () =>
+          typeof messages.success === "function"
+            ? messages.success(value)
+            : messages.success,
+        options,
+      );
 
       return value;
     } catch (error) {
-      const message =
-        typeof messages.error === "function"
-          ? messages.error(error)
-          : messages.error;
-
-      this._settlePromise(id, "error", message, options);
+      this._settlePromise(
+        id,
+        "error",
+        () =>
+          typeof messages.error === "function"
+            ? messages.error(error)
+            : messages.error,
+        options,
+      );
       throw error;
     }
   }
@@ -328,9 +336,19 @@ export class NotificationStore implements INotificationStore {
   private _settlePromise(
     id: string,
     variant: NotificationVariant,
-    message: React.ReactNode,
+    getMessage: () => React.ReactNode,
     options?: NotificationOptions,
   ): void {
+    let message: React.ReactNode;
+
+    try {
+      message = getMessage();
+    } catch {
+      this.dismiss(id);
+
+      return;
+    }
+
     const patch: NotificationUpdate = { variant, message };
 
     if (options?.duration !== undefined) {

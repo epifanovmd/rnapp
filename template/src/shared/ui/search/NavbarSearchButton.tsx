@@ -1,7 +1,7 @@
 import type { ISearchController } from "@shared/lib/search";
 import React, { FC } from "react";
 
-import { NavbarIcon } from "../navbar/NavbarIcon";
+import { NavbarIcon } from "../navbar";
 import { Touchable } from "../touchable";
 
 interface INavbarSearchButtonProps {
@@ -9,7 +9,9 @@ interface INavbarSearchButtonProps {
 }
 
 /** Кнопка поиска в навбаре: раскрывает поле (`NavbarSearchField`). */
-export const NavbarSearchButton: FC<INavbarSearchButtonProps> = ({ search }) => (
+export const NavbarSearchButton: FC<INavbarSearchButtonProps> = ({
+  search,
+}) => (
   <Touchable
     onPress={search.open}
     hitSlop={8}

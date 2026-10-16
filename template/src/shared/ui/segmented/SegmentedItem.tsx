@@ -1,9 +1,5 @@
 import React, { PropsWithChildren, ReactNode } from "react";
-import {
-  AccessibilityRole,
-  LayoutChangeEvent,
-  StyleSheet,
-} from "react-native";
+import { AccessibilityRole, LayoutChangeEvent, StyleSheet } from "react-native";
 
 import { Touchable } from "../touchable";
 import { SEGMENT_RADIUS } from "./segment-indicator";

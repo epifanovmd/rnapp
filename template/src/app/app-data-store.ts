@@ -4,7 +4,7 @@ import { IAuthStore } from "@entities/auth";
 import { IFileRealtime, IFileStore } from "@entities/file";
 import { IJobRealtime, IJobStore } from "@entities/job";
 import { INodesStore } from "@entities/node";
-import { IUserRealtime, IUserStore } from "@entities/user";
+import { ISessionStore, IUserRealtime, IUserStore } from "@entities/user";
 import { ISocketTransport } from "@shared/lib/socket";
 import { disposer, InitializeDispose } from "@shared/lib/utils";
 import { injectable } from "inversify";
@@ -27,6 +27,7 @@ export class AppDataStore implements IAppDataStore {
     @IAuditRealtime() private _auditRealtime: IAuditRealtime,
     @IAgentsStore() private _agentsStore: IAgentsStore,
     @INodesStore() private _nodesStore: INodesStore,
+    @ISessionStore() private _sessionStore: ISessionStore,
   ) {
     makeAutoObservable(this, {}, { autoBind: true });
   }
@@ -34,35 +35,47 @@ export class AppDataStore implements IAppDataStore {
   initialize() {
     const socketDisposers = new Set<InitializeDispose>();
 
+    if (this._authStore.isAuthenticated) this._startSession(socketDisposers);
+
     return [
       reaction(
         () => this._authStore.isAuthenticated,
         isAuthenticated => {
           if (isAuthenticated) {
-            this._userStore.load();
-            socketDisposers.add(this._socketTransport.initialize());
-            socketDisposers.add(this._userRealtime.initialize());
-            socketDisposers.add(this._fileRealtime.initialize());
-            socketDisposers.add(this._jobRealtime.initialize());
-            socketDisposers.add(this._auditRealtime.initialize());
+            this._startSession(socketDisposers);
           } else {
-            disposer(Array.from(socketDisposers));
-            socketDisposers.clear();
-            // Данные прежнего пользователя (права, профиль) не должны пережить
-            // выход: следующий вход — возможно, другой человек.
-            this._userStore.reset();
-            this._fileStore.reset();
-            this._jobStore.reset();
-            this._auditStore.reset();
-            this._agentsStore.reset();
-            this._nodesStore.reset();
+            this._endSession(socketDisposers);
           }
         },
       ),
-      () => {
-        disposer(Array.from(socketDisposers));
-        socketDisposers.clear();
-      },
+      () => this._stopRealtime(socketDisposers),
     ];
+  }
+
+  /** Вход: профиль, сокет и realtime-подписки живут до выхода или dispose. */
+  private _startSession(socketDisposers: Set<InitializeDispose>) {
+    this._userStore.load();
+    socketDisposers.add(this._socketTransport.initialize());
+    socketDisposers.add(this._userRealtime.initialize());
+    socketDisposers.add(this._fileRealtime.initialize());
+    socketDisposers.add(this._jobRealtime.initialize());
+    socketDisposers.add(this._auditRealtime.initialize());
+  }
+
+  /** Выход: данные прежнего пользователя не переживают его — следующий вход может быть другим человеком. */
+  private _endSession(socketDisposers: Set<InitializeDispose>) {
+    this._stopRealtime(socketDisposers);
+    this._userStore.reset();
+    this._sessionStore.reset();
+    this._fileStore.reset();
+    this._jobStore.reset();
+    this._auditStore.reset();
+    this._agentsStore.reset();
+    this._nodesStore.reset();
+  }
+
+  private _stopRealtime(socketDisposers: Set<InitializeDispose>) {
+    disposer(Array.from(socketDisposers));
+    socketDisposers.clear();
   }
 }

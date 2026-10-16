@@ -94,6 +94,28 @@ describe("bearerAuth", () => {
     ]);
   });
 
+  it("запоздавший 401 со старым токеном — повтор с текущим без refresh", async () => {
+    const source = createTokenSource();
+    let calls = 0;
+    const transport = createFakeTransport(req => {
+      calls += 1;
+      if (calls === 1) {
+        // Пока запрос шёл, токен уже обновил кто-то другой.
+        source.token = "t3";
+        throw new HttpError({ status: 401 });
+      }
+
+      return ok({ auth: req.headers?.Authorization });
+    });
+    const res = await createTestClient(transport, {
+      middlewares: [bearerAuth(source)],
+    }).request<{ auth: string }>({ url: "/a" });
+
+    expect(res.data).toEqual({ auth: "Bearer t3" });
+    expect(source.refreshToken).not.toHaveBeenCalled();
+    expect(transport.calls).toHaveLength(2);
+  });
+
   it("повтор только один: второй 401 уходит наружу", async () => {
     const source = createTokenSource();
     const transport = createFakeTransport(() => {

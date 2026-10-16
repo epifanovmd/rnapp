@@ -11,7 +11,12 @@ export class PersistentListeners {
     }
     this._store.get(event)!.add(handler);
 
-    return () => this._store.get(event)?.delete(handler);
+    return () => {
+      const handlers = this._store.get(event);
+
+      handlers?.delete(handler);
+      if (handlers?.size === 0) this._store.delete(event);
+    };
   }
 
   bindTo(socket: AppSocket): void {
