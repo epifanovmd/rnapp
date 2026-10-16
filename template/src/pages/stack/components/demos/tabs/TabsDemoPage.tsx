@@ -7,8 +7,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ROWS = Array.from({ length: 30 }, (_, index) => index + 1);
 
+export interface ITabsDemoPageParams {
+  title: string;
+}
+
 interface ITabsDemoPageProps {
-  route: { name: string };
+  route: { params: ITabsDemoPageParams };
 }
 
 /**
@@ -29,7 +33,7 @@ export const TabsDemoPage: FC<ITabsDemoPageProps> = memo(({ route }) => {
       {ROWS.map(row => (
         <ListItem
           key={row}
-          title={`${route.name} · строка ${row}`}
+          title={`${route.params.title} · строка ${row}`}
           subtitle={"Шапка прячется по скроллу, вкладки остаются"}
         />
       ))}

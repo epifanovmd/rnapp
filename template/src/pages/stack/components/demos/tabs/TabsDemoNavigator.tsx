@@ -7,15 +7,19 @@ import { HiddenBar, Navbar, useNavbar, useNavbarScrollSync } from "@shared/ui";
 import { Tabs } from "@shared/ui/tabs";
 import React, { FC } from "react";
 
-import { TabsDemoPage } from "./TabsDemoPage";
+import { ITabsDemoPageParams, TabsDemoPage } from "./TabsDemoPage";
 
-type TTabsDemoParamList = {
-  Обзор: undefined;
-  Задачи: undefined;
-  Логи: undefined;
-  Статистика: undefined;
-  Настройки: undefined;
-};
+type TTabsDemoParamList = Record<TTabsDemoRoute, ITabsDemoPageParams>;
+
+type TTabsDemoRoute = "overview" | "tasks" | "logs" | "stats" | "settings";
+
+const TABS: { name: TTabsDemoRoute; title: string }[] = [
+  { name: "overview", title: "Обзор" },
+  { name: "tasks", title: "Задачи" },
+  { name: "logs", title: "Логи" },
+  { name: "stats", title: "Статистика" },
+  { name: "settings", title: "Настройки" },
+];
 
 const TopTab = createMaterialTopTabNavigator<TTabsDemoParamList>();
 
@@ -23,6 +27,7 @@ const SCREEN_OPTIONS = { lazy: true };
 
 const renderTabBar = ({
   state: { routes, index },
+  descriptors,
   navigation,
 }: MaterialTopTabBarProps) => (
   <HiddenBar safeArea>
@@ -33,7 +38,10 @@ const renderTabBar = ({
       <Tabs
         activeIndex={index}
         onPress={routeName => navigation.navigate(routeName)}
-        items={routes.map(route => ({ title: route.name, value: route.name }))}
+        items={routes.map(route => ({
+          title: descriptors[route.key]?.options.title ?? route.name,
+          value: route.name,
+        }))}
       />
     </HiddenBar.StickyContent>
   </HiddenBar>
@@ -57,11 +65,15 @@ export const TabsDemoNavigator: FC = () => {
         screenOptions={SCREEN_OPTIONS}
         screenListeners={navbar.screenListeners}
       >
-        <TopTab.Screen name={"Обзор"} component={TabsDemoPage} />
-        <TopTab.Screen name={"Задачи"} component={TabsDemoPage} />
-        <TopTab.Screen name={"Логи"} component={TabsDemoPage} />
-        <TopTab.Screen name={"Статистика"} component={TabsDemoPage} />
-        <TopTab.Screen name={"Настройки"} component={TabsDemoPage} />
+        {TABS.map(({ name, title }) => (
+          <TopTab.Screen
+            key={name}
+            name={name}
+            component={TabsDemoPage}
+            options={{ title }}
+            initialParams={{ title }}
+          />
+        ))}
       </TopTab.Navigator>
     </ScrollProvider>
   );
