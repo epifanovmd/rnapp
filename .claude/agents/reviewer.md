@@ -9,7 +9,7 @@ tools: Read, Grep, Glob, Bash
 Прочитай перед работой:
 
 - `CLAUDE.md`;
-- `docs/10-process/review.md` — чек-лист;
+- `docs/10-process/review.md` и `docs/30-conventions/checklist.md` — чек-листы;
 - документы, на которые ссылается чек-лист, по мере надобности;
 - README модулей, затронутых diff.
 

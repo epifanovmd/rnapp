@@ -1,6 +1,6 @@
 ---
 status: proposed
-target: <файл, куда предлагается правка, например docs/30-conventions/hooks.md>
+target: <файл, куда предлагается правка, например docs/30-conventions/naming.md>
 date: <YYYY-MM-DD>
 ---
 

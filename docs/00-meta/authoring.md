@@ -21,7 +21,7 @@ depends_on: [meta/doc-system, meta/protection]
 | как писать код (оформление, именование)        | `docs/30-conventions/`                                   |
 | общий принцип проектирования                   | `docs/40-principles/`                                    |
 | сквозная техническая справка проекта           | `docs/50-tech/`                                          |
-| предметная область, экраны, бизнес-правила     | `docs/60-domain/`                                        |
+| предметная область, сценарии, бизнес-правила   | `docs/60-domain/`                                        |
 | окружение, сборка, деплой                      | `docs/70-ops/`                                           |
 | устройство одного модуля, его gotcha           | `src/<путь модуля>/README.md`                            |
 | автоподгрузка правил при работе с файлами      | `.claude/rules/<тема>.md` с `paths`                      |
@@ -50,7 +50,8 @@ depends_on: [meta/doc-system, meta/protection]
 ## Формат README модуля
 
 Шаблон — [templates/module-readme.md](templates/module-readme.md). Frontmatter:
-`module` (путь от `src/`) и `summary`. Содержимое — назначение, public API, устройство,
+`module` (путь от корня исходников — `srcDir` в `docs/config.mjs`) и
+`summary`. Содержимое — назначение, public API, устройство,
 зависимости, gotcha. Не пересказывать код и общие правила.
 
 ## Размер и стиль
