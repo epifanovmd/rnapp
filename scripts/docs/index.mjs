@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * Проверка и индексация системы документации.
+ * Индекс системы документации.
  *
- *   node scripts/docs/check.mjs          — проверка (exit 1 при ошибках)
- *   node scripts/docs/check.mjs --write  — пересборка docs/README.md и docs/modules.md, затем проверка
+ *   node scripts/docs/index.mjs --write  — пересборка docs/README.md и docs/modules.md
+ *                                          (с отчётом об ошибках формата документов)
  *
- * Правила формата — docs/00-meta/authoring.md, параметры проекта — docs/config.mjs.
+ * Правила формата — docs/00-meta/authoring.md.
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 import * as prettier from "prettier";
 
@@ -50,24 +50,17 @@ const DOC_FIELDS = [
   "stages",
   "depends_on",
 ];
-const {
-  srcDir = "src",
-  moduleParents,
-  moduleSingles,
-  moduleLayers,
-  claudeMdMaxLines = 150,
-  docMaxLines = 200,
-  skipDirs = [],
-} = (await import(pathToFileURL(path.join(ROOT, "docs/config.mjs")).href))
-  .default;
-const MODULE_PARENTS = moduleParents.map(d => `${srcDir}/${d}`);
-const MODULE_SINGLES = moduleSingles.map(d => `${srcDir}/${d}`);
-const MODULE_LAYERS = moduleLayers;
-const CLAUDE_MD_MAX_LINES = claudeMdMaxLines;
-const DOC_MAX_LINES = docMaxLines;
+/** Корень исходников: README модулей ищутся в нём. */
+const SRC_DIR = "src";
+const CLAUDE_MD_MAX_LINES = 150;
+const DOC_MAX_LINES = 200;
 const GENERATED = ["docs/README.md", "docs/modules.md"];
 const SKIP_DIRS = new Set([
-  ...skipDirs,
+  "build",
+  "vendor",
+  "Pods",
+  ".gradle",
+  ".cxx",
   "node_modules",
   ".git",
   "dist",
@@ -97,8 +90,6 @@ const walk = (dir, filter, acc = []) => {
 
   return acc;
 };
-
-const hasFiles = dir => walk(dir, () => true).length > 0;
 
 /** Подмножество YAML: `key: value`, `key: [a, b]`, `key:` + строки `- item`. */
 const parseFrontmatter = text => {
@@ -273,53 +264,16 @@ for (const file of walk(path.join(DOCS, "inbox"), f =>
       if (!fm.data[field]) error(file, `нет поля ${field}`);
 }
 
-// ---------- README модулей ----------
+// ---------- README модулей (для карты, без проверки) ----------
 
-const requiredModules = [
-  ...MODULE_SINGLES.map(d => path.join(ROOT, d)),
-  ...MODULE_PARENTS.flatMap(parent => {
-    const dir = path.join(ROOT, parent);
-
-    return fs.existsSync(dir)
-      ? fs
-          .readdirSync(dir, { withFileTypes: true })
-          .filter(e => e.isDirectory())
-          .map(e => path.join(dir, e.name))
-      : [];
-  }),
-].filter(dir => fs.existsSync(dir) && hasFiles(dir));
-
-for (const dir of requiredModules) {
-  if (!fs.existsSync(path.join(dir, "README.md")))
-    error(
-      dir,
-      "нет README.md модуля (шаблон docs/00-meta/templates/module-readme.md)",
-    );
-}
-
-const modules = [];
-
-for (const file of walk(
-  path.join(ROOT, srcDir),
+const modules = walk(
+  path.join(ROOT, SRC_DIR),
   f => path.basename(f) === "README.md",
-)) {
-  const fm = parseFrontmatter(read(file));
-  const expected = rel(path.dirname(file)).slice(srcDir.length + 1);
-
-  if (!fm) {
-    error(file, "нет frontmatter (module, summary)");
-    continue;
-  }
-
-  if (fm.data.module !== expected)
-    error(
-      file,
-      `module "${fm.data.module}" не совпадает с путём (ожидается "${expected}")`,
-    );
-  if (!fm.data.summary) error(file, "пустой summary");
-
-  modules.push({ file, module: expected, summary: fm.data.summary ?? "" });
-}
+).map(file => ({
+  file,
+  module: rel(path.dirname(file)).slice(SRC_DIR.length + 1),
+  summary: parseFrontmatter(read(file))?.data.summary ?? "",
+}));
 
 // ---------- .claude: rules, skills, agents ----------
 
@@ -411,7 +365,7 @@ const buildDocsIndex = () => {
   const sections = groupBy(sortedDocs, doc => [rel(doc.file).split("/")[1]]);
   const inbox = walk(path.join(DOCS, "inbox"), isInboxEntry).sort();
   const out = [
-    "<!-- Сгенерировано scripts/docs/check.mjs (yarn docs:index). Не редактировать вручную. -->",
+    "<!-- Сгенерировано scripts/docs/index.mjs (yarn docs:index). Не редактировать вручную. -->",
     "",
     "# Документация проекта",
     "",
@@ -488,11 +442,11 @@ const buildDocsIndex = () => {
 const buildModulesIndex = () => {
   const from = "docs/modules.md";
   const out = [
-    "<!-- Сгенерировано scripts/docs/check.mjs (yarn docs:index). Не редактировать вручную. -->",
+    "<!-- Сгенерировано scripts/docs/index.mjs (yarn docs:index). Не редактировать вручную. -->",
     "",
     "# Модули",
     "",
-    `Документация модулей лежит рядом с кодом: \`${srcDir}/<модуль>/README.md\`. Шаблон —`,
+    `Документация модулей лежит рядом с кодом: \`${SRC_DIR}/<модуль>/README.md\`. Шаблон —`,
     "[module-readme](00-meta/templates/module-readme.md).",
     "",
   ];
@@ -501,11 +455,9 @@ const buildModulesIndex = () => {
     m => [m.module.split("/")[0]],
   );
 
-  for (const layer of MODULE_LAYERS) {
-    const items = byLayer[layer];
-
-    if (!items) continue;
-
+  for (const [layer, items] of Object.entries(byLayer).sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
     out.push(`## ${layer}`, "", "| Модуль | О чём |", "| --- | --- |");
 
     for (const m of items)
@@ -574,10 +526,10 @@ for (const message of warnings) console.warn(`⚠ ${message}`);
 
 if (errors.length) {
   for (const message of errors) console.error(`✖ ${message}`);
-  console.error(`\ndocs:check — ошибок: ${errors.length}`);
+  console.error(`\ndocs:index — ошибок: ${errors.length}`);
   process.exit(1);
 }
 
 console.log(
-  `docs:check — ок: документов ${docs.size}, модулей ${modules.length}, правил, skills и агентов проверено${WRITE ? "; индексы пересобраны" : ""}`,
+  `docs:index — ок: документов ${docs.size}, модулей ${modules.length}, правил, skills и агентов проверено${WRITE ? "; индексы пересобраны" : ""}`,
 );

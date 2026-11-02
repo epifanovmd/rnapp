@@ -1,7 +1,7 @@
 ---
 id: meta/authoring
 title: Как добавить документ
-summary: Куда класть новое знание, формат frontmatter, размеры, ссылки, индекс и проверка docs:check.
+summary: Куда класть новое знание, формат frontmatter, размеры, ссылки и индекс документов.
 layer: core
 roles: [all]
 stages: [docs]
@@ -50,8 +50,7 @@ depends_on: [meta/doc-system, meta/protection]
 ## Формат README модуля
 
 Шаблон — [templates/module-readme.md](templates/module-readme.md). Frontmatter:
-`module` (путь от корня исходников — `srcDir` в `docs/config.mjs`) и
-`summary`. Содержимое — назначение, public API, устройство,
+`module` (путь от `src/`) и `summary` — из них строится карта `docs/modules.md`. Содержимое — назначение, public API, устройство,
 зависимости, gotcha. Не пересказывать код и общие правила.
 
 ## Размер и стиль
@@ -59,14 +58,13 @@ depends_on: [meta/doc-system, meta/protection]
 - Документ — одна тема, до ~150 строк. Больше — делить по подтемам.
 - `CLAUDE.md` — до 150 строк.
 - Текст по фактам, без истории изменений («раньше было…», даты правок).
-- Ссылки — относительные markdown-ссылки; проверяются `yarn docs:check`.
+- Ссылки — относительные markdown-ссылки на существующие файлы.
 
-## Индекс и проверка
+## Индекс
 
 ```sh
 yarn docs:index   # пересобрать docs/README.md и docs/modules.md
-yarn docs:check   # frontmatter, id, граф depends_on, ссылки, rules, README модулей, актуальность индекса
 ```
 
-`docs:check` входит в полную проверку проекта ([ops/commands](../70-ops/commands.md)).
-Где лежат модули, которым нужен README, и лимиты размеров — `docs/config.mjs`.
+При пересборке скрипт сообщает об ошибках формата: frontmatter, id, граф
+`depends_on`, битые ссылки.

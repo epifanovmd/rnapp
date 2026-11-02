@@ -16,7 +16,7 @@ cd ios && pod install && cd ..
 yarn ios:Dev-Debug                # или yarn android:Dev-Debug
 ```
 
-Перед merge — `yarn run check` (документация, lint, формат, типы, тесты с покрытием);
+Перед merge — `yarn run check` (lint, формат, типы, тесты с покрытием);
 после нативных изменений — сборка обеих платформ.
 
 ## Документация

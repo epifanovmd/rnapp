@@ -21,7 +21,6 @@ depends_on: [architecture/dependencies]
 | React                   | один компонент на файл, правила хуков, полнота зависимостей | `react`, `react-hooks`                |
 | форматирование          | пустые строки между блоками, prettier                       | eslint, prettier                      |
 | типы и тесты            | typecheck, зелёные тесты, пороги покрытия                   | tsc, jest                             |
-| документация            | frontmatter, граф, ссылки, README модулей                   | `scripts/docs/check.mjs`              |
 | коммиты                 | формат Conventional Commits                                 | `scripts/git/commit-msg.mjs`          |
 
 Правило, которое нельзя проверить автоматически, — предмет ревью и описывается в

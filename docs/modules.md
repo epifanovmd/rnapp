@@ -1,4 +1,4 @@
-<!-- Сгенерировано scripts/docs/check.mjs (yarn docs:index). Не редактировать вручную. -->
+<!-- Сгенерировано scripts/docs/index.mjs (yarn docs:index). Не редактировать вручную. -->
 
 # Модули
 
@@ -10,6 +10,36 @@
 | Модуль                      | О чём                                                                                                |
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | [app](../src/app/README.md) | Композиционный корень — провайдеры, DI, навигаторы и экраны, deep linking, бутстрап и данные сессии. |
+
+## entities
+
+| Модуль                                                | О чём                                                                                                                      |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [entities/audit](../src/entities/audit/README.md)     | Журнал действий текущего пользователя — лента по курсору сервера и живые события audit:created.                            |
+| [entities/auth](../src/entities/auth/README.md)       | Аутентификация — статус входа, вход/регистрация/2FA/restore/выход, guard текущей сессии и общие валидации логина и пароля. |
+| [entities/file](../src/entities/file/README.md)       | Файлы пользователя — список страницами («мои» или все), загрузка с прогрессом, удаление и realtime-события.                |
+| [entities/message](../src/entities/message/README.md) | Сообщение переписки — модель, реестр видов содержимого и UI пузыря, цитаты и разделителя даты.                             |
+| [entities/user](../src/entities/user/README.md)       | Текущий пользователь — профиль, роли и права, приватность, сессии и realtime-синхронизация по сокету.                      |
+
+## features
+
+| Модуль                                                                    | О чём                                                                                                       |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [features/account-security](../src/features/account-security/README.md)   | Настройки безопасности аккаунта — email, username, пароль, 2FA и удаление аккаунта.                         |
+| [features/biometric](../src/features/biometric/README.md)                 | Вход по Face ID / Touch ID / отпечатку — регистрация ключа устройства, вход подписью nonce, тумблер в меню. |
+| [features/container-scan](../src/features/container-scan/README.md)       | Сканер кодов морских контейнеров ISO 6346 — OCR-домен с детектором областей, типоразмер и веса.             |
+| [features/delete-file](../src/features/delete-file/README.md)             | Сценарий удаления файла — подтверждение, удаление в сторе и уведомление об ошибке.                          |
+| [features/edit-profile](../src/features/edit-profile/README.md)           | Редактирование личных данных профиля в модальной шторке.                                                    |
+| [features/file-upload](../src/features/file-upload/README.md)             | Загрузка в «Мои файлы» — шторка источников (галерея, камера, документы), очередь и прогресс.                |
+| [features/message-actions](../src/features/message-actions/README.md)     | Контекстное меню сообщения — ответить, изменить, удалить.                                                   |
+| [features/object-scan](../src/features/object-scan/README.md)             | Пример детекции объектов камерой — боксы на оверлее и живой список найденного.                              |
+| [features/plate-scan](../src/features/plate-scan/README.md)               | Сканер российских автономеров — OCR-домен с детектором номера и подтверждением серией сканов.               |
+| [features/profile-settings](../src/features/profile-settings/README.md)   | Аватар профиля (новое фото или одно из своих изображений) и настройки приватности.                          |
+| [features/recovery-password](../src/features/recovery-password/README.md) | Запрос письма для сброса пароля и состояние «письмо отправлено».                                            |
+| [features/sign-in](../src/features/sign-in/README.md)                     | Вход по логину и паролю, подтверждение вторым паролем (2FA) и переход к GitHub OAuth.                       |
+| [features/sign-out](../src/features/sign-out/README.md)                   | Выход из аккаунта с подтверждением и выход на всех устройствах.                                             |
+| [features/sign-up](../src/features/sign-up/README.md)                     | Регистрация по email или телефону с необязательными именем и фамилией.                                      |
+| [features/text-scan](../src/features/text-scan/README.md)                 | Распознавание произвольного текста камерой — живой поток строк в порядке чтения.                            |
 
 ## pages
 
@@ -33,45 +63,6 @@
 | [pages/tabs/main](../src/pages/tabs/main/README.md)                             | Стартовая вкладка — ImageBar и лента карточек AnchorList с pull-to-refresh и синхронизацией навбара и таб-бара. |
 | [pages/tabs/playground](../src/pages/tabs/playground/README.md)                 | Вкладка Playground — кнопки перехода на демо-экраны стека (PDF, WebView, кит, чат, сканеры).                    |
 | [pages/tabs/settings](../src/pages/tabs/settings/README.md)                     | Вкладка «Настройки» — меню приложения из widgets/app-menu с переходом карточки профиля в навбар.                |
-
-## widgets
-
-| Модуль                                                      | О чём                                                                                                               |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| [widgets/app-menu](../src/widgets/app-menu/README.md)       | Меню вкладки «Настройки» — профиль, разделы аккаунта, тема, биометрия, выход и версия.                              |
-| [widgets/app-shell](../src/widgets/app-shell/README.md)     | Нижний таб-бар приложения — компонент для навигатора, контекст панели, скрытие при скролле и высота для отступов.   |
-| [widgets/auth-layout](../src/widgets/auth-layout/README.md) | Оформление экранов входа, регистрации и восстановления пароля без шапки навигатора.                                 |
-| [widgets/chat](../src/widgets/chat/README.md)               | Экран переписки — список сообщений на AnchorList, панель ввода, меню действий, цитаты и сохранение позиции скролла. |
-
-## features
-
-| Модуль                                                                    | О чём                                                                                                       |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [features/account-security](../src/features/account-security/README.md)   | Настройки безопасности аккаунта — email, username, пароль, 2FA и удаление аккаунта.                         |
-| [features/biometric](../src/features/biometric/README.md)                 | Вход по Face ID / Touch ID / отпечатку — регистрация ключа устройства, вход подписью nonce, тумблер в меню. |
-| [features/container-scan](../src/features/container-scan/README.md)       | Сканер кодов морских контейнеров ISO 6346 — OCR-домен с детектором областей, типоразмер и веса.             |
-| [features/delete-file](../src/features/delete-file/README.md)             | Сценарий удаления файла — подтверждение, удаление в сторе и уведомление об ошибке.                          |
-| [features/edit-profile](../src/features/edit-profile/README.md)           | Редактирование личных данных профиля в модальной шторке.                                                    |
-| [features/file-upload](../src/features/file-upload/README.md)             | Загрузка в «Мои файлы» — шторка источников (галерея, камера, документы), очередь и прогресс.                |
-| [features/message-actions](../src/features/message-actions/README.md)     | Контекстное меню сообщения — ответить, изменить, удалить.                                                   |
-| [features/object-scan](../src/features/object-scan/README.md)             | Пример детекции объектов камерой — боксы на оверлее и живой список найденного.                              |
-| [features/plate-scan](../src/features/plate-scan/README.md)               | Сканер российских автономеров — OCR-домен с детектором номера и подтверждением серией сканов.               |
-| [features/profile-settings](../src/features/profile-settings/README.md)   | Аватар профиля (новое фото или одно из своих изображений) и настройки приватности.                          |
-| [features/recovery-password](../src/features/recovery-password/README.md) | Запрос письма для сброса пароля и состояние «письмо отправлено».                                            |
-| [features/sign-in](../src/features/sign-in/README.md)                     | Вход по логину и паролю, подтверждение вторым паролем (2FA) и переход к GitHub OAuth.                       |
-| [features/sign-out](../src/features/sign-out/README.md)                   | Выход из аккаунта с подтверждением и выход на всех устройствах.                                             |
-| [features/sign-up](../src/features/sign-up/README.md)                     | Регистрация по email или телефону с необязательными именем и фамилией.                                      |
-| [features/text-scan](../src/features/text-scan/README.md)                 | Распознавание произвольного текста камерой — живой поток строк в порядке чтения.                            |
-
-## entities
-
-| Модуль                                                | О чём                                                                                                                      |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| [entities/audit](../src/entities/audit/README.md)     | Журнал действий текущего пользователя — лента по курсору сервера и живые события audit:created.                            |
-| [entities/auth](../src/entities/auth/README.md)       | Аутентификация — статус входа, вход/регистрация/2FA/restore/выход, guard текущей сессии и общие валидации логина и пароля. |
-| [entities/file](../src/entities/file/README.md)       | Файлы пользователя — список страницами («мои» или все), загрузка с прогрессом, удаление и realtime-события.                |
-| [entities/message](../src/entities/message/README.md) | Сообщение переписки — модель, реестр видов содержимого и UI пузыря, цитаты и разделителя даты.                             |
-| [entities/user](../src/entities/user/README.md)       | Текущий пользователь — профиль, роли и права, приватность, сессии и realtime-синхронизация по сокету.                      |
 
 ## shared
 
@@ -118,3 +109,12 @@
 | [shared/lib/webrtc](../src/shared/lib/webrtc/README.md)                   | DI-сервис WebRTC-примитивов — peer connection, offer/answer, удалённое описание и ICE-кандидаты поверх react-native-webrtc.                                     |
 | [shared/ui](../src/shared/ui/README.md)                                   | UI-кит на React Native + Reanimated — инвентарь компонентов, правила кита и gotcha.                                                                             |
 | [shared/ui/flex-view](../src/shared/ui/flex-view/README.md)               | Утилитарные layout-пропсы поверх style (FlexView, Row, Col, useFlexProps) — конвертация без аллокаций для всех примитивов кита.                                 |
+
+## widgets
+
+| Модуль                                                      | О чём                                                                                                               |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [widgets/app-menu](../src/widgets/app-menu/README.md)       | Меню вкладки «Настройки» — профиль, разделы аккаунта, тема, биометрия, выход и версия.                              |
+| [widgets/app-shell](../src/widgets/app-shell/README.md)     | Нижний таб-бар приложения — компонент для навигатора, контекст панели, скрытие при скролле и высота для отступов.   |
+| [widgets/auth-layout](../src/widgets/auth-layout/README.md) | Оформление экранов входа, регистрации и восстановления пароля без шапки навигатора.                                 |
+| [widgets/chat](../src/widgets/chat/README.md)               | Экран переписки — список сообщений на AnchorList, панель ввода, меню действий, цитаты и сохранение позиции скролла. |

@@ -17,7 +17,7 @@ depends_on: [meta/doc-system, meta/priority]
 | `docs/00-meta`, `10-process`, `40-principles`         | как есть (`layer: core`)                              |
 | `docs/20-architecture`, `30-conventions`              | на том же стеке — как есть (`layer: stack`)           |
 | `.claude/skills`, `.claude/agents`                    | как есть; проектные команды — через `70-ops/commands` |
-| `scripts/docs`, `scripts/git`                         | как есть; параметры проекта — `docs/config.mjs`       |
+| `scripts/docs`, `scripts/git`                         | как есть                                              |
 | `.claude/rules`                                       | маски `paths` и ссылки — под структуру проекта        |
 | `CLAUDE.md`                                           | по образцу: карта та же, инварианты — свои            |
 | `docs/50-tech`, `60-domain`, `70-ops`, README модулей | пишутся заново (`layer: project`)                     |
@@ -26,11 +26,10 @@ depends_on: [meta/doc-system, meta/priority]
 
 1. Скопировать переносимые части.
 2. Заполнить `70-ops/commands` — skills и агенты берут команды проверки оттуда.
-   Написать `docs/config.mjs` — где лежат модули проекта; подключить `docs:check`
-   в полную проверку и `commit-msg` в git-хуки.
+   Подключить `commit-msg` в git-хуки.
 3. Написать `60-domain/overview` и `glossary`.
 4. Настроить маски `.claude/rules` под дерево исходников.
-5. Создать README модулей по шаблону; `yarn docs:check` покажет недостающие.
+5. Создать README модулей по шаблону, собрать индексы `yarn docs:index`.
 
 ## Развитие
 

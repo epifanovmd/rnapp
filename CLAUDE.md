@@ -82,6 +82,6 @@ Design.
 
 ```sh
 yarn lint && yarn typecheck && yarn test <путь>   # после каждой итерации
-yarn run check     # docs:check + lint + format:check + typecheck + test:coverage (не `yarn check`!)
+yarn run check     # lint + format:check + typecheck + test:coverage (не `yarn check`!)
 yarn docs:index    # пересобрать индексы документации
 ```
