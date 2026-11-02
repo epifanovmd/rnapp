@@ -1,3 +1,8 @@
+---
+module: shared/lib/slots
+summary: Compound-компоненты на слотах — схема слотов, разбор children за один проход, слияние props, createCompound.
+---
+
 # Compound slots
 
 Schema-driven compound components. A slot marker is tagged with owner metadata

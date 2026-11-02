@@ -1,3 +1,8 @@
+---
+module: shared/ui/flex-view
+summary: Утилитарные layout-пропсы поверх style (FlexView, Row, Col, useFlexProps) — конвертация без аллокаций для всех примитивов кита.
+---
+
 # flex-view
 
 Утилитарные layout-пропсы поверх style: вместо `style={{ flexDirection: "row", padding: 16 }}` —
