@@ -6,9 +6,8 @@
 
 ## Проект
 
-RN template app: auth (sign-in/up/recovery, 2FA, biometrics, passkeys), сканеры
-(текст/объекты/номера/контейнеры), чат на AnchorList, settings, ui-kit-плейграунд. Код — в `template/` (корневые
-`package.json`/`template.config.js` принадлежат scaffold-утилите, не приложению).
+RN-приложение: auth (sign-in/up/recovery, 2FA, biometrics, passkeys), сканеры
+(текст/объекты/номера/контейнеры), чат на AnchorList, settings, ui-kit-плейграунд.
 
 ## Стек
 
@@ -47,7 +46,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
   методами. Хелпер объявляется выше первого использования — у `const` нет hoisting.
   Дженерик в `.tsx` — `<T,>`. Проверяется линтером (`func-style`, `prefer-arrow-callback`);
   исключение — codegen-спеки нативных модулей и `.d.ts`.
-- После каждой задачи — прогон `tsc --noEmit` и `eslint` в `template/`. Все ошибки править сразу, за один проход.
+- После каждой задачи — прогон `tsc --noEmit` и `eslint` в корне. Все ошибки править сразу, за один проход.
 - **Багфикс через тест.** Любой баг сначала покрывается тестом, потом чинится.
   Порядок обязательный: тест, воспроизводящий баг и падающий на текущем коде →
   правка → зелёный прогон. Тест остаётся в кодовой базе. Если поведение не берётся
@@ -64,7 +63,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
    (каждая — рабочее состояние). Показать пользователю, дождаться подтверждения.
 3. **Выполнение** — по одной итерации; после каждой — lint и typecheck; не переходить
    дальше, пока текущая не стабильна. Сообщать прогресс.
-4. **Проверка** — `yarn run check` из `template/` (lint + format:check + typecheck + test:coverage); краткое резюме.
+4. **Проверка** — `yarn run check` (lint + format:check + typecheck + test:coverage); краткое резюме.
 
 ## Комментарии в коде
 
@@ -75,9 +74,9 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 
 ## Документация
 
-Проектная документация (`README.md`, `template/ARCHITECTURE.md`,
-`template/FSD-CHEATSHEET.md`, `template/CONVENTIONS.md`, `template/CLEAN-CODE.md`,
-`template/DESIGN-PRINCIPLES.md`) описывает **общие принципы, архитектуру и структуру** —
+Проектная документация (`README.md`, `ARCHITECTURE.md`,
+`FSD-CHEATSHEET.md`, `CONVENTIONS.md`, `CLEAN-CODE.md`,
+`DESIGN-PRINCIPLES.md`) описывает **общие принципы, архитектуру и структуру** —
 без описания конкретных экранов, слайсов, модулей и имён.
 
 **Эти документы меняются только в исключительных случаях** — когда в проекте
@@ -93,7 +92,7 @@ New Architecture (Fabric/TurboModules). Node >= 22.11.
 Если правка документации всё же нужна: писать новое состояние, а не историю
 изменений; только сухие факты — архитектура, структура, важные решения.
 
-## Команды (из `template/`)
+## Команды
 
 ```bash
 npm run ios:{Dev,Stg,Prod}-{Debug,Release}
@@ -113,25 +112,25 @@ WheelPicker (`RNWheelPicker`) — на обеих платформах, един
 iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
 AppSplash — свой splash-экран на обеих платформах, ассеты генерируются `npm run splash`
 из `splash.config.mjs`.
-VisionEngine (`template/modules/react-native-vision-engine`) — локальный Nitro-модуль
+VisionEngine (`modules/react-native-vision-engine`) — локальный Nitro-модуль
 (link:-зависимость) generic-OCR + детекция объектов (`detectObjects`) для VisionCamera v5: iOS — Apple Vision + опц.
 CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. Модели детекторов
 (YOLO → CoreML со встроенным NMS / TFLite) кладутся вручную в
-`template/ios/MLModels/` и `template/android/app/src/main/assets/`
+`ios/MLModels/` и `android/app/src/main/assets/`
 (см. README в этих папках); без модели OCR работает полнокадрово.
 
 ## Где читать
 
 Общие принципы (без проектной конкретики):
 
-- **Архитектура**: [`ARCHITECTURE.md`](template/ARCHITECTURE.md) — FSD, зависимости,
+- **Архитектура**: [`ARCHITECTURE.md`](ARCHITECTURE.md) — FSD, зависимости,
   public API, навигация, state, DI, HTTP/сессия, ошибки, нативный слой, автопроверки.
-- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](template/FSD-CHEATSHEET.md) — выбор слоя,
+- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](FSD-CHEATSHEET.md) — выбор слоя,
   сегменты, public API и checklist.
-- **Конвенции**: [`CONVENTIONS.md`](template/CONVENTIONS.md) — naming, компоненты,
+- **Конвенции**: [`CONVENTIONS.md`](CONVENTIONS.md) — naming, компоненты,
   imports, TypeScript, hooks, стили, комментарии, тесты и проверки.
-- **Clean code**: [`CLEAN-CODE.md`](template/CLEAN-CODE.md) и
-  [`DESIGN-PRINCIPLES.md`](template/DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
+- **Clean code**: [`CLEAN-CODE.md`](CLEAN-CODE.md) и
+  [`DESIGN-PRINCIPLES.md`](DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
 
 Конкретика проекта (проверенные факты, gotcha, точные файловые карты):
 

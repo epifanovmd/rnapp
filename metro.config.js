@@ -15,7 +15,7 @@ const path = require("path");
  * добавить в наблюдаемые — иначе символическая ссылка ведёт в неизвестное
  * дерево, и модуль не резолвится.
  */
-const LINKED_PACKAGES = [path.resolve(__dirname, "../../anchor-list")];
+const LINKED_PACKAGES = [path.resolve(__dirname, "../anchor-list")];
 
 /**
  * Пакеты, которых в приложении обязан быть ровно один экземпляр.

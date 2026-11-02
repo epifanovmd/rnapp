@@ -1,13 +1,13 @@
 .PHONY: check lint typecheck test
 
 check:
-	cd template && yarn run check
+	yarn run check
 
 lint:
-	cd template && yarn lint
+	yarn lint
 
 typecheck:
-	cd template && yarn typecheck
+	yarn typecheck
 
 test:
-	cd template && yarn test --runInBand
+	yarn test --runInBand

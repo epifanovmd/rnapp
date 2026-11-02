@@ -1,18 +1,15 @@
-# React Native Template
+# rnapp
 
-Шаблон React Native приложения с архитектурой Feature-Sliced Design:
+React Native приложение с архитектурой Feature-Sliced Design:
 `app → pages → widgets → features → entities → shared`.
-
-Код приложения находится в `template/`; корневые `package.json` и `template.config.js`
-принадлежат scaffold-утилите, а не приложению.
 
 Документация:
 
-- архитектурная модель, слои, границы, навигация и состояние — [ARCHITECTURE.md](template/ARCHITECTURE.md);
-- памятка «что куда класть» — [FSD-CHEATSHEET.md](template/FSD-CHEATSHEET.md);
-- правила написания кода — [CONVENTIONS.md](template/CONVENTIONS.md);
-- принципы проектирования — [CLEAN-CODE.md](template/CLEAN-CODE.md) и
-  [DESIGN-PRINCIPLES.md](template/DESIGN-PRINCIPLES.md).
+- архитектурная модель, слои, границы, навигация и состояние — [ARCHITECTURE.md](ARCHITECTURE.md);
+- памятка «что куда класть» — [FSD-CHEATSHEET.md](FSD-CHEATSHEET.md);
+- правила написания кода — [CONVENTIONS.md](CONVENTIONS.md);
+- принципы проектирования — [CLEAN-CODE.md](CLEAN-CODE.md) и
+  [DESIGN-PRINCIPLES.md](DESIGN-PRINCIPLES.md).
 
 Документация описывает общие принципы и не содержит описания конкретных экранов и
 модулей. Она меняется только в исключительных случаях — когда меняется архитектура,
@@ -36,11 +33,14 @@
 ### Installation
 
 ```sh
-$ npm install -g @react-native-community/cli
-$ npx react-native init ProjectName --template <template-repository-url>
-$ cd <ProjectName>
-$ yarn clean:android # This step is required for android
+$ git clone <repository-url> rnapp
+$ cd rnapp
+$ yarn                       # зависимости и git-хуки (lefthook)
+$ cd ios && pod install && cd ..
 ```
+
+Пакет `@epifanovmd/anchor-list` подключён локально (`link:../anchor-list`): репозиторий
+`anchor-list` должен лежать рядом с `rnapp`.
 
 ### Run for Android
 
@@ -58,14 +58,6 @@ $ yarn ios:Dev-Debug
 ### Checks
 
 Обязательный минимум перед merge — линтер, формат, проверка типов и тесты с порогом покрытия.
-
-Из корня репозитория:
-
-```sh
-$ make check
-```
-
-Или из `template/`:
 
 ```sh
 $ yarn run check      # lint + format:check + typecheck + test:coverage

@@ -39,7 +39,7 @@ const defineApi = (name: string, input: Options["input"]): Options => ({
  */
 const MAIN_SWAGGER =
   process.env.MAIN_SWAGGER ??
-  "../../rest-api-template-app/src/routing/swagger.json";
+  "../rest-api-template-app/src/routing/swagger.json";
 
 export default defineConfig({
   main: defineApi("main", { target: MAIN_SWAGGER }),
