@@ -1,144 +1,87 @@
 # CLAUDE.md
 
-## Язык ответа
-
 Отвечать на русском.
 
-## Проект
+Мобильное приложение на React Native поверх бэкенда `rest-api-template-app`: аккаунт,
+файлы, журнал, сканеры на камере, чат, плейграунд UI-кита. RN 0.86 (New Architecture) +
+React 19 + TS, MobX 6 + Inversify 8 (DI), React Navigation 7 (static API), Reanimated,
+VisionCamera 5 + Nitro, Socket.IO, RHF + Zod, orval, Jest. Архитектура — Feature-Sliced
+Design.
 
-RN-приложение: auth (sign-in/up/recovery, 2FA, biometrics, passkeys), сканеры
-(текст/объекты/номера/контейнеры), чат на AnchorList, settings, ui-kit-плейграунд.
+## Система знаний
 
-## Стек
+Всё знание о проекте — в одной системе ([устройство](docs/00-meta/doc-system.md)).
+Документы не загружены в контекст: читать нужное по карте ниже.
 
-RN 0.86 + React 19.2 + TS 5.9 + MobX 6 + React Navigation 7 + Socket.IO 4 + Axios + Zod 4 +
-react-hook-form 7 + Inversify 8 + Skia + Reanimated + keyboard-controller +
-VisionCamera 5 (Nitro, frame-worklets).
-New Architecture (Fabric/TurboModules). Node >= 22.11.
+| Нужно                                  | Где                                                               |
+| -------------------------------------- | ----------------------------------------------------------------- |
+| найти документ по теме, роли, этапу    | [docs/README.md](docs/README.md) — индекс                         |
+| понять модуль, найти его по назначению | [docs/modules.md](docs/modules.md) → `src/<модуль>/README.md`     |
+| порядок работы над задачей             | [process/workflow](docs/10-process/workflow.md)                   |
+| исправить баг                          | [process/bugfix](docs/10-process/bugfix.md)                       |
+| куда положить код                      | [architecture/placement](docs/20-architecture/placement.md)       |
+| границы импортов                       | [architecture/dependencies](docs/20-architecture/dependencies.md) |
+| навигация, нативный слой               | `docs/20-architecture/` — `navigation`, `native`                  |
+| как оформлять код                      | `docs/30-conventions/` — по теме из индекса                       |
+| эталонный код модулей                  | [tech/recipes](docs/50-tech/recipes.md)                           |
+| нативные модули                        | [tech/native-modules](docs/50-tech/native-modules.md)             |
+| продукт, экраны                        | `docs/60-domain/`                                                 |
+| команды, окружение, сборка             | [ops/commands](docs/70-ops/commands.md), `docs/70-ops/`           |
+| git и коммиты                          | [process/git](docs/10-process/git.md)                             |
+| противоречие или нет правила           | [meta/priority](docs/00-meta/priority.md)                         |
 
-## Layout (FSD: app → pages → widgets → features → entities → shared)
+Правила области подгружаются автоматически при работе с её файлами
+(`.claude/rules/`). Процедуры — skills: `/task`, `/bugfix`, `/review`, `/new-module`,
+`/propose-rule`; только по команде пользователя — `/commit`, `/docs-edit`.
+Роли-субагенты — `.claude/agents/` ([process/roles](docs/10-process/roles.md)).
 
-- `app/` — композиционный корень: App.tsx, App.navigator.tsx, App.screens.ts, app-tab-screens.tsx,
-  App.linking.ts, App.notifications.tsx, app.module.ts (DI), app-data-* (стор данных приложения)
-- `pages/` — сгруппированы по навигаторам: `tabs/` (main, playground, settings),
-  `stack/` (sign-in, sign-up, recovery-password, chat, components — плейграунд кита:
-  демо-экраны компонентов, графиков, календаря, контекстного меню, input bar;
-  container-scanner, object-scanner, pdf-view, plate-scanner, text-scanner, web-view)
-- `widgets/` — app-shell, auth-layout (оформление входа и регистрации), app-menu (вкладка
-  настроек), chat (ChatView: AnchorList + InputBar + контекстное меню)
-- `features/` — вход и аккаунт (sign-in, sign-up, sign-out, recovery-password, biometric,
-  edit-profile, profile-settings, account-security), сканеры (container-, object-, plate-,
-  text-scan), чат (message-actions), файлы (file-upload, delete-file)
-- `entities/` — auth, user, message, file, audit
-- `shared/` — ui | api (только конкретные бэкенды) | config | lib (http, session, di, holders,
-  navigation, theme, socket, keyboard, ...)
+## Этапы любой задачи
 
-## Правила (обязательные)
+0. Приём → 1. Анализ (README модулей, документы из индекса) → 2. **План — показать и
+   дождаться подтверждения** → 3. Итерации (после каждой — быстрая проверка) → 4. Полная проверка (`yarn run check`; нативные изменения — сборка платформ) → 5. Ревью diff → 6. README модулей, предложения в inbox → 7. Итог. Подробно —
+   [process/workflow](docs/10-process/workflow.md).
 
-- FSD: импорт только вниз по слоям; слайсы одного слоя не импортируют друг друга
-  (`eslint-plugin-boundaries`). Именование файлов/папок — `eslint-plugin-check-file`.
-- `shared/api/gen/` — orval-генерация, **не редактировать** (`npm run generate:orval`).
-- Алиасы `@app/@pages/@widgets/@features/@entities/@shared` — в `tsconfig.json` **и**
-  `babel.config.js`, синхронно.
-- Внутри слайса/сегмента — только относительные импорты; self-alias запрещён (`boundaries/dependencies`).
-- **Все функции — стрелочные.** `function`-объявления и выражения запрещены (компоненты,
-  хуки, хелперы, type guards, фабрики, callback-и, worklets); методы классов остаются
-  методами. Хелпер объявляется выше первого использования — у `const` нет hoisting.
-  Дженерик в `.tsx` — `<T,>`. Проверяется линтером (`func-style`, `prefer-arrow-callback`);
-  исключение — codegen-спеки нативных модулей и `.d.ts`.
-- После каждой задачи — прогон `tsc --noEmit` и `eslint` в корне. Все ошибки править сразу, за один проход.
-- **Багфикс через тест.** Любой баг сначала покрывается тестом, потом чинится.
-  Порядок обязательный: тест, воспроизводящий баг и падающий на текущем коде →
-  правка → зелёный прогон. Тест остаётся в кодовой базе. Если поведение не берётся
-  юнит-тестом (RN-рантайм, Reanimated, нативный слой) — вынести вычислимую часть в
-  чистый модуль и покрыть её, а невозможность прямого теста назвать явно.
+## Инварианты
 
-## Workflow
+- **Ничего не выдумывать.** Место кода, паттерн, имя — по документам и рецептам. Нет
+  правила или правила противоречат — остановиться и спросить, а не решать самому.
+- FSD: `app → pages → widgets → features → entities → shared`; импорт только вниз,
+  слайсы одного слоя не видят друг друга, внутри слайса — относительные пути,
+  снаружи — через `index.ts` ([dependencies](docs/20-architecture/dependencies.md)).
+  Экраны — `pages/<navigator>/<page>`.
+- DI: сторы singleton, `IXxx.useInstance()` в React / `IXxx.getInstance()` вне React,
+  биндинги в `<slice>.module.ts` → `src/app/app.module.ts`, без обёрточных хуков.
+- Async-состояние — только холдеры `@shared/lib/holders`; API — `{ data } | { error }`
+  без исключений наружу ([state](docs/20-architecture/state.md)).
+- Все функции стрелочные (включая worklets), хелпер выше использования, дженерик в
+  `.tsx` — `<T,>` ([functions](docs/30-conventions/functions.md)).
+- **Багфикс через тест**: сначала тест, падающий на текущем коде, потом исправление;
+  тест остаётся ([bugfix](docs/10-process/bugfix.md)).
+- Не редактировать вручную: `src/shared/api/gen/`, генерат Nitro в `modules/`.
+- `shared/lib/holders` — порог покрытия 100%: правка только с тестами.
+- Алиасы — в `tsconfig.json`, `babel.config.js` и `jest.config.js` синхронно.
+- Комментарии — только JSDoc к контрактам и неочевидное, без истории
+  ([comments](docs/30-conventions/comments.md)).
+- У каждого модуля — `README.md` рядом с кодом; изменил поведение или API —
+  обнови README в той же задаче.
+- Неиспользуемый существующий код — заготовка: не удалять без команды пользователя.
+- Commit, push, merge — только по команде пользователя; коммиты — Conventional Commits
+  на русском ([git](docs/10-process/git.md)).
 
-Любая задача (фича, баг, рефакторинг) проходит четыре этапа:
+## Защищённые правила
 
-1. **Анализ** — прочитать релевантные файлы `.claude/memory/` и затрагиваемый код,
-   определить scope слайсов и файлов, выявить риски и edge cases.
-2. **План** — пошаговый план с конкретными файлами, разбитый на мелкие итерации
-   (каждая — рабочее состояние). Показать пользователю, дождаться подтверждения.
-3. **Выполнение** — по одной итерации; после каждой — lint и typecheck; не переходить
-   дальше, пока текущая не стабильна. Сообщать прогресс.
-4. **Проверка** — `yarn run check` (lint + format:check + typecheck + test:coverage); краткое резюме.
+`CLAUDE.md`, `README.md`, `docs/**` (кроме `docs/inbox/`), `.claude/`, `scripts/{docs,git}`,
+конфиги линтера и git-хуков меняются **только по явному указанию пользователя**
+([protection](docs/00-meta/protection.md)).
 
-## Комментарии в коде
-
-- Разрешены только: JSDoc/краткий комментарий к пропсам, определениям функций, компонентов и хуков.
-- В теле функций — только если место неочевидное и без комментария нельзя.
-- Комментарий — краткий, по факту. Не описывать историю изменений.
-- Если комментарий устарел — переписать заново, а не дополнять.
-
-## Документация
-
-Проектная документация (`README.md`, `ARCHITECTURE.md`,
-`FSD-CHEATSHEET.md`, `CONVENTIONS.md`, `CLEAN-CODE.md`,
-`DESIGN-PRINCIPLES.md`) описывает **общие принципы, архитектуру и структуру** —
-без описания конкретных экранов, слайсов, модулей и имён.
-
-**Эти документы меняются только в исключительных случаях** — когда в проекте
-действительно меняется архитектура, принцип, паттерн или правило. Правка задачи, даже
-изменившая архитектурный факт, не повод править документ попутно: сообщить об этом и
-вынести правку документации в отдельную задачу. Не добавлять в них проектную конкретику
-(имена экранов, слайсов, компонентов, сторов, файлов).
-
-Локальная память `.claude/memory/` — наоборот, живой справочник: её можно и нужно
-обновлять без ограничений при каждой задаче — проверенные факты, gotcha, точные
-файловые карты.
-
-Если правка документации всё же нужна: писать новое состояние, а не историю
-изменений; только сухие факты — архитектура, структура, важные решения.
+Повторяющаяся ситуация без правила, противоречие, устаревший факт в защищённом
+документе, указание пользователя вида «всегда / никогда» — **предложить правило**:
+файл в `docs/inbox/` по шаблону и пункт в итоговом сообщении (`/propose-rule`).
 
 ## Команды
 
-```bash
-npm run ios:{Dev,Stg,Prod}-{Debug,Release}
-npm run android:{Dev,Stg,Prod}-{Debug,Release}
-npm run android:build          # assembleProductionRelease
-npm run lint | lint:fix | prettier:fix
-npm run generate:orval         # перегенерировать shared/api/gen/
-npm run start | reinstall
-npm run restore:native         # бинарники Skia/AudioAPI после yarn install
+```sh
+yarn lint && yarn typecheck && yarn test <путь>   # после каждой итерации
+yarn run check     # docs:check + lint + format:check + typecheck + test:coverage (не `yarn check`!)
+yarn docs:index    # пересобрать индексы документации
 ```
-
-Нет scaffolder'а — файлы создаются вручную.
-
-## Нативные модули
-
-WheelPicker (`RNWheelPicker`) — на обеих платформах, единый API из одной codegen-спеки:
-iOS — Swift/UIKit + UICollectionView, Android — Kotlin + RecyclerView.
-AppSplash — свой splash-экран на обеих платформах, ассеты генерируются `npm run splash`
-из `splash.config.mjs`.
-VisionEngine (`modules/react-native-vision-engine`) — локальный Nitro-модуль
-(link:-зависимость) generic-OCR + детекция объектов (`detectObjects`) для VisionCamera v5: iOS — Apple Vision + опц.
-CoreML-детектор, Android — ML Kit + опц. TFLite-детектор. Модели детекторов
-(YOLO → CoreML со встроенным NMS / TFLite) кладутся вручную в
-`ios/MLModels/` и `android/app/src/main/assets/`
-(см. README в этих папках); без модели OCR работает полнокадрово.
-
-## Где читать
-
-Общие принципы (без проектной конкретики):
-
-- **Архитектура**: [`ARCHITECTURE.md`](ARCHITECTURE.md) — FSD, зависимости,
-  public API, навигация, state, DI, HTTP/сессия, ошибки, нативный слой, автопроверки.
-- **FSD-шпаргалка**: [`FSD-CHEATSHEET.md`](FSD-CHEATSHEET.md) — выбор слоя,
-  сегменты, public API и checklist.
-- **Конвенции**: [`CONVENTIONS.md`](CONVENTIONS.md) — naming, компоненты,
-  imports, TypeScript, hooks, стили, комментарии, тесты и проверки.
-- **Clean code**: [`CLEAN-CODE.md`](CLEAN-CODE.md) и
-  [`DESIGN-PRINCIPLES.md`](DESIGN-PRINCIPLES.md) — KISS, YAGNI, DRY, SOLID и паттерны.
-
-Конкретика проекта (проверенные факты, gotcha, точные файловые карты):
-
-- API-слой (HTTP-ядро, middleware, ошибки): `.claude/memory/project_api.md`
-- Сессия и токены (`lib/session`): `.claude/memory/project_session.md`
-- Нативные модули / чат / keyboard: `.claude/memory/project_native.md`
-- UI-кит: `.claude/memory/project_components.md`
-- Экраны / навигация: `.claude/memory/project_screens.md`
-- Паттерны: `.claude/memory/project_patterns.md`
-- Сборка: `.claude/memory/project_build.md`
-- Алиасы: `.claude/memory/project_aliases.md`

@@ -1,7 +1,7 @@
 import checkFile from "eslint-plugin-check-file";
 
 /**
- * Конвенции именования файлов/папок из ARCHITECTURE.md через
+ * Конвенции именования файлов/папок из docs/30-conventions/naming.md через
  * eslint-plugin-check-file:
  *
  *   - `use*`/`create*`/`build*` + PascalCase — хук или фабрика, имя файла
