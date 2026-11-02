@@ -17,8 +17,3 @@ pre-commit:
     - name: test
       # С покрытием: пороги jest.config.js проверяются только при --coverage.
       run: node_modules/.bin/jest --no-watchman --runInBand --coverage
-
-commit-msg:
-  jobs:
-    - name: conventional-commit
-      run: node scripts/git/commit-msg.mjs {1}

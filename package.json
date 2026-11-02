@@ -33,7 +33,6 @@
     "lint:fix": "eslint --fix \"src/**/*.{ts,tsx}\"",
     "prettier:fix": "prettier --parser typescript --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
-    "docs:index": "node --no-warnings scripts/docs/index.mjs --write",
     "check-packages-updates": "yarn outdated"
   },
   "dependencies": {

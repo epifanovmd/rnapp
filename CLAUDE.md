@@ -70,7 +70,7 @@ Design.
 
 ## Защищённые правила
 
-`CLAUDE.md`, `README.md`, `docs/**` (кроме `docs/inbox/`), `.claude/`, `scripts/{docs,git}`,
+`CLAUDE.md`, `README.md`, `docs/**` (кроме `docs/inbox/`), `.claude/`,
 конфиги линтера и git-хуков меняются **только по явному указанию пользователя**
 ([protection](docs/00-meta/protection.md)).
 
@@ -83,5 +83,4 @@ Design.
 ```sh
 yarn lint && yarn typecheck && yarn test <путь>   # после каждой итерации
 yarn run check     # lint + format:check + typecheck + test:coverage (не `yarn check`!)
-yarn docs:index    # пересобрать индексы документации
 ```

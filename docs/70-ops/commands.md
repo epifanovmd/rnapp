@@ -21,7 +21,6 @@ depends_on: []
 | полная проверка           | `yarn run check` — lint, format:check, typecheck, test:coverage |
 | форматирование файлов     | `node_modules/.bin/prettier --write <файлы>`                    |
 | автоисправление линтера   | `yarn lint:fix`                                                 |
-| документация              | `yarn docs:index`                                               |
 
 `yarn check` без `run` — встроенная команда Yarn 1, а не проверка проекта.
 `make check|lint|typecheck|test` — те же проверки.
